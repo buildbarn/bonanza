@@ -49,14 +49,15 @@ func (d *WorkerTopLevelDirectory) AddChild(ctx context.Context, name path.Compon
 
 func (d *WorkerTopLevelDirectory) RemoveChild(name path.Component) {
 	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	delete(d.children, name)
 	d.changeID++
 	if d.removalWait != nil {
 		close(d.removalWait)
 		d.removalWait = nil
 	}
+	d.lock.Unlock()
+
+	d.handle.NotifyRemoval(name)
 }
 
 func (d *WorkerTopLevelDirectory) VirtualGetAttributes(ctx context.Context, requested virtual.AttributesMask, attributes *virtual.Attributes) {
