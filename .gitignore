@@ -2,3 +2,5 @@
 .swp
 /bazel-*
 /target
+.idea
+.ijwb
