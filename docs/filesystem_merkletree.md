@@ -1,4 +1,5 @@
 ## Notes on how Bonanza encodes trees of files into DAGS of objects.
+## Author: Lucas Meijer. I spend a lot of time figuring all this out while reading the bonanza codebase, and wrote it down so you can speed through it more quickly.
 
 - A file will always live alone in an object. It will never share an object with any other file or other thing.
 - A file might span multiple objects. In this case there will be another object that has an array of FileContents messages
@@ -99,7 +100,7 @@ at it.
 The algorithm is recursive. When you ask it to calculate a merkle tree, you will end up getting back a Directory message.
 It's produced like this:
 - Produce a Leaves message for all immediate files & symlinks.
-- Produce a Directory message for each immediate directorie (by recursively calling into itself)
+- Produce a Directory message for each immediate directory (by recursively calling into itself)
 
 Then it starts building the Directory message that will end up being the result. Now we need to decide which
 of the messages above we inline in the result, and which to externalize. We make a list of candidates to inline and call
@@ -149,15 +150,15 @@ saying "if the number is high, this is a good cut point". It's completely arbitr
 use the same heuristic to find cut points, you are likely to find the same cut points as last time, and you'll get many identical
 segment objects, even in the face of changes having occurred in the file.
 
-When the file is really big, a single indirection object is not enough. Objects have a max of 256 outgoing references.
-In this case you can have one indirection object point to another indirection object. Let's say you have 300 file segments objects
-you need to refer to. You could have an indirection object have 255 FileContents messages that point to file segments,
-and then one final one that points to another indirection object that contains the remaining 45 file segments.
+
+When the file is really big, you can imagine wanting more than one indirection object. Let's say you have 300 file segments objects
+you need to refer to. You could have an indirection object have 200 FileContents messages that point to file segments,
+and then one final one that points to another indirection object that contains the remaining 100 file segments.
 You could also have two indirection objects with 150 FileContents pointing to file objects each, and then one object that
 has two FileContents messages pointing to each of those.
 
 Just like with the job of splitting up a big file, here there's also naive ways to arrange this tree of FileContents
-messages, and smarter ones. Bonanza uses a smarter one. It uses a prollyTree (`/pkg/model/core/btree/prolly_tree`) [https://docs.dolthub.com/architecture/storage-engine/prolly-tree](https://docs.dolthub.com/architecture/storage-engine/prolly-tree).
+messages, and smarter ones. Bonanza uses a smarter one. It uses a prollyTree (`/pkg/model/core/btree/prolly_tree`) [https://docs.dolthub.com/architecture/storage-engine/prolly-tree](https://docs.dolthub.com/architecture/storage-engine/prolly-tree). 
 Imagine our 300 FileContents messages in one big list. We need to decide where to "make a cut". The nodes we cut we'll put
 in a new object, and where we cut them from, we'll replace with a FileContents message that points to the new file.
 So in the file case, we had to cut at the granularity of bytes, here we cut at the granularity of FileContents messages.
@@ -166,6 +167,10 @@ The prolly tree uses a similar content based hashing technique. It hashes the in
 the more we want to use it as a cut point. Due to the other properties of a prolly tree, this makes it likely that
 even when a file changes, which inevitably causes the FileContents message that points to the segment containing the change to change,
 that other "groups of FileContents messages" that happened to point to file segments that didn't change, also don't change.
+
+It might feel like a bit of overkill to add all this complexity of the prollyTree to the story of how we store files, but
+the prollytree is used for dozens of other scenarios in bonanza, and it only feels natural to also use it for distributing
+FileContents messages over objects, since we have the implementation laying around anyway.
 
 ## About merkle tree construction code
 
