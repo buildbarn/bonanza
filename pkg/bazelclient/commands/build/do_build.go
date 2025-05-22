@@ -215,28 +215,10 @@ func collectModules(args *arguments.BuildCommand, workspacePath path.Parser) (*m
 	}, nil
 }
 
-func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
-	logger := logging.NewLoggerFromFlags(&args.CommonFlags)
-	commands.ValidateInsideWorkspace(logger, "build", workspacePath)
-
-	remoteCacheClient, err := newGRPCClient(args.CommonFlags.RemoteCache, &args.CommonFlags)
-	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to create gRPC client for --remote_cache=%#v: %s", args.CommonFlags.RemoteCache, err))
-	}
-
-	modules, err := collectModules(args, workspacePath)
-	if err != nil {
-		logger.Fatal(formatted.Text(err.Error()))
-	}
-
-	// Determine parameters for creating file and directory Merkle
-	// trees. Parameters include minimum/maximum sizes of the
-	// resulting objects, and whether they are compressed and
-	// encrypted.
-	referenceFormat := object.MustNewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)
+func defaultEncoders(args *arguments.BuildCommand) ([]*model_encoding_pb.BinaryEncoder, error) {
 	encryptionKeyBytes, err := base64.StdEncoding.DecodeString(args.CommonFlags.RemoteEncryptionKey)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to base64 decode value of --remote_encryption_key: %s", err))
+		return nil, fmt.Errorf("Failed to base64 decode value of --remote_encryption_key: %w", err)
 	}
 	defaultEncoders := []*model_encoding_pb.BinaryEncoder{{
 		Encoder: &model_encoding_pb.BinaryEncoder_DeterministicEncrypting{
@@ -245,6 +227,22 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			},
 		},
 	}}
+	return defaultEncoders, nil
+}
+
+type merkleParameters struct {
+	directoryParameters        *model_filesystem.DirectoryCreationParameters
+	directoryParametersMessage *model_filesystem_pb.DirectoryCreationParameters
+
+	fileParameters        *model_filesystem.FileCreationParameters
+	fileParametersMessage *model_filesystem_pb.FileCreationParameters
+}
+
+// Determine parameters for creating file and directory Merkle
+// trees. Parameters include minimum/maximum sizes of the
+// resulting objects, and whether they are compressed and
+// encrypted.
+func merkleParams(args *arguments.BuildCommand, referenceFormat object.ReferenceFormat, defaultEncoders []*model_encoding_pb.BinaryEncoder) (*merkleParameters, error) {
 	var chunkEncoders []*model_encoding_pb.BinaryEncoder
 	if args.CommonFlags.RemoteCacheCompression {
 		chunkEncoders = append(chunkEncoders, &model_encoding_pb.BinaryEncoder{
@@ -263,7 +261,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 	directoryParameters, err := model_filesystem.NewDirectoryCreationParametersFromProto(directoryParametersMessage, referenceFormat)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Invalid directory creation parameters: %s", err))
+		return nil, fmt.Errorf("Invalid directory creation parameters: %w", err)
 	}
 	fileParametersMessage := &model_filesystem_pb.FileCreationParameters{
 		Access: &model_filesystem_pb.FileAccessParameters{
@@ -277,7 +275,40 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 	fileParameters, err := model_filesystem.NewFileCreationParametersFromProto(fileParametersMessage, referenceFormat)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Invalid file creation parameters: %s", err))
+		return nil, fmt.Errorf("Invalid file creation parameters: %w", err)
+	}
+
+	return &merkleParameters{
+		directoryParameters:        directoryParameters,
+		directoryParametersMessage: directoryParametersMessage,
+		fileParameters:             fileParameters,
+		fileParametersMessage:      fileParametersMessage,
+	}, nil
+}
+
+func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
+	logger := logging.NewLoggerFromFlags(&args.CommonFlags)
+	commands.ValidateInsideWorkspace(logger, "build", workspacePath)
+
+	remoteCacheClient, err := newGRPCClient(args.CommonFlags.RemoteCache, &args.CommonFlags)
+	if err != nil {
+		logger.Fatal(formatted.Textf("Failed to create gRPC client for --remote_cache=%#v: %s", args.CommonFlags.RemoteCache, err))
+	}
+
+	modules, err := collectModules(args, workspacePath)
+	if err != nil {
+		logger.Fatal(formatted.Text(err.Error()))
+	}
+
+	referenceFormat := object.MustNewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)
+	defaultEncoders, err := defaultEncoders(args)
+	if err != nil {
+		logger.Fatal(formatted.Text(err.Error()))
+	}
+
+	merkleParams, err := merkleParams(args, referenceFormat, defaultEncoders)
+	if err != nil {
+		logger.Fatal(formatted.Text(err.Error()))
 	}
 
 	// Construct Merkle trees for all modules that need to be
@@ -301,11 +332,11 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 				groupCtx,
 				createMerkleTreesConcurrency,
 				group,
-				directoryParameters,
+				merkleParams.directoryParameters,
 				&localCapturableDirectory[model_core.CreatedObjectTree, model_core.NoopReferenceMetadata]{
 					DirectoryCloser: moduleRootDirectory,
 					options: &localCapturableDirectoryOptions[model_core.NoopReferenceMetadata]{
-						fileParameters: fileParameters,
+						fileParameters: merkleParams.fileParameters,
 						capturer:       model_filesystem.NewSimpleFileMerkleTreeCapturer(model_core.DiscardingCreatedObjectCapturer),
 					},
 				},
@@ -332,8 +363,8 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	buildSpecification := model_build_pb.BuildSpecification{
 		RootModuleName:                  modules.root.String(),
 		TargetPatterns:                  args.Arguments,
-		DirectoryCreationParameters:     directoryParametersMessage,
-		FileCreationParameters:          fileParametersMessage,
+		DirectoryCreationParameters:     merkleParams.directoryParametersMessage,
+		FileCreationParameters:          merkleParams.fileParametersMessage,
 		IgnoreRootModuleDevDependencies: args.CommonFlags.IgnoreDevDependency,
 		BuiltinsModuleNames:             args.CommonFlags.BuiltinsModule,
 		RepoPlatform:                    args.CommonFlags.RepoPlatform,
@@ -370,7 +401,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		createdObject, err := model_core.MarshalAndEncodePatchedMessage(
 			createdModuleRootDirectories[i].Message,
 			referenceFormat,
-			directoryParameters.GetEncoder(),
+			merkleParams.directoryParameters.GetEncoder(),
 		)
 		if err != nil {
 			logger.Fatal(formatted.Textf("Failed to create root directory object for module %#v: %s", moduleName.String(), err))
@@ -387,8 +418,8 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 						Reference: buildSpecificationPatcher.AddReference(
 							createdObject.Value.Contents.GetReference(),
 							model_filesystem.NewCapturedDirectoryWalker(
-								directoryParameters.DirectoryAccessParameters,
-								fileParameters,
+								merkleParams.directoryParameters.DirectoryAccessParameters,
+								merkleParams.fileParameters,
 								moduleRootDirectories[i],
 								&createdObjectTree,
 								decodingParameters,
