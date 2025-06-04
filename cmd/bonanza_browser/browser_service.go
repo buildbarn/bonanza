@@ -84,7 +84,7 @@ func wrapHandler(handler func(http.ResponseWriter, *http.Request) (g.Node, error
 
 // RegisterHandlers registers handlers for serving web pages in a mux.
 func (s *BrowserService) RegisterHandlers(mux *http.ServeMux) {
-	mux.HandleFunc("/", wrapHandler(s.doWelcome))
+	mux.HandleFunc("/{$}", wrapHandler(s.doWelcome))
 	mux.HandleFunc(
 		"/evaluation/{instance_name}/{reference_format}/{reference}/{key}",
 		wrapHandler(s.doEvaluation),
