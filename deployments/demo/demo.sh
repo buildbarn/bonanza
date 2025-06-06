@@ -51,6 +51,6 @@ worker_pid=$!
 
 # Install trap handler that first kills the builder and worker, and only
 # kills the rest afterwards.
-trap 'trap - EXIT INT; wait ${builder_pid} ${worker_pid} || true; kill $(jobs -p); wait' EXIT INT
+trap 'trap - EXIT INT TERM; wait ${builder_pid} ${worker_pid} || true; kill $(jobs -p); wait' EXIT INT TERM
 
 wait
