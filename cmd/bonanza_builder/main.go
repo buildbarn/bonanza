@@ -550,27 +550,26 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 		}
 
 		if errCompute != nil {
-			var marshaledStackTraceKeys [][]byte
+			patchedStackTraceKeys := make([]*model_core_pb.Any, 0, len(stackTraceKeys))
 			for _, key := range stackTraceKeys {
-				topLevelKey, _ := model_core.Patch(model_core.NewDiscardingObjectCapturer[builderReference](), key).SortAndSetReferences()
-				keyAny, err := model_core.MarshalTopLevelAny(topLevelKey)
+				patchedKey := model_core.NewPatchedMessageFromExisting(
+					key,
+					func(index int) dag.ObjectContentsWalker {
+						return dag.ExistingObjectContentsWalker
+					},
+				)
+				marshaledKey, err := model_core.MarshalAny(patchedKey)
 				if err != nil {
 					result.Failure = &model_build_pb.Result_Failure{
 						Status: status.Convert(err).Proto(),
 					}
 					return &result
 				}
-				marshaledKey, err := model_core.MarshalTopLevelMessage(keyAny)
-				if err != nil {
-					result.Failure = &model_build_pb.Result_Failure{
-						Status: status.Convert(err).Proto(),
-					}
-					return &result
-				}
-				marshaledStackTraceKeys = append(marshaledStackTraceKeys, marshaledKey)
+				patchedStackTraceKeys = append(patchedStackTraceKeys, marshaledKey.Message)
+				resultPatcher.Merge(marshaledKey.Patcher)
 			}
 			result.Failure = &model_build_pb.Result_Failure{
-				StackTraceKeys: marshaledStackTraceKeys,
+				StackTraceKeys: patchedStackTraceKeys,
 				Status:         status.Convert(errCompute).Proto(),
 			}
 			return &result

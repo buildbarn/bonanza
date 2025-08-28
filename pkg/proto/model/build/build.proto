@@ -160,7 +160,7 @@ message Result {
     // function. A stack trace of all keys leading up to the failure are
     // provided. The last element corresponds to the key whose
     // evaluation caused the failure.
-    repeated bytes stack_trace_keys = 1;
+    repeated bonanza.model.core.Any stack_trace_keys = 1;
 
     // Failure error message.
     google.rpc.Status status = 2;

@@ -496,7 +496,7 @@ func (x *Result) GetEvaluationsReference() *core.DecodableReference {
 
 type Result_Failure struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	StackTraceKeys [][]byte               `protobuf:"bytes,1,rep,name=stack_trace_keys,json=stackTraceKeys,proto3" json:"stack_trace_keys,omitempty"`
+	StackTraceKeys []*core.Any            `protobuf:"bytes,1,rep,name=stack_trace_keys,json=stackTraceKeys,proto3" json:"stack_trace_keys,omitempty"`
 	Status         *status.Status         `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -532,7 +532,7 @@ func (*Result_Failure) Descriptor() ([]byte, []int) {
 	return file_pkg_proto_model_build_build_proto_rawDescGZIP(), []int{6, 0}
 }
 
-func (x *Result_Failure) GetStackTraceKeys() [][]byte {
+func (x *Result_Failure) GetStackTraceKeys() []*core.Any {
 	if x != nil {
 		return x.StackTraceKeys
 	}
@@ -582,12 +582,12 @@ const file_pkg_proto_model_build_build_proto_rawDesc = "" +
 	"\x06Action\x12#\n" +
 	"\rinvocation_id\x18\x01 \x01(\tR\finvocationId\x12(\n" +
 	"\x10build_request_id\x18\x02 \x01(\tR\x0ebuildRequestId\x12\x98\x01\n" +
-	"\x1dbuild_specification_reference\x18\x03 \x01(\v2&.bonanza.model.core.DecodableReferenceB,\xea\xd7 (\x12&bonanza.model.build.BuildSpecificationR\x1bbuildSpecificationReference\"\xb1\x02\n" +
+	"\x1dbuild_specification_reference\x18\x03 \x01(\v2&.bonanza.model.core.DecodableReferenceB,\xea\xd7 (\x12&bonanza.model.build.BuildSpecificationR\x1bbuildSpecificationReference\"\xca\x02\n" +
 	"\x06Result\x12=\n" +
 	"\afailure\x18\x01 \x01(\v2#.bonanza.model.build.Result.FailureR\afailure\x12\x86\x01\n" +
-	"\x15evaluations_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x14evaluationsReference\x1a_\n" +
-	"\aFailure\x12(\n" +
-	"\x10stack_trace_keys\x18\x01 \x03(\fR\x0estackTraceKeys\x12*\n" +
+	"\x15evaluations_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x14evaluationsReference\x1ax\n" +
+	"\aFailure\x12A\n" +
+	"\x10stack_trace_keys\x18\x01 \x03(\v2\x17.bonanza.model.core.AnyR\x0estackTraceKeys\x12*\n" +
 	"\x06status\x18\x02 \x01(\v2\x12.google.rpc.StatusR\x06statusB%Z#bonanza.build/pkg/proto/model/buildb\x06proto3"
 
 var (
@@ -618,7 +618,8 @@ var file_pkg_proto_model_build_build_proto_goTypes = []any{
 	(*filesystem.FileCreationParameters)(nil),      // 11: bonanza.model.filesystem.FileCreationParameters
 	(*encoding.BinaryEncoder)(nil),                 // 12: bonanza.model.encoding.BinaryEncoder
 	(*core.DecodableReference)(nil),                // 13: bonanza.model.core.DecodableReference
-	(*status.Status)(nil),                          // 14: google.rpc.Status
+	(*core.Any)(nil),                               // 14: bonanza.model.core.Any
+	(*status.Status)(nil),                          // 15: google.rpc.Status
 }
 var file_pkg_proto_model_build_build_proto_depIdxs = []int32{
 	8,  // 0: bonanza.model.build.Module.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
@@ -633,12 +634,13 @@ var file_pkg_proto_model_build_build_proto_depIdxs = []int32{
 	13, // 9: bonanza.model.build.Action.build_specification_reference:type_name -> bonanza.model.core.DecodableReference
 	7,  // 10: bonanza.model.build.Result.failure:type_name -> bonanza.model.build.Result.Failure
 	13, // 11: bonanza.model.build.Result.evaluations_reference:type_name -> bonanza.model.core.DecodableReference
-	14, // 12: bonanza.model.build.Result.Failure.status:type_name -> google.rpc.Status
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	14, // 12: bonanza.model.build.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
+	15, // 13: bonanza.model.build.Result.Failure.status:type_name -> google.rpc.Status
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_pkg_proto_model_build_build_proto_init() }

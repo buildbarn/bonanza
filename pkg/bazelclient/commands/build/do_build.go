@@ -59,7 +59,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -654,28 +653,13 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 
 	if f := result.Message.Failure; f != nil {
-		printStackTrace(namespace, f.StackTraceKeys, logger, browserURL, evaluationsReference)
+		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, browserURL, evaluationsReference)
 		logger.Fatal(formatted.Textf("Failed to perform build: %s", status.FromProto(f.Status)))
 	}
 }
 
-func printStackTrace(namespace object.Namespace, stackTraceKeys [][]byte, logger logging.Logger, browserURL string, evaluationsReference *model_core.Decodable[object.LocalReference]) {
-	if len(stackTraceKeys) > 0 {
-		stackTraceKeyAnys := make([]model_core.TopLevelMessage[*anypb.Any, object.LocalReference], 0, len(stackTraceKeys))
-		longestType := 0
-		for i, key := range stackTraceKeys {
-			keyAny, err := model_core.UnmarshalTopLevelMessage[anypb.Any](namespace.ReferenceFormat, key)
-			if err != nil {
-				logger.Error(formatted.Textf(" Failed to unmarshal stack trace key at index %d: %w", i, err))
-				return
-			}
-
-			stackTraceKeyAnys = append(stackTraceKeyAnys, keyAny)
-			if l := len(getAbbreviatedTypeURL(keyAny.Message.TypeUrl)); longestType < l {
-				longestType = l
-			}
-		}
-
+func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Message[[]*model_core_pb.Any, object.LocalReference], logger logging.Logger, browserURL string, evaluationsReference *model_core.Decodable[object.LocalReference]) {
+	if len(stackTraceKeys.Message) > 0 {
 		logger.Error(formatted.Text("Traceback (most recent key last):"))
 		var f messageJSONFormatter
 		if browserURL != "" {
@@ -688,26 +672,38 @@ func printStackTrace(namespace object.Namespace, stackTraceKeys [][]byte, logger
 				f.baseURL = baseURL
 			}
 		}
-		for i, keyAny := range stackTraceKeyAnys {
-			var body formatted.Node
-			if key, err := model_core.UnmarshalTopLevelAnyNew[object.LocalReference](keyAny); err == nil {
-				body = f.formatJSONMessage(model_core.Nested(key.Decay(), key.Message.ProtoReflect()))
-			} else {
-				body = formatted.Bold(formatted.Text(fmt.Sprintf("Failed to unmarshal key: %s", err)))
+
+		longestType := 0
+		for _, keyAny := range stackTraceKeys.Message {
+			if l := len(getAbbreviatedTypeURL(keyAny.Value.GetTypeUrl())); longestType < l {
+				longestType = l
 			}
-			abbreviatedType := getAbbreviatedTypeURL(keyAny.Message.TypeUrl)
+		}
+
+		for _, keyAny := range stackTraceKeys.Message {
+			abbreviatedType := getAbbreviatedTypeURL(keyAny.Value.GetTypeUrl())
 			abbreviatedTypeNode := formatted.Text(abbreviatedType)
-			if browserURL != "" && evaluationsReference != nil {
-				if evaluationURL, err := url.JoinPath(
-					browserURL,
-					"evaluation",
-					url.PathEscape(namespace.InstanceName.String()),
-					namespace.ReferenceFormat.ToProto().String(),
-					model_core.DecodableLocalReferenceToString(*evaluationsReference),
-					base64.RawURLEncoding.EncodeToString(stackTraceKeys[i]),
-				); err == nil {
-					abbreviatedTypeNode = formatted.Link(evaluationURL, abbreviatedTypeNode)
+			var body formatted.Node
+			if flattenedKey, err := model_core.FlattenAny(model_core.Nested(stackTraceKeys, keyAny)); err != nil {
+				body = formatted.Bold(formatted.Text(fmt.Sprintf("Failed to flatten key: %s", err)))
+			} else if key, err := model_core.UnmarshalTopLevelAnyNew[object.LocalReference](flattenedKey); err != nil {
+				body = formatted.Bold(formatted.Text(fmt.Sprintf("Failed to unmarshal key: %s", err)))
+			} else {
+				if browserURL != "" && evaluationsReference != nil {
+					if marshaledKey, err := model_core.MarshalTopLevelMessage(flattenedKey); err == nil {
+						if evaluationURL, err := url.JoinPath(
+							browserURL,
+							"evaluation",
+							url.PathEscape(namespace.InstanceName.String()),
+							namespace.ReferenceFormat.ToProto().String(),
+							model_core.DecodableLocalReferenceToString(*evaluationsReference),
+							base64.RawURLEncoding.EncodeToString(marshaledKey),
+						); err == nil {
+							abbreviatedTypeNode = formatted.Link(evaluationURL, abbreviatedTypeNode)
+						}
+					}
 				}
+				body = f.formatJSONMessage(model_core.Nested(key.Decay(), key.Message.ProtoReflect()))
 			}
 			logger.Error(formatted.Join(
 				formatted.Text("  "),
