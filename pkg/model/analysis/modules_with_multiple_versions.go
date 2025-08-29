@@ -7,13 +7,12 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	"bonanza.build/pkg/storage/dag"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsValue(ctx context.Context, key *model_analysis_pb.ModulesWithMultipleVersions_Key, e ModulesWithMultipleVersionsEnvironment[TReference, TMetadata]) (PatchedModulesWithMultipleVersionsValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsValue(ctx context.Context, key *model_analysis_pb.ModulesWithMultipleVersions_Key, e ModulesWithMultipleVersionsEnvironment[TReference, TMetadata]) (PatchedModulesWithMultipleVersionsValue[TMetadata], error) {
 	modulesWithOverridesValue := e.GetModulesWithOverridesValue(&model_analysis_pb.ModulesWithOverrides_Key{})
 	if !modulesWithOverridesValue.IsSet() {
-		return PatchedModulesWithMultipleVersionsValue{}, evaluation.ErrMissingDependency
+		return PatchedModulesWithMultipleVersionsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	var modulesWithMultipleVersions []*model_analysis_pb.OverridesListModule
 	for _, module := range modulesWithOverridesValue.Message.OverridesList {
@@ -21,7 +20,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersions
 			modulesWithMultipleVersions = append(modulesWithMultipleVersions, module)
 		}
 	}
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.ModulesWithMultipleVersions_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModulesWithMultipleVersions_Value{
 		OverridesList: modulesWithMultipleVersions,
 	}), nil
 }

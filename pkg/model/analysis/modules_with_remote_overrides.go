@@ -23,16 +23,16 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesValue(ctx context.Context, key *model_analysis_pb.ModulesWithRemoteOverrides_Key, e ModulesWithRemoteOverridesEnvironment[TReference, TMetadata]) (PatchedModulesWithRemoteOverridesValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesValue(ctx context.Context, key *model_analysis_pb.ModulesWithRemoteOverrides_Key, e ModulesWithRemoteOverridesEnvironment[TReference, TMetadata]) (PatchedModulesWithRemoteOverridesValue[TMetadata], error) {
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	if !rootModuleValue.IsSet() {
-		return PatchedModulesWithRemoteOverridesValue{}, evaluation.ErrMissingDependency
+		return PatchedModulesWithRemoteOverridesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	// Obtain the root module name to find the file.
 	rootModuleName, err := label.NewModule(rootModuleValue.Message.RootModuleName)
 	if err != nil {
-		return PatchedModulesWithRemoteOverridesValue{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleValue.Message.RootModuleName, err)
+		return PatchedModulesWithRemoteOverridesValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleValue.Message.RootModuleName, err)
 	}
 
 	// Parse out the root module to find the overrides.
@@ -44,7 +44,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesV
 	}
 	err = c.parseLocalModuleInstanceModuleDotBazel(ctx, rootModuleName.ToModuleInstance(nil), e, handler)
 	if err != nil {
-		return PatchedModulesWithRemoteOverridesValue{}, err
+		return PatchedModulesWithRemoteOverridesValue[TMetadata]{}, err
 	}
 
 	// Set any overrides coming from a remote location.
@@ -52,7 +52,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesV
 		&model_analysis_pb.ModulesWithRemoteOverrides_Value{
 			ModuleOverrides: overrideModules,
 		},
-		model_core.MapReferenceMetadataToWalkers(handler.patcher),
+		handler.patcher,
 	), nil
 }
 

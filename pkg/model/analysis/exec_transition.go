@@ -21,10 +21,10 @@ import (
 	"go.starlark.net/starlark"
 )
 
-type createInitialConfigurationEnvironment[TReference, TMetadata any] interface {
+type createInitialConfigurationEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ObjectCapturer[TReference, TMetadata]
 	labelResolverEnvironment[TReference]
-	getExpectedTransitionOutputEnvironment[TReference]
+	getExpectedTransitionOutputEnvironment[TReference, TMetadata]
 }
 
 // initialConfigurationBuildSetting contains all of the values that were
@@ -113,23 +113,23 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 	)
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ExecTransition_Key, TReference], e ExecTransitionEnvironment[TReference, TMetadata]) (PatchedExecTransitionValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ExecTransition_Key, TReference], e ExecTransitionEnvironment[TReference, TMetadata]) (PatchedExecTransitionValue[TMetadata], error) {
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	if !allBuiltinsModulesNames.IsSet() || !rootModuleValue.IsSet() {
-		return PatchedExecTransitionValue{}, evaluation.ErrMissingDependency
+		return PatchedExecTransitionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	rootModuleName, err := label.NewModule(rootModuleValue.Message.RootModuleName)
 	if err != nil {
-		return PatchedExecTransitionValue{}, fmt.Errorf("invalid root module name: %w", err)
+		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("invalid root module name: %w", err)
 	}
 	rootPackage := rootModuleName.ToModuleInstance(nil).GetBareCanonicalRepo().GetRootPackage()
 
 	// Determine the new target platform.
 	apparentTargetPlatform, err := label.NewApparentLabel(key.Message.PlatformLabel)
 	if err != nil {
-		return PatchedExecTransitionValue{}, fmt.Errorf("invalid target platform: %w", err)
+		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("invalid target platform: %w", err)
 	}
 	canonicalTargetPlatform, err := label.Canonicalize(
 		newLabelResolver(e),
@@ -137,7 +137,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		apparentTargetPlatform,
 	)
 	if err != nil {
-		return PatchedExecTransitionValue{}, fmt.Errorf("failed to resolve target platform %#v: %w", err)
+		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("failed to resolve target platform %#v: %w", err)
 	}
 
 	// Obtain the identifier of the Starlark transition that is used
@@ -152,11 +152,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		inputConfigurationReference,
 	)
 	if err != nil {
-		return PatchedExecTransitionValue{}, err
+		return PatchedExecTransitionValue[TMetadata]{}, err
 	}
 	execConfigStr, ok := execConfigValue.Message.Kind.(*model_starlark_pb.Value_Str)
 	if !ok {
-		return PatchedExecTransitionValue{}, fmt.Errorf("value of build setting %s is not a string", execConfigCommandLineOption)
+		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("value of build setting %s is not a string", execConfigCommandLineOption)
 	}
 
 	// Invoke the exec transition.
@@ -170,15 +170,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		stubbedTransitionAttr{},
 	)
 	if err != nil {
-		return PatchedExecTransitionValue{}, err
+		return PatchedExecTransitionValue[TMetadata]{}, err
 	}
 
 	if l := len(outputsDict); l > 1 {
-		return PatchedExecTransitionValue{}, fmt.Errorf("exec transition yielded %d configurations, while exactly 1 was expected", l)
+		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("exec transition yielded %d configurations, while exactly 1 was expected", l)
 	}
 	buildSettingValuesToApply, err := getCanonicalTransitionOutputValuesFromDict(thread, expectedOutputs, slices.Collect(maps.Values(outputsDict))[0])
 	if err != nil {
-		return PatchedExecTransitionValue{}, err
+		return PatchedExecTransitionValue[TMetadata]{}, err
 	}
 
 	// Inject --platforms into build setting values, as the exec
@@ -191,7 +191,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		},
 	)
 	if hasExistingPlatforms {
-		return PatchedExecTransitionValue{}, fmt.Errorf("exec transition is overriding build setting %#v, which is not expected", commandLineOptionPlatformsLabelStr)
+		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("exec transition is overriding build setting %#v, which is not expected", commandLineOptionPlatformsLabelStr)
 	}
 	buildSettingValuesToApply = append(
 		append(
@@ -217,13 +217,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		c.getValueEncodingOptions(e, nil),
 	)
 	if err != nil {
-		return PatchedExecTransitionValue{}, err
+		return PatchedExecTransitionValue[TMetadata]{}, err
 	}
 
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.ExecTransition_Value{
 			OutputConfigurationReference: outputConfigurationReference.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(outputConfigurationReference.Patcher),
+		outputConfigurationReference.Patcher,
 	), nil
 }

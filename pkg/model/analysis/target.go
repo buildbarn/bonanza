@@ -50,16 +50,16 @@ func (c *baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList
 	return model_core.Nested(target, definition), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Context, key *model_analysis_pb.Target_Key, e TargetEnvironment[TReference, TMetadata]) (PatchedTargetValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Context, key *model_analysis_pb.Target_Key, e TargetEnvironment[TReference, TMetadata]) (PatchedTargetValue[TMetadata], error) {
 	targetLabel, err := label.NewCanonicalLabel(key.Label)
 	if err != nil {
-		return PatchedTargetValue{}, fmt.Errorf("invalid target label: %w", err)
+		return PatchedTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
 	packageValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
 		Label: targetLabel.GetCanonicalPackage().String(),
 	})
 	if !packageValue.IsSet() {
-		return PatchedTargetValue{}, evaluation.ErrMissingDependency
+		return PatchedTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	definition, err := c.lookupTargetDefinitionInTargetList(
@@ -68,10 +68,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Con
 		targetLabel.GetTargetName(),
 	)
 	if err != nil {
-		return PatchedTargetValue{}, err
+		return PatchedTargetValue[TMetadata]{}, err
 	}
 	if !definition.IsSet() {
-		return PatchedTargetValue{}, errors.New("target does not exist")
+		return PatchedTargetValue[TMetadata]{}, errors.New("target does not exist")
 	}
 
 	patchedDefinition := model_core.Patch(e, definition)
@@ -79,6 +79,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Con
 		&model_analysis_pb.Target_Value{
 			Definition: patchedDefinition.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(patchedDefinition.Patcher),
+		patchedDefinition.Patcher,
 	), nil
 }

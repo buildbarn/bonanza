@@ -70,4 +70,5 @@ local statePath = std.extVar('STATE_PATH');
     metadataExtractionJmespathExpression: { expression: '`{}`' },
   },
   workerId: { host: std.extVar('HOSTNAME') },
+  evaluationConcurrency: std.extVar('NCPU'),
 }

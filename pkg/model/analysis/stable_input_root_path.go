@@ -13,7 +13,6 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
-	"bonanza.build/pkg/storage/dag"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 
@@ -21,7 +20,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ctx context.Context, key *model_analysis_pb.StableInputRootPath_Key, e StableInputRootPathEnvironment[TReference, TMetadata]) (PatchedStableInputRootPathValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ctx context.Context, key *model_analysis_pb.StableInputRootPath_Key, e StableInputRootPathEnvironment[TReference, TMetadata]) (PatchedStableInputRootPathValue[TMetadata], error) {
 	actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
 	directoryCreationParametersValue := e.GetDirectoryCreationParametersValue(&model_analysis_pb.DirectoryCreationParameters_Key{})
@@ -36,7 +35,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		!fileCreationParametersValue.IsSet() ||
 		!gotFileReader ||
 		!repoPlatform.IsSet() {
-		return PatchedStableInputRootPathValue{}, evaluation.ErrMissingDependency
+		return PatchedStableInputRootPathValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	// Construct a command that simply invokes "pwd" inside of the
@@ -50,10 +49,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		environment,
 		actionEncoder,
 		referenceFormat,
-		model_core.WalkableCreatedObjectCapturer,
+		e,
 	)
 	if err != nil {
-		return PatchedStableInputRootPathValue{}, err
+		return PatchedStableInputRootPathValue[TMetadata]{}, err
 	}
 
 	// TODO: This should use inlinedtree.Build().
@@ -77,11 +76,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		actionEncoder,
 	)
 	if err != nil {
-		return PatchedStableInputRootPathValue{}, fmt.Errorf("failed to create command: %w", err)
+		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create command: %w", err)
 	}
 
 	createdInputRoot, err := model_core.MarshalAndEncode(
-		model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+		model_core.NewSimplePatchedMessage[TMetadata](
 			model_core.NewProtoMarshalable(&model_filesystem_pb.DirectoryContents{
 				Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
 					LeavesInline: &model_filesystem_pb.Leaves{},
@@ -92,23 +91,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		directoryCreationParameters.GetEncoder(),
 	)
 	if err != nil {
-		return PatchedStableInputRootPathValue{}, fmt.Errorf("failed to create input root: %w", err)
+		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create input root: %w", err)
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) model_core.Marshalable {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
-				CommandReference: patcher.CaptureAndAddDecodableReference(
-					createdCommand,
-					model_core.WalkableCreatedObjectCapturer,
-				),
+				CommandReference: patcher.CaptureAndAddDecodableReference(createdCommand, e),
 				// TODO: We shouldn't be handcrafting a
 				// DirectoryReference here.
 				InputRootReference: &model_filesystem_pb.DirectoryReference{
-					Reference: patcher.CaptureAndAddDecodableReference(
-						createdInputRoot,
-						model_core.WalkableCreatedObjectCapturer,
-					),
+					Reference:                      patcher.CaptureAndAddDecodableReference(createdInputRoot, e),
 					MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
 				},
 			})
@@ -117,47 +110,44 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		actionEncoder,
 	)
 	if err != nil {
-		return PatchedStableInputRootPathValue{}, fmt.Errorf("failed to create action: %w", err)
+		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
 	}
 
 	// Invoke "pwd".
 	actionResult := e.GetSuccessfulActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_analysis_pb.SuccessfulActionResult_Key {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
 			return &model_analysis_pb.SuccessfulActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: repoPlatform.Message.ExecPkixPublicKey,
-					ActionReference: patcher.CaptureAndAddDecodableReference(
-						createdAction,
-						model_core.WalkableCreatedObjectCapturer,
-					),
-					ExecutionTimeout: &durationpb.Duration{Seconds: 60},
+					ActionReference:       patcher.CaptureAndAddDecodableReference(createdAction, e),
+					ExecutionTimeout:      &durationpb.Duration{Seconds: 60},
 				},
 			}
 		}),
 	)
 	if !actionResult.IsSet() {
-		return PatchedStableInputRootPathValue{}, evaluation.ErrMissingDependency
+		return PatchedStableInputRootPathValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	// Capture the standard output of "pwd" and trim the trailing
 	// newline character that it adds.
 	outputs, err := model_parser.MaybeDereference(ctx, directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
 	if err != nil {
-		return PatchedStableInputRootPathValue{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
+		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
 
 	stdoutEntry, err := model_filesystem.NewFileContentsEntryFromProto(
 		model_core.Nested(outputs, outputs.Message.GetStdout()),
 	)
 	if err != nil {
-		return PatchedStableInputRootPathValue{}, fmt.Errorf("invalid standard output entry: %w", err)
+		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("invalid standard output entry: %w", err)
 	}
 	stdout, err := fileReader.FileReadAll(ctx, stdoutEntry, 1<<20)
 	if err != nil {
-		return PatchedStableInputRootPathValue{}, fmt.Errorf("failed to read standard output: %w", err)
+		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to read standard output: %w", err)
 	}
 
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+	return model_core.NewSimplePatchedMessage[TMetadata](
 		&model_analysis_pb.StableInputRootPath_Value{
 			InputRootPath: strings.TrimSuffix(string(stdout), "\n"),
 		},

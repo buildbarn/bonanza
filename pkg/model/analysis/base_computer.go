@@ -19,7 +19,6 @@ import (
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/remoteexecution"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
@@ -273,17 +272,17 @@ func (c *baseComputer[TReference, TMetadata]) newStarlarkThread(ctx context.Cont
 	return thread
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx context.Context, key *model_analysis_pb.BuildResult_Key, e BuildResultEnvironment[TReference, TMetadata]) (PatchedBuildResultValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx context.Context, key *model_analysis_pb.BuildResult_Key, e BuildResultEnvironment[TReference, TMetadata]) (PatchedBuildResultValue[TMetadata], error) {
 	buildSpecificationMessage := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecificationMessage.IsSet() {
-		return PatchedBuildResultValue{}, evaluation.ErrMissingDependency
+		return PatchedBuildResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	buildSpecification := buildSpecificationMessage.Message.BuildSpecification
 
 	rootModuleName := buildSpecification.RootModuleName
 	rootModule, err := label.NewModule(rootModuleName)
 	if err != nil {
-		return PatchedBuildResultValue{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleName, err)
+		return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleName, err)
 	}
 	rootRepo := rootModule.ToModuleInstance(nil).GetBareCanonicalRepo()
 	rootPackage := rootRepo.GetRootPackage()
@@ -295,7 +294,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 		targetPlatformConfigurationReference, err := c.createInitialConfiguration(ctx, e, thread, rootPackage, configuration)
 		if err != nil {
 			if !errors.Is(err, evaluation.ErrMissingDependency) {
-				return PatchedBuildResultValue{}, fmt.Errorf("failed to create initial configuration for configuration at index %d: %w", i, err)
+				return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("failed to create initial configuration for configuration at index %d: %w", i, err)
 			}
 			missingDependencies = true
 			continue
@@ -308,11 +307,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 		for _, targetPattern := range buildSpecification.TargetPatterns {
 			apparentTargetPattern, err := label.NewApparentTargetPattern(targetPattern)
 			if err != nil {
-				return PatchedBuildResultValue{}, fmt.Errorf("invalid target pattern %#v: %w", targetPattern, err)
+				return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("invalid target pattern %#v: %w", targetPattern, err)
 			}
 			canonicalTargetPattern, err := label.Canonicalize(labelResolver, rootRepo, apparentTargetPattern)
 			if err != nil {
-				return PatchedBuildResultValue{}, err
+				return PatchedBuildResultValue[TMetadata]{}, err
 			}
 
 			var iterErr error
@@ -334,7 +333,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 							ToLabel:                canonicalTargetLabel.String(),
 							ConfigurationReference: patchedConfigurationReference1.Message,
 						},
-						model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference1.Patcher),
+						patchedConfigurationReference1.Patcher,
 					),
 				)
 				if !visibleTargetValue.IsSet() {
@@ -352,7 +351,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 							Label:                  visibleTargetValue.Message.Label,
 							ConfigurationReference: patchedConfigurationReference2.Message,
 						},
-						model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference2.Patcher),
+						patchedConfigurationReference2.Patcher,
 					),
 				)
 				if !targetCompletionValue.IsSet() {
@@ -361,23 +360,23 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 			}
 			if iterErr != nil {
 				if !errors.Is(iterErr, evaluation.ErrMissingDependency) {
-					return PatchedBuildResultValue{}, fmt.Errorf("failed to iterate target pattern %#v: %w", targetPattern, iterErr)
+					return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("failed to iterate target pattern %#v: %w", targetPattern, iterErr)
 				}
 				missingDependencies = true
 			}
 		}
 	}
 	if missingDependencies {
-		return PatchedBuildResultValue{}, evaluation.ErrMissingDependency
+		return PatchedBuildResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	return PatchedBuildResultValue{}, errors.New("TODO: report build results in a meaningful way")
+	return PatchedBuildResultValue[TMetadata]{}, errors.New("TODO: report build results in a meaningful way")
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeBuildSpecificationValue(ctx context.Context, key *model_analysis_pb.BuildSpecification_Key, e BuildSpecificationEnvironment[TReference, TMetadata]) (PatchedBuildSpecificationValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeBuildSpecificationValue(ctx context.Context, key *model_analysis_pb.BuildSpecification_Key, e BuildSpecificationEnvironment[TReference, TMetadata]) (PatchedBuildSpecificationValue[TMetadata], error) {
 	buildSpecification, err := c.buildSpecificationReader.ReadParsedObject(ctx, c.buildSpecificationReference)
 	if err != nil {
-		return PatchedBuildSpecificationValue{}, err
+		return PatchedBuildSpecificationValue[TMetadata]{}, err
 	}
 
 	patchedBuildSpecification := model_core.Patch(e, buildSpecification)
@@ -385,34 +384,34 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildSpecificationValue(ctx
 		&model_analysis_pb.BuildSpecification_Value{
 			BuildSpecification: patchedBuildSpecification.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(patchedBuildSpecification.Patcher),
+		patchedBuildSpecification.Patcher,
 	), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeBuiltinsModuleNamesValue(ctx context.Context, key *model_analysis_pb.BuiltinsModuleNames_Key, e BuiltinsModuleNamesEnvironment[TReference, TMetadata]) (PatchedBuiltinsModuleNamesValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeBuiltinsModuleNamesValue(ctx context.Context, key *model_analysis_pb.BuiltinsModuleNames_Key, e BuiltinsModuleNamesEnvironment[TReference, TMetadata]) (PatchedBuiltinsModuleNamesValue[TMetadata], error) {
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecification.IsSet() {
-		return PatchedBuiltinsModuleNamesValue{}, evaluation.ErrMissingDependency
+		return PatchedBuiltinsModuleNamesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.BuiltinsModuleNames_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.BuiltinsModuleNames_Value{
 		BuiltinsModuleNames: buildSpecification.Message.BuildSpecification.GetBuiltinsModuleNames(),
 	}), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryAccessParametersValue(ctx context.Context, key *model_analysis_pb.DirectoryAccessParameters_Key, e DirectoryAccessParametersEnvironment[TReference, TMetadata]) (PatchedDirectoryAccessParametersValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryAccessParametersValue(ctx context.Context, key *model_analysis_pb.DirectoryAccessParameters_Key, e DirectoryAccessParametersEnvironment[TReference, TMetadata]) (PatchedDirectoryAccessParametersValue[TMetadata], error) {
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecification.IsSet() {
-		return PatchedDirectoryAccessParametersValue{}, evaluation.ErrMissingDependency
+		return PatchedDirectoryAccessParametersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.DirectoryAccessParameters_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.DirectoryAccessParameters_Value{
 		DirectoryAccessParameters: buildSpecification.Message.BuildSpecification.GetDirectoryCreationParameters().GetAccess(),
 	}), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx context.Context, key *model_analysis_pb.RepoDefaultAttrs_Key, e RepoDefaultAttrsEnvironment[TReference, TMetadata]) (PatchedRepoDefaultAttrsValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx context.Context, key *model_analysis_pb.RepoDefaultAttrs_Key, e RepoDefaultAttrsEnvironment[TReference, TMetadata]) (PatchedRepoDefaultAttrsValue[TMetadata], error) {
 	canonicalRepo, err := label.NewCanonicalRepo(key.CanonicalRepo)
 	if err != nil {
-		return PatchedRepoDefaultAttrsValue{}, fmt.Errorf("invalid canonical repo: %w", err)
+		return PatchedRepoDefaultAttrsValue[TMetadata]{}, fmt.Errorf("invalid canonical repo: %w", err)
 	}
 
 	repoFileName := util.Must(label.NewTargetName("REPO.bazel"))
@@ -423,13 +422,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 
 	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
 	if !repoFileProperties.IsSet() || !gotFileReader {
-		return PatchedRepoDefaultAttrsValue{}, evaluation.ErrMissingDependency
+		return PatchedRepoDefaultAttrsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	// Read the contents of REPO.bazel.
 	repoFileLabel := canonicalRepo.GetRootPackage().AppendTargetName(repoFileName)
 	if repoFileProperties.Message.Exists == nil {
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.RepoDefaultAttrs_Value{
+		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RepoDefaultAttrs_Value{
 			InheritableAttrs: &model_starlark.DefaultInheritableAttrs,
 		}), nil
 	}
@@ -437,11 +436,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 		model_core.Nested(repoFileProperties, repoFileProperties.Message.Exists.GetContents()),
 	)
 	if err != nil {
-		return PatchedRepoDefaultAttrsValue{}, fmt.Errorf("invalid contents for file %#v: %w", repoFileLabel.String(), err)
+		return PatchedRepoDefaultAttrsValue[TMetadata]{}, fmt.Errorf("invalid contents for file %#v: %w", repoFileLabel.String(), err)
 	}
 	repoFileData, err := fileReader.FileReadAll(ctx, repoFileContentsEntry, 1<<20)
 	if err != nil {
-		return PatchedRepoDefaultAttrsValue{}, err
+		return PatchedRepoDefaultAttrsValue[TMetadata]{}, err
 	}
 
 	// Extract the default inheritable attrs from REPO.bazel.
@@ -454,14 +453,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 		newLabelResolver(e),
 	)
 	if err != nil {
-		return PatchedRepoDefaultAttrsValue{}, fmt.Errorf("failed to parse %#v: %w", repoFileLabel.String(), err)
+		return PatchedRepoDefaultAttrsValue[TMetadata]{}, fmt.Errorf("failed to parse %#v: %w", repoFileLabel.String(), err)
 	}
 
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.RepoDefaultAttrs_Value{
 			InheritableAttrs: defaultAttrs.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(defaultAttrs.Patcher),
+		defaultAttrs.Patcher,
 	), nil
 }
 

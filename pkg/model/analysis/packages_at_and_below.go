@@ -14,7 +14,6 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
-	"bonanza.build/pkg/storage/dag"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 )
@@ -73,18 +72,18 @@ func (c *baseComputer[TReference, TMetadata]) getPackageDirectory(
 	return baseDirectory, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx context.Context, key *model_analysis_pb.PackagesAtAndBelow_Key, e PackagesAtAndBelowEnvironment[TReference, TMetadata]) (PatchedPackagesAtAndBelowValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx context.Context, key *model_analysis_pb.PackagesAtAndBelow_Key, e PackagesAtAndBelowEnvironment[TReference, TMetadata]) (PatchedPackagesAtAndBelowValue[TMetadata], error) {
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
 	if !gotDirectoryReaders {
-		return PatchedPackagesAtAndBelowValue{}, evaluation.ErrMissingDependency
+		return PatchedPackagesAtAndBelowValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	packageDirectory, err := c.getPackageDirectory(ctx, e, directoryReaders.DirectoryContents, key.BasePackage)
 	if err != nil {
-		return PatchedPackagesAtAndBelowValue{}, err
+		return PatchedPackagesAtAndBelowValue[TMetadata]{}, err
 	}
 	if !packageDirectory.IsSet() {
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.PackagesAtAndBelow_Value{}), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.PackagesAtAndBelow_Value{}), nil
 	}
 
 	// Find packages at and below the base package.
@@ -94,13 +93,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx
 	}
 	packageAtBasePackage, err := directoryIsPackage(ctx, directoryReaders.Leaves, packageDirectory)
 	if err != nil {
-		return PatchedPackagesAtAndBelowValue{}, err
+		return PatchedPackagesAtAndBelowValue[TMetadata]{}, err
 	}
 	if err := checker.findPackagesBelow(packageDirectory, nil); err != nil {
-		return PatchedPackagesAtAndBelowValue{}, err
+		return PatchedPackagesAtAndBelowValue[TMetadata]{}, err
 	}
 
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.PackagesAtAndBelow_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.PackagesAtAndBelow_Value{
 		PackageAtBasePackage:     packageAtBasePackage,
 		PackagesBelowBasePackage: checker.packagesBelowBasePackage,
 	}), nil

@@ -19,7 +19,6 @@ import (
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/search"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
@@ -30,12 +29,12 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-type getStarlarkFilePropertiesEnvironment[TReference any, TMetadata any] interface {
+type getStarlarkFilePropertiesEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
 
 	GetDirectoryReadersValue(key *model_analysis_pb.DirectoryReaders_Key) (*DirectoryReaders[TReference], bool)
 	GetFilePropertiesValue(key *model_analysis_pb.FileProperties_Key) model_core.Message[*model_analysis_pb.FileProperties_Value, TReference]
-	GetFileRootValue(key model_core.PatchedMessage[*model_analysis_pb.FileRoot_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.FileRoot_Value, TReference]
+	GetFileRootValue(key model_core.PatchedMessage[*model_analysis_pb.FileRoot_Key, TMetadata]) model_core.Message[*model_analysis_pb.FileRoot_Value, TReference]
 }
 
 func getStarlarkFileProperties[TReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](ctx context.Context, e getStarlarkFilePropertiesEnvironment[TReference, TMetadata], f model_core.Message[*model_starlark_pb.File, TReference]) (model_core.Message[*model_filesystem_pb.FileProperties, TReference], error) {
@@ -51,7 +50,7 @@ func getStarlarkFileProperties[TReference object.BasicReference, TMetadata model
 				File:            patchedFile.Message,
 				DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedFile.Patcher),
+			patchedFile.Patcher,
 		),
 	)
 	if !gotDirectoryReaders || !targetOutput.IsSet() {
@@ -485,20 +484,20 @@ func (s *sourceFileAndDependenciesCopierSource[TReference, TMetadata]) popDirect
 	return err
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.FileRoot_Key, TReference], e FileRootEnvironment[TReference, TMetadata]) (PatchedFileRootValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.FileRoot_Key, TReference], e FileRootEnvironment[TReference, TMetadata]) (PatchedFileRootValue[TMetadata], error) {
 	f := model_core.Nested(key, key.Message.File)
 	if f.Message == nil {
-		return PatchedFileRootValue{}, fmt.Errorf("no file provided")
+		return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("no file provided")
 	}
 	fileLabel, err := label.NewCanonicalLabel(f.Message.Label)
 	if err != nil {
-		return PatchedFileRootValue{}, fmt.Errorf("invalid file label: %w", err)
+		return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("invalid file label: %w", err)
 	}
 
 	if o := f.Message.Owner; o != nil {
 		targetName, err := label.NewTargetName(o.TargetName)
 		if err != nil {
-			return PatchedFileRootValue{}, fmt.Errorf("invalid target name: %w", err)
+			return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("invalid target name: %w", err)
 		}
 
 		configurationReference := model_core.Nested(f, o.ConfigurationReference)
@@ -511,11 +510,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 					ConfigurationReference: patchedConfigurationReference.Message,
 					PackageRelativePath:    fileLabel.GetTargetName().String(),
 				},
-				model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+				patchedConfigurationReference.Patcher,
 			),
 		)
 		if !output.IsSet() {
-			return PatchedFileRootValue{}, evaluation.ErrMissingDependency
+			return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
 		switch source := output.Message.Definition.GetSource().(type) {
@@ -532,11 +531,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 							ActionId:               source.ActionId,
 						},
 					},
-					model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+					patchedConfigurationReference.Patcher,
 				),
 			)
 			if !gotDirectoryCreationParameters || !gotDirectoryReaders || !targetActionResult.IsSet() {
-				return PatchedFileRootValue{}, evaluation.ErrMissingDependency
+				return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
 
 			// Target actions may emit multiple outputs, but
@@ -557,7 +556,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 			}
 			filePath, err := model_starlark.FileGetInputRootPath(f, nil)
 			if err != nil {
-				return PatchedFileRootValue{}, err
+				return PatchedFileRootValue[TMetadata]{}, err
 			}
 			filePathParser := path.UNIXFormat.NewParser(filePath)
 			loadOptions := &changeTrackingDirectoryLoadOptions[TReference]{
@@ -579,7 +578,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 				&o.Type,
 			); err != nil {
 				if !errors.Is(err, errChangeTrackingDirectorySymlinkFollowingResolverFileNotFound) {
-					return PatchedFileRootValue{}, err
+					return PatchedFileRootValue[TMetadata]{}, err
 				}
 
 				// Target action outputs contain one or
@@ -601,11 +600,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 								ActionId:               source.ActionId,
 							},
 						},
-						model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+						patchedConfigurationReference.Patcher,
 					),
 				)
 				if !targetActionInputRoot.IsSet() {
-					return PatchedFileRootValue{}, evaluation.ErrMissingDependency
+					return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 				}
 				if err := originalOutputRootDirectory.mergeDirectoryMessage(
 					model_core.Nested(targetActionInputRoot, &model_filesystem_pb.Directory{
@@ -615,7 +614,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 					}),
 					loadOptions,
 				); err != nil {
-					return PatchedFileRootValue{}, err
+					return PatchedFileRootValue[TMetadata]{}, err
 				}
 
 				copier := newFileAndDependenciesCopier[TReference, TMetadata](loadOptions)
@@ -631,7 +630,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 					filePathParser,
 					&o.Type,
 				); err != nil {
-					return PatchedFileRootValue{}, err
+					return PatchedFileRootValue[TMetadata]{}, err
 				}
 			}
 
@@ -649,14 +648,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 				// directories into external/*.
 				externalDirectory, err := trimmedOutputRootDirectory.getOrCreateDirectory(model_starlark.ComponentExternal)
 				if err != nil {
-					return PatchedFileRootValue{}, err
+					return PatchedFileRootValue[TMetadata]{}, err
 				}
 				if bazelOutDirectory, ok := trimmedOutputRootDirectory.directories[model_starlark.ComponentBazelOut]; ok {
 					for configurationName, configurationDirectory := range bazelOutDirectory.directories {
 						if binDirectory, ok := configurationDirectory.directories[model_starlark.ComponentBin]; ok {
 							if configurationExternalDirectory, ok := binDirectory.directories[model_starlark.ComponentExternal]; ok {
 								if err := externalDirectory.mergeDirectory(configurationExternalDirectory, loadOptions); err != nil {
-									return PatchedFileRootValue{}, fmt.Errorf("failed to merge outputs of configuration %#v: %w", configurationName.String())
+									return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("failed to merge outputs of configuration %#v: %w", configurationName.String())
 								}
 							}
 						}
@@ -676,7 +675,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 					externalDirectory,
 				)
 			default:
-				return PatchedFileRootValue{}, errors.New("unknown directory layout")
+				return PatchedFileRootValue[TMetadata]{}, errors.New("unknown directory layout")
 			}
 
 		case *model_analysis_pb.TargetOutputDefinition_ExpandTemplate_:
@@ -684,17 +683,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 			fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObjectValue(&model_analysis_pb.FileCreationParametersObject_Key{})
 			fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
 			if !gotDirectoryCreationParameters || !gotFileCreationParameters || !gotFileReader {
-				return PatchedFileRootValue{}, evaluation.ErrMissingDependency
+				return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
 
 			// Look up template file.
 			templateFileProperties, err := getStarlarkFileProperties(ctx, e, model_core.Nested(output, source.ExpandTemplate.Template))
 			if err != nil {
-				return PatchedFileRootValue{}, fmt.Errorf("failed to file properties of template: %w", err)
+				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("failed to file properties of template: %w", err)
 			}
 			templateContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(model_core.Nested(templateFileProperties, templateFileProperties.Message.Contents))
 			if err != nil {
-				return PatchedFileRootValue{}, err
+				return PatchedFileRootValue[TMetadata]{}, err
 			}
 
 			// Create search and replacer for performing substitutions.
@@ -707,24 +706,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 			}
 			searchAndReplacer, err := search.NewMultiSearchAndReplacer(needles)
 			if err != nil {
-				return PatchedFileRootValue{}, fmt.Errorf("invalid substitution keys: %w", err)
+				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("invalid substitution keys: %w", err)
 			}
-
-			merkleTreeNodes, err := c.filePool.NewFile()
-			if err != nil {
-				return PatchedFileRootValue{}, err
-			}
-			defer func() {
-				if merkleTreeNodes != nil {
-					merkleTreeNodes.Close()
-				}
-			}()
-			fileWritingObjectCapturer := model_core.NewFileWritingObjectCapturer(model_filesystem.NewSectionWriter(merkleTreeNodes))
 
 			// Perform substitutions and create a new Merkle tree
 			// for the resulting output file.
 			pipeReader, pipeWriter := io.Pipe()
-			var outputFileContents model_core.PatchedMessage[*model_filesystem_pb.FileContents, model_core.FileBackedObjectLocation]
+			var outputFileContents model_core.PatchedMessage[*model_filesystem_pb.FileContents, TMetadata]
 			group, groupCtx := errgroup.WithContext(ctx)
 			group.Go(func() error {
 				err := searchAndReplacer.SearchAndReplace(
@@ -741,22 +729,22 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 					groupCtx,
 					fileCreationParameters,
 					pipeReader,
-					model_filesystem.NewSimpleFileMerkleTreeCapturer(fileWritingObjectCapturer),
+					model_filesystem.NewSimpleFileMerkleTreeCapturer(e),
 				)
 				pipeReader.CloseWithError(err)
 				return err
 			})
 			if err := group.Wait(); err != nil {
-				return PatchedFileRootValue{}, err
+				return PatchedFileRootValue[TMetadata]{}, err
 			}
 
 			components, err := getPackageOutputDirectoryComponents(configurationReference, fileLabel.GetCanonicalPackage(), key.Message.DirectoryLayout)
 			if err != nil {
-				return PatchedFileRootValue{}, err
+				return PatchedFileRootValue[TMetadata]{}, err
 			}
 
 			// Place the output file in a directory structure.
-			var createdDirectory model_filesystem.CreatedDirectory[model_core.FileBackedObjectLocation]
+			var createdDirectory model_filesystem.CreatedDirectory[TMetadata]
 			group, groupCtx = errgroup.WithContext(ctx)
 			group.Go(func() error {
 				return model_filesystem.CreateDirectoryMerkleTree(
@@ -764,36 +752,24 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 					semaphore.NewWeighted(1),
 					group,
 					directoryCreationParameters,
-					&singleFileDirectory[model_core.FileBackedObjectLocation, model_core.FileBackedObjectLocation]{
+					&singleFileDirectory[TMetadata, TMetadata]{
 						components:   append(components, fileLabel.GetTargetName().ToComponents()...),
 						isExecutable: source.ExpandTemplate.IsExecutable,
 						file:         model_filesystem.NewSimpleCapturableFile(outputFileContents),
 					},
-					model_filesystem.NewSimpleDirectoryMerkleTreeCapturer(fileWritingObjectCapturer),
+					model_filesystem.NewSimpleDirectoryMerkleTreeCapturer(e),
 					&createdDirectory,
 				)
 			})
 			if err := group.Wait(); err != nil {
-				return PatchedFileRootValue{}, err
+				return PatchedFileRootValue[TMetadata]{}, err
 			}
-
-			// Flush the created Merkle tree to disk, so that it can
-			// be read back during the uploading process.
-			if err := fileWritingObjectCapturer.Flush(); err != nil {
-				return PatchedFileRootValue{}, err
-			}
-			objectContentsWalkerFactory := model_core.NewFileReadingObjectContentsWalkerFactory(merkleTreeNodes)
-			defer objectContentsWalkerFactory.Release()
-			merkleTreeNodes = nil
 
 			return model_core.NewPatchedMessage(
 				&model_analysis_pb.FileRoot_Value{
 					RootDirectory: createdDirectory.Message.Message,
 				},
-				model_core.MapReferenceMessagePatcherMetadata(
-					createdDirectory.Message.Patcher,
-					objectContentsWalkerFactory.CreateObjectContentsWalker,
-				),
+				createdDirectory.Message.Patcher,
 			), nil
 		case *model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory:
 			// Output file was already computed during configuration.
@@ -803,12 +779,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 			// Wrap the package directory to make it an input root.
 			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
 			if !gotDirectoryCreationParameters {
-				return PatchedFileRootValue{}, evaluation.ErrMissingDependency
+				return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
 
 			components, err := getPackageOutputDirectoryComponents(configurationReference, fileLabel.GetCanonicalPackage(), key.Message.DirectoryLayout)
 			if err != nil {
-				return PatchedFileRootValue{}, err
+				return PatchedFileRootValue[TMetadata]{}, err
 			}
 
 			var createdDirectory model_filesystem.CreatedDirectory[TMetadata]
@@ -828,14 +804,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 				)
 			})
 			if err := group.Wait(); err != nil {
-				return PatchedFileRootValue{}, err
+				return PatchedFileRootValue[TMetadata]{}, err
 			}
 
 			return model_core.NewPatchedMessage(
 				&model_analysis_pb.FileRoot_Value{
 					RootDirectory: createdDirectory.Message.Message,
 				},
-				model_core.MapReferenceMetadataToWalkers(createdDirectory.Message.Patcher),
+				createdDirectory.Message.Patcher,
 			), nil
 		case *model_analysis_pb.TargetOutputDefinition_Symlink_:
 			// Symlink to another file. Obtain the root of
@@ -850,16 +826,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 						File:            patchedSymlinkTargetFile.Message,
 						DirectoryLayout: key.Message.DirectoryLayout,
 					},
-					model_core.MapReferenceMetadataToWalkers(patchedSymlinkTargetFile.Patcher),
+					patchedSymlinkTargetFile.Patcher,
 				),
 			)
 			if !gotDirectoryCreationParameters || !gotDirectoryReaders || !symlinkTarget.IsSet() {
-				return PatchedFileRootValue{}, evaluation.ErrMissingDependency
+				return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
 
 			symlinkPath, err := fileGetPathInDirectoryLayout(f, key.Message.DirectoryLayout)
 			if err != nil {
-				return PatchedFileRootValue{}, err
+				return PatchedFileRootValue[TMetadata]{}, err
 			}
 
 			rootDirectory := changeTrackingDirectory[TReference, TMetadata]{
@@ -878,7 +854,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 			// Validate the type and properties of the target file.
 			targetPath, err := fileGetPathInDirectoryLayout(symlinkTargetFile, key.Message.DirectoryLayout)
 			if err != nil {
-				return PatchedFileRootValue{}, err
+				return PatchedFileRootValue[TMetadata]{}, err
 			}
 			targetResolver := changeTrackingDirectorySymlinkFollowingResolver[TReference, TMetadata]{
 				loadOptions: loadOptions,
@@ -890,23 +866,23 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 					path.NewRelativeScopeWalker(&targetResolver),
 				),
 			); err != nil {
-				return PatchedFileRootValue{}, fmt.Errorf("cannot resolve %#v: %w", targetPath, err)
+				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("cannot resolve %#v: %w", targetPath, err)
 			}
 			targetFile := targetResolver.file
 			switch o.Type {
 			case model_starlark_pb.File_Owner_FILE:
 				if targetFile == nil {
-					return PatchedFileRootValue{}, fmt.Errorf("path %#v resolves to a directory, while a file was expected", targetPath)
+					return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("path %#v resolves to a directory, while a file was expected", targetPath)
 				}
 				if source.Symlink.IsExecutable && !targetFile.isExecutable {
-					return PatchedFileRootValue{}, fmt.Errorf("file at path %#v is not executable, even though it should be", targetPath)
+					return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("file at path %#v is not executable, even though it should be", targetPath)
 				}
 			case model_starlark_pb.File_Owner_DIRECTORY:
 				if targetFile != nil {
-					return PatchedFileRootValue{}, fmt.Errorf("path %#v resolves to a file, while a directory was expected", targetPath)
+					return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("path %#v resolves to a file, while a directory was expected", targetPath)
 				}
 			default:
-				return PatchedFileRootValue{}, errors.New("unknown file type")
+				return PatchedFileRootValue[TMetadata]{}, errors.New("unknown file type")
 			}
 
 			symlinkResolver := changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
@@ -914,10 +890,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 				stack:       util.NewNonEmptyStack(&rootDirectory),
 			}
 			if err := path.Resolve(path.UNIXFormat.NewParser(symlinkPath), &symlinkResolver); err != nil {
-				return PatchedFileRootValue{}, fmt.Errorf("cannot resolve %#v: %w", symlinkPath, err)
+				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("cannot resolve %#v: %w", symlinkPath, err)
 			}
 			if symlinkResolver.TerminalName == nil {
-				return PatchedFileRootValue{}, fmt.Errorf("%#v does not resolve to a file", symlinkPath)
+				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("%#v does not resolve to a file", symlinkPath)
 			}
 
 			// Make the target of the symlink relative to
@@ -934,7 +910,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 
 			d := symlinkResolver.stack.Peek()
 			if err := d.setSymlink(loadOptions, *symlinkResolver.TerminalName, path.UNIXFormat.NewParser(relativeTargetPath)); err != nil {
-				return PatchedFileRootValue{}, fmt.Errorf("failed to create symlink at %#v: %w", symlinkPath, err)
+				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("failed to create symlink at %#v: %w", symlinkPath, err)
 			}
 
 			return createFileRootFromChangeTrackingDirectory(
@@ -945,7 +921,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 				&rootDirectory,
 			)
 		default:
-			return PatchedFileRootValue{}, errors.New("unknown output source type")
+			return PatchedFileRootValue[TMetadata]{}, errors.New("unknown output source type")
 		}
 	}
 
@@ -957,7 +933,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
 	if !gotDirectoryCreationParameters || !gotDirectoryReaders {
-		return PatchedFileRootValue{}, evaluation.ErrMissingDependency
+		return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	loadOptions := &changeTrackingDirectoryLoadOptions[TReference]{
 		context:                 ctx,
@@ -979,7 +955,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 		path.UNIXFormat.NewParser(fileLabel.GetExternalRelativePath()),
 		/* fileType = */ nil,
 	); err != nil {
-		return PatchedFileRootValue{}, err
+		return PatchedFileRootValue[TMetadata]{}, err
 	}
 
 	// Prepend "external" depending on whether this needs to go into
@@ -995,7 +971,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 	case model_analysis_pb.DirectoryLayout_RUNFILES:
 		rootDirectory = &externalDirectory
 	default:
-		return PatchedFileRootValue{}, errors.New("unknown directory layout")
+		return PatchedFileRootValue[TMetadata]{}, errors.New("unknown directory layout")
 	}
 	return createFileRootFromChangeTrackingDirectory(
 		ctx,
@@ -1012,7 +988,7 @@ func createFileRootFromChangeTrackingDirectory[TReference object.BasicReference,
 	directoryContentsReader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]],
 	directoryCreationParameters *model_filesystem.DirectoryCreationParameters,
 	rootDirectory *changeTrackingDirectory[TReference, TMetadata],
-) (PatchedFileRootValue, error) {
+) (PatchedFileRootValue[TMetadata], error) {
 	group, groupCtx := errgroup.WithContext(ctx)
 	var createdRootDirectory model_filesystem.CreatedDirectory[TMetadata]
 	group.Go(func() error {
@@ -1034,14 +1010,14 @@ func createFileRootFromChangeTrackingDirectory[TReference object.BasicReference,
 		)
 	})
 	if err := group.Wait(); err != nil {
-		return PatchedFileRootValue{}, err
+		return PatchedFileRootValue[TMetadata]{}, err
 	}
 
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.FileRoot_Value{
 			RootDirectory: createdRootDirectory.Message.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(createdRootDirectory.Message.Patcher),
+		createdRootDirectory.Message.Patcher,
 	), nil
 }
 

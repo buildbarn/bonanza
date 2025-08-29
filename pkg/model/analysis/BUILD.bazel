@@ -106,7 +106,6 @@ go_library(
         "//pkg/search",
         "//pkg/starlark",
         "//pkg/starlark/unpack",
-        "//pkg/storage/dag",
         "//pkg/storage/object",
         "@com_github_bluekeyes_go_gitdiff//gitdiff",
         "@com_github_buildbarn_bb_remote_execution//pkg/filesystem/pool",
@@ -150,7 +149,6 @@ go_test(
         "//pkg/proto/model/filesystem",
         "//pkg/proto/model/starlark",
         "//pkg/proto/storage/object",
-        "//pkg/storage/dag",
         "//pkg/storage/object",
         "@com_github_buildbarn_bb_storage//pkg/eviction",
         "@com_github_buildbarn_bb_storage//pkg/filesystem",  # keep

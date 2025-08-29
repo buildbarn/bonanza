@@ -23,14 +23,14 @@ import (
 
 var componentMainWorkspaceName = path.MustNewComponent("_main")
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionInputRoot_Key, TReference], e TargetActionInputRootEnvironment[TReference, TMetadata]) (PatchedTargetActionInputRootValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionInputRoot_Key, TReference], e TargetActionInputRootEnvironment[TReference, TMetadata]) (PatchedTargetActionInputRootValue[TMetadata], error) {
 	id := model_core.Nested(key, key.Message.Id)
 	if id.Message == nil {
-		return PatchedTargetActionInputRootValue{}, errors.New("no target action identifier specified")
+		return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("no target action identifier specified")
 	}
 	targetLabel, err := label.NewCanonicalLabel(id.Message.Label)
 	if err != nil {
-		return PatchedTargetActionInputRootValue{}, errors.New("invalid target label")
+		return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("invalid target label")
 	}
 
 	patchedID := model_core.Patch(e, id)
@@ -39,7 +39,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 			&model_analysis_pb.TargetAction_Key{
 				Id: patchedID.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedID.Patcher),
+			patchedID.Patcher,
 		),
 	)
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
@@ -49,12 +49,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 		!gotDirectoryCreationParameters ||
 		!gotDirectoryReaders ||
 		!fileCreationParametersMessage.IsSet() {
-		return PatchedTargetActionInputRootValue{}, evaluation.ErrMissingDependency
+		return PatchedTargetActionInputRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	actionDefinition := action.Message.Definition
 	if actionDefinition == nil {
-		return PatchedTargetActionInputRootValue{}, errors.New("action definition missing")
+		return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("action definition missing")
 	}
 
 	var rootDirectory changeTrackingDirectory[TReference, TMetadata]
@@ -72,13 +72,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 		model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 	)
 	if err != nil {
-		return PatchedTargetActionInputRootValue{}, fmt.Errorf("failed to get package output directory: %w", err)
+		return PatchedTargetActionInputRootValue[TMetadata]{}, fmt.Errorf("failed to get package output directory: %w", err)
 	}
 	outputDirectory := &rootDirectory
 	for _, component := range components {
 		outputDirectory, err = outputDirectory.getOrCreateDirectory(component)
 		if err != nil {
-			return PatchedTargetActionInputRootValue{}, fmt.Errorf("failed to create directory %#v: %w", component.String(), err)
+			return PatchedTargetActionInputRootValue[TMetadata]{}, fmt.Errorf("failed to create directory %#v: %w", component.String(), err)
 		}
 	}
 	outputDirectory.unmodifiedDirectory = model_core.Nested(action, actionDefinition.InitialOutputDirectory)
@@ -91,7 +91,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 		loadOptions,
 		model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 	); err != nil {
-		return PatchedTargetActionInputRootValue{}, fmt.Errorf("failed to add input files to input root: %w", err)
+		return PatchedTargetActionInputRootValue[TMetadata]{}, fmt.Errorf("failed to add input files to input root: %w", err)
 	}
 
 	// Add tools.
@@ -107,7 +107,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 	) {
 		toolLevel, ok := tool.Message.Level.(*model_analysis_pb.FilesToRunProvider_Leaf_)
 		if !ok {
-			return PatchedTargetActionInputRootValue{}, errors.New("not a valid leaf entry for tool")
+			return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("not a valid leaf entry for tool")
 		}
 		toolLeaf := toolLevel.Leaf
 
@@ -120,20 +120,20 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 			loadOptions,
 			model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 		); err != nil {
-			return PatchedTargetActionInputRootValue{}, fmt.Errorf("failed to add tool executable to input root: %w", err)
+			return PatchedTargetActionInputRootValue[TMetadata]{}, fmt.Errorf("failed to add tool executable to input root: %w", err)
 		}
 
 		// Create the tool's runfiles directory.
 		executablePath, err := model_starlark.FileGetInputRootPath(executable, nil)
 		if err != nil {
-			return PatchedTargetActionInputRootValue{}, fmt.Errorf("failed to get path of tool executable: %w", err)
+			return PatchedTargetActionInputRootValue[TMetadata]{}, fmt.Errorf("failed to get path of tool executable: %w", err)
 		}
 		runfilesDirectoryResolver := changeTrackingDirectoryNewDirectoryResolver[TReference, TMetadata]{
 			loadOptions: loadOptions,
 			stack:       util.NewNonEmptyStack(&rootDirectory),
 		}
 		if err := path.Resolve(path.UNIXFormat.NewParser(executablePath+".runfiles"), &runfilesDirectoryResolver); err != nil {
-			return PatchedTargetActionInputRootValue{}, fmt.Errorf("failed to create runfiles directory of tool with path %#v: %w", executablePath, err)
+			return PatchedTargetActionInputRootValue[TMetadata]{}, fmt.Errorf("failed to create runfiles directory of tool with path %#v: %w", executablePath, err)
 		}
 		runfilesDirectory := runfilesDirectoryResolver.stack.Peek()
 		if err := addFilesToChangeTrackingDirectory(
@@ -143,7 +143,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 			loadOptions,
 			model_analysis_pb.DirectoryLayout_RUNFILES,
 		); err != nil {
-			return PatchedTargetActionInputRootValue{}, fmt.Errorf("failed to add runfiles files of tool with path %#v to input root: %w", executablePath, err)
+			return PatchedTargetActionInputRootValue[TMetadata]{}, fmt.Errorf("failed to add runfiles files of tool with path %#v to input root: %w", executablePath, err)
 		}
 
 		// Create a ctx.workspace_name == "_main" directory.
@@ -152,14 +152,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 		runfilesDirectory.getOrCreateDirectory(componentMainWorkspaceName)
 
 		if len(toolLeaf.RunfilesSymlinks) > 0 {
-			return PatchedTargetActionInputRootValue{}, errors.New("TODO: add runfiles symlinks to the input root")
+			return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("TODO: add runfiles symlinks to the input root")
 		}
 		if len(toolLeaf.RunfilesRootSymlinks) > 0 {
-			return PatchedTargetActionInputRootValue{}, errors.New("TODO: add runfiles root symlinks to the input root")
+			return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("TODO: add runfiles root symlinks to the input root")
 		}
 	}
 	if errIter != nil {
-		return PatchedTargetActionInputRootValue{}, errIter
+		return PatchedTargetActionInputRootValue[TMetadata]{}, errIter
 	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
@@ -183,7 +183,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 		)
 	})
 	if err := group.Wait(); err != nil {
-		return PatchedTargetActionInputRootValue{}, err
+		return PatchedTargetActionInputRootValue[TMetadata]{}, err
 	}
 
 	rootDirectoryObject, err := model_core.MarshalAndEncode(
@@ -192,7 +192,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 		directoryCreationParameters.GetEncoder(),
 	)
 	if err != nil {
-		return PatchedTargetActionInputRootValue{}, err
+		return PatchedTargetActionInputRootValue[TMetadata]{}, err
 	}
 
 	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
@@ -202,6 +202,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 				patcher.CaptureAndAddDecodableReference(rootDirectoryObject, e),
 			),
 		},
-		model_core.MapReferenceMetadataToWalkers(patcher),
+		patcher,
 	), nil
 }

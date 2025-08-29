@@ -11,18 +11,17 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
 
-type addFilesToChangeTrackingDirectoryEnvironment[TReference, TMetadata any] interface {
+type addFilesToChangeTrackingDirectoryEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
 
-	GetFilesRootValue(key model_core.PatchedMessage[*model_analysis_pb.FilesRoot_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.FilesRoot_Value, TReference]
-	GetFileRootValue(key model_core.PatchedMessage[*model_analysis_pb.FileRoot_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.FileRoot_Value, TReference]
+	GetFilesRootValue(key model_core.PatchedMessage[*model_analysis_pb.FilesRoot_Key, TMetadata]) model_core.Message[*model_analysis_pb.FilesRoot_Value, TReference]
+	GetFileRootValue(key model_core.PatchedMessage[*model_analysis_pb.FileRoot_Key, TMetadata]) model_core.Message[*model_analysis_pb.FileRoot_Value, TReference]
 }
 
 func addFilesToChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](
@@ -43,7 +42,7 @@ func addFilesToChangeTrackingDirectory[TReference object.BasicReference, TMetada
 						ListReference:   patchedReference.Message,
 						DirectoryLayout: directoryLayout,
 					},
-					model_core.MapReferenceMetadataToWalkers(patchedReference.Patcher),
+					patchedReference.Patcher,
 				),
 			)
 			if !v.IsSet() {
@@ -89,7 +88,7 @@ func addFileToChangeTrackingDirectory[TReference object.BasicReference, TMetadat
 				File:            patchedFile.Message,
 				DirectoryLayout: directoryLayout,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedFile.Patcher),
+			patchedFile.Patcher,
 		),
 	)
 	if !v.IsSet() {
@@ -101,16 +100,16 @@ func addFileToChangeTrackingDirectory[TReference object.BasicReference, TMetadat
 	return nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.FilesRoot_Key, TReference], e FilesRootEnvironment[TReference, TMetadata]) (PatchedFilesRootValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.FilesRoot_Key, TReference], e FilesRootEnvironment[TReference, TMetadata]) (PatchedFilesRootValue[TMetadata], error) {
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
 	if !gotDirectoryCreationParameters || !gotDirectoryReaders {
-		return PatchedFilesRootValue{}, evaluation.ErrMissingDependency
+		return PatchedFilesRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	files, err := model_parser.Dereference(ctx, c.valueReaders.List, model_core.Nested(key, key.Message.ListReference))
 	if err != nil {
-		return PatchedFilesRootValue{}, err
+		return PatchedFilesRootValue[TMetadata]{}, err
 	}
 
 	var rootDirectory changeTrackingDirectory[TReference, TMetadata]
@@ -125,7 +124,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.
 		},
 		key.Message.DirectoryLayout,
 	); err != nil {
-		return PatchedFilesRootValue{}, err
+		return PatchedFilesRootValue[TMetadata]{}, err
 	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
@@ -149,13 +148,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.
 		)
 	})
 	if err := group.Wait(); err != nil {
-		return PatchedFilesRootValue{}, err
+		return PatchedFilesRootValue[TMetadata]{}, err
 	}
 
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.FilesRoot_Value{
 			RootDirectory: createdRootDirectory.Message.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(createdRootDirectory.Message.Patcher),
+		createdRootDirectory.Message.Patcher,
 	), nil
 }

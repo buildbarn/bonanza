@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"crypto/ecdh"
+	"crypto/sha256"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"iter"
 	"os"
 	"runtime"
@@ -137,8 +138,9 @@ func main() {
 					),
 				),
 			),
-			bzlFileBuiltins:   bzlFileBuiltins,
-			buildFileBuiltins: buildFileBuiltins,
+			bzlFileBuiltins:       bzlFileBuiltins,
+			buildFileBuiltins:     buildFileBuiltins,
+			evaluationConcurrency: configuration.EvaluationConcurrency,
 		}
 		client, err := remoteworker.NewClient(
 			remoteWorkerClient,
@@ -235,23 +237,23 @@ func (m builderReferenceMetadata) GetContents(ctx context.Context) (*object.Cont
 	return m.contents, walkers, nil
 }
 
-type builderObjectCapturer struct{}
+type builderObjectManager struct{}
 
-func (builderObjectCapturer) CaptureCreatedObject(createdObject model_core.CreatedObject[builderReferenceMetadata]) builderReferenceMetadata {
+func (builderObjectManager) CaptureCreatedObject(createdObject model_core.CreatedObject[builderReferenceMetadata]) builderReferenceMetadata {
 	return builderReferenceMetadata{
 		contents: createdObject.Contents,
 		children: createdObject.Metadata,
 	}
 }
 
-func (builderObjectCapturer) CaptureExistingObject(reference builderReference) builderReferenceMetadata {
+func (builderObjectManager) CaptureExistingObject(reference builderReference) builderReferenceMetadata {
 	if reference.embeddedMetadata.contents != nil {
 		return reference.embeddedMetadata
 	}
 	return builderReferenceMetadata{}
 }
 
-func (builderObjectCapturer) ReferenceObject(reference object.LocalReference, metadata builderReferenceMetadata) builderReference {
+func (builderObjectManager) ReferenceObject(reference object.LocalReference, metadata builderReferenceMetadata) builderReference {
 	return builderReference{
 		LocalReference:   reference,
 		embeddedMetadata: metadata,
@@ -267,6 +269,7 @@ type builderExecutor struct {
 	executionClient               remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]]
 	bzlFileBuiltins               starlark.StringDict
 	buildFileBuiltins             starlark.StringDict
+	evaluationConcurrency         int32
 }
 
 func (e *builderExecutor) CheckReadiness(ctx context.Context) error {
@@ -295,7 +298,8 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 		return badReference, 0, 0, util.StatusWrap(err, "Failed to create action encoder")
 	}
 
-	resultMessage := model_core.BuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_build_pb.Result {
+	var objectManager builderObjectManager
+	resultMessage := model_core.BuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[builderReferenceMetadata]) *model_build_pb.Result {
 		var result model_build_pb.Result
 		parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester[builderReference](
 			e.parsedObjectPool,
@@ -335,9 +339,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 			return &result
 		}
 
-		// Perform the build.
-		value, resultsIterator, stackTraceKeys, errCompute := evaluation.FullyComputeValue(
-			ctx,
+		recursiveComputer := evaluation.NewRecursiveComputer(
 			model_analysis.NewTypedComputer(model_analysis.NewBaseComputer[builderReference, builderReferenceMetadata](
 				parsedObjectPoolIngester,
 				buildSpecificationReference,
@@ -352,32 +354,33 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				e.bzlFileBuiltins,
 				e.buildFileBuiltins,
 			)),
-			model_core.NewSimpleTopLevelMessage[builderReference](proto.Message(&model_analysis_pb.BuildResult_Key{})),
-			builderObjectCapturer{},
-			func(localReferences object.OutgoingReferences[object.LocalReference], objectContentsWalkers []dag.ObjectContentsWalker) ([]builderReference, error) {
-				degree := localReferences.GetDegree()
-				storedReferences := make(object.OutgoingReferencesList[builderReference], 0, degree)
-				for i := 0; i < degree; i++ {
-					localReference := localReferences.GetOutgoingReference(i)
-					if err := dag.UploadDAG(
-						ctx,
-						e.dagUploaderClient,
-						instanceName.WithLocalReference(localReference),
-						objectContentsWalkers[i],
-						e.objectContentsWalkerSemaphore,
-						// Assume everything we attempt
-						// to upload is memory backed.
-						object.Unlimited,
-					); err != nil {
-						return nil, fmt.Errorf("failed to store DAG with reference %s: %w", localReference.String(), err)
-					}
-					storedReferences = append(storedReferences, builderReference{
-						LocalReference: localReference,
-					})
-				}
-				return storedReferences, nil
-			},
+			objectManager,
 		)
+
+		buildResultKey := model_core.NewSimpleTopLevelMessage[builderReference](proto.Message(&model_analysis_pb.BuildResult_Key{}))
+		buildResultKeyState, err := recursiveComputer.GetOrCreateKeyState(buildResultKey)
+		if err != nil {
+			result.Failure = &model_build_pb.Result_Failure{
+				Status: status.Convert(err).Proto(),
+			}
+			return &result
+		}
+
+		// Perform the build.
+		var value model_core.Message[proto.Message, builderReference]
+		errCompute := program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+			for i := int32(0); i < e.evaluationConcurrency; i++ {
+				dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+					for recursiveComputer.ProcessNextQueuedKey(ctx) {
+					}
+					return nil
+				})
+			}
+
+			var err error
+			value, err = recursiveComputer.WaitForMessageValue(ctx, buildResultKeyState)
+			return err
+		})
 
 		// Store all evaluation results to permit debugging of the build.
 		// TODO: Use a proper configuration.
@@ -388,22 +391,24 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 			btree.NewObjectCreatingNodeMerger(
 				evaluationTreeEncoder,
 				referenceFormat,
-				/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[dag.ObjectContentsWalker]], childNodes []*model_evaluation_pb.Evaluation) model_core.PatchedMessage[*model_evaluation_pb.Evaluation, dag.ObjectContentsWalker] {
-					var firstKey []byte
+				/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[builderReferenceMetadata]], childNodes []*model_evaluation_pb.Evaluation) model_core.PatchedMessage[*model_evaluation_pb.Evaluation, builderReferenceMetadata] {
+					var firstKeySHA256 []byte
 					switch firstEntry := childNodes[0].Level.(type) {
 					case *model_evaluation_pb.Evaluation_Leaf_:
 						if flattenedAny, err := model_core.FlattenAny(model_core.NewMessage(firstEntry.Leaf.Key, createdObject.Value.Contents)); err == nil {
-							firstKey, _ = model_core.MarshalTopLevelMessage(flattenedAny)
+							firstKey, _ := model_core.MarshalTopLevelMessage(flattenedAny)
+							firstKeySHA256Array := sha256.Sum256(firstKey)
+							firstKeySHA256 = firstKeySHA256Array[:]
 						}
 					case *model_evaluation_pb.Evaluation_Parent_:
-						firstKey = firstEntry.Parent.FirstKey
+						firstKeySHA256 = firstEntry.Parent.FirstKeySha256
 					}
-					return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_evaluation_pb.Evaluation {
+					return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[builderReferenceMetadata]) *model_evaluation_pb.Evaluation {
 						return &model_evaluation_pb.Evaluation{
 							Level: &model_evaluation_pb.Evaluation_Parent_{
 								Parent: &model_evaluation_pb.Evaluation_Parent{
-									Reference: patcher.CaptureAndAddDecodableReference(createdObject, model_core.WalkableCreatedObjectCapturer),
-									FirstKey:  firstKey,
+									Reference:      patcher.CaptureAndAddDecodableReference(createdObject, objectManager),
+									FirstKeySha256: firstKeySHA256,
 								},
 							},
 						}
@@ -411,14 +416,9 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				},
 			),
 		)
-		for evaluation := range resultsIterator {
+		for evaluation := range recursiveComputer.GetAllEvaluations() {
 			key, err := model_core.MarshalAny(
-				model_core.NewPatchedMessageFromExisting(
-					evaluation.Key,
-					func(index int) dag.ObjectContentsWalker {
-						return dag.ExistingObjectContentsWalker
-					},
-				),
+				model_core.Patch(objectManager, evaluation.Key.Decay()),
 			)
 			if err != nil {
 				result.Failure = &model_build_pb.Result_Failure{
@@ -428,15 +428,10 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 			}
 			patcher := key.Patcher
 
-			var value model_core.PatchedMessage[*model_core_pb.Any, dag.ObjectContentsWalker]
+			var value model_core.PatchedMessage[*model_core_pb.Any, builderReferenceMetadata]
 			if evaluation.Value.IsSet() {
 				value, err = model_core.MarshalAny(
-					model_core.NewPatchedMessageFromExisting(
-						evaluation.Value,
-						func(index int) dag.ObjectContentsWalker {
-							return dag.ExistingObjectContentsWalker
-						},
-					),
+					model_core.Patch(objectManager, evaluation.Value),
 				)
 				if err != nil {
 					result.Failure = &model_build_pb.Result_Failure{
@@ -453,12 +448,12 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				btree.NewObjectCreatingNodeMerger(
 					evaluationTreeEncoder,
 					referenceFormat,
-					/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[dag.ObjectContentsWalker]], childNodes []*model_evaluation_pb.Dependency) model_core.PatchedMessage[*model_evaluation_pb.Dependency, dag.ObjectContentsWalker] {
-						return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_evaluation_pb.Dependency {
+					/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[builderReferenceMetadata]], childNodes []*model_evaluation_pb.Dependency) model_core.PatchedMessage[*model_evaluation_pb.Dependency, builderReferenceMetadata] {
+						return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[builderReferenceMetadata]) *model_evaluation_pb.Dependency {
 							return &model_evaluation_pb.Dependency{
 								Level: &model_evaluation_pb.Dependency_Parent_{
 									Parent: &model_evaluation_pb.Dependency_Parent{
-										Reference: patcher.CaptureAndAddDecodableReference(createdObject, model_core.WalkableCreatedObjectCapturer),
+										Reference: patcher.CaptureAndAddDecodableReference(createdObject, objectManager),
 									},
 								},
 							}
@@ -468,12 +463,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 			)
 			for _, dependency := range evaluation.Dependencies {
 				dependencyAny, err := model_core.MarshalAny(
-					model_core.NewPatchedMessageFromExisting(
-						dependency,
-						func(index int) dag.ObjectContentsWalker {
-							return dag.ExistingObjectContentsWalker
-						},
-					),
+					model_core.Patch(objectManager, dependency.Decay()),
 				)
 				if err != nil {
 					result.Failure = &model_build_pb.Result_Failure{
@@ -546,18 +536,28 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				}
 				return &result
 			}
-			result.EvaluationsReference = resultPatcher.CaptureAndAddDecodableReference(createdEvaluations, model_core.WalkableCreatedObjectCapturer)
+			result.EvaluationsReference = resultPatcher.CaptureAndAddDecodableReference(createdEvaluations, objectManager)
 		}
 
 		if errCompute != nil {
-			patchedStackTraceKeys := make([]*model_core_pb.Any, 0, len(stackTraceKeys))
-			for _, key := range stackTraceKeys {
-				patchedKey := model_core.NewPatchedMessageFromExisting(
-					key,
-					func(index int) dag.ObjectContentsWalker {
-						return dag.ExistingObjectContentsWalker
-					},
-				)
+			patchedBuildResultKey := model_core.Patch(objectManager, buildResultKey.Decay())
+			marshaledBuildResultKey, err := model_core.MarshalAny(patchedBuildResultKey)
+			if err != nil {
+				result.Failure = &model_build_pb.Result_Failure{
+					Status: status.Convert(err).Proto(),
+				}
+				return &result
+			}
+			patchedStackTraceKeys := []*model_core_pb.Any{marshaledBuildResultKey.Message}
+			resultPatcher.Merge(marshaledBuildResultKey.Patcher)
+
+			for {
+				var nestedErr evaluation.NestedError[builderReference]
+				if !errors.As(errCompute, &nestedErr) {
+					break
+				}
+
+				patchedKey := model_core.Patch(objectManager, nestedErr.Key.Decay())
 				marshaledKey, err := model_core.MarshalAny(patchedKey)
 				if err != nil {
 					result.Failure = &model_build_pb.Result_Failure{
@@ -567,7 +567,10 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				}
 				patchedStackTraceKeys = append(patchedStackTraceKeys, marshaledKey.Message)
 				resultPatcher.Merge(marshaledKey.Patcher)
+
+				errCompute = nestedErr.Err
 			}
+
 			result.Failure = &model_build_pb.Result_Failure{
 				StackTraceKeys: patchedStackTraceKeys,
 				Status:         status.Convert(errCompute).Proto(),
@@ -595,7 +598,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 		ctx,
 		e.dagUploaderClient,
 		instanceName.WithLocalReference(resultReference),
-		model_core.WalkableCreatedObjectCapturer.CaptureCreatedObject(createdResult.Value),
+		objectManager.CaptureCreatedObject(createdResult.Value).ToObjectContentsWalker(),
 		e.objectContentsWalkerSemaphore,
 		// Assume everything we attempt to upload is memory backed.
 		object.Unlimited,

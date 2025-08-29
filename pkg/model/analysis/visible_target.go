@@ -14,16 +14,15 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"google.golang.org/protobuf/proto"
 )
 
-type getValueFromSelectGroupEnvironment[TReference, TMetadata any] interface {
+type getValueFromSelectGroupEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
 
-	GetSelectValue(model_core.PatchedMessage[*model_analysis_pb.Select_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.Select_Value, TReference]
+	GetSelectValue(model_core.PatchedMessage[*model_analysis_pb.Select_Key, TMetadata]) model_core.Message[*model_analysis_pb.Select_Value, TReference]
 }
 
 func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](
@@ -46,7 +45,7 @@ func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_c
 					ConfigurationReference: patchedConfigurationReference.Message,
 					FromPackage:            fromPackage.String(),
 				},
-				model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+				patchedConfigurationReference.Patcher,
 			),
 		)
 		if !selectValue.IsSet() {
@@ -171,21 +170,21 @@ func checkRuleTargetVisibility[TReference any](fromPackage label.CanonicalPackag
 	)
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.VisibleTarget_Key, TReference], e VisibleTargetEnvironment[TReference, TMetadata]) (PatchedVisibleTargetValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.VisibleTarget_Key, TReference], e VisibleTargetEnvironment[TReference, TMetadata]) (PatchedVisibleTargetValue[TMetadata], error) {
 	fromPackage, err := label.NewCanonicalPackage(key.Message.FromPackage)
 	if err != nil {
-		return PatchedVisibleTargetValue{}, fmt.Errorf("invalid from package: %w", err)
+		return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid from package: %w", err)
 	}
 	toLabel, err := label.NewCanonicalLabel(key.Message.ToLabel)
 	if err != nil {
-		return PatchedVisibleTargetValue{}, fmt.Errorf("invalid to label: %w", err)
+		return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid to label: %w", err)
 	}
 
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
 		Label: key.Message.ToLabel,
 	})
 	if !targetValue.IsSet() {
-		return PatchedVisibleTargetValue{}, evaluation.ErrMissingDependency
+		return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
@@ -197,13 +196,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			toLabel,
 			model_core.Nested(targetValue, definition.Alias.Visibility),
 		); err != nil {
-			return PatchedVisibleTargetValue{}, err
+			return PatchedVisibleTargetValue[TMetadata]{}, err
 		}
 
 		// If the actual target is a select(), evaluate it.
 		actualSelectGroup := definition.Alias.Actual
 		if actualSelectGroup == nil {
-			return PatchedVisibleTargetValue{}, errors.New("alias has no actual target")
+			return PatchedVisibleTargetValue[TMetadata]{}, errors.New("alias has no actual target")
 		}
 		actualValue, err := getValueFromSelectGroup(
 			e,
@@ -213,22 +212,22 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			key.Message.PermitAliasNoMatch,
 		)
 		if err != nil {
-			return PatchedVisibleTargetValue{}, err
+			return PatchedVisibleTargetValue[TMetadata]{}, err
 		}
 		if actualValue == nil {
 			// None of the conditions match, and the caller
 			// is fine with that.
-			return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.VisibleTarget_Value{}), nil
+			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{}), nil
 		}
 		switch actualValueKind := actualValue.Kind.(type) {
 		case *model_starlark_pb.Value_Label:
 			actualLabel, err := label.NewResolvedLabel(actualValueKind.Label)
 			if err != nil {
-				return PatchedVisibleTargetValue{}, fmt.Errorf("invalid label %#v: %w", actualValueKind.Label, err)
+				return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid label %#v: %w", actualValueKind.Label, err)
 			}
 			actualCanonicalLabel, err := actualLabel.AsCanonical()
 			if err != nil {
-				return PatchedVisibleTargetValue{}, err
+				return PatchedVisibleTargetValue[TMetadata]{}, err
 			}
 
 			// The actual target may also be an alias.
@@ -242,28 +241,28 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 						StopAtLabelSetting:     key.Message.StopAtLabelSetting,
 						ConfigurationReference: patchedConfigurationReference.Message,
 					},
-					model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+					patchedConfigurationReference.Patcher,
 				),
 			)
 			if !actualVisibleTargetValue.IsSet() {
-				return PatchedVisibleTargetValue{}, evaluation.ErrMissingDependency
+				return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
-			return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](actualVisibleTargetValue.Message), nil
+			return model_core.NewSimplePatchedMessage[TMetadata](actualVisibleTargetValue.Message), nil
 		case *model_starlark_pb.Value_None:
 			// This implementation allows alias(actual = None).
 			// This extension is necessary to support
 			// configuration_field("coverage", "output_generator")
 			// which may return None if --collect_code_coverage
 			// is not enabled.
-			return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.VisibleTarget_Value{}), nil
+			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{}), nil
 		default:
-			return PatchedVisibleTargetValue{}, errors.New("actual target of alias is not a label")
+			return PatchedVisibleTargetValue[TMetadata]{}, errors.New("actual target of alias is not a label")
 		}
 	case *model_starlark_pb.Target_Definition_LabelSetting:
 		if key.Message.StopAtLabelSetting {
 			// We are applying a transition and want to
 			// resolve the label of a label_setting().
-			return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+			return model_core.NewSimplePatchedMessage[TMetadata](
 				&model_analysis_pb.VisibleTarget_Value{
 					Label: toLabel.String(),
 				},
@@ -289,7 +288,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			},
 		)
 		if err != nil {
-			return PatchedVisibleTargetValue{}, err
+			return PatchedVisibleTargetValue[TMetadata]{}, err
 		}
 
 		var nextFromPackage string
@@ -302,17 +301,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			// label setting's perspective.
 			leaf, ok := override.Message.Level.(*model_analysis_pb.BuildSettingOverride_Leaf_)
 			if !ok {
-				return PatchedVisibleTargetValue{}, errors.New("build setting override is not a valid leaf")
+				return PatchedVisibleTargetValue[TMetadata]{}, errors.New("build setting override is not a valid leaf")
 			}
 			value := leaf.Leaf.Value
 			if listValue, ok := value.GetKind().(*model_starlark_pb.Value_List); ok {
 				elements := listValue.List.Elements
 				if len(elements) != 1 {
-					return PatchedVisibleTargetValue{}, errors.New("build setting override value is not a single element list")
+					return PatchedVisibleTargetValue[TMetadata]{}, errors.New("build setting override value is not a single element list")
 				}
 				listLeaf, ok := elements[0].Level.(*model_starlark_pb.List_Element_Leaf)
 				if !ok {
-					return PatchedVisibleTargetValue{}, errors.New("build setting override value is not a list")
+					return PatchedVisibleTargetValue[TMetadata]{}, errors.New("build setting override value is not a list")
 				}
 				value = listLeaf.Leaf
 			}
@@ -320,18 +319,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			case *model_starlark_pb.Value_Label:
 				overrideLabel, err := label.NewResolvedLabel(labelValue.Label)
 				if err != nil {
-					return PatchedVisibleTargetValue{}, fmt.Errorf("invalid build setting override label value %#v: %w", labelValue.Label, err)
+					return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid build setting override label value %#v: %w", labelValue.Label, err)
 				}
 				canonicalOverrideLabel, err := overrideLabel.AsCanonical()
 				if err != nil {
-					return PatchedVisibleTargetValue{}, err
+					return PatchedVisibleTargetValue[TMetadata]{}, err
 				}
 				nextFromPackage = canonicalOverrideLabel.GetCanonicalPackage().String()
 				nextToLabel = overrideLabel.String()
 			case *model_starlark_pb.Value_None:
-				return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.VisibleTarget_Value{}), nil
+				return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{}), nil
 			default:
-				return PatchedVisibleTargetValue{}, errors.New("build setting override value is not a label")
+				return PatchedVisibleTargetValue[TMetadata]{}, errors.New("build setting override value is not a label")
 			}
 		} else {
 			// Use the default target associated with the
@@ -341,7 +340,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			nextToLabel = definition.LabelSetting.BuildSettingDefault
 			if nextToLabel == "" {
 				// Label setting defaults to None.
-				return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.VisibleTarget_Value{}), nil
+				return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{}), nil
 			}
 		}
 
@@ -354,17 +353,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 					PermitAliasNoMatch:     key.Message.PermitAliasNoMatch,
 					ConfigurationReference: patchedConfigurationReference.Message,
 				},
-				model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+				patchedConfigurationReference.Patcher,
 			),
 		)
 		if !actualVisibleTargetValue.IsSet() {
-			return PatchedVisibleTargetValue{}, evaluation.ErrMissingDependency
+			return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](actualVisibleTargetValue.Message), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](actualVisibleTargetValue.Message), nil
 	case *model_starlark_pb.Target_Definition_PackageGroup:
 		// Package groups don't have a visibility of their own.
 		// Any target is allowed to reference them.
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+		return model_core.NewSimplePatchedMessage[TMetadata](
 			&model_analysis_pb.VisibleTarget_Value{
 				Label: toLabel.String(),
 			},
@@ -375,7 +374,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		ownerTargetNameStr := definition.PredeclaredOutputFileTarget.OwnerTargetName
 		ownerTargetName, err := label.NewTargetName(ownerTargetNameStr)
 		if err != nil {
-			return PatchedVisibleTargetValue{}, fmt.Errorf("invalid owner target name %#v: %w", ownerTargetNameStr, err)
+			return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid owner target name %#v: %w", ownerTargetNameStr, err)
 		}
 
 		ownerLabel := toLabel.GetCanonicalPackage().AppendTargetName(ownerTargetName)
@@ -384,22 +383,22 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			Label: ownerLabelStr,
 		})
 		if !ownerTargetValue.IsSet() {
-			return PatchedVisibleTargetValue{}, evaluation.ErrMissingDependency
+			return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		ruleDefinition, ok := ownerTargetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget)
 		if !ok {
-			return PatchedVisibleTargetValue{}, fmt.Errorf("owner %#v is not a rule target", ownerLabelStr)
+			return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("owner %#v is not a rule target", ownerLabelStr)
 		}
 		if err := checkRuleTargetVisibility(
 			fromPackage,
 			ownerLabel,
 			model_core.Nested(ownerTargetValue, ruleDefinition.RuleTarget),
 		); err != nil {
-			return PatchedVisibleTargetValue{}, err
+			return PatchedVisibleTargetValue[TMetadata]{}, err
 		}
 
 		// Found the definitive target.
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+		return model_core.NewSimplePatchedMessage[TMetadata](
 			&model_analysis_pb.VisibleTarget_Value{
 				Label: toLabel.String(),
 			},
@@ -410,11 +409,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			toLabel,
 			model_core.Nested(targetValue, definition.RuleTarget),
 		); err != nil {
-			return PatchedVisibleTargetValue{}, err
+			return PatchedVisibleTargetValue[TMetadata]{}, err
 		}
 
 		// Found the definitive target.
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+		return model_core.NewSimplePatchedMessage[TMetadata](
 			&model_analysis_pb.VisibleTarget_Value{
 				Label: toLabel.String(),
 			},
@@ -425,16 +424,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			toLabel,
 			model_core.Nested(targetValue, definition.SourceFileTarget.Visibility),
 		); err != nil {
-			return PatchedVisibleTargetValue{}, err
+			return PatchedVisibleTargetValue[TMetadata]{}, err
 		}
 
 		// Found the definitive target.
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+		return model_core.NewSimplePatchedMessage[TMetadata](
 			&model_analysis_pb.VisibleTarget_Value{
 				Label: toLabel.String(),
 			},
 		), nil
 	default:
-		return PatchedVisibleTargetValue{}, errors.New("invalid target type")
+		return PatchedVisibleTargetValue[TMetadata]{}, errors.New("invalid target type")
 	}
 }

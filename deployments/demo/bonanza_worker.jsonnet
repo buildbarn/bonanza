@@ -34,7 +34,7 @@ local statePath = std.extVar('STATE_PATH');
       endpoint: {
         address: 'unix://%s/bb_runner.sock' % statePath,
       },
-      concurrency: 1,
+      concurrency: std.extVar('NCPU'),
       platformPrivateKeys: [
         |||
           -----BEGIN PRIVATE KEY-----

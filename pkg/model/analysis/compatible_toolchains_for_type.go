@@ -11,7 +11,6 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -19,9 +18,9 @@ import (
 
 var commandLineOptionPlatformsLabel = util.Must(label.NewCanonicalLabel("@@bazel_tools+//command_line_option:platforms"))
 
-type getTargetPlatformInfoProviderEnvironment[TReference any, TMetadata any] interface {
+type getTargetPlatformInfoProviderEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
-	getProviderFromVisibleConfiguredTargetEnvironment[TReference]
+	getProviderFromVisibleConfiguredTargetEnvironment[TReference, TMetadata]
 }
 
 func getTargetPlatformInfoProvider[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata](
@@ -43,27 +42,27 @@ func getTargetPlatformInfoProvider[TReference object.BasicReference, TMetadata B
 	return platformInfoProvider, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeCompatibleToolchainsForTypeValue(ctx context.Context, key model_core.Message[*model_analysis_pb.CompatibleToolchainsForType_Key, TReference], e CompatibleToolchainsForTypeEnvironment[TReference, TMetadata]) (PatchedCompatibleToolchainsForTypeValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeCompatibleToolchainsForTypeValue(ctx context.Context, key model_core.Message[*model_analysis_pb.CompatibleToolchainsForType_Key, TReference], e CompatibleToolchainsForTypeEnvironment[TReference, TMetadata]) (PatchedCompatibleToolchainsForTypeValue[TMetadata], error) {
 	registeredToolchains := e.GetRegisteredToolchainsForTypeValue(&model_analysis_pb.RegisteredToolchainsForType_Key{
 		ToolchainType: key.Message.ToolchainType,
 	})
 	if !registeredToolchains.IsSet() {
-		return PatchedCompatibleToolchainsForTypeValue{}, evaluation.ErrMissingDependency
+		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
 	platformInfoProvider, err := getTargetPlatformInfoProvider(e, configurationReference)
 	if err != nil {
-		return PatchedCompatibleToolchainsForTypeValue{}, err
+		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, err
 	}
 
 	constraintsValue, err := model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, platformInfoProvider, "constraints")
 	if err != nil {
-		return PatchedCompatibleToolchainsForTypeValue{}, fmt.Errorf("failed to obtain constraints field of PlatformInfo provider of target platform: %w", err)
+		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, fmt.Errorf("failed to obtain constraints field of PlatformInfo provider of target platform: %w", err)
 	}
 	constraints, err := c.extractFromPlatformInfoConstraints(ctx, constraintsValue)
 	if err != nil {
-		return PatchedCompatibleToolchainsForTypeValue{}, fmt.Errorf("failed to extract constraints from PlatformInfo provider of target platform: %w", err)
+		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, fmt.Errorf("failed to extract constraints from PlatformInfo provider of target platform: %w", err)
 	}
 
 	missingDependencies := false
@@ -79,7 +78,7 @@ FindCompatibleToolchains:
 		for _, targetSetting := range toolchain.TargetSettings {
 			targetSettingLabel, err := label.NewCanonicalLabel(targetSetting)
 			if err != nil {
-				return PatchedCompatibleToolchainsForTypeValue{}, fmt.Errorf("invalid target setting label %#v: %w", targetSettingLabel, err)
+				return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, fmt.Errorf("invalid target setting label %#v: %w", targetSettingLabel, err)
 			}
 			patchedConfigurationReference := model_core.Patch(e, configurationReference)
 			selectValue := e.GetSelectValue(
@@ -91,7 +90,7 @@ FindCompatibleToolchains:
 						// validated when configuring the toolchain target.
 						FromPackage: targetSettingLabel.GetCanonicalPackage().String(),
 					},
-					model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+					patchedConfigurationReference.Patcher,
 				),
 			)
 			if !selectValue.IsSet() {
@@ -106,10 +105,10 @@ FindCompatibleToolchains:
 		compatibleToolchains = append(compatibleToolchains, toolchain)
 	}
 	if missingDependencies {
-		return PatchedCompatibleToolchainsForTypeValue{}, evaluation.ErrMissingDependency
+		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.CompatibleToolchainsForType_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.CompatibleToolchainsForType_Value{
 		Toolchains: compatibleToolchains,
 	}), nil
 }

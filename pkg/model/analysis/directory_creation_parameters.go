@@ -7,15 +7,14 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	"bonanza.build/pkg/storage/dag"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryCreationParametersValue(ctx context.Context, key *model_analysis_pb.DirectoryCreationParameters_Key, e DirectoryCreationParametersEnvironment[TReference, TMetadata]) (PatchedDirectoryCreationParametersValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryCreationParametersValue(ctx context.Context, key *model_analysis_pb.DirectoryCreationParameters_Key, e DirectoryCreationParametersEnvironment[TReference, TMetadata]) (PatchedDirectoryCreationParametersValue[TMetadata], error) {
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecification.IsSet() {
-		return PatchedDirectoryCreationParametersValue{}, evaluation.ErrMissingDependency
+		return PatchedDirectoryCreationParametersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.DirectoryCreationParameters_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.DirectoryCreationParameters_Value{
 		DirectoryCreationParameters: buildSpecification.Message.BuildSpecification.GetDirectoryCreationParameters(),
 	}), nil
 }

@@ -13,14 +13,13 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
-	"bonanza.build/pkg/storage/dag"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx context.Context, key *model_analysis_pb.HttpFileContents_Key, e HttpFileContentsEnvironment[TReference, TMetadata]) (PatchedHttpFileContentsValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx context.Context, key *model_analysis_pb.HttpFileContents_Key, e HttpFileContentsEnvironment[TReference, TMetadata]) (PatchedHttpFileContentsValue[TMetadata], error) {
 	actionEncodersValue := e.GetActionEncodersValue(&model_analysis_pb.ActionEncoders_Key{})
 	actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
 	actionReaders, gotActionReaders := e.GetActionReadersValue(&model_analysis_pb.ActionReaders_Key{})
@@ -33,17 +32,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 		!fetchPlatform.IsSet() ||
 		!fileCreationParametersValue.IsSet() ||
 		!registeredFetchPlatformValue.IsSet() {
-		return PatchedHttpFileContentsValue{}, evaluation.ErrMissingDependency
+		return PatchedHttpFileContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	fetchPlatformECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(registeredFetchPlatformValue.Message.FetchPlatformPkixPublicKey)
 	if err != nil {
-		return PatchedHttpFileContentsValue{}, fmt.Errorf("invalid fetch platform PKIX public key: %w", err)
+		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("invalid fetch platform PKIX public key: %w", err)
 	}
 
 	fetchOptions := key.FetchOptions
 	if fetchOptions == nil {
-		return PatchedHttpFileContentsValue{}, errors.New("no fetch options provided")
+		return PatchedHttpFileContentsValue[TMetadata]{}, errors.New("no fetch options provided")
 	}
 
 	referenceFormat := c.getReferenceFormat()
@@ -87,12 +86,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 		// TODO: Capture and propagate execution events?
 	}
 	if errExecution != nil {
-		return PatchedHttpFileContentsValue{}, errExecution
+		return PatchedHttpFileContentsValue[TMetadata]{}, errExecution
 	}
 
 	result, err := actionReaders.FetchResult.ReadParsedObject(ctx, resultReference)
 	if err != nil {
-		return PatchedHttpFileContentsValue{}, fmt.Errorf("failed to read completion event: %w", err)
+		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("failed to read completion event: %w", err)
 	}
 
 	switch outcome := result.Message.Outcome.(type) {
@@ -102,17 +101,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 			&model_analysis_pb.HttpFileContents_Value{
 				Exists: success.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(success.Patcher),
+			success.Patcher,
 		), nil
 	case *model_fetch_pb.Result_Failure:
 		err := status.ErrorProto(outcome.Failure)
 		if fetchOptions.AllowFail || status.Code(err) == codes.NotFound {
-			return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+			return model_core.NewSimplePatchedMessage[TMetadata](
 				&model_analysis_pb.HttpFileContents_Value{},
 			), nil
 		}
-		return PatchedHttpFileContentsValue{}, fmt.Errorf("failed to fetch file: %w", err)
+		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("failed to fetch file: %w", err)
 	default:
-		return PatchedHttpFileContentsValue{}, errors.New("unkown fetch result type")
+		return PatchedHttpFileContentsValue[TMetadata]{}, errors.New("unkown fetch result type")
 	}
 }

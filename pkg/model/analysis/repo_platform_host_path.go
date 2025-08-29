@@ -14,7 +14,6 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -25,7 +24,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(ctx context.Context, key *model_analysis_pb.RepoPlatformHostPath_Key, e RepoPlatformHostPathEnvironment[TReference, TMetadata]) (PatchedRepoPlatformHostPathValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(ctx context.Context, key *model_analysis_pb.RepoPlatformHostPath_Key, e RepoPlatformHostPathEnvironment[TReference, TMetadata]) (PatchedRepoPlatformHostPathValue[TMetadata], error) {
 	actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
 	directoryCreationParametersMessage := e.GetDirectoryCreationParametersValue(&model_analysis_pb.DirectoryCreationParameters_Key{})
@@ -38,7 +37,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		!gotDirectoryReaders ||
 		!fileCreationParametersMessage.IsSet() ||
 		!repoPlatform.IsSet() {
-		return PatchedRepoPlatformHostPathValue{}, evaluation.ErrMissingDependency
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	environment := map[string]string{}
@@ -52,10 +51,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		environment,
 		actionEncoder,
 		referenceFormat,
-		model_core.WalkableCreatedObjectCapturer,
+		e,
 	)
 	if err != nil {
-		return PatchedRepoPlatformHostPathValue{}, err
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, err
 	}
 
 	// Request that the worker captures a given path by copying it
@@ -108,7 +107,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		actionEncoder,
 	)
 	if err != nil {
-		return PatchedRepoPlatformHostPathValue{}, fmt.Errorf("failed to create command: %w", err)
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create command: %w", err)
 	}
 
 	// We can assume that paths outside the input root do not
@@ -118,24 +117,21 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	inputRootReference, err := c.createMerkleTreeFromChangeTrackingDirectory(
 		ctx,
 		e,
-		&changeTrackingDirectory[TReference, model_core.FileBackedObjectLocation]{},
+		&changeTrackingDirectory[TReference, TMetadata]{},
 		directoryCreationParameters,
 		directoryReaders,
 		/* fileCreationParameters = */ nil,
 		/* patchedFiles = */ nil,
 	)
 	if err != nil {
-		return PatchedRepoPlatformHostPathValue{}, fmt.Errorf("failed to create Merkle tree of root directory: %w", err)
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create Merkle tree of root directory: %w", err)
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) model_core.Marshalable {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(inputRootReference.Patcher)
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
-				CommandReference: patcher.CaptureAndAddDecodableReference(
-					createdCommand,
-					model_core.WalkableCreatedObjectCapturer,
-				),
+				CommandReference:   patcher.CaptureAndAddDecodableReference(createdCommand, e),
 				InputRootReference: inputRootReference.Message,
 			})
 		}),
@@ -143,34 +139,31 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		actionEncoder,
 	)
 	if err != nil {
-		return PatchedRepoPlatformHostPathValue{}, fmt.Errorf("failed to create action: %w", err)
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
 	}
 
 	actionResult := e.GetSuccessfulActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_analysis_pb.SuccessfulActionResult_Key {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
 			return &model_analysis_pb.SuccessfulActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: repoPlatform.Message.ExecPkixPublicKey,
-					ActionReference: patcher.CaptureAndAddDecodableReference(
-						createdAction,
-						model_core.WalkableCreatedObjectCapturer,
-					),
-					ExecutionTimeout: &durationpb.Duration{Seconds: 600},
+					ActionReference:       patcher.CaptureAndAddDecodableReference(createdAction, e),
+					ExecutionTimeout:      &durationpb.Duration{Seconds: 600},
 				},
 			}
 		}),
 	)
 	if !actionResult.IsSet() {
-		return PatchedRepoPlatformHostPathValue{}, evaluation.ErrMissingDependency
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	outputs, err := model_parser.MaybeDereference(ctx, directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
 	if err != nil {
-		return PatchedRepoPlatformHostPathValue{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
 	outputRoot := outputs.Message.OutputRoot
 	if outputRoot == nil {
-		return PatchedRepoPlatformHostPathValue{}, errors.New("action did not yield an output root")
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, errors.New("action did not yield an output root")
 	}
 
 	directories := outputRoot.Directories
@@ -188,7 +181,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 
 		virtualRootScopeWalkerFactory, err := path.NewVirtualRootScopeWalkerFactory(path.UNIXFormat.NewParser(key.AbsolutePath), nil)
 		if err != nil {
-			return PatchedRepoPlatformHostPathValue{}, err
+			return PatchedRepoPlatformHostPathValue[TMetadata]{}, err
 		}
 		sr := changeTrackingDirectorySymlinksRelativizer[TReference, TMetadata]{
 			context:     ctx,
@@ -205,7 +198,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 			/* dPath = */ nil,
 			/* maximumEscapementLevels = */ 0,
 		); err != nil {
-			return PatchedRepoPlatformHostPathValue{}, err
+			return PatchedRepoPlatformHostPathValue[TMetadata]{}, err
 		}
 
 		group, groupCtx := errgroup.WithContext(ctx)
@@ -229,7 +222,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 			)
 		})
 		if err := group.Wait(); err != nil {
-			return PatchedRepoPlatformHostPathValue{}, err
+			return PatchedRepoPlatformHostPathValue[TMetadata]{}, err
 		}
 
 		return model_core.NewPatchedMessage(
@@ -238,13 +231,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 					Directory: createdRootDirectory.Message.Message,
 				},
 			},
-			model_core.MapReferenceMetadataToWalkers(createdRootDirectory.Message.Patcher),
+			createdRootDirectory.Message.Patcher,
 		), nil
 	}
 
 	leaves, err := model_filesystem.DirectoryGetLeaves(ctx, directoryReaders.Leaves, model_core.Nested(outputs, outputRoot))
 	if err != nil {
-		return PatchedRepoPlatformHostPathValue{}, fmt.Errorf("failed to read leaves of output root: %w", err)
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to read leaves of output root: %w", err)
 	}
 
 	files := leaves.Message.Files
@@ -260,11 +253,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 					File: patchedFileProperties.Message,
 				},
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedFileProperties.Patcher),
+			patchedFileProperties.Patcher,
 		), nil
 	}
 
-	return PatchedRepoPlatformHostPathValue{}, errors.New("action did not capture host path")
+	return PatchedRepoPlatformHostPathValue[TMetadata]{}, errors.New("action did not capture host path")
 }
 
 type changeTrackingDirectoryNormalizingPathResolver[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {

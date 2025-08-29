@@ -9,22 +9,22 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeSuccessfulActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.SuccessfulActionResult_Key, TReference], e SuccessfulActionResultEnvironment[TReference, TMetadata]) (PatchedSuccessfulActionResultValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeSuccessfulActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.SuccessfulActionResult_Key, TReference], e SuccessfulActionResultEnvironment[TReference, TMetadata]) (PatchedSuccessfulActionResultValue[TMetadata], error) {
 	patchedExecuteRequest := model_core.Patch(e, model_core.Nested(key, key.Message.ExecuteRequest))
 	actionResult := e.GetActionResultValue(
 		model_core.NewPatchedMessage(
 			&model_analysis_pb.ActionResult_Key{
 				ExecuteRequest: patchedExecuteRequest.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedExecuteRequest.Patcher),
+			patchedExecuteRequest.Patcher,
 		),
 	)
 	if !actionResult.IsSet() {
-		return PatchedSuccessfulActionResultValue{}, evaluation.ErrMissingDependency
+		return PatchedSuccessfulActionResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	if exitCode := actionResult.Message.ExitCode; exitCode != 0 {
-		return PatchedSuccessfulActionResultValue{}, fmt.Errorf("action completed with non-zero exit code %d", exitCode)
+		return PatchedSuccessfulActionResultValue[TMetadata]{}, fmt.Errorf("action completed with non-zero exit code %d", exitCode)
 	}
 
 	patchedOutputsReference := model_core.Patch(e, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
@@ -32,6 +32,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeSuccessfulActionResultValue
 		&model_analysis_pb.SuccessfulActionResult_Value{
 			OutputsReference: patchedOutputsReference.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(patchedOutputsReference.Patcher),
+		patchedOutputsReference.Patcher,
 	), nil
 }

@@ -75,7 +75,7 @@ func (c *baseComputer[TReference, TMetadata]) expandCanonicalTargetPattern(
 	}
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue(ctx context.Context, key *model_analysis_pb.TargetPatternExpansion_Key, e TargetPatternExpansionEnvironment[TReference, TMetadata]) (PatchedTargetPatternExpansionValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue(ctx context.Context, key *model_analysis_pb.TargetPatternExpansion_Key, e TargetPatternExpansionEnvironment[TReference, TMetadata]) (PatchedTargetPatternExpansionValue[TMetadata], error) {
 	treeBuilder := btree.NewSplitProllyBuilder(
 		/* minimumSizeBytes = */ 32*1024,
 		/* maximumSizeBytes = */ 128*1024,
@@ -98,7 +98,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue
 
 	canonicalTargetPattern, err := label.NewCanonicalTargetPattern(key.TargetPattern)
 	if err != nil {
-		return PatchedTargetPatternExpansionValue{}, fmt.Errorf("invalid target pattern: %w", err)
+		return PatchedTargetPatternExpansionValue[TMetadata]{}, fmt.Errorf("invalid target pattern: %w", err)
 	}
 	if initialTarget, includeFileTargets, ok := canonicalTargetPattern.AsSinglePackageTargetPattern(); ok {
 		// Target pattern of shape "@@a+//b:all",
@@ -108,7 +108,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue
 			Label: canonicalPackage.String(),
 		})
 		if !packageValue.IsSet() {
-			return PatchedTargetPatternExpansionValue{}, evaluation.ErrMissingDependency
+			return PatchedTargetPatternExpansionValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
 		definition, err := c.lookupTargetDefinitionInTargetList(
@@ -117,7 +117,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue
 			initialTarget.GetTargetName(),
 		)
 		if err != nil {
-			return PatchedTargetPatternExpansionValue{}, err
+			return PatchedTargetPatternExpansionValue[TMetadata]{}, err
 		}
 		if definition.IsSet() {
 			// Package contains an actual target that is
@@ -131,10 +131,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue
 					},
 				},
 			)); err != nil {
-				return PatchedTargetPatternExpansionValue{}, err
+				return PatchedTargetPatternExpansionValue[TMetadata]{}, err
 			}
 		} else if err := c.addPackageToTargetPatternExpansion(ctx, canonicalPackage, packageValue, includeFileTargets, key.IncludeManualTargets, treeBuilder); err != nil {
-			return PatchedTargetPatternExpansionValue{}, err
+			return PatchedTargetPatternExpansionValue[TMetadata]{}, err
 		}
 	} else if basePackage, includeFileTargets, ok := canonicalTargetPattern.AsRecursiveTargetPattern(); ok {
 		// Target pattern of shape "@@a+//b/..." or "@@a+//b/...:*".
@@ -142,7 +142,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue
 			BasePackage: basePackage.String(),
 		})
 		if !packagesAtAndBelow.IsSet() {
-			return PatchedTargetPatternExpansionValue{}, evaluation.ErrMissingDependency
+			return PatchedTargetPatternExpansionValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
 		// Add targets belonging to the current package.
@@ -152,7 +152,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue
 				Label: basePackage.String(),
 			}); packageValue.IsSet() {
 				if err := c.addPackageToTargetPatternExpansion(ctx, basePackage, packageValue, includeFileTargets, key.IncludeManualTargets, treeBuilder); err != nil {
-					return PatchedTargetPatternExpansionValue{}, err
+					return PatchedTargetPatternExpansionValue[TMetadata]{}, err
 				}
 			} else {
 				missingDependencies = true
@@ -166,7 +166,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue
 		for _, packagePath := range packagesAtAndBelow.Message.PackagesBelowBasePackage {
 			childTargetPattern, err := basePackage.ToRecursiveTargetPatternBelow(packagePath, includeFileTargets)
 			if err != nil {
-				return PatchedTargetPatternExpansionValue{}, fmt.Errorf("invalid package path %#v: %w", packagePath)
+				return PatchedTargetPatternExpansionValue[TMetadata]{}, fmt.Errorf("invalid package path %#v: %w", packagePath)
 			}
 			childTargetPatternExpansion := e.GetTargetPatternExpansionValue(&model_analysis_pb.TargetPatternExpansion_Key{
 				TargetPattern:        childTargetPattern.String(),
@@ -181,28 +181,28 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue
 				if err := treeBuilder.PushChild(
 					model_core.Patch(e, model_core.Nested(childTargetPatternExpansion, targetLabel)),
 				); err != nil {
-					return PatchedTargetPatternExpansionValue{}, err
+					return PatchedTargetPatternExpansionValue[TMetadata]{}, err
 				}
 			}
 		}
 
 		if missingDependencies {
-			return PatchedTargetPatternExpansionValue{}, evaluation.ErrMissingDependency
+			return PatchedTargetPatternExpansionValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 	} else {
-		return PatchedTargetPatternExpansionValue{}, errors.New("target pattern does not require any expansion")
+		return PatchedTargetPatternExpansionValue[TMetadata]{}, errors.New("target pattern does not require any expansion")
 	}
 
 	targetLabelsList, err := treeBuilder.FinalizeList()
 	if err != nil {
-		return PatchedTargetPatternExpansionValue{}, err
+		return PatchedTargetPatternExpansionValue[TMetadata]{}, err
 	}
 
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.TargetPatternExpansion_Value{
 			TargetLabels: targetLabelsList.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(targetLabelsList.Patcher),
+		targetLabelsList.Patcher,
 	), nil
 }
 

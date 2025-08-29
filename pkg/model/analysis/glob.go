@@ -13,7 +13,6 @@ import (
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -268,18 +267,18 @@ MatchSymlinks:
 	return nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeGlobValue(ctx context.Context, key *model_analysis_pb.Glob_Key, e GlobEnvironment[TReference, TMetadata]) (PatchedGlobValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeGlobValue(ctx context.Context, key *model_analysis_pb.Glob_Key, e GlobEnvironment[TReference, TMetadata]) (PatchedGlobValue[TMetadata], error) {
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
 	filesInPackageValue := e.GetFilesInPackageValue(&model_analysis_pb.FilesInPackage_Key{
 		Package: key.Package,
 	})
 	if !gotDirectoryReaders || !filesInPackageValue.IsSet() {
-		return PatchedGlobValue{}, evaluation.ErrMissingDependency
+		return PatchedGlobValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	nfa, err := glob.NewNFAFromBytes(key.Pattern)
 	if err != nil {
-		return PatchedGlobValue{}, fmt.Errorf("invalid pattern: %w", err)
+		return PatchedGlobValue[TMetadata]{}, fmt.Errorf("invalid pattern: %w", err)
 	}
 	var matcher glob.Matcher
 	matcher.Initialize(nfa)
@@ -297,7 +296,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeGlobValue(ctx context.Conte
 		nil,
 		&matcher,
 	); err != nil {
-		return PatchedGlobValue{}, err
+		return PatchedGlobValue[TMetadata]{}, err
 	}
 
 	// Bazel's implementation of glob() sorts results
@@ -305,7 +304,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeGlobValue(ctx context.Conte
 	// character.
 	sort.Strings(w.matchedPaths)
 
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+	return model_core.NewSimplePatchedMessage[TMetadata](
 		&model_analysis_pb.Glob_Value{
 			MatchedPaths: w.matchedPaths,
 		},

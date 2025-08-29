@@ -12,7 +12,7 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetOutput_Key, TReference], e TargetOutputEnvironment[TReference, TMetadata]) (PatchedTargetOutputValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetOutput_Key, TReference], e TargetOutputEnvironment[TReference, TMetadata]) (PatchedTargetOutputValue[TMetadata], error) {
 	patchedConfigurationReference := model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference))
 	configuredTarget := e.GetConfiguredTargetValue(
 		model_core.NewPatchedMessage(
@@ -20,11 +20,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx conte
 				Label:                  key.Message.Label,
 				ConfigurationReference: patchedConfigurationReference.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+			patchedConfigurationReference.Patcher,
 		),
 	)
 	if !configuredTarget.IsSet() {
-		return PatchedTargetOutputValue{}, evaluation.ErrMissingDependency
+		return PatchedTargetOutputValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	packageRelativePath := key.Message.PackageRelativePath
@@ -44,14 +44,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx conte
 		},
 	)
 	if err != nil {
-		return PatchedTargetOutputValue{}, err
+		return PatchedTargetOutputValue[TMetadata]{}, err
 	}
 	if !output.IsSet() {
-		return PatchedTargetOutputValue{}, errors.New("target does not yield an output with the provided package relative path")
+		return PatchedTargetOutputValue[TMetadata]{}, errors.New("target does not yield an output with the provided package relative path")
 	}
 	outputLevel, ok := output.Message.Level.(*model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_)
 	if !ok {
-		return PatchedTargetOutputValue{}, errors.New("output is not a leaf")
+		return PatchedTargetOutputValue[TMetadata]{}, errors.New("output is not a leaf")
 	}
 
 	patchedDefinition := model_core.Patch(e, model_core.Nested(output, outputLevel.Leaf.Definition))
@@ -59,6 +59,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx conte
 		&model_analysis_pb.TargetOutput_Value{
 			Definition: patchedDefinition.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(patchedDefinition.Patcher),
+		patchedDefinition.Patcher,
 	), nil
 }

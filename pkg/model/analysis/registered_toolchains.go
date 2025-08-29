@@ -16,7 +16,6 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	pg_starlark "bonanza.build/pkg/starlark"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -72,7 +71,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				&iterErr,
 			) {
 				visibleTargetValue := h.environment.GetVisibleTargetValue(
-					model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+					model_core.NewSimplePatchedMessage[TMetadata](
 						&model_analysis_pb.VisibleTarget_Key{
 							FromPackage:        canonicalToolchainLabel.GetCanonicalPackage().String(),
 							ToLabel:            canonicalToolchainLabel.String(),
@@ -115,7 +114,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				declaredToolchainInfoProvider, err := getProviderFromConfiguredTarget(
 					h.environment,
 					toolchainLabelStr,
-					model_core.NewSimplePatchedMessage[model_core.WalkableReferenceMetadata, *model_core_pb.DecodableReference](nil),
+					model_core.NewSimplePatchedMessage[TMetadata]((*model_core_pb.DecodableReference)(nil)),
 					declaredToolchainInfoProviderIdentifier,
 				)
 				if err != nil {
@@ -292,7 +291,7 @@ func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata])
 	}, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(ctx context.Context, key *model_analysis_pb.RegisteredToolchains_Key, e RegisteredToolchainsEnvironment[TReference, TMetadata]) (PatchedRegisteredToolchainsValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(ctx context.Context, key *model_analysis_pb.RegisteredToolchains_Key, e RegisteredToolchainsEnvironment[TReference, TMetadata]) (PatchedRegisteredToolchainsValue[TMetadata], error) {
 	registeredToolchainsByType := map[string][]*model_analysis_pb.RegisteredToolchain{}
 	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) pg_starlark.ChildModuleDotBazelHandler {
 		return &registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]{
@@ -305,7 +304,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(c
 			registeredToolchainsByType: registeredToolchainsByType,
 		}
 	}); err != nil {
-		return PatchedRegisteredToolchainsValue{}, err
+		return PatchedRegisteredToolchainsValue[TMetadata]{}, err
 	}
 
 	toolchainTypes := make([]*model_analysis_pb.RegisteredToolchains_Value_RegisteredToolchainType, 0, len(registeredToolchainsByType))
@@ -315,7 +314,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(c
 			Toolchains:    registeredToolchainsByType[toolchainType],
 		})
 	}
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.RegisteredToolchains_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RegisteredToolchains_Value{
 		ToolchainTypes: toolchainTypes,
 	}), nil
 }

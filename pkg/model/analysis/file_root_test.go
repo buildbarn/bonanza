@@ -162,7 +162,7 @@ func TestFileRoot(t *testing.T) {
 			// a regular file. The resulting root should
 			// only contain the specified file. Any
 			// unrelated files should be removed.
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
 				bct.expectGetDirectoryReadersValue(t, e)
@@ -282,7 +282,7 @@ func TestFileRoot(t *testing.T) {
 			// even repository root directory. Referencing
 			// files in other repos should cause them to be
 			// loaded as well.
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
 				bct.expectGetDirectoryReadersValue(t, e)
@@ -550,7 +550,7 @@ func TestFileRoot(t *testing.T) {
 			// that yields multiple outputs. The resulting
 			// file root should only contain the file that's
 			// requested.
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e).Times(3)
 				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
@@ -735,7 +735,7 @@ func TestFileRoot(t *testing.T) {
 			// belonging to an action that yields multiple
 			// outputs. The resulting file root should only
 			// contain the directory that's requested.
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e).Times(2)
 				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
@@ -910,7 +910,7 @@ func TestFileRoot(t *testing.T) {
 			// to another output file, then the resulting
 			// file root should contain both the symlink and
 			// the file.
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e).Times(2)
 				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
@@ -1075,7 +1075,7 @@ func TestFileRoot(t *testing.T) {
 			// dangling symlink in the TargetActionResult,
 			// resolution should continue inside the
 			// TargetActionInputRoot.
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e).Times(3)
 				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
@@ -1286,7 +1286,7 @@ func TestFileRoot(t *testing.T) {
 			// directory. Any files or directories that are
 			// referenced should be part of the resulting
 			// file root as well.
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e).Times(2)
 				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
@@ -1550,7 +1550,7 @@ func TestFileRoot(t *testing.T) {
 			//         },
 			//         is_executable = True,
 			//     )
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e)
 				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
@@ -1623,10 +1623,7 @@ func TestFileRoot(t *testing.T) {
 						),
 					}
 				}))
-				expandedTemplateFile := NewMockFileReadWriter(ctrl)
-				bct.filePool.EXPECT().NewFile().Return(expandedTemplateFile, nil)
-				expandedTemplateFile.EXPECT().WriteAt([]byte("Albert Einstein"), int64(0)).Return(15, nil)
-				expandedTemplateFile.EXPECT().Close()
+				bct.expectCaptureCreatedObject(e)
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
@@ -1742,7 +1739,7 @@ func TestFileRoot(t *testing.T) {
 			//         output = output,
 			//         target_path = "/etc/passwd",
 			//     )
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e)
 				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
@@ -2107,7 +2104,7 @@ func TestFileRoot(t *testing.T) {
 			//         output = output,
 			//         target_file = File("@@myrepo+//:a"),
 			//     )
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout, target *model_filesystem_pb.DirectoryContents) model_analysis.PatchedFileRootValue {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout, target *model_filesystem_pb.DirectoryContents) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e)
 				bct.expectGetDirectoryCreationParametersObjectValue(t, e)

@@ -11,17 +11,16 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/storage/dag"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
 var configSettingInfoProviderIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%ConfigSettingInfo"))
 
-func (c *baseComputer[TReference, TMetadata]) ComputeSelectValue(ctx context.Context, key model_core.Message[*model_analysis_pb.Select_Key, TReference], e SelectEnvironment[TReference, TMetadata]) (PatchedSelectValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeSelectValue(ctx context.Context, key model_core.Message[*model_analysis_pb.Select_Key, TReference], e SelectEnvironment[TReference, TMetadata]) (PatchedSelectValue[TMetadata], error) {
 	fromPackage, err := label.NewCanonicalPackage(key.Message.FromPackage)
 	if err != nil {
-		return PatchedSelectValue{}, fmt.Errorf("invalid package: %w", err)
+		return PatchedSelectValue[TMetadata]{}, fmt.Errorf("invalid package: %w", err)
 	}
 	labelResolver := newLabelResolver(e)
 	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
@@ -43,17 +42,17 @@ CheckConditions:
 				missingDependencies = true
 				continue
 			}
-			return PatchedSelectValue{}, fmt.Errorf("failed to obtain ConfigSettingInfo provider of target %#v: %w", conditionIdentifier, err)
+			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to obtain ConfigSettingInfo provider of target %#v: %w", conditionIdentifier, err)
 		}
 
 		// Check target platform constraints.
 		configSettingConstraintsField, err := model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, configSettingInfo, "constraints")
 		if err != nil {
-			return PatchedSelectValue{}, fmt.Errorf("failed to obtain \"constraints\" field of ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, err)
+			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to obtain \"constraints\" field of ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, err)
 		}
 		configSettingConstraints, err := c.extractFromPlatformInfoConstraints(ctx, configSettingConstraintsField)
 		if err != nil {
-			return PatchedSelectValue{}, fmt.Errorf("failed to extract constraints from ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, err)
+			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to extract constraints from ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, err)
 		}
 		if len(configSettingConstraints) > 0 {
 			if platformConstraints == nil {
@@ -63,16 +62,16 @@ CheckConditions:
 						missingDependencies = true
 						continue
 					}
-					return PatchedSelectValue{}, fmt.Errorf("failed to obtain PlatformInfo provider of target platform: %w", err)
+					return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to obtain PlatformInfo provider of target platform: %w", err)
 				}
 
 				platformConstraintsField, err := model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, platformInfo, "constraints")
 				if err != nil {
-					return PatchedSelectValue{}, fmt.Errorf("failed to obtain constraints field of PlatformInfo provider of target platform: %w", err)
+					return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to obtain constraints field of PlatformInfo provider of target platform: %w", err)
 				}
 				platformConstraints, err = c.extractFromPlatformInfoConstraints(ctx, platformConstraintsField)
 				if err != nil {
-					return PatchedSelectValue{}, fmt.Errorf("failed to extract constraints from ConfigSettingInfo provider of target platform: %w", err)
+					return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to extract constraints from ConfigSettingInfo provider of target platform: %w", err)
 				}
 			}
 			if !constraintsAreCompatible(platformConstraints, configSettingConstraints) {
@@ -86,15 +85,15 @@ CheckConditions:
 		// Check flag values.
 		flagValuesField, err := model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, configSettingInfo, "flag_values")
 		if err != nil {
-			return PatchedSelectValue{}, fmt.Errorf("failed to obtain \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, err)
+			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to obtain \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, err)
 		}
 		flagValuesDict, ok := flagValuesField.Message.GetKind().(*model_starlark_pb.Value_Dict)
 		if !ok {
-			return PatchedSelectValue{}, fmt.Errorf("\"flag_values\" field of ConfigSettingInfo provider of config setting %#v is not a dict", conditionIdentifier)
+			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("\"flag_values\" field of ConfigSettingInfo provider of config setting %#v is not a dict", conditionIdentifier)
 		}
 		configSettingLabel, err := label.NewCanonicalLabel(configSettingLabelStr)
 		if err != nil {
-			return PatchedSelectValue{}, fmt.Errorf("invalid condition identifier %#v: %w", configSettingLabel)
+			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("invalid condition identifier %#v: %w", configSettingLabel)
 		}
 		var errIter error
 		for key, value := range model_starlark.AllDictLeafEntries(
@@ -105,11 +104,11 @@ CheckConditions:
 		) {
 			buildSettingLabel, ok := key.Message.GetKind().(*model_starlark_pb.Value_Label)
 			if !ok {
-				return PatchedSelectValue{}, fmt.Errorf("\"flag_values\" field of ConfigSettingInfo provider of config setting %#v contains a key that is not a label", conditionIdentifier)
+				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("\"flag_values\" field of ConfigSettingInfo provider of config setting %#v contains a key that is not a label", conditionIdentifier)
 			}
 			expectedValue, ok := value.Message.GetKind().(*model_starlark_pb.Value_Str)
 			if !ok {
-				return PatchedSelectValue{}, fmt.Errorf("key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v is not a string", buildSettingLabel.Label, conditionIdentifier)
+				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v is not a string", buildSettingLabel.Label, conditionIdentifier)
 			}
 
 			actualValue, err := c.getBuildSettingValue(
@@ -124,29 +123,29 @@ CheckConditions:
 					missingDependencies = true
 					continue
 				}
-				return PatchedSelectValue{}, err
+				return PatchedSelectValue[TMetadata]{}, err
 			}
 
 			equal, err := c.compareBuildSettingValue(labelResolver, expectedValue.Str, actualValue, fromPackage)
 			if err != nil {
-				return PatchedSelectValue{}, fmt.Errorf("failed to compare key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", buildSettingLabel.Label, conditionIdentifier, err)
+				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to compare key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", buildSettingLabel.Label, conditionIdentifier, err)
 			}
 			if !equal {
 				continue CheckConditions
 			}
 		}
 		if errIter != nil {
-			return PatchedSelectValue{}, fmt.Errorf("failed to iterate \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, errIter)
+			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to iterate \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, errIter)
 		}
 
 		// TODO: Check specializations!
 		matchingIndices = append(matchingIndices, uint32(i))
 	}
 	if missingDependencies {
-		return PatchedSelectValue{}, evaluation.ErrMissingDependency
+		return PatchedSelectValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+	return model_core.NewSimplePatchedMessage[TMetadata](
 		&model_analysis_pb.Select_Value{
 			ConditionIndices: matchingIndices,
 		},

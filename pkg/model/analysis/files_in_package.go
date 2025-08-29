@@ -12,7 +12,6 @@ import (
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
-	"bonanza.build/pkg/storage/dag"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -31,17 +30,17 @@ type currentPackageLimitingDirectoryOptions[TReference any] struct {
 // part of the current package. Furthermore, it strips the contents of
 // all files. This leaves the only data that is necessary for making
 // features like glob() work.
-type currentPackageLimitingDirectory[TReference any] struct {
+type currentPackageLimitingDirectory[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	options   *currentPackageLimitingDirectoryOptions[TReference]
 	directory model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]
 }
 
-func (d *currentPackageLimitingDirectory[TReference]) Close() error {
-	*d = currentPackageLimitingDirectory[TReference]{}
+func (d *currentPackageLimitingDirectory[TReference, TMetadata]) Close() error {
+	*d = currentPackageLimitingDirectory[TReference, TMetadata]{}
 	return nil
 }
 
-func (d *currentPackageLimitingDirectory[TReference]) ReadDir() ([]filesystem.FileInfo, error) {
+func (d *currentPackageLimitingDirectory[TReference, TMetadata]) ReadDir() ([]filesystem.FileInfo, error) {
 	leaves, err := model_filesystem.DirectoryGetLeaves(
 		d.options.context,
 		d.options.directoryReaders.Leaves,
@@ -119,7 +118,7 @@ func (d *currentPackageLimitingDirectory[TReference]) ReadDir() ([]filesystem.Fi
 	return fileInfos, nil
 }
 
-func (d *currentPackageLimitingDirectory[TReference]) Readlink(name path.Component) (path.Parser, error) {
+func (d *currentPackageLimitingDirectory[TReference, TMetadata]) Readlink(name path.Component) (path.Parser, error) {
 	leaves, err := model_filesystem.DirectoryGetLeaves(
 		d.options.context,
 		d.options.directoryReaders.Leaves,
@@ -141,7 +140,7 @@ func (d *currentPackageLimitingDirectory[TReference]) Readlink(name path.Compone
 	return path.UNIXFormat.NewParser(symlinks[index].Target), nil
 }
 
-func (d *currentPackageLimitingDirectory[TReference]) EnterCapturableDirectory(name path.Component) (*model_filesystem.CreatedDirectory[dag.ObjectContentsWalker], model_filesystem.CapturableDirectory[dag.ObjectContentsWalker, dag.ObjectContentsWalker], error) {
+func (d *currentPackageLimitingDirectory[TReference, TMetadata]) EnterCapturableDirectory(name path.Component) (*model_filesystem.CreatedDirectory[TMetadata], model_filesystem.CapturableDirectory[TMetadata, TMetadata], error) {
 	directories := d.directory.Message.Directories
 	nameStr := name.String()
 	index, ok := sort.Find(
@@ -159,59 +158,59 @@ func (d *currentPackageLimitingDirectory[TReference]) EnterCapturableDirectory(n
 	if err != nil {
 		return nil, nil, err
 	}
-	return nil, &currentPackageLimitingDirectory[TReference]{
+	return nil, &currentPackageLimitingDirectory[TReference, TMetadata]{
 		options:   d.options,
 		directory: childDirectory,
 	}, nil
 }
 
-func (currentPackageLimitingDirectory[TReference]) OpenForFileMerkleTreeCreation(name path.Component) (model_filesystem.CapturableFile[dag.ObjectContentsWalker], error) {
-	return emptyCapturableFile{}, nil
+func (currentPackageLimitingDirectory[TReference, TMetadata]) OpenForFileMerkleTreeCreation(name path.Component) (model_filesystem.CapturableFile[TMetadata], error) {
+	return emptyCapturableFile[TMetadata]{}, nil
 }
 
-type emptyCapturableFile struct{}
+type emptyCapturableFile[TMetadata model_core.ReferenceMetadata] struct{}
 
-func (emptyCapturableFile) CreateFileMerkleTree(ctx context.Context) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker], error) {
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker]((*model_filesystem_pb.FileContents)(nil)), nil
+func (emptyCapturableFile[TMetadata]) CreateFileMerkleTree(ctx context.Context) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, TMetadata], error) {
+	return model_core.NewSimplePatchedMessage[TMetadata]((*model_filesystem_pb.FileContents)(nil)), nil
 }
-func (emptyCapturableFile) Discard() {}
+func (emptyCapturableFile[TMetadata]) Discard() {}
 
-func (c *baseComputer[TReference, TMetadata]) ComputeFilesInPackageValue(ctx context.Context, key *model_analysis_pb.FilesInPackage_Key, e FilesInPackageEnvironment[TReference, TMetadata]) (PatchedFilesInPackageValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeFilesInPackageValue(ctx context.Context, key *model_analysis_pb.FilesInPackage_Key, e FilesInPackageEnvironment[TReference, TMetadata]) (PatchedFilesInPackageValue[TMetadata], error) {
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
 	if !gotDirectoryCreationParameters || !gotDirectoryReaders {
-		return PatchedFilesInPackageValue{}, evaluation.ErrMissingDependency
+		return PatchedFilesInPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	packageDirectory, err := c.getPackageDirectory(ctx, e, directoryReaders.DirectoryContents, key.Package)
 	if err != nil {
-		return PatchedFilesInPackageValue{}, err
+		return PatchedFilesInPackageValue[TMetadata]{}, err
 	}
 	if !packageDirectory.IsSet() {
-		return PatchedFilesInPackageValue{}, errors.New("package directory does not exist")
+		return PatchedFilesInPackageValue[TMetadata]{}, errors.New("package directory does not exist")
 	}
 
-	var trimmedPackageDirectory model_filesystem.CreatedDirectory[dag.ObjectContentsWalker]
+	var trimmedPackageDirectory model_filesystem.CreatedDirectory[TMetadata]
 	group, groupCtx := errgroup.WithContext(ctx)
 	group.Go(func() error {
-		return model_filesystem.CreateDirectoryMerkleTree[dag.ObjectContentsWalker, dag.ObjectContentsWalker](
+		return model_filesystem.CreateDirectoryMerkleTree[TMetadata, TMetadata](
 			groupCtx,
 			semaphore.NewWeighted(1),
 			group,
 			directoryCreationParameters,
-			&currentPackageLimitingDirectory[TReference]{
+			&currentPackageLimitingDirectory[TReference, TMetadata]{
 				options: &currentPackageLimitingDirectoryOptions[TReference]{
 					context:          ctx,
 					directoryReaders: directoryReaders,
 				},
 				directory: packageDirectory,
 			},
-			model_filesystem.NewSimpleDirectoryMerkleTreeCapturer(model_core.WalkableCreatedObjectCapturer),
+			model_filesystem.NewSimpleDirectoryMerkleTreeCapturer(e),
 			&trimmedPackageDirectory,
 		)
 	})
 	if err := group.Wait(); err != nil {
-		return PatchedFilesInPackageValue{}, err
+		return PatchedFilesInPackageValue[TMetadata]{}, err
 	}
 
 	return model_core.NewPatchedMessage(

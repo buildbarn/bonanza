@@ -10,7 +10,6 @@ import (
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -23,7 +22,7 @@ import (
 // contained in a repo. All repos are placed in a fictive root
 // directory, which allows symbolic links with targets of shape
 // "../${repo}/${file}" to resolve properly.
-type reposFilePropertiesResolver[TReference object.BasicReference, TMetadata any] struct {
+type reposFilePropertiesResolver[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	context          context.Context
 	directoryReaders *DirectoryReaders[TReference]
 	environment      FilePropertiesEnvironment[TReference, TMetadata]
@@ -99,10 +98,10 @@ func (r *reposFilePropertiesResolver[TReference, TMetadata]) getCurrentFilePrope
 	return fileProperties, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeFilePropertiesValue(ctx context.Context, key *model_analysis_pb.FileProperties_Key, e FilePropertiesEnvironment[TReference, TMetadata]) (PatchedFilePropertiesValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeFilePropertiesValue(ctx context.Context, key *model_analysis_pb.FileProperties_Key, e FilePropertiesEnvironment[TReference, TMetadata]) (PatchedFilePropertiesValue[TMetadata], error) {
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
 	if !gotDirectoryReaders {
-		return PatchedFilePropertiesValue{}, evaluation.ErrMissingDependency
+		return PatchedFilePropertiesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	resolver := reposFilePropertiesResolver[TReference, TMetadata]{
@@ -111,7 +110,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFilePropertiesValue(ctx con
 		environment:      e,
 	}
 	if err := resolver.setCurrentRepo(key.CanonicalRepo); err != nil {
-		return PatchedFilePropertiesValue{}, fmt.Errorf("failed to resolve canonical repo directory: %w", err)
+		return PatchedFilePropertiesValue[TMetadata]{}, fmt.Errorf("failed to resolve canonical repo directory: %w", err)
 	}
 
 	if err := path.Resolve(
@@ -119,22 +118,22 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFilePropertiesValue(ctx con
 		path.NewLoopDetectingScopeWalker(path.NewRelativeScopeWalker(resolver.currentRepo)),
 	); err != nil {
 		if status.Code(err) == codes.NotFound {
-			return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+			return model_core.NewSimplePatchedMessage[TMetadata](
 				&model_analysis_pb.FileProperties_Value{},
 			), nil
 		}
-		return PatchedFilePropertiesValue{}, fmt.Errorf("failed to resolve path: %w", err)
+		return PatchedFilePropertiesValue[TMetadata]{}, fmt.Errorf("failed to resolve path: %w", err)
 	}
 
 	fileProperties, err := resolver.getCurrentFileProperties()
 	if err != nil {
-		return PatchedFilePropertiesValue{}, err
+		return PatchedFilePropertiesValue[TMetadata]{}, err
 	}
 	patchedFileProperties := model_core.Patch(e, fileProperties)
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.FileProperties_Value{
 			Exists: patchedFileProperties.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(patchedFileProperties.Patcher),
+		patchedFileProperties.Patcher,
 	), nil
 }

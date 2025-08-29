@@ -15,7 +15,6 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	pg_starlark "bonanza.build/pkg/starlark"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -99,7 +98,7 @@ func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, 
 				platformInfoProvider, err := getProviderFromConfiguredTarget(
 					h.environment,
 					canonicalPlatformLabelStr,
-					model_core.NewSimplePatchedMessage[model_core.WalkableReferenceMetadata, *model_core_pb.DecodableReference](nil),
+					model_core.NewSimplePatchedMessage[TMetadata]((*model_core_pb.DecodableReference)(nil)),
 					platformInfoProviderIdentifier,
 				)
 				if err != nil {
@@ -176,7 +175,7 @@ func (registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMe
 	}, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredExecutionPlatformsValue(ctx context.Context, key *model_analysis_pb.RegisteredExecutionPlatforms_Key, e RegisteredExecutionPlatformsEnvironment[TReference, TMetadata]) (PatchedRegisteredExecutionPlatformsValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredExecutionPlatformsValue(ctx context.Context, key *model_analysis_pb.RegisteredExecutionPlatforms_Key, e RegisteredExecutionPlatformsEnvironment[TReference, TMetadata]) (PatchedRegisteredExecutionPlatformsValue[TMetadata], error) {
 	var executionPlatforms []*model_analysis_pb.ExecutionPlatform
 	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) pg_starlark.ChildModuleDotBazelHandler {
 		return &registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMetadata]{
@@ -189,13 +188,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredExecutionPlatform
 			executionPlatforms:    &executionPlatforms,
 		}
 	}); err != nil {
-		return PatchedRegisteredExecutionPlatformsValue{}, err
+		return PatchedRegisteredExecutionPlatformsValue[TMetadata]{}, err
 	}
 
 	if len(executionPlatforms) == 0 {
-		return PatchedRegisteredExecutionPlatformsValue{}, errors.New("failed to find registered execution platforms in any of the MODULE.bazel files")
+		return PatchedRegisteredExecutionPlatformsValue[TMetadata]{}, errors.New("failed to find registered execution platforms in any of the MODULE.bazel files")
 	}
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.RegisteredExecutionPlatforms_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RegisteredExecutionPlatforms_Value{
 		ExecutionPlatforms: executionPlatforms,
 	}), nil
 }

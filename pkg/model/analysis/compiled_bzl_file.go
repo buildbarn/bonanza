@@ -57,10 +57,10 @@ func (c *baseComputer[TReference, TMetadata]) getReferenceEqualIdentifierGenerat
 	}, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFile_Key, e CompiledBzlFileEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFile_Key, e CompiledBzlFileEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileValue[TMetadata], error) {
 	canonicalLabel, err := label.NewCanonicalLabel(key.Label)
 	if err != nil {
-		return PatchedCompiledBzlFileValue{}, fmt.Errorf("invalid label: %w", err)
+		return PatchedCompiledBzlFileValue[TMetadata]{}, fmt.Errorf("invalid label: %w", err)
 	}
 	canonicalPackage := canonicalLabel.GetCanonicalPackage()
 	canonicalRepo := canonicalPackage.GetCanonicalRepo()
@@ -74,24 +74,24 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
 	bzlFileBuiltins, bzlFileBuiltinsErr := c.getBzlFileBuiltins(thread, e, key.BuiltinsModuleNames)
 	if !bzlFileProperties.IsSet() || !gotFileReader {
-		return PatchedCompiledBzlFileValue{}, evaluation.ErrMissingDependency
+		return PatchedCompiledBzlFileValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if bzlFileBuiltinsErr != nil {
-		return PatchedCompiledBzlFileValue{}, bzlFileBuiltinsErr
+		return PatchedCompiledBzlFileValue[TMetadata]{}, bzlFileBuiltinsErr
 	}
 
 	if bzlFileProperties.Message.Exists == nil {
-		return PatchedCompiledBzlFileValue{}, fmt.Errorf("file %#v does not exist", canonicalLabel.String())
+		return PatchedCompiledBzlFileValue[TMetadata]{}, fmt.Errorf("file %#v does not exist", canonicalLabel.String())
 	}
 	buildFileContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
 		model_core.Nested(bzlFileProperties, bzlFileProperties.Message.Exists.GetContents()),
 	)
 	if err != nil {
-		return PatchedCompiledBzlFileValue{}, fmt.Errorf("invalid file contents: %w", err)
+		return PatchedCompiledBzlFileValue[TMetadata]{}, fmt.Errorf("invalid file contents: %w", err)
 	}
 	bzlFileData, err := fileReader.FileReadAll(ctx, buildFileContentsEntry, 1<<21)
 	if err != nil {
-		return PatchedCompiledBzlFileValue{}, err
+		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
 
 	// TODO: @@builtins_core+//:exports.bzl needs to use recursion
@@ -112,16 +112,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 		bzlFileBuiltins.Has,
 	)
 	if err != nil {
-		return PatchedCompiledBzlFileValue{}, err
+		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
 
 	if err := c.preloadBzlGlobals(e, canonicalPackage, program, key.BuiltinsModuleNames); err != nil {
-		return PatchedCompiledBzlFileValue{}, err
+		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
 
 	identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.NewSimpleMessage[TReference](proto.Message(key)))
 	if err != nil {
-		return PatchedCompiledBzlFileValue{}, err
+		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
 	thread.SetLocal(model_starlark.ReferenceEqualIdentifierGeneratorKey, identifierGenerator)
 
@@ -130,23 +130,23 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 		if !errors.Is(err, evaluation.ErrMissingDependency) {
 			var evalErr *starlark.EvalError
 			if errors.As(err, &evalErr) {
-				return PatchedCompiledBzlFileValue{}, errors.New(evalErr.Backtrace())
+				return PatchedCompiledBzlFileValue[TMetadata]{}, errors.New(evalErr.Backtrace())
 			}
 		}
-		return PatchedCompiledBzlFileValue{}, err
+		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
 	model_starlark.NameAndExtractGlobals(globals, canonicalLabel)
 
 	// TODO! Use proper encoding options!
 	compiledProgram, err := model_starlark.EncodeCompiledProgram(program, globals, c.getValueEncodingOptions(e, &canonicalLabel))
 	if err != nil {
-		return PatchedCompiledBzlFileValue{}, err
+		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.CompiledBzlFile_Value{
 			CompiledProgram: compiledProgram.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(compiledProgram.Patcher),
+		compiledProgram.Patcher,
 	), nil
 }
 
@@ -213,15 +213,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileFunctionFact
 	return functionFactory, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFileGlobal_Key, e CompiledBzlFileGlobalEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileGlobalValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFileGlobal_Key, e CompiledBzlFileGlobalEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileGlobalValue[TMetadata], error) {
 	identifier, err := label.NewCanonicalStarlarkIdentifier(key.Identifier)
 	if err != nil {
-		return PatchedCompiledBzlFileGlobalValue{}, fmt.Errorf("invalid identifier: %w", err)
+		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, fmt.Errorf("invalid identifier: %w", err)
 	}
 
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	if !allBuiltinsModulesNames.IsSet() {
-		return PatchedCompiledBzlFileGlobalValue{}, evaluation.ErrMissingDependency
+		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	compiledBzlFile := e.GetCompiledBzlFileValue(&model_analysis_pb.CompiledBzlFile_Key{
@@ -229,7 +229,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(
 		BuiltinsModuleNames: allBuiltinsModulesNames.Message.BuiltinsModuleNames,
 	})
 	if !compiledBzlFile.IsSet() {
-		return PatchedCompiledBzlFileGlobalValue{}, evaluation.ErrMissingDependency
+		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	global, err := model_starlark.GetStructFieldValue(
@@ -239,7 +239,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(
 		identifier.GetStarlarkIdentifier().String(),
 	)
 	if err != nil {
-		return PatchedCompiledBzlFileGlobalValue{}, err
+		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, err
 	}
 
 	patchedGlobal := model_core.Patch(e, global)
@@ -247,7 +247,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(
 		&model_analysis_pb.CompiledBzlFileGlobal_Value{
 			Global: patchedGlobal.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(patchedGlobal.Patcher),
+		patchedGlobal.Patcher,
 	), nil
 }
 

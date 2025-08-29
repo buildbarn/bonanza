@@ -12,10 +12,10 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionValue(ctx context.Context, key *model_analysis_pb.UsedModuleExtension_Key, e UsedModuleExtensionEnvironment[TReference, TMetadata]) (PatchedUsedModuleExtensionValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionValue(ctx context.Context, key *model_analysis_pb.UsedModuleExtension_Key, e UsedModuleExtensionEnvironment[TReference, TMetadata]) (PatchedUsedModuleExtensionValue[TMetadata], error) {
 	usedModuleExtensions := e.GetUsedModuleExtensionsValue(&model_analysis_pb.UsedModuleExtensions_Key{})
 	if !usedModuleExtensions.IsSet() {
-		return PatchedUsedModuleExtensionValue{}, evaluation.ErrMissingDependency
+		return PatchedUsedModuleExtensionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	extensions := usedModuleExtensions.Message.ModuleExtensions
 	if i := sort.Search(
@@ -28,7 +28,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionValue(ct
 		extension := extensions[i]
 		identifier, err := label.NewCanonicalStarlarkIdentifier(extension.Identifier)
 		if err != nil {
-			return PatchedUsedModuleExtensionValue{}, fmt.Errorf("invalid module extensions Starlark identifier %#v: %w", extension.Identifier, err)
+			return PatchedUsedModuleExtensionValue[TMetadata]{}, fmt.Errorf("invalid module extensions Starlark identifier %#v: %w", extension.Identifier, err)
 		}
 		if identifier.ToModuleExtension().String() == key.ModuleExtension {
 			patchedExtension := model_core.Patch(e, model_core.Nested(usedModuleExtensions, extension))
@@ -36,9 +36,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionValue(ct
 				&model_analysis_pb.UsedModuleExtension_Value{
 					ModuleExtension: patchedExtension.Message,
 				},
-				model_core.MapReferenceMetadataToWalkers(patchedExtension.Patcher),
+				patchedExtension.Patcher,
 			), nil
 		}
 	}
-	return PatchedUsedModuleExtensionValue{}, errors.New("module extension not found")
+	return PatchedUsedModuleExtensionValue[TMetadata]{}, errors.New("module extension not found")
 }

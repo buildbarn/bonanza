@@ -8,13 +8,12 @@ import (
 	"bonanza.build/pkg/evaluation"
 	model_core "bonanza.build/pkg/model/core"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	"bonanza.build/pkg/storage/dag"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsForTypeValue(ctx context.Context, key *model_analysis_pb.RegisteredToolchainsForType_Key, e RegisteredToolchainsForTypeEnvironment[TReference, TMetadata]) (PatchedRegisteredToolchainsForTypeValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsForTypeValue(ctx context.Context, key *model_analysis_pb.RegisteredToolchainsForType_Key, e RegisteredToolchainsForTypeEnvironment[TReference, TMetadata]) (PatchedRegisteredToolchainsForTypeValue[TMetadata], error) {
 	registeredToolchainsValue := e.GetRegisteredToolchainsValue(&model_analysis_pb.RegisteredToolchains_Key{})
 	if !registeredToolchainsValue.IsSet() {
-		return PatchedRegisteredToolchainsForTypeValue{}, evaluation.ErrMissingDependency
+		return PatchedRegisteredToolchainsForTypeValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	registeredToolchains := registeredToolchainsValue.Message.ToolchainTypes
@@ -23,11 +22,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsForType
 		func(i int) int { return strings.Compare(key.ToolchainType, registeredToolchains[i].ToolchainType) },
 	); ok {
 		// Found one or more toolchains for this type.
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.RegisteredToolchainsForType_Value{
+		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RegisteredToolchainsForType_Value{
 			Toolchains: registeredToolchains[index].Toolchains,
 		}), nil
 	}
 
 	// No toolchains registered for this type.
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.RegisteredToolchainsForType_Value{}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RegisteredToolchainsForType_Value{}), nil
 }

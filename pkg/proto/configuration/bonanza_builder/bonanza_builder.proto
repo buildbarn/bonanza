@@ -67,4 +67,8 @@ message ApplicationConfiguration {
   // Cache that resides in memory of objects read from storage that have
   // been decoded and parsed.
   bonanza.configuration.model.parser.ParsedObjectPool parsed_object_pool = 14;
+
+  // The maximum number of times the evaluation function may be invoked
+  // in parallel.
+  int32 evaluation_concurrency = 15;
 }

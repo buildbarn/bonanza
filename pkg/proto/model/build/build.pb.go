@@ -14,6 +14,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -442,6 +443,50 @@ func (x *Action) GetBuildSpecificationReference() *core.DecodableReference {
 	return nil
 }
 
+type Progress struct {
+	state                   protoimpl.MessageState             `protogen:"open.v1"`
+	CurrentlyEvaluatingKeys []*Progress_CurrentlyEvaluatingKey `protobuf:"bytes,1,rep,name=currently_evaluating_keys,json=currentlyEvaluatingKeys,proto3" json:"currently_evaluating_keys,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *Progress) Reset() {
+	*x = Progress{}
+	mi := &file_pkg_proto_model_build_build_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Progress) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Progress) ProtoMessage() {}
+
+func (x *Progress) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_model_build_build_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Progress.ProtoReflect.Descriptor instead.
+func (*Progress) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_model_build_build_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Progress) GetCurrentlyEvaluatingKeys() []*Progress_CurrentlyEvaluatingKey {
+	if x != nil {
+		return x.CurrentlyEvaluatingKeys
+	}
+	return nil
+}
+
 type Result struct {
 	state                protoimpl.MessageState   `protogen:"open.v1"`
 	Failure              *Result_Failure          `protobuf:"bytes,1,opt,name=failure,proto3" json:"failure,omitempty"`
@@ -452,7 +497,7 @@ type Result struct {
 
 func (x *Result) Reset() {
 	*x = Result{}
-	mi := &file_pkg_proto_model_build_build_proto_msgTypes[6]
+	mi := &file_pkg_proto_model_build_build_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -464,7 +509,7 @@ func (x *Result) String() string {
 func (*Result) ProtoMessage() {}
 
 func (x *Result) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_build_build_proto_msgTypes[6]
+	mi := &file_pkg_proto_model_build_build_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -477,7 +522,7 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result.ProtoReflect.Descriptor instead.
 func (*Result) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_build_build_proto_rawDescGZIP(), []int{6}
+	return file_pkg_proto_model_build_build_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Result) GetFailure() *Result_Failure {
@@ -494,6 +539,74 @@ func (x *Result) GetEvaluationsReference() *core.DecodableReference {
 	return nil
 }
 
+type Progress_CurrentlyEvaluatingKey struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Key                    *core.Any              `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	FirstEvaluationStart   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=first_evaluation_start,json=firstEvaluationStart,proto3" json:"first_evaluation_start,omitempty"`
+	CurrentEvaluationStart *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=current_evaluation_start,json=currentEvaluationStart,proto3" json:"current_evaluation_start,omitempty"`
+	Restarts               uint32                 `protobuf:"varint,4,opt,name=restarts,proto3" json:"restarts,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) Reset() {
+	*x = Progress_CurrentlyEvaluatingKey{}
+	mi := &file_pkg_proto_model_build_build_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Progress_CurrentlyEvaluatingKey) ProtoMessage() {}
+
+func (x *Progress_CurrentlyEvaluatingKey) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_model_build_build_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Progress_CurrentlyEvaluatingKey.ProtoReflect.Descriptor instead.
+func (*Progress_CurrentlyEvaluatingKey) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_model_build_build_proto_rawDescGZIP(), []int{6, 0}
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) GetKey() *core.Any {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) GetFirstEvaluationStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FirstEvaluationStart
+	}
+	return nil
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) GetCurrentEvaluationStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CurrentEvaluationStart
+	}
+	return nil
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) GetRestarts() uint32 {
+	if x != nil {
+		return x.Restarts
+	}
+	return 0
+}
+
 type Result_Failure struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	StackTraceKeys []*core.Any            `protobuf:"bytes,1,rep,name=stack_trace_keys,json=stackTraceKeys,proto3" json:"stack_trace_keys,omitempty"`
@@ -504,7 +617,7 @@ type Result_Failure struct {
 
 func (x *Result_Failure) Reset() {
 	*x = Result_Failure{}
-	mi := &file_pkg_proto_model_build_build_proto_msgTypes[7]
+	mi := &file_pkg_proto_model_build_build_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -516,7 +629,7 @@ func (x *Result_Failure) String() string {
 func (*Result_Failure) ProtoMessage() {}
 
 func (x *Result_Failure) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_build_build_proto_msgTypes[7]
+	mi := &file_pkg_proto_model_build_build_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -529,7 +642,7 @@ func (x *Result_Failure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result_Failure.ProtoReflect.Descriptor instead.
 func (*Result_Failure) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_build_build_proto_rawDescGZIP(), []int{6, 0}
+	return file_pkg_proto_model_build_build_proto_rawDescGZIP(), []int{7, 0}
 }
 
 func (x *Result_Failure) GetStackTraceKeys() []*core.Any {
@@ -550,7 +663,7 @@ var File_pkg_proto_model_build_build_proto protoreflect.FileDescriptor
 
 const file_pkg_proto_model_build_build_proto_rawDesc = "" +
 	"\n" +
-	"!pkg/proto/model/build/build.proto\x12\x13bonanza.model.build\x1a\x1egoogle/protobuf/duration.proto\x1a\x17google/rpc/status.proto\x1a\x1fpkg/proto/model/core/core.proto\x1a'pkg/proto/model/encoding/encoding.proto\x1a+pkg/proto/model/filesystem/filesystem.proto\"\x84\x01\n" +
+	"!pkg/proto/model/build/build.proto\x12\x13bonanza.model.build\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\x1a\x1fpkg/proto/model/core/core.proto\x1a'pkg/proto/model/encoding/encoding.proto\x1a+pkg/proto/model/filesystem/filesystem.proto\"\x84\x01\n" +
 	"\x06Module\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12f\n" +
 	"\x18root_directory_reference\x18\x02 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x16rootDirectoryReference\"t\n" +
@@ -582,7 +695,14 @@ const file_pkg_proto_model_build_build_proto_rawDesc = "" +
 	"\x06Action\x12#\n" +
 	"\rinvocation_id\x18\x01 \x01(\tR\finvocationId\x12(\n" +
 	"\x10build_request_id\x18\x02 \x01(\tR\x0ebuildRequestId\x12\x98\x01\n" +
-	"\x1dbuild_specification_reference\x18\x03 \x01(\v2&.bonanza.model.core.DecodableReferenceB,\xea\xd7 (\x12&bonanza.model.build.BuildSpecificationR\x1bbuildSpecificationReference\"\xca\x02\n" +
+	"\x1dbuild_specification_reference\x18\x03 \x01(\v2&.bonanza.model.core.DecodableReferenceB,\xea\xd7 (\x12&bonanza.model.build.BuildSpecificationR\x1bbuildSpecificationReference\"\x86\x03\n" +
+	"\bProgress\x12p\n" +
+	"\x19currently_evaluating_keys\x18\x01 \x03(\v24.bonanza.model.build.Progress.CurrentlyEvaluatingKeyR\x17currentlyEvaluatingKeys\x1a\x87\x02\n" +
+	"\x16CurrentlyEvaluatingKey\x12)\n" +
+	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12P\n" +
+	"\x16first_evaluation_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x14firstEvaluationStart\x12T\n" +
+	"\x18current_evaluation_start\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x16currentEvaluationStart\x12\x1a\n" +
+	"\brestarts\x18\x04 \x01(\rR\brestarts\"\xca\x02\n" +
 	"\x06Result\x12=\n" +
 	"\afailure\x18\x01 \x01(\v2#.bonanza.model.build.Result.FailureR\afailure\x12\x86\x01\n" +
 	"\x15evaluations_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x14evaluationsReference\x1ax\n" +
@@ -602,7 +722,7 @@ func file_pkg_proto_model_build_build_proto_rawDescGZIP() []byte {
 	return file_pkg_proto_model_build_build_proto_rawDescData
 }
 
-var file_pkg_proto_model_build_build_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_pkg_proto_model_build_build_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_pkg_proto_model_build_build_proto_goTypes = []any{
 	(*Module)(nil),                                 // 0: bonanza.model.build.Module
 	(*UseLockfile)(nil),                            // 1: bonanza.model.build.UseLockfile
@@ -610,37 +730,44 @@ var file_pkg_proto_model_build_build_proto_goTypes = []any{
 	(*Configuration)(nil),                          // 3: bonanza.model.build.Configuration
 	(*BuildSpecification)(nil),                     // 4: bonanza.model.build.BuildSpecification
 	(*Action)(nil),                                 // 5: bonanza.model.build.Action
-	(*Result)(nil),                                 // 6: bonanza.model.build.Result
-	(*Result_Failure)(nil),                         // 7: bonanza.model.build.Result.Failure
-	(*filesystem.DirectoryReference)(nil),          // 8: bonanza.model.filesystem.DirectoryReference
-	(*durationpb.Duration)(nil),                    // 9: google.protobuf.Duration
-	(*filesystem.DirectoryCreationParameters)(nil), // 10: bonanza.model.filesystem.DirectoryCreationParameters
-	(*filesystem.FileCreationParameters)(nil),      // 11: bonanza.model.filesystem.FileCreationParameters
-	(*encoding.BinaryEncoder)(nil),                 // 12: bonanza.model.encoding.BinaryEncoder
-	(*core.DecodableReference)(nil),                // 13: bonanza.model.core.DecodableReference
-	(*core.Any)(nil),                               // 14: bonanza.model.core.Any
-	(*status.Status)(nil),                          // 15: google.rpc.Status
+	(*Progress)(nil),                               // 6: bonanza.model.build.Progress
+	(*Result)(nil),                                 // 7: bonanza.model.build.Result
+	(*Progress_CurrentlyEvaluatingKey)(nil),        // 8: bonanza.model.build.Progress.CurrentlyEvaluatingKey
+	(*Result_Failure)(nil),                         // 9: bonanza.model.build.Result.Failure
+	(*filesystem.DirectoryReference)(nil),          // 10: bonanza.model.filesystem.DirectoryReference
+	(*durationpb.Duration)(nil),                    // 11: google.protobuf.Duration
+	(*filesystem.DirectoryCreationParameters)(nil), // 12: bonanza.model.filesystem.DirectoryCreationParameters
+	(*filesystem.FileCreationParameters)(nil),      // 13: bonanza.model.filesystem.FileCreationParameters
+	(*encoding.BinaryEncoder)(nil),                 // 14: bonanza.model.encoding.BinaryEncoder
+	(*core.DecodableReference)(nil),                // 15: bonanza.model.core.DecodableReference
+	(*core.Any)(nil),                               // 16: bonanza.model.core.Any
+	(*timestamppb.Timestamp)(nil),                  // 17: google.protobuf.Timestamp
+	(*status.Status)(nil),                          // 18: google.rpc.Status
 }
 var file_pkg_proto_model_build_build_proto_depIdxs = []int32{
-	8,  // 0: bonanza.model.build.Module.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
-	9,  // 1: bonanza.model.build.UseLockfile.maximum_cache_duration:type_name -> google.protobuf.Duration
+	10, // 0: bonanza.model.build.Module.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
+	11, // 1: bonanza.model.build.UseLockfile.maximum_cache_duration:type_name -> google.protobuf.Duration
 	2,  // 2: bonanza.model.build.Configuration.build_setting_overrides:type_name -> bonanza.model.build.BuildSettingOverride
 	0,  // 3: bonanza.model.build.BuildSpecification.modules:type_name -> bonanza.model.build.Module
-	10, // 4: bonanza.model.build.BuildSpecification.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
-	11, // 5: bonanza.model.build.BuildSpecification.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
+	12, // 4: bonanza.model.build.BuildSpecification.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
+	13, // 5: bonanza.model.build.BuildSpecification.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
 	1,  // 6: bonanza.model.build.BuildSpecification.use_lockfile:type_name -> bonanza.model.build.UseLockfile
-	12, // 7: bonanza.model.build.BuildSpecification.action_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	14, // 7: bonanza.model.build.BuildSpecification.action_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
 	3,  // 8: bonanza.model.build.BuildSpecification.configurations:type_name -> bonanza.model.build.Configuration
-	13, // 9: bonanza.model.build.Action.build_specification_reference:type_name -> bonanza.model.core.DecodableReference
-	7,  // 10: bonanza.model.build.Result.failure:type_name -> bonanza.model.build.Result.Failure
-	13, // 11: bonanza.model.build.Result.evaluations_reference:type_name -> bonanza.model.core.DecodableReference
-	14, // 12: bonanza.model.build.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
-	15, // 13: bonanza.model.build.Result.Failure.status:type_name -> google.rpc.Status
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	15, // 9: bonanza.model.build.Action.build_specification_reference:type_name -> bonanza.model.core.DecodableReference
+	8,  // 10: bonanza.model.build.Progress.currently_evaluating_keys:type_name -> bonanza.model.build.Progress.CurrentlyEvaluatingKey
+	9,  // 11: bonanza.model.build.Result.failure:type_name -> bonanza.model.build.Result.Failure
+	15, // 12: bonanza.model.build.Result.evaluations_reference:type_name -> bonanza.model.core.DecodableReference
+	16, // 13: bonanza.model.build.Progress.CurrentlyEvaluatingKey.key:type_name -> bonanza.model.core.Any
+	17, // 14: bonanza.model.build.Progress.CurrentlyEvaluatingKey.first_evaluation_start:type_name -> google.protobuf.Timestamp
+	17, // 15: bonanza.model.build.Progress.CurrentlyEvaluatingKey.current_evaluation_start:type_name -> google.protobuf.Timestamp
+	16, // 16: bonanza.model.build.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
+	18, // 17: bonanza.model.build.Result.Failure.status:type_name -> google.rpc.Status
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_pkg_proto_model_build_build_proto_init() }
@@ -654,7 +781,7 @@ func file_pkg_proto_model_build_build_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_model_build_build_proto_rawDesc), len(file_pkg_proto_model_build_build_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -14,10 +14,10 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionResult_Key, TReference], e TargetActionResultEnvironment[TReference, TMetadata]) (PatchedTargetActionResultValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionResult_Key, TReference], e TargetActionResultEnvironment[TReference, TMetadata]) (PatchedTargetActionResultValue[TMetadata], error) {
 	id := model_core.Nested(key, key.Message.Id)
 	if id.Message == nil {
-		return PatchedTargetActionResultValue{}, errors.New("no target action identifier specified")
+		return PatchedTargetActionResultValue[TMetadata]{}, errors.New("no target action identifier specified")
 	}
 	patchedID1 := model_core.Patch(e, id)
 	action := e.GetTargetActionValue(
@@ -25,7 +25,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 			&model_analysis_pb.TargetAction_Key{
 				Id: patchedID1.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedID1.Patcher),
+			patchedID1.Patcher,
 		),
 	)
 	patchedID2 := model_core.Patch(e, id)
@@ -34,7 +34,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 			&model_analysis_pb.TargetActionCommand_Key{
 				Id: patchedID2.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedID2.Patcher),
+			patchedID2.Patcher,
 		),
 	)
 	actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
@@ -45,16 +45,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 			&model_analysis_pb.TargetActionInputRoot_Key{
 				Id: patchedID3.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedID3.Patcher),
+			patchedID3.Patcher,
 		),
 	)
 	if !action.IsSet() || !command.IsSet() || !gotActionEncoder || !gotDirectoryReaders || !inputRoot.IsSet() {
-		return PatchedTargetActionResultValue{}, evaluation.ErrMissingDependency
+		return PatchedTargetActionResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	actionDefinition := action.Message.Definition
 	if actionDefinition == nil {
-		return PatchedTargetActionResultValue{}, errors.New("action definition missing")
+		return PatchedTargetActionResultValue[TMetadata]{}, errors.New("action definition missing")
 	}
 
 	commandReference := model_core.Patch(e, model_core.Nested(command, command.Message.CommandReference))
@@ -73,13 +73,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 		actionEncoder,
 	)
 	if err != nil {
-		return PatchedTargetActionResultValue{}, fmt.Errorf("failed to create action: %w", err)
+		return PatchedTargetActionResultValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
 	}
 
-	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
 	actionResult := e.GetSuccessfulActionResultValue(
-		model_core.NewPatchedMessage(
-			&model_analysis_pb.SuccessfulActionResult_Key{
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
+			return &model_analysis_pb.SuccessfulActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					// TODO: Should we make the execution
 					// timeout on build actions configurable?
@@ -90,12 +89,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 					ActionReference:       patcher.CaptureAndAddDecodableReference(createdAction, e),
 					PlatformPkixPublicKey: actionDefinition.PlatformPkixPublicKey,
 				},
-			},
-			model_core.MapReferenceMetadataToWalkers(patcher),
-		),
+			}
+		}),
 	)
 	if !actionResult.IsSet() {
-		return PatchedTargetActionResultValue{}, evaluation.ErrMissingDependency
+		return PatchedTargetActionResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	outputs, err := model_parser.MaybeDereference(
@@ -104,13 +102,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 		model_core.Nested(actionResult, actionResult.Message.OutputsReference),
 	)
 	if err != nil {
-		return PatchedTargetActionResultValue{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
+		return PatchedTargetActionResultValue[TMetadata]{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
 	outputRoot := model_core.Patch(e, model_core.Nested(outputs, outputs.Message.GetOutputRoot()))
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.TargetActionResult_Value{
 			OutputRoot: outputRoot.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(outputRoot.Patcher),
+		outputRoot.Patcher,
 	), nil
 }

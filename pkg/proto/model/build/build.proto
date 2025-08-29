@@ -3,6 +3,7 @@ syntax = "proto3";
 package bonanza.model.build;
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 import "google/rpc/status.proto";
 import "pkg/proto/model/core/core.proto";
 import "pkg/proto/model/encoding/encoding.proto";
@@ -152,6 +153,28 @@ message Action {
         proto_type_name:
           "bonanza.model.build.BuildSpecification";
       }];
+}
+
+message Progress {
+  message CurrentlyEvaluatingKey {
+    // The input message that is provided to the evaluation function.
+    bonanza.model.core.Any key = 1;
+
+    // The time at which the first attempt was started to evaluate this
+    // key. Evaluation may have stopped due to dependencies whose values
+    // have not been computed yet.
+    google.protobuf.Timestamp first_evaluation_start = 2;
+
+    // The time at which the current attempt was started.
+    google.protobuf.Timestamp current_evaluation_start = 3;
+
+    // The number of times a previous attempt was made to evaluate this
+    // key, but failed due missing dependencies.
+    uint32 restarts = 4;
+  }
+
+  // Keys for which the evaluation function is currently being executed.
+  repeated CurrentlyEvaluatingKey currently_evaluating_keys = 1;
 }
 
 message Result {

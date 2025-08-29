@@ -22,7 +22,6 @@ import (
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/unpack"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -175,10 +174,10 @@ func (r *filesUnderDirectoryReporter[TReference, TMetadata]) yieldFilesUnderCurr
 	return true, nil
 }
 
-type expandFileIfDirectoryEnvironment[TReference, TMetadata any] interface {
+type expandFileIfDirectoryEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
 
-	GetFileRootValue(key model_core.PatchedMessage[*model_analysis_pb.FileRoot_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.FileRoot_Value, TReference]
+	GetFileRootValue(key model_core.PatchedMessage[*model_analysis_pb.FileRoot_Key, TMetadata]) model_core.Message[*model_analysis_pb.FileRoot_Value, TReference]
 }
 
 // expandFileIfDirectory checks whether a File provided to Args.add*()
@@ -206,7 +205,7 @@ func expandFileIfDirectory[TReference object.BasicReference, TMetadata BaseCompu
 				File:            patchedFile.Message,
 				DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedFile.Patcher),
+			patchedFile.Patcher,
 		),
 	)
 	if !fileRoot.IsSet() {
@@ -266,14 +265,14 @@ func expandFileIfDirectory[TReference object.BasicReference, TMetadata BaseCompu
 	}
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionCommand_Key, TReference], e TargetActionCommandEnvironment[TReference, TMetadata]) (PatchedTargetActionCommandValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionCommand_Key, TReference], e TargetActionCommandEnvironment[TReference, TMetadata]) (PatchedTargetActionCommandValue[TMetadata], error) {
 	id := model_core.Nested(key, key.Message.Id)
 	if id.Message == nil {
-		return PatchedTargetActionCommandValue{}, errors.New("no target action identifier specified")
+		return PatchedTargetActionCommandValue[TMetadata]{}, errors.New("no target action identifier specified")
 	}
 	targetLabel, err := label.NewCanonicalLabel(id.Message.Label)
 	if err != nil {
-		return PatchedTargetActionCommandValue{}, fmt.Errorf("invalid target label: %w", err)
+		return PatchedTargetActionCommandValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
 
 	patchedID := model_core.Patch(e, id)
@@ -282,7 +281,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			&model_analysis_pb.TargetAction_Key{
 				Id: patchedID.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedID.Patcher),
+			patchedID.Patcher,
 		),
 	)
 	actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
@@ -298,12 +297,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		!directoryCreationParametersMessage.IsSet() ||
 		!gotDirectoryReaders ||
 		!fileCreationParametersMessage.IsSet() {
-		return PatchedTargetActionCommandValue{}, evaluation.ErrMissingDependency
+		return PatchedTargetActionCommandValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	actionDefinition := action.Message.Definition
 	if actionDefinition == nil {
-		return PatchedTargetActionCommandValue{}, errors.New("action definition missing")
+		return PatchedTargetActionCommandValue[TMetadata]{}, errors.New("action definition missing")
 	}
 
 	// Construct the list of command line arguments.
@@ -326,7 +325,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	) {
 		argsLeaf, ok := args.Message.Level.(*model_analysis_pb.Args_Leaf_)
 		if !ok {
-			return PatchedTargetActionCommandValue{}, errors.New("args entry is not a leaf")
+			return PatchedTargetActionCommandValue[TMetadata]{}, errors.New("args entry is not a leaf")
 		}
 		var errIterAdd error
 		for add := range btree.AllLeaves(
@@ -340,7 +339,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		) {
 			addLeaf, ok := add.Message.Level.(*model_analysis_pb.Args_Leaf_Add_Leaf_)
 			if !ok {
-				return PatchedTargetActionCommandValue{}, errors.New("args.add*() entry is not a leaf")
+				return PatchedTargetActionCommandValue[TMetadata]{}, errors.New("args.add*() entry is not a leaf")
 			}
 
 			values, err := model_starlark.DecodeValue[TReference, TMetadata](
@@ -349,20 +348,20 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				valueDecodingOptions,
 			)
 			if err != nil {
-				return PatchedTargetActionCommandValue{}, err
+				return PatchedTargetActionCommandValue[TMetadata]{}, err
 			}
 			var valuesIter iter.Seq[starlark.Value]
 			switch typedValues := values.(type) {
 			case *model_starlark.Depset[TReference, TMetadata]:
 				list, err := typedValues.ToList(thread)
 				if err != nil {
-					return PatchedTargetActionCommandValue{}, err
+					return PatchedTargetActionCommandValue[TMetadata]{}, err
 				}
 				valuesIter = slices.Values(list)
 			case starlark.Iterable:
 				valuesIter = starlark.Elements(typedValues)
 			default:
-				return PatchedTargetActionCommandValue{}, errors.New("args.add*() value is not a depset or list")
+				return PatchedTargetActionCommandValue[TMetadata]{}, errors.New("args.add*() value is not a depset or list")
 			}
 
 			// Apply the following transformation steps:
@@ -379,7 +378,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 							expandedValues = append(expandedValues, child)
 						}
 						if errIter != nil {
-							return PatchedTargetActionCommandValue{}, errIter
+							return PatchedTargetActionCommandValue[TMetadata]{}, errIter
 						}
 					} else {
 						expandedValues = append(expandedValues, v)
@@ -410,7 +409,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				// to selectively perform expansion.
 				numParams, err := mapEachFunc.NumParams(thread)
 				if err != nil {
-					return PatchedTargetActionCommandValue{}, fmt.Errorf("unable to determine number of parameters of map_each function: %w", err)
+					return PatchedTargetActionCommandValue[TMetadata]{}, fmt.Errorf("unable to determine number of parameters of map_each function: %w", err)
 				}
 				var mapEachFuncArgs starlark.Tuple
 				switch numParams {
@@ -424,7 +423,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 						directoryReaders: directoryReaders,
 					}
 				default:
-					return PatchedTargetActionCommandValue{}, errors.New("map_each function should have 1 or 2 parameters")
+					return PatchedTargetActionCommandValue[TMetadata]{}, errors.New("map_each function should have 1 or 2 parameters")
 				}
 
 				for v := range valuesIter {
@@ -439,17 +438,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 						if !errors.Is(err, evaluation.ErrMissingDependency) {
 							var evalErr *starlark.EvalError
 							if errors.As(err, &evalErr) {
-								return PatchedTargetActionCommandValue{}, errors.New(evalErr.Backtrace())
+								return PatchedTargetActionCommandValue[TMetadata]{}, errors.New(evalErr.Backtrace())
 							}
 						}
-						return PatchedTargetActionCommandValue{}, err
+						return PatchedTargetActionCommandValue[TMetadata]{}, err
 					}
 					var s []string
 					if err := unpack.IfNotNone(unpack.Or([]unpack.UnpackerInto[[]string]{
 						unpack.Singleton(unpack.String),
 						unpack.List(unpack.String),
 					})).UnpackInto(thread, returnValue, &s); err != nil {
-						return PatchedTargetActionCommandValue{}, fmt.Errorf("failed to unpack map function return value: %w", err)
+						return PatchedTargetActionCommandValue[TMetadata]{}, fmt.Errorf("failed to unpack map function return value: %w", err)
 					}
 					stringValues = append(stringValues, s...)
 				}
@@ -464,12 +463,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 					case *model_starlark.File[TReference, TMetadata]:
 						s, err = model_starlark.FileGetInputRootPath(typedV.GetDefinition(), typedV.GetTreeRelativePath())
 						if err != nil {
-							return PatchedTargetActionCommandValue{}, err
+							return PatchedTargetActionCommandValue[TMetadata]{}, err
 						}
 					case model_starlark.Label[TReference, TMetadata]:
 						s = typedV.String()
 					default:
-						return PatchedTargetActionCommandValue{}, fmt.Errorf("argument value is of type %#v, while a string, File or Label were expected", typedV.Type())
+						return PatchedTargetActionCommandValue[TMetadata]{}, fmt.Errorf("argument value is of type %#v, while a string, File or Label were expected", typedV.Type())
 					}
 					stringValues = append(stringValues, s)
 				}
@@ -493,13 +492,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 						},
 					),
 				); err != nil {
-					return PatchedTargetActionCommandValue{}, err
+					return PatchedTargetActionCommandValue[TMetadata]{}, err
 				}
 			}
 
 			formatEachPrefix, formatEachSuffix, err := splitArgsTemplate(addLeaf.Leaf.FormatEach)
 			if err != nil {
-				return PatchedTargetActionCommandValue{}, fmt.Errorf("invalid value for args.add_*(format_each=%#v): %w", addLeaf.Leaf.FormatEach, err)
+				return PatchedTargetActionCommandValue[TMetadata]{}, fmt.Errorf("invalid value for args.add_*(format_each=%#v): %w", addLeaf.Leaf.FormatEach, err)
 			}
 			var seen map[string]struct{}
 			if addLeaf.Leaf.Uniquify {
@@ -534,7 +533,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 								},
 							),
 						); err != nil {
-							return PatchedTargetActionCommandValue{}, err
+							return PatchedTargetActionCommandValue[TMetadata]{}, err
 						}
 					}
 
@@ -549,7 +548,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 							},
 						),
 					); err != nil {
-						return PatchedTargetActionCommandValue{}, err
+						return PatchedTargetActionCommandValue[TMetadata]{}, err
 					}
 				}
 
@@ -567,13 +566,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 							},
 						),
 					); err != nil {
-						return PatchedTargetActionCommandValue{}, err
+						return PatchedTargetActionCommandValue[TMetadata]{}, err
 					}
 				}
 			case *model_analysis_pb.Args_Leaf_Add_Leaf_Joined_:
 				formatJoinedPrefix, formatJoinedSuffix, err := splitArgsTemplate(style.Joined.FormatJoined)
 				if err != nil {
-					return PatchedTargetActionCommandValue{}, fmt.Errorf("invalid value for args.add_*(format_joined=%#v): %w", style.Joined.FormatJoined, err)
+					return PatchedTargetActionCommandValue[TMetadata]{}, fmt.Errorf("invalid value for args.add_*(format_joined=%#v): %w", style.Joined.FormatJoined, err)
 				}
 				var joinedValues strings.Builder
 				joinedValues.WriteString(formatJoinedPrefix)
@@ -611,22 +610,22 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 						},
 					),
 				); err != nil {
-					return PatchedTargetActionCommandValue{}, err
+					return PatchedTargetActionCommandValue[TMetadata]{}, err
 				}
 			default:
-				return PatchedTargetActionCommandValue{}, errors.New("unknown args.add*() style")
+				return PatchedTargetActionCommandValue[TMetadata]{}, errors.New("unknown args.add*() style")
 			}
 		}
 		if errIterAdd != nil {
-			return PatchedTargetActionCommandValue{}, errIterAdd
+			return PatchedTargetActionCommandValue[TMetadata]{}, errIterAdd
 		}
 	}
 	if errIterArgs != nil {
-		return PatchedTargetActionCommandValue{}, errIterArgs
+		return PatchedTargetActionCommandValue[TMetadata]{}, errIterArgs
 	}
 	argumentsList, err := argumentsBuilder.FinalizeList()
 	if err != nil {
-		return PatchedTargetActionCommandValue{}, err
+		return PatchedTargetActionCommandValue[TMetadata]{}, err
 	}
 
 	// TODO: This might need to reload the list if it's just a
@@ -643,7 +642,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		model_core.Nested(action, actionDefinition.OutputPathPattern),
 	)
 	if err != nil {
-		return PatchedTargetActionCommandValue{}, err
+		return PatchedTargetActionCommandValue[TMetadata]{}, err
 	}
 	outputPathPatternChildren := model_core.Patch(e, packageRelativeOutputPathPatternChildren)
 	inlinedTreeOptions := c.getInlinedTreeOptions()
@@ -658,12 +657,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			e,
 		)
 		if err != nil {
-			return PatchedTargetActionCommandValue{}, err
+			return PatchedTargetActionCommandValue[TMetadata]{}, err
 		}
 	}
 	configurationReferenceComponent, err := model_starlark.ConfigurationReferenceToComponent(model_core.Nested(id, id.Message.ConfigurationReference))
 	if err != nil {
-		return PatchedTargetActionCommandValue{}, err
+		return PatchedTargetActionCommandValue[TMetadata]{}, err
 	}
 	for _, component := range []string{
 		targetPackage.GetCanonicalRepo().String(),
@@ -680,7 +679,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			e,
 		)
 		if err != nil {
-			return PatchedTargetActionCommandValue{}, err
+			return PatchedTargetActionCommandValue[TMetadata]{}, err
 		}
 	}
 
@@ -748,7 +747,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		inlinedTreeOptions,
 	)
 	if err != nil {
-		return PatchedTargetActionCommandValue{}, err
+		return PatchedTargetActionCommandValue[TMetadata]{}, err
 	}
 	createdCommand, err := model_core.MarshalAndEncode(
 		model_core.ProtoToMarshalable(command),
@@ -761,7 +760,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		&model_analysis_pb.TargetActionCommand_Value{
 			CommandReference: patcher.CaptureAndAddDecodableReference(createdCommand, e),
 		},
-		model_core.MapReferenceMetadataToWalkers(patcher),
+		patcher,
 	), nil
 }
 

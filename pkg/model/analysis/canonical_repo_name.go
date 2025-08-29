@@ -10,13 +10,12 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	"bonanza.build/pkg/storage/dag"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeCanonicalRepoNameValue(ctx context.Context, key *model_analysis_pb.CanonicalRepoName_Key, e CanonicalRepoNameEnvironment[TReference, TMetadata]) (PatchedCanonicalRepoNameValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeCanonicalRepoNameValue(ctx context.Context, key *model_analysis_pb.CanonicalRepoName_Key, e CanonicalRepoNameEnvironment[TReference, TMetadata]) (PatchedCanonicalRepoNameValue[TMetadata], error) {
 	fromCanonicalRepo, err := label.NewCanonicalRepo(key.FromCanonicalRepo)
 	if err != nil {
-		return PatchedCanonicalRepoNameValue{}, fmt.Errorf("invalid canonical repo: %w", err)
+		return PatchedCanonicalRepoNameValue[TMetadata]{}, fmt.Errorf("invalid canonical repo: %w", err)
 	}
 
 	toApparentRepo := key.ToApparentRepo
@@ -28,7 +27,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCanonicalRepoNameValue(ctx 
 			ModuleExtension: moduleExtension.String(),
 		})
 		if !moduleExtensionRepoNamesValue.IsSet() {
-			return PatchedCanonicalRepoNameValue{}, evaluation.ErrMissingDependency
+			return PatchedCanonicalRepoNameValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		repoNames := moduleExtensionRepoNamesValue.Message.RepoNames
 		if _, ok := sort.Find(
@@ -37,9 +36,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCanonicalRepoNameValue(ctx 
 		); ok {
 			apparentRepo, err := label.NewApparentRepo(toApparentRepo)
 			if err != nil {
-				return PatchedCanonicalRepoNameValue{}, fmt.Errorf("invalid apparent repo: %w", err)
+				return PatchedCanonicalRepoNameValue[TMetadata]{}, fmt.Errorf("invalid apparent repo: %w", err)
 			}
-			return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.CanonicalRepoName_Value{
+			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.CanonicalRepoName_Value{
 				ToCanonicalRepo: moduleExtension.GetCanonicalRepoWithModuleExtension(apparentRepo).String(),
 			}), nil
 		}
@@ -50,20 +49,20 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCanonicalRepoNameValue(ctx 
 		ModuleInstance: fromCanonicalRepo.GetModuleInstance().String(),
 	})
 	if !moduleRepoMappingValue.IsSet() {
-		return PatchedCanonicalRepoNameValue{}, evaluation.ErrMissingDependency
+		return PatchedCanonicalRepoNameValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	mappings := moduleRepoMappingValue.Message.Mappings
 	if mappingIndex, ok := sort.Find(
 		len(mappings),
 		func(i int) int { return strings.Compare(toApparentRepo, mappings[i].FromApparentRepo) },
 	); ok {
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.CanonicalRepoName_Value{
+		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.CanonicalRepoName_Value{
 			ToCanonicalRepo: mappings[mappingIndex].ToCanonicalRepo,
 		}), nil
 	}
 
 	// Unknown repo.
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.CanonicalRepoName_Value{}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.CanonicalRepoName_Value{}), nil
 }
 
 type labelResolverEnvironment[TReference any] interface {

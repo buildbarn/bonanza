@@ -146,7 +146,7 @@ func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRe
 	}, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepos_Key, e ModuleExtensionReposEnvironment[TReference, TMetadata]) (PatchedModuleExtensionReposValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepos_Key, e ModuleExtensionReposEnvironment[TReference, TMetadata]) (PatchedModuleExtensionReposValue[TMetadata], error) {
 	// Store all repos in a B-tree.
 	treeBuilder := btree.NewSplitProllyBuilder(
 		/* minimumSizeBytes = */ 32*1024,
@@ -179,7 +179,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 	var repos map[string]model_core.PatchedMessage[*model_starlark_pb.Repo, TMetadata]
 	moduleExtension, err := label.NewModuleExtension(key.ModuleExtension)
 	if err != nil {
-		return PatchedModuleExtensionReposValue{}, fmt.Errorf("invalid module extension: %w", err)
+		return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("invalid module extension: %w", err)
 	}
 	if moduleExtension.GetExtensionName() == repoRulesExtensionName {
 		// "_repo_rules" is used as a fictive extension name to
@@ -189,7 +189,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		// MODULE.bazel file.
 		rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 		if !rootModuleValue.IsSet() {
-			return PatchedModuleExtensionReposValue{}, evaluation.ErrMissingDependency
+			return PatchedModuleExtensionReposValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
 		moduleInstance := moduleExtension.GetModuleInstance()
@@ -209,14 +209,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			e,
 			pg_starlark.NewOverrideIgnoringRootModuleDotBazelHandler(&handler),
 		); err != nil {
-			return PatchedModuleExtensionReposValue{}, err
+			return PatchedModuleExtensionReposValue[TMetadata]{}, err
 		}
 		repos = handler.repos
 	} else {
 		allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 		repoPlatform := e.GetRegisteredRepoPlatformValue(&model_analysis_pb.RegisteredRepoPlatform_Key{})
 		if !allBuiltinsModulesNames.IsSet() || !repoPlatform.IsSet() {
-			return PatchedModuleExtensionReposValue{}, evaluation.ErrMissingDependency
+			return PatchedModuleExtensionReposValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
 		// Resolve the module extension object that was declared within
@@ -225,24 +225,24 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			ModuleExtension: moduleExtension.String(),
 		})
 		if !usedModuleExtensionValue.IsSet() {
-			return PatchedModuleExtensionReposValue{}, evaluation.ErrMissingDependency
+			return PatchedModuleExtensionReposValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		usedModuleExtension := usedModuleExtensionValue.Message.ModuleExtension
 
 		moduleExtensionIdentifierStr := usedModuleExtension.GetIdentifier()
 		moduleExtensionIdentifier, err := label.NewCanonicalStarlarkIdentifier(moduleExtensionIdentifierStr)
 		if err != nil {
-			return PatchedModuleExtensionReposValue{}, fmt.Errorf("invalid module extension identifier %#v: %w", moduleExtensionIdentifierStr, err)
+			return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("invalid module extension identifier %#v: %w", moduleExtensionIdentifierStr, err)
 		}
 		moduleExtensionDefinitionValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
 			Identifier: moduleExtensionIdentifier.String(),
 		})
 		if !moduleExtensionDefinitionValue.IsSet() {
-			return PatchedModuleExtensionReposValue{}, evaluation.ErrMissingDependency
+			return PatchedModuleExtensionReposValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		v, ok := moduleExtensionDefinitionValue.Message.Global.GetKind().(*model_starlark_pb.Value_ModuleExtension)
 		if !ok {
-			return PatchedModuleExtensionReposValue{}, fmt.Errorf("%#v is not a module extension", moduleExtensionIdentifier.String())
+			return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("%#v is not a module extension", moduleExtensionIdentifier.String())
 		}
 		moduleExtensionDefinition := v.ModuleExtension
 
@@ -261,7 +261,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		for _, user := range moduleExtensionUsers {
 			moduleInstance, err := label.NewModuleInstance(user.ModuleInstance)
 			if err != nil {
-				return PatchedModuleExtensionReposValue{}, fmt.Errorf("invalid module instance %#v: %w", user.ModuleInstance, err)
+				return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("invalid module instance %#v: %w", user.ModuleInstance, err)
 			}
 			versionStr := ""
 			if v, ok := moduleInstance.GetModuleVersion(); ok {
@@ -289,7 +289,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 							),
 						)
 						if errIter != nil {
-							return PatchedModuleExtensionReposValue{}, errIter
+							return PatchedModuleExtensionReposValue[TMetadata]{}, errIter
 						}
 
 						attrs := make([]starlark.Value, 0, len(tagClassAttrs))
@@ -301,7 +301,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 									valueDecodingOptions,
 								)
 								if err != nil {
-									return PatchedModuleExtensionReposValue{}, fmt.Errorf("failed to decode value of attribute %#v of tag class %#v declared by module instance %#v", attr.Name, tagClass.Name, moduleInstance.String())
+									return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("failed to decode value of attribute %#v of tag class %#v declared by module instance %#v", attr.Name, tagClass.Name, moduleInstance.String())
 								}
 
 								if len(tagClassAttrTypes[tagClassIndex]) != len(tagClassAttrs) {
@@ -316,7 +316,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 									// canonicalized.
 									*attrType, err = model_starlark.DecodeAttrType[TReference, TMetadata](attr.Attr)
 									if err != nil {
-										return PatchedModuleExtensionReposValue{}, fmt.Errorf("failed to decode type of attribute %#v of tag class %#v", attr.Name, tagClass.Name)
+										return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("failed to decode type of attribute %#v of tag class %#v", attr.Name, tagClass.Name)
 									}
 								}
 
@@ -324,7 +324,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 									moduleInstance.GetBareCanonicalRepo().GetRootPackage(),
 								).Canonicalize(thread, value)
 								if err != nil {
-									return PatchedModuleExtensionReposValue{}, fmt.Errorf("failed to canonicalize value of attribute %#v of tag class %#v declared by module instance %#v: %w", attr.Name, tagClass.Name, moduleInstance.String(), err)
+									return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("failed to canonicalize value of attribute %#v of tag class %#v declared by module instance %#v: %w", attr.Name, tagClass.Name, moduleInstance.String(), err)
 								}
 								attrs = append(attrs, canonicalValue)
 
@@ -346,16 +346,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 										valueDecodingOptions,
 									)
 									if err != nil {
-										return PatchedModuleExtensionReposValue{}, fmt.Errorf("failed to decode default value of attribute %#v of tag class %#v", attr.Name, tagClass.Name)
+										return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("failed to decode default value of attribute %#v of tag class %#v", attr.Name, tagClass.Name)
 									}
 								}
 								attrs = append(attrs, *defaultValue)
 							} else {
-								return PatchedModuleExtensionReposValue{}, fmt.Errorf("module instance %#v declares tag of class %#v with missing attribute %#v", moduleInstance.String(), tagClass.Name, attr.Name)
+								return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("module instance %#v declares tag of class %#v with missing attribute %#v", moduleInstance.String(), tagClass.Name, attr.Name)
 							}
 						}
 						if len(declaredAttrs) > 0 {
-							return PatchedModuleExtensionReposValue{}, fmt.Errorf(
+							return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf(
 								"module instance %#v declares tag of class %#v with unknown attribute %#v",
 								moduleInstance.String(),
 								tagClass.Name,
@@ -375,7 +375,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 				tagClasses[tagClass.Name] = starlark.NewList(tags)
 			}
 			if len(usedTagClasses) > 0 {
-				return PatchedModuleExtensionReposValue{}, fmt.Errorf("module instance %#v uses unknown tag class %#v", moduleInstance.String(), usedTagClasses[0].Name)
+				return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("module instance %#v uses unknown tag class %#v", moduleInstance.String(), usedTagClasses[0].Name)
 			}
 
 			modules = append(modules, model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
@@ -399,7 +399,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			path.MustNewComponent(moduleExtension.String()),
 		})
 		if err != nil {
-			return PatchedModuleExtensionReposValue{}, err
+			return PatchedModuleExtensionReposValue[TMetadata]{}, err
 		}
 		defer moduleContext.release()
 
@@ -455,9 +455,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		if err != nil {
 			var evalErr *starlark.EvalError
 			if !errors.Is(err, evaluation.ErrMissingDependency) && errors.As(err, &evalErr) {
-				return PatchedModuleExtensionReposValue{}, errors.New(evalErr.Backtrace())
+				return PatchedModuleExtensionReposValue[TMetadata]{}, errors.New(evalErr.Backtrace())
 			}
-			return PatchedModuleExtensionReposValue{}, err
+			return PatchedModuleExtensionReposValue[TMetadata]{}, err
 		}
 
 		repos = repoRegistrar.GetRepos()
@@ -473,19 +473,19 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			},
 			repo.Patcher,
 		)); err != nil {
-			return PatchedModuleExtensionReposValue{}, err
+			return PatchedModuleExtensionReposValue[TMetadata]{}, err
 		}
 	}
 
 	reposList, err := treeBuilder.FinalizeList()
 	if err != nil {
-		return PatchedModuleExtensionReposValue{}, err
+		return PatchedModuleExtensionReposValue[TMetadata]{}, err
 	}
 
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.ModuleExtensionRepos_Value{
 			Repos: reposList.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(reposList.Patcher),
+		reposList.Patcher,
 	), nil
 }

@@ -15,7 +15,6 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/storage/dag"
 )
 
 func (c *baseComputer[TReference, TMetadata]) decodeStringDict(ctx context.Context, d model_core.Message[*model_starlark_pb.Value, TReference]) (map[string]string, error) {
@@ -47,33 +46,33 @@ func (c *baseComputer[TReference, TMetadata]) decodeStringDict(ctx context.Conte
 	return o, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue(ctx context.Context, key *model_analysis_pb.RegisteredRepoPlatform_Key, e RegisteredRepoPlatformEnvironment[TReference, TMetadata]) (PatchedRegisteredRepoPlatformValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue(ctx context.Context, key *model_analysis_pb.RegisteredRepoPlatform_Key, e RegisteredRepoPlatformEnvironment[TReference, TMetadata]) (PatchedRegisteredRepoPlatformValue[TMetadata], error) {
 	// Obtain the label of the repo platform that was provided by
 	// the client through the --repo_platform command line flag.
 	buildSpecificationValue := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecificationValue.IsSet() {
-		return PatchedRegisteredRepoPlatformValue{}, evaluation.ErrMissingDependency
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	buildSpecification := buildSpecificationValue.Message.BuildSpecification
 
 	rootModuleName := buildSpecification.GetRootModuleName()
 	rootModule, err := label.NewModule(rootModuleName)
 	if err != nil {
-		return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleName, err)
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleName, err)
 	}
 	rootRepo := rootModule.ToModuleInstance(nil).GetBareCanonicalRepo()
 
 	repoPlatformStr := buildSpecification.GetRepoPlatform()
 	if repoPlatformStr == "" {
-		return PatchedRegisteredRepoPlatformValue{}, errors.New("no repo platform specified, meaning module extensions and repository rules cannot be evaluated")
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, errors.New("no repo platform specified, meaning module extensions and repository rules cannot be evaluated")
 	}
 	apparentRepoPlatformLabel, err := rootRepo.GetRootPackage().AppendLabel(repoPlatformStr)
 	if err != nil {
-		return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("invalid repo platform label %#v: %w", repoPlatformStr, err)
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("invalid repo platform label %#v: %w", repoPlatformStr, err)
 	}
 	repoPlatformLabel, err := label.Canonicalize(newLabelResolver(e), rootRepo, apparentRepoPlatformLabel)
 	if err != nil {
-		return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("failed to resolve repo platform label %#v: %w", apparentRepoPlatformLabel.String(), err)
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("failed to resolve repo platform label %#v: %w", apparentRepoPlatformLabel.String(), err)
 	}
 	repoPlatformLabelStr := repoPlatformLabel.String()
 
@@ -81,11 +80,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue
 	platformInfoProvider, err := getProviderFromConfiguredTarget(
 		e,
 		repoPlatformLabelStr,
-		model_core.NewSimplePatchedMessage[model_core.WalkableReferenceMetadata, *model_core_pb.DecodableReference](nil),
+		model_core.NewSimplePatchedMessage[TMetadata]((*model_core_pb.DecodableReference)(nil)),
 		platformInfoProviderIdentifier,
 	)
 	if err != nil {
-		return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("failed to obtain PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("failed to obtain PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
 	}
 
 	// Extract fields from the PlatformInfo provider that are needed
@@ -106,22 +105,22 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue
 		case "exec_pkix_public_key":
 			str, ok := value.Message.Kind.(*model_starlark_pb.Value_Str)
 			if !ok {
-				return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("exec_pkix_public_key field of PlatformInfo of repo platform %#v is not a string", repoPlatformLabelStr)
+				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("exec_pkix_public_key field of PlatformInfo of repo platform %#v is not a string", repoPlatformLabelStr)
 			}
 			execPKIXPublicKey, err = base64.StdEncoding.DecodeString(str.Str)
 			if err != nil {
-				return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("exec_pkix_public_key field of PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
+				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("exec_pkix_public_key field of PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
 			}
 		case "repository_os_arch":
 			str, ok := value.Message.Kind.(*model_starlark_pb.Value_Str)
 			if !ok {
-				return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("repository_os_arch field of PlatformInfo of repo platform %#v is not a string", repoPlatformLabelStr)
+				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_arch field of PlatformInfo of repo platform %#v is not a string", repoPlatformLabelStr)
 			}
 			repositoryOSArch = str.Str
 		case "repository_os_environ":
 			p, err := c.decodeStringDict(ctx, value)
 			if err != nil {
-				return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("repository_os_environ field of PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
+				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_environ field of PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
 			}
 			repositoryOSEnviron = make([]*model_analysis_pb.RegisteredRepoPlatform_Value_EnvironmentVariable, 0, len(p))
 			for _, name := range slices.Sorted(maps.Keys(p)) {
@@ -133,29 +132,29 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue
 		case "repository_os_name":
 			str, ok := value.Message.Kind.(*model_starlark_pb.Value_Str)
 			if !ok {
-				return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("repository_os_name field of PlatformInfo of repo platform %#v is not a string", repoPlatformLabelStr)
+				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_name field of PlatformInfo of repo platform %#v is not a string", repoPlatformLabelStr)
 			}
 			repositoryOSName = str.Str
 		}
 	}
 	if errIter != nil {
-		return PatchedRegisteredRepoPlatformValue{}, errIter
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, errIter
 	}
 
 	if len(execPKIXPublicKey) == 0 {
-		return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("exec_pkix_public_key field of PlatformInfo of repo platform %#v is not set to a non-empty string", repoPlatformLabelStr)
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("exec_pkix_public_key field of PlatformInfo of repo platform %#v is not set to a non-empty string", repoPlatformLabelStr)
 	}
 	if repositoryOSArch == "" {
-		return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("repository_os_arch field of PlatformInfo of repo platform %#v is not set to a non-empty string", repoPlatformLabelStr)
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_arch field of PlatformInfo of repo platform %#v is not set to a non-empty string", repoPlatformLabelStr)
 	}
 	if repositoryOSEnviron == nil {
-		return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("PlatformInfo of repo platform %#v does not contain field repository_os_environ", repoPlatformLabelStr)
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("PlatformInfo of repo platform %#v does not contain field repository_os_environ", repoPlatformLabelStr)
 	}
 	if repositoryOSName == "" {
-		return PatchedRegisteredRepoPlatformValue{}, fmt.Errorf("repository_os_name field of PlatformInfo of repo platform %#v is not set to a non-empty string", repoPlatformLabelStr)
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_name field of PlatformInfo of repo platform %#v is not set to a non-empty string", repoPlatformLabelStr)
 	}
 
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+	return model_core.NewSimplePatchedMessage[TMetadata](
 		&model_analysis_pb.RegisteredRepoPlatform_Value{
 			ExecPkixPublicKey:   execPKIXPublicKey,
 			RepositoryOsArch:    repositoryOSArch,

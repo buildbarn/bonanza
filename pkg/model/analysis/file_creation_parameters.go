@@ -7,15 +7,14 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	"bonanza.build/pkg/storage/dag"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeFileCreationParametersValue(ctx context.Context, key *model_analysis_pb.FileCreationParameters_Key, e FileCreationParametersEnvironment[TReference, TMetadata]) (PatchedFileCreationParametersValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeFileCreationParametersValue(ctx context.Context, key *model_analysis_pb.FileCreationParameters_Key, e FileCreationParametersEnvironment[TReference, TMetadata]) (PatchedFileCreationParametersValue[TMetadata], error) {
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecification.IsSet() {
-		return PatchedFileCreationParametersValue{}, evaluation.ErrMissingDependency
+		return PatchedFileCreationParametersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.FileCreationParameters_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.FileCreationParameters_Value{
 		FileCreationParameters: buildSpecification.Message.BuildSpecification.GetFileCreationParameters(),
 	}), nil
 }

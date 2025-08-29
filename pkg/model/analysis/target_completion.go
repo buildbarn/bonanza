@@ -9,11 +9,10 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetCompletion_Key, TReference], e TargetCompletionEnvironment[TReference, TMetadata]) (PatchedTargetCompletionValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetCompletion_Key, TReference], e TargetCompletionEnvironment[TReference, TMetadata]) (PatchedTargetCompletionValue[TMetadata], error) {
 	// TODO: This should also respect --output_groups.
 	defaultInfo, err := getProviderFromConfiguredTarget(
 		e,
@@ -22,16 +21,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx c
 		defaultInfoProviderIdentifier,
 	)
 	if err != nil {
-		return PatchedTargetCompletionValue{}, err
+		return PatchedTargetCompletionValue[TMetadata]{}, err
 	}
 
 	files, err := model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, defaultInfo, "files")
 	if err != nil {
-		return PatchedTargetCompletionValue{}, err
+		return PatchedTargetCompletionValue[TMetadata]{}, err
 	}
 	filesDepset, ok := files.Message.Kind.(*model_starlark_pb.Value_Depset)
 	if !ok {
-		return PatchedTargetCompletionValue{}, errors.New("\"files\" field of DefaultInfo provider is not a depset")
+		return PatchedTargetCompletionValue[TMetadata]{}, errors.New("\"files\" field of DefaultInfo provider is not a depset")
 	}
 
 	var errIter error
@@ -45,7 +44,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx c
 	) {
 		elementFile, ok := element.Message.Kind.(*model_starlark_pb.Value_File)
 		if !ok {
-			return PatchedTargetCompletionValue{}, errors.New("\"files\" field of DefaultInfo provider contains an element that is not a File")
+			return PatchedTargetCompletionValue[TMetadata]{}, errors.New("\"files\" field of DefaultInfo provider contains an element that is not a File")
 		}
 
 		patchedFile := model_core.Patch(e, model_core.Nested(element, elementFile.File))
@@ -55,7 +54,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx c
 					File:            patchedFile.Message,
 					DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 				},
-				model_core.MapReferenceMetadataToWalkers(patchedFile.Patcher),
+				patchedFile.Patcher,
 			),
 		)
 		if !targetOutput.IsSet() {
@@ -64,8 +63,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx c
 		}
 	}
 	if missingDependencies {
-		return PatchedTargetCompletionValue{}, evaluation.ErrMissingDependency
+		return PatchedTargetCompletionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.TargetCompletion_Value{}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.TargetCompletion_Value{}), nil
 }

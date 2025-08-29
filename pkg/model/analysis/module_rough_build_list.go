@@ -16,7 +16,6 @@ import (
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	pg_starlark "bonanza.build/pkg/starlark"
-	"bonanza.build/pkg/storage/dag"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 
@@ -136,20 +135,20 @@ func getModuleDotBazelURL(registryURL string, module label.Module, moduleVersion
 	return url.JoinPath(registryURL, "modules", module.String(), moduleVersion.String(), moduleDotBazelFilename)
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModuleRoughBuildListValue(ctx context.Context, key *model_analysis_pb.ModuleRoughBuildList_Key, e ModuleRoughBuildListEnvironment[TReference, TMetadata]) (PatchedModuleRoughBuildListValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeModuleRoughBuildListValue(ctx context.Context, key *model_analysis_pb.ModuleRoughBuildList_Key, e ModuleRoughBuildListEnvironment[TReference, TMetadata]) (PatchedModuleRoughBuildListValue[TMetadata], error) {
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	modulesWithOverridesValue := e.GetModulesWithOverridesValue(&model_analysis_pb.ModulesWithOverrides_Key{})
 	registryURLsValue := e.GetModuleRegistryUrlsValue(&model_analysis_pb.ModuleRegistryUrls_Key{})
 	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
 	if !rootModuleValue.IsSet() || !modulesWithOverridesValue.IsSet() || !registryURLsValue.IsSet() || !gotFileReader {
-		return PatchedModuleRoughBuildListValue{}, evaluation.ErrMissingDependency
+		return PatchedModuleRoughBuildListValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	// Obtain the root module name. Traversal of the modules needs
 	// to start there.
 	rootModuleName, err := label.NewModule(rootModuleValue.Message.RootModuleName)
 	if err != nil {
-		return PatchedModuleRoughBuildListValue{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleValue.Message.RootModuleName, err)
+		return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleValue.Message.RootModuleName, err)
 	}
 
 	// Obtain the list of modules for which overrides are in place.
@@ -157,7 +156,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleRoughBuildListValue(c
 	// from Bazel Central Registry (BCR).
 	modulesWithOverrides, err := parseOverridesList(modulesWithOverridesValue.Message.OverridesList)
 	if err != nil {
-		return PatchedModuleRoughBuildListValue{}, err
+		return PatchedModuleRoughBuildListValue[TMetadata]{}, err
 	}
 
 	ignoreDevDependencies := rootModuleValue.Message.IgnoreRootModuleDevDependencies
@@ -203,7 +202,7 @@ ProcessModule:
 			for _, registryURL := range registryURLs {
 				moduleFileURL, err := getModuleDotBazelURL(registryURL, module.name, module.version)
 				if err != nil {
-					return PatchedModuleRoughBuildListValue{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", module.name, module.version, registryURL, err)
+					return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", module.name, module.version, registryURL, err)
 				}
 				httpFileContents := e.GetHttpFileContentsValue(
 					&model_analysis_pb.HttpFileContents_Key{
@@ -228,7 +227,7 @@ ProcessModule:
 					goto GotModuleFileContents
 				}
 			}
-			return PatchedModuleRoughBuildListValue{}, fmt.Errorf("module %s with version %s cannot be found in any of the provided registries", module.name, module.version)
+			return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("module %s with version %s cannot be found in any of the provided registries", module.name, module.version)
 		}
 
 	GotModuleFileContents:
@@ -238,12 +237,12 @@ ProcessModule:
 			moduleFileContents,
 		)
 		if err != nil {
-			return PatchedModuleRoughBuildListValue{}, fmt.Errorf("invalid file contents: %w", err)
+			return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("invalid file contents: %w", err)
 		}
 
 		moduleFileData, err := fileReader.FileReadAll(ctx, moduleFileContentsEntry, 1<<20)
 		if err != nil {
-			return PatchedModuleRoughBuildListValue{}, err
+			return PatchedModuleRoughBuildListValue[TMetadata]{}, err
 		}
 
 		handler := bazelDepCapturingModuleDotBazelHandler{
@@ -261,7 +260,7 @@ ProcessModule:
 			nil,
 			pg_starlark.NewOverrideIgnoringRootModuleDotBazelHandler(&handler),
 		); err != nil {
-			return PatchedModuleRoughBuildListValue{}, err
+			return PatchedModuleRoughBuildListValue[TMetadata]{}, err
 		}
 
 		if buildListEntry != nil {
@@ -275,7 +274,7 @@ ProcessModule:
 				// No override exists, meaning we need
 				// to check an exact version.
 				if dependencyVersion == nil {
-					return PatchedModuleRoughBuildListValue{}, fmt.Errorf("module %s depends on module %s without specifying a version number, while no override is in place", module.name, dependencyName)
+					return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("module %s depends on module %s without specifying a version number, while no override is in place", module.name, dependencyName)
 				}
 				dependency.version = *dependencyVersion
 			} else if len(versions) > 0 {
@@ -284,7 +283,7 @@ ProcessModule:
 				// the nearest higher version number.
 				v, err := versions.LookupNearestVersion(dependencyVersion)
 				if err != nil {
-					return PatchedModuleRoughBuildListValue{}, fmt.Errorf("dependency of module %s on module %s: %s", module.name, dependencyName, err)
+					return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("dependency of module %s on module %s: %s", module.name, dependencyName, err)
 				}
 				dependency.version = v
 			}
@@ -296,11 +295,11 @@ ProcessModule:
 	}
 
 	if missingDependencies {
-		return PatchedModuleRoughBuildListValue{}, evaluation.ErrMissingDependency
+		return PatchedModuleRoughBuildListValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	sort.Sort(buildList)
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.ModuleRoughBuildList_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleRoughBuildList_Value{
 		BuildList: buildList.Slice,
 	}), nil
 }

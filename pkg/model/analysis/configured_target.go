@@ -24,7 +24,6 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/unpack"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
@@ -52,7 +51,7 @@ var (
 // values to a list of Constraint messages that include both the
 // constraint setting and constraint value labels. These can be used to
 // perform matching of constraints.
-func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx context.Context, e getProviderFromVisibleConfiguredTargetEnvironment[TReference], fromPackage label.CanonicalPackage, constraintValues []string) ([]*model_analysis_pb.Constraint, error) {
+func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx context.Context, e getProviderFromVisibleConfiguredTargetEnvironment[TReference, TMetadata], fromPackage label.CanonicalPackage, constraintValues []string) ([]*model_analysis_pb.Constraint, error) {
 	constraints := make(map[string]string, len(constraintValues))
 	missingDependencies := false
 	for _, constraintValue := range constraintValues {
@@ -208,7 +207,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 	emptyDefaultInfo model_core.Message[*model_starlark_pb.Struct, TReference],
 	file model_core.Message[*model_starlark_pb.File, TReference],
 	identifierGenerator model_starlark.ReferenceEqualIdentifierGenerator,
-) (PatchedConfiguredTargetValue, error) {
+) (PatchedConfiguredTargetValue[TMetadata], error) {
 	newDefaultInfo, err := c.mapStructFields(
 		ctx,
 		e,
@@ -279,7 +278,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 		},
 	)
 	if err != nil {
-		return PatchedConfiguredTargetValue{}, err
+		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
 
 	return model_core.NewPatchedMessage(
@@ -288,7 +287,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 				newDefaultInfo.Message,
 			},
 		},
-		model_core.MapReferenceMetadataToWalkers(newDefaultInfo.Patcher),
+		newDefaultInfo.Patcher,
 	), nil
 }
 
@@ -433,7 +432,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 							ToLabel:                canonicalLabel.String(),
 							ConfigurationReference: patchedConfigurationReference1.Message,
 						},
-						model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference1.Patcher),
+						patchedConfigurationReference1.Patcher,
 					),
 				)
 				if !resolvedLabelValue.IsSet() {
@@ -454,7 +453,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 								Label:                  resolvedLabelStr,
 								ConfigurationReference: patchedConfigurationReference2.Message,
 							},
-							model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference2.Patcher),
+							patchedConfigurationReference2.Patcher,
 						),
 					)
 					if !configuredTarget.IsSet() {
@@ -518,17 +517,17 @@ func concatenateAttrValueParts(thread *starlark.Thread, left *starlark.Value, ri
 	return nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
 	targetLabel, err := label.NewCanonicalLabel(key.Message.Label)
 	if err != nil {
-		return PatchedConfiguredTargetValue{}, fmt.Errorf("invalid target label: %w", err)
+		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
 	emptyDefaultInfoValue := e.GetEmptyDefaultInfoValue(&model_analysis_pb.EmptyDefaultInfo_Key{})
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
 		Label: targetLabel.String(),
 	})
 	if !emptyDefaultInfoValue.IsSet() || !targetValue.IsSet() {
-		return PatchedConfiguredTargetValue{}, evaluation.ErrMissingDependency
+		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	emptyDefaultInfo := model_core.Nested(emptyDefaultInfoValue, emptyDefaultInfoValue.Message.DefaultInfo)
@@ -547,13 +546,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					},
 				},
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedDefaultInfo.Patcher),
+			patchedDefaultInfo.Patcher,
 		), nil
 	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
 		// Handcraft a DefaultInfo provider for this source file.
 		identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
 		if err != nil {
-			return PatchedConfiguredTargetValue{}, err
+			return PatchedConfiguredTargetValue[TMetadata]{}, err
 		}
 
 		return c.getSingleFileConfiguredTargetValue(
@@ -577,7 +576,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		ruleTarget := targetKind.RuleTarget
 		ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.RuleIdentifier)
 		if err != nil {
-			return PatchedConfiguredTargetValue{}, err
+			return PatchedConfiguredTargetValue[TMetadata]{}, err
 		}
 
 		allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
@@ -594,15 +593,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			!gotFileCreationParameters ||
 			!ruleValue.IsSet() ||
 			!gotRuleImplementationWrappers {
-			return PatchedConfiguredTargetValue{}, evaluation.ErrMissingDependency
+			return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		v, ok := ruleValue.Message.Global.GetKind().(*model_starlark_pb.Value_Rule)
 		if !ok {
-			return PatchedConfiguredTargetValue{}, fmt.Errorf("%#v is not a rule", ruleIdentifier.String())
+			return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("%#v is not a rule", ruleIdentifier.String())
 		}
 		d, ok := v.Rule.Kind.(*model_starlark_pb.Rule_Definition_)
 		if !ok {
-			return PatchedConfiguredTargetValue{}, fmt.Errorf("%#v is not a rule definition", ruleIdentifier.String())
+			return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("%#v is not a rule definition", ruleIdentifier.String())
 		}
 		ruleDefinition := model_core.Nested(ruleValue, d.Definition)
 
@@ -636,7 +635,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			var publicAttrValue *model_starlark_pb.RuleTarget_PublicAttrValue
 			if !strings.HasPrefix(namedAttr.Name, "_") {
 				if len(ruleTargetPublicAttrValues) == 0 {
-					return PatchedConfiguredTargetValue{}, errors.New("rule target has fewer public attr values than the rule definition has public attrs")
+					return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("rule target has fewer public attr values than the rule definition has public attrs")
 				}
 				publicAttrValue = ruleTargetPublicAttrValues[0]
 				ruleTargetPublicAttrValues = ruleTargetPublicAttrValues[1:]
@@ -648,7 +647,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				// from the rule target.
 				selectGroups := publicAttrValue.ValueParts
 				if len(selectGroups) == 0 {
-					return PatchedConfiguredTargetValue{}, fmt.Errorf("attr %#v has no select groups", namedAttr.Name)
+					return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("attr %#v has no select groups", namedAttr.Name)
 				}
 				for _, selectGroup := range selectGroups {
 					if len(selectGroup.Conditions) > 0 {
@@ -678,7 +677,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			if len(valueParts) == 0 {
 				defaultValue := namedAttr.Attr.GetDefault()
 				if defaultValue == nil {
-					return PatchedConfiguredTargetValue{}, fmt.Errorf("missing value for mandatory attr %#v", namedAttr.Name)
+					return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("missing value for mandatory attr %#v", namedAttr.Name)
 				}
 				valueParts = append(valueParts, model_core.Nested(ruleDefinition, defaultValue))
 			}
@@ -693,10 +692,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					}),
 				)
 				if err != nil {
-					return PatchedConfiguredTargetValue{}, err
+					return PatchedConfiguredTargetValue[TMetadata]{}, err
 				}
 				if err := concatenateAttrValueParts(thread, &attrValue, decodedPart); err != nil {
-					return PatchedConfiguredTargetValue{}, err
+					return PatchedConfiguredTargetValue[TMetadata]{}, err
 				}
 			}
 			attrValue.Freeze()
@@ -713,7 +712,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			edgeTransitionAttrValues[namedAttr.Name] = attrValue
 		}
 		if l := len(ruleTargetPublicAttrValues); l != 0 {
-			return PatchedConfiguredTargetValue{}, fmt.Errorf("rule target has %d more public attr values than the rule definition has public attrs", l)
+			return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("rule target has %d more public attr values than the rule definition has public attrs", l)
 		}
 
 		// If provided, apply a user defined incoming edge transition.
@@ -727,12 +726,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				model_starlark.NewStructFromDict[TReference, TMetadata](nil, edgeTransitionAttrValues),
 			)
 			if err != nil {
-				return PatchedConfiguredTargetValue{}, err
+				return PatchedConfiguredTargetValue[TMetadata]{}, err
 			}
 
 			entries := patchedConfigurationReferences.Message.Entries
 			if l := len(entries); l != 1 {
-				return PatchedConfiguredTargetValue{}, fmt.Errorf("incoming edge transition %#v used by rule %#v is a 1:%d transition, while a 1:1 transition was expected", cfgTransitionIdentifier, ruleIdentifier.String(), l)
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("incoming edge transition %#v used by rule %#v is a 1:%d transition, while a 1:1 transition was expected", cfgTransitionIdentifier, ruleIdentifier.String(), l)
 			}
 
 			configurationReferences := model_core.Unpatch(e, patchedConfigurationReferences).Decay()
@@ -781,7 +780,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					missingDependencies = true
 					continue GetNonLabelAttrValues
 				}
-				return PatchedConfiguredTargetValue{}, err
+				return PatchedConfiguredTargetValue[TMetadata]{}, err
 			}
 
 			var attrValue starlark.Value
@@ -813,10 +812,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					}),
 				)
 				if err != nil {
-					return PatchedConfiguredTargetValue{}, err
+					return PatchedConfiguredTargetValue[TMetadata]{}, err
 				}
 				if err := concatenateAttrValueParts(thread, &attrValue, decodedPart); err != nil {
-					return PatchedConfiguredTargetValue{}, err
+					return PatchedConfiguredTargetValue[TMetadata]{}, err
 				}
 			}
 			attrValue.Freeze()
@@ -830,7 +829,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				} else if len(attrOutputs) == 1 {
 					outputsValues[namedAttr.Name] = attrOutputs[0]
 				} else {
-					return PatchedConfiguredTargetValue{}, fmt.Errorf("value of attr %#v contains multiple labels, which is not expected for attrs of type output", namedAttr.Name)
+					return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("value of attr %#v contains multiple labels, which is not expected for attrs of type output", namedAttr.Name)
 				}
 			case *model_starlark_pb.Attr_OutputList:
 				outputsValues[namedAttr.Name] = starlark.NewList(attrOutputs)
@@ -844,7 +843,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		for _, namedExecGroup := range namedExecGroups {
 			execGroupDefinition := namedExecGroup.ExecGroup
 			if execGroupDefinition == nil {
-				return PatchedConfiguredTargetValue{}, fmt.Errorf("missing definition of exec group %#v", namedExecGroup.Name)
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("missing definition of exec group %#v", namedExecGroup.Name)
 			}
 			execCompatibleWith, err := c.constraintValuesToConstraints(
 				ctx,
@@ -853,7 +852,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				execGroupDefinition.ExecCompatibleWith,
 			)
 			if err != nil {
-				return PatchedConfiguredTargetValue{}, fmt.Errorf("invalid constraint values for exec group %#v: %w", namedExecGroup.Name)
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid constraint values for exec group %#v: %w", namedExecGroup.Name)
 			}
 			patchedConfigurationReference := model_core.Patch(e, configurationReference)
 			resolvedToolchains := e.GetResolvedToolchainsValue(
@@ -863,7 +862,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						ConfigurationReference: patchedConfigurationReference.Message,
 						Toolchains:             execGroupDefinition.Toolchains,
 					},
-					model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+					patchedConfigurationReference.Patcher,
 				),
 			)
 			if !resolvedToolchains.IsSet() {
@@ -872,7 +871,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			}
 			toolchainIdentifiers := resolvedToolchains.Message.ToolchainIdentifiers
 			if actual, expected := len(toolchainIdentifiers), len(execGroupDefinition.Toolchains); actual != expected {
-				return PatchedConfiguredTargetValue{}, fmt.Errorf("obtained %d resolved toolchains, while exec group %#v depends on %d toolchains", actual, namedExecGroup.Name, expected)
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("obtained %d resolved toolchains, while exec group %#v depends on %d toolchains", actual, namedExecGroup.Name, expected)
 			}
 
 			execGroups = append(execGroups, ruleContextExecGroupState{
@@ -884,7 +883,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		}
 
 		if missingDependencies {
-			return PatchedConfiguredTargetValue{}, evaluation.ErrMissingDependency
+			return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
 		// Last but not least, get the values of label attr.
@@ -925,7 +924,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				panic("only label attr types should be processed at this point")
 			}
 			if labelOptions == nil {
-				return PatchedConfiguredTargetValue{}, fmt.Errorf("attr %#v does not have label options", namedAttr.Name)
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("attr %#v does not have label options", namedAttr.Name)
 			}
 
 			// Perform outgoing edge transition. User
@@ -944,7 +943,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					missingDependencies = true
 					continue GetLabelAttrValues
 				}
-				return PatchedConfiguredTargetValue{}, err
+				return PatchedConfiguredTargetValue[TMetadata]{}, err
 			}
 			transition := model_core.Unpatch(e, patchedTransition).Decay()
 
@@ -971,7 +970,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						missingDependencies = true
 						continue GetLabelAttrValues
 					}
-					return PatchedConfiguredTargetValue{}, err
+					return PatchedConfiguredTargetValue[TMetadata]{}, err
 				}
 
 				// Provide a target reference that does
@@ -988,10 +987,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						}),
 					)
 					if err != nil {
-						return PatchedConfiguredTargetValue{}, err
+						return PatchedConfiguredTargetValue[TMetadata]{}, err
 					}
 					if err := concatenateAttrValueParts(thread, &attrValue, decodedPart); err != nil {
-						return PatchedConfiguredTargetValue{}, err
+						return PatchedConfiguredTargetValue[TMetadata]{}, err
 					}
 				}
 			} else {
@@ -1012,7 +1011,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 							missingDependencies = true
 							continue GetLabelAttrValues
 						}
-						return PatchedConfiguredTargetValue{}, err
+						return PatchedConfiguredTargetValue[TMetadata]{}, err
 					}
 
 					// Whether an explicit value or a default attr
@@ -1043,7 +1042,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 									ToLabel:                canonicalLabel.String(),
 									ConfigurationReference: patchedConfigurationReference1.Message,
 								},
-								model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference1.Patcher),
+								patchedConfigurationReference1.Patcher,
 							),
 						)
 						if !resolvedLabelValue.IsSet() {
@@ -1064,7 +1063,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 										Label:                  resolvedLabelStr,
 										ConfigurationReference: patchedConfigurationReference2.Message,
 									},
-									model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference2.Patcher),
+									patchedConfigurationReference2.Patcher,
 								),
 							)
 							if !configuredTarget.IsSet() {
@@ -1156,7 +1155,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 							valueDecodingOptions,
 						)
 						if err != nil {
-							return PatchedConfiguredTargetValue{}, fmt.Errorf("decoding attr %#v transition %#v value part %d: %w", namedAttr.Name, transitionEntry.Key, i, err)
+							return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("decoding attr %#v transition %#v value part %d: %w", namedAttr.Name, transitionEntry.Key, i, err)
 						}
 						if isScalar && mayHaveMultipleConfigurations {
 							if decodedPart == starlark.None {
@@ -1166,18 +1165,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 							}
 						}
 						if err := concatenateAttrValueParts(thread, &attrValue, decodedPart); err != nil {
-							return PatchedConfiguredTargetValue{}, fmt.Errorf("concatenate attr value parts: %w", err)
+							return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("concatenate attr value parts: %w", err)
 						}
 						if mayHaveMultipleConfigurations {
 							if err := concatenateAttrValueParts(thread, &splitAttrEntry, decodedPart); err != nil {
-								return PatchedConfiguredTargetValue{}, fmt.Errorf("concatenate split attr value parts: %w", err)
+								return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("concatenate split attr value parts: %w", err)
 							}
 						}
 					}
 
 					if mayHaveMultipleConfigurations {
 						if err := splitAttrValue.SetKey(thread, starlark.String(transitionEntry.Key), splitAttrEntry); err != nil {
-							return PatchedConfiguredTargetValue{}, err
+							return PatchedConfiguredTargetValue[TMetadata]{}, err
 						}
 					}
 				}
@@ -1196,7 +1195,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					model_starlark_pb.Depset_DEFAULT,
 				).ToList(thread)
 				if err != nil {
-					return PatchedConfiguredTargetValue{}, fmt.Errorf("converting files depset to list: %w", err)
+					return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("converting files depset to list: %w", err)
 				}
 				files := starlark.NewList(filesElements)
 				files.Freeze()
@@ -1207,7 +1206,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					case 1:
 						fileValues[namedAttr.Name] = files.Index(0)
 					default:
-						return PatchedConfiguredTargetValue{}, fmt.Errorf("attr %#v has allow_single_file=True, but its value expands to %d targets", namedAttr.Name, l)
+						return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("attr %#v has allow_single_file=True, but its value expands to %d targets", namedAttr.Name, l)
 					}
 				} else {
 					filesValues[namedAttr.Name] = files
@@ -1215,7 +1214,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			}
 		}
 		if missingDependencies {
-			return PatchedConfiguredTargetValue{}, evaluation.ErrMissingDependency
+			return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
 		rc := &ruleContext[TReference, TMetadata]{
@@ -1331,7 +1330,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 
 		identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
 		if err != nil {
-			return PatchedConfiguredTargetValue{}, err
+			return PatchedConfiguredTargetValue[TMetadata]{}, err
 		}
 		thread.SetLocal(model_starlark.ReferenceEqualIdentifierGeneratorKey, identifierGenerator)
 
@@ -1376,10 +1375,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			if !errors.Is(err, evaluation.ErrMissingDependency) {
 				var evalErr *starlark.EvalError
 				if errors.As(err, &evalErr) {
-					return PatchedConfiguredTargetValue{}, errors.New(evalErr.Backtrace())
+					return PatchedConfiguredTargetValue[TMetadata]{}, errors.New(evalErr.Backtrace())
 				}
 			}
-			return PatchedConfiguredTargetValue{}, err
+			return PatchedConfiguredTargetValue[TMetadata]{}, err
 		}
 
 		// Bazel permits returning either a single provider, or
@@ -1392,7 +1391,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				unpack.List(structUnpackerInto),
 			}),
 		).UnpackInto(thread, returnValue, &providerInstances); err != nil {
-			return PatchedConfiguredTargetValue{}, fmt.Errorf("failed to unpack implementation function return value: %w", err)
+			return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("failed to unpack implementation function return value: %w", err)
 		}
 
 		// Convert list of providers to a map where the provider
@@ -1403,16 +1402,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		for i, providerInstance := range providerInstances {
 			providerIdentifier, err := providerInstance.GetProviderIdentifier()
 			if err != nil {
-				return PatchedConfiguredTargetValue{}, fmt.Errorf("struct returned at index %d: %w", i, err)
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("struct returned at index %d: %w", i, err)
 			}
 			if _, ok := providersSeen[providerIdentifier]; ok {
-				return PatchedConfiguredTargetValue{}, fmt.Errorf("implementation function returned multiple structs for provider %#v", providerIdentifier.String())
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("implementation function returned multiple structs for provider %#v", providerIdentifier.String())
 			}
 			providersSeen[providerIdentifier] = struct{}{}
 
 			v, _, err := providerInstance.Encode(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(e, nil))
 			if err != nil {
-				return PatchedConfiguredTargetValue{}, err
+				return PatchedConfiguredTargetValue[TMetadata]{}, err
 			}
 			encodedProviderInstances = append(encodedProviderInstances, v.Message)
 			patcher.Merge(v.Patcher)
@@ -1465,7 +1464,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		for _, packageRelativePath := range slices.Sorted(maps.Keys(outputsByPackageRelativePath)) {
 			output := outputsByPackageRelativePath[packageRelativePath]
 			if !output.definition.IsSet() {
-				return PatchedConfiguredTargetValue{}, fmt.Errorf("file %#v is not an output of any action", packageRelativePath)
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("file %#v is not an output of any action", packageRelativePath)
 			}
 			if err := outputsTreeBuilder.PushChild(model_core.NewPatchedMessage(
 				&model_analysis_pb.ConfiguredTarget_Value_Output{
@@ -1478,12 +1477,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				},
 				output.definition.Patcher,
 			)); err != nil {
-				return PatchedConfiguredTargetValue{}, err
+				return PatchedConfiguredTargetValue[TMetadata]{}, err
 			}
 		}
 		outputsList, err := outputsTreeBuilder.FinalizeList()
 		if err != nil {
-			return PatchedConfiguredTargetValue{}, err
+			return PatchedConfiguredTargetValue[TMetadata]{}, err
 		}
 		patcher.Merge(outputsList.Patcher)
 
@@ -1527,12 +1526,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				},
 				action.Patcher,
 			)); err != nil {
-				return PatchedConfiguredTargetValue{}, err
+				return PatchedConfiguredTargetValue[TMetadata]{}, err
 			}
 		}
 		actionsList, err := actionsTreeBuilder.FinalizeList()
 		if err != nil {
-			return PatchedConfiguredTargetValue{}, err
+			return PatchedConfiguredTargetValue[TMetadata]{}, err
 		}
 		patcher.Merge(actionsList.Patcher)
 
@@ -1542,13 +1541,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				Outputs:           outputsList.Message,
 				Actions:           actionsList.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patcher),
+			patcher,
 		), nil
 	case *model_starlark_pb.Target_Definition_SourceFileTarget:
 		// Handcraft a DefaultInfo provider for this source file.
 		identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
 		if err != nil {
-			return PatchedConfiguredTargetValue{}, err
+			return PatchedConfiguredTargetValue[TMetadata]{}, err
 		}
 		return c.getSingleFileConfiguredTargetValue(
 			ctx,
@@ -1562,7 +1561,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			identifierGenerator,
 		)
 	default:
-		return PatchedConfiguredTargetValue{}, errors.New("only source file targets and rule targets can be configured")
+		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("only source file targets and rule targets can be configured")
 	}
 }
 
@@ -3086,20 +3085,20 @@ type ruleContextExecGroupState struct {
 	toolchainInfos        []starlark.Value
 }
 
-type getProviderFromConfiguredTargetEnvironment[TReference any] interface {
-	GetConfiguredTargetValue(key model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference]
+type getProviderFromConfiguredTargetEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
+	GetConfiguredTargetValue(key model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference]
 }
 
 // getProviderFromConfiguredTarget looks up a single provider that is
 // provided by a configured target.
-func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.WalkableReferenceMetadata](e getProviderFromConfiguredTargetEnvironment[TReference], targetLabel string, configurationReference model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], providerIdentifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Struct_Fields, TReference], error) {
+func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.WalkableReferenceMetadata](e getProviderFromConfiguredTargetEnvironment[TReference, TMetadata], targetLabel string, configurationReference model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], providerIdentifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Struct_Fields, TReference], error) {
 	configuredTargetValue := e.GetConfiguredTargetValue(
 		model_core.NewPatchedMessage(
 			&model_analysis_pb.ConfiguredTarget_Key{
 				Label:                  targetLabel,
 				ConfigurationReference: configurationReference.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(configurationReference.Patcher),
+			configurationReference.Patcher,
 		),
 	)
 	if !configuredTargetValue.IsSet() {
@@ -3119,13 +3118,13 @@ func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.Walkab
 	return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, fmt.Errorf("target did not yield provider %#v", providerIdentifierStr)
 }
 
-type getProviderFromVisibleConfiguredTargetEnvironment[TReference any] interface {
-	GetConfiguredTargetValue(model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference]
-	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
+type getProviderFromVisibleConfiguredTargetEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
+	GetConfiguredTargetValue(model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference]
+	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
 }
 
 func getProviderFromVisibleConfiguredTarget[TReference any, TConfigurationReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](
-	e getProviderFromVisibleConfiguredTargetEnvironment[TReference],
+	e getProviderFromVisibleConfiguredTargetEnvironment[TReference, TMetadata],
 	fromPackage string,
 	targetLabel string,
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TConfigurationReference],
@@ -3143,7 +3142,7 @@ func getProviderFromVisibleConfiguredTarget[TReference any, TConfigurationRefere
 				ToLabel:                targetLabel,
 				ConfigurationReference: patchedConfigurationReference.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+			patchedConfigurationReference.Patcher,
 		),
 	)
 	if !visibleTarget.IsSet() {

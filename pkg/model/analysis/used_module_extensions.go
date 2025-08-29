@@ -161,7 +161,7 @@ func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata])
 	}, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(ctx context.Context, key *model_analysis_pb.UsedModuleExtensions_Key, e UsedModuleExtensionsEnvironment[TReference, TMetadata]) (PatchedUsedModuleExtensionsValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(ctx context.Context, key *model_analysis_pb.UsedModuleExtensions_Key, e UsedModuleExtensionsEnvironment[TReference, TMetadata]) (PatchedUsedModuleExtensionsValue[TMetadata], error) {
 	options := usedModuleExtensionOptions[TReference, TMetadata]{
 		labelResolver: newLabelResolver(e),
 		patcher:       model_core.NewReferenceMessagePatcher[TMetadata](),
@@ -180,7 +180,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(c
 		isRoot = false
 		return h
 	}); err != nil {
-		return PatchedUsedModuleExtensionsValue{}, err
+		return PatchedUsedModuleExtensionsValue[TMetadata]{}, err
 	}
 
 	// Sort and populate tag classes of each module extension user.
@@ -204,6 +204,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(c
 		&model_analysis_pb.UsedModuleExtensions_Value{
 			ModuleExtensions: sortedModuleExtensions,
 		},
-		model_core.MapReferenceMetadataToWalkers(options.patcher),
+		options.patcher,
 	), nil
 }

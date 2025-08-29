@@ -12,6 +12,7 @@ proto_library(
         "//pkg/proto/model/filesystem:filesystem_proto",
         "@googleapis//google/rpc:status_proto",
         "@protobuf//:duration_proto",
+        "@protobuf//:timestamp_proto",
     ],
 )
 

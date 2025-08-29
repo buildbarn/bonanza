@@ -12,10 +12,10 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetAction_Key, TReference], e TargetActionEnvironment[TReference, TMetadata]) (PatchedTargetActionValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetAction_Key, TReference], e TargetActionEnvironment[TReference, TMetadata]) (PatchedTargetActionValue[TMetadata], error) {
 	id := key.Message.Id
 	if id == nil {
-		return PatchedTargetActionValue{}, errors.New("no target action identifier specified")
+		return PatchedTargetActionValue[TMetadata]{}, errors.New("no target action identifier specified")
 	}
 	patchedConfigurationReference := model_core.Patch(e, model_core.Nested(key, id.ConfigurationReference))
 	configuredTarget := e.GetConfiguredTargetValue(
@@ -24,11 +24,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionValue(ctx conte
 				Label:                  id.Label,
 				ConfigurationReference: patchedConfigurationReference.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+			patchedConfigurationReference.Patcher,
 		),
 	)
 	if !configuredTarget.IsSet() {
-		return PatchedTargetActionValue{}, evaluation.ErrMissingDependency
+		return PatchedTargetActionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	actionID := id.ActionId
@@ -48,14 +48,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionValue(ctx conte
 		},
 	)
 	if err != nil {
-		return PatchedTargetActionValue{}, err
+		return PatchedTargetActionValue[TMetadata]{}, err
 	}
 	if !action.IsSet() {
-		return PatchedTargetActionValue{}, errors.New("target does not yield an action with the provided identifier")
+		return PatchedTargetActionValue[TMetadata]{}, errors.New("target does not yield an action with the provided identifier")
 	}
 	actionLevel, ok := action.Message.Level.(*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_)
 	if !ok {
-		return PatchedTargetActionValue{}, errors.New("action is not a leaf")
+		return PatchedTargetActionValue[TMetadata]{}, errors.New("action is not a leaf")
 	}
 
 	patchedDefinition := model_core.Patch(e, model_core.Nested(action, actionLevel.Leaf.Definition))
@@ -63,6 +63,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionValue(ctx conte
 		&model_analysis_pb.TargetAction_Value{
 			Definition: patchedDefinition.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(patchedDefinition.Patcher),
+		patchedDefinition.Patcher,
 	), nil
 }

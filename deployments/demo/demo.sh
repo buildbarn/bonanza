@@ -27,6 +27,7 @@ export OS=$(uname)
 # user running the build actions.
 export USER_ID=$(id -u)
 export GROUP_ID=$(id -g)
+export NCPU=$(sysctl -n hw.ncpu)
 
 # Used to create worker IDs.
 export HOSTNAME=$(hostname)

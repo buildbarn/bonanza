@@ -14,20 +14,20 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepo_Key, e ModuleExtensionRepoEnvironment[TReference, TMetadata]) (PatchedModuleExtensionRepoValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepo_Key, e ModuleExtensionRepoEnvironment[TReference, TMetadata]) (PatchedModuleExtensionRepoValue[TMetadata], error) {
 	canonicalRepo, err := label.NewCanonicalRepo(key.CanonicalRepo)
 	if err != nil {
-		return PatchedModuleExtensionRepoValue{}, fmt.Errorf("invalid repo: %w", err)
+		return PatchedModuleExtensionRepoValue[TMetadata]{}, fmt.Errorf("invalid repo: %w", err)
 	}
 	moduleExtension, apparentRepo, ok := canonicalRepo.GetModuleExtension()
 	if !ok {
-		return PatchedModuleExtensionRepoValue{}, errors.New("repo does not include a module extension")
+		return PatchedModuleExtensionRepoValue[TMetadata]{}, errors.New("repo does not include a module extension")
 	}
 	moduleExtensionReposValue := e.GetModuleExtensionReposValue(&model_analysis_pb.ModuleExtensionRepos_Key{
 		ModuleExtension: moduleExtension.String(),
 	})
 	if !moduleExtensionReposValue.IsSet() {
-		return PatchedModuleExtensionRepoValue{}, evaluation.ErrMissingDependency
+		return PatchedModuleExtensionRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	repoName := apparentRepo.String()
@@ -47,25 +47,25 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ct
 		},
 	)
 	if err != nil {
-		return PatchedModuleExtensionRepoValue{}, err
+		return PatchedModuleExtensionRepoValue[TMetadata]{}, err
 	}
 	if !repo.IsSet() {
-		return PatchedModuleExtensionRepoValue{}, errors.New("repo does not exist")
+		return PatchedModuleExtensionRepoValue[TMetadata]{}, errors.New("repo does not exist")
 	}
 
 	level, ok := repo.Message.Level.(*model_analysis_pb.ModuleExtensionRepos_Value_Repo_Leaf)
 	if !ok {
-		return PatchedModuleExtensionRepoValue{}, errors.New("repo has an unknown level type")
+		return PatchedModuleExtensionRepoValue[TMetadata]{}, errors.New("repo has an unknown level type")
 	}
 	definition := level.Leaf.Definition
 	if definition == nil {
-		return PatchedModuleExtensionRepoValue{}, errors.New("repo does not have a definition")
+		return PatchedModuleExtensionRepoValue[TMetadata]{}, errors.New("repo does not have a definition")
 	}
 	patchedDefinition := model_core.Patch(e, model_core.Nested(repo, definition))
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.ModuleExtensionRepo_Value{
 			Definition: patchedDefinition.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(patchedDefinition.Patcher),
+		patchedDefinition.Patcher,
 	), nil
 }

@@ -28,10 +28,10 @@ var buildDotBazelTargetNames = []label.TargetName{
 	util.Must(label.NewTargetName("BUILD")),
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Context, key *model_analysis_pb.Package_Key, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Context, key *model_analysis_pb.Package_Key, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
 	canonicalPackage, err := label.NewCanonicalPackage(key.Label)
 	if err != nil {
-		return PatchedPackageValue{}, fmt.Errorf("invalid package label: %w", err)
+		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid package label: %w", err)
 	}
 	canonicalRepo := canonicalPackage.GetCanonicalRepo()
 
@@ -41,14 +41,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 	})
 	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
 	if !allBuiltinsModulesNames.IsSet() || !repoDefaultAttrsValue.IsSet() || !gotFileReader {
-		return PatchedPackageValue{}, evaluation.ErrMissingDependency
+		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	builtinsModuleNames := allBuiltinsModulesNames.Message.BuiltinsModuleNames
 	thread := c.newStarlarkThread(ctx, e, builtinsModuleNames)
 	buildFileBuiltins, err := c.getBuildFileBuiltins(thread, e, builtinsModuleNames)
 	if err != nil {
-		return PatchedPackageValue{}, err
+		return PatchedPackageValue[TMetadata]{}, err
 	}
 
 	listReader := c.valueReaders.List
@@ -58,7 +58,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 			Path:          canonicalPackage.AppendTargetName(buildFileName).GetRepoRelativePath(),
 		})
 		if !buildFileProperties.IsSet() {
-			return PatchedPackageValue{}, evaluation.ErrMissingDependency
+			return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		if buildFileProperties.Message.Exists == nil {
 			continue
@@ -69,11 +69,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 			model_core.Nested(buildFileProperties, buildFileProperties.Message.Exists.Contents),
 		)
 		if err != nil {
-			return PatchedPackageValue{}, fmt.Errorf("invalid contents for file %#v: %w", buildFileLabel.String(), err)
+			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid contents for file %#v: %w", buildFileLabel.String(), err)
 		}
 		buildFileData, err := fileReader.FileReadAll(ctx, buildFileContentsEntry, 1<<20)
 		if err != nil {
-			return PatchedPackageValue{}, err
+			return PatchedPackageValue[TMetadata]{}, err
 		}
 
 		_, program, err := starlark.SourceProgramOptions(
@@ -85,11 +85,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 			buildFileBuiltins.Has,
 		)
 		if err != nil {
-			return PatchedPackageValue{}, fmt.Errorf("failed to load %#v: %w", buildFileLabel.String(), err)
+			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("failed to load %#v: %w", buildFileLabel.String(), err)
 		}
 
 		if err := c.preloadBzlGlobals(e, canonicalPackage, program, builtinsModuleNames); err != nil {
-			return PatchedPackageValue{}, err
+			return PatchedPackageValue[TMetadata]{}, err
 		}
 
 		thread.SetLocal(model_starlark.CanonicalPackageKey, canonicalPackage)
@@ -148,9 +148,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 		if _, err := program.Init(thread, buildFileBuiltins); err != nil {
 			var evalErr *starlark.EvalError
 			if !errors.Is(err, evaluation.ErrMissingDependency) && errors.As(err, &evalErr) {
-				return PatchedPackageValue{}, errors.New(evalErr.Backtrace())
+				return PatchedPackageValue[TMetadata]{}, errors.New(evalErr.Backtrace())
 			}
-			return PatchedPackageValue{}, err
+			return PatchedPackageValue[TMetadata]{}, err
 		}
 
 		// Store all targets in a B-tree.
@@ -214,22 +214,22 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 				},
 				target.Patcher,
 			)); err != nil {
-				return PatchedPackageValue{}, err
+				return PatchedPackageValue[TMetadata]{}, err
 			}
 		}
 
 		targetsList, err := treeBuilder.FinalizeList()
 		if err != nil {
-			return PatchedPackageValue{}, err
+			return PatchedPackageValue[TMetadata]{}, err
 		}
 
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.Package_Value{
 				Targets: targetsList.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(targetsList.Patcher),
+			targetsList.Patcher,
 		), nil
 	}
 
-	return PatchedPackageValue{}, errors.New("BUILD.bazel does not exist")
+	return PatchedPackageValue[TMetadata]{}, errors.New("BUILD.bazel does not exist")
 }

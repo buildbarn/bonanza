@@ -33,12 +33,12 @@ message Evaluation {
             "bonanza.model.evaluation.Evaluation";
         }];
 
-    // The key of the first leaf Evaluation object contained in this
-    // tree to aid lookups. All Evaluation objects are sorted by key,
-    // for which a byte sequence is obtained by calling
-    // model_core.MarshalTopLevelMessage() against the anypb.Any
+    // SHA-256 hash key of the first leaf Evaluation object contained in
+    // this tree to aid lookups. All Evaluation objects are sorted by
+    // hash of the key. A byte sequence for the key is obtained by
+    // calling model_core.MarshalTopLevelMessage() against the anypb.Any
     // message.
-    bytes first_key = 2;
+    bytes first_key_sha256 = 2;
   }
 
   message Leaf {

@@ -30,13 +30,11 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
-	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/search"
 	"bonanza.build/pkg/starlark/unpack"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
@@ -876,10 +874,10 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	singleVersionOverridePatchLabels []string,
 	singleVersionOverridePatchCommands []string,
 	singleVersionOverridePatchStrip int,
-) (PatchedRepoValue, error) {
+) (PatchedRepoValue[TMetadata], error) {
 	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
 	if !gotFileReader {
-		return PatchedRepoValue{}, evaluation.ErrMissingDependency
+		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	sourceJSONURL, err := url.JoinPath(
@@ -890,7 +888,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 		"source.json",
 	)
 	if err != nil {
-		return PatchedRepoValue{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", module.Name, module.Version, module.RegistryUrl, err)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", module.Name, module.Version, module.RegistryUrl, err)
 	}
 
 	sourceJSONContentsValue := e.GetHttpFileContentsValue(
@@ -903,35 +901,35 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 		},
 	)
 	if !sourceJSONContentsValue.IsSet() {
-		return PatchedRepoValue{}, evaluation.ErrMissingDependency
+		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if sourceJSONContentsValue.Message.Exists == nil {
-		return PatchedRepoValue{}, fmt.Errorf("file at URL %#v does not exist", sourceJSONURL)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("file at URL %#v does not exist", sourceJSONURL)
 	}
 	sourceJSONContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
 		model_core.Nested(sourceJSONContentsValue, sourceJSONContentsValue.Message.Exists.Contents),
 	)
 	if err != nil {
-		return PatchedRepoValue{}, fmt.Errorf("invalid file contents: %w", err)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid file contents: %w", err)
 	}
 
 	sourceJSONData, err := fileReader.FileReadAll(ctx, sourceJSONContentsEntry, 1<<20)
 	if err != nil {
-		return PatchedRepoValue{}, err
+		return PatchedRepoValue[TMetadata]{}, err
 	}
 	var sourceJSON sourceJSON
 	if err := json.Unmarshal(sourceJSONData, &sourceJSON); err != nil {
-		return PatchedRepoValue{}, fmt.Errorf("invalid JSON contents for %#v: %w", sourceJSONURL, err)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid JSON contents for %#v: %w", sourceJSONURL, err)
 	}
 
 	archiveFormat, ok := inferArchiveFormatFromURL(sourceJSON.URL)
 	if !ok {
-		return PatchedRepoValue{}, fmt.Errorf("cannot derive archive format from file extension of URL %#v", sourceJSONURL)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("cannot derive archive format from file extension of URL %#v", sourceJSONURL)
 	}
 
 	integrity, err := parseSubresourceIntegrity(sourceJSON.Integrity)
 	if err != nil {
-		return PatchedRepoValue{}, fmt.Errorf("invalid subresource integrity %#v in %#v: %w", sourceJSON.Integrity, sourceJSONURL, err)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid subresource integrity %#v in %#v: %w", sourceJSON.Integrity, sourceJSONURL, err)
 	}
 
 	// Download source archive and all patches that need to be
@@ -963,12 +961,12 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 			patchEntry.key,
 		)
 		if err != nil {
-			return PatchedRepoValue{}, fmt.Errorf("failed to construct URL for patch %s of module %s with version %s in registry %#v: %w", patchEntry.key, module.Name, module.Version, module.RegistryUrl, err)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for patch %s of module %s with version %s in registry %#v: %w", patchEntry.key, module.Name, module.Version, module.RegistryUrl, err)
 		}
 
 		integrity, err := parseSubresourceIntegrity(patchEntry.value)
 		if err != nil {
-			return PatchedRepoValue{}, fmt.Errorf("invalid subresource integrity %#v for patch %#v: %w", patchEntry.value, patchURL, err)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid subresource integrity %#v for patch %#v: %w", patchEntry.value, patchURL, err)
 		}
 
 		patchContentsValue := e.GetHttpFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
@@ -984,14 +982,14 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 			continue
 		}
 		if patchContentsValue.Message.Exists == nil {
-			return PatchedRepoValue{}, fmt.Errorf("patch at URL %#v does not exist", patchEntry.key)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("patch at URL %#v does not exist", patchEntry.key)
 		}
 
 		patchContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
 			model_core.Nested(patchContentsValue, patchContentsValue.Message.Exists.Contents),
 		)
 		if err != nil {
-			return PatchedRepoValue{}, fmt.Errorf("invalid file contents for patch %#v: %w", patchEntry.key, err)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid file contents for patch %#v: %w", patchEntry.key, err)
 		}
 
 		patchesToApply = append(patchesToApply, patchToApply[TReference]{
@@ -1006,7 +1004,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	for _, patchLabelStr := range singleVersionOverridePatchLabels {
 		patchLabel, err := label.NewCanonicalLabel(patchLabelStr)
 		if err != nil {
-			return PatchedRepoValue{}, fmt.Errorf("invalid single version override patch label %#v: %w", patchLabelStr)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid single version override patch label %#v: %w", patchLabelStr)
 		}
 		patchPropertiesValue := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
 			CanonicalRepo: patchLabel.GetCanonicalPackage().GetCanonicalRepo().String(),
@@ -1017,14 +1015,14 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 			continue
 		}
 		if patchPropertiesValue.Message.Exists == nil {
-			return PatchedRepoValue{}, fmt.Errorf("patch %#v does not exist", patchLabelStr)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("patch %#v does not exist", patchLabelStr)
 		}
 
 		patchContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
 			model_core.Nested(patchPropertiesValue, patchPropertiesValue.Message.Exists.Contents),
 		)
 		if err != nil {
-			return PatchedRepoValue{}, fmt.Errorf("invalid file contents for patch %#v: %s", patchLabelStr, err)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid file contents for patch %#v: %s", patchLabelStr, err)
 		}
 
 		patchesToApply = append(patchesToApply, patchToApply[TReference]{
@@ -1035,10 +1033,10 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	}
 
 	if missingDependencies {
-		return PatchedRepoValue{}, evaluation.ErrMissingDependency
+		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if archiveContentsValue.Message.Exists == nil {
-		return PatchedRepoValue{}, fmt.Errorf("file at URL %#v does not exist", sourceJSON.URL)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("file at URL %#v does not exist", sourceJSON.URL)
 	}
 
 	// TODO: Process singleVersionOverridePatchCommands!
@@ -1059,7 +1057,7 @@ type patchToApply[TReference any] struct {
 }
 
 type applyPatchesEnvironment[TReference object.BasicReference, TMetadata any] interface {
-	model_core.ExistingObjectCapturer[TReference, TMetadata]
+	model_core.ObjectCapturer[TReference, TMetadata]
 
 	GetDirectoryCreationParametersObjectValue(key *model_analysis_pb.DirectoryCreationParametersObject_Key) (*model_filesystem.DirectoryCreationParameters, bool)
 	GetDirectoryReadersValue(key *model_analysis_pb.DirectoryReaders_Key) (*DirectoryReaders[TReference], bool)
@@ -1073,16 +1071,16 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 	rootRef model_core.Message[*model_filesystem_pb.DirectoryReference, TReference],
 	stripPrefix string,
 	patches []patchToApply[TReference],
-) (PatchedRepoValue, error) {
+) (PatchedRepoValue[TMetadata], error) {
 	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
 	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObjectValue(&model_analysis_pb.FileCreationParametersObject_Key{})
 	if !gotFileReader || !gotDirectoryCreationParameters || !gotDirectoryReaders || !gotFileCreationParameters {
-		return PatchedRepoValue{}, evaluation.ErrMissingDependency
+		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	rootDirectory := &changeTrackingDirectory[TReference, model_core.FileBackedObjectLocation]{
+	rootDirectory := &changeTrackingDirectory[TReference, TMetadata]{
 		unmodifiedDirectory: model_core.Nested(
 			rootRef,
 			&model_filesystem_pb.Directory{
@@ -1099,7 +1097,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 		directoryContentsReader: directoryReaders.DirectoryContents,
 		leavesReader:            directoryReaders.Leaves,
 	}
-	rootDirectoryResolver := changeTrackingDirectoryResolver[TReference, model_core.FileBackedObjectLocation]{
+	rootDirectoryResolver := changeTrackingDirectoryResolver[TReference, TMetadata]{
 		loadOptions: loadOptions,
 		stack:       util.NewNonEmptyStack(rootDirectory),
 	}
@@ -1107,13 +1105,13 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 		path.UNIXFormat.NewParser(stripPrefix),
 		path.NewRelativeScopeWalker(&rootDirectoryResolver),
 	); err != nil {
-		return PatchedRepoValue{}, fmt.Errorf("failed to strip prefix %#v from contents: %w", stripPrefix, err)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to strip prefix %#v from contents: %w", stripPrefix, err)
 	}
 	rootDirectory = rootDirectoryResolver.stack.Peek()
 
 	patchedFiles, err := c.filePool.NewFile()
 	if err != nil {
-		return PatchedRepoValue{}, err
+		return PatchedRepoValue[TMetadata]{}, err
 	}
 	defer patchedFiles.Close()
 	patchedFilesWriter := model_filesystem.NewSectionWriter(patchedFiles)
@@ -1132,7 +1130,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 			patchedFilesWriter,
 		)
 		if err != nil {
-			return PatchedRepoValue{}, fmt.Errorf("patch %q: %w", patch.filename, err)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("patch %q: %w", patch.filename, err)
 		}
 	}
 
@@ -1149,7 +1147,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 
 func (c *baseComputer[TReference, TMetadata]) applyPatch(
 	ctx context.Context,
-	rootDirectory *changeTrackingDirectory[TReference, model_core.FileBackedObjectLocation],
+	rootDirectory *changeTrackingDirectory[TReference, TMetadata],
 	loadOptions *changeTrackingDirectoryLoadOptions[TReference],
 	patchStrip int,
 	fileReader *model_filesystem.FileReader[TReference],
@@ -1168,10 +1166,10 @@ func (c *baseComputer[TReference, TMetadata]) applyPatch(
 	}
 
 	for _, file := range files {
-		var fileContents changeTrackingFileContents[TReference, model_core.FileBackedObjectLocation]
+		var fileContents changeTrackingFileContents[TReference, TMetadata]
 		isExecutable := false
 		if !file.IsNew {
-			r := &changeTrackingDirectoryExistingFileResolver[TReference, model_core.FileBackedObjectLocation]{
+			r := &changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]{
 				loadOptions: loadOptions,
 				stack:       util.NewNonEmptyStack(rootDirectory),
 			}
@@ -1222,7 +1220,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatch(
 			return fmt.Errorf("failed to replace text fragments to %#v: %w", file.OldName, err)
 		}
 
-		r := &changeTrackingDirectoryNewFileResolver[TReference, model_core.FileBackedObjectLocation]{
+		r := &changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
 			loadOptions: loadOptions,
 			stack:       util.NewNonEmptyStack(rootDirectory),
 		}
@@ -1244,9 +1242,9 @@ func (c *baseComputer[TReference, TMetadata]) applyPatch(
 		if err := r.stack.Peek().setFile(
 			loadOptions,
 			*r.TerminalName,
-			&changeTrackingFile[TReference, model_core.FileBackedObjectLocation]{
+			&changeTrackingFile[TReference, TMetadata]{
 				isExecutable: isExecutable,
-				contents: patchedFileContents[TReference, model_core.FileBackedObjectLocation]{
+				contents: patchedFileContents[TReference, TMetadata]{
 					offsetBytes: patchedFileOffsetBytes,
 					sizeBytes:   patchedFilesWriter.GetOffsetBytes() - patchedFileOffsetBytes,
 				},
@@ -1274,11 +1272,11 @@ func newRepositoryOS[TReference object.BasicReference, TMetadata BaseComputerRef
 	return s
 }
 
-type moduleOrRepositoryContextEnvironment[TReference object.BasicReference, TMetadata any] interface {
-	model_core.ExistingObjectCapturer[TReference, TMetadata]
+type moduleOrRepositoryContextEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
+	model_core.ObjectCapturer[TReference, TMetadata]
 
 	GetActionEncoderObjectValue(*model_analysis_pb.ActionEncoderObject_Key) (model_encoding.BinaryEncoder, bool)
-	GetActionResultValue(model_core.PatchedMessage[*model_analysis_pb.ActionResult_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.ActionResult_Value, TReference]
+	GetActionResultValue(model_core.PatchedMessage[*model_analysis_pb.ActionResult_Key, TMetadata]) model_core.Message[*model_analysis_pb.ActionResult_Value, TReference]
 	GetDirectoryCreationParametersObjectValue(*model_analysis_pb.DirectoryCreationParametersObject_Key) (*model_filesystem.DirectoryCreationParameters, bool)
 	GetDirectoryCreationParametersValue(*model_analysis_pb.DirectoryCreationParameters_Key) model_core.Message[*model_analysis_pb.DirectoryCreationParameters_Value, TReference]
 	GetDirectoryReadersValue(key *model_analysis_pb.DirectoryReaders_Key) (*DirectoryReaders[TReference], bool)
@@ -1292,7 +1290,7 @@ type moduleOrRepositoryContextEnvironment[TReference object.BasicReference, TMet
 	GetRepoValue(*model_analysis_pb.Repo_Key) model_core.Message[*model_analysis_pb.Repo_Value, TReference]
 	GetRootModuleValue(*model_analysis_pb.RootModule_Key) model_core.Message[*model_analysis_pb.RootModule_Value, TReference]
 	GetStableInputRootPathObjectValue(*model_analysis_pb.StableInputRootPathObject_Key) (*model_starlark.BarePath, bool)
-	GetSuccessfulActionResultValue(model_core.PatchedMessage[*model_analysis_pb.SuccessfulActionResult_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.SuccessfulActionResult_Value, TReference]
+	GetSuccessfulActionResultValue(model_core.PatchedMessage[*model_analysis_pb.SuccessfulActionResult_Key, TMetadata]) model_core.Message[*model_analysis_pb.SuccessfulActionResult_Value, TReference]
 }
 
 type moduleOrRepositoryContext[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
@@ -1314,7 +1312,7 @@ type moduleOrRepositoryContext[TReference object.BasicReference, TMetadata BaseC
 	repoPlatform                       model_core.Message[*model_analysis_pb.RegisteredRepoPlatform_Value, TReference]
 	virtualRootScopeWalkerFactory      *path.VirtualRootScopeWalkerFactory
 
-	inputRootDirectory *changeTrackingDirectory[TReference, model_core.FileBackedObjectLocation]
+	inputRootDirectory *changeTrackingDirectory[TReference, TMetadata]
 	patchedFiles       filesystem.FileReader
 	patchedFilesWriter *model_filesystem.SectionWriter
 }
@@ -1326,7 +1324,7 @@ func (c *baseComputer[TReference, TMetadata]) newModuleOrRepositoryContext(ctx c
 		environment:            e,
 		subdirectoryComponents: subdirectoryComponents,
 
-		inputRootDirectory: &changeTrackingDirectory[TReference, model_core.FileBackedObjectLocation]{},
+		inputRootDirectory: &changeTrackingDirectory[TReference, TMetadata]{},
 	}, nil
 }
 
@@ -1336,7 +1334,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) release() {
 	}
 }
 
-func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) resolveRepoDirectory() (*changeTrackingDirectory[TReference, model_core.FileBackedObjectLocation], error) {
+func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) resolveRepoDirectory() (*changeTrackingDirectory[TReference, TMetadata], error) {
 	repoDirectory := mrc.inputRootDirectory
 	for _, component := range mrc.subdirectoryComponents {
 		childDirectory, ok := repoDirectory.directories[component]
@@ -1575,7 +1573,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) completeDownload(ou
 	}
 
 	// Insert the downloaded file into the file system.
-	r := &changeTrackingDirectoryNewFileResolver[TReference, model_core.FileBackedObjectLocation]{
+	r := &changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
 		loadOptions: mrc.directoryLoadOptions,
 		stack:       util.NewNonEmptyStack(mrc.inputRootDirectory),
 	}
@@ -1589,9 +1587,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) completeDownload(ou
 	if err := r.stack.Peek().setFile(
 		mrc.directoryLoadOptions,
 		*r.TerminalName,
-		&changeTrackingFile[TReference, model_core.FileBackedObjectLocation]{
+		&changeTrackingFile[TReference, TMetadata]{
 			isExecutable: executable,
-			contents: unmodifiedFileContents[TReference, model_core.FileBackedObjectLocation]{
+			contents: unmodifiedFileContents[TReference, TMetadata]{
 				contents: model_core.Nested(fileContentsValue, exists.Contents),
 			},
 		},
@@ -1687,7 +1685,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtrac
 	}
 
 	// Determine which directory to place inside the file system.
-	archiveRootDirectory := changeTrackingDirectory[TReference, model_core.FileBackedObjectLocation]{
+	archiveRootDirectory := changeTrackingDirectory[TReference, TMetadata]{
 		unmodifiedDirectory: model_core.Nested(
 			archiveContentsValue,
 			&model_filesystem_pb.Directory{
@@ -1697,7 +1695,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtrac
 			},
 		),
 	}
-	rootDirectoryResolver := changeTrackingDirectoryResolver[TReference, model_core.FileBackedObjectLocation]{
+	rootDirectoryResolver := changeTrackingDirectoryResolver[TReference, TMetadata]{
 		loadOptions: mrc.directoryLoadOptions,
 		stack:       util.NewNonEmptyStack(&archiveRootDirectory),
 	}
@@ -1706,7 +1704,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtrac
 	}
 
 	// Insert the directory into the file system.
-	r := &changeTrackingDirectoryNewDirectoryResolver[TReference, model_core.FileBackedObjectLocation]{
+	r := &changeTrackingDirectoryNewDirectoryResolver[TReference, TMetadata]{
 		loadOptions: mrc.directoryLoadOptions,
 		stack:       util.NewNonEmptyStack(mrc.inputRootDirectory),
 	}
@@ -1818,7 +1816,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 	// variables to B-trees, so that they can
 	// be attached to the Command message.
 	referenceFormat := mrc.computer.getReferenceFormat()
-	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(mrc.actionEncoder, referenceFormat, model_core.WalkableCreatedObjectCapturer)
+	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(mrc.actionEncoder, referenceFormat, mrc.environment)
 	for _, argument := range arguments {
 		var argumentStr string
 		switch typedArgument := argument.(type) {
@@ -1830,7 +1828,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 			panic("unexpected argument type")
 		}
 		if err := argumentsBuilder.PushChild(
-			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_command_pb.ArgumentList_Element{
+			model_core.NewSimplePatchedMessage[TMetadata](&model_command_pb.ArgumentList_Element{
 				Level: &model_command_pb.ArgumentList_Element_Leaf{
 					Leaf: argumentStr,
 				},
@@ -1848,7 +1846,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 		environment,
 		mrc.actionEncoder,
 		referenceFormat,
-		model_core.WalkableCreatedObjectCapturer,
+		mrc.environment,
 	)
 	if err != nil {
 		return nil, err
@@ -1858,7 +1856,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 	if err := path.Resolve(
 		workingDirectory,
 		mrc.virtualRootScopeWalkerFactory.New(
-			&changeTrackingDirectoryNewDirectoryResolver[TReference, model_core.FileBackedObjectLocation]{
+			&changeTrackingDirectoryNewDirectoryResolver[TReference, TMetadata]{
 				loadOptions: mrc.directoryLoadOptions,
 				stack:       util.NewNonEmptyStack(mrc.inputRootDirectory),
 			},
@@ -1872,7 +1870,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 	// any subsequent command and also become part of the repo's
 	// final contents. Construct a pattern for capturing the
 	// directory in the input root belonging to the repo.
-	outputPathPatternChildren := model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker]((*model_command_pb.PathPattern_Children)(nil))
+	outputPathPatternChildren := model_core.NewSimplePatchedMessage[TMetadata]((*model_command_pb.PathPattern_Children)(nil))
 	inlinedTreeOptions := mrc.computer.getInlinedTreeOptions()
 	for i := len(mrc.subdirectoryComponents); i > 0; i-- {
 		outputPathPatternChildren, err = model_command.PrependDirectoryToPathPatternChildren(
@@ -1880,7 +1878,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 			outputPathPatternChildren,
 			mrc.actionEncoder,
 			inlinedTreeOptions,
-			model_core.WalkableCreatedObjectCapturer,
+			mrc.environment,
 		)
 		if err != nil {
 			return nil, err
@@ -1888,14 +1886,14 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 	}
 
 	command, err := inlinedtree.Build(
-		inlinedtree.CandidateList[*model_command_pb.Command, dag.ObjectContentsWalker]{
+		inlinedtree.CandidateList[*model_command_pb.Command, TMetadata]{
 			// Fields that should always be inlined into the
 			// Command message.
 			{
-				ExternalMessage: model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker]((model_core.Marshalable)(nil)),
+				ExternalMessage: model_core.NewSimplePatchedMessage[TMetadata]((model_core.Marshalable)(nil)),
 				ParentAppender: func(
-					command model_core.PatchedMessage[*model_command_pb.Command, dag.ObjectContentsWalker],
-					externalObject *model_core.Decodable[model_core.CreatedObject[dag.ObjectContentsWalker]],
+					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
+					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
 				) {
 					command.Message.DirectoryCreationParameters = mrc.directoryCreationParametersMessage
 					command.Message.FileCreationParameters = mrc.fileCreationParametersMessage
@@ -1908,8 +1906,8 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 				ExternalMessage: model_core.ProtoListToMarshalable(argumentList),
 				Encoder:         mrc.actionEncoder,
 				ParentAppender: func(
-					command model_core.PatchedMessage[*model_command_pb.Command, dag.ObjectContentsWalker],
-					externalObject *model_core.Decodable[model_core.CreatedObject[dag.ObjectContentsWalker]],
+					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
+					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
 				) {
 					command.Message.Arguments = btree.MaybeMergeNodes(
 						argumentList.Message,
@@ -1923,8 +1921,8 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 				ExternalMessage: model_core.ProtoListToMarshalable(environmentVariableList),
 				Encoder:         mrc.actionEncoder,
 				ParentAppender: func(
-					command model_core.PatchedMessage[*model_command_pb.Command, dag.ObjectContentsWalker],
-					externalObject *model_core.Decodable[model_core.CreatedObject[dag.ObjectContentsWalker]],
+					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
+					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
 				) {
 					command.Message.EnvironmentVariables = btree.MaybeMergeNodes(
 						environmentVariableList.Message,
@@ -1938,14 +1936,14 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 				ExternalMessage: model_core.ProtoToMarshalable(outputPathPatternChildren),
 				Encoder:         mrc.actionEncoder,
 				ParentAppender: func(
-					command model_core.PatchedMessage[*model_command_pb.Command, dag.ObjectContentsWalker],
-					externalObject *model_core.Decodable[model_core.CreatedObject[dag.ObjectContentsWalker]],
+					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
+					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
 				) {
 					command.Message.OutputPathPattern = model_command.GetPathPatternWithChildren(
 						outputPathPatternChildren,
 						externalObject,
 						command.Patcher,
-						model_core.WalkableCreatedObjectCapturer,
+						mrc.environment,
 					)
 				},
 			},
@@ -1970,13 +1968,10 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) model_core.Marshalable {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(inputRootReference.Patcher)
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
-				CommandReference: patcher.CaptureAndAddDecodableReference(
-					createdCommand,
-					model_core.WalkableCreatedObjectCapturer,
-				),
+				CommandReference:   patcher.CaptureAndAddDecodableReference(createdCommand, mrc.environment),
 				InputRootReference: inputRootReference.Message,
 			})
 		}),
@@ -1989,15 +1984,12 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 
 	// Execute the command.
 	actionResult := mrc.environment.GetActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_analysis_pb.ActionResult_Key {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Key {
 			return &model_analysis_pb.ActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
-					ActionReference: patcher.CaptureAndAddDecodableReference(
-						createdAction,
-						model_core.WalkableCreatedObjectCapturer,
-					),
-					ExecutionTimeout: &durationpb.Duration{Seconds: timeout},
+					ActionReference:       patcher.CaptureAndAddDecodableReference(createdAction, mrc.environment),
+					ExecutionTimeout:      &durationpb.Duration{Seconds: timeout},
 				},
 			}
 		}),
@@ -2037,7 +2029,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 	// The command may have mutated the repo's contents. Extract the
 	// repo directory contents from the results and copy it into the
 	// input root.
-	outputRootDirectory := changeTrackingDirectory[TReference, model_core.FileBackedObjectLocation]{
+	outputRootDirectory := changeTrackingDirectory[TReference, TMetadata]{
 		unmodifiedDirectory: model_core.Nested(outputs, &model_filesystem_pb.Directory{
 			Contents: &model_filesystem_pb.Directory_ContentsInline{
 				ContentsInline: outputs.Message.GetOutputRoot(),
@@ -2102,7 +2094,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doFile(thread *star
 		return nil, err
 	}
 
-	r := &changeTrackingDirectoryNewFileResolver[TReference, model_core.FileBackedObjectLocation]{
+	r := &changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
 		loadOptions: mrc.directoryLoadOptions,
 		stack:       util.NewNonEmptyStack(mrc.inputRootDirectory),
 	}
@@ -2127,9 +2119,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doFile(thread *star
 	if err := r.stack.Peek().setFile(
 		mrc.directoryLoadOptions,
 		*r.TerminalName,
-		&changeTrackingFile[TReference, model_core.FileBackedObjectLocation]{
+		&changeTrackingFile[TReference, TMetadata]{
 			isExecutable: executable,
-			contents: patchedFileContents[TReference, model_core.FileBackedObjectLocation]{
+			contents: patchedFileContents[TReference, TMetadata]{
 				offsetBytes: patchedFileOffsetBytes,
 				sizeBytes:   mrc.patchedFilesWriter.GetOffsetBytes() - patchedFileOffsetBytes,
 			},
@@ -2197,7 +2189,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 		return nil, err
 	}
 
-	r := &changeTrackingDirectoryExistingFileResolver[TReference, model_core.FileBackedObjectLocation]{
+	r := &changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]{
 		loadOptions: mrc.directoryLoadOptions,
 		stack:       util.NewNonEmptyStack(mrc.inputRootDirectory),
 	}
@@ -2259,7 +2251,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 		environment,
 		mrc.actionEncoder,
 		referenceFormat,
-		model_core.WalkableCreatedObjectCapturer,
+		mrc.environment,
 	)
 	if err != nil {
 		return nil, err
@@ -2302,13 +2294,10 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) model_core.Marshalable {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(inputRootReference.Patcher)
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
-				CommandReference: patcher.CaptureAndAddDecodableReference(
-					createdCommand,
-					model_core.WalkableCreatedObjectCapturer,
-				),
+				CommandReference:   patcher.CaptureAndAddDecodableReference(createdCommand, mrc.environment),
 				InputRootReference: inputRootReference.Message,
 			})
 		}),
@@ -2321,15 +2310,12 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 
 	// Execute the command.
 	actionResult := mrc.environment.GetSuccessfulActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_analysis_pb.SuccessfulActionResult_Key {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
 			return &model_analysis_pb.SuccessfulActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
-					ActionReference: patcher.CaptureAndAddDecodableReference(
-						createdAction,
-						model_core.WalkableCreatedObjectCapturer,
-					),
-					ExecutionTimeout: &durationpb.Duration{Seconds: 300},
+					ActionReference:       patcher.CaptureAndAddDecodableReference(createdAction, mrc.environment),
+					ExecutionTimeout:      &durationpb.Duration{Seconds: 300},
 				},
 			}
 		}),
@@ -2418,7 +2404,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 		environment,
 		mrc.actionEncoder,
 		referenceFormat,
-		model_core.WalkableCreatedObjectCapturer,
+		mrc.environment,
 	)
 	if err != nil {
 		return nil, err
@@ -2460,7 +2446,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 	}
 
 	createdInputRoot, err := model_core.MarshalAndEncode(
-		model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+		model_core.NewSimplePatchedMessage[TMetadata](
 			model_core.NewProtoMarshalable(&model_filesystem_pb.DirectoryContents{
 				Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
 					LeavesInline: &model_filesystem_pb.Leaves{},
@@ -2475,19 +2461,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) model_core.Marshalable {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
-				CommandReference: patcher.CaptureAndAddDecodableReference(
-					createdCommand,
-					model_core.WalkableCreatedObjectCapturer,
-				),
+				CommandReference: patcher.CaptureAndAddDecodableReference(createdCommand, mrc.environment),
 				// TODO: We shouldn't be handcrafting a
 				// DirectoryReference here.
 				InputRootReference: &model_filesystem_pb.DirectoryReference{
-					Reference: patcher.CaptureAndAddDecodableReference(
-						createdInputRoot,
-						model_core.WalkableCreatedObjectCapturer,
-					),
+					Reference:                      patcher.CaptureAndAddDecodableReference(createdInputRoot, mrc.environment),
 					MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
 				},
 			})
@@ -2501,15 +2481,12 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 
 	// Invoke command.
 	actionResult := mrc.environment.GetActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_analysis_pb.ActionResult_Key {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Key {
 			return &model_analysis_pb.ActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
-					ActionReference: patcher.CaptureAndAddDecodableReference(
-						createdAction,
-						model_core.WalkableCreatedObjectCapturer,
-					),
-					ExecutionTimeout: &durationpb.Duration{Seconds: 60},
+					ActionReference:       patcher.CaptureAndAddDecodableReference(createdAction, mrc.environment),
+					ExecutionTimeout:      &durationpb.Duration{Seconds: 60},
 				},
 			}
 		}),
@@ -2563,7 +2540,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 		return false, evaluation.ErrMissingDependency
 	}
 
-	r := &changeTrackingDirectoryExistingFileResolver[TReference, model_core.FileBackedObjectLocation]{
+	r := &changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]{
 		loadOptions: mrc.directoryLoadOptions,
 		stack:       util.NewNonEmptyStack(mrc.inputRootDirectory),
 	}
@@ -2621,7 +2598,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 		environment,
 		mrc.actionEncoder,
 		referenceFormat,
-		model_core.WalkableCreatedObjectCapturer,
+		mrc.environment,
 	)
 	if err != nil {
 		return false, err
@@ -2669,13 +2646,10 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) model_core.Marshalable {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(inputRootReference.Patcher)
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
-				CommandReference: patcher.CaptureAndAddDecodableReference(
-					createdCommand,
-					model_core.WalkableCreatedObjectCapturer,
-				),
+				CommandReference:   patcher.CaptureAndAddDecodableReference(createdCommand, mrc.environment),
 				InputRootReference: inputRootReference.Message,
 			})
 		}),
@@ -2688,15 +2662,12 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 
 	// Execute the command.
 	actionResult := mrc.environment.GetActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_analysis_pb.ActionResult_Key {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Key {
 			return &model_analysis_pb.ActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
-					ActionReference: patcher.CaptureAndAddDecodableReference(
-						createdAction,
-						model_core.WalkableCreatedObjectCapturer,
-					),
-					ExecutionTimeout: &durationpb.Duration{Seconds: 300},
+					ActionReference:       patcher.CaptureAndAddDecodableReference(createdAction, mrc.environment),
+					ExecutionTimeout:      &durationpb.Duration{Seconds: 300},
 				},
 			}
 		}),
@@ -2720,7 +2691,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 		return nil, evaluation.ErrMissingDependency
 	}
 
-	r := &changeTrackingDirectoryResolver[TReference, model_core.FileBackedObjectLocation]{
+	r := &changeTrackingDirectoryResolver[TReference, TMetadata]{
 		loadOptions: mrc.directoryLoadOptions,
 		stack:       util.NewNonEmptyStack(mrc.inputRootDirectory),
 	}
@@ -2770,7 +2741,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 		environment,
 		mrc.actionEncoder,
 		referenceFormat,
-		model_core.WalkableCreatedObjectCapturer,
+		mrc.environment,
 	)
 	if err != nil {
 		return nil, err
@@ -2813,12 +2784,12 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) model_core.Marshalable {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(inputRootReference.Patcher)
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
 				CommandReference: patcher.CaptureAndAddDecodableReference(
 					createdCommand,
-					model_core.WalkableCreatedObjectCapturer,
+					mrc.environment,
 				),
 				InputRootReference: inputRootReference.Message,
 			})
@@ -2831,13 +2802,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	}
 
 	actionResult := mrc.environment.GetSuccessfulActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_analysis_pb.SuccessfulActionResult_Key {
+		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
 			return &model_analysis_pb.SuccessfulActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
 					ActionReference: patcher.CaptureAndAddDecodableReference(
 						createdAction,
-						model_core.WalkableCreatedObjectCapturer,
+						mrc.environment,
 					),
 					ExecutionTimeout: &durationpb.Duration{Seconds: 300},
 				},
@@ -2992,7 +2963,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) relativizeSymlinks(
 		dPath = dPath.Append(component)
 	}
 
-	sr := changeTrackingDirectorySymlinksRelativizer[TReference, model_core.FileBackedObjectLocation]{
+	sr := changeTrackingDirectorySymlinksRelativizer[TReference, TMetadata]{
 		context:                       mrc.context,
 		environment:                   mrc.environment,
 		directoryLoadOptions:          mrc.directoryLoadOptions,
@@ -3001,17 +2972,17 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) relativizeSymlinks(
 	return sr.relativizeSymlinksRecursively(dStack, dPath, maximumEscapementLevels)
 }
 
-func (c *baseComputer[TReference, TMetadata]) fetchModuleExtensionRepo(ctx context.Context, canonicalRepo label.CanonicalRepo, apparentRepo label.ApparentRepo, e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue, error) {
+func (c *baseComputer[TReference, TMetadata]) fetchModuleExtensionRepo(ctx context.Context, canonicalRepo label.CanonicalRepo, apparentRepo label.ApparentRepo, e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue[TMetadata], error) {
 	// Obtain the definition of the declared repo.
 	repoValue := e.GetModuleExtensionRepoValue(&model_analysis_pb.ModuleExtensionRepo_Key{
 		CanonicalRepo: canonicalRepo.String(),
 	})
 	if !repoValue.IsSet() {
-		return PatchedRepoValue{}, evaluation.ErrMissingDependency
+		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	repo := repoValue.Message.Definition
 	if repo == nil {
-		return PatchedRepoValue{}, errors.New("no repo definition present")
+		return PatchedRepoValue[TMetadata]{}, errors.New("no repo definition present")
 	}
 	return c.fetchRepo(
 		ctx,
@@ -3022,7 +2993,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleExtensionRepo(ctx conte
 	)
 }
 
-func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, canonicalRepo label.CanonicalRepo, apparentRepo label.ApparentRepo, repo model_core.Message[*model_starlark_pb.Repo_Definition, TReference], e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue, error) {
+func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, canonicalRepo label.CanonicalRepo, apparentRepo label.ApparentRepo, repo model_core.Message[*model_starlark_pb.Repo_Definition, TReference], e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue[TMetadata], error) {
 	// Obtain the definition of the repository rule used by the repo.
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
@@ -3031,12 +3002,12 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 		Identifier: repo.Message.RepositoryRuleIdentifier,
 	})
 	if !gotRepositoryRule || !allBuiltinsModulesNames.IsSet() || !repoPlatform.IsSet() || !rootModuleValue.IsSet() {
-		return PatchedRepoValue{}, evaluation.ErrMissingDependency
+		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	rootModuleName, err := label.NewModule(rootModuleValue.Message.RootModuleName)
 	if err != nil {
-		return PatchedRepoValue{}, err
+		return PatchedRepoValue[TMetadata]{}, err
 	}
 	rootPackage := rootModuleName.ToModuleInstance(nil).GetBareCanonicalRepo().GetRootPackage()
 
@@ -3055,7 +3026,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 		),
 	)
 	if err != nil {
-		return PatchedRepoValue{}, err
+		return PatchedRepoValue[TMetadata]{}, err
 	}
 
 	for _, publicAttr := range repositoryRule.Attrs.Public {
@@ -3068,25 +3039,25 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 				}),
 			)
 			if err != nil {
-				return PatchedRepoValue{}, err
+				return PatchedRepoValue[TMetadata]{}, err
 			}
 
 			// Determine the attribute type, so that the provided value can be canonicalized.
 			canonicalizer := publicAttr.AttrType.GetCanonicalizer(rootPackage)
 			canonicalizedValue, err := canonicalizer.Canonicalize(thread, decodedValue)
 			if err != nil {
-				return PatchedRepoValue{}, fmt.Errorf("canonicalize attribute %#v: %w", publicAttr.Name, err)
+				return PatchedRepoValue[TMetadata]{}, fmt.Errorf("canonicalize attribute %#v: %w", publicAttr.Name, err)
 			}
 			attrs[publicAttr.Name] = canonicalizedValue
 			delete(attrValues, publicAttr.Name)
 		} else if d := publicAttr.Default; d != nil {
 			attrs[publicAttr.Name] = d
 		} else {
-			return PatchedRepoValue{}, fmt.Errorf("missing value for mandatory attribute %#v", publicAttr.Name)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("missing value for mandatory attribute %#v", publicAttr.Name)
 		}
 	}
 	if len(attrValues) > 0 {
-		return PatchedRepoValue{}, fmt.Errorf("unknown attribute %#v", slices.Min(slices.Collect(maps.Keys(attrValues))))
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("unknown attribute %#v", slices.Min(slices.Collect(maps.Keys(attrValues))))
 	}
 
 	for name, value := range repositoryRule.Attrs.Private {
@@ -3100,7 +3071,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 	}
 	repositoryContext, err := c.newModuleOrRepositoryContext(ctx, e, subdirectoryComponents)
 	if err != nil {
-		return PatchedRepoValue{}, err
+		return PatchedRepoValue[TMetadata]{}, err
 	}
 	defer repositoryContext.release()
 
@@ -3145,7 +3116,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 					return nil, err
 				}
 
-				r := &changeTrackingDirectoryExistingFileResolver[TReference, model_core.FileBackedObjectLocation]{
+				r := &changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]{
 					loadOptions: repositoryContext.directoryLoadOptions,
 					stack:       util.NewNonEmptyStack(repositoryContext.inputRootDirectory),
 				}
@@ -3207,7 +3178,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 				}
 
 				// Resolve patch file from the stable root directory.
-				r := &changeTrackingDirectoryExistingFileResolver[TReference, model_core.FileBackedObjectLocation]{
+				r := &changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]{
 					loadOptions: repositoryContext.directoryLoadOptions,
 					stack:       util.NewNonEmptyStack(repositoryContext.inputRootDirectory),
 				}
@@ -3270,7 +3241,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 
 				// Resolve path at which symlink needs
 				// to be created.
-				r := &changeTrackingDirectoryNewFileResolver[TReference, model_core.FileBackedObjectLocation]{
+				r := &changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
 					loadOptions: repositoryContext.directoryLoadOptions,
 					stack:       util.NewNonEmptyStack(repositoryContext.inputRootDirectory),
 				}
@@ -3333,7 +3304,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 				}
 
 				// Load the template file.
-				templateFileResolver := &changeTrackingDirectoryExistingFileResolver[TReference, model_core.FileBackedObjectLocation]{
+				templateFileResolver := &changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]{
 					loadOptions: repositoryContext.directoryLoadOptions,
 					stack:       util.NewNonEmptyStack(repositoryContext.inputRootDirectory),
 				}
@@ -3353,7 +3324,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 					return nil, fmt.Errorf("failed to open template %#v: %w", templatePath.GetUNIXString(), err)
 				}
 
-				outputFileResolver := &changeTrackingDirectoryNewFileResolver[TReference, model_core.FileBackedObjectLocation]{
+				outputFileResolver := &changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
 					loadOptions: repositoryContext.directoryLoadOptions,
 					stack:       util.NewNonEmptyStack(repositoryContext.inputRootDirectory),
 				}
@@ -3377,9 +3348,9 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 				if err := outputFileResolver.stack.Peek().setFile(
 					repositoryContext.directoryLoadOptions,
 					*outputFileResolver.TerminalName,
-					&changeTrackingFile[TReference, model_core.FileBackedObjectLocation]{
+					&changeTrackingFile[TReference, TMetadata]{
 						isExecutable: executable,
-						contents: patchedFileContents[TReference, model_core.FileBackedObjectLocation]{
+						contents: patchedFileContents[TReference, TMetadata]{
 							offsetBytes: patchedFileOffsetBytes,
 							sizeBytes:   repositoryContext.patchedFilesWriter.GetOffsetBytes() - patchedFileOffsetBytes,
 						},
@@ -3403,25 +3374,25 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 	if err != nil {
 		var evalErr *starlark.EvalError
 		if !errors.Is(err, evaluation.ErrMissingDependency) && errors.As(err, &evalErr) {
-			return PatchedRepoValue{}, errors.New(evalErr.Backtrace())
+			return PatchedRepoValue[TMetadata]{}, errors.New(evalErr.Backtrace())
 		}
-		return PatchedRepoValue{}, err
+		return PatchedRepoValue[TMetadata]{}, err
 	}
 
 	if err := repositoryContext.relativizeSymlinks(1); err != nil {
-		return PatchedRepoValue{}, err
+		return PatchedRepoValue[TMetadata]{}, err
 	}
 
 	// Capture the resulting external/${repo} directory.
 	repoDirectory, err := repositoryContext.resolveRepoDirectory()
 	if err != nil {
-		return PatchedRepoValue{}, err
+		return PatchedRepoValue[TMetadata]{}, err
 	}
 
 	if repositoryContext.directoryCreationParameters == nil ||
 		repositoryContext.directoryReaders == nil ||
 		repositoryContext.fileCreationParameters == nil {
-		return PatchedRepoValue{}, evaluation.ErrMissingDependency
+		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	return c.returnRepoMerkleTree(
 		ctx,
@@ -3434,74 +3405,48 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 	)
 }
 
-type fileBackedObjectCapturer[TReference any] struct{}
-
-func (fileBackedObjectCapturer[TReference]) CaptureExistingObject(TReference) model_core.FileBackedObjectLocation {
-	// TODO: Stop using ExistingFileBackedObjectLocation, as it's not
-	// correct in case the file was being written to storage
-	// asynchronously.
-	return model_core.ExistingFileBackedObjectLocation
-}
-
 func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTrackingDirectory(
 	ctx context.Context,
-	e model_core.ExistingObjectCapturer[TReference, TMetadata],
-	rootDirectory *changeTrackingDirectory[TReference, model_core.FileBackedObjectLocation],
+	e model_core.ObjectCapturer[TReference, TMetadata],
+	rootDirectory *changeTrackingDirectory[TReference, TMetadata],
 	directoryCreationParameters *model_filesystem.DirectoryCreationParameters,
 	directoryReaders *DirectoryReaders[TReference],
 	fileCreationParameters *model_filesystem.FileCreationParameters,
 	patchedFiles io.ReaderAt,
-) (model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, dag.ObjectContentsWalker], error) {
+) (model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, TMetadata], error) {
 	if directory := rootDirectory.unmodifiedDirectory; directory.IsSet() {
 		if contentsExternal, ok := directory.Message.GetContents().(*model_filesystem_pb.Directory_ContentsExternal); ok {
 			// Directory remained completely unmodified.
 			// Simply return the original directory.
-			m := model_core.Patch(e, model_core.Nested(directory, contentsExternal.ContentsExternal))
-			return model_core.NewPatchedMessage(
-				m.Message,
-				model_core.MapReferenceMetadataToWalkers(m.Patcher),
-			), nil
+			return model_core.Patch(e, model_core.Nested(directory, contentsExternal.ContentsExternal)), nil
 		}
 	}
-
-	// We had to strip a path prefix or apply one or more patches.
-	// This means we need to create a new Merkle tree.
-	merkleTreeNodes, err := c.filePool.NewFile()
-	if err != nil {
-		return model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, dag.ObjectContentsWalker]{}, err
-	}
-	defer func() {
-		if merkleTreeNodes != nil {
-			merkleTreeNodes.Close()
-		}
-	}()
 
 	group, groupCtx := errgroup.WithContext(ctx)
-	var createdRootDirectory model_filesystem.CreatedDirectory[model_core.FileBackedObjectLocation]
-	fileWritingObjectCapturer := model_core.NewFileWritingObjectCapturer(model_filesystem.NewSectionWriter(merkleTreeNodes))
+	var createdRootDirectory model_filesystem.CreatedDirectory[TMetadata]
 	group.Go(func() error {
 		return model_filesystem.CreateDirectoryMerkleTree(
 			groupCtx,
 			semaphore.NewWeighted(1),
 			group,
 			directoryCreationParameters,
-			&capturableChangeTrackingDirectory[TReference, model_core.FileBackedObjectLocation]{
-				options: &capturableChangeTrackingDirectoryOptions[TReference, model_core.FileBackedObjectLocation]{
+			&capturableChangeTrackingDirectory[TReference, TMetadata]{
+				options: &capturableChangeTrackingDirectoryOptions[TReference, TMetadata]{
 					context:                 groupCtx,
 					directoryContentsReader: directoryReaders.DirectoryContents,
 					fileCreationParameters:  fileCreationParameters,
-					fileMerkleTreeCapturer:  model_filesystem.NewSimpleFileMerkleTreeCapturer(fileWritingObjectCapturer),
+					fileMerkleTreeCapturer:  model_filesystem.NewSimpleFileMerkleTreeCapturer(e),
 					patchedFiles:            patchedFiles,
-					objectCapturer:          fileBackedObjectCapturer[TReference]{},
+					objectCapturer:          e,
 				},
 				directory: rootDirectory,
 			},
-			model_filesystem.NewSimpleDirectoryMerkleTreeCapturer(fileWritingObjectCapturer),
+			model_filesystem.NewSimpleDirectoryMerkleTreeCapturer(e),
 			&createdRootDirectory,
 		)
 	})
 	if err := group.Wait(); err != nil {
-		return model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, dag.ObjectContentsWalker]{}, err
+		return model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, TMetadata]{}, err
 	}
 
 	// Store the root directory itself. We don't embed it into the
@@ -3512,45 +3457,28 @@ func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTracking
 		directoryCreationParameters.GetEncoder(),
 	)
 	if err != nil {
-		return model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, dag.ObjectContentsWalker]{}, err
+		return model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, TMetadata]{}, err
 	}
-	capturedRootDirectory := fileWritingObjectCapturer.CaptureCreatedObject(createdRootDirectoryObject.Value)
 
-	// Finalize writing of Merkle tree nodes to disk, and provide
-	// read access to the nodes, so that they can be uploaded.
-	if err := fileWritingObjectCapturer.Flush(); err != nil {
-		return model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, dag.ObjectContentsWalker]{}, err
-	}
-	objectContentsWalkerFactory := model_core.NewFileReadingObjectContentsWalkerFactory(merkleTreeNodes)
-	defer objectContentsWalkerFactory.Release()
-	merkleTreeNodes = nil
-
-	rootReference := createdRootDirectoryObject.Value.GetLocalReference()
-	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_filesystem_pb.DirectoryReference {
+	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_filesystem_pb.DirectoryReference {
 		return createdRootDirectory.ToDirectoryReference(
-			&model_core_pb.DecodableReference{
-				Reference: patcher.AddReference(
-					rootReference,
-					objectContentsWalkerFactory.CreateObjectContentsWalker(rootReference, capturedRootDirectory),
-				),
-				DecodingParameters: createdRootDirectoryObject.GetDecodingParameters(),
-			},
+			patcher.CaptureAndAddDecodableReference(createdRootDirectoryObject, e),
 		)
 	}), nil
 }
 
 func (c *baseComputer[TReference, TMetadata]) returnRepoMerkleTree(
 	ctx context.Context,
-	e model_core.ExistingObjectCapturer[TReference, TMetadata],
-	rootDirectory *changeTrackingDirectory[TReference, model_core.FileBackedObjectLocation],
+	e model_core.ObjectCapturer[TReference, TMetadata],
+	rootDirectory *changeTrackingDirectory[TReference, TMetadata],
 	directoryCreationParameters *model_filesystem.DirectoryCreationParameters,
 	directoryReaders *DirectoryReaders[TReference],
 	fileCreationParameters *model_filesystem.FileCreationParameters,
 	patchedFiles io.ReaderAt,
-) (PatchedRepoValue, error) {
+) (PatchedRepoValue[TMetadata], error) {
 	rootDirectoryReference, err := c.createMerkleTreeFromChangeTrackingDirectory(ctx, e, rootDirectory, directoryCreationParameters, directoryReaders, fileCreationParameters, patchedFiles)
 	if err != nil {
-		return PatchedRepoValue{}, err
+		return PatchedRepoValue[TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.Repo_Value{
@@ -3560,10 +3488,10 @@ func (c *baseComputer[TReference, TMetadata]) returnRepoMerkleTree(
 	), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Context, key *model_analysis_pb.Repo_Key, e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Context, key *model_analysis_pb.Repo_Key, e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue[TMetadata], error) {
 	canonicalRepo, err := label.NewCanonicalRepo(key.CanonicalRepo)
 	if err != nil {
-		return PatchedRepoValue{}, fmt.Errorf("invalid canonical repo: %w", err)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid canonical repo: %w", err)
 	}
 
 	if _, _, ok := canonicalRepo.GetModuleExtension(); ok {
@@ -3578,7 +3506,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 			// dependencies.
 			buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 			if !buildSpecification.IsSet() {
-				return PatchedRepoValue{}, evaluation.ErrMissingDependency
+				return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
 
 			// Check to see if the client overrode this module manually.
@@ -3594,7 +3522,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 					&model_analysis_pb.Repo_Value{
 						RootDirectoryReference: rootDirectoryReference.Message,
 					},
-					model_core.MapReferenceMetadataToWalkers(rootDirectoryReference.Patcher),
+					rootDirectoryReference.Patcher,
 				), nil
 			}
 
@@ -3603,7 +3531,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 			var singleVersionOverridePatchStrip int
 			remoteOverridesValue := e.GetModulesWithRemoteOverridesValue(&model_analysis_pb.ModulesWithRemoteOverrides_Key{})
 			if !remoteOverridesValue.IsSet() {
-				return PatchedRepoValue{}, evaluation.ErrMissingDependency
+				return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
 			remoteOverrides := remoteOverridesValue.Message.ModuleOverrides
 			if i := sort.Search(
@@ -3623,14 +3551,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 					)
 				case *model_analysis_pb.ModuleOverride_SingleVersion_:
 					if override.SingleVersion.Version != "" {
-						return PatchedRepoValue{}, fmt.Errorf("TODO: single version override with exact version should skip Minimal Version Selection!")
+						return PatchedRepoValue[TMetadata]{}, fmt.Errorf("TODO: single version override with exact version should skip Minimal Version Selection!")
 					}
 					singleVersionOverridePatchLabels = override.SingleVersion.PatchLabels
 					singleVersionOverridePatchCommands = override.SingleVersion.PatchCommands
 					singleVersionOverridePatchStrip = int(override.SingleVersion.PatchStrip)
 				default:
 					// TODO: Implement Archive, SingleVersion, MultipleVersions
-					return PatchedRepoValue{}, fmt.Errorf("remote override type for %q: %w", remoteOverride.Name, errors.ErrUnsupported)
+					return PatchedRepoValue[TMetadata]{}, fmt.Errorf("remote override type for %q: %w", remoteOverride.Name, errors.ErrUnsupported)
 				}
 			}
 
@@ -3639,7 +3567,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 			// that exact version.
 			buildListValue := e.GetModuleFinalBuildListValue(&model_analysis_pb.ModuleFinalBuildList_Key{})
 			if !buildListValue.IsSet() {
-				return PatchedRepoValue{}, evaluation.ErrMissingDependency
+				return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
 			buildList := buildListValue.Message.BuildList
 			if i, ok := sort.Find(
@@ -3658,5 +3586,5 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 		}
 	}
 
-	return PatchedRepoValue{}, errors.New("repo not found")
+	return PatchedRepoValue[TMetadata]{}, errors.New("repo not found")
 }

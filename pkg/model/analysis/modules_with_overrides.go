@@ -7,14 +7,13 @@ import (
 	"bonanza.build/pkg/evaluation"
 	model_core "bonanza.build/pkg/model/core"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	"bonanza.build/pkg/storage/dag"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(ctx context.Context, key *model_analysis_pb.ModulesWithOverrides_Key, e ModulesWithOverridesEnvironment[TReference, TMetadata]) (PatchedModulesWithOverridesValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(ctx context.Context, key *model_analysis_pb.ModulesWithOverrides_Key, e ModulesWithOverridesEnvironment[TReference, TMetadata]) (PatchedModulesWithOverridesValue[TMetadata], error) {
 	remoteOverrides := e.GetModulesWithRemoteOverridesValue(&model_analysis_pb.ModulesWithRemoteOverrides_Key{})
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !remoteOverrides.IsSet() || !buildSpecification.IsSet() {
-		return PatchedModulesWithOverridesValue{}, evaluation.ErrMissingDependency
+		return PatchedModulesWithOverridesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	moduleOverrides := remoteOverrides.Message.GetModuleOverrides()
@@ -46,7 +45,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(c
 		overrideList = append(overrideList, &model_analysis_pb.OverridesListModule{Name: o.GetName()})
 	}
 
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.ModulesWithOverrides_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModulesWithOverrides_Value{
 		OverridesList: overrideList,
 	}), nil
 }

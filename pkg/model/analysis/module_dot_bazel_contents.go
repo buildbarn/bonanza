@@ -216,10 +216,10 @@ func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFir
 	return finalErr
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ctx context.Context, key *model_analysis_pb.ModuleDotBazelContents_Key, e ModuleDotBazelContentsEnvironment[TReference, TMetadata]) (PatchedModuleDotBazelContentsValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ctx context.Context, key *model_analysis_pb.ModuleDotBazelContents_Key, e ModuleDotBazelContentsEnvironment[TReference, TMetadata]) (PatchedModuleDotBazelContentsValue[TMetadata], error) {
 	moduleInstance, err := label.NewModuleInstance(key.ModuleInstance)
 	if err != nil {
-		return PatchedModuleDotBazelContentsValue{}, fmt.Errorf("invalid module instance: %w", err)
+		return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("invalid module instance: %w", err)
 	}
 
 	canonicalRepo := moduleInstance.GetBareCanonicalRepo()
@@ -230,7 +230,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue
 	// Check to see if there is an override for this module, and if it has been loaded.
 	moduleOverrides := e.GetModulesWithOverridesValue(&model_analysis_pb.ModulesWithOverrides_Key{})
 	if !moduleOverrides.IsSet() {
-		return PatchedModuleDotBazelContentsValue{}, evaluation.ErrMissingDependency
+		return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	overrideList := moduleOverrides.Message.OverridesList
@@ -246,14 +246,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue
 			Path:          moduleDotBazelFilename,
 		})
 		if !filePropertiesValue.IsSet() {
-			return PatchedModuleDotBazelContentsValue{}, evaluation.ErrMissingDependency
+			return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		fileContents := model_core.Patch(e, model_core.Nested(filePropertiesValue, filePropertiesValue.Message.Exists.Contents))
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.ModuleDotBazelContents_Value{
 				Contents: fileContents.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(fileContents.Patcher),
+			fileContents.Patcher,
 		), nil
 	}
 
@@ -265,7 +265,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue
 	// extracting modules that are otherwise unused by the build.
 	finalBuildListValue := e.GetModuleFinalBuildListValue(&model_analysis_pb.ModuleFinalBuildList_Key{})
 	if !finalBuildListValue.IsSet() {
-		return PatchedModuleDotBazelContentsValue{}, evaluation.ErrMissingDependency
+		return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	buildList := finalBuildListValue.Message.BuildList
@@ -289,12 +289,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue
 		foundModule := buildList[i]
 		foundVersion, err := label.NewModuleVersion(foundModule.Version)
 		if err != nil {
-			return PatchedModuleDotBazelContentsValue{}, fmt.Errorf("invalid version %#v for module %#v: %w", foundModule.Version, foundModule.Name, err)
+			return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("invalid version %#v for module %#v: %w", foundModule.Version, foundModule.Name, err)
 		}
 		if !hasVersion || expectedVersion.Compare(foundVersion) == 0 {
 			moduleFileURL, err := getModuleDotBazelURL(foundModule.RegistryUrl, expectedName, foundVersion)
 			if err != nil {
-				return PatchedModuleDotBazelContentsValue{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %s", foundModule.Name, foundModule.Version, foundModule.RegistryUrl)
+				return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %s", foundModule.Name, foundModule.Version, foundModule.RegistryUrl)
 			}
 
 			fileContentsValue := e.GetHttpFileContentsValue(
@@ -306,20 +306,20 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue
 					},
 				})
 			if !fileContentsValue.IsSet() {
-				return PatchedModuleDotBazelContentsValue{}, evaluation.ErrMissingDependency
+				return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
 			if fileContentsValue.Message.Exists == nil {
-				return PatchedModuleDotBazelContentsValue{}, fmt.Errorf("file at URL %#v does not exist", moduleFileURL)
+				return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("file at URL %#v does not exist", moduleFileURL)
 			}
 			fileContents := model_core.Patch(e, model_core.Nested(fileContentsValue, fileContentsValue.Message.Exists.Contents))
 			return model_core.NewPatchedMessage(
 				&model_analysis_pb.ModuleDotBazelContents_Value{
 					Contents: fileContents.Message,
 				},
-				model_core.MapReferenceMetadataToWalkers(fileContents.Patcher),
+				fileContents.Patcher,
 			), nil
 		}
 	}
 
-	return PatchedModuleDotBazelContentsValue{}, errors.New("unknown module")
+	return PatchedModuleDotBazelContentsValue[TMetadata]{}, errors.New("unknown module")
 }

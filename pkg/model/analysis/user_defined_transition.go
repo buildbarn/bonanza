@@ -20,7 +20,6 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/unpack"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -42,12 +41,12 @@ type expectedTransitionOutput[TReference any] struct {
 	isFlag        bool
 }
 
-type getExpectedTransitionOutputEnvironment[TReference any] interface {
+type getExpectedTransitionOutputEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	labelResolverEnvironment[TReference]
 
 	GetCompiledBzlFileGlobalValue(*model_analysis_pb.CompiledBzlFileGlobal_Key) model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, TReference]
 	GetTargetValue(*model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, TReference]
-	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
+	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
 }
 
 // stringToStarlarkLabelOrNone converts a string containing a resolved
@@ -71,7 +70,7 @@ func stringToStarlarkLabelOrNone(v string) *model_starlark_pb.Value {
 	}
 }
 
-func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](e getExpectedTransitionOutputEnvironment[TReference], transitionPackage label.CanonicalPackage, apparentBuildSettingLabel label.ApparentLabel) (expectedTransitionOutput[TReference], error) {
+func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](e getExpectedTransitionOutputEnvironment[TReference, TMetadata], transitionPackage label.CanonicalPackage, apparentBuildSettingLabel label.ApparentLabel) (expectedTransitionOutput[TReference], error) {
 	// Resolve the actual build setting target corresponding
 	// to the string value provided as part of the
 	// transition definition.
@@ -80,7 +79,7 @@ func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata mod
 		return expectedTransitionOutput[TReference]{}, err
 	}
 	visibleTargetValue := e.GetVisibleTargetValue(
-		model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+		model_core.NewSimplePatchedMessage[TMetadata](
 			&model_analysis_pb.VisibleTarget_Key{
 				FromPackage:        canonicalBuildSettingLabel.GetCanonicalPackage().String(),
 				ToLabel:            canonicalBuildSettingLabel.String(),
@@ -357,11 +356,11 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 	}), nil
 }
 
-type getBuildSettingValueEnvironment[TReference any, TMetadata any] interface {
+type getBuildSettingValueEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
-	GetConfiguredTargetValue(model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference]
+	GetConfiguredTargetValue(model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference]
 	GetTargetValue(*model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, TReference]
-	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
+	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
 }
 
 var featureFlagInfoProviderIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%FeatureFlagInfo"))
@@ -376,7 +375,7 @@ func (c *baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.C
 				ToLabel:                buildSettingLabel,
 				StopAtLabelSetting:     true,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+			patchedConfigurationReference.Patcher,
 		),
 	)
 	if !visibleTargetValue.IsSet() {
@@ -454,7 +453,7 @@ func (c *baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.C
 					Label:                  visibleBuildSettingLabel,
 					ConfigurationReference: patchedConfigurationReference.Message,
 				},
-				model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+				patchedConfigurationReference.Patcher,
 			),
 		)
 		if !configuredTarget.IsSet() {
@@ -486,10 +485,10 @@ func (c *baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.C
 	}
 }
 
-type performUserDefinedTransitionEnvironment[TReference, TMetadata any] interface {
+type performUserDefinedTransitionEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ObjectManager[TReference, TMetadata]
 	getBuildSettingValueEnvironment[TReference, TMetadata]
-	getExpectedTransitionOutputEnvironment[TReference]
+	getExpectedTransitionOutputEnvironment[TReference, TMetadata]
 	starlarkThreadEnvironment[TReference]
 
 	GetCompiledBzlFileGlobalValue(*model_analysis_pb.CompiledBzlFileGlobal_Key) model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, TReference]
@@ -733,7 +732,7 @@ func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransiti
 type performUserDefinedTransitionCachedEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	performUserDefinedTransitionEnvironment[TReference, TMetadata]
 
-	GetUserDefinedTransitionValue(model_core.PatchedMessage[*model_analysis_pb.UserDefinedTransition_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.UserDefinedTransition_Value, TReference]
+	GetUserDefinedTransitionValue(model_core.PatchedMessage[*model_analysis_pb.UserDefinedTransition_Key, TMetadata]) model_core.Message[*model_analysis_pb.UserDefinedTransition_Value, TReference]
 }
 
 func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached(
@@ -753,7 +752,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached
 				TransitionIdentifier:        transitionIdentifierStr,
 				InputConfigurationReference: patchedConfigurationReference.Message,
 			},
-			model_core.MapReferenceMetadataToWalkers(patchedConfigurationReference.Patcher),
+			patchedConfigurationReference.Patcher,
 		),
 	)
 	if !transitionValue.IsSet() {
@@ -781,7 +780,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached
 type performTransitionEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	performUserDefinedTransitionCachedEnvironment[TReference, TMetadata]
 
-	GetExecTransitionValue(model_core.PatchedMessage[*model_analysis_pb.ExecTransition_Key, dag.ObjectContentsWalker]) model_core.Message[*model_analysis_pb.ExecTransition_Value, TReference]
+	GetExecTransitionValue(model_core.PatchedMessage[*model_analysis_pb.ExecTransition_Key, TMetadata]) model_core.Message[*model_analysis_pb.ExecTransition_Value, TReference]
 }
 
 func (c *baseComputer[TReference, TMetadata]) performTransition(
@@ -807,7 +806,7 @@ func (c *baseComputer[TReference, TMetadata]) performTransition(
 					PlatformLabel:               platformLabel,
 					InputConfigurationReference: inputConfigurationReference.Message,
 				},
-				model_core.MapReferenceMetadataToWalkers(inputConfigurationReference.Patcher),
+				inputConfigurationReference.Patcher,
 			),
 		)
 		if !execTransition.IsSet() {
@@ -860,7 +859,7 @@ func (c *baseComputer[TReference, TMetadata]) performTransition(
 	}
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeUserDefinedTransitionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.UserDefinedTransition_Key, TReference], e UserDefinedTransitionEnvironment[TReference, TMetadata]) (PatchedUserDefinedTransitionValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeUserDefinedTransitionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.UserDefinedTransition_Key, TReference], e UserDefinedTransitionEnvironment[TReference, TMetadata]) (PatchedUserDefinedTransitionValue[TMetadata], error) {
 	entries, err := c.performAndApplyUserDefinedTransition(
 		ctx,
 		e,
@@ -874,7 +873,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUserDefinedTransitionValue(
 			// the rule in which it is referenced. Return
 			// this to the caller, so that it can apply the
 			// transition directly.
-			return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+			return model_core.NewSimplePatchedMessage[TMetadata](
 				&model_analysis_pb.UserDefinedTransition_Value{
 					Result: &model_analysis_pb.UserDefinedTransition_Value_TransitionDependsOnAttrs{
 						TransitionDependsOnAttrs: &emptypb.Empty{},
@@ -882,7 +881,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUserDefinedTransitionValue(
 				},
 			), nil
 		}
-		return PatchedUserDefinedTransitionValue{}, err
+		return PatchedUserDefinedTransitionValue[TMetadata]{}, err
 	}
 
 	return model_core.NewPatchedMessage(
@@ -891,7 +890,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUserDefinedTransitionValue(
 				Success: entries.Message,
 			},
 		},
-		model_core.MapReferenceMetadataToWalkers(entries.Patcher),
+		entries.Patcher,
 	), nil
 }
 

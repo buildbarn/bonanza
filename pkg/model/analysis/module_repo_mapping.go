@@ -12,7 +12,6 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	pg_starlark "bonanza.build/pkg/starlark"
-	"bonanza.build/pkg/storage/dag"
 
 	"go.starlark.net/starlark"
 )
@@ -161,16 +160,16 @@ func (p repoMappingCapturingModuleExtensionProxy) UseRepo(repos map[label.Appare
 	return nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModuleRepoMappingValue(ctx context.Context, key *model_analysis_pb.ModuleRepoMapping_Key, e ModuleRepoMappingEnvironment[TReference, TMetadata]) (PatchedModuleRepoMappingValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeModuleRepoMappingValue(ctx context.Context, key *model_analysis_pb.ModuleRepoMapping_Key, e ModuleRepoMappingEnvironment[TReference, TMetadata]) (PatchedModuleRepoMappingValue[TMetadata], error) {
 	moduleInstance, err := label.NewModuleInstance(key.ModuleInstance)
 	if err != nil {
-		return PatchedModuleRepoMappingValue{}, fmt.Errorf("invalid module instance %#v: %w", key.ModuleInstance, err)
+		return PatchedModuleRepoMappingValue[TMetadata]{}, fmt.Errorf("invalid module instance %#v: %w", key.ModuleInstance, err)
 	}
 
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	modulesWithMultipleVersions, gotModulesWithMultipleVersions := e.GetModulesWithMultipleVersionsObjectValue(&model_analysis_pb.ModulesWithMultipleVersionsObject_Key{})
 	if !rootModuleValue.IsSet() || !gotModulesWithMultipleVersions {
-		return PatchedModuleRepoMappingValue{}, evaluation.ErrMissingDependency
+		return PatchedModuleRepoMappingValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	handler := repoMappingCapturingModuleDotBazelHandler{
@@ -182,7 +181,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleRepoMappingValue(ctx 
 		repos: map[label.ApparentRepo]repoMapping{},
 	}
 	if err := c.parseActiveModuleInstanceModuleDotBazel(ctx, moduleInstance, e, pg_starlark.NewOverrideIgnoringRootModuleDotBazelHandler(&handler)); err != nil {
-		return PatchedModuleRepoMappingValue{}, err
+		return PatchedModuleRepoMappingValue[TMetadata]{}, err
 	}
 
 	repos := handler.repos
@@ -193,11 +192,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleRepoMappingValue(ctx 
 	) {
 		mapping, err := repos[apparentRepo].toProto(apparentRepo, repos)
 		if err != nil {
-			return PatchedModuleRepoMappingValue{}, fmt.Errorf("failed to create mapping for repo %#v: %s", apparentRepo.String(), err)
+			return PatchedModuleRepoMappingValue[TMetadata]{}, fmt.Errorf("failed to create mapping for repo %#v: %s", apparentRepo.String(), err)
 		}
 		mappings = append(mappings, mapping)
 	}
-	return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.ModuleRepoMapping_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleRepoMapping_Value{
 		Mappings: mappings,
 	}), nil
 }

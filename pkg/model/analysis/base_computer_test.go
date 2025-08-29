@@ -14,7 +14,6 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	object_pb "bonanza.build/pkg/proto/storage/object"
-	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/eviction"
@@ -164,7 +163,7 @@ func (bct *baseComputerTester) expectGetDirectoryReadersValue(t *testing.T, e *M
 func requireEqualPatchedMessage[TMessage proto.Message](
 	t *testing.T,
 	wantBuilder func(*model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) TMessage,
-	got model_core.PatchedMessage[TMessage, dag.ObjectContentsWalker],
+	got model_core.PatchedMessage[TMessage, model_core.CreatedObjectTree],
 ) {
 	t.Helper()
 	want := model_core.BuildPatchedMessage(wantBuilder)
@@ -240,7 +239,7 @@ func eqPatchedMessage[TMessage proto.Message](
 }
 
 func (m patchedMessageMatcher[TMessage]) Matches(got any) bool {
-	gotMessage, ok := got.(model_core.PatchedMessage[TMessage, dag.ObjectContentsWalker])
+	gotMessage, ok := got.(model_core.PatchedMessage[TMessage, model_core.CreatedObjectTree])
 	return ok && model_core.PatchedMessagesEqual(m.want, gotMessage)
 }
 

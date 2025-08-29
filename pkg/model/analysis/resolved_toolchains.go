@@ -9,7 +9,6 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	"bonanza.build/pkg/storage/dag"
 )
 
 func constraintsAreCompatible(actual, expected []*model_analysis_pb.Constraint) bool {
@@ -48,7 +47,7 @@ func constraintsAreCompatible(actual, expected []*model_analysis_pb.Constraint) 
 	return true
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ResolvedToolchains_Key, TReference], e ResolvedToolchainsEnvironment[TReference, TMetadata]) (PatchedResolvedToolchainsValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ResolvedToolchains_Key, TReference], e ResolvedToolchainsEnvironment[TReference, TMetadata]) (PatchedResolvedToolchainsValue[TMetadata], error) {
 	// Obtain all compatible execution platforms and toolchains.
 	missingDependencies := false
 	compatibleExecutionPlatforms := e.GetCompatibleExecutionPlatformsValue(&model_analysis_pb.CompatibleExecutionPlatforms_Key{
@@ -61,10 +60,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx
 	for _, toolchain := range key.Message.Toolchains {
 		toolchainTypeLabel, err := label.NewCanonicalLabel(toolchain.ToolchainType)
 		if err != nil {
-			return PatchedResolvedToolchainsValue{}, fmt.Errorf("invalid toolchain %#v label: %w", toolchain, err)
+			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("invalid toolchain %#v label: %w", toolchain, err)
 		}
 		visibleToolchainType := e.GetVisibleTargetValue(
-			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+			model_core.NewSimplePatchedMessage[TMetadata](
 				&model_analysis_pb.VisibleTarget_Key{
 					FromPackage: toolchainTypeLabel.GetCanonicalPackage().String(),
 					ToLabel:     toolchainTypeLabel.String(),
@@ -83,7 +82,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx
 					ToolchainType:          visibleToolchainType.Message.Label,
 					ConfigurationReference: configurationReference.Message,
 				},
-				model_core.MapReferenceMetadataToWalkers(configurationReference.Patcher),
+				configurationReference.Patcher,
 			),
 		)
 		if !compatibleToolchainsForTypeValue.IsSet() {
@@ -93,12 +92,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx
 
 		compatibleToolchainsForType := compatibleToolchainsForTypeValue.Message.Toolchains
 		if len(compatibleToolchainsForType) == 0 && toolchain.Mandatory {
-			return PatchedResolvedToolchainsValue{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but no toolchains exist that are compatible with the target", toolchain.ToolchainType)
+			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but no toolchains exist that are compatible with the target", toolchain.ToolchainType)
 		}
 		compatibleToolchainsByType = append(compatibleToolchainsByType, compatibleToolchainsForType)
 	}
 	if missingDependencies {
-		return PatchedResolvedToolchainsValue{}, evaluation.ErrMissingDependency
+		return PatchedResolvedToolchainsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	// Pick the first execution platform having at least one
@@ -143,10 +142,10 @@ CheckExecutionPlatform:
 			} else {
 				resolvedToolchainLabel, err := label.NewCanonicalLabel(resolvedToolchain.Toolchain)
 				if err != nil {
-					return PatchedResolvedToolchainsValue{}, fmt.Errorf("invalid toolchain label %#v: %w", resolvedToolchain.Toolchain, err)
+					return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("invalid toolchain label %#v: %w", resolvedToolchain.Toolchain, err)
 				}
 				visibleTarget := e.GetVisibleTargetValue(
-					model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+					model_core.NewSimplePatchedMessage[TMetadata](
 						&model_analysis_pb.VisibleTarget_Key{
 							FromPackage: resolvedToolchainLabel.GetCanonicalPackage().String(),
 							ToLabel:     resolvedToolchainLabel.String(),
@@ -166,9 +165,9 @@ CheckExecutionPlatform:
 			}
 		}
 		if missingDependencies {
-			return PatchedResolvedToolchainsValue{}, evaluation.ErrMissingDependency
+			return PatchedResolvedToolchainsValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_analysis_pb.ResolvedToolchains_Value{
+		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ResolvedToolchains_Value{
 			ToolchainIdentifiers:  toolchainIdentifiers,
 			PlatformLabel:         executionPlatform.Label,
 			PlatformPkixPublicKey: executionPlatform.ExecPkixPublicKey,
@@ -177,8 +176,8 @@ CheckExecutionPlatform:
 
 	for i, hasMatching := range toolchainTypeHasAtLeastOneMatchingExecutionPlatform {
 		if !hasMatching {
-			return PatchedResolvedToolchainsValue{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but none of the %d toolchains that are compatible with the target are also compatible with any of the %d execution platforms", key.Message.Toolchains[i].ToolchainType, len(compatibleToolchainsByType[i]), len(executionPlatforms))
+			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but none of the %d toolchains that are compatible with the target are also compatible with any of the %d execution platforms", key.Message.Toolchains[i].ToolchainType, len(compatibleToolchainsByType[i]), len(executionPlatforms))
 		}
 	}
-	return PatchedResolvedToolchainsValue{}, fmt.Errorf("even though all mandatory toolchain types have at least one toolchain that is compatible with one of the %d execution platforms, no single execution platform exists for which all mandatory toolchain types have at least one compatible toolchain", len(executionPlatforms))
+	return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("even though all mandatory toolchain types have at least one toolchain that is compatible with one of the %d execution platforms, no single execution platform exists for which all mandatory toolchain types have at least one compatible toolchain", len(executionPlatforms))
 }

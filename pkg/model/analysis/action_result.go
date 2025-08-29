@@ -23,11 +23,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ActionResult_Key, TReference], e ActionResultEnvironment[TReference, TMetadata]) (PatchedActionResultValue, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ActionResult_Key, TReference], e ActionResultEnvironment[TReference, TMetadata]) (PatchedActionResultValue[TMetadata], error) {
 	actionEncodersValue := e.GetActionEncodersValue(&model_analysis_pb.ActionEncoders_Key{})
 	actionReaders, gotActionReaders := e.GetActionReadersValue(&model_analysis_pb.ActionReaders_Key{})
 	if !actionEncodersValue.IsSet() || !gotActionReaders {
-		return PatchedActionResultValue{}, evaluation.ErrMissingDependency
+		return PatchedActionResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	// Obtain the public key of the target platform, which is used
@@ -35,11 +35,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx conte
 	// action.
 	executeRequest := model_core.Nested(key, key.Message.ExecuteRequest)
 	if executeRequest.Message == nil {
-		return PatchedActionResultValue{}, errors.New("no execute request specified")
+		return PatchedActionResultValue[TMetadata]{}, errors.New("no execute request specified")
 	}
 	platformECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(executeRequest.Message.PlatformPkixPublicKey)
 	if err != nil {
-		return PatchedActionResultValue{}, fmt.Errorf("invalid platform PKIX public key: %w", err)
+		return PatchedActionResultValue[TMetadata]{}, fmt.Errorf("invalid platform PKIX public key: %w", err)
 	}
 
 	// Use the reference of the Command message as the stable
@@ -48,15 +48,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx conte
 	// masquerade the actual Command reference.
 	actionReference, err := model_core.FlattenDecodableReference(model_core.Nested(executeRequest, executeRequest.Message.ActionReference))
 	if err != nil {
-		return PatchedActionResultValue{}, fmt.Errorf("invalid action reference: %w", err)
+		return PatchedActionResultValue[TMetadata]{}, fmt.Errorf("invalid action reference: %w", err)
 	}
 	action, err := actionReaders.CommandAction.ReadParsedObject(ctx, actionReference)
 	if err != nil {
-		return PatchedActionResultValue{}, fmt.Errorf("failed to read action: %w", err)
+		return PatchedActionResultValue[TMetadata]{}, fmt.Errorf("failed to read action: %w", err)
 	}
 	commandReference, err := model_core.FlattenDecodableReference(model_core.Nested(action, action.Message.CommandReference))
 	if err != nil {
-		return PatchedActionResultValue{}, fmt.Errorf("invalid command reference: %w", err)
+		return PatchedActionResultValue[TMetadata]{}, fmt.Errorf("invalid command reference: %w", err)
 	}
 	commandReferenceSHA256 := sha256.Sum256(commandReference.Value.GetRawReference())
 
@@ -84,15 +84,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx conte
 		// TODO: Capture and propagate execution events?
 	}
 	if errExecution != nil {
-		return PatchedActionResultValue{}, errExecution
+		return PatchedActionResultValue[TMetadata]{}, errExecution
 	}
 
 	result, err := actionReaders.CommandResult.ReadParsedObject(ctx, resultReference)
 	if err != nil {
-		return PatchedActionResultValue{}, fmt.Errorf("failed to read completion event: %w", err)
+		return PatchedActionResultValue[TMetadata]{}, fmt.Errorf("failed to read completion event: %w", err)
 	}
 	if err := status.ErrorProto(result.Message.Status); err != nil {
-		return PatchedActionResultValue{}, err
+		return PatchedActionResultValue[TMetadata]{}, err
 	}
 	outputsReference := model_core.Patch(e, model_core.Nested(result, result.Message.OutputsReference))
 	return model_core.NewPatchedMessage(
@@ -100,7 +100,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx conte
 			ExitCode:         result.Message.ExitCode,
 			OutputsReference: outputsReference.Message,
 		},
-		model_core.MapReferenceMetadataToWalkers(outputsReference.Patcher),
+		outputsReference.Patcher,
 	), nil
 }
 
