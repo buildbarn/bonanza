@@ -1570,7 +1570,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 				targetRegistrar.defaultInheritableAttrs = model_core.Unpatch(
 					model_core.CloningObjectManager[TMetadata]{},
 					newDefaultAttrs,
-				)
+				).Decay()
 				targetRegistrar.setDefaultInheritableAttrs = true
 				return starlark.None, nil
 			},

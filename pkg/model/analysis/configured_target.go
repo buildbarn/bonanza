@@ -264,7 +264,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 				if err != nil {
 					return nil, err
 				}
-				newFilesToRun := model_core.Unpatch(e, patchedFilesToRun)
+				newFilesToRun := model_core.Unpatch(e, patchedFilesToRun).Decay()
 				return model_core.Nested(
 					newFilesToRun,
 					&model_starlark_pb.Value{
@@ -386,7 +386,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 		if err != nil {
 			return nil, err
 		}
-		result := model_core.Unpatch(e, patchedResult)
+		result := model_core.Unpatch(e, patchedResult).Decay()
 		for _, entry := range result.Message.Entries {
 			configurationReferences = append(configurationReferences, model_core.Nested(result, entry.OutputConfigurationReference))
 		}
@@ -735,7 +735,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				return PatchedConfiguredTargetValue{}, fmt.Errorf("incoming edge transition %#v used by rule %#v is a 1:%d transition, while a 1:1 transition was expected", cfgTransitionIdentifier, ruleIdentifier.String(), l)
 			}
 
-			configurationReferences := model_core.Unpatch(e, patchedConfigurationReferences)
+			configurationReferences := model_core.Unpatch(e, patchedConfigurationReferences).Decay()
 			configurationReference = model_core.Nested(configurationReferences, entries[0].OutputConfigurationReference)
 		}
 
@@ -946,7 +946,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				}
 				return PatchedConfiguredTargetValue{}, err
 			}
-			transition := model_core.Unpatch(e, patchedTransition)
+			transition := model_core.Unpatch(e, patchedTransition).Decay()
 
 			var attrValue starlark.Value
 			var splitAttrValue *starlark.Dict

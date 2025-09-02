@@ -303,7 +303,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 		clonedConfigurationReference := model_core.Unpatch(
 			model_core.CloningObjectManager[TMetadata]{},
 			targetPlatformConfigurationReference,
-		)
+		).Decay()
 
 		for _, targetPattern := range buildSpecification.TargetPatterns {
 			apparentTargetPattern, err := label.NewApparentTargetPattern(targetPattern)

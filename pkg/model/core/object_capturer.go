@@ -123,7 +123,7 @@ type ObjectReferencer[TReference, TMetadata any] interface {
 func Unpatch[TMessage, TReference any, TMetadata ReferenceMetadata](
 	referencer ObjectReferencer[TReference, TMetadata],
 	m PatchedMessage[TMessage, TMetadata],
-) Message[TMessage, TReference] {
+) TopLevelMessage[TMessage, TReference] {
 	references, metadata := m.Patcher.SortAndSetReferences()
 	outgoingReferences := make(object.OutgoingReferencesList[TReference], 0, len(metadata))
 	for i, m := range metadata {
@@ -132,7 +132,7 @@ func Unpatch[TMessage, TReference any, TMetadata ReferenceMetadata](
 			referencer.ReferenceObject(references.GetOutgoingReference(i), m),
 		)
 	}
-	return NewMessage(m.Message, outgoingReferences)
+	return NewTopLevelMessage(m.Message, outgoingReferences)
 }
 
 // ObjectManager is an extension to ObjectCapturer, allowing metadata to

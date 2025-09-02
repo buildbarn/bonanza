@@ -116,7 +116,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 				e,
 				model_core.Nested(repoDefaultAttrsValue, repoDefaultAttrsValue.Message.InheritableAttrs),
 			),
-		)
+		).Decay()
 
 		targetRegistrar := model_starlark.NewTargetRegistrar[TMetadata](
 			c.getValueObjectEncoder(),
