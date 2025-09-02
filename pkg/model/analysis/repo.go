@@ -519,6 +519,7 @@ func (r *changeTrackingDirectoryResolver[TReference, TMetadata]) OnUp() (path.Co
 type capturableChangeTrackingDirectoryOptions[TReference, TMetadata any] struct {
 	context                 context.Context
 	directoryContentsReader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]]
+	leavesReader            model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_filesystem_pb.Leaves, TReference]]
 	fileCreationParameters  *model_filesystem.FileCreationParameters
 	fileMerkleTreeCapturer  model_filesystem.FileMerkleTreeCapturer[TMetadata]
 	patchedFiles            io.ReaderAt
@@ -578,6 +579,14 @@ func (cd *capturableChangeTrackingDirectory[TReference, TMetadata]) OpenForFileM
 
 func (cd *capturableChangeTrackingDirectory[TReference, TMetadata]) ReadDir() ([]filesystem.FileInfo, error) {
 	d := cd.directory
+	if err := d.maybeLoadContents(&changeTrackingDirectoryLoadOptions[TReference]{
+		context:                 cd.options.context,
+		directoryContentsReader: cd.options.directoryContentsReader,
+		leavesReader:            cd.options.leavesReader,
+	}); err != nil {
+		return nil, err
+	}
+
 	infos := make(filesystem.FileInfoList, 0, len(d.directories)+len(d.files)+len(d.symlinks))
 	for name := range d.directories {
 		infos = append(infos, filesystem.NewFileInfo(name, filesystem.FileTypeDirectory, false))
@@ -3434,6 +3443,7 @@ func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTracking
 				options: &capturableChangeTrackingDirectoryOptions[TReference, TMetadata]{
 					context:                 groupCtx,
 					directoryContentsReader: directoryReaders.DirectoryContents,
+					leavesReader:            directoryReaders.Leaves,
 					fileCreationParameters:  fileCreationParameters,
 					fileMerkleTreeCapturer:  model_filesystem.NewSimpleFileMerkleTreeCapturer(e),
 					patchedFiles:            patchedFiles,
