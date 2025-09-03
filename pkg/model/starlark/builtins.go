@@ -1193,12 +1193,6 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 					return NewLabel[TReference, TMetadata](input), nil
 				},
 			),
-			"starlark_doc_extract": starlark.NewBuiltin(
-				"native.starlark_doc_extract",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					return nil, errors.New("TODO: Implement native.starlark_doc_extract()")
-				},
-			),
 		}),
 		"provider": starlark.NewBuiltin(
 			"provider",

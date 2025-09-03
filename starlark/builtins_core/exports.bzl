@@ -624,6 +624,18 @@ sh_test = rule(
     test = True,
 )
 
+def _starlark_doc_extract_impl(ctx):
+    fail("TODO: implement")
+
+starlark_doc_extract = rule(
+    _starlark_doc_extract_impl,
+    attrs = {
+        "deps": attr.label_list(),
+        "src": attr.label(mandatory = True),
+    },
+    needs = [],
+)
+
 def _test_suite_impl(ctx):
     fail("TODO: implement")
 
@@ -3294,6 +3306,7 @@ exported_rules = {
     "package_group": native.package_group,
     "platform": platform,
     "sh_test": sh_test,
+    "starlark_doc_extract": starlark_doc_extract,
     "test_suite": test_suite,
     "toolchain": toolchain,
     "toolchain_type": toolchain_type,
