@@ -2903,8 +2903,11 @@ type Transition struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Kind:
 	//
-	//	*Transition_Reference_
-	//	*Transition_Definition_
+	//	*Transition_ExecGroup
+	//	*Transition_None
+	//	*Transition_Target
+	//	*Transition_UserDefined_
+	//	*Transition_Unconfigured
 	Kind          isTransition_Kind `protobuf_oneof:"kind"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2947,19 +2950,46 @@ func (x *Transition) GetKind() isTransition_Kind {
 	return nil
 }
 
-func (x *Transition) GetReference() *Transition_Reference {
+func (x *Transition) GetExecGroup() string {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_Reference_); ok {
-			return x.Reference
+		if x, ok := x.Kind.(*Transition_ExecGroup); ok {
+			return x.ExecGroup
+		}
+	}
+	return ""
+}
+
+func (x *Transition) GetNone() *emptypb.Empty {
+	if x != nil {
+		if x, ok := x.Kind.(*Transition_None); ok {
+			return x.None
 		}
 	}
 	return nil
 }
 
-func (x *Transition) GetDefinition() *Transition_Definition {
+func (x *Transition) GetTarget() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_Definition_); ok {
-			return x.Definition
+		if x, ok := x.Kind.(*Transition_Target); ok {
+			return x.Target
+		}
+	}
+	return nil
+}
+
+func (x *Transition) GetUserDefined() *Transition_UserDefined {
+	if x != nil {
+		if x, ok := x.Kind.(*Transition_UserDefined_); ok {
+			return x.UserDefined
+		}
+	}
+	return nil
+}
+
+func (x *Transition) GetUnconfigured() *emptypb.Empty {
+	if x != nil {
+		if x, ok := x.Kind.(*Transition_Unconfigured); ok {
+			return x.Unconfigured
 		}
 	}
 	return nil
@@ -2969,17 +2999,35 @@ type isTransition_Kind interface {
 	isTransition_Kind()
 }
 
-type Transition_Reference_ struct {
-	Reference *Transition_Reference `protobuf:"bytes,1,opt,name=reference,proto3,oneof"`
+type Transition_ExecGroup struct {
+	ExecGroup string `protobuf:"bytes,1,opt,name=exec_group,json=execGroup,proto3,oneof"`
 }
 
-type Transition_Definition_ struct {
-	Definition *Transition_Definition `protobuf:"bytes,2,opt,name=definition,proto3,oneof"`
+type Transition_None struct {
+	None *emptypb.Empty `protobuf:"bytes,2,opt,name=none,proto3,oneof"`
 }
 
-func (*Transition_Reference_) isTransition_Kind() {}
+type Transition_Target struct {
+	Target *emptypb.Empty `protobuf:"bytes,3,opt,name=target,proto3,oneof"`
+}
 
-func (*Transition_Definition_) isTransition_Kind() {}
+type Transition_UserDefined_ struct {
+	UserDefined *Transition_UserDefined `protobuf:"bytes,4,opt,name=user_defined,json=userDefined,proto3,oneof"`
+}
+
+type Transition_Unconfigured struct {
+	Unconfigured *emptypb.Empty `protobuf:"bytes,5,opt,name=unconfigured,proto3,oneof"`
+}
+
+func (*Transition_ExecGroup) isTransition_Kind() {}
+
+func (*Transition_None) isTransition_Kind() {}
+
+func (*Transition_Target) isTransition_Kind() {}
+
+func (*Transition_UserDefined_) isTransition_Kind() {}
+
+func (*Transition_Unconfigured) isTransition_Kind() {}
 
 type Aspect_Definition struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -3021,7 +3069,7 @@ type Attr_LabelOptions struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Providers     []string               `protobuf:"bytes,1,rep,name=providers,proto3" json:"providers,omitempty"`
 	Aspects       []string               `protobuf:"bytes,2,rep,name=aspects,proto3" json:"aspects,omitempty"`
-	Cfg           *Transition_Reference  `protobuf:"bytes,3,opt,name=cfg,proto3" json:"cfg,omitempty"`
+	Cfg           *Transition            `protobuf:"bytes,3,opt,name=cfg,proto3" json:"cfg,omitempty"`
 	AllowFiles    []byte                 `protobuf:"bytes,4,opt,name=allow_files,json=allowFiles,proto3" json:"allow_files,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3071,7 +3119,7 @@ func (x *Attr_LabelOptions) GetAspects() []string {
 	return nil
 }
 
-func (x *Attr_LabelOptions) GetCfg() *Transition_Reference {
+func (x *Attr_LabelOptions) GetCfg() *Transition {
 	if x != nil {
 		return x.Cfg
 	}
@@ -4696,18 +4744,18 @@ func (x *RepositoryRule_Definition) GetImplementation() *Function {
 }
 
 type Rule_Definition struct {
-	state                   protoimpl.MessageState `protogen:"open.v1"`
-	Attrs                   []*NamedAttr           `protobuf:"bytes,1,rep,name=attrs,proto3" json:"attrs,omitempty"`
-	BuildSetting            *BuildSetting          `protobuf:"bytes,2,opt,name=build_setting,json=buildSetting,proto3" json:"build_setting,omitempty"`
-	CfgTransitionIdentifier string                 `protobuf:"bytes,3,opt,name=cfg_transition_identifier,json=cfgTransitionIdentifier,proto3" json:"cfg_transition_identifier,omitempty"`
-	ExecGroups              []*NamedExecGroup      `protobuf:"bytes,4,rep,name=exec_groups,json=execGroups,proto3" json:"exec_groups,omitempty"`
-	Implementation          *Function              `protobuf:"bytes,5,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	Initializer             *Function              `protobuf:"bytes,6,opt,name=initializer,proto3" json:"initializer,omitempty"`
-	Provides                []string               `protobuf:"bytes,7,rep,name=provides,proto3" json:"provides,omitempty"`
-	Test                    bool                   `protobuf:"varint,8,opt,name=test,proto3" json:"test,omitempty"`
-	SubruleIdentifiers      []string               `protobuf:"bytes,9,rep,name=subrule_identifiers,json=subruleIdentifiers,proto3" json:"subrule_identifiers,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state              protoimpl.MessageState  `protogen:"open.v1"`
+	Attrs              []*NamedAttr            `protobuf:"bytes,1,rep,name=attrs,proto3" json:"attrs,omitempty"`
+	BuildSetting       *BuildSetting           `protobuf:"bytes,2,opt,name=build_setting,json=buildSetting,proto3" json:"build_setting,omitempty"`
+	CfgTransition      *Transition_UserDefined `protobuf:"bytes,3,opt,name=cfg_transition,json=cfgTransition,proto3" json:"cfg_transition,omitempty"`
+	ExecGroups         []*NamedExecGroup       `protobuf:"bytes,4,rep,name=exec_groups,json=execGroups,proto3" json:"exec_groups,omitempty"`
+	Implementation     *Function               `protobuf:"bytes,5,opt,name=implementation,proto3" json:"implementation,omitempty"`
+	Initializer        *Function               `protobuf:"bytes,6,opt,name=initializer,proto3" json:"initializer,omitempty"`
+	Provides           []string                `protobuf:"bytes,7,rep,name=provides,proto3" json:"provides,omitempty"`
+	Test               bool                    `protobuf:"varint,8,opt,name=test,proto3" json:"test,omitempty"`
+	SubruleIdentifiers []string                `protobuf:"bytes,9,rep,name=subrule_identifiers,json=subruleIdentifiers,proto3" json:"subrule_identifiers,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Rule_Definition) Reset() {
@@ -4754,11 +4802,11 @@ func (x *Rule_Definition) GetBuildSetting() *BuildSetting {
 	return nil
 }
 
-func (x *Rule_Definition) GetCfgTransitionIdentifier() string {
+func (x *Rule_Definition) GetCfgTransition() *Transition_UserDefined {
 	if x != nil {
-		return x.CfgTransitionIdentifier
+		return x.CfgTransition
 	}
-	return ""
+	return nil
 }
 
 func (x *Rule_Definition) GetExecGroups() []*NamedExecGroup {
@@ -5195,34 +5243,31 @@ func (*Target_Definition_RuleTarget) isTarget_Definition_Kind() {}
 
 func (*Target_Definition_SourceFileTarget) isTarget_Definition_Kind() {}
 
-type Transition_Reference struct {
+type Transition_UserDefined struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Kind:
 	//
-	//	*Transition_Reference_ExecGroup
-	//	*Transition_Reference_None
-	//	*Transition_Reference_Target
-	//	*Transition_Reference_UserDefined
-	//	*Transition_Reference_Unconfigured
-	Kind          isTransition_Reference_Kind `protobuf_oneof:"kind"`
+	//	*Transition_UserDefined_Identifier
+	//	*Transition_UserDefined_Definition_
+	Kind          isTransition_UserDefined_Kind `protobuf_oneof:"kind"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Transition_Reference) Reset() {
-	*x = Transition_Reference{}
+func (x *Transition_UserDefined) Reset() {
+	*x = Transition_UserDefined{}
 	mi := &file_pkg_proto_model_starlark_starlark_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Transition_Reference) String() string {
+func (x *Transition_UserDefined) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Transition_Reference) ProtoMessage() {}
+func (*Transition_UserDefined) ProtoMessage() {}
 
-func (x *Transition_Reference) ProtoReflect() protoreflect.Message {
+func (x *Transition_UserDefined) ProtoReflect() protoreflect.Message {
 	mi := &file_pkg_proto_model_starlark_starlark_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -5234,120 +5279,76 @@ func (x *Transition_Reference) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Transition_Reference.ProtoReflect.Descriptor instead.
-func (*Transition_Reference) Descriptor() ([]byte, []int) {
+// Deprecated: Use Transition_UserDefined.ProtoReflect.Descriptor instead.
+func (*Transition_UserDefined) Descriptor() ([]byte, []int) {
 	return file_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35, 0}
 }
 
-func (x *Transition_Reference) GetKind() isTransition_Reference_Kind {
+func (x *Transition_UserDefined) GetKind() isTransition_UserDefined_Kind {
 	if x != nil {
 		return x.Kind
 	}
 	return nil
 }
 
-func (x *Transition_Reference) GetExecGroup() string {
+func (x *Transition_UserDefined) GetIdentifier() string {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_Reference_ExecGroup); ok {
-			return x.ExecGroup
+		if x, ok := x.Kind.(*Transition_UserDefined_Identifier); ok {
+			return x.Identifier
 		}
 	}
 	return ""
 }
 
-func (x *Transition_Reference) GetNone() *emptypb.Empty {
+func (x *Transition_UserDefined) GetDefinition() *Transition_UserDefined_Definition {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_Reference_None); ok {
-			return x.None
+		if x, ok := x.Kind.(*Transition_UserDefined_Definition_); ok {
+			return x.Definition
 		}
 	}
 	return nil
 }
 
-func (x *Transition_Reference) GetTarget() *emptypb.Empty {
-	if x != nil {
-		if x, ok := x.Kind.(*Transition_Reference_Target); ok {
-			return x.Target
-		}
-	}
-	return nil
+type isTransition_UserDefined_Kind interface {
+	isTransition_UserDefined_Kind()
 }
 
-func (x *Transition_Reference) GetUserDefined() string {
-	if x != nil {
-		if x, ok := x.Kind.(*Transition_Reference_UserDefined); ok {
-			return x.UserDefined
-		}
-	}
-	return ""
+type Transition_UserDefined_Identifier struct {
+	Identifier string `protobuf:"bytes,1,opt,name=identifier,proto3,oneof"`
 }
 
-func (x *Transition_Reference) GetUnconfigured() *emptypb.Empty {
-	if x != nil {
-		if x, ok := x.Kind.(*Transition_Reference_Unconfigured); ok {
-			return x.Unconfigured
-		}
-	}
-	return nil
+type Transition_UserDefined_Definition_ struct {
+	Definition *Transition_UserDefined_Definition `protobuf:"bytes,2,opt,name=definition,proto3,oneof"`
 }
 
-type isTransition_Reference_Kind interface {
-	isTransition_Reference_Kind()
+func (*Transition_UserDefined_Identifier) isTransition_UserDefined_Kind() {}
+
+func (*Transition_UserDefined_Definition_) isTransition_UserDefined_Kind() {}
+
+type Transition_UserDefined_Definition struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Implementation   *Function              `protobuf:"bytes,1,opt,name=implementation,proto3" json:"implementation,omitempty"`
+	Inputs           []string               `protobuf:"bytes,2,rep,name=inputs,proto3" json:"inputs,omitempty"`
+	Outputs          []string               `protobuf:"bytes,3,rep,name=outputs,proto3" json:"outputs,omitempty"`
+	CanonicalPackage string                 `protobuf:"bytes,4,opt,name=canonical_package,json=canonicalPackage,proto3" json:"canonical_package,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
-type Transition_Reference_ExecGroup struct {
-	ExecGroup string `protobuf:"bytes,1,opt,name=exec_group,json=execGroup,proto3,oneof"`
-}
-
-type Transition_Reference_None struct {
-	None *emptypb.Empty `protobuf:"bytes,2,opt,name=none,proto3,oneof"`
-}
-
-type Transition_Reference_Target struct {
-	Target *emptypb.Empty `protobuf:"bytes,3,opt,name=target,proto3,oneof"`
-}
-
-type Transition_Reference_UserDefined struct {
-	UserDefined string `protobuf:"bytes,4,opt,name=user_defined,json=userDefined,proto3,oneof"`
-}
-
-type Transition_Reference_Unconfigured struct {
-	Unconfigured *emptypb.Empty `protobuf:"bytes,5,opt,name=unconfigured,proto3,oneof"`
-}
-
-func (*Transition_Reference_ExecGroup) isTransition_Reference_Kind() {}
-
-func (*Transition_Reference_None) isTransition_Reference_Kind() {}
-
-func (*Transition_Reference_Target) isTransition_Reference_Kind() {}
-
-func (*Transition_Reference_UserDefined) isTransition_Reference_Kind() {}
-
-func (*Transition_Reference_Unconfigured) isTransition_Reference_Kind() {}
-
-type Transition_Definition struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Implementation *Function              `protobuf:"bytes,1,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	Inputs         []string               `protobuf:"bytes,2,rep,name=inputs,proto3" json:"inputs,omitempty"`
-	Outputs        []string               `protobuf:"bytes,3,rep,name=outputs,proto3" json:"outputs,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *Transition_Definition) Reset() {
-	*x = Transition_Definition{}
+func (x *Transition_UserDefined_Definition) Reset() {
+	*x = Transition_UserDefined_Definition{}
 	mi := &file_pkg_proto_model_starlark_starlark_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Transition_Definition) String() string {
+func (x *Transition_UserDefined_Definition) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Transition_Definition) ProtoMessage() {}
+func (*Transition_UserDefined_Definition) ProtoMessage() {}
 
-func (x *Transition_Definition) ProtoReflect() protoreflect.Message {
+func (x *Transition_UserDefined_Definition) ProtoReflect() protoreflect.Message {
 	mi := &file_pkg_proto_model_starlark_starlark_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -5359,30 +5360,37 @@ func (x *Transition_Definition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Transition_Definition.ProtoReflect.Descriptor instead.
-func (*Transition_Definition) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35, 1}
+// Deprecated: Use Transition_UserDefined_Definition.ProtoReflect.Descriptor instead.
+func (*Transition_UserDefined_Definition) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35, 0, 0}
 }
 
-func (x *Transition_Definition) GetImplementation() *Function {
+func (x *Transition_UserDefined_Definition) GetImplementation() *Function {
 	if x != nil {
 		return x.Implementation
 	}
 	return nil
 }
 
-func (x *Transition_Definition) GetInputs() []string {
+func (x *Transition_UserDefined_Definition) GetInputs() []string {
 	if x != nil {
 		return x.Inputs
 	}
 	return nil
 }
 
-func (x *Transition_Definition) GetOutputs() []string {
+func (x *Transition_UserDefined_Definition) GetOutputs() []string {
 	if x != nil {
 		return x.Outputs
 	}
 	return nil
+}
+
+func (x *Transition_UserDefined_Definition) GetCanonicalPackage() string {
+	if x != nil {
+		return x.CanonicalPackage
+	}
+	return ""
 }
 
 var File_pkg_proto_model_starlark_starlark_proto protoreflect.FileDescriptor
@@ -5439,7 +5447,7 @@ const file_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"definition\x1a\f\n" +
 	"\n" +
 	"DefinitionB\x06\n" +
-	"\x04kind\"\xe8\x12\n" +
+	"\x04kind\"\xde\x12\n" +
 	"\x04Attr\x127\n" +
 	"\adefault\x18\x01 \x01(\v2\x1d.bonanza.model.starlark.ValueR\adefault\x12,\n" +
 	"\x04bool\x18\x02 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x04bool\x128\n" +
@@ -5458,11 +5466,11 @@ const file_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"stringDict\x12N\n" +
 	"\vstring_list\x18\f \x01(\v2+.bonanza.model.starlark.Attr.StringListTypeH\x00R\n" +
 	"stringList\x12[\n" +
-	"\x10string_list_dict\x18\r \x01(\v2/.bonanza.model.starlark.Attr.StringListDictTypeH\x00R\x0estringListDict\x1a\xa7\x01\n" +
+	"\x10string_list_dict\x18\r \x01(\v2/.bonanza.model.starlark.Attr.StringListDictTypeH\x00R\x0estringListDict\x1a\x9d\x01\n" +
 	"\fLabelOptions\x12\x1c\n" +
 	"\tproviders\x18\x01 \x03(\tR\tproviders\x12\x18\n" +
-	"\aaspects\x18\x02 \x03(\tR\aaspects\x12>\n" +
-	"\x03cfg\x18\x03 \x01(\v2,.bonanza.model.starlark.Transition.ReferenceR\x03cfg\x12\x1f\n" +
+	"\aaspects\x18\x02 \x03(\tR\aaspects\x124\n" +
+	"\x03cfg\x18\x03 \x01(\v2\".bonanza.model.starlark.TransitionR\x03cfg\x12\x1f\n" +
 	"\vallow_files\x18\x04 \x01(\fR\n" +
 	"allowFiles\x1a3\n" +
 	"\x10CompositeOptions\x12\x1f\n" +
@@ -5669,17 +5677,17 @@ const file_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"Definition\x127\n" +
 	"\x05attrs\x18\x01 \x03(\v2!.bonanza.model.starlark.NamedAttrR\x05attrs\x12H\n" +
 	"\x0eimplementation\x18\x02 \x01(\v2 .bonanza.model.starlark.FunctionR\x0eimplementationB\x06\n" +
-	"\x04kind\"\x80\x05\n" +
+	"\x04kind\"\x9b\x05\n" +
 	"\x04Rule\x12\x1e\n" +
 	"\treference\x18\x01 \x01(\tH\x00R\treference\x12I\n" +
 	"\n" +
 	"definition\x18\x02 \x01(\v2'.bonanza.model.starlark.Rule.DefinitionH\x00R\n" +
-	"definition\x1a\x84\x04\n" +
+	"definition\x1a\x9f\x04\n" +
 	"\n" +
 	"Definition\x127\n" +
 	"\x05attrs\x18\x01 \x03(\v2!.bonanza.model.starlark.NamedAttrR\x05attrs\x12I\n" +
-	"\rbuild_setting\x18\x02 \x01(\v2$.bonanza.model.starlark.BuildSettingR\fbuildSetting\x12:\n" +
-	"\x19cfg_transition_identifier\x18\x03 \x01(\tR\x17cfgTransitionIdentifier\x12G\n" +
+	"\rbuild_setting\x18\x02 \x01(\v2$.bonanza.model.starlark.BuildSettingR\fbuildSetting\x12U\n" +
+	"\x0ecfg_transition\x18\x03 \x01(\v2..bonanza.model.starlark.Transition.UserDefinedR\rcfgTransition\x12G\n" +
 	"\vexec_groups\x18\x04 \x03(\v2&.bonanza.model.starlark.NamedExecGroupR\n" +
 	"execGroups\x12H\n" +
 	"\x0eimplementation\x18\x05 \x01(\v2 .bonanza.model.starlark.FunctionR\x0eimplementation\x12B\n" +
@@ -5749,26 +5757,29 @@ const file_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\vrule_target\x18\x05 \x01(\v2\".bonanza.model.starlark.RuleTargetH\x00R\n" +
 	"ruleTarget\x12X\n" +
 	"\x12source_file_target\x18\x06 \x01(\v2(.bonanza.model.starlark.SourceFileTargetH\x00R\x10sourceFileTargetB\x06\n" +
-	"\x04kind\"\xb8\x04\n" +
+	"\x04kind\"\xf7\x04\n" +
 	"\n" +
-	"Transition\x12L\n" +
-	"\treference\x18\x01 \x01(\v2,.bonanza.model.starlark.Transition.ReferenceH\x00R\treference\x12O\n" +
-	"\n" +
-	"definition\x18\x02 \x01(\v2-.bonanza.model.starlark.Transition.DefinitionH\x00R\n" +
-	"definition\x1a\xf7\x01\n" +
-	"\tReference\x12\x1f\n" +
+	"Transition\x12\x1f\n" +
 	"\n" +
 	"exec_group\x18\x01 \x01(\tH\x00R\texecGroup\x12,\n" +
 	"\x04none\x18\x02 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x04none\x120\n" +
-	"\x06target\x18\x03 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x06target\x12#\n" +
-	"\fuser_defined\x18\x04 \x01(\tH\x00R\vuserDefined\x12<\n" +
-	"\funconfigured\x18\x05 \x01(\v2\x16.google.protobuf.EmptyH\x00R\funconfiguredB\x06\n" +
-	"\x04kind\x1a\x88\x01\n" +
+	"\x06target\x18\x03 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x06target\x12S\n" +
+	"\fuser_defined\x18\x04 \x01(\v2..bonanza.model.starlark.Transition.UserDefinedH\x00R\vuserDefined\x12<\n" +
+	"\funconfigured\x18\x05 \x01(\v2\x16.google.protobuf.EmptyH\x00R\funconfigured\x1a\xcc\x02\n" +
+	"\vUserDefined\x12 \n" +
+	"\n" +
+	"identifier\x18\x01 \x01(\tH\x00R\n" +
+	"identifier\x12[\n" +
+	"\n" +
+	"definition\x18\x02 \x01(\v29.bonanza.model.starlark.Transition.UserDefined.DefinitionH\x00R\n" +
+	"definition\x1a\xb5\x01\n" +
 	"\n" +
 	"Definition\x12H\n" +
 	"\x0eimplementation\x18\x01 \x01(\v2 .bonanza.model.starlark.FunctionR\x0eimplementation\x12\x16\n" +
 	"\x06inputs\x18\x02 \x03(\tR\x06inputs\x12\x18\n" +
-	"\aoutputs\x18\x03 \x03(\tR\aoutputsB\x06\n" +
+	"\aoutputs\x18\x03 \x03(\tR\aoutputs\x12+\n" +
+	"\x11canonical_package\x18\x04 \x01(\tR\x10canonicalPackageB\x06\n" +
+	"\x04kindB\x06\n" +
 	"\x04kindB(Z&bonanza.build/pkg/proto/model/starlarkb\x06proto3"
 
 var (
@@ -5863,8 +5874,8 @@ var file_pkg_proto_model_starlark_starlark_proto_goTypes = []any{
 	(*Select_Group)(nil),                              // 74: bonanza.model.starlark.Select.Group
 	(*Subrule_Definition)(nil),                        // 75: bonanza.model.starlark.Subrule.Definition
 	(*Target_Definition)(nil),                         // 76: bonanza.model.starlark.Target.Definition
-	(*Transition_Reference)(nil),                      // 77: bonanza.model.starlark.Transition.Reference
-	(*Transition_Definition)(nil),                     // 78: bonanza.model.starlark.Transition.Definition
+	(*Transition_UserDefined)(nil),                    // 77: bonanza.model.starlark.Transition.UserDefined
+	(*Transition_UserDefined_Definition)(nil),         // 78: bonanza.model.starlark.Transition.UserDefined.Definition
 	(*emptypb.Empty)(nil),                             // 79: google.protobuf.Empty
 	(*core.DecodableReference)(nil),                   // 80: bonanza.model.core.DecodableReference
 }
@@ -5948,69 +5959,70 @@ var file_pkg_proto_model_starlark_starlark_proto_depIdxs = []int32{
 	20,  // 76: bonanza.model.starlark.SourceFileTarget.visibility:type_name -> bonanza.model.starlark.PackageGroup
 	75,  // 77: bonanza.model.starlark.Subrule.definition:type_name -> bonanza.model.starlark.Subrule.Definition
 	76,  // 78: bonanza.model.starlark.Target.definition:type_name -> bonanza.model.starlark.Target.Definition
-	77,  // 79: bonanza.model.starlark.Transition.reference:type_name -> bonanza.model.starlark.Transition.Reference
-	78,  // 80: bonanza.model.starlark.Transition.definition:type_name -> bonanza.model.starlark.Transition.Definition
-	77,  // 81: bonanza.model.starlark.Attr.LabelOptions.cfg:type_name -> bonanza.model.starlark.Transition.Reference
-	41,  // 82: bonanza.model.starlark.Attr.IntListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	40,  // 83: bonanza.model.starlark.Attr.LabelType.value_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
-	41,  // 84: bonanza.model.starlark.Attr.LabelKeyedStringDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	40,  // 85: bonanza.model.starlark.Attr.LabelKeyedStringDictType.dict_key_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
-	41,  // 86: bonanza.model.starlark.Attr.LabelListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	40,  // 87: bonanza.model.starlark.Attr.LabelListType.list_value_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
-	41,  // 88: bonanza.model.starlark.Attr.OutputListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	41,  // 89: bonanza.model.starlark.Attr.StringDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	41,  // 90: bonanza.model.starlark.Attr.StringListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	41,  // 91: bonanza.model.starlark.Attr.StringListDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	55,  // 92: bonanza.model.starlark.Dict.Entry.leaf:type_name -> bonanza.model.starlark.Dict.Entry.Leaf
-	56,  // 93: bonanza.model.starlark.Dict.Entry.parent:type_name -> bonanza.model.starlark.Dict.Entry.Parent
-	4,   // 94: bonanza.model.starlark.Dict.Entry.Leaf.key:type_name -> bonanza.model.starlark.Value
-	4,   // 95: bonanza.model.starlark.Dict.Entry.Leaf.value:type_name -> bonanza.model.starlark.Value
-	80,  // 96: bonanza.model.starlark.Dict.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	80,  // 97: bonanza.model.starlark.File.Owner.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	1,   // 98: bonanza.model.starlark.File.Owner.type:type_name -> bonanza.model.starlark.File.Owner.Type
-	59,  // 99: bonanza.model.starlark.Function.Closure.default_parameters:type_name -> bonanza.model.starlark.Function.Closure.DefaultParameter
-	4,   // 100: bonanza.model.starlark.Function.Closure.free_variables:type_name -> bonanza.model.starlark.Value
-	4,   // 101: bonanza.model.starlark.Function.Closure.DefaultParameter.value:type_name -> bonanza.model.starlark.Value
-	4,   // 102: bonanza.model.starlark.List.Element.leaf:type_name -> bonanza.model.starlark.Value
-	61,  // 103: bonanza.model.starlark.List.Element.parent:type_name -> bonanza.model.starlark.List.Element.Parent
-	80,  // 104: bonanza.model.starlark.List.Element.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	23,  // 105: bonanza.model.starlark.ModuleExtension.NamedTagClass.tag_class:type_name -> bonanza.model.starlark.TagClass
-	64,  // 106: bonanza.model.starlark.PackageGroup.Package.subpackages:type_name -> bonanza.model.starlark.PackageGroup.Subpackages
-	80,  // 107: bonanza.model.starlark.PackageGroup.Subpackages.overrides_external:type_name -> bonanza.model.core.DecodableReference
-	65,  // 108: bonanza.model.starlark.PackageGroup.Subpackages.overrides_inline:type_name -> bonanza.model.starlark.PackageGroup.Subpackages.Overrides
-	63,  // 109: bonanza.model.starlark.PackageGroup.Subpackages.Overrides.packages:type_name -> bonanza.model.starlark.PackageGroup.Package
-	67,  // 110: bonanza.model.starlark.Provider.InstanceProperties.computed_fields:type_name -> bonanza.model.starlark.Provider.InstanceProperties.ComputedField
-	13,  // 111: bonanza.model.starlark.Provider.InstanceProperties.ComputedField.function:type_name -> bonanza.model.starlark.Function
-	60,  // 112: bonanza.model.starlark.Struct.Fields.values:type_name -> bonanza.model.starlark.List.Element
-	68,  // 113: bonanza.model.starlark.Repo.Definition.attr_values:type_name -> bonanza.model.starlark.Struct.Fields
-	27,  // 114: bonanza.model.starlark.RepositoryRule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	13,  // 115: bonanza.model.starlark.RepositoryRule.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	27,  // 116: bonanza.model.starlark.Rule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	8,   // 117: bonanza.model.starlark.Rule.Definition.build_setting:type_name -> bonanza.model.starlark.BuildSetting
-	28,  // 118: bonanza.model.starlark.Rule.Definition.exec_groups:type_name -> bonanza.model.starlark.NamedExecGroup
-	13,  // 119: bonanza.model.starlark.Rule.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	13,  // 120: bonanza.model.starlark.Rule.Definition.initializer:type_name -> bonanza.model.starlark.Function
-	74,  // 121: bonanza.model.starlark.RuleTarget.PublicAttrValue.value_parts:type_name -> bonanza.model.starlark.Select.Group
-	4,   // 122: bonanza.model.starlark.Select.Condition.value:type_name -> bonanza.model.starlark.Value
-	73,  // 123: bonanza.model.starlark.Select.Group.conditions:type_name -> bonanza.model.starlark.Select.Condition
-	4,   // 124: bonanza.model.starlark.Select.Group.no_match_value:type_name -> bonanza.model.starlark.Value
-	27,  // 125: bonanza.model.starlark.Subrule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	13,  // 126: bonanza.model.starlark.Subrule.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	5,   // 127: bonanza.model.starlark.Target.Definition.alias:type_name -> bonanza.model.starlark.Alias
-	16,  // 128: bonanza.model.starlark.Target.Definition.label_setting:type_name -> bonanza.model.starlark.LabelSetting
-	20,  // 129: bonanza.model.starlark.Target.Definition.package_group:type_name -> bonanza.model.starlark.PackageGroup
-	19,  // 130: bonanza.model.starlark.Target.Definition.predeclared_output_file_target:type_name -> bonanza.model.starlark.PredeclaredOutputFileTarget
-	32,  // 131: bonanza.model.starlark.Target.Definition.rule_target:type_name -> bonanza.model.starlark.RuleTarget
-	35,  // 132: bonanza.model.starlark.Target.Definition.source_file_target:type_name -> bonanza.model.starlark.SourceFileTarget
-	79,  // 133: bonanza.model.starlark.Transition.Reference.none:type_name -> google.protobuf.Empty
-	79,  // 134: bonanza.model.starlark.Transition.Reference.target:type_name -> google.protobuf.Empty
-	79,  // 135: bonanza.model.starlark.Transition.Reference.unconfigured:type_name -> google.protobuf.Empty
-	13,  // 136: bonanza.model.starlark.Transition.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	137, // [137:137] is the sub-list for method output_type
-	137, // [137:137] is the sub-list for method input_type
-	137, // [137:137] is the sub-list for extension type_name
-	137, // [137:137] is the sub-list for extension extendee
-	0,   // [0:137] is the sub-list for field type_name
+	79,  // 79: bonanza.model.starlark.Transition.none:type_name -> google.protobuf.Empty
+	79,  // 80: bonanza.model.starlark.Transition.target:type_name -> google.protobuf.Empty
+	77,  // 81: bonanza.model.starlark.Transition.user_defined:type_name -> bonanza.model.starlark.Transition.UserDefined
+	79,  // 82: bonanza.model.starlark.Transition.unconfigured:type_name -> google.protobuf.Empty
+	38,  // 83: bonanza.model.starlark.Attr.LabelOptions.cfg:type_name -> bonanza.model.starlark.Transition
+	41,  // 84: bonanza.model.starlark.Attr.IntListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	40,  // 85: bonanza.model.starlark.Attr.LabelType.value_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
+	41,  // 86: bonanza.model.starlark.Attr.LabelKeyedStringDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	40,  // 87: bonanza.model.starlark.Attr.LabelKeyedStringDictType.dict_key_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
+	41,  // 88: bonanza.model.starlark.Attr.LabelListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	40,  // 89: bonanza.model.starlark.Attr.LabelListType.list_value_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
+	41,  // 90: bonanza.model.starlark.Attr.OutputListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	41,  // 91: bonanza.model.starlark.Attr.StringDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	41,  // 92: bonanza.model.starlark.Attr.StringListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	41,  // 93: bonanza.model.starlark.Attr.StringListDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	55,  // 94: bonanza.model.starlark.Dict.Entry.leaf:type_name -> bonanza.model.starlark.Dict.Entry.Leaf
+	56,  // 95: bonanza.model.starlark.Dict.Entry.parent:type_name -> bonanza.model.starlark.Dict.Entry.Parent
+	4,   // 96: bonanza.model.starlark.Dict.Entry.Leaf.key:type_name -> bonanza.model.starlark.Value
+	4,   // 97: bonanza.model.starlark.Dict.Entry.Leaf.value:type_name -> bonanza.model.starlark.Value
+	80,  // 98: bonanza.model.starlark.Dict.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	80,  // 99: bonanza.model.starlark.File.Owner.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	1,   // 100: bonanza.model.starlark.File.Owner.type:type_name -> bonanza.model.starlark.File.Owner.Type
+	59,  // 101: bonanza.model.starlark.Function.Closure.default_parameters:type_name -> bonanza.model.starlark.Function.Closure.DefaultParameter
+	4,   // 102: bonanza.model.starlark.Function.Closure.free_variables:type_name -> bonanza.model.starlark.Value
+	4,   // 103: bonanza.model.starlark.Function.Closure.DefaultParameter.value:type_name -> bonanza.model.starlark.Value
+	4,   // 104: bonanza.model.starlark.List.Element.leaf:type_name -> bonanza.model.starlark.Value
+	61,  // 105: bonanza.model.starlark.List.Element.parent:type_name -> bonanza.model.starlark.List.Element.Parent
+	80,  // 106: bonanza.model.starlark.List.Element.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	23,  // 107: bonanza.model.starlark.ModuleExtension.NamedTagClass.tag_class:type_name -> bonanza.model.starlark.TagClass
+	64,  // 108: bonanza.model.starlark.PackageGroup.Package.subpackages:type_name -> bonanza.model.starlark.PackageGroup.Subpackages
+	80,  // 109: bonanza.model.starlark.PackageGroup.Subpackages.overrides_external:type_name -> bonanza.model.core.DecodableReference
+	65,  // 110: bonanza.model.starlark.PackageGroup.Subpackages.overrides_inline:type_name -> bonanza.model.starlark.PackageGroup.Subpackages.Overrides
+	63,  // 111: bonanza.model.starlark.PackageGroup.Subpackages.Overrides.packages:type_name -> bonanza.model.starlark.PackageGroup.Package
+	67,  // 112: bonanza.model.starlark.Provider.InstanceProperties.computed_fields:type_name -> bonanza.model.starlark.Provider.InstanceProperties.ComputedField
+	13,  // 113: bonanza.model.starlark.Provider.InstanceProperties.ComputedField.function:type_name -> bonanza.model.starlark.Function
+	60,  // 114: bonanza.model.starlark.Struct.Fields.values:type_name -> bonanza.model.starlark.List.Element
+	68,  // 115: bonanza.model.starlark.Repo.Definition.attr_values:type_name -> bonanza.model.starlark.Struct.Fields
+	27,  // 116: bonanza.model.starlark.RepositoryRule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	13,  // 117: bonanza.model.starlark.RepositoryRule.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	27,  // 118: bonanza.model.starlark.Rule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	8,   // 119: bonanza.model.starlark.Rule.Definition.build_setting:type_name -> bonanza.model.starlark.BuildSetting
+	77,  // 120: bonanza.model.starlark.Rule.Definition.cfg_transition:type_name -> bonanza.model.starlark.Transition.UserDefined
+	28,  // 121: bonanza.model.starlark.Rule.Definition.exec_groups:type_name -> bonanza.model.starlark.NamedExecGroup
+	13,  // 122: bonanza.model.starlark.Rule.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	13,  // 123: bonanza.model.starlark.Rule.Definition.initializer:type_name -> bonanza.model.starlark.Function
+	74,  // 124: bonanza.model.starlark.RuleTarget.PublicAttrValue.value_parts:type_name -> bonanza.model.starlark.Select.Group
+	4,   // 125: bonanza.model.starlark.Select.Condition.value:type_name -> bonanza.model.starlark.Value
+	73,  // 126: bonanza.model.starlark.Select.Group.conditions:type_name -> bonanza.model.starlark.Select.Condition
+	4,   // 127: bonanza.model.starlark.Select.Group.no_match_value:type_name -> bonanza.model.starlark.Value
+	27,  // 128: bonanza.model.starlark.Subrule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	13,  // 129: bonanza.model.starlark.Subrule.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	5,   // 130: bonanza.model.starlark.Target.Definition.alias:type_name -> bonanza.model.starlark.Alias
+	16,  // 131: bonanza.model.starlark.Target.Definition.label_setting:type_name -> bonanza.model.starlark.LabelSetting
+	20,  // 132: bonanza.model.starlark.Target.Definition.package_group:type_name -> bonanza.model.starlark.PackageGroup
+	19,  // 133: bonanza.model.starlark.Target.Definition.predeclared_output_file_target:type_name -> bonanza.model.starlark.PredeclaredOutputFileTarget
+	32,  // 134: bonanza.model.starlark.Target.Definition.rule_target:type_name -> bonanza.model.starlark.RuleTarget
+	35,  // 135: bonanza.model.starlark.Target.Definition.source_file_target:type_name -> bonanza.model.starlark.SourceFileTarget
+	78,  // 136: bonanza.model.starlark.Transition.UserDefined.definition:type_name -> bonanza.model.starlark.Transition.UserDefined.Definition
+	13,  // 137: bonanza.model.starlark.Transition.UserDefined.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	138, // [138:138] is the sub-list for method output_type
+	138, // [138:138] is the sub-list for method input_type
+	138, // [138:138] is the sub-list for extension type_name
+	138, // [138:138] is the sub-list for extension extendee
+	0,   // [0:138] is the sub-list for field type_name
 }
 
 func init() { file_pkg_proto_model_starlark_starlark_proto_init() }
@@ -6086,8 +6098,11 @@ func file_pkg_proto_model_starlark_starlark_proto_init() {
 		(*Subrule_Definition_)(nil),
 	}
 	file_pkg_proto_model_starlark_starlark_proto_msgTypes[35].OneofWrappers = []any{
-		(*Transition_Reference_)(nil),
-		(*Transition_Definition_)(nil),
+		(*Transition_ExecGroup)(nil),
+		(*Transition_None)(nil),
+		(*Transition_Target)(nil),
+		(*Transition_UserDefined_)(nil),
+		(*Transition_Unconfigured)(nil),
 	}
 	file_pkg_proto_model_starlark_starlark_proto_msgTypes[51].OneofWrappers = []any{
 		(*Dict_Entry_Leaf_)(nil),
@@ -6114,11 +6129,8 @@ func file_pkg_proto_model_starlark_starlark_proto_init() {
 		(*Target_Definition_SourceFileTarget)(nil),
 	}
 	file_pkg_proto_model_starlark_starlark_proto_msgTypes[74].OneofWrappers = []any{
-		(*Transition_Reference_ExecGroup)(nil),
-		(*Transition_Reference_None)(nil),
-		(*Transition_Reference_Target)(nil),
-		(*Transition_Reference_UserDefined)(nil),
-		(*Transition_Reference_Unconfigured)(nil),
+		(*Transition_UserDefined_Identifier)(nil),
+		(*Transition_UserDefined_Definition_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -426,7 +426,7 @@ func (s *targetActionFileAndDependenciesCopierSource[TReference, TMetadata]) pop
 
 // sourceFileAndDependenciesCopierSource can be used by
 // fileAndDependenciesCopier to copy files out of one or more repos.
-type sourceFileAndDependenciesCopierSource[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+type sourceFileAndDependenciesCopierSource[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
 	reposFilePropertiesResolver[TReference, TMetadata]
 	loadOptions *changeTrackingDirectoryLoadOptions[TReference]
 }
@@ -982,7 +982,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.C
 	)
 }
 
-func createFileRootFromChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](
+func createFileRootFromChangeTrackingDirectory[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata](
 	ctx context.Context,
 	e FileRootEnvironment[TReference, TMetadata],
 	directoryContentsReader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]],

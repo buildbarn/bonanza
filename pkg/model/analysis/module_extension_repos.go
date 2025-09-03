@@ -256,7 +256,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
 		})
 		listReader := c.valueReaders.List
-		tagClassAttrTypes := make([][]model_starlark.AttrType, len(moduleExtensionDefinition.TagClasses))
+		tagClassAttrTypes := make([][]model_starlark.AttrType[TReference, TMetadata], len(moduleExtensionDefinition.TagClasses))
 		tagClassAttrDefaults := make([][]starlark.Value, len(moduleExtensionDefinition.TagClasses))
 		for _, user := range moduleExtensionUsers {
 			moduleInstance, err := label.NewModuleInstance(user.ModuleInstance)
@@ -305,7 +305,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 								}
 
 								if len(tagClassAttrTypes[tagClassIndex]) != len(tagClassAttrs) {
-									tagClassAttrTypes[tagClassIndex] = make([]model_starlark.AttrType, len(tagClassAttrs))
+									tagClassAttrTypes[tagClassIndex] = make([]model_starlark.AttrType[TReference, TMetadata], len(tagClassAttrs))
 								}
 								attrType := &tagClassAttrTypes[tagClassIndex][attrIndex]
 								if *attrType == nil {
@@ -314,7 +314,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 									// attribute. Determine the attribute
 									// type, so that the provided value can be
 									// canonicalized.
-									*attrType, err = model_starlark.DecodeAttrType[TReference, TMetadata](attr.Attr)
+									*attrType, err = model_starlark.DecodeAttrType[TReference, TMetadata](model_core.Nested(moduleExtensionDefinitionValue, attr.Attr))
 									if err != nil {
 										return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("failed to decode type of attribute %#v of tag class %#v", attr.Name, tagClass.Name)
 									}

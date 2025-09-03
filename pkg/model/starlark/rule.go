@@ -545,12 +545,13 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlar
 	needsCode = needsCode || namedAttrsNeedCode
 	patcher.Merge(namedAttrs.Patcher)
 
-	cfgTransitionIdentifier := ""
+	var cfgTransition *model_starlark_pb.Transition_UserDefined
 	if rd.cfg != nil {
-		cfgTransitionIdentifier, err = rd.cfg.GetUserDefinedTransitionIdentifier()
+		t, err := rd.cfg.EncodeUserDefinedTransition(path, options)
 		if err != nil {
 			return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, err
 		}
+		cfgTransition = t.Merge(patcher)
 	}
 
 	subruleIdentifiers := make([]string, 0, len(rd.subrules))
@@ -564,14 +565,14 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlar
 
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Rule_Definition{
-			Attrs:                   namedAttrs.Message,
-			BuildSetting:            buildSetting,
-			CfgTransitionIdentifier: cfgTransitionIdentifier,
-			ExecGroups:              execGroups,
-			Implementation:          implementation.Message,
-			Initializer:             initializerMessage,
-			Test:                    rd.test,
-			SubruleIdentifiers:      slices.Compact(subruleIdentifiers),
+			Attrs:              namedAttrs.Message,
+			BuildSetting:       buildSetting,
+			CfgTransition:      cfgTransition,
+			ExecGroups:         execGroups,
+			Implementation:     implementation.Message,
+			Initializer:        initializerMessage,
+			Test:               rd.test,
+			SubruleIdentifiers: slices.Compact(subruleIdentifiers),
 		},
 		patcher,
 	), needsCode, nil
@@ -609,7 +610,7 @@ func (rd *protoRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.V
 }
 
 func (rd *protoRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
-	return rd.protoAttrsCache.getAttrsCheap(thread, rd.message.Message.Attrs)
+	return rd.protoAttrsCache.getAttrsCheap(thread, model_core.Nested(rd.message, rd.message.Message.Attrs))
 }
 
 func (rd *protoRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *starlark.Thread) (*BuildSetting, error) {
@@ -734,17 +735,17 @@ func (bogusValue) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, errors.New("bogus_value cannot be hashed")
 }
 
-type protoAttrsCache[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type protoAttrsCache[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
 	attrsCheap atomic.Pointer[map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]]
 }
 
-func (pac *protoAttrsCache[TReference, TMetadata]) getAttrsCheap(thread *starlark.Thread, namedAttrs []*model_starlark_pb.NamedAttr) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (pac *protoAttrsCache[TReference, TMetadata]) getAttrsCheap(thread *starlark.Thread, namedAttrs model_core.Message[[]*model_starlark_pb.NamedAttr, TReference]) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	if attrs := pac.attrsCheap.Load(); attrs != nil {
 		return *attrs, nil
 	}
 
 	attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
-	for _, namedAttr := range namedAttrs {
+	for _, namedAttr := range namedAttrs.Message {
 		name, err := pg_label.NewStarlarkIdentifier(namedAttr.Name)
 		if err != nil {
 			return nil, fmt.Errorf("attribute %#v: %w", namedAttr.Name, err)
@@ -752,7 +753,7 @@ func (pac *protoAttrsCache[TReference, TMetadata]) getAttrsCheap(thread *starlar
 		if namedAttr.Attr == nil {
 			return nil, fmt.Errorf("attribute %#v: missing message", namedAttr.Name)
 		}
-		attrType, err := DecodeAttrType[TReference, TMetadata](namedAttr.Attr)
+		attrType, err := DecodeAttrType[TReference, TMetadata](model_core.Nested(namedAttrs, namedAttr.Attr))
 		if err != nil {
 			return nil, fmt.Errorf("attribute %#v: %w", namedAttr.Name, err)
 		}

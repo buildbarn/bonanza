@@ -165,7 +165,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		ctx,
 		e,
 		thread,
-		execConfigStr.Str,
+		model_core.NewSimpleMessage[TReference](
+			&model_starlark_pb.Transition_UserDefined{
+				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
+					Identifier: execConfigStr.Str,
+				},
+			},
+		),
 		inputConfigurationReference,
 		stubbedTransitionAttr{},
 	)

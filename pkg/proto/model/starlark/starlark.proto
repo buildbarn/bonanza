@@ -83,7 +83,7 @@ message Attr {
 
     // The transition to apply when configuring the target associated
     // with the label.
-    Transition.Reference cfg = 3;
+    Transition cfg = 3;
 
     // A nondeterministic finite automaton (NFA) that describes the
     // pattern of package relative paths of file targets that this
@@ -689,7 +689,7 @@ message Rule {
 
     // If set, the identifier of the user-defined transition to apply to
     // its own configuration before analysis.
-    string cfg_transition_identifier = 3;
+    Transition.UserDefined cfg_transition = 3;
 
     // Execution groups of the rule, sorted by name.
     repeated NamedExecGroup exec_groups = 4;
@@ -858,61 +858,64 @@ message Target {
 }
 
 message Transition {
-  message Reference {
+  message UserDefined {
+    message Definition {
+      // Starlark function that implements this transition.
+      Function implementation = 1;
+
+      // List of build settings that can be read by this transition. This
+      // becomes the key set of the settings parameter of the
+      // implementation function parameter.
+      //
+      // Entries in this list SHOULD be deduplicated and sorted
+      // alphabetically.
+      repeated string inputs = 2;
+
+      // List of build settings that can be written by this transition.
+      // This must be a superset of the key set of the dictionary returned
+      // by this transition.
+      //
+      // Entries in this list SHOULD be deduplicated and sorted
+      // alphabetically.
+      repeated string outputs = 3;
+
+      // The canonical package in which the transition was declared. The
+      // name of the package is used to resolve the input and output
+      // labels.
+      string canonical_package = 4;
+    }
+
     oneof kind {
-      // Transition to the platform of the named execution group.
-      string exec_group = 1;
+      string identifier = 1;
 
-      // Apply a transition which removes all configuration, unsetting
-      // all flags. Intended for the case where a dependency is
-      // data-only and contains no code that needs to be built, but
-      // should only be analyzed once.
-      google.protobuf.Empty none = 2;
-
-      // Don't perform any transition.
-      google.protobuf.Empty target = 3;
-
-      // Starlark identifier of a user-defined transition.
-      string user_defined = 4;
-
-      // Leave the target unconfigured.
-      //
-      // If this option is set, then any labels will appear as target
-      // references having no providers. The label associated with the
-      // target reference will also not be subject to alias expansion.
-      //
-      // This transition can be used by rules like toolchain() to ensure
-      // that the underlying toolchain is only configured upon use.
-      google.protobuf.Empty unconfigured = 5;
+      Definition definition = 2;
     }
   }
 
-  message Definition {
-    // Starlark function that implements this transition.
-    Function implementation = 1;
-
-    // List of build settings that can be read by this transition. This
-    // becomes the key set of the settings parameter of the
-    // implementation function parameter.
-    //
-    // Entries in this list SHOULD be deduplicated and sorted
-    // alphabetically.
-    repeated string inputs = 2;
-
-    // List of build settings that can be written by this transition.
-    // This must be a superset of the key set of the dictionary returned
-    // by this transition.
-    //
-    // Entries in this list SHOULD be deduplicated and sorted
-    // alphabetically.
-    repeated string outputs = 3;
-  }
-
   oneof kind {
-    // Reference to a transition.
-    Reference reference = 1;
+    // Transition to the platform of the named execution group.
+    string exec_group = 1;
 
-    // Definition of a user-defined transition.
-    Definition definition = 2;
+    // Apply a transition which removes all configuration, unsetting
+    // all flags. Intended for the case where a dependency is
+    // data-only and contains no code that needs to be built, but
+    // should only be analyzed once.
+    google.protobuf.Empty none = 2;
+
+    // Don't perform any transition.
+    google.protobuf.Empty target = 3;
+
+    // User-defined transition.
+    UserDefined user_defined = 4;
+
+    // Leave the target unconfigured.
+    //
+    // If this option is set, then any labels will appear as target
+    // references having no providers. The label associated with the
+    // target reference will also not be subject to alias expansion.
+    //
+    // This transition can be used by rules like toolchain() to ensure
+    // that the underlying toolchain is only configured upon use.
+    google.protobuf.Empty unconfigured = 5;
   }
 }

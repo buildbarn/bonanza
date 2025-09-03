@@ -506,7 +506,7 @@
             "CompiledBzlFileGlobal"
          ],
          "nativeValueType": {
-            "type": "*RepositoryRule"
+            "type": "*RepositoryRule[TReference, TMetadata]"
          }
       },
       "ResolvedToolchains": {

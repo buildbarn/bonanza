@@ -444,7 +444,7 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Cloneabl
 			return nil, errors.New("encoded aspect does not have a reference or definition")
 		}
 	case *model_starlark_pb.Value_Attr:
-		attrType, err := DecodeAttrType[TReference, TMetadata](typedValue.Attr)
+		attrType, err := DecodeAttrType[TReference, TMetadata](model_core.Nested(encodedValue, typedValue.Attr))
 		if err != nil {
 			return nil, err
 		}
@@ -700,31 +700,15 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Cloneabl
 	case *model_starlark_pb.Value_ToolchainType:
 		return decodeToolchainType[TReference, TMetadata](typedValue.ToolchainType)
 	case *model_starlark_pb.Value_Transition:
-		switch transitionKind := typedValue.Transition.Kind.(type) {
-		case *model_starlark_pb.Transition_Reference_:
-			return NewTransition(
-				NewReferenceTransitionDefinition[TReference, TMetadata](transitionKind.Reference),
-			), nil
-		case *model_starlark_pb.Transition_Definition_:
-			// As transitions can't be invoked directly and
-			// are only used as part of the analysis
-			// process, there is no need to reload its
-			// definition. Convert it to a reference.
-			if currentIdentifier == nil {
-				return nil, errors.New("encoded transition does not have a name")
-			}
-			return NewTransition(
-				NewReferenceTransitionDefinition[TReference, TMetadata](
-					&model_starlark_pb.Transition_Reference{
-						Kind: &model_starlark_pb.Transition_Reference_UserDefined{
-							UserDefined: currentIdentifier.String(),
-						},
-					},
-				),
-			), nil
-		default:
-			return nil, errors.New("encoded transition does not have a reference or definition")
+		t := NewTransition(
+			NewProtoTransitionDefinition[TReference, TMetadata](
+				model_core.Nested(encodedValue, typedValue.Transition),
+			),
+		)
+		if currentIdentifier != nil {
+			t.AssignIdentifier(*currentIdentifier)
 		}
+		return t, nil
 	case *model_starlark_pb.Value_Tuple:
 		encodedElements := typedValue.Tuple.Elements
 		tuple := make(starlark.Tuple, 0, len(encodedElements))
@@ -741,14 +725,14 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Cloneabl
 	}
 }
 
-func DecodeAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata](attr *model_starlark_pb.Attr) (AttrType, error) {
-	switch attrTypeInfo := attr.Type.(type) {
+func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](attr model_core.Message[*model_starlark_pb.Attr, TReference]) (AttrType[TReference, TMetadata], error) {
+	switch attrTypeInfo := attr.Message.Type.(type) {
 	case *model_starlark_pb.Attr_Bool:
-		return BoolAttrType, nil
+		return NewBoolAttrType[TReference, TMetadata](), nil
 	case *model_starlark_pb.Attr_Int:
-		return NewIntAttrType(attrTypeInfo.Int.Values), nil
+		return NewIntAttrType[TReference, TMetadata](attrTypeInfo.Int.Values), nil
 	case *model_starlark_pb.Attr_IntList:
-		return NewIntListAttrType(), nil
+		return NewIntListAttrType[TReference, TMetadata](), nil
 	case *model_starlark_pb.Attr_Label:
 		if attrTypeInfo.Label.ValueOptions == nil || attrTypeInfo.Label.ValueOptions.Cfg == nil {
 			return nil, errors.New("missing value options")
@@ -758,7 +742,9 @@ func DecodeAttrType[TReference any, TMetadata model_core.CloneableReferenceMetad
 			attrTypeInfo.Label.AllowSingleFile,
 			attrTypeInfo.Label.Executable,
 			attrTypeInfo.Label.ValueOptions.AllowFiles,
-			NewReferenceTransitionDefinition[TReference, TMetadata](attrTypeInfo.Label.ValueOptions.Cfg),
+			NewProtoTransitionDefinition[TReference, TMetadata](
+				model_core.Nested(attr, attrTypeInfo.Label.ValueOptions.Cfg),
+			),
 		), nil
 	case *model_starlark_pb.Attr_LabelKeyedStringDict:
 		if attrTypeInfo.LabelKeyedStringDict.DictKeyOptions == nil || attrTypeInfo.LabelKeyedStringDict.DictKeyOptions.Cfg == nil {
@@ -766,7 +752,9 @@ func DecodeAttrType[TReference any, TMetadata model_core.CloneableReferenceMetad
 		}
 		return NewLabelKeyedStringDictAttrType[TReference, TMetadata](
 			attrTypeInfo.LabelKeyedStringDict.DictKeyOptions.AllowFiles,
-			NewReferenceTransitionDefinition[TReference, TMetadata](attrTypeInfo.LabelKeyedStringDict.DictKeyOptions.Cfg),
+			NewProtoTransitionDefinition[TReference, TMetadata](
+				model_core.Nested(attr, attrTypeInfo.LabelKeyedStringDict.DictKeyOptions.Cfg),
+			),
 		), nil
 	case *model_starlark_pb.Attr_LabelList:
 		if attrTypeInfo.LabelList.ListValueOptions == nil || attrTypeInfo.LabelList.ListValueOptions.Cfg == nil {
@@ -774,20 +762,22 @@ func DecodeAttrType[TReference any, TMetadata model_core.CloneableReferenceMetad
 		}
 		return NewLabelListAttrType[TReference, TMetadata](
 			attrTypeInfo.LabelList.ListValueOptions.AllowFiles,
-			NewReferenceTransitionDefinition[TReference, TMetadata](attrTypeInfo.LabelList.ListValueOptions.Cfg),
+			NewProtoTransitionDefinition[TReference, TMetadata](
+				model_core.Nested(attr, attrTypeInfo.LabelList.ListValueOptions.Cfg),
+			),
 		), nil
 	case *model_starlark_pb.Attr_Output:
 		return NewOutputAttrType[TReference, TMetadata](attrTypeInfo.Output.FilenameTemplate), nil
 	case *model_starlark_pb.Attr_OutputList:
 		return NewOutputListAttrType[TReference, TMetadata](), nil
 	case *model_starlark_pb.Attr_String_:
-		return NewStringAttrType(attrTypeInfo.String_.Values), nil
+		return NewStringAttrType[TReference, TMetadata](attrTypeInfo.String_.Values), nil
 	case *model_starlark_pb.Attr_StringDict:
-		return NewStringDictAttrType(), nil
+		return NewStringDictAttrType[TReference, TMetadata](), nil
 	case *model_starlark_pb.Attr_StringList:
-		return NewStringListAttrType(), nil
+		return NewStringListAttrType[TReference, TMetadata](), nil
 	case *model_starlark_pb.Attr_StringListDict:
-		return NewStringListDictAttrType(), nil
+		return NewStringListDictAttrType[TReference, TMetadata](), nil
 	default:
 		return nil, errors.New("unknown attribute type")
 	}

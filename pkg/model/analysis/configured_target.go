@@ -348,16 +348,16 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
 	thread *starlark.Thread,
-	namedAttr *model_starlark_pb.NamedAttr,
+	namedAttr model_core.Message[*model_starlark_pb.NamedAttr, TReference],
 	valueParts model_core.Message[[]*model_starlark_pb.Value, TReference],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
 	visibilityFromPackage label.CanonicalPackage,
 	execGroupPlatformLabels map[string]string,
 ) (starlark.Value, error) {
 	// See if any transitions need to be applied.
-	var cfg *model_starlark_pb.Transition_Reference
+	var cfg *model_starlark_pb.Transition
 	isScalar := false
-	switch attrType := namedAttr.Attr.GetType().(type) {
+	switch attrType := namedAttr.Message.Attr.GetType().(type) {
 	case *model_starlark_pb.Attr_Label:
 		cfg = attrType.Label.ValueOptions.GetCfg()
 		isScalar = true
@@ -375,7 +375,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 		patchedResult, mayHaveMultipleConfigurations, err = c.performTransition(
 			ctx,
 			e,
-			cfg,
+			model_core.Nested(namedAttr, cfg),
 			configurationReference,
 			model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
 				// TODO!
@@ -717,11 +717,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 
 		// If provided, apply a user defined incoming edge transition.
 		configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
-		if cfgTransitionIdentifier := ruleDefinition.Message.CfgTransitionIdentifier; cfgTransitionIdentifier != "" {
+		if cfgTransition := ruleDefinition.Message.CfgTransition; cfgTransition != nil {
 			patchedConfigurationReferences, err := c.performUserDefinedTransitionCached(
 				ctx,
 				e,
-				cfgTransitionIdentifier,
+				model_core.Nested(ruleDefinition, cfgTransition),
 				configurationReference,
 				model_starlark.NewStructFromDict[TReference, TMetadata](nil, edgeTransitionAttrValues),
 			)
@@ -731,7 +731,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 
 			entries := patchedConfigurationReferences.Message.Entries
 			if l := len(entries); l != 1 {
-				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("incoming edge transition %#v used by rule %#v is a 1:%d transition, while a 1:1 transition was expected", cfgTransitionIdentifier, ruleIdentifier.String(), l)
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("incoming edge transition used by rule %#v is a 1:%d transition, while a 1:1 transition was expected", ruleIdentifier.String(), l)
 			}
 
 			configurationReferences := model_core.Unpatch(e, patchedConfigurationReferences).Decay()
@@ -933,7 +933,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			patchedTransition, mayHaveMultipleConfigurations, err := c.performTransition(
 				ctx,
 				e,
-				labelOptions.Cfg,
+				model_core.Nested(ruleDefinition, labelOptions.Cfg),
 				configurationReference,
 				edgeTransitionAttrValuesStruct,
 				execGroupPlatformLabels,
@@ -1294,7 +1294,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					rc.context,
 					rc.environment,
 					thread,
-					namedAttr,
+					model_core.Nested(subruleDefinition, namedAttr),
 					model_core.Nested(rc.ruleDefinition, []*model_starlark_pb.Value{defaultValue}),
 					rc.configurationReference,
 					rc.ruleIdentifier.GetCanonicalLabel().GetCanonicalPackage(),

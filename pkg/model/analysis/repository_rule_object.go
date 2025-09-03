@@ -16,12 +16,12 @@ import (
 	"go.starlark.net/starlark"
 )
 
-type RepositoryRule struct {
+type RepositoryRule[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
 	Implementation starlark.Callable
-	Attrs          AttrsDict
+	Attrs          AttrsDict[TReference, TMetadata]
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRepositoryRuleObjectValue(ctx context.Context, key *model_analysis_pb.RepositoryRuleObject_Key, e RepositoryRuleObjectEnvironment[TReference, TMetadata]) (*RepositoryRule, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeRepositoryRuleObjectValue(ctx context.Context, key *model_analysis_pb.RepositoryRuleObject_Key, e RepositoryRuleObjectEnvironment[TReference, TMetadata]) (*RepositoryRule[TReference, TMetadata], error) {
 	repositoryRuleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
 		Identifier: key.Identifier,
 	})
@@ -49,7 +49,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepositoryRuleObjectValue(c
 		return nil, err
 	}
 
-	return &RepositoryRule{
+	return &RepositoryRule[TReference, TMetadata]{
 		Implementation: model_starlark.NewNamedFunction(model_starlark.NewProtoNamedFunctionDefinition[TReference, TMetadata](
 			model_core.Nested(repositoryRuleValue, d.Definition.Implementation),
 		)),
@@ -57,25 +57,25 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepositoryRuleObjectValue(c
 	}, nil
 }
 
-type PublicAttr struct {
+type PublicAttr[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
 	Name     string
 	Default  starlark.Value
-	AttrType model_starlark.AttrType
+	AttrType model_starlark.AttrType[TReference, TMetadata]
 }
 
-type AttrsDict struct {
-	Public  []PublicAttr
+type AttrsDict[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+	Public  []PublicAttr[TReference, TMetadata]
 	Private starlark.StringDict
 }
 
-func (c *baseComputer[TReference, TMetadata]) decodeAttrsDict(ctx context.Context, encodedAttrs model_core.Message[[]*model_starlark_pb.NamedAttr, TReference], labelCreator func(label.ResolvedLabel) (starlark.Value, error)) (AttrsDict, error) {
-	attrsDict := AttrsDict{
+func (c *baseComputer[TReference, TMetadata]) decodeAttrsDict(ctx context.Context, encodedAttrs model_core.Message[[]*model_starlark_pb.NamedAttr, TReference], labelCreator func(label.ResolvedLabel) (starlark.Value, error)) (AttrsDict[TReference, TMetadata], error) {
+	attrsDict := AttrsDict[TReference, TMetadata]{
 		Private: starlark.StringDict{},
 	}
 	for _, namedAttr := range encodedAttrs.Message {
-		attrType, err := model_starlark.DecodeAttrType[TReference, TMetadata](namedAttr.Attr)
+		attrType, err := model_starlark.DecodeAttrType[TReference, TMetadata](model_core.Nested(encodedAttrs, namedAttr.Attr))
 		if err != nil {
-			return AttrsDict{}, fmt.Errorf("invalid type for attribute %#v: %w", namedAttr.Name, err)
+			return AttrsDict[TReference, TMetadata]{}, fmt.Errorf("invalid type for attribute %#v: %w", namedAttr.Name, err)
 		}
 
 		if strings.HasPrefix(namedAttr.Name, "_") {
@@ -85,7 +85,7 @@ func (c *baseComputer[TReference, TMetadata]) decodeAttrsDict(ctx context.Contex
 				c.getValueDecodingOptions(ctx, labelCreator),
 			)
 			if err != nil {
-				return AttrsDict{}, fmt.Errorf("invalid default value for attribute %#v: %w", namedAttr.Name, err)
+				return AttrsDict[TReference, TMetadata]{}, fmt.Errorf("invalid default value for attribute %#v: %w", namedAttr.Name, err)
 			}
 			attrsDict.Private[namedAttr.Name] = value
 		} else {
@@ -100,10 +100,10 @@ func (c *baseComputer[TReference, TMetadata]) decodeAttrsDict(ctx context.Contex
 					c.getValueDecodingOptions(ctx, labelCreator),
 				)
 				if err != nil {
-					return AttrsDict{}, fmt.Errorf("invalid default value for attribute %#v: %w", namedAttr.Name, err)
+					return AttrsDict[TReference, TMetadata]{}, fmt.Errorf("invalid default value for attribute %#v: %w", namedAttr.Name, err)
 				}
 			}
-			attrsDict.Public = append(attrsDict.Public, PublicAttr{
+			attrsDict.Public = append(attrsDict.Public, PublicAttr[TReference, TMetadata]{
 				Name:     namedAttr.Name,
 				Default:  defaultAttr,
 				AttrType: attrType,

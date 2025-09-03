@@ -254,12 +254,12 @@ func (rrd *starlarkRepositoryRuleDefinition[TReference, TMetadata]) GetAttrsChea
 	return rrd.attrs, nil
 }
 
-type protoRepositoryRuleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type protoRepositoryRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
 	message         model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]
 	protoAttrsCache protoAttrsCache[TReference, TMetadata]
 }
 
-func NewProtoRepositoryRuleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata](message model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]) RepositoryRuleDefinition[TReference, TMetadata] {
+func NewProtoRepositoryRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](message model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]) RepositoryRuleDefinition[TReference, TMetadata] {
 	return &protoRepositoryRuleDefinition[TReference, TMetadata]{
 		message: message,
 	}
@@ -270,5 +270,5 @@ func (rrd *protoRepositoryRuleDefinition[TReference, TMetadata]) Encode(path map
 }
 
 func (rrd *protoRepositoryRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
-	return rrd.protoAttrsCache.getAttrsCheap(thread, rrd.message.Message.Attrs)
+	return rrd.protoAttrsCache.getAttrsCheap(thread, model_core.Nested(rrd.message, rrd.message.Message.Attrs))
 }

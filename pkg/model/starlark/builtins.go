@@ -175,9 +175,15 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 	toolchainTypeUnpackerInto := NewToolchainTypeUnpackerInto[TReference, TMetadata]()
 	transitionDefinitionUnpackerInto := NewTransitionDefinitionUnpackerInto[TReference, TMetadata]()
 
-	noneTransitionDefinition := NewReferenceTransitionDefinition[TReference, TMetadata](&NoneTransitionReference)
-	targetTransitionDefinition := NewReferenceTransitionDefinition[TReference, TMetadata](&TargetTransitionReference)
-	unconfiguredTransitionDefinition := NewReferenceTransitionDefinition[TReference, TMetadata](&UnconfiguredTransitionReference)
+	noneTransitionDefinition := NewProtoTransitionDefinition[TReference, TMetadata](
+		model_core.NewSimpleMessage[TReference](&NoneTransition),
+	)
+	targetTransitionDefinition := NewProtoTransitionDefinition[TReference, TMetadata](
+		model_core.NewSimpleMessage[TReference](&TargetTransition),
+	)
+	unconfiguredTransitionDefinition := NewProtoTransitionDefinition[TReference, TMetadata](
+		model_core.NewSimpleMessage[TReference](&UnconfiguredTransition),
+	)
 
 	configurationAttr := NewAttr[TReference, TMetadata](
 		NewLabelAttrType[TReference, TMetadata](false, false, false, glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
@@ -270,7 +276,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 						return nil, err
 					}
 
-					attrType := BoolAttrType
+					attrType := NewBoolAttrType[TReference, TMetadata]()
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -305,7 +311,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 						return nil, err
 					}
 
-					attrType := NewIntAttrType(values)
+					attrType := NewIntAttrType[TReference, TMetadata](values)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -541,7 +547,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 						return nil, err
 					}
 
-					attrType := NewStringAttrType(values)
+					attrType := NewStringAttrType[TReference, TMetadata](values)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -578,7 +584,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 						return nil, err
 					}
 
-					attrType := NewStringDictAttrType()
+					attrType := NewStringDictAttrType[TReference, TMetadata]()
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -615,7 +621,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 						return nil, err
 					}
 
-					attrType := NewStringListAttrType()
+					attrType := NewStringListAttrType[TReference, TMetadata]()
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -651,7 +657,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 						return nil, err
 					}
 
-					attrType := NewStringListDictAttrType()
+					attrType := NewStringListDictAttrType[TReference, TMetadata]()
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -694,12 +700,14 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 						return nil, err
 					}
 					return NewTransition(
-						NewReferenceTransitionDefinition[TReference, TMetadata](
-							&model_starlark_pb.Transition_Reference{
-								Kind: &model_starlark_pb.Transition_Reference_ExecGroup{
-									ExecGroup: execGroup,
+						NewProtoTransitionDefinition[TReference, TMetadata](
+							model_core.NewSimpleMessage[TReference](
+								&model_starlark_pb.Transition{
+									Kind: &model_starlark_pb.Transition_ExecGroup{
+										ExecGroup: execGroup,
+									},
 								},
-							},
+							),
 						),
 					), nil
 				},
@@ -1523,6 +1531,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 						implementation,
 						slices.Compact(inputs),
 						slices.Compact(outputs),
+						CurrentFilePackage(thread, 1),
 					),
 				), nil
 			},
