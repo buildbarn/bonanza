@@ -132,6 +132,28 @@ DefaultInfo, _DefaultInfoRaw = provider(
     init = _default_info_init,
 )
 
+def _java_info_init(
+        output_jar,
+        compile_jar,
+        source_jar = None,
+        compile_jdeps = None,
+        generated_class_jar = None,
+        generated_source_jar = None,
+        native_headers_jar = None,
+        manifest_proto = None,
+        neverlink = False,
+        deps = [],
+        runtime_deps = [],
+        exports = [],
+        exported_plugins = [],
+        jdeps = None,
+        native_libraries = []):
+    return {}
+
+JavaInfo, _JavaInfoRaw = provider(
+    init = _java_info_init,
+)
+
 def _run_environment_info_init(environment = {}, inherited_environment = []):
     return {
         "environment": environment,
@@ -3286,6 +3308,8 @@ exported_toplevels = {
     "CcToolchainConfigInfo": CcToolchainConfigInfo,
     "DebugPackageInfo": DebugPackageInfo,
     "InstrumentedFilesInfo": InstrumentedFilesInfo,
+    "JavaInfo": JavaInfo,
+    "JavaPluginInfo": JavaPluginInfo,
     "PackageSpecificationInfo": PackageSpecificationInfo,
     "ProguardSpecProvider": ProguardSpecProvider,
     "PyInfo": PyInfo,
