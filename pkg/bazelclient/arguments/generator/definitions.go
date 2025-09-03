@@ -204,6 +204,11 @@ var commands = map[string]command{
 				},
 			},
 			{
+				longName:    "protocopt",
+				description: "Additional options to pass to the protobuf compiler.",
+				flagType:    buildSettingFlagType{},
+			},
+			{
 				longName:    "platforms",
 				description: "The labels of the platform rules describing the target platforms for the current command.",
 				flagType:    stringFlagType{},

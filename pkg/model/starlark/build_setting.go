@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
@@ -305,6 +306,18 @@ type stringListBuildSettingCanonicalizer struct {
 	repeatable bool
 }
 
-func (stringListBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (starlark.Value, error) {
-	return nil, errors.New("TODO: Implement canonicalization of config.string_list")
+func (bsc stringListBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (starlark.Value, error) {
+	if !bsc.repeatable {
+		if lastValue := values[len(values)-1]; lastValue == "" {
+			values = nil
+		} else {
+			values = strings.Split(lastValue, ",")
+		}
+	}
+
+	elements := make([]starlark.Value, 0, len(values))
+	for _, value := range values {
+		elements = append(elements, starlark.String(value))
+	}
+	return starlark.NewList(elements), nil
 }

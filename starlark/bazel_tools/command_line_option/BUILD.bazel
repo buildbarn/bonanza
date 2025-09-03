@@ -3,6 +3,7 @@ load(
     "bool_flag",
     "int_flag",
     "label_list_flag",
+    "repeatable_string_list_flag",
     "string_flag",
     "string_list_flag",
 )
@@ -1467,7 +1468,7 @@ label_flag(
     visibility = ["//visibility:public"],
 )
 
-string_list_flag(
+repeatable_string_list_flag(
     name = "protocopt",
     build_setting_default = [],
     visibility = ["//visibility:public"],
