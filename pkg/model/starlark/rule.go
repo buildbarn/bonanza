@@ -105,7 +105,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		if name.IsPublic() {
 			nameStr := name.String()
 			switch nameStr {
-			case "applicable_licenses", "deprecation",
+			case "applicable_licenses", "compatible_with", "deprecation",
 				"exec_compatible_with", "features", "name",
 				"package_metadata", "tags", "target_compatible_with",
 				"testonly", "visibility":
@@ -154,6 +154,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	)
 
 	var applicableLicenses []string
+	var compatibleWith []string
 	deprecation := defaultInheritableAttrs.Deprecation
 	var execCompatibleWith []string
 	var features *Select[TReference, TMetadata]
@@ -167,6 +168,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	optionalUnpackers = append(
 		optionalUnpackers,
 		"applicable_licenses?", unpack.Bind(thread, &applicableLicenses, labelStringListUnpackerInto),
+		"compatible_with?", unpack.Bind(thread, &compatibleWith, labelStringListUnpackerInto),
 		"deprecation?", unpack.Bind(thread, &deprecation, unpack.String),
 		"exec_compatible_with?", unpack.Bind(thread, &execCompatibleWith, labelStringListUnpackerInto),
 		"features?", unpack.Bind(thread, &features, NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String)))),
@@ -405,8 +407,11 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 			&model_starlark_pb.Target_Definition{
 				Kind: &model_starlark_pb.Target_Definition_RuleTarget{
 					RuleTarget: &model_starlark_pb.RuleTarget{
-						RuleIdentifier:       r.Identifier.String(),
-						PublicAttrValues:     publicAttrValues,
+						RuleIdentifier:   r.Identifier.String(),
+						PublicAttrValues: publicAttrValues,
+						// TODO: Also set CompatibleWith. How is
+						// it different from ExecCompatibleWith
+						// and TargetWith?
 						ExecCompatibleWith:   execCompatibleWith,
 						Tags:                 slices.Compact(tags),
 						TargetCompatibleWith: targetCompatibleWithGroups.Message,
