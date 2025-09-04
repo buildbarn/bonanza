@@ -211,6 +211,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 				defaultValue: model_core.NewSimpleMessage[TReference](&model_starlark_pb.Value{}),
 			},
 		),
+		buildSettingValuesToApply[platformsInsertionIndex:]...,
 	)
 
 	// Create new configuration to include any build settings
