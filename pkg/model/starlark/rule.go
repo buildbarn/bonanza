@@ -525,7 +525,6 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlar
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, err
 	}
-	patcher.Merge(implementation.Patcher)
 
 	var initializerMessage *model_starlark_pb.Function
 	if rd.initializer != nil {
@@ -533,9 +532,8 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlar
 		if err != nil {
 			return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, err
 		}
-		initializerMessage = initializer.Message
+		initializerMessage = initializer.Merge(patcher)
 		needsCode = needsCode || initializerNeedsCode
-		patcher.Merge(initializer.Patcher)
 	}
 
 	namedAttrs, namedAttrsNeedCode, err := encodeNamedAttrs(rd.attrs, path, options)
@@ -543,7 +541,6 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlar
 		return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, err
 	}
 	needsCode = needsCode || namedAttrsNeedCode
-	patcher.Merge(namedAttrs.Patcher)
 
 	var cfgTransition *model_starlark_pb.Transition_UserDefined
 	if rd.cfg != nil {
@@ -565,11 +562,11 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlar
 
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Rule_Definition{
-			Attrs:              namedAttrs.Message,
+			Attrs:              namedAttrs.Merge(patcher),
 			BuildSetting:       buildSetting,
 			CfgTransition:      cfgTransition,
 			ExecGroups:         execGroups,
-			Implementation:     implementation.Message,
+			Implementation:     implementation.Merge(patcher),
 			Initializer:        initializerMessage,
 			Test:               rd.test,
 			SubruleIdentifiers: slices.Compact(subruleIdentifiers),
