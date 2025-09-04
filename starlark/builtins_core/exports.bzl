@@ -2104,8 +2104,12 @@ def builtins_internal_cc_common_create_cc_toolchain_config_info(
         legacy_action_config_builder += action_configs
         action_configs = legacy_action_config_builder
 
+    make_variables_tuples = [
+        (make_variable.name, make_variable.value)
+        for make_variable in make_variables
+    ]
     tool_paths_tuples = [
-        [tool.name, tool.path]
+        (tool.name, _tool_get_tool_path_string(tool))
         for tool in tool_paths
     ]
     return CcToolchainConfigInfo(
@@ -2141,7 +2145,7 @@ def builtins_internal_cc_common_create_cc_toolchain_config_info(
         builtin_sysroot = lambda: builtin_sysroot,
         compiler = lambda: compiler,
         cxx_builtin_include_directories = lambda: cxx_builtin_include_directories,
-        make_variables = lambda: make_variables,
+        make_variables = lambda: make_variables_tuples,
         target_cpu = lambda: target_cpu,
         target_libc = lambda: target_libc,
         target_system_name = lambda: target_system_name,
