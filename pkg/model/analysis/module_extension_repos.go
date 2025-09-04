@@ -23,6 +23,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.starlark.net/starlark"
 )
 
@@ -393,6 +395,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 
 		repoRegistrar := model_starlark.NewRepoRegistrar[TMetadata]()
 		thread.SetLocal(model_starlark.RepoRegistrarKey, repoRegistrar)
+
+		identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.NewSimpleMessage[TReference](proto.Message(key)))
+		if err != nil {
+			return PatchedModuleExtensionReposValue[TMetadata]{}, err
+		}
+		thread.SetLocal(model_starlark.ReferenceEqualIdentifierGeneratorKey, identifierGenerator)
 
 		moduleContext, err := c.newModuleOrRepositoryContext(ctx, e, []path.Component{
 			path.MustNewComponent("modextwd"),
