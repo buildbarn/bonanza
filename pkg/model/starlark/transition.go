@@ -122,20 +122,25 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) Encode(path map[star
 }
 
 func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeUserDefinedTransition(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error) {
-	userDefined, ok := td.definition.Message.Kind.(*model_starlark_pb.Transition_UserDefined_)
-	if !ok {
-		return model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata]{}, errors.New("transition is not a user-defined transition")
-	}
-	if td.identifier != nil {
+	switch t := td.definition.Message.Kind.(type) {
+	case *model_starlark_pb.Transition_Target:
 		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_starlark_pb.Transition_UserDefined{
-				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-					Identifier: td.identifier.String(),
-				},
-			},
+			(*model_starlark_pb.Transition_UserDefined)(nil),
 		), nil
+	case *model_starlark_pb.Transition_UserDefined_:
+		if td.identifier != nil {
+			return model_core.NewSimplePatchedMessage[TMetadata](
+				&model_starlark_pb.Transition_UserDefined{
+					Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
+						Identifier: td.identifier.String(),
+					},
+				},
+			), nil
+		}
+		return model_core.Patch(options.ObjectCapturer, model_core.Nested(td.definition, t.UserDefined)), nil
+	default:
+		return model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata]{}, errors.New("transition is not a target or user-defined transition")
 	}
-	return model_core.Patch(options.ObjectCapturer, model_core.Nested(td.definition, userDefined.UserDefined)), nil
 }
 
 func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {

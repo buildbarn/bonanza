@@ -173,7 +173,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 	})
 	namedFunctionUnpackerInto := NewNamedFunctionUnpackerInto[TReference, TMetadata]()
 	toolchainTypeUnpackerInto := NewToolchainTypeUnpackerInto[TReference, TMetadata]()
-	transitionDefinitionUnpackerInto := NewTransitionDefinitionUnpackerInto[TReference, TMetadata]()
+	transitionDefinitionUnpackerInto := unpack.IfNotNone(NewTransitionDefinitionUnpackerInto[TReference, TMetadata]())
 
 	noneTransitionDefinition := NewProtoTransitionDefinition[TReference, TMetadata](
 		model_core.NewSimpleMessage[TReference](&NoneTransition),
@@ -1297,7 +1297,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 				var implementation NamedFunction[TReference, TMetadata]
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				var buildSetting *BuildSetting
-				var cfg *Transition[TReference, TMetadata]
+				cfg := targetTransitionDefinition
 				doc := ""
 				execGroups := map[string]*ExecGroup[TReference, TMetadata]{}
 				executable := false
@@ -1318,7 +1318,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 					// Keyword arguments.
 					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
 					"build_setting?", unpack.Bind(thread, &buildSetting, unpack.IfNotNone(unpack.Type[*BuildSetting]("config.*"))),
-					"cfg?", unpack.Bind(thread, &cfg, unpack.IfNotNone(unpack.Type[*Transition[TReference, TMetadata]]("transition"))),
+					"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
 					"doc?", unpack.Bind(thread, &doc, unpack.String),
 					"executable?", unpack.Bind(thread, &executable, unpack.Bool),
 					"exec_compatible_with?", unpack.Bind(thread, &execCompatibleWith, unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage))),

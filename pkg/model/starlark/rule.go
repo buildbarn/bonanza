@@ -472,7 +472,7 @@ type RuleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetad
 type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
 	attrs          map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]
 	buildSetting   *BuildSetting
-	cfg            *Transition[TReference, TMetadata]
+	cfg            TransitionDefinition[TReference, TMetadata]
 	execGroups     map[string]*ExecGroup[TReference, TMetadata]
 	implementation NamedFunction[TReference, TMetadata]
 	initializer    *NamedFunction[TReference, TMetadata]
@@ -484,7 +484,7 @@ type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_co
 func NewStarlarkRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](
 	attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata],
 	buildSetting *BuildSetting,
-	cfg *Transition[TReference, TMetadata],
+	cfg TransitionDefinition[TReference, TMetadata],
 	execGroups map[string]*ExecGroup[TReference, TMetadata],
 	implementation NamedFunction[TReference, TMetadata],
 	initializer *NamedFunction[TReference, TMetadata],
@@ -542,13 +542,9 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlar
 	}
 	needsCode = needsCode || namedAttrsNeedCode
 
-	var cfgTransition *model_starlark_pb.Transition_UserDefined
-	if rd.cfg != nil {
-		t, err := rd.cfg.EncodeUserDefinedTransition(path, options)
-		if err != nil {
-			return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, err
-		}
-		cfgTransition = t.Merge(patcher)
+	cfgTransition, err := rd.cfg.EncodeUserDefinedTransition(path, options)
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, fmt.Errorf("failed to encode rule configuration transition: %w", err)
 	}
 
 	subruleIdentifiers := make([]string, 0, len(rd.subrules))
@@ -564,7 +560,7 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlar
 		&model_starlark_pb.Rule_Definition{
 			Attrs:              namedAttrs.Merge(patcher),
 			BuildSetting:       buildSetting,
-			CfgTransition:      cfgTransition,
+			CfgTransition:      cfgTransition.Merge(patcher),
 			ExecGroups:         execGroups,
 			Implementation:     implementation.Merge(patcher),
 			Initializer:        initializerMessage,
