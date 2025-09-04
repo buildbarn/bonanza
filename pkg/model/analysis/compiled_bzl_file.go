@@ -89,7 +89,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, fmt.Errorf("invalid file contents: %w", err)
 	}
-	bzlFileData, err := fileReader.FileReadAll(ctx, buildFileContentsEntry, 1<<21)
+	bzlFileData, err := fileReader.FileReadAll(ctx, buildFileContentsEntry, 1<<22)
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
