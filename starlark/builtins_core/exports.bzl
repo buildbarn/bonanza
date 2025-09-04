@@ -843,11 +843,11 @@ def _get_feature_configuration(
             return
         enabled.remove(selectable)
 
-        for implies_current in implied_by[selectable]:
+        for implies_current in implied_by.get(selectable, []):
             check_activatable(implies_current)
-        for requires_current in required_by[selectable]:
+        for requires_current in required_by.get(selectable, []):
             check_activatable(requires_current)
-        for implied in implies[selectable]:
+        for implied in implies.get(selectable, []):
             check_activatable(implied)
 
     def disable_unsupported_activatables():
