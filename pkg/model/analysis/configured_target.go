@@ -2567,6 +2567,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 			rc.directoryCreationParameters,
 			&capturableChangeTrackingDirectory[TReference, TMetadata]{
 				directory: &initialOutputDirectory,
+				options:   &capturableChangeTrackingDirectoryOptions[TReference, TMetadata]{},
 			},
 			model_filesystem.NewSimpleDirectoryMerkleTreeCapturer(rc.environment),
 			&createdInitialOutputDirectory,
