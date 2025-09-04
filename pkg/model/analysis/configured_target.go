@@ -852,7 +852,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				execGroupDefinition.ExecCompatibleWith,
 			)
 			if err != nil {
-				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid constraint values for exec group %#v: %w", namedExecGroup.Name)
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid constraint values for exec group %#v: %w", namedExecGroup.Name, err)
 			}
 			patchedConfigurationReference := model_core.Patch(e, configurationReference)
 			resolvedToolchains := e.GetResolvedToolchainsValue(
