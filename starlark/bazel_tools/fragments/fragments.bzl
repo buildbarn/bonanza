@@ -83,10 +83,12 @@ configuration_fragment = rule(
 
 def _cpp_fragment_impl(ctx):
     compilation_mode = ctx.attr._compilation_mode[BuildSettingInfo].value
+    cs_fdo_instrument = ctx.attr._cs_fdo_instrument[BuildSettingInfo].value
     dynamic_mode = ctx.attr._dynamic_mode[BuildSettingInfo].value.upper()
     experimental_cc_implementation_deps = ctx.attr._cc_implementation_deps[BuildSettingInfo].value
     experimental_starlark_compiling = ctx.attr._starlark_compiling[BuildSettingInfo].value
     experimental_starlark_linking = ctx.attr._starlark_linking[BuildSettingInfo].value
+    fdo_instrument = ctx.attr._fdo_instrument[BuildSettingInfo].value
     fission = ctx.attr._fission[BuildSettingInfo].value
     fission_active_for_current_compilation_mode = (
         True if fission == "yes" else False if fission == "no" else compilation_mode in fission.split(",")
@@ -112,7 +114,7 @@ def _cpp_fragment_impl(ctx):
         compilation_mode = lambda: compilation_mode,
         conlyopts = ctx.attr._conlyopt[BuildSettingInfo].value,
         copts = ctx.attr._copt[BuildSettingInfo].value,
-        cs_fdo_instrument = ctx.attr._cs_fdo_instrument[BuildSettingInfo].value,
+        cs_fdo_instrument = lambda: cs_fdo_instrument,
         cs_fdo_path = lambda: None,  # We assume --cs_fdo_optimize is always a label.
         custom_malloc = ctx.attr._custom_malloc[BuildSettingInfo].value if ctx.attr._custom_malloc else None,
         cxxopts = ctx.attr._cxxopt[BuildSettingInfo].value,
@@ -122,7 +124,7 @@ def _cpp_fragment_impl(ctx):
         experimental_cc_implementation_deps = lambda: experimental_cc_implementation_deps,
         experimental_starlark_compiling = lambda: experimental_starlark_compiling,
         experimental_starlark_linking = lambda: experimental_starlark_linking,
-        fdo_instrument = ctx.attr._fdo_instrument[BuildSettingInfo].value,
+        fdo_instrument = lambda: fdo_instrument,
         fdo_path = lambda: None,  # We assume --fdo_optimize is always a label.
         fdo_prefetch_hints = ctx.attr._fdo_prefetch_hints.label if ctx.attr._fdo_prefetch_hints else None,
         fission_active_for_current_compilation_mode = lambda: fission_active_for_current_compilation_mode,

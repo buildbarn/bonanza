@@ -1011,9 +1011,9 @@ def builtins_internal_cc_common_configure_features(
             all_features.append("gcc_coverage_map_format")
 
     if "fdo_instrument" not in all_unsupported_features:
-        if cpp_configuration.fdo_instrument:
+        if cpp_configuration.fdo_instrument():
             all_features += ["fdo_instrument"]
-        elif cpp_configuration.cs_fdo_instrument:
+        elif cpp_configuration.cs_fdo_instrument():
             all_features += ["cs_fdo_instrument"]
 
     branch_fdo_provider = getattr(cc_toolchain._fdo_context, "branch_fdo_profile", None)
