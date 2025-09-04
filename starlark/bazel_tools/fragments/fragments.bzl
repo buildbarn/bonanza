@@ -1,4 +1,5 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+load("@@builtins_bzl+//common/objc:apple_platform.bzl", "PLATFORM")
 load(":fragment_info.bzl", "FragmentInfo")
 
 def _apple_fragment_impl(ctx):
@@ -9,9 +10,7 @@ def _apple_fragment_impl(ctx):
         macos_minimum_os_flag = ctx.attr._macos_minimum_os[BuildSettingInfo].value,
         macos_sdk_version_flag = ctx.attr._macos_sdk_version[BuildSettingInfo].value,
         prefer_mutual_xcode = ctx.attr._prefer_mutual_xcode[BuildSettingInfo].value,
-        single_arch_platform = struct(
-            platform_type = ctx.attr._apple_platform_type[BuildSettingInfo].value,
-        ),
+        single_arch_platform = getattr(PLATFORM, ctx.attr._apple_platform_type[BuildSettingInfo].value),
         tvos_minimum_os_flag = ctx.attr._tvos_minimum_os[BuildSettingInfo].value,
         tvos_sdk_version_flag = ctx.attr._tvos_sdk_version[BuildSettingInfo].value,
         watchos_minimum_os_flag = ctx.attr._watchos_minimum_os[BuildSettingInfo].value,
