@@ -103,6 +103,7 @@ def _cpp_fragment_impl(ctx):
     proto_profile = ctx.attr._proto_profile[BuildSettingInfo].value
     remove_legacy_whole_archive = ctx.attr._remove_legacy_whole_archive[BuildSettingInfo].value
     save_feature_state = ctx.attr._save_feature_state[BuildSettingInfo].value
+    save_temps = ctx.attr._save_temps[BuildSettingInfo].value
     start_end_lib = ctx.attr._start_end_lib[BuildSettingInfo].value
     strip = ctx.attr._strip[BuildSettingInfo].value
     stripopt = ctx.attr._stripopt[BuildSettingInfo].value
@@ -140,6 +141,7 @@ def _cpp_fragment_impl(ctx):
         propeller_optimize_absolute_ld_profile = lambda: propeller_optimize_absolute_ld_profile,
         proto_profile = lambda: proto_profile,
         save_feature_state = lambda: save_feature_state,
+        save_temps = lambda: save_temps,
         should_strip_binaries = lambda: should_strip_binaries,
         start_end_lib = lambda: start_end_lib,
         strip_opts = lambda: stripopt,
@@ -174,6 +176,7 @@ cpp_fragment = rule(
         "_proto_profile": attr.label(default = "//command_line_option:proto_profile"),
         "_remove_legacy_whole_archive": attr.label(default = "//command_line_option:incompatible_remove_legacy_whole_archive"),
         "_save_feature_state": attr.label(default = "//command_line_option:experimental_save_feature_state"),
+        "_save_temps": attr.label(default = "//command_line_option:save_temps"),
         "_starlark_compiling": attr.label(default = "//command_line_option:experimental_starlark_compiling"),
         "_starlark_linking": attr.label(default = "//command_line_option:experimental_starlark_linking"),
         "_start_end_lib": attr.label(default = "//command_line_option:start_end_lib"),
