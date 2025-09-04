@@ -516,7 +516,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 		transitionValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
 			Identifier: transitionIdentifier.String(),
 		})
-		if !!transitionValue.IsSet() {
+		if !transitionValue.IsSet() {
 			return nil, nil, evaluation.ErrMissingDependency
 		}
 		tv, ok := transitionValue.Message.Global.GetKind().(*model_starlark_pb.Value_Transition)
