@@ -116,6 +116,7 @@ def _wrap_rule_ctx(ctx):
         "disabled_features": [],
         "expand_location": ctx_expand_location,
         "features": [],
+        "genfiles_dir": ctx.bin_dir,
         "runfiles": ctx_runfiles,
         "workspace_name": "_main",
     }
