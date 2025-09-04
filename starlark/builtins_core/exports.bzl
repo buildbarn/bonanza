@@ -253,7 +253,8 @@ def configuration_field(fragment, name):
     # Don't provide actual support for late-bound defaults. Instead map
     # each of them to the respective command line option used by Bazel.
     if fragment == "apple":
-        return Label("@bazel_tools//command_line_option:xcode_version_config")
+        if name == "xcode_config_label":
+            return Label("@bazel_tools//command_line_option:xcode_version_config")
     if fragment == "bazel_py":
         if name == "python_top":
             return Label("@bazel_tools//command_line_option:python_top")
