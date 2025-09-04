@@ -2301,8 +2301,8 @@ def cc_compilation_context_add_virtual_to_original_headers(ccb, virtual_to_origi
     )
 
 def cc_compilation_context_add_dependent_cc_compilation_contexts(ccb, exported_cc_compilation_contexts, cc_compilation_contexts):
-    ccb.deps.append(cc_compilation_contexts)
-    ccb.exported_deps.append(exported_cc_compilation_contexts)
+    ccb.deps.extend(cc_compilation_contexts)
+    ccb.exported_deps.extend(exported_cc_compilation_contexts)
 
 def cc_compilation_context_add_non_code_inputs(ccb, inputs):
     ccb.non_code_inputs[0] = depset(
@@ -2400,8 +2400,8 @@ def cc_compilation_context_build(ccb):
     exporting_module_maps = set()
     cc_compilation_context_merge_dependent_cc_compilation_contexts(
         ccb,
-        ccb.exported_deps[0],
-        ccb.deps[0],
+        ccb.exported_deps,
+        ccb.deps,
         all_defines,
         transitive_modules,
         transitive_pic_modules,
