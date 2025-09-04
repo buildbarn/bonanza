@@ -892,6 +892,32 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 			},
 		),
 		"json": NewStructFromDict[TReference, TMetadata](nil, stringDictToStructFields(json.Module.Members)),
+		"macro": starlark.NewBuiltin(
+			"macro",
+			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				if len(args) > 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+				}
+				var implementation NamedFunction[TReference, TMetadata]
+				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
+				doc := ""
+				var finalizer starlark.Value
+				var inheritAttrs starlark.Value
+				if err := starlark.UnpackArgs(
+					b.Name(), args, kwargs,
+					// Positional arguments.
+					"implementation", unpack.Bind(thread, &implementation, namedFunctionUnpackerInto),
+					// Keyword arguments.
+					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
+					"doc?", unpack.Bind(thread, &doc, unpack.String),
+					"finalizer?", &finalizer,
+					"inherit_attrs?", &inheritAttrs,
+				); err != nil {
+					return nil, err
+				}
+				return nil, errors.New("TODO: Implement macro()")
+			},
+		),
 		"module_extension": starlark.NewBuiltin(
 			"module_extension",
 			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
