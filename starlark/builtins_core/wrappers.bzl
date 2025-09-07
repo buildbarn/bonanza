@@ -55,6 +55,39 @@ def _to_symlink_entry_depset(v):
         ])
     return v
 
+def _expand_make_variables(command, get_value):
+    result = ""
+    state = 0
+    variable_name = ""
+    for c in command.elems():
+        if state == 0:
+            if c == "$":
+                state = 1
+            else:
+                result += c
+        elif state == 1:
+            if c == "(":
+                state = 2
+            elif c == "$":
+                result += c
+                state = 0
+            else:
+                result += get_value(c)
+                state = 0
+        elif state == 2:
+            if c == ")":
+                result += get_value(variable_name)
+                variable_name = ""
+                state = 0
+            else:
+                variable_name += c
+        else:
+            fail("bad state")
+
+    if state != 0:
+        fail("command terminates in the middle of a $ sequence")
+    return result
+
 def _wrap_rule_ctx(ctx):
     def ctx_coverage_instrumented(target = None):
         return False
@@ -95,6 +128,13 @@ def _wrap_rule_ctx(ctx):
 
         return result
 
+    def ctx_resolve_command(command = "", attribute = None, expand_locations = False, make_variables = None, tools = [], label_dict = {}, execution_requirements = {}):
+        return [], [
+            "/bin/bash",
+            "-c",
+            _expand_make_variables(command, lambda variable_name: make_variables[variable_name]),
+        ], []
+
     def ctx_runfiles(files = [], transitive_files = None, collect_data = False, collect_default = False, symlinks = {}, root_symlinks = {}):
         direct = runfiles(
             files = depset(direct = files, transitive = [transitive_files] if transitive_files else []),
@@ -117,6 +157,7 @@ def _wrap_rule_ctx(ctx):
         "expand_location": ctx_expand_location,
         "features": [],
         "genfiles_dir": ctx.bin_dir,
+        "resolve_command": ctx_resolve_command,
         "runfiles": ctx_runfiles,
         "workspace_name": "_main",
     }
@@ -152,37 +193,7 @@ def _wrap_rule_ctx(ctx):
                     return additional_substitutions[variable_name]
                 return var[variable_name]
 
-            result = ""
-            state = 0
-            variable_name = ""
-            for c in command.elems():
-                if state == 0:
-                    if c == "$":
-                        state = 1
-                    else:
-                        result += c
-                elif state == 1:
-                    if c == "(":
-                        state = 2
-                    elif c == "$":
-                        result += c
-                        state = 0
-                    else:
-                        result += get_value(c)
-                        state = 0
-                elif state == 2:
-                    if c == ")":
-                        result += get_value(variable_name)
-                        variable_name = ""
-                        state = 0
-                    else:
-                        variable_name += c
-                else:
-                    fail("bad state")
-
-            if state != 0:
-                fail("command terminates in the middle of a $ sequence")
-            return result
+            return _expand_make_variables(command, get_value)
 
         ctx_fields["expand_make_variables"] = ctx_expand_make_variables
         ctx_fields["var"] = var
