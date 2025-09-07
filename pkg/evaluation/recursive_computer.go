@@ -128,19 +128,30 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 			}
 			rc.completeKeyState(ks)
 		} else if errors.Is(err, ErrMissingDependency) {
+			if len(dependencies) == 0 {
+				panic("no dependencies")
+			}
 			if ks.blockedCount != 0 {
 				panic("key that is currently being evaluated cannot be blocked")
 			}
+			restartImmediately := true
 			for _, ksDep := range dependencies {
-				if ksDep.err == (errKeyNotEvaluated{}) {
+				if err := ksDep.err; err == (errKeyNotEvaluated{}) {
 					if len(ksDep.blocking) == 0 {
 						rc.blockingKeys[ksDep] = struct{}{}
 					}
 					ksDep.blocking = append(ksDep.blocking, ks)
 					ks.blockedCount++
+					restartImmediately = false
+				} else if err != nil {
+					rc.failKeyState(ks, NestedError[TReference]{
+						Key: ksDep.key,
+						Err: err,
+					})
+					restartImmediately = false
 				}
 			}
-			if ks.blockedCount == 0 {
+			if restartImmediately {
 				rc.enqueue(ks)
 			}
 		} else {

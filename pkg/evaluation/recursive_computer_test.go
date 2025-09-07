@@ -158,11 +158,12 @@ func TestRecursiveComputer(t *testing.T) {
 					&emptypb.Empty{},
 				), nil
 			}).
-			Times(3)
+			Times(4)
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 
 		recursiveComputer := evaluation.NewRecursiveComputer(computer, objectManager)
-		keyState, err := recursiveComputer.GetOrCreateKeyState(
+
+		keyState2, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 				&wrapperspb.UInt32Value{
 					Value: 2,
@@ -170,7 +171,6 @@ func TestRecursiveComputer(t *testing.T) {
 			),
 		)
 		require.NoError(t, err)
-
 		require.EqualExportedValues(
 			t,
 			evaluation.NestedError[object.LocalReference]{
@@ -195,7 +195,54 @@ func TestRecursiveComputer(t *testing.T) {
 					return nil
 				})
 
-				_, err := recursiveComputer.WaitForMessageValue(ctx, keyState)
+				_, err := recursiveComputer.WaitForMessageValue(ctx, keyState2)
+				return err
+			}),
+		)
+
+		// A subsequent evaluation of a new key that depends on
+		// a previously computed key that is already in the
+		// error state should also propagate the error.
+		keyState3, err := recursiveComputer.GetOrCreateKeyState(
+			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+				&wrapperspb.UInt32Value{
+					Value: 3,
+				},
+			),
+		)
+		require.NoError(t, err)
+		require.EqualExportedValues(
+			t,
+			evaluation.NestedError[object.LocalReference]{
+				Key: model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+					&wrapperspb.UInt32Value{
+						Value: 2,
+					},
+				),
+				Err: evaluation.NestedError[object.LocalReference]{
+					Key: model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+						&wrapperspb.UInt32Value{
+							Value: 1,
+						},
+					),
+					Err: evaluation.NestedError[object.LocalReference]{
+						Key: model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+							&wrapperspb.UInt32Value{
+								Value: 0,
+							},
+						),
+						Err: errors.New("reached zero"),
+					},
+				},
+			},
+			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+				dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+					for recursiveComputer.ProcessNextQueuedKey(ctx) {
+					}
+					return nil
+				})
+
+				_, err := recursiveComputer.WaitForMessageValue(ctx, keyState3)
 				return err
 			}),
 		)
