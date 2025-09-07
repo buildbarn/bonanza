@@ -1226,6 +1226,22 @@ message Package {
   }
 }
 
+message PackageGroupContains {
+  message Key {
+    // The canonical label of the package group target.
+    string package_group_label = 1;
+
+    // The canonical name of the package to look up within the package
+    // group.
+    string package = 2;
+  }
+
+  message Value {
+    // If set, the package is part of the package group.
+    bool contains = 1;
+  }
+}
+
 message PackagesAtAndBelow {
   message Key {
     // Repo and package prefix at which the lookup should start.

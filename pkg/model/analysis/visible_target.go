@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 
 	"bonanza.build/pkg/evaluation"
@@ -91,79 +90,29 @@ func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_c
 	}
 }
 
-func checkVisibility[TReference any](fromPackage label.CanonicalPackage, toLabel label.CanonicalLabel, toLabelVisibility model_core.Message[*model_starlark_pb.PackageGroup, TReference]) error {
+func checkVisibility[TReference any](e packageGroupContainsEnvironment[TReference], fromPackage label.CanonicalPackage, toLabel label.CanonicalLabel, toLabelVisibility model_core.Message[*model_starlark_pb.PackageGroup, TReference]) error {
 	// Always permit access from within the same package.
 	if fromPackage == toLabel.GetCanonicalPackage() {
 		return nil
 	}
 
-	subpackages := model_core.Nested(toLabelVisibility, toLabelVisibility.Message.Tree)
-	component := fromPackage.GetCanonicalRepo().String()
-	fromPackagePath := fromPackage.GetPackagePath()
-	for {
-		// Determine whether there are any overrides present at
-		// this level in the tree.
-		var overrides model_core.Message[*model_starlark_pb.PackageGroup_Subpackages_Overrides, TReference]
-		switch o := subpackages.Message.GetOverrides().(type) {
-		case *model_starlark_pb.PackageGroup_Subpackages_OverridesInline:
-			overrides = model_core.Nested(subpackages, o.OverridesInline)
-		case *model_starlark_pb.PackageGroup_Subpackages_OverridesExternal:
-			return errors.New("TODO: Download external overrides!")
-		case nil:
-			// No overrides present.
-		default:
-			return errors.New("invalid overrides type")
-		}
-
-		packages := overrides.Message.GetPackages()
-		packageIndex, ok := sort.Find(
-			len(packages),
-			func(i int) int { return strings.Compare(component, packages[i].Component) },
-		)
-		if !ok {
-			// No override is in place for this specific
-			// component. Consider include_subpackages.
-			//
-			// TODO: We should consider included package groups!
-			if !subpackages.Message.GetIncludeSubpackages() {
-				return fmt.Errorf("target %#v is not visible from package %#v", toLabel.String(), fromPackage.String())
-			}
-			return nil
-		}
-
-		// An override is in place for this specific component.
-		// Continue traversal.
-		p := packages[packageIndex]
-		subpackages = model_core.Nested(overrides, p.Subpackages)
-
-		if fromPackagePath == "" {
-			// Fully resolved the package name. Consider
-			// include_package.
-			//
-			// TODO: We should consider included package groups!
-			if !p.IncludePackage {
-				return fmt.Errorf("target %#v is not visible from package %#v", toLabel.String(), fromPackage.String())
-			}
-			return nil
-		}
-
-		// Extract the next component.
-		if split := strings.IndexByte(fromPackagePath, '/'); split < 0 {
-			component = fromPackagePath
-			fromPackagePath = ""
-		} else {
-			component = fromPackagePath[:split]
-			fromPackagePath = fromPackagePath[split+1:]
-		}
+	contains, err := packageGroupContains(e, toLabelVisibility, fromPackage)
+	if err != nil {
+		return err
 	}
+	if !contains {
+		return fmt.Errorf("target %#v is not visible from package %#v", toLabel.String(), fromPackage.String())
+	}
+	return nil
 }
 
-func checkRuleTargetVisibility[TReference any](fromPackage label.CanonicalPackage, ruleTargetLabel label.CanonicalLabel, ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference]) error {
+func checkRuleTargetVisibility[TReference any](e packageGroupContainsEnvironment[TReference], fromPackage label.CanonicalPackage, ruleTargetLabel label.CanonicalLabel, ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference]) error {
 	inheritableAttrs := ruleTarget.Message.InheritableAttrs
 	if inheritableAttrs == nil {
 		return fmt.Errorf("rule target %#v has no inheritable attrs", ruleTargetLabel)
 	}
 	return checkVisibility(
+		e,
 		fromPackage,
 		ruleTargetLabel,
 		model_core.Nested(ruleTarget, inheritableAttrs.Visibility),
@@ -192,6 +141,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 	switch definition := targetValue.Message.Definition.GetKind().(type) {
 	case *model_starlark_pb.Target_Definition_Alias:
 		if err := checkVisibility(
+			e,
 			fromPackage,
 			toLabel,
 			model_core.Nested(targetValue, definition.Alias.Visibility),
@@ -390,6 +340,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("owner %#v is not a rule target", ownerLabelStr)
 		}
 		if err := checkRuleTargetVisibility(
+			e,
 			fromPackage,
 			ownerLabel,
 			model_core.Nested(ownerTargetValue, ruleDefinition.RuleTarget),
@@ -405,6 +356,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		), nil
 	case *model_starlark_pb.Target_Definition_RuleTarget:
 		if err := checkRuleTargetVisibility(
+			e,
 			fromPackage,
 			toLabel,
 			model_core.Nested(targetValue, definition.RuleTarget),
@@ -420,6 +372,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		), nil
 	case *model_starlark_pb.Target_Definition_SourceFileTarget:
 		if err := checkVisibility(
+			e,
 			fromPackage,
 			toLabel,
 			model_core.Nested(targetValue, definition.SourceFileTarget.Visibility),

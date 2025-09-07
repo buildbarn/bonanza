@@ -402,6 +402,12 @@
             "RootModule"
          ]
       },
+      "PackageGroupContains": {
+         "dependsOn": [
+            "PackageGroupContains",
+            "Target"
+         ]
+      },
       "PackagesAtAndBelow": {
          "dependsOn": [
             "DirectoryReaders",
@@ -672,6 +678,7 @@
       },
       "VisibleTarget": {
          "dependsOn": [
+            "PackageGroupContains",
             "Select",
             "Target",
             "VisibleTarget"

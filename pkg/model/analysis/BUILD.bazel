@@ -48,6 +48,7 @@ go_library(
         "modules_with_overrides.go",
         "modules_with_remote_overrides.go",
         "package.go",
+        "package_group_contains.go",
         "packages_at_and_below.go",
         "registered_execution_platforms.go",
         "registered_fetch_platform.go",
