@@ -1152,9 +1152,13 @@ def _tool(path = None, with_features = [], execution_requirements = [], tool = N
         type_name = "tool",
     )
 
-def _path_relative_to_package(ctx, path):
+def _tool_get_input_relative_path(ctx, tool):
+    if tool.tool:
+        return tool.tool.path
+
+    path = tool.path
     if path.startswith("/"):
-        return path
+        return tool.path
 
     return "/".join(
         [
@@ -1303,7 +1307,7 @@ def builtins_internal_cc_common_create_cc_toolchain_config_info(
         for tool in tool_paths:
             if tool.name == "gcc":
                 gcc_tool_path = tool.path
-                linker_tool_path = _path_relative_to_package(ctx, tool.path)
+                linker_tool_path = _tool_get_input_relative_path(ctx, tool)
             elif tool.name == "ar":
                 ar_tool_path = tool.path
             elif tool.name == "strip":
@@ -2123,7 +2127,7 @@ def builtins_internal_cc_common_create_cc_toolchain_config_info(
                 enabled = action_config.enabled,
                 tools = [
                     _tool(
-                        path = _path_relative_to_package(ctx, tool.path),
+                        path = _tool_get_input_relative_path(ctx, tool),
                         tool = tool.tool,
                         with_features = tool.with_features,
                         execution_requirements = tool.execution_requirements,
