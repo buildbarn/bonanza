@@ -1177,7 +1177,11 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 							&model_starlark_pb.Target_Definition{
 								Kind: &model_starlark_pb.Target_Definition_PackageGroup{
 									PackageGroup: &model_starlark_pb.PackageGroup{
-										// TODO: Set tree!
+										// TODO: Properly respect "packages"
+										// instead of always using "public".
+										Tree: &model_starlark_pb.PackageGroup_Subpackages{
+											IncludeSubpackages: true,
+										},
 										IncludePackageGroups: slices.Compact(includes),
 									},
 								},
