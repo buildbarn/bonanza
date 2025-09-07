@@ -8,9 +8,11 @@ import (
 	"bonanza.build/pkg/evaluation"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
+	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
@@ -126,7 +128,14 @@ CheckConditions:
 				return PatchedSelectValue[TMetadata]{}, err
 			}
 
-			equal, err := c.compareBuildSettingValue(labelResolver, expectedValue.Str, actualValue, fromPackage)
+			comparer := buildSettingValueComparer[TReference]{
+				context:       ctx,
+				listReader:    c.valueReaders.List,
+				labelResolver: labelResolver,
+				expectedValue: expectedValue.Str,
+				fromPackage:   fromPackage,
+			}
+			equal, err := comparer.compareBuildSettingValue(actualValue)
 			if err != nil {
 				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to compare key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", buildSettingLabel.Label, conditionIdentifier, err)
 			}
@@ -152,27 +161,56 @@ CheckConditions:
 	), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) compareBuildSettingValue(labelResolver label.Resolver, expectedValue string, actualValue model_core.Message[*model_starlark_pb.Value, TReference], fromPackage label.CanonicalPackage) (bool, error) {
+type buildSettingValueComparer[TReference object.BasicReference] struct {
+	context       context.Context
+	listReader    model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_starlark_pb.List_Element, TReference]]
+	labelResolver label.Resolver
+	expectedValue string
+	fromPackage   label.CanonicalPackage
+}
+
+func (vc *buildSettingValueComparer[TReference]) compareBuildSettingValue(actualValue model_core.Message[*model_starlark_pb.Value, TReference]) (bool, error) {
 	switch typedValue := actualValue.Message.GetKind().(type) {
 	case *model_starlark_pb.Value_Bool:
-		expectedBooleanValue, err := model_starlark.ParseBoolBuildSettingString(expectedValue)
+		expectedBooleanValue, err := model_starlark.ParseBoolBuildSettingString(vc.expectedValue)
 		if err != nil {
 			return false, err
 		}
 		return expectedBooleanValue == typedValue.Bool, nil
 	case *model_starlark_pb.Value_Label:
 		// Parse label to obtain a canonical representation.
-		apparentLabel, err := fromPackage.AppendLabel(expectedValue)
+		apparentLabel, err := vc.fromPackage.AppendLabel(vc.expectedValue)
 		if err != nil {
-			return false, fmt.Errorf("invalid label %#v: %w", expectedValue, err)
+			return false, fmt.Errorf("invalid label %#v: %w", vc.expectedValue, err)
 		}
-		resolvedLabel, err := label.Resolve(labelResolver, fromPackage.GetCanonicalRepo(), apparentLabel)
+		resolvedLabel, err := label.Resolve(vc.labelResolver, vc.fromPackage.GetCanonicalRepo(), apparentLabel)
 		if err != nil {
-			return false, fmt.Errorf("failed to resolve label %#v: %w", expectedValue, err)
+			return false, fmt.Errorf("failed to resolve label %#v: %w", vc.expectedValue, err)
 		}
 		return resolvedLabel.String() == typedValue.Label, nil
+	case *model_starlark_pb.Value_List:
+		var errIter error
+		for element := range model_starlark.AllListLeafElementsSkippingDuplicateParents(
+			vc.context,
+			vc.listReader,
+			model_core.Nested(actualValue, typedValue.List.Elements),
+			/* listsSeen = */ map[model_core.Decodable[object.LocalReference]]struct{}{},
+			&errIter,
+		) {
+			equal, err := vc.compareBuildSettingValue(element)
+			if err != nil {
+				return false, err
+			}
+			if equal {
+				return true, nil
+			}
+		}
+		if errIter != nil {
+			return false, errIter
+		}
+		return false, nil
 	case *model_starlark_pb.Value_Str:
-		return expectedValue == typedValue.Str, nil
+		return vc.expectedValue == typedValue.Str, nil
 	default:
 		return false, errors.New("build setting value is of an unknown type")
 	}
