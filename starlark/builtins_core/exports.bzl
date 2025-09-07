@@ -3390,6 +3390,7 @@ exported_toplevels = {
     ),
     "platform_common": struct(
         ConstraintValueInfo = ConstraintValueInfo,
+        PlatformInfo = PlatformInfo,
         TemplateVariableInfo = TemplateVariableInfo,
         ToolchainInfo = ToolchainInfo,
     ),
