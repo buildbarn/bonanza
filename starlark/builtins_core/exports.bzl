@@ -2659,11 +2659,51 @@ def builtins_internal_cc_common_create_module_map(
         _umbrella_header = umbrella_header,
     )
 
+def env_entry_can_be_expanded(env_entry, variables):
+    if (
+        env_entry.expand_if_available and
+        not variables_is_available(variables, env_entry.expand_if_available)
+    ):
+        return False
+    return True
+
+def env_entry_add_env_entry(env_entry, variables, env_builder):
+    if not env_entry_can_be_expanded(env_entry, variables):
+        return
+    env_builder[env_entry.key] = env_entry.value
+
+def env_set_expand_environment(env_set, action, variables, enabled_feature_names, env_builder):
+    if action not in env_set.actions:
+        return
+    if not is_with_features_satisfied(env_set.with_features, enabled_feature_names):
+        return
+    for env_entry in env_set.env_entries:
+        env_entry_add_env_entry(env_entry, variables, env_builder)
+
+def feature_expand_environment(feature, action, variables, enabled_feature_names, env_builder):
+    for env_set in feature.env_sets:
+        env_set_expand_environment(
+            env_set,
+            action,
+            variables,
+            enabled_feature_names,
+            env_builder,
+        )
+
 def builtins_internal_cc_common_get_environment_variables(
         feature_configuration,
         action_name,
         variables):
-    return {}
+    env_builder = {}
+    for feature in feature_configuration._enabled_features:
+        feature_expand_environment(
+            feature,
+            action_name,
+            variables,
+            feature_configuration._enabled_feature_names,
+            env_builder,
+        )
+    return env_builder
 
 def builtins_internal_cc_common_get_execution_requirements(
         *,
