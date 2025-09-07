@@ -708,6 +708,8 @@ func (r *changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]) OnU
 	return r, nil
 }
 
+var errFileDoesNotExist = errors.New("file does not exist")
+
 func (r *changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]) getFile() (*changeTrackingFile[TReference, TMetadata], error) {
 	if r.TerminalName == nil {
 		return nil, errors.New("path does not resolve to a file")
@@ -719,7 +721,7 @@ func (r *changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]) get
 	if f, ok := d.files[*r.TerminalName]; ok {
 		return f, nil
 	}
-	return nil, errors.New("file does not exist")
+	return nil, errFileDoesNotExist
 }
 
 type changeTrackingDirectoryNewDirectoryResolver[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -1192,10 +1194,18 @@ func (c *baseComputer[TReference, TMetadata]) applyPatch(
 			}
 			f, err := r.getFile()
 			if err != nil {
-				return fmt.Errorf("cannot get file at path %#v: %w", file.OldName, err)
+				// go-gitdiff only considers files new if the
+				// old name is /dev/null. However, there are
+				// also many patches out there that don't do
+				// that. Treat non-existent files as if they
+				// are empty.
+				if !errors.Is(err, errFileDoesNotExist) {
+					return fmt.Errorf("cannot get file at path %#v: %w", file.OldName, err)
+				}
+			} else {
+				fileContents = f.contents
+				isExecutable = f.isExecutable
 			}
-			fileContents = f.contents
-			isExecutable = f.isExecutable
 		}
 
 		// Compute the offsets at which changes need to
