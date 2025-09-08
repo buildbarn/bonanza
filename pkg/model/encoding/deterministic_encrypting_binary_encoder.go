@@ -4,6 +4,8 @@ import (
 	"crypto/cipher"
 	"math/bits"
 
+	"github.com/buildbarn/bb-storage/pkg/util"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -23,9 +25,10 @@ type deterministicEncryptingBinaryEncoder struct {
 // encrypted with a different key will fail validation.
 func NewDeterministicEncryptingBinaryEncoder(aead cipher.AEAD, additionalData []byte) BinaryEncoder {
 	return &deterministicEncryptingBinaryEncoder{
-		aead:         aead,
-		tagSizeBytes: aead.Overhead(),
-		nonce:        make([]byte, aead.NonceSize()),
+		aead:           aead,
+		additionalData: additionalData,
+		tagSizeBytes:   aead.Overhead(),
+		nonce:          make([]byte, aead.NonceSize()),
 	}
 }
 
@@ -83,7 +86,7 @@ func (be *deterministicEncryptingBinaryEncoder) DecodeBinary(in, tag []byte) ([]
 	ciphertext := append(append([]byte(nil), in...), tag...)
 	plaintext, err := be.aead.Open(ciphertext[:0], be.nonce, ciphertext, be.additionalData)
 	if err != nil {
-		return nil, err
+		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Decryption failed")
 	}
 
 	// Remove trailing padding.
