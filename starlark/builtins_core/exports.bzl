@@ -1245,6 +1245,7 @@ def builtins_internal_cc_common_create_cc_compile_actions(
             action_construction_context.actions.run(
                 executable = builtins_internal_cc_common_get_tool_for_action(feature_configuration, action_name),
                 arguments = builtins_internal_cc_common_get_memory_inefficient_command_line(feature_configuration, action_name, variables),
+                env = builtins_internal_cc_common_get_environment_variables(feature_configuration, action_name, variables),
                 inputs = inputs,
                 outputs = [object_file],
             )
@@ -1268,6 +1269,7 @@ def builtins_internal_cc_common_create_cc_compile_actions(
             )
             action_construction_context.actions.run(
                 executable = builtins_internal_cc_common_get_tool_for_action(feature_configuration, action_name),
+                env = builtins_internal_cc_common_get_environment_variables(feature_configuration, action_name, pic_variables),
                 arguments = builtins_internal_cc_common_get_memory_inefficient_command_line(feature_configuration, action_name, pic_variables),
                 inputs = inputs,
                 outputs = [pic_object_file],
