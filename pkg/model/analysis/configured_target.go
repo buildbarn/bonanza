@@ -2293,7 +2293,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 		}))),
 		"env?", unpack.Bind(thread, &env, unpack.Dict(unpack.String, unpack.String)),
 		"exec_group?", unpack.Bind(thread, &execGroup, unpack.IfNotNone(unpack.String)),
-		"execution_requirements?", unpack.Bind(thread, &executionRequirements, unpack.Dict(unpack.String, unpack.String)),
+		"execution_requirements?", unpack.Bind(thread, &executionRequirements, unpack.IfNotNone(unpack.Dict(unpack.String, unpack.String))),
 		"inputs?", unpack.Bind(thread, &inputs, unpack.Or([]unpack.UnpackerInto[*model_starlark.Depset[TReference, TMetadata]]{
 			unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"),
 			model_starlark.NewListToDepsetUnpackerInto[TReference, TMetadata](
