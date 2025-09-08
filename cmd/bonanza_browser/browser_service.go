@@ -940,20 +940,27 @@ func (s *BrowserService) doObject(
 			renderErrorAlert(fmt.Errorf("failed to download object: %w", err)),
 		), nil
 	}
-	rendered, encodersInObject := payloadRenderers[currentPayloadRendererIndex].render(
+	rendered, usedEncoderIndex, encodersInObject := payloadRenderers[currentPayloadRendererIndex].render(
 		r,
 		model_core.CopyDecodable(objectReference, o),
-		cookie.RecentlyObservedEncoders[0].Configuration,
+		cookie.RecentlyObservedEncoders,
 	)
 
-	// Rendering might reveal the existence of additional encoders.
+	// For future page views, change the order of encoders to:
+	// - The encoder that was used to decrypt the object.
+	// - Any encoders found in the object that is currently being
+	//   displayed.
+	// - All existing encoders that were not used this time.
 	cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
 		append(
 			append(
-				[]*browser_pb.RecentlyObservedEncoder{cookie.RecentlyObservedEncoders[0]},
-				encodersInObject...,
+				append(
+					[]*browser_pb.RecentlyObservedEncoder{cookie.RecentlyObservedEncoders[usedEncoderIndex]},
+					encodersInObject...,
+				),
+				cookie.RecentlyObservedEncoders[:usedEncoderIndex]...,
 			),
-			cookie.RecentlyObservedEncoders[1:]...,
+			cookie.RecentlyObservedEncoders[usedEncoderIndex+1:]...,
 		),
 	)
 
@@ -1889,7 +1896,7 @@ func (pu *protoUnmarshaler[TMessage, TMessagePtr]) UnmarshalJSON(b []byte) error
 type payloadRenderer interface {
 	queryParameter() string
 	name() string
-	render(r *http.Request, o model_core.Decodable[*object.Contents], encoders []*model_encoding_pb.BinaryEncoder) ([]g.Node, []*browser_pb.RecentlyObservedEncoder)
+	render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder)
 }
 
 // rawPayloadRenderer renders an object without performing any decoding
@@ -1901,26 +1908,27 @@ var _ payloadRenderer = rawPayloadRenderer{}
 func (rawPayloadRenderer) queryParameter() string { return "raw" }
 func (rawPayloadRenderer) name() string           { return "Raw" }
 
-func (rawPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], encoders []*model_encoding_pb.BinaryEncoder) ([]g.Node, []*browser_pb.RecentlyObservedEncoder) {
+func (rawPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
 	return []g.Node{
 		h.Pre(g.Text(hex.Dump(o.Value.GetPayload()))),
-	}, nil
+	}, 0, nil
 }
 
-func decodeObject(o model_core.Decodable[*object.Contents], encoders []*model_encoding_pb.BinaryEncoder) ([]byte, error) {
-	objectReference := o.Value.GetLocalReference()
-	binaryEncoder, err := model_encoding.NewBinaryEncoderFromProto(
-		encoders,
-		uint32(objectReference.GetReferenceFormat().GetMaximumObjectSizeBytes()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create encoder: %w", err)
+func decodeObject(o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]byte, int, error) {
+	for i, recentlyObservedEncoder := range recentlyObservedEncoders {
+		objectReference := o.Value.GetLocalReference()
+		binaryEncoder, err := model_encoding.NewBinaryEncoderFromProto(
+			recentlyObservedEncoder.Configuration,
+			uint32(objectReference.GetReferenceFormat().GetMaximumObjectSizeBytes()),
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to create encoder: %w", err)
+		}
+		if decodedObject, err := binaryEncoder.DecodeBinary(o.Value.GetPayload(), o.GetDecodingParameters()); err == nil {
+			return decodedObject, i, nil
+		}
 	}
-	decodedObject, err := binaryEncoder.DecodeBinary(o.Value.GetPayload(), o.GetDecodingParameters())
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode object: %w", err)
-	}
-	return decodedObject, nil
+	return nil, 0, errors.New("object can't be decoded using any of the recently observed encoders")
 }
 
 // decodedPayloadRenderer renders the decoded payload of an object. The
@@ -1932,14 +1940,14 @@ var _ payloadRenderer = decodedPayloadRenderer{}
 func (decodedPayloadRenderer) queryParameter() string { return "decoded" }
 func (decodedPayloadRenderer) name() string           { return "Decoded" }
 
-func (decodedPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], encoders []*model_encoding_pb.BinaryEncoder) ([]g.Node, []*browser_pb.RecentlyObservedEncoder) {
-	decodedObject, err := decodeObject(o, encoders)
+func (decodedPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
+	decodedObject, usedEncoderIndex, err := decodeObject(o, recentlyObservedEncoders)
 	if err != nil {
-		return renderErrorAlert(err), nil
+		return renderErrorAlert(err), 0, nil
 	}
 	return []g.Node{
 		h.Pre(g.Text(hex.Dump(decodedObject))),
-	}, nil
+	}, usedEncoderIndex, nil
 }
 
 // textPayloadRenderer renders the decoded payload of an object,
@@ -1953,15 +1961,15 @@ var _ payloadRenderer = textPayloadRenderer{}
 func (textPayloadRenderer) queryParameter() string { return "text" }
 func (textPayloadRenderer) name() string           { return "Text" }
 
-func (textPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], encoders []*model_encoding_pb.BinaryEncoder) ([]g.Node, []*browser_pb.RecentlyObservedEncoder) {
-	decodedObject, err := decodeObject(o, encoders)
+func (textPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
+	decodedObject, usedEncoderIndex, err := decodeObject(o, recentlyObservedEncoders)
 	if err != nil {
-		return renderErrorAlert(err), nil
+		return renderErrorAlert(err), 0, nil
 	}
 
 	if utf8.Valid(decodedObject) {
 		// Fast path: byte slice is already valid UTF-8.
-		return []g.Node{h.Pre(g.Text(string(decodedObject)))}, nil
+		return []g.Node{h.Pre(g.Text(string(decodedObject)))}, usedEncoderIndex, nil
 	}
 
 	// Slow path: byte slice contains one or more invalid sequences.
@@ -1983,10 +1991,10 @@ func (textPayloadRenderer) render(r *http.Request, o model_core.Decodable[*objec
 	}
 
 	if badRuneCount > runeCount/10 {
-		return renderErrorAlert(errors.New("object contains binary data, or the encoder configuration is incorrect")), nil
+		return renderErrorAlert(errors.New("object contains binary data, or the encoder configuration is incorrect")), usedEncoderIndex, nil
 	}
 
-	return []g.Node{h.Pre(g.Text(sb.String()))}, nil
+	return []g.Node{h.Pre(g.Text(sb.String()))}, usedEncoderIndex, nil
 }
 
 // messageJSONRenderer is capable of rendering Protobuf messages as JSON
@@ -2328,21 +2336,21 @@ var _ payloadRenderer = messageJSONPayloadRenderer{}
 func (messageJSONPayloadRenderer) queryParameter() string { return "json" }
 func (messageJSONPayloadRenderer) name() string           { return "JSON" }
 
-func (messageJSONPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], encoders []*model_encoding_pb.BinaryEncoder) ([]g.Node, []*browser_pb.RecentlyObservedEncoder) {
-	decodedObject, err := decodeObject(o, encoders)
+func (messageJSONPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
+	decodedObject, usedEncoderIndex, err := decodeObject(o, recentlyObservedEncoders)
 	if err != nil {
-		return renderErrorAlert(err), nil
+		return renderErrorAlert(err), 0, nil
 	}
 
 	messageTypeStr := r.PathValue("message_type")
 	messageType, err := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(messageTypeStr))
 	if err != nil {
-		return renderErrorAlert(fmt.Errorf("invalid message type %#v: %w", messageTypeStr, err)), nil
+		return renderErrorAlert(fmt.Errorf("invalid message type %#v: %w", messageTypeStr, err)), usedEncoderIndex, nil
 	}
 
 	message := messageType.New()
 	if err := proto.Unmarshal(decodedObject, message.Interface()); err != nil {
-		return renderErrorAlert(fmt.Errorf("failed to unmarshal message: %w", err)), nil
+		return renderErrorAlert(fmt.Errorf("failed to unmarshal message: %w", err)), usedEncoderIndex, nil
 	}
 	referenceFormat := o.Value.GetReferenceFormat()
 	d := messageJSONRenderer{
@@ -2351,7 +2359,7 @@ func (messageJSONPayloadRenderer) render(r *http.Request, o model_core.Decodable
 		now:             time.Now(),
 	}
 	rendered := d.renderTopLevelMessage(model_core.NewTopLevelMessage(message, o.Value))
-	return rendered, d.observedEncoders
+	return rendered, usedEncoderIndex, d.observedEncoders
 }
 
 // messageListJSONPayloadRenderer renders the decoded payload of an
@@ -2364,16 +2372,16 @@ var _ payloadRenderer = messageListJSONPayloadRenderer{}
 func (messageListJSONPayloadRenderer) queryParameter() string { return "json" }
 func (messageListJSONPayloadRenderer) name() string           { return "JSON" }
 
-func (messageListJSONPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], encoders []*model_encoding_pb.BinaryEncoder) ([]g.Node, []*browser_pb.RecentlyObservedEncoder) {
-	decodedObject, err := decodeObject(o, encoders)
+func (messageListJSONPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
+	decodedObject, usedEncoderIndex, err := decodeObject(o, recentlyObservedEncoders)
 	if err != nil {
-		return renderErrorAlert(err), nil
+		return renderErrorAlert(err), 0, nil
 	}
 
 	messageTypeStr := r.PathValue("message_type")
 	messageType, err := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(messageTypeStr))
 	if err != nil {
-		return renderErrorAlert(fmt.Errorf("invalid message type %#v: %w", messageTypeStr, err)), nil
+		return renderErrorAlert(fmt.Errorf("invalid message type %#v: %w", messageTypeStr, err)), usedEncoderIndex, nil
 	}
 
 	var elements []protoreflect.Message
@@ -2383,19 +2391,19 @@ func (messageListJSONPayloadRenderer) render(r *http.Request, o model_core.Decod
 		offset := originalDataLength - len(decodedObject)
 		length, lengthLength := varint.ConsumeForward[uint](decodedObject)
 		if lengthLength < 0 {
-			return renderErrorAlert(fmt.Errorf("invalid element length at offset %d", offset)), nil
+			return renderErrorAlert(fmt.Errorf("invalid element length at offset %d", offset)), usedEncoderIndex, nil
 		}
 
 		// Validate the size.
 		decodedObject = decodedObject[lengthLength:]
 		if length > uint(len(decodedObject)) {
-			return renderErrorAlert(fmt.Errorf("length of element at offset %d is %d bytes, which exceeds maximum permitted size of %d bytes", offset, length, len(decodedObject))), nil
+			return renderErrorAlert(fmt.Errorf("length of element at offset %d is %d bytes, which exceeds maximum permitted size of %d bytes", offset, length, len(decodedObject))), usedEncoderIndex, nil
 		}
 
 		// Unmarshal the element.
 		element := messageType.New()
 		if err := proto.Unmarshal(decodedObject[:length], element.Interface()); err != nil {
-			return renderErrorAlert(fmt.Errorf("failed to unmarshal element at offset %d: %w", offset, err)), nil
+			return renderErrorAlert(fmt.Errorf("failed to unmarshal element at offset %d: %w", offset, err)), usedEncoderIndex, nil
 		}
 		elements = append(elements, element)
 		decodedObject = decodedObject[length:]
@@ -2408,5 +2416,5 @@ func (messageListJSONPayloadRenderer) render(r *http.Request, o model_core.Decod
 		now:             time.Now(),
 	}
 	rendered := d.renderMessageList(model_core.NewMessage(elements, o.Value))
-	return rendered, d.observedEncoders
+	return rendered, usedEncoderIndex, d.observedEncoders
 }
