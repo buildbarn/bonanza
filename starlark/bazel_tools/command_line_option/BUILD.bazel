@@ -237,6 +237,13 @@ string_list_flag(
     visibility = ["//visibility:public"],
 )
 
+# TODO: Should be a string_dict_flag().
+string_list_flag(
+    name = "define",
+    build_setting_default = [],
+    visibility = ["//visibility:public"],
+)
+
 bool_flag(
     name = "desugar_for_android",
     build_setting_default = True,
