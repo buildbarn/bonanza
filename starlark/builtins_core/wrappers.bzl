@@ -98,6 +98,13 @@ def _wrap_rule_ctx(ctx):
             executable = target.files_to_run.executable
             files = target.files.to_list()
             all_targets[target.original_label] = [executable] if executable and len(files) != 1 else files
+        for output_name in dir(ctx.outputs):
+            output = getattr(ctx.outputs, output_name)
+            if type(output) == type([]):
+                for o in output:
+                    all_targets[o.label] = [o]
+            else:
+                all_targets[output.label] = [output]
 
         result = ""
         result_until_start_of_directive = ""

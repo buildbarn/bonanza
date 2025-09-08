@@ -160,6 +160,16 @@ func (f *File[TReference, TMetadata]) Attr(thread *starlark.Thread, name string)
 			}
 		}
 		return starlark.String(""), nil
+	case "label":
+		// Bonanza specific extension.
+		if f.treeRelativePath != nil {
+			return nil, errors.New("files with tree relative paths cannot be identified with a label")
+		}
+		canonicalLabel, err := pg_label.NewCanonicalLabel(d.Label)
+		if err != nil {
+			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.Label, err)
+		}
+		return NewLabel[TReference, TMetadata](canonicalLabel.AsResolved()), nil
 	case "is_directory":
 		// For files created by DirectoryExpander, the
 		// definition still refers to the directory from which
@@ -234,6 +244,7 @@ var fileAttrNames = []string{
 	"basename",
 	"dirname",
 	"extension",
+	"label",
 	"is_directory",
 	"is_source",
 	"is_symlink",
