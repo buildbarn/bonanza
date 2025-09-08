@@ -1,3 +1,4 @@
 run --workspace_status_command="bash tools/workspace-status.sh"
 common --incompatible_enable_proto_toolchain_resolution
 common --protocopt=--fatal_warnings
+test --enable_runfiles

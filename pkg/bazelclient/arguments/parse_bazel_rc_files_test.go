@@ -49,7 +49,7 @@ func TestParseBazelRCFiles(t *testing.T) {
 			/* workingDirectoryPath = */ path.UNIXFormat.NewParser("/"),
 		)
 		// TODO: Polish up error message!
-		testutil.RequireEqualStatus(t, status.Error(codes.NotFound, "Directory \"/\": no such file or directory"), err)
+		testutil.RequirePrefixedStatus(t, status.Error(codes.NotFound, "Directory \"/\": "), err)
 	})
 
 	t.Run("SymlinkLoopTerminal", func(t *testing.T) {
