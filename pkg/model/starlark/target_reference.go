@@ -18,25 +18,68 @@ import (
 	"go.starlark.net/syntax"
 )
 
+type ConfiguredTargetReference[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+	label            pg_label.CanonicalLabel
+	encodedProviders model_core.Message[[]*model_starlark_pb.Struct, TReference]
+	decodedProviders []atomic.Pointer[Struct[TReference, TMetadata]]
+}
+
+func NewConfiguredTargetReference[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](label pg_label.CanonicalLabel, providers model_core.Message[[]*model_starlark_pb.Struct, TReference]) *ConfiguredTargetReference[TReference, TMetadata] {
+	return &ConfiguredTargetReference[TReference, TMetadata]{
+		label:            label,
+		encodedProviders: providers,
+		decodedProviders: make([]atomic.Pointer[Struct[TReference, TMetadata]], len(providers.Message)),
+	}
+}
+
+func (ctr *ConfiguredTargetReference[TReference, TMetadata]) getProviderValue(thread *starlark.Thread, providerIdentifier pg_label.CanonicalStarlarkIdentifier) (*Struct[TReference, TMetadata], error) {
+	valueDecodingOptions := thread.Local(ValueDecodingOptionsKey)
+	if valueDecodingOptions == nil {
+		return nil, errors.New("providers cannot be decoded from within this context")
+	}
+
+	providerIdentifierStr := providerIdentifier.String()
+	index, ok := sort.Find(
+		len(ctr.encodedProviders.Message),
+		func(i int) int {
+			return strings.Compare(providerIdentifierStr, ctr.encodedProviders.Message[i].ProviderInstanceProperties.GetProviderIdentifier())
+		},
+	)
+	if !ok {
+		return nil, fmt.Errorf("target %#v did not yield provider %#v", ctr.label.String(), providerIdentifierStr)
+	}
+
+	strukt := ctr.decodedProviders[index].Load()
+	if strukt == nil {
+		var err error
+		strukt, err = DecodeStruct[TReference, TMetadata](
+			model_core.Nested(ctr.encodedProviders, ctr.encodedProviders.Message[index]),
+			valueDecodingOptions.(*ValueDecodingOptions[TReference]),
+		)
+		if err != nil {
+			return nil, err
+		}
+		ctr.decodedProviders[index].Store(strukt)
+	}
+	return strukt, nil
+}
+
 // TargetReference is a Starlark value corresponding to the Target type.
 // These are the values that rule implementations may access through
 // ctx.attr or ctx.split_attr.
 type TargetReference[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
-	label            pg_label.ResolvedLabel
-	encodedProviders model_core.Message[[]*model_starlark_pb.Struct, TReference]
-
-	decodedProviders []atomic.Pointer[Struct[TReference, TMetadata]]
+	originalLabel pg_label.ResolvedLabel
+	configured    *ConfiguredTargetReference[TReference, TMetadata]
 }
 
 // NewTargetReference creates a new Starlark Target value corresponding
 // to a given label, exposing struct instances corresponding to a set of
 // providers. This function expects these struct instances to be
 // alphabetically sorted by provider identifier.
-func NewTargetReference[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](label pg_label.ResolvedLabel, providers model_core.Message[[]*model_starlark_pb.Struct, TReference]) starlark.Value {
+func NewTargetReference[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](originalLabel pg_label.ResolvedLabel, configured *ConfiguredTargetReference[TReference, TMetadata]) starlark.Value {
 	return &TargetReference[TReference, TMetadata]{
-		label:            label,
-		encodedProviders: providers,
-		decodedProviders: make([]atomic.Pointer[Struct[TReference, TMetadata]], len(providers.Message)),
+		originalLabel: originalLabel,
+		configured:    configured,
 	}
 }
 
@@ -48,7 +91,10 @@ var (
 )
 
 func (tr *TargetReference[TReference, TMetadata]) String() string {
-	return fmt.Sprintf("<target %s>", tr.label.String())
+	if tr.configured != nil {
+		return fmt.Sprintf("<target %s>", tr.configured.label.String())
+	}
+	return fmt.Sprintf("<unconfigured target %s>", tr.originalLabel.String())
 }
 
 // Type returns the name of the type of a Starlark Target value.
@@ -72,18 +118,26 @@ func (TargetReference[TReference, TMetadata]) Truth() starlark.Bool {
 // label, but a different configuration is fairly low, we simply hash
 // the target's label.
 func (tr *TargetReference[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return starlark.String(tr.label.String()).Hash(thread)
+	return starlark.String(tr.originalLabel.String()).Hash(thread)
 }
 
 func (tr *TargetReference[TReference, TMetadata]) equal(thread *starlark.Thread, other *TargetReference[TReference, TMetadata]) (bool, error) {
 	if tr != other {
-		if tr.label != other.label {
+		if tr.originalLabel != other.originalLabel {
 			return false, nil
 		}
-		if len(tr.encodedProviders.Message) != len(other.encodedProviders.Message) {
+		if (tr.configured != nil) != (other.configured != nil) {
 			return false, nil
 		}
-		return false, errors.New("TODO: Compare encoded providers!")
+		if tr.configured != nil {
+			if tr.configured.label != other.configured.label {
+				return false, nil
+			}
+			if len(tr.configured.encodedProviders.Message) != len(other.configured.encodedProviders.Message) {
+				return false, nil
+			}
+			return false, errors.New("TODO: Compare encoded providers!")
+		}
 	}
 	return true, nil
 }
@@ -113,63 +167,47 @@ var defaultInfoProviderIdentifier = util.Must(pg_label.NewCanonicalStarlarkIdent
 // indirection.
 func (tr *TargetReference[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
 	switch name {
-	case "label":
-		return NewLabel[TReference, TMetadata](tr.label), nil
-	case "data_runfiles", "default_runfiles", "files", "files_to_run":
-		// Fields provided by DefaultInfo can be accessed directly.
-		defaultInfoProviderValue, err := tr.getProviderValue(thread, defaultInfoProviderIdentifier)
-		if err != nil {
-			return nil, err
-		}
-		return defaultInfoProviderValue.Attr(thread, name)
-	default:
-		return nil, nil
+	case "original_label":
+		// Bonanza specific extension.
+		return NewLabel[TReference, TMetadata](tr.originalLabel), nil
 	}
+
+	if ctr := tr.configured; ctr != nil {
+		switch name {
+		case "data_runfiles", "default_runfiles", "files", "files_to_run":
+			// Fields provided by DefaultInfo can be accessed directly.
+			defaultInfoProviderValue, err := ctr.getProviderValue(thread, defaultInfoProviderIdentifier)
+			if err != nil {
+				return nil, err
+			}
+			return defaultInfoProviderValue.Attr(thread, name)
+		case "label":
+			return NewLabel[TReference, TMetadata](ctr.label.AsResolved()), nil
+		}
+	}
+
+	return nil, nil
 }
 
-var targetReferenceAttrNames = []string{
+var unconfiguredTargetReferenceAttrNames = []string{
+	"original_label",
+}
+
+var configuredTargetReferenceAttrNames = []string{
 	"data_runfiles",
 	"default_runfiles",
 	"files",
 	"files_to_run",
 	"label",
+	"original_label",
 }
 
 // AttrNames returns the attribute names of a Starlark Target value.
 func (tr *TargetReference[TReference, TMetadata]) AttrNames() []string {
-	return targetReferenceAttrNames
-}
-
-func (tr *TargetReference[TReference, TMetadata]) getProviderValue(thread *starlark.Thread, providerIdentifier pg_label.CanonicalStarlarkIdentifier) (*Struct[TReference, TMetadata], error) {
-	valueDecodingOptions := thread.Local(ValueDecodingOptionsKey)
-	if valueDecodingOptions == nil {
-		return nil, errors.New("providers cannot be decoded from within this context")
+	if tr.configured != nil {
+		return configuredTargetReferenceAttrNames
 	}
-
-	providerIdentifierStr := providerIdentifier.String()
-	index, ok := sort.Find(
-		len(tr.encodedProviders.Message),
-		func(i int) int {
-			return strings.Compare(providerIdentifierStr, tr.encodedProviders.Message[i].ProviderInstanceProperties.GetProviderIdentifier())
-		},
-	)
-	if !ok {
-		return nil, fmt.Errorf("target %#v did not yield provider %#v", tr.label.String(), providerIdentifierStr)
-	}
-
-	strukt := tr.decodedProviders[index].Load()
-	if strukt == nil {
-		var err error
-		strukt, err = DecodeStruct[TReference, TMetadata](
-			model_core.Nested(tr.encodedProviders, tr.encodedProviders.Message[index]),
-			valueDecodingOptions.(*ValueDecodingOptions[TReference]),
-		)
-		if err != nil {
-			return nil, err
-		}
-		tr.decodedProviders[index].Store(strukt)
-	}
-	return strukt, nil
+	return unconfiguredTargetReferenceAttrNames
 }
 
 // Get the value of a given provider from the Starlark Target value.
@@ -183,7 +221,12 @@ func (tr *TargetReference[TReference, TMetadata]) Get(thread *starlark.Thread, v
 	if providerIdentifier == nil {
 		return nil, false, errors.New("provider does not have a name")
 	}
-	providerValue, err := tr.getProviderValue(thread, *providerIdentifier)
+
+	ctr := tr.configured
+	if ctr == nil {
+		return nil, false, errors.New("target is not configured")
+	}
+	providerValue, err := ctr.getProviderValue(thread, *providerIdentifier)
 	if err != nil {
 		return nil, false, err
 	}
@@ -194,15 +237,28 @@ func (tr *TargetReference[TReference, TMetadata]) Get(thread *starlark.Thread, v
 // that it can be written to storage and restored at a later point in
 // time.
 func (tr *TargetReference[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
-	return model_core.Patch(
-		options.ObjectCapturer,
-		model_core.Nested(tr.encodedProviders, &model_starlark_pb.Value{
+	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Value {
+		m := &model_starlark_pb.TargetReference{
+			OriginalLabel: tr.originalLabel.String(),
+		}
+		if ctr := tr.configured; ctr != nil {
+			// TODO: Add a model_core.PatchList() so that we
+			// don't need to abuse model_core.Nested() here.
+			m.Configured = model_core.Patch(
+				options.ObjectCapturer,
+				model_core.Nested(
+					ctr.encodedProviders,
+					&model_starlark_pb.TargetReference_Configured{
+						Label:     ctr.label.String(),
+						Providers: ctr.encodedProviders.Message,
+					},
+				),
+			).Merge(patcher)
+		}
+		return &model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_TargetReference{
-				TargetReference: &model_starlark_pb.TargetReference{
-					Label:     tr.label.String(),
-					Providers: tr.encodedProviders.Message,
-				},
+				TargetReference: m,
 			},
-		}),
-	), false, nil
+		}
+	}), false, nil
 }

@@ -211,7 +211,7 @@ def _config_setting_impl(ctx):
             for constraint_value in ctx.attr.constraint_values
         },
         flag_values = {
-            key.label: value
+            key.original_label: value
             for key, value in ctx.attr.flag_values.items()
         },
     )]
@@ -315,7 +315,7 @@ def configuration_field(fragment, name):
 def _constraint_setting_impl(ctx):
     default_constraint_value = ctx.attr.default_constraint_value
     return [ConstraintSettingInfo(
-        default_constraint_value = default_constraint_value.label if default_constraint_value else None,
+        default_constraint_value = default_constraint_value.original_label if default_constraint_value else None,
         has_default_constraint_value = bool(default_constraint_value),
         label = ctx.label,
     )]
@@ -654,7 +654,7 @@ def _toolchain_impl(ctx):
             target_setting.label
             for target_setting in ctx.attr.target_settings
         ],
-        toolchain = ctx.attr.toolchain.label,
+        toolchain = ctx.attr.toolchain.original_label,
         toolchain_type = ctx.attr.toolchain_type[ToolchainTypeInfo].type_label,
     )]
 

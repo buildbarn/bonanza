@@ -397,14 +397,14 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 			decodedPart, err := model_starlark.DecodeValue[TReference, TMetadata](
 				model_core.Nested(valueParts, valuePart),
 				/* currentIdentifier = */ nil,
-				c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
+				c.getValueDecodingOptions(ctx, func(originalLabel label.ResolvedLabel) (starlark.Value, error) {
 					// We should leave the target
 					// unconfigured. Provide a
 					// target reference that does
 					// not contain any providers.
 					return model_starlark.NewTargetReference[TReference, TMetadata](
-						resolvedLabel,
-						model_core.NewSimpleMessage[TReference]([]*model_starlark_pb.Struct(nil)),
+						originalLabel,
+						/* configured = */ nil,
 					), nil
 				}),
 			)
@@ -418,9 +418,9 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 	} else {
 		missingDependencies := false
 		for _, configurationReference := range configurationReferences {
-			valueDecodingOptions := c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
+			valueDecodingOptions := c.getValueDecodingOptions(ctx, func(originalLabel label.ResolvedLabel) (starlark.Value, error) {
 				// Resolve the label.
-				canonicalLabel, err := resolvedLabel.AsCanonical()
+				canonicalOriginalLabel, err := originalLabel.AsCanonical()
 				if err != nil {
 					return nil, err
 				}
@@ -429,7 +429,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 					model_core.NewPatchedMessage(
 						&model_analysis_pb.VisibleTarget_Key{
 							FromPackage:            visibilityFromPackage.String(),
-							ToLabel:                canonicalLabel.String(),
+							ToLabel:                canonicalOriginalLabel.String(),
 							ConfigurationReference: patchedConfigurationReference1.Message,
 						},
 						patchedConfigurationReference1.Patcher,
@@ -440,7 +440,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 					return starlark.None, nil
 				}
 				if resolvedLabelStr := resolvedLabelValue.Message.Label; resolvedLabelStr != "" {
-					canonicalLabel, err := label.NewCanonicalLabel(resolvedLabelStr)
+					resolvedLabel, err := label.NewCanonicalLabel(resolvedLabelStr)
 					if err != nil {
 						return nil, fmt.Errorf("invalid label %#v: %w", resolvedLabelStr, err)
 					}
@@ -461,9 +461,12 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 						return starlark.None, nil
 					}
 
-					return model_starlark.NewTargetReference[TReference, TMetadata](
-						canonicalLabel.AsResolved(),
-						model_core.Nested(configuredTarget, configuredTarget.Message.ProviderInstances),
+					return model_starlark.NewTargetReference(
+						originalLabel,
+						model_starlark.NewConfiguredTargetReference[TReference, TMetadata](
+							resolvedLabel,
+							model_core.Nested(configuredTarget, configuredTarget.Message.ProviderInstances),
+						),
 					), nil
 				} else {
 					return starlark.None, nil
@@ -979,10 +982,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					decodedPart, err := model_starlark.DecodeValue[TReference, TMetadata](
 						model_core.Nested(valueParts, valuePart),
 						/* currentIdentifier = */ nil,
-						c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
+						c.getValueDecodingOptions(ctx, func(originalLabel label.ResolvedLabel) (starlark.Value, error) {
 							return model_starlark.NewTargetReference[TReference, TMetadata](
-								resolvedLabel,
-								model_core.NewSimpleMessage[TReference]([]*model_starlark_pb.Struct(nil)),
+								originalLabel,
+								/* configured = */ nil,
 							), nil
 						}),
 					)
@@ -1028,9 +1031,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					}
 
 					var splitAttrEntry starlark.Value
-					valueDecodingOptions := c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
+					valueDecodingOptions := c.getValueDecodingOptions(ctx, func(originalLabel label.ResolvedLabel) (starlark.Value, error) {
 						// Resolve the label.
-						canonicalLabel, err := resolvedLabel.AsCanonical()
+						canonicalOriginalLabel, err := originalLabel.AsCanonical()
 						if err != nil {
 							return nil, err
 						}
@@ -1039,7 +1042,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 							model_core.NewPatchedMessage(
 								&model_analysis_pb.VisibleTarget_Key{
 									FromPackage:            visibilityFromPackage.String(),
-									ToLabel:                canonicalLabel.String(),
+									ToLabel:                canonicalOriginalLabel.String(),
 									ConfigurationReference: patchedConfigurationReference1.Message,
 								},
 								patchedConfigurationReference1.Patcher,
@@ -1050,7 +1053,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 							return starlark.None, nil
 						}
 						if resolvedLabelStr := resolvedLabelValue.Message.Label; resolvedLabelStr != "" {
-							canonicalLabel, err := label.NewCanonicalLabel(resolvedLabelStr)
+							canonicalResolvedLabel, err := label.NewCanonicalLabel(resolvedLabelStr)
 							if err != nil {
 								return nil, fmt.Errorf("invalid label %#v: %w", resolvedLabelStr, err)
 							}
@@ -1143,7 +1146,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 								executableFileToFilesToRun[typedExecutable] = filesToRunStruct
 							}
 
-							return model_starlark.NewTargetReference[TReference, TMetadata](canonicalLabel.AsResolved(), providerInstances), nil
+							return model_starlark.NewTargetReference(
+								originalLabel,
+								model_starlark.NewConfiguredTargetReference[TReference, TMetadata](
+									canonicalResolvedLabel,
+									providerInstances,
+								),
+							), nil
 						} else {
 							return starlark.None, nil
 						}

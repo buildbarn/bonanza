@@ -685,13 +685,24 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Cloneabl
 			return nil, errors.New("encoded subrule does not have a reference or definition")
 		}
 	case *model_starlark_pb.Value_TargetReference:
-		label, err := pg_label.NewResolvedLabel(typedValue.TargetReference.Label)
+		originalLabel, err := pg_label.NewResolvedLabel(typedValue.TargetReference.OriginalLabel)
 		if err != nil {
-			return nil, fmt.Errorf("invalid label %#v: %w", typedValue.TargetReference.Label, err)
+			return nil, fmt.Errorf("invalid original label %#v: %w", typedValue.TargetReference.OriginalLabel, err)
+		}
+		var configuredTargetReference *ConfiguredTargetReference[TReference, TMetadata]
+		if configured := typedValue.TargetReference.Configured; configured != nil {
+			label, err := pg_label.NewCanonicalLabel(configured.Label)
+			if err != nil {
+				return nil, fmt.Errorf("invalid label %#v: %w", configured.Label, err)
+			}
+			configuredTargetReference = NewConfiguredTargetReference[TReference, TMetadata](
+				label,
+				model_core.Nested(encodedValue, configured.Providers),
+			)
 		}
 		return NewTargetReference[TReference, TMetadata](
-			label,
-			model_core.Nested(encodedValue, typedValue.TargetReference.Providers),
+			originalLabel,
+			configuredTargetReference,
 		), nil
 	case *model_starlark_pb.Value_TagClass:
 		return NewTagClass(NewProtoTagClassDefinition[TReference, TMetadata](

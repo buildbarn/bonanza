@@ -102,9 +102,8 @@ func (m *PatchedMessage[T, TMetadata]) Discard() {
 // Merge the references contained in the patched message into a provided
 // patcher, and return the message that is now owned by the provided
 // patcher.
-func (m *PatchedMessage[T, TMetadata]) Merge(patcher *ReferenceMessagePatcher[TMetadata]) T {
+func (m PatchedMessage[T, TMetadata]) Merge(patcher *ReferenceMessagePatcher[TMetadata]) T {
 	patcher.Merge(m.Patcher)
-	defer m.Clear()
 	return m.Message
 }
 

@@ -607,11 +607,20 @@ message TagClass {
 }
 
 message TargetReference {
-  // Canonical label of the target.
-  string label = 1;
+  // Resolved label of the target prior to expanding aliases.
+  string original_label = 1;
 
-  // Providers of the rule target, sorted by provider identifier.
-  repeated Struct providers = 2;
+  message Configured {
+    // Canonical label of the target after expanding aliases.
+    string label = 1;
+
+    // Providers of the target, sorted by provider identifier.
+    repeated Struct providers = 2;
+  }
+
+  // If set, the target has been configured. meaning it is possible to
+  // access its providers.
+  Configured configured = 2;
 }
 
 message ToolchainType {
