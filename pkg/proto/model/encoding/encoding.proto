@@ -7,8 +7,7 @@ import "google/protobuf/empty.proto";
 option go_package = "bonanza.build/pkg/proto/model/encoding";
 
 message DeterministicEncryptingBinaryEncoder {
-  // 128, 192, or 256-bit key that is used to encrypt the initialization
-  // vector and the data.
+  // 128 or 256-bit key that is used to encrypt the data.
   bytes encryption_key = 1;
 }
 
@@ -20,11 +19,22 @@ message BinaryEncoder {
     // the dictionary.
     google.protobuf.Empty lzw_compressing = 1;
 
-    // Encrypt data using AES, using the Counter (CTR) block cipher mode
-    // of operation. The first 128 bits of the SHA-256 hash of the
-    // plaintext are encrypted and used as the initialization vector,
-    // which is stored in the decoding parameters. To reduce information
-    // leakage, input is padded using the PADMÉ algorithm.
+    // Encrypt data using AES-GCM-SIV, using the following parameters:
+    //
+    // - Plaintext: input data.
+    // - Nonce: Twelve zero bytes.
+    // - Additional data: SHA-256 sum of a marshaled BinaryEncoderList
+    //   message containing all encoder configurations that are used in
+    //   addition to encryption.
+    //
+    // The 16-byte authentication tag is not stored as part of the
+    // ciphertext. Instead, it is stored in the decoding parameters that
+    // are used to refer to the data. To reduce information leakage,
+    // input is padded using the PADMÉ algorithm.
     DeterministicEncryptingBinaryEncoder deterministic_encrypting = 2;
   }
+}
+
+message BinaryEncoderList {
+  repeated BinaryEncoder encoders = 1;
 }

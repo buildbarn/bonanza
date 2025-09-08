@@ -2,7 +2,6 @@ package encoding
 
 import (
 	"crypto/cipher"
-	"crypto/sha256"
 	"math/bits"
 
 	"google.golang.org/grpc/codes"
@@ -10,26 +9,29 @@ import (
 )
 
 type deterministicEncryptingBinaryEncoder struct {
-	blockCipher    cipher.Block
-	blockSizeBytes int
+	aead           cipher.AEAD
+	additionalData []byte
+	tagSizeBytes   int
+	nonce          []byte
 }
 
 // NewDeterministicEncryptingBinaryEncoder creates a BinaryEncoder that
 // is capable of encrypting and decrypting data. The encryption process
 // is deterministic, in that encrypting the same data twice results in
-// the same encoded version of the data. It does not use Authenticating
-// Encryption (AE), meaning that other facilities need to be present to
-// ensure integrity of data.
-func NewDeterministicEncryptingBinaryEncoder(blockCipher cipher.Block) BinaryEncoder {
+// the same encoded version of the data. It uses Authenticating
+// Encryption with Associated Data (AEAD), meaning that any objects
+// encrypted with a different key will fail validation.
+func NewDeterministicEncryptingBinaryEncoder(aead cipher.AEAD, additionalData []byte) BinaryEncoder {
 	return &deterministicEncryptingBinaryEncoder{
-		blockCipher:    blockCipher,
-		blockSizeBytes: blockCipher.BlockSize(),
+		aead:         aead,
+		tagSizeBytes: aead.Overhead(),
+		nonce:        make([]byte, aead.NonceSize()),
 	}
 }
 
 // getPaddedSizeBytes computes the size of the encrypted output, with
-// padding in place. Because we use Counter (CTR) mode, we don't need
-// any padding to encrypt the data itself. However, adding it reduces
+// padding in place. Because we use AES-GCM-SIV, we don't need any
+// padding to encrypt the data itself. However, adding it reduces
 // information leakage by obfuscating the original size.
 //
 // Use the same structure as Padded Uniform Random Blobs (PURBs), where
@@ -46,35 +48,30 @@ func getPaddedSizeBytes(dataSizeBytes int) int {
 }
 
 func (be *deterministicEncryptingBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, error) {
-	// Pick an initialization vector. Because this has to work
-	// deterministically, hash the input. Encrypt it, so that the
-	// hash itself isn't revealed. That would allow fingerprinting
-	// of objects, even if the key is changed.
-	ivHash := sha256.Sum256(in)
-	initializationVector := make([]byte, be.blockSizeBytes)
-	be.blockCipher.Encrypt(initializationVector, ivHash[:be.blockSizeBytes])
-
 	if len(in) == 0 {
-		return []byte{}, initializationVector, nil
+		return []byte{}, make([]byte, be.tagSizeBytes), nil
 	}
 
-	out := make([]byte, getPaddedSizeBytes(len(in)))
-	stream := cipher.NewCTR(be.blockCipher, initializationVector)
-	stream.XORKeyStream(out, in)
+	// Allocate space for storing the ciphertext and the tag. Use
+	// this buffer to store the plaintext including the padding.
+	paddedPlaintextSize := getPaddedSizeBytes(len(in))
+	paddedPlaintext := make([]byte, paddedPlaintextSize, paddedPlaintextSize+be.tagSizeBytes)
+	copy(paddedPlaintext, in)
+	paddedPlaintext[len(in)] = 0x80
 
-	outPadding := out[len(in):]
-	outPadding[0] = 0x80
-	stream.XORKeyStream(outPadding, outPadding)
-	return out, initializationVector, nil
+	// Encrypt the plaintext. As AEAD.Seal() concatenates the
+	// ciphertext and the tag, split it up again.
+	ciphertext := be.aead.Seal(paddedPlaintext[:0], be.nonce, paddedPlaintext, be.additionalData)
+	return ciphertext[:paddedPlaintextSize], ciphertext[paddedPlaintextSize:], nil
 }
 
-func (be *deterministicEncryptingBinaryEncoder) DecodeBinary(in, initializationVector []byte) ([]byte, error) {
-	if len(initializationVector) != be.blockSizeBytes {
+func (be *deterministicEncryptingBinaryEncoder) DecodeBinary(in, tag []byte) ([]byte, error) {
+	if len(tag) != be.tagSizeBytes {
 		return nil, status.Errorf(
 			codes.InvalidArgument,
-			"Decoding parameters are %d bytes in size, while the initialization vector was expected to be %d bytes in size",
-			len(initializationVector),
-			be.blockSizeBytes,
+			"Decoding parameters are %d bytes in size, while the tag was expected to be %d bytes in size",
+			len(tag),
+			be.tagSizeBytes,
 		)
 	}
 
@@ -82,35 +79,36 @@ func (be *deterministicEncryptingBinaryEncoder) DecodeBinary(in, initializationV
 		return []byte{}, nil
 	}
 
-	// Decrypt the data, using the initialization vector that is
-	// stored before it.
-	out := make([]byte, len(in))
-	stream := cipher.NewCTR(be.blockCipher, initializationVector)
-	stream.XORKeyStream(out, in)
+	// Re-attach the tag to the ciphertext and decrypt it.
+	ciphertext := append(append([]byte(nil), in...), tag...)
+	plaintext, err := be.aead.Open(ciphertext[:0], be.nonce, ciphertext, be.additionalData)
+	if err != nil {
+		return nil, err
+	}
 
 	// Remove trailing padding.
-	for l := len(out) - 1; l > 0; l-- {
-		switch out[l] {
+	for l := len(plaintext) - 1; l > 0; l-- {
+		switch plaintext[l] {
 		case 0x00:
 		case 0x80:
-			out = out[:l]
-			if encodedSizeBytes := getPaddedSizeBytes(len(out)); len(in) != encodedSizeBytes {
+			plaintext = plaintext[:l]
+			if paddedSizeBytes := getPaddedSizeBytes(len(plaintext)); len(in) != paddedSizeBytes {
 				return nil, status.Errorf(
 					codes.InvalidArgument,
 					"Encoded data is %d bytes in size, while %d bytes were expected for a payload of %d bytes",
 					len(in),
-					encodedSizeBytes,
-					len(out),
+					paddedSizeBytes,
+					len(plaintext),
 				)
 			}
-			return out, nil
+			return plaintext, nil
 		default:
-			return nil, status.Errorf(codes.InvalidArgument, "Padding contains invalid byte with value %d", int(out[l]))
+			return nil, status.Errorf(codes.InvalidArgument, "Padding contains invalid byte with value %d", int(plaintext[l]))
 		}
 	}
 	return nil, status.Error(codes.InvalidArgument, "No data remains after removing padding")
 }
 
 func (be *deterministicEncryptingBinaryEncoder) GetDecodingParametersSizeBytes() int {
-	return be.blockSizeBytes
+	return be.tagSizeBytes
 }
