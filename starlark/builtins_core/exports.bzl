@@ -2278,9 +2278,13 @@ def cc_compilation_context_add_framework_include_dirs(ccb, framework_include_dir
     )
 
 def cc_compilation_context_add_defines(ccb, defines):
+    if type(defines) == type(depset()):
+        defines = defines.to_list()
     ccb.defines.update(defines)
 
 def cc_compilation_context_add_non_transitive_defines(ccb, defines):
+    if type(defines) == type(depset()):
+        defines = defines.to_list()
     ccb.local_defines.update(defines)
 
 def cc_compilation_context_add_textual_hdrs(ccb, headers):
