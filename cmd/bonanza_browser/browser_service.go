@@ -262,17 +262,6 @@ func getEncodersFromRequest(r *http.Request) (*browser_pb.Cookie, string, error)
 	// put the currently active configuration in the textarea, so
 	// that it can easily be edited.
 	recentlyObservedEncoders = trimRecentlyObservedEncoders(recentlyObservedEncoders)
-	if currentEncoderConfigurationStr == "" {
-		if marshaled, err := json.MarshalIndent(
-			ProtoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder](
-				recentlyObservedEncoders[0].Configuration,
-			),
-			/* prefix = */ "",
-			/* indent = */ "  ",
-		); err == nil {
-			currentEncoderConfigurationStr = string(marshaled)
-		}
-	}
 	cookie.RecentlyObservedEncoders = recentlyObservedEncoders
 	return cookie, currentEncoderConfigurationStr, err
 }
@@ -416,6 +405,18 @@ func renderReferenceCard(title string, decodableReference model_core.Decodable[o
 }
 
 func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder, currentEncoderConfiguration string) []g.Node {
+	if currentEncoderConfiguration == "" {
+		if marshaled, err := json.MarshalIndent(
+			ProtoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder](
+				recentlyObservedEncoders[0].Configuration,
+			),
+			/* prefix = */ "",
+			/* indent = */ "  ",
+		); err == nil {
+			currentEncoderConfiguration = string(marshaled)
+		}
+	}
+
 	recentlyObservedEncodersNodes := []g.Node{
 		h.Class("card bg-base-200 w-full p-4 shadow"),
 		h.H1(
