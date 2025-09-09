@@ -19,5 +19,9 @@ sh_binary(
         "//cmd/bonanza_worker",
         "@com_github_buildbarn_bb_remote_execution//cmd/bb_runner",
     ],
+    target_compatible_with = select({
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
     deps = ["@bazel_tools//tools/bash/runfiles"],
 )
