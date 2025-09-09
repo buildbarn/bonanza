@@ -70,6 +70,7 @@ js_binary(
         "//:node_modules/tailwindcss",
     ],
     entry_point = "generate_stylesheet.js",
+    tags = ["manual"],
 )
 
 js_run_binary(
@@ -77,6 +78,7 @@ js_run_binary(
     outs = ["stylesheet.css"],
     args = ["stylesheet.css"],
     chdir = package_name(),
+    tags = ["manual"],
     tool = ":generate_stylesheet",
 )
 
