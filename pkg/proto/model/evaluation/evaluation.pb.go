@@ -22,31 +22,31 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Dependency struct {
+type Keys struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Level:
 	//
-	//	*Dependency_LeafKey
-	//	*Dependency_Parent_
-	Level         isDependency_Level `protobuf_oneof:"level"`
+	//	*Keys_Leaf
+	//	*Keys_Parent_
+	Level         isKeys_Level `protobuf_oneof:"level"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Dependency) Reset() {
-	*x = Dependency{}
+func (x *Keys) Reset() {
+	*x = Keys{}
 	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Dependency) String() string {
+func (x *Keys) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Dependency) ProtoMessage() {}
+func (*Keys) ProtoMessage() {}
 
-func (x *Dependency) ProtoReflect() protoreflect.Message {
+func (x *Keys) ProtoReflect() protoreflect.Message {
 	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -58,51 +58,51 @@ func (x *Dependency) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Dependency.ProtoReflect.Descriptor instead.
-func (*Dependency) Descriptor() ([]byte, []int) {
+// Deprecated: Use Keys.ProtoReflect.Descriptor instead.
+func (*Keys) Descriptor() ([]byte, []int) {
 	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Dependency) GetLevel() isDependency_Level {
+func (x *Keys) GetLevel() isKeys_Level {
 	if x != nil {
 		return x.Level
 	}
 	return nil
 }
 
-func (x *Dependency) GetLeafKey() *core.Any {
+func (x *Keys) GetLeaf() *core.Any {
 	if x != nil {
-		if x, ok := x.Level.(*Dependency_LeafKey); ok {
-			return x.LeafKey
+		if x, ok := x.Level.(*Keys_Leaf); ok {
+			return x.Leaf
 		}
 	}
 	return nil
 }
 
-func (x *Dependency) GetParent() *Dependency_Parent {
+func (x *Keys) GetParent() *Keys_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*Dependency_Parent_); ok {
+		if x, ok := x.Level.(*Keys_Parent_); ok {
 			return x.Parent
 		}
 	}
 	return nil
 }
 
-type isDependency_Level interface {
-	isDependency_Level()
+type isKeys_Level interface {
+	isKeys_Level()
 }
 
-type Dependency_LeafKey struct {
-	LeafKey *core.Any `protobuf:"bytes,1,opt,name=leaf_key,json=leafKey,proto3,oneof"`
+type Keys_Leaf struct {
+	Leaf *core.Any `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
 }
 
-type Dependency_Parent_ struct {
-	Parent *Dependency_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
+type Keys_Parent_ struct {
+	Parent *Keys_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
 }
 
-func (*Dependency_LeafKey) isDependency_Level() {}
+func (*Keys_Leaf) isKeys_Level() {}
 
-func (*Dependency_Parent_) isDependency_Level() {}
+func (*Keys_Parent_) isKeys_Level() {}
 
 type Evaluation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -186,27 +186,27 @@ func (*Evaluation_Leaf_) isEvaluation_Level() {}
 
 func (*Evaluation_Parent_) isEvaluation_Level() {}
 
-type Dependency_Parent struct {
+type Keys_Parent struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
 	Reference     *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Dependency_Parent) Reset() {
-	*x = Dependency_Parent{}
+func (x *Keys_Parent) Reset() {
+	*x = Keys_Parent{}
 	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Dependency_Parent) String() string {
+func (x *Keys_Parent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Dependency_Parent) ProtoMessage() {}
+func (*Keys_Parent) ProtoMessage() {}
 
-func (x *Dependency_Parent) ProtoReflect() protoreflect.Message {
+func (x *Keys_Parent) ProtoReflect() protoreflect.Message {
 	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -218,12 +218,12 @@ func (x *Dependency_Parent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Dependency_Parent.ProtoReflect.Descriptor instead.
-func (*Dependency_Parent) Descriptor() ([]byte, []int) {
+// Deprecated: Use Keys_Parent.ProtoReflect.Descriptor instead.
+func (*Keys_Parent) Descriptor() ([]byte, []int) {
 	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{0, 0}
 }
 
-func (x *Dependency_Parent) GetReference() *core.DecodableReference {
+func (x *Keys_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
 		return x.Reference
 	}
@@ -286,7 +286,7 @@ type Evaluation_Leaf struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Key           *core.Any              `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	Value         *core.Any              `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	Dependencies  []*Dependency          `protobuf:"bytes,3,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	Dependencies  []*Keys                `protobuf:"bytes,3,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -335,7 +335,7 @@ func (x *Evaluation_Leaf) GetValue() *core.Any {
 	return nil
 }
 
-func (x *Evaluation_Leaf) GetDependencies() []*Dependency {
+func (x *Evaluation_Leaf) GetDependencies() []*Keys {
 	if x != nil {
 		return x.Dependencies
 	}
@@ -346,25 +346,24 @@ var File_pkg_proto_model_evaluation_evaluation_proto protoreflect.FileDescriptor
 
 const file_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "" +
 	"\n" +
-	"+pkg/proto/model/evaluation/evaluation.proto\x12\x18bonanza.model.evaluation\x1a\x1fpkg/proto/model/core/core.proto\"\x8d\x02\n" +
-	"\n" +
-	"Dependency\x124\n" +
-	"\bleaf_key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyH\x00R\aleafKey\x12E\n" +
-	"\x06parent\x18\x02 \x01(\v2+.bonanza.model.evaluation.Dependency.ParentH\x00R\x06parent\x1ay\n" +
-	"\x06Parent\x12o\n" +
-	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.DependencyR\treferenceB\a\n" +
-	"\x05level\"\xf0\x03\n" +
+	"+pkg/proto/model/evaluation/evaluation.proto\x12\x18bonanza.model.evaluation\x1a\x1fpkg/proto/model/core/core.proto\"\xf4\x01\n" +
+	"\x04Keys\x12-\n" +
+	"\x04leaf\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyH\x00R\x04leaf\x12?\n" +
+	"\x06parent\x18\x02 \x01(\v2%.bonanza.model.evaluation.Keys.ParentH\x00R\x06parent\x1as\n" +
+	"\x06Parent\x12i\n" +
+	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x1a\x1dbonanza.model.evaluation.KeysR\treferenceB\a\n" +
+	"\x05level\"\xea\x03\n" +
 	"\n" +
 	"Evaluation\x12?\n" +
 	"\x04leaf\x18\x01 \x01(\v2).bonanza.model.evaluation.Evaluation.LeafH\x00R\x04leaf\x12E\n" +
 	"\x06parent\x18\x02 \x01(\v2+.bonanza.model.evaluation.Evaluation.ParentH\x00R\x06parent\x1a\xa3\x01\n" +
 	"\x06Parent\x12o\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\treference\x12(\n" +
-	"\x10first_key_sha256\x18\x02 \x01(\fR\x0efirstKeySha256\x1a\xaa\x01\n" +
+	"\x10first_key_sha256\x18\x02 \x01(\fR\x0efirstKeySha256\x1a\xa4\x01\n" +
 	"\x04Leaf\x12)\n" +
 	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12-\n" +
-	"\x05value\x18\x02 \x01(\v2\x17.bonanza.model.core.AnyR\x05value\x12H\n" +
-	"\fdependencies\x18\x03 \x03(\v2$.bonanza.model.evaluation.DependencyR\fdependenciesB\a\n" +
+	"\x05value\x18\x02 \x01(\v2\x17.bonanza.model.core.AnyR\x05value\x12B\n" +
+	"\fdependencies\x18\x03 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\fdependenciesB\a\n" +
 	"\x05levelB*Z(bonanza.build/pkg/proto/model/evaluationb\x06proto3"
 
 var (
@@ -381,24 +380,24 @@ func file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP() []byte {
 
 var file_pkg_proto_model_evaluation_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_pkg_proto_model_evaluation_evaluation_proto_goTypes = []any{
-	(*Dependency)(nil),              // 0: bonanza.model.evaluation.Dependency
+	(*Keys)(nil),                    // 0: bonanza.model.evaluation.Keys
 	(*Evaluation)(nil),              // 1: bonanza.model.evaluation.Evaluation
-	(*Dependency_Parent)(nil),       // 2: bonanza.model.evaluation.Dependency.Parent
+	(*Keys_Parent)(nil),             // 2: bonanza.model.evaluation.Keys.Parent
 	(*Evaluation_Parent)(nil),       // 3: bonanza.model.evaluation.Evaluation.Parent
 	(*Evaluation_Leaf)(nil),         // 4: bonanza.model.evaluation.Evaluation.Leaf
 	(*core.Any)(nil),                // 5: bonanza.model.core.Any
 	(*core.DecodableReference)(nil), // 6: bonanza.model.core.DecodableReference
 }
 var file_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
-	5, // 0: bonanza.model.evaluation.Dependency.leaf_key:type_name -> bonanza.model.core.Any
-	2, // 1: bonanza.model.evaluation.Dependency.parent:type_name -> bonanza.model.evaluation.Dependency.Parent
+	5, // 0: bonanza.model.evaluation.Keys.leaf:type_name -> bonanza.model.core.Any
+	2, // 1: bonanza.model.evaluation.Keys.parent:type_name -> bonanza.model.evaluation.Keys.Parent
 	4, // 2: bonanza.model.evaluation.Evaluation.leaf:type_name -> bonanza.model.evaluation.Evaluation.Leaf
 	3, // 3: bonanza.model.evaluation.Evaluation.parent:type_name -> bonanza.model.evaluation.Evaluation.Parent
-	6, // 4: bonanza.model.evaluation.Dependency.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	6, // 4: bonanza.model.evaluation.Keys.Parent.reference:type_name -> bonanza.model.core.DecodableReference
 	6, // 5: bonanza.model.evaluation.Evaluation.Parent.reference:type_name -> bonanza.model.core.DecodableReference
 	5, // 6: bonanza.model.evaluation.Evaluation.Leaf.key:type_name -> bonanza.model.core.Any
 	5, // 7: bonanza.model.evaluation.Evaluation.Leaf.value:type_name -> bonanza.model.core.Any
-	0, // 8: bonanza.model.evaluation.Evaluation.Leaf.dependencies:type_name -> bonanza.model.evaluation.Dependency
+	0, // 8: bonanza.model.evaluation.Evaluation.Leaf.dependencies:type_name -> bonanza.model.evaluation.Keys
 	9, // [9:9] is the sub-list for method output_type
 	9, // [9:9] is the sub-list for method input_type
 	9, // [9:9] is the sub-list for extension type_name
@@ -412,8 +411,8 @@ func file_pkg_proto_model_evaluation_evaluation_proto_init() {
 		return
 	}
 	file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[0].OneofWrappers = []any{
-		(*Dependency_LeafKey)(nil),
-		(*Dependency_Parent_)(nil),
+		(*Keys_Leaf)(nil),
+		(*Keys_Parent_)(nil),
 	}
 	file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[1].OneofWrappers = []any{
 		(*Evaluation_Leaf_)(nil),

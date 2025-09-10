@@ -6,20 +6,20 @@ import "pkg/proto/model/core/core.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/evaluation";
 
-message Dependency {
+message Keys {
   message Parent {
     bonanza.model.core.DecodableReference reference = 1
         [(bonanza.model.core.object_format) = {
           proto_list_type_name:
-            "bonanza.model.evaluation.Dependency";
+            "bonanza.model.evaluation.Keys";
         }];
   }
 
   oneof level {
-    // The key of a single direct dependency of the current evaluation.
-    bonanza.model.core.Any leaf_key = 1;
+    // A single key that can be provided to the evaluation function.
+    bonanza.model.core.Any leaf = 1;
 
-    // B-tree node containing additional dependencies.
+    // B-tree node containing additional keys.
     Parent parent = 2;
   }
 }
@@ -53,7 +53,7 @@ message Evaluation {
 
     // Keys of dependencies that were accessed by the computer while
     // processing the current key.
-    repeated Dependency dependencies = 3;
+    repeated Keys dependencies = 3;
   }
 
   oneof level {

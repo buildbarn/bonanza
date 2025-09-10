@@ -448,11 +448,11 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				btree.NewObjectCreatingNodeMerger(
 					evaluationTreeEncoder,
 					referenceFormat,
-					/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[builderReferenceMetadata]], childNodes []*model_evaluation_pb.Dependency) model_core.PatchedMessage[*model_evaluation_pb.Dependency, builderReferenceMetadata] {
-						return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[builderReferenceMetadata]) *model_evaluation_pb.Dependency {
-							return &model_evaluation_pb.Dependency{
-								Level: &model_evaluation_pb.Dependency_Parent_{
-									Parent: &model_evaluation_pb.Dependency_Parent{
+					/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[builderReferenceMetadata]], childNodes []*model_evaluation_pb.Keys) model_core.PatchedMessage[*model_evaluation_pb.Keys, builderReferenceMetadata] {
+						return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[builderReferenceMetadata]) *model_evaluation_pb.Keys {
+							return &model_evaluation_pb.Keys{
+								Level: &model_evaluation_pb.Keys_Parent_{
+									Parent: &model_evaluation_pb.Keys_Parent{
 										Reference: patcher.CaptureAndAddDecodableReference(createdObject, objectManager),
 									},
 								},
@@ -473,9 +473,9 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				}
 				if err := dependencyTreeBuilder.PushChild(
 					model_core.NewPatchedMessage(
-						&model_evaluation_pb.Dependency{
-							Level: &model_evaluation_pb.Dependency_LeafKey{
-								LeafKey: dependencyAny.Message,
+						&model_evaluation_pb.Keys{
+							Level: &model_evaluation_pb.Keys_Leaf{
+								Leaf: dependencyAny.Message,
 							},
 						},
 						dependencyAny.Patcher,

@@ -759,7 +759,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				parsedObjectPoolIngester,
 				model_parser.NewChainedObjectParser(
 					model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
-					model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Dependency](),
+					model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Keys](),
 				),
 			)
 			var errIter error
@@ -768,16 +768,16 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				ctx,
 				dependencyListReader,
 				model_core.Nested(evaluation, dependencies),
-				func(element model_core.Message[*model_evaluation_pb.Dependency, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
+				func(element model_core.Message[*model_evaluation_pb.Keys, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
 					return element.Message.GetParent().GetReference(), nil
 				},
 				&errIter,
 			) {
-				if dependencyLeaf, ok := dependency.Message.Level.(*model_evaluation_pb.Dependency_LeafKey); ok {
+				if dependencyLeaf, ok := dependency.Message.Level.(*model_evaluation_pb.Keys_Leaf); ok {
 					cardNodes := []g.Node{
 						h.Class("block card my-2 p-4 bg-neutral text-neutral-content font-mono h-auto! overflow-x-auto"),
 					}
-					if dependencyKey, err := model_core.FlattenAny(model_core.Nested(dependency, dependencyLeaf.LeafKey)); err == nil {
+					if dependencyKey, err := model_core.FlattenAny(model_core.Nested(dependency, dependencyLeaf.Leaf)); err == nil {
 						if marshaledDependencyKey, err := model_core.MarshalTopLevelMessage(dependencyKey); err == nil {
 							cardNodes = append(cardNodes, h.Form(
 								h.Action(base64.RawURLEncoding.EncodeToString(marshaledDependencyKey)),
@@ -790,7 +790,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 					}
 					cardNodes = append(
 						cardNodes,
-						jsonRenderer.renderMessage(model_core.Nested(dependency, dependencyLeaf.LeafKey.ProtoReflect()))...,
+						jsonRenderer.renderMessage(model_core.Nested(dependency, dependencyLeaf.Leaf.ProtoReflect()))...,
 					)
 					nodes = append(nodes, h.Div(cardNodes...))
 				}
