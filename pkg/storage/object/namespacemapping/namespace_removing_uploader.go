@@ -1,4 +1,4 @@
-package namespaced
+package namespacemapping
 
 import (
 	"context"
