@@ -8,11 +8,11 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//pkg/crypto",
-        "//pkg/evaluation",
         "//pkg/model/analysis",
         "//pkg/model/core",
         "//pkg/model/core/btree",
         "//pkg/model/encoding",
+        "//pkg/model/evaluation",
         "//pkg/model/executewithstorage",
         "//pkg/model/parser",
         "//pkg/model/starlark",

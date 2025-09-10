@@ -5,8 +5,8 @@ genrule(
     name = "generate_computer",
     srcs = ["computer.json"],
     outs = ["computer.go"],
-    cmd = "$(location //pkg/evaluation/generate_computer) $(location computer.json) > $@",
-    tools = ["//pkg/evaluation/generate_computer"],
+    cmd = "$(location //pkg/model/evaluation/generate_computer) $(location computer.json) > $@",
+    tools = ["//pkg/model/evaluation/generate_computer"],
 )
 
 go_library(
@@ -83,7 +83,6 @@ go_library(
         "//pkg/crypto",
         "//pkg/diff",
         "//pkg/ds",
-        "//pkg/evaluation",
         "//pkg/glob",
         "//pkg/label",
         "//pkg/model/command",
@@ -91,6 +90,7 @@ go_library(
         "//pkg/model/core/btree",
         "//pkg/model/core/inlinedtree",
         "//pkg/model/encoding",
+        "//pkg/model/evaluation",
         "//pkg/model/executewithstorage",
         "//pkg/model/filesystem",
         "//pkg/model/parser",

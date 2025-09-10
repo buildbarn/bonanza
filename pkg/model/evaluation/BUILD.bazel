@@ -8,7 +8,7 @@ go_library(
         "environment.go",
         "recursive_computer.go",
     ],
-    importpath = "bonanza.build/pkg/evaluation",
+    importpath = "bonanza.build/pkg/model/evaluation",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/model/core",
@@ -46,7 +46,7 @@ gomock(
         "ComputerForTesting",
         "ObjectManagerForTesting",
     ],
-    library = "//pkg/evaluation",
+    library = "//pkg/model/evaluation",
     mockgen_model_library = "@org_uber_go_mock//mockgen/model",
     mockgen_tool = "@org_uber_go_mock//mockgen",
     package = "evaluation_test",

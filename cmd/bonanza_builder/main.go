@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"bonanza.build/pkg/crypto"
-	"bonanza.build/pkg/evaluation"
 	model_analysis "bonanza.build/pkg/model/analysis"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/encoding"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	"bonanza.build/pkg/model/evaluation"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"

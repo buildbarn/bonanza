@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"bonanza.build/pkg/evaluation"
 	model_core "bonanza.build/pkg/model/core"
+	"bonanza.build/pkg/model/evaluation"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/program"

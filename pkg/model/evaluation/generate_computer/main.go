@@ -74,7 +74,7 @@ func main() {
 	}
 	fmt.Printf("import (\n")
 	fmt.Printf("\t\"context\"\n")
-	fmt.Printf("\t\"bonanza.build/pkg/evaluation\"\n")
+	fmt.Printf("\t\"bonanza.build/pkg/model/evaluation\"\n")
 	fmt.Printf("\t\"bonanza.build/pkg/storage/object\"\n")
 	fmt.Printf("\tmodel_core \"bonanza.build/pkg/model/core\"\n")
 	fmt.Printf("\t\"google.golang.org/protobuf/proto\"\n")

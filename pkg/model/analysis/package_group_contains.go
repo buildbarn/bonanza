@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"bonanza.build/pkg/evaluation"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
+	"bonanza.build/pkg/model/evaluation"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )

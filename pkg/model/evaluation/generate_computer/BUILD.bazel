@@ -3,7 +3,7 @@ load("@rules_go//go:def.bzl", "go_binary", "go_library")
 go_library(
     name = "generate_computer_lib",
     srcs = ["main.go"],
-    importpath = "bonanza.build/pkg/evaluation/generate_computer",
+    importpath = "bonanza.build/pkg/model/evaluation/generate_computer",
     visibility = ["//visibility:private"],
 )
 

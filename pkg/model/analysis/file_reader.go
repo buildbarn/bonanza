@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"bonanza.build/pkg/evaluation"
+	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"

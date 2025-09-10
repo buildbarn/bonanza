@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"bonanza.build/pkg/evaluation"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
+	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"

@@ -3,8 +3,8 @@ package analysis
 import (
 	"context"
 
-	"bonanza.build/pkg/evaluation"
 	model_core "bonanza.build/pkg/model/core"
+	"bonanza.build/pkg/model/evaluation"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 

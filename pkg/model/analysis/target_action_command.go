@@ -8,12 +8,12 @@ import (
 	"slices"
 	"strings"
 
-	"bonanza.build/pkg/evaluation"
 	"bonanza.build/pkg/label"
 	model_command "bonanza.build/pkg/model/command"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/core/inlinedtree"
+	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
