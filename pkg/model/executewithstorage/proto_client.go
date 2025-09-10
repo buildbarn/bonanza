@@ -31,27 +31,27 @@ type Action[TReference any] struct {
 	Format    *model_core_pb.ObjectFormat
 }
 
-type client struct {
+type protoClient struct {
 	base remoteexecution.Client[*model_executewithstorage_pb.Action, *model_core_pb.WeakDecodableReference, *model_core_pb.WeakDecodableReference]
 }
 
-// NewClient creates a decorator for the remote execution client that
-// makes it simpler to run actions on workers that make use of the
+// NewProtoClient creates a decorator for the remote execution client
+// that makes it simpler to run actions on workers that make use of the
 // "executewithstorage" protocol (i.e., workers that rely on actions,
 // execution events, and results to be backed by object storage).
 //
 // The advantage of using this decorator is that the caller can use
 // native types for decodable references, as opposed to sending and
 // receiving their Protobuf message equivalents.
-func NewClient(
+func NewProtoClient(
 	base remoteexecution.Client[*model_executewithstorage_pb.Action, *model_core_pb.WeakDecodableReference, *model_core_pb.WeakDecodableReference],
 ) remoteexecution.Client[*Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
-	return &client{
+	return &protoClient{
 		base: base,
 	}
 }
 
-func (c *client) RunAction(
+func (c *protoClient) RunAction(
 	ctx context.Context,
 	platformECDHPublicKey *ecdh.PublicKey,
 	action *Action[object.GlobalReference],

@@ -541,14 +541,17 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to create gRPC client for --remote_executor=%#v: %s", args.CommonFlags.RemoteExecutor, err))
 	}
-	builderClient := model_executewithstorage.NewClient(
-		remoteexecution.NewProtoClient[*model_executewithstorage_pb.Action, model_core_pb.WeakDecodableReference, model_core_pb.WeakDecodableReference](
-			remoteexecution.NewRemoteClient(
-				remoteexecution_pb.NewExecutionClient(remoteExecutorClient),
-				clientPrivateKey,
-				clientCertificateChain,
+	builderClient := model_executewithstorage.NewNamespaceAddingClient(
+		model_executewithstorage.NewProtoClient(
+			remoteexecution.NewProtoClient[*model_executewithstorage_pb.Action, model_core_pb.WeakDecodableReference, model_core_pb.WeakDecodableReference](
+				remoteexecution.NewRemoteClient(
+					remoteexecution_pb.NewExecutionClient(remoteExecutorClient),
+					clientPrivateKey,
+					clientCertificateChain,
+				),
 			),
 		),
+		instanceName,
 	)
 
 	builderPKIXPublicKey, err := base64.StdEncoding.DecodeString(args.CommonFlags.RemoteExecutorBuilderPkixPublicKey)
@@ -589,10 +592,10 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	for range builderClient.RunAction(
 		context.Background(),
 		builderECDHPublicKey,
-		&model_executewithstorage.Action[object.GlobalReference]{
+		&model_executewithstorage.Action[object.LocalReference]{
 			Reference: model_core.CopyDecodable(
 				createdAction,
-				actionGlobalReference,
+				actionReference,
 			),
 			Encoders: defaultEncoders,
 			Format: &model_core_pb.ObjectFormat{

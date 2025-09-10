@@ -129,7 +129,7 @@ func main() {
 			dagUploaderClient:             dag_pb.NewUploaderClient(storageGRPCClient),
 			objectContentsWalkerSemaphore: semaphore.NewWeighted(int64(runtime.NumCPU())),
 			filePool:                      filePool,
-			executionClient: model_executewithstorage.NewClient(
+			executionClient: model_executewithstorage.NewProtoClient(
 				remoteexecution.NewProtoClient[*model_executewithstorage_pb.Action, model_core_pb.WeakDecodableReference, model_core_pb.WeakDecodableReference](
 					remoteexecution.NewRemoteClient(
 						remoteexecution_pb.NewExecutionClient(executionGRPCClient),
@@ -346,7 +346,10 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				actionEncoder,
 				e.filePool,
 				&builderExecutionClient{
-					base:                          e.executionClient,
+					base: model_executewithstorage.NewNamespaceAddingClient(
+						e.executionClient,
+						instanceName,
+					),
 					dagUploaderClient:             e.dagUploaderClient,
 					objectContentsWalkerSemaphore: e.objectContentsWalkerSemaphore,
 					instanceName:                  instanceName,
@@ -615,7 +618,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 }
 
 type builderExecutionClient struct {
-	base                          remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]]
+	base                          remoteexecution.Client[*model_executewithstorage.Action[object.LocalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]]
 	dagUploaderClient             dag_pb.UploaderClient
 	objectContentsWalkerSemaphore *semaphore.Weighted
 	instanceName                  object.InstanceName
@@ -646,10 +649,10 @@ func (e *builderExecutionClient) RunAction(ctx context.Context, platformECDHPubl
 	eventReferences := e.base.RunAction(
 		ctxWithCancel,
 		platformECDHPublicKey,
-		&model_executewithstorage.Action[object.GlobalReference]{
+		&model_executewithstorage.Action[object.LocalReference]{
 			Reference: model_core.CopyDecodable(
 				action.Reference,
-				e.instanceName.WithLocalReference(action.Reference.Value.GetLocalReference()),
+				action.Reference.Value.GetLocalReference(),
 			),
 			Encoders: action.Encoders,
 			Format:   action.Format,

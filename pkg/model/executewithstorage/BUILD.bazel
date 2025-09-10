@@ -3,8 +3,9 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "executewithstorage",
     srcs = [
-        "client.go",
         "executor.go",
+        "namespace_adding_client.go",
+        "proto_client.go",
     ],
     importpath = "bonanza.build/pkg/model/executewithstorage",
     visibility = ["//visibility:public"],
@@ -18,6 +19,7 @@ go_library(
         "//pkg/remoteexecution",
         "//pkg/remoteworker",
         "//pkg/storage/object",
+        "//pkg/storage/object/namespacemapping",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",
     ],
