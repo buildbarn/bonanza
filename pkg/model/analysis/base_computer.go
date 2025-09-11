@@ -29,7 +29,6 @@ import (
 
 type BaseComputerReferenceMetadata interface {
 	model_core.CloneableReferenceMetadata
-	model_core.WalkableReferenceMetadata
 }
 
 type baseComputer[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {

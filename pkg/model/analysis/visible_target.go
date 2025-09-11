@@ -24,7 +24,7 @@ type getValueFromSelectGroupEnvironment[TReference any, TMetadata model_core.Ref
 	GetSelectValue(model_core.PatchedMessage[*model_analysis_pb.Select_Key, TMetadata]) model_core.Message[*model_analysis_pb.Select_Value, TReference]
 }
 
-func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](
+func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	e getValueFromSelectGroupEnvironment[TReference, TMetadata],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
 	fromPackage label.CanonicalPackage,

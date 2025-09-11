@@ -17,7 +17,6 @@ go_library(
         "//pkg/model/parser",
         "//pkg/model/starlark",
         "//pkg/proto/configuration/bonanza_builder",
-        "//pkg/proto/encryptedaction",
         "//pkg/proto/model/analysis",
         "//pkg/proto/model/build",
         "//pkg/proto/model/core",

@@ -291,7 +291,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 	), nil
 }
 
-func getAttrValueParts[TReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](
+func getAttrValueParts[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	e getValueFromSelectGroupEnvironment[TReference, TMetadata],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
 	ruleTargetPackage label.CanonicalPackage,
@@ -3101,7 +3101,7 @@ type getProviderFromConfiguredTargetEnvironment[TReference any, TMetadata model_
 
 // getProviderFromConfiguredTarget looks up a single provider that is
 // provided by a configured target.
-func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.WalkableReferenceMetadata](e getProviderFromConfiguredTargetEnvironment[TReference, TMetadata], targetLabel string, configurationReference model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], providerIdentifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Struct_Fields, TReference], error) {
+func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.ReferenceMetadata](e getProviderFromConfiguredTargetEnvironment[TReference, TMetadata], targetLabel string, configurationReference model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], providerIdentifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Struct_Fields, TReference], error) {
 	configuredTargetValue := e.GetConfiguredTargetValue(
 		model_core.NewPatchedMessage(
 			&model_analysis_pb.ConfiguredTarget_Key{
@@ -3133,7 +3133,7 @@ type getProviderFromVisibleConfiguredTargetEnvironment[TReference any, TMetadata
 	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
 }
 
-func getProviderFromVisibleConfiguredTarget[TReference any, TConfigurationReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](
+func getProviderFromVisibleConfiguredTarget[TReference any, TConfigurationReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	e getProviderFromVisibleConfiguredTargetEnvironment[TReference, TMetadata],
 	fromPackage string,
 	targetLabel string,

@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "executor.go",
         "namespace_adding_client.go",
+        "object_exporting_client.go",
         "proto_client.go",
     ],
     importpath = "bonanza.build/pkg/model/executewithstorage",

@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"crypto/ecdh"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
-	"iter"
 	"os"
 	"runtime"
 	"time"
@@ -22,7 +20,6 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	"bonanza.build/pkg/proto/configuration/bonanza_builder"
-	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_build_pb "bonanza.build/pkg/proto/model/build"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -221,10 +218,6 @@ type builderReferenceMetadata struct {
 func (builderReferenceMetadata) Discard()     {}
 func (builderReferenceMetadata) IsCloneable() {}
 
-func (m builderReferenceMetadata) ToObjectContentsWalker() dag.ObjectContentsWalker {
-	return m
-}
-
 func (m builderReferenceMetadata) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
 	if m.contents == nil {
 		return nil, nil, status.Error(codes.Internal, "Contents for this object are not available for upload, as this object was expected to already exist")
@@ -258,6 +251,33 @@ func (builderObjectManager) ReferenceObject(reference object.LocalReference, met
 		LocalReference:   reference,
 		embeddedMetadata: metadata,
 	}
+}
+
+type builderObjectExporter struct {
+	dagUploaderClient             dag_pb.UploaderClient
+	instanceName                  object.InstanceName
+	objectContentsWalkerSemaphore *semaphore.Weighted
+}
+
+func (oe *builderObjectExporter) ExportReference(ctx context.Context, internalReference builderReference) (object.LocalReference, error) {
+	err := dag.UploadDAG(
+		ctx,
+		oe.dagUploaderClient,
+		oe.instanceName.WithLocalReference(internalReference.LocalReference),
+		internalReference.embeddedMetadata,
+		oe.objectContentsWalkerSemaphore,
+		// Assume everything we attempt to upload is memory backed.
+		object.Unlimited,
+	)
+	if err != nil {
+		var badReference object.LocalReference
+		return badReference, nil
+	}
+	return internalReference.LocalReference, nil
+}
+
+func (builderObjectExporter) ImportReference(externalReference object.LocalReference) builderReference {
+	return builderReference{LocalReference: externalReference}
 }
 
 type builderExecutor struct {
@@ -299,6 +319,11 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 	}
 
 	var objectManager builderObjectManager
+	objectExporter := builderObjectExporter{
+		dagUploaderClient:             e.dagUploaderClient,
+		instanceName:                  instanceName,
+		objectContentsWalkerSemaphore: e.objectContentsWalkerSemaphore,
+	}
 	resultMessage := model_core.BuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[builderReferenceMetadata]) *model_build_pb.Result {
 		var result model_build_pb.Result
 		parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester[builderReference](
@@ -345,15 +370,13 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				buildSpecificationReference,
 				actionEncoder,
 				e.filePool,
-				&builderExecutionClient{
-					base: model_executewithstorage.NewNamespaceAddingClient(
+				model_executewithstorage.NewObjectExportingClient(
+					model_executewithstorage.NewNamespaceAddingClient(
 						e.executionClient,
 						instanceName,
 					),
-					dagUploaderClient:             e.dagUploaderClient,
-					objectContentsWalkerSemaphore: e.objectContentsWalkerSemaphore,
-					instanceName:                  instanceName,
-				},
+					&objectExporter,
+				),
 				e.bzlFileBuiltins,
 				e.buildFileBuiltins,
 			)),
@@ -596,18 +619,17 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 		var badReference model_core.Decodable[object.LocalReference]
 		return badReference, 0, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
 	}
-	resultReference := createdResult.Value.GetLocalReference()
-	if err := dag.UploadDAG(
+
+	resultReference, err := objectExporter.ExportReference(
 		ctx,
-		e.dagUploaderClient,
-		instanceName.WithLocalReference(resultReference),
-		objectManager.CaptureCreatedObject(createdResult.Value).ToObjectContentsWalker(),
-		e.objectContentsWalkerSemaphore,
-		// Assume everything we attempt to upload is memory backed.
-		object.Unlimited,
-	); err != nil {
+		objectManager.ReferenceObject(
+			createdResult.Value.GetLocalReference(),
+			objectManager.CaptureCreatedObject(createdResult.Value),
+		),
+	)
+	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrap(err, "Failed to upload result")
+		return badReference, 0, 0, util.StatusWrap(err, "Failed to export result")
 	}
 
 	resultCode := remoteworker_pb.CurrentState_Completed_SUCCEEDED
@@ -615,76 +637,4 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 		resultCode = remoteworker_pb.CurrentState_Completed_FAILED
 	}
 	return model_core.CopyDecodable(createdResult, resultReference), 0, resultCode, nil
-}
-
-type builderExecutionClient struct {
-	base                          remoteexecution.Client[*model_executewithstorage.Action[object.LocalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]]
-	dagUploaderClient             dag_pb.UploaderClient
-	objectContentsWalkerSemaphore *semaphore.Weighted
-	instanceName                  object.InstanceName
-}
-
-func (e *builderExecutionClient) RunAction(ctx context.Context, platformECDHPublicKey *ecdh.PublicKey, action *model_executewithstorage.Action[builderReference], actionAdditionalData *encryptedaction_pb.Action_AdditionalData, resultReference *model_core.Decodable[builderReference], errOut *error) iter.Seq[model_core.Decodable[builderReference]] {
-	// If the action is one that the caller has constructed but has
-	// not been uploaded to storage yet, we need to upload it before
-	// calling into the scheduler.
-	if actionReference := action.Reference.Value; actionReference.embeddedMetadata.contents != nil {
-		if err := dag.UploadDAG(
-			ctx,
-			e.dagUploaderClient,
-			e.instanceName.WithLocalReference(actionReference.GetLocalReference()),
-			actionReference.embeddedMetadata.ToObjectContentsWalker(),
-			e.objectContentsWalkerSemaphore,
-			object.Unlimited,
-		); err != nil {
-			*errOut = util.StatusWrap(err, "Failed to upload action")
-			return func(yield func(model_core.Decodable[builderReference]) bool) {}
-		}
-	}
-
-	// Re-add instance name to the action reference.
-	ctxWithCancel, cancel := context.WithCancel(ctx)
-	var baseResultReference model_core.Decodable[object.LocalReference]
-	var baseErr error
-	eventReferences := e.base.RunAction(
-		ctxWithCancel,
-		platformECDHPublicKey,
-		&model_executewithstorage.Action[object.LocalReference]{
-			Reference: model_core.CopyDecodable(
-				action.Reference,
-				action.Reference.Value.GetLocalReference(),
-			),
-			Encoders: action.Encoders,
-			Format:   action.Format,
-		},
-		actionAdditionalData,
-		&baseResultReference,
-		&baseErr,
-	)
-	return func(yield func(model_core.Decodable[builderReference]) bool) {
-		defer cancel()
-
-		// Convert event references to native types.
-		for eventReference := range eventReferences {
-			if !yield(
-				model_core.CopyDecodable(
-					eventReference,
-					builderReference{LocalReference: eventReference.Value.GetLocalReference()},
-				),
-			) {
-				break
-			}
-		}
-
-		// Convert result reference to native type.
-		if baseErr != nil {
-			*errOut = baseErr
-			return
-		}
-		*resultReference = model_core.CopyDecodable(
-			baseResultReference,
-			builderReference{LocalReference: baseResultReference.Value.GetLocalReference()},
-		)
-		*errOut = nil
-	}
 }

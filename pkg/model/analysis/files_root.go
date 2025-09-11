@@ -24,7 +24,7 @@ type addFilesToChangeTrackingDirectoryEnvironment[TReference any, TMetadata mode
 	GetFileRootValue(key model_core.PatchedMessage[*model_analysis_pb.FileRoot_Key, TMetadata]) model_core.Message[*model_analysis_pb.FileRoot_Value, TReference]
 }
 
-func addFilesToChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](
+func addFilesToChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	e addFilesToChangeTrackingDirectoryEnvironment[TReference, TMetadata],
 	files model_core.Message[[]*model_starlark_pb.List_Element, TReference],
 	out *changeTrackingDirectory[TReference, TMetadata],
@@ -74,7 +74,7 @@ func addFilesToChangeTrackingDirectory[TReference object.BasicReference, TMetada
 	return nil
 }
 
-func addFileToChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](
+func addFileToChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	e addFilesToChangeTrackingDirectoryEnvironment[TReference, TMetadata],
 	file model_core.Message[*model_starlark_pb.File, TReference],
 	out *changeTrackingDirectory[TReference, TMetadata],

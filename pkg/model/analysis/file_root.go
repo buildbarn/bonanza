@@ -37,7 +37,7 @@ type getStarlarkFilePropertiesEnvironment[TReference any, TMetadata model_core.R
 	GetFileRootValue(key model_core.PatchedMessage[*model_analysis_pb.FileRoot_Key, TMetadata]) model_core.Message[*model_analysis_pb.FileRoot_Value, TReference]
 }
 
-func getStarlarkFileProperties[TReference object.BasicReference, TMetadata model_core.WalkableReferenceMetadata](ctx context.Context, e getStarlarkFilePropertiesEnvironment[TReference, TMetadata], f model_core.Message[*model_starlark_pb.File, TReference]) (model_core.Message[*model_filesystem_pb.FileProperties, TReference], error) {
+func getStarlarkFileProperties[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, e getStarlarkFilePropertiesEnvironment[TReference, TMetadata], f model_core.Message[*model_starlark_pb.File, TReference]) (model_core.Message[*model_filesystem_pb.FileProperties, TReference], error) {
 	if f.Message == nil {
 		return model_core.Message[*model_filesystem_pb.FileProperties, TReference]{}, errors.New("file not set")
 	}

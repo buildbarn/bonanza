@@ -1,6 +1,8 @@
 package core
 
 import (
+	"context"
+
 	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
@@ -143,4 +145,17 @@ func Unpatch[TMessage, TReference any, TMetadata ReferenceMetadata](
 type ObjectManager[TReference, TMetadata any] interface {
 	ObjectCapturer[TReference, TMetadata]
 	ObjectReferencer[TReference, TMetadata]
+}
+
+// ObjectExporter can be used to exported references obtained from
+// ObjectManager to those of another format, and vice versa.
+//
+// Calls to ExportReference() also need to ensure that any objects
+// referenced by the internal reference format are flushed to storage,
+// so that the external reference becomes valid. bonanza_builder may use
+// this to flush actions to storage, so that any request to execute an
+// action on another worker doesn't fail due to missing objects.
+type ObjectExporter[TInternal, TExternal any] interface {
+	ExportReference(ctx context.Context, internalReference TInternal) (TExternal, error)
+	ImportReference(externalReference TExternal) TInternal
 }
