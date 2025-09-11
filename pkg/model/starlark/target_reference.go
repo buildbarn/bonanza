@@ -242,18 +242,13 @@ func (tr *TargetReference[TReference, TMetadata]) EncodeValue(path map[starlark.
 			OriginalLabel: tr.originalLabel.String(),
 		}
 		if ctr := tr.configured; ctr != nil {
-			// TODO: Add a model_core.PatchList() so that we
-			// don't need to abuse model_core.Nested() here.
-			m.Configured = model_core.Patch(
-				options.ObjectCapturer,
-				model_core.Nested(
+			m.Configured = &model_starlark_pb.TargetReference_Configured{
+				Label: ctr.label.String(),
+				Providers: model_core.PatchList(
+					options.ObjectCapturer,
 					ctr.encodedProviders,
-					&model_starlark_pb.TargetReference_Configured{
-						Label:     ctr.label.String(),
-						Providers: ctr.encodedProviders.Message,
-					},
-				),
-			).Merge(patcher)
+				).Merge(patcher),
+			}
 		}
 		return &model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_TargetReference{
