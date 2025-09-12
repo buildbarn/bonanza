@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "buffered",
+    srcs = ["object_manager.go"],
+    importpath = "bonanza.build/pkg/model/core/buffered",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/model/core",
+        "//pkg/model/parser",
+        "//pkg/proto/storage/dag",
+        "//pkg/storage/dag",
+        "//pkg/storage/object",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_x_sync//semaphore",
+    ],
+)
