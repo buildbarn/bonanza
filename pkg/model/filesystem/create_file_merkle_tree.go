@@ -10,7 +10,6 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/dag"
-	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -90,10 +89,10 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 				return &model_filesystem_pb.FileContents{
 					Level: &model_filesystem_pb.FileContents_ChunkReference{
 						ChunkReference: &model_core_pb.DecodableReference{
-							Reference: patcher.AddReference(
-								decodableContents.Value.GetLocalReference(),
-								capturer.CaptureChunk(decodableContents.Value),
-							),
+							Reference: patcher.AddReference(model_core.CapturedObject[T]{
+								LocalReference: decodableContents.Value.GetLocalReference(),
+								Metadata:       capturer.CaptureChunk(decodableContents.Value),
+							}),
 							DecodingParameters: decodableContents.GetDecodingParameters(),
 						},
 					},
@@ -145,13 +144,13 @@ func CreateChunkDiscardingFileMerkleTree(ctx context.Context, parameters *FileCr
 		fileContents.Message,
 		model_core.MapReferenceMessagePatcherMetadata(
 			fileContents.Patcher,
-			func(reference object.LocalReference, metadata model_core.CreatedObjectTree) dag.ObjectContentsWalker {
+			func(capturedObject model_core.CapturedObject[model_core.CreatedObjectTree]) dag.ObjectContentsWalker {
 				return NewCapturedFileWalker(
 					parameters,
 					f,
-					reference,
+					capturedObject.LocalReference,
 					fileContents.Message.TotalSizeBytes,
-					&metadata,
+					&capturedObject.Metadata,
 					decodingParameters,
 				)
 			},

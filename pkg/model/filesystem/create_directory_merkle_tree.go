@@ -10,7 +10,6 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
-	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -260,8 +259,8 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 					model_core.NewProtoMarshalable(ud.leaves.Message),
 					model_core.MapReferenceMessagePatcherMetadata(
 						ud.leaves.Patcher,
-						func(reference object.LocalReference, metadata TFile) TDirectory {
-							return b.capturer.CaptureFileNode(metadata)
+						func(capturedObject model_core.CapturedObject[TFile]) TDirectory {
+							return b.capturer.CaptureFileNode(capturedObject.Metadata)
 						},
 					),
 				),

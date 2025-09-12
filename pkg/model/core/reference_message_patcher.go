@@ -67,11 +67,11 @@ func (p *ReferenceMessagePatcher[TMetadata]) maybeIncreaseHeight(height int) {
 
 // AddReference allocates a new Reference message that is associated
 // with a given object.LocalReference and caller provided metadata.
-func (p *ReferenceMessagePatcher[TMetadata]) AddReference(reference object.LocalReference, metadata TMetadata) *core.Reference {
+func (p *ReferenceMessagePatcher[TMetadata]) AddReference(capturedObject CapturedObject[TMetadata]) *core.Reference {
 	message := &core.Reference{
 		Index: math.MaxUint32,
 	}
-	p.addIndex(&message.Index, reference, metadata)
+	p.addIndex(&message.Index, capturedObject)
 	return message
 }
 
@@ -83,27 +83,25 @@ func (p *ReferenceMessagePatcher[TMetadata]) CaptureAndAddDecodableReference(
 	capturer CreatedObjectCapturer[TMetadata],
 ) *core.DecodableReference {
 	return &core.DecodableReference{
-		Reference: p.AddReference(
-			createdObject.Value.GetLocalReference(),
-			capturer.CaptureCreatedObject(createdObject.Value),
-		),
+		Reference:          p.AddReference(createdObject.Value.Capture(capturer)),
 		DecodingParameters: createdObject.GetDecodingParameters(),
 	}
 }
 
-func (p *ReferenceMessagePatcher[TMetadata]) addIndex(index *uint32, reference object.LocalReference, metadata TMetadata) {
+func (p *ReferenceMessagePatcher[TMetadata]) addIndex(index *uint32, capturedObject CapturedObject[TMetadata]) {
 	if p.messagesByReference == nil {
 		p.messagesByReference = map[object.LocalReference]referenceMessages[TMetadata]{}
 	}
+	reference := capturedObject.LocalReference
 	if existingMessages, ok := p.messagesByReference[reference]; ok {
-		metadata.Discard()
+		capturedObject.Metadata.Discard()
 		p.messagesByReference[reference] = referenceMessages[TMetadata]{
 			metadata: existingMessages.metadata,
 			indices:  append(p.messagesByReference[reference].indices, index),
 		}
 	} else {
 		p.messagesByReference[reference] = referenceMessages[TMetadata]{
-			metadata: metadata,
+			metadata: capturedObject.Metadata,
 			indices:  []*uint32{index},
 		}
 		p.maybeIncreaseHeight(reference.GetHeight() + 1)
@@ -125,7 +123,10 @@ func (a *referenceMessageAdder[TMetadata, TReference]) addReferenceMessagesRecur
 		// any future attempts to resolve it will fail.
 		if index, err := GetIndexFromReferenceMessage(m, a.outgoingReferences.GetDegree()); err == nil {
 			reference := a.outgoingReferences.GetOutgoingReference(index).GetLocalReference()
-			a.patcher.addIndex(&m.Index, reference, a.createMetadata(index))
+			a.patcher.addIndex(&m.Index, CapturedObject[TMetadata]{
+				LocalReference: reference,
+				Metadata:       a.createMetadata(index),
+			})
 		}
 		m.Index = math.MaxUint32
 	case *core.ReferenceSet:
@@ -144,7 +145,10 @@ func (a *referenceMessageAdder[TMetadata, TReference]) addReferenceMessagesRecur
 			}
 			index := int(rawIndex - 1)
 			reference := a.outgoingReferences.GetOutgoingReference(index).GetLocalReference()
-			a.patcher.addIndex(&m.Indices[i], reference, a.createMetadata(index))
+			a.patcher.addIndex(&m.Indices[i], CapturedObject[TMetadata]{
+				LocalReference: reference,
+				Metadata:       a.createMetadata(index),
+			})
 			m.Indices[i] = math.MaxUint32
 			previousRawIndex = rawIndex
 		}
@@ -264,15 +268,18 @@ func (l referencesList) Less(i, j int) bool {
 // MapReferenceMessagePatcherMetadata replaces a ReferenceMessagePatcher
 // with a new instance that contains the same references, but has
 // metadata mapped to other values, potentially of another type.
-func MapReferenceMessagePatcherMetadata[TOld, TNew ReferenceMetadata](pOld *ReferenceMessagePatcher[TOld], mapMetadata func(object.LocalReference, TOld) TNew) *ReferenceMessagePatcher[TNew] {
+func MapReferenceMessagePatcherMetadata[TOld, TNew ReferenceMetadata](pOld *ReferenceMessagePatcher[TOld], mapMetadata func(CapturedObject[TOld]) TNew) *ReferenceMessagePatcher[TNew] {
 	pNew := &ReferenceMessagePatcher[TNew]{
 		messagesByReference: make(map[object.LocalReference]referenceMessages[TNew], len(pOld.messagesByReference)),
 		height:              pOld.height,
 	}
 	for reference, oldMessages := range pOld.messagesByReference {
 		pNew.messagesByReference[reference] = referenceMessages[TNew]{
-			metadata: mapMetadata(reference, oldMessages.metadata),
-			indices:  oldMessages.indices,
+			metadata: mapMetadata(CapturedObject[TOld]{
+				LocalReference: reference,
+				Metadata:       oldMessages.metadata,
+			}),
+			indices: oldMessages.indices,
 		}
 	}
 	pOld.empty()

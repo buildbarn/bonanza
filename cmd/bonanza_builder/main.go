@@ -503,10 +503,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 
 	resultReference, err := objectExporter.ExportReference(
 		ctx,
-		objectManager.ReferenceObject(
-			createdResult.Value.GetLocalReference(),
-			objectManager.CaptureCreatedObject(createdResult.Value),
-		),
+		objectManager.ReferenceObject(createdResult.Value.Capture(objectManager)),
 	)
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]

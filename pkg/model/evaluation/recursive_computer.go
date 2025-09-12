@@ -329,8 +329,8 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) CaptureExisting
 	return e.computer.objectManager.CaptureExistingObject(reference)
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) ReferenceObject(localReference object.LocalReference, metadata TMetadata) TReference {
-	return e.computer.objectManager.ReferenceObject(localReference, metadata)
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) ReferenceObject(capturedObject model_core.CapturedObject[TMetadata]) TReference {
+	return e.computer.objectManager.ReferenceObject(capturedObject)
 }
 
 func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(patchedKey model_core.PatchedMessage[proto.Message, TMetadata], initialValueState valueState[TReference, TMetadata]) valueState[TReference, TMetadata] {

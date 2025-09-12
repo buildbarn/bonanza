@@ -36,9 +36,9 @@ func (CloningObjectManager[TMetadata]) CaptureExistingObject(reference Cloneable
 	return reference.metadata
 }
 
-func (CloningObjectManager[TMetadata]) ReferenceObject(reference object.LocalReference, metadata TMetadata) CloneableReference[TMetadata] {
+func (CloningObjectManager[TMetadata]) ReferenceObject(capturedObject CapturedObject[TMetadata]) CloneableReference[TMetadata] {
 	return CloneableReference[TMetadata]{
-		LocalReference: reference,
-		metadata:       metadata,
+		LocalReference: capturedObject.LocalReference,
+		metadata:       capturedObject.Metadata,
 	}
 }

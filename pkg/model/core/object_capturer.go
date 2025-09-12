@@ -115,7 +115,7 @@ func PatchList[
 }
 
 type ObjectReferencer[TReference, TMetadata any] interface {
-	ReferenceObject(object.LocalReference, TMetadata) TReference
+	ReferenceObject(CapturedObject[TMetadata]) TReference
 }
 
 // Unpatch performs the opposite of Patch(). Namely, it assigns indices
@@ -131,7 +131,10 @@ func Unpatch[TMessage, TReference any, TMetadata ReferenceMetadata](
 	for i, m := range metadata {
 		outgoingReferences = append(
 			outgoingReferences,
-			referencer.ReferenceObject(references.GetOutgoingReference(i), m),
+			referencer.ReferenceObject(CapturedObject[TMetadata]{
+				LocalReference: references.GetOutgoingReference(i),
+				Metadata:       m,
+			}),
 		)
 	}
 	return NewTopLevelMessage(m.Message, outgoingReferences)

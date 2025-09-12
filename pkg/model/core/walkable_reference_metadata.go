@@ -2,7 +2,6 @@ package core
 
 import (
 	"bonanza.build/pkg/storage/dag"
-	"bonanza.build/pkg/storage/object"
 )
 
 // WalkableReferenceMetadata can be implemented by reference metadata to
@@ -24,8 +23,8 @@ type WalkableReferenceMetadata interface {
 func MapReferenceMetadataToWalkers[TMetadata WalkableReferenceMetadata](p *ReferenceMessagePatcher[TMetadata]) *ReferenceMessagePatcher[dag.ObjectContentsWalker] {
 	return MapReferenceMessagePatcherMetadata(
 		p,
-		func(reference object.LocalReference, metadata TMetadata) dag.ObjectContentsWalker {
-			return metadata.ToObjectContentsWalker()
+		func(capturedObject CapturedObject[TMetadata]) dag.ObjectContentsWalker {
+			return capturedObject.Metadata.ToObjectContentsWalker()
 		},
 	)
 }

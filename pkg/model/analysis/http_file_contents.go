@@ -66,8 +66,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 			Reference: model_core.CopyDecodable(
 				createdAction,
 				e.ReferenceObject(
-					createdAction.Value.GetLocalReference(),
-					e.CaptureCreatedObject(createdAction.Value),
+					createdAction.Value.Capture(e),
 				),
 			),
 			Encoders: actionEncodersValue.Message.ActionEncoders,
