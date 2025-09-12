@@ -75,6 +75,16 @@ func (p *ReferenceMessagePatcher[TMetadata]) AddReference(capturedObject Capture
 	return message
 }
 
+// AddDecodableReference is a helper function for AddReference that can
+// be called in the common case where a DecodableReference needs to be
+// emitted.
+func (p *ReferenceMessagePatcher[TMetadata]) AddDecodableReference(capturedObject Decodable[CapturedObject[TMetadata]]) *core.DecodableReference {
+	return &core.DecodableReference{
+		Reference:          p.AddReference(capturedObject.Value),
+		DecodingParameters: capturedObject.GetDecodingParameters(),
+	}
+}
+
 // CaptureAndAddDecodableReference is a helper function for AddReference
 // that can be called in the common case where a DecodableReference
 // needs to be emitted, referring to a newly created object.
@@ -82,10 +92,12 @@ func (p *ReferenceMessagePatcher[TMetadata]) CaptureAndAddDecodableReference(
 	createdObject Decodable[CreatedObject[TMetadata]],
 	capturer CreatedObjectCapturer[TMetadata],
 ) *core.DecodableReference {
-	return &core.DecodableReference{
-		Reference:          p.AddReference(createdObject.Value.Capture(capturer)),
-		DecodingParameters: createdObject.GetDecodingParameters(),
-	}
+	return p.AddDecodableReference(
+		CopyDecodable(
+			createdObject,
+			createdObject.Value.Capture(capturer),
+		),
+	)
 }
 
 func (p *ReferenceMessagePatcher[TMetadata]) addIndex(index *uint32, capturedObject CapturedObject[TMetadata]) {

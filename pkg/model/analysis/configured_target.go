@@ -2717,32 +2717,30 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 			{
 				ExternalMessage: model_core.ProtoToMarshalable(outputPathPatternChildren),
 				Encoder:         rc.actionEncoder,
-				ParentAppender: func(
+				ParentAppender: inlinedtree.Capturing(rc.environment, func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
-					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+					externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
 				) {
 					actionDefinition.Message.OutputPathPattern = model_command.GetPathPatternWithChildren(
 						outputPathPatternChildren,
 						externalObject,
 						actionDefinition.Patcher,
-						rc.environment,
 					)
-				},
+				}),
 			},
 			{
 				ExternalMessage: model_core.ProtoToMarshalable(createdInitialOutputDirectory.Message),
 				Encoder:         rc.actionEncoder,
-				ParentAppender: func(
+				ParentAppender: inlinedtree.Capturing(rc.environment, func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
-					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+					externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
 				) {
 					actionDefinition.Message.InitialOutputDirectory = model_filesystem.GetDirectoryWithContents(
 						&createdInitialOutputDirectory,
 						externalObject,
 						actionDefinition.Patcher,
-						rc.environment,
 					)
-				},
+				}),
 			},
 		},
 		rc.computer.getInlinedTreeOptions(),

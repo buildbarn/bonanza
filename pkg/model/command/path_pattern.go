@@ -18,9 +18,8 @@ import (
 
 func GetPathPatternWithChildren[TMetadata model_core.ReferenceMetadata](
 	children model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],
-	externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+	externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
 	patcher *model_core.ReferenceMessagePatcher[TMetadata],
-	objectCapturer model_core.CreatedObjectCapturer[TMetadata],
 ) *model_command_pb.PathPattern {
 	if children.Message == nil {
 		return &model_command_pb.PathPattern{}
@@ -34,10 +33,7 @@ func GetPathPatternWithChildren[TMetadata model_core.ReferenceMetadata](
 	}
 	return &model_command_pb.PathPattern{
 		Children: &model_command_pb.PathPattern_ChildrenExternal{
-			ChildrenExternal: patcher.CaptureAndAddDecodableReference(
-				*externalObject,
-				objectCapturer,
-			),
+			ChildrenExternal: patcher.AddDecodableReference(*externalObject),
 		},
 	}
 }
@@ -46,15 +42,15 @@ func GetPathPatternInlineCandidate[TMetadata model_core.ReferenceMetadata](name 
 	return inlinedtree.Candidate[*model_command_pb.PathPattern_Children, TMetadata]{
 		ExternalMessage: model_core.ProtoToMarshalable(grandChildren),
 		Encoder:         encoder,
-		ParentAppender: func(
+		ParentAppender: inlinedtree.Capturing(objectCapturer, func(
 			children model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],
-			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+			externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
 		) {
 			children.Message.Children = append(children.Message.Children, &model_command_pb.PathPattern_Child{
 				Name:    name,
-				Pattern: GetPathPatternWithChildren(grandChildren, externalObject, children.Patcher, objectCapturer),
+				Pattern: GetPathPatternWithChildren(grandChildren, externalObject, children.Patcher),
 			})
-		},
+		}),
 	}
 }
 

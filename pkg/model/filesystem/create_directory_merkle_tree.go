@@ -265,24 +265,24 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 					),
 				),
 				Encoder: b.directoryEncoder,
-				ParentAppender: func(
-					directory model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, TDirectory],
-					externalObject *model_core.Decodable[model_core.CreatedObject[TDirectory]],
-				) {
-					if externalObject == nil {
-						directory.Message.Leaves = leavesInline
-					} else {
-						directory.Message.Leaves = &model_filesystem_pb.DirectoryContents_LeavesExternal{
-							LeavesExternal: &model_filesystem_pb.LeavesReference{
-								Reference: directory.Patcher.CaptureAndAddDecodableReference(
-									*externalObject,
-									model_core.CreatedObjectCapturerFunc[TDirectory](b.capturer.CaptureDirectory),
-								),
-								MaximumSymlinkEscapementLevels: ud.leavesMaximumSymlinkEscapementLevels,
-							},
+				ParentAppender: inlinedtree.Capturing(
+					model_core.CreatedObjectCapturerFunc[TDirectory](b.capturer.CaptureDirectory),
+					func(
+						directory model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, TDirectory],
+						externalObject *model_core.Decodable[model_core.CapturedObject[TDirectory]],
+					) {
+						if externalObject == nil {
+							directory.Message.Leaves = leavesInline
+						} else {
+							directory.Message.Leaves = &model_filesystem_pb.DirectoryContents_LeavesExternal{
+								LeavesExternal: &model_filesystem_pb.LeavesReference{
+									Reference:                      directory.Patcher.AddDecodableReference(*externalObject),
+									MaximumSymlinkEscapementLevels: ud.leavesMaximumSymlinkEscapementLevels,
+								},
+							}
 						}
-					}
-				},
+					},
+				),
 			},
 		)
 
@@ -295,22 +295,24 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 				inlinedtree.Candidate[*model_filesystem_pb.DirectoryContents, TDirectory]{
 					ExternalMessage: model_core.ProtoToMarshalable(createdDirectory.Message),
 					Encoder:         b.directoryEncoder,
-					ParentAppender: func(
-						directory model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, TDirectory],
-						externalObject *model_core.Decodable[model_core.CreatedObject[TDirectory]],
-					) {
-						directory.Message.Directories = append(
-							directory.Message.Directories,
-							&model_filesystem_pb.DirectoryNode{
-								Name: nameStr,
-								Directory: GetDirectoryWithContents(
-									&createdDirectory,
-									externalObject,
-									directory.Patcher,
-									model_core.CreatedObjectCapturerFunc[TDirectory](b.capturer.CaptureLeaves),
-								),
-							})
-					},
+					ParentAppender: inlinedtree.Capturing(
+						model_core.CreatedObjectCapturerFunc[TDirectory](b.capturer.CaptureLeaves),
+						func(
+							directory model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, TDirectory],
+							externalObject *model_core.Decodable[model_core.CapturedObject[TDirectory]],
+						) {
+							directory.Message.Directories = append(
+								directory.Message.Directories,
+								&model_filesystem_pb.DirectoryNode{
+									Name: nameStr,
+									Directory: GetDirectoryWithContents(
+										&createdDirectory,
+										externalObject,
+										directory.Patcher,
+									),
+								})
+						},
+					),
 				},
 			)
 
@@ -485,9 +487,8 @@ func CreateDirectoryMerkleTree[TDirectory, TFile model_core.ReferenceMetadata](
 // contents of a directory.
 func GetDirectoryWithContents[TMetadata model_core.ReferenceMetadata](
 	createdDirectory *CreatedDirectory[TMetadata],
-	externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+	externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
 	patcher *model_core.ReferenceMessagePatcher[TMetadata],
-	objectCapturer model_core.CreatedObjectCapturer[TMetadata],
 ) *model_filesystem_pb.Directory {
 	if externalObject == nil {
 		return &model_filesystem_pb.Directory{
@@ -499,10 +500,7 @@ func GetDirectoryWithContents[TMetadata model_core.ReferenceMetadata](
 	return &model_filesystem_pb.Directory{
 		Contents: &model_filesystem_pb.Directory_ContentsExternal{
 			ContentsExternal: createdDirectory.ToDirectoryReference(
-				patcher.CaptureAndAddDecodableReference(
-					*externalObject,
-					objectCapturer,
-				),
+				patcher.AddDecodableReference(*externalObject),
 			),
 		},
 	}

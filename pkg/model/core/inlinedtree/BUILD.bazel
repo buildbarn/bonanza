@@ -3,7 +3,10 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "inlinedtree",
-    srcs = ["build.go"],
+    srcs = [
+        "build.go",
+        "capturing.go",
+    ],
     importpath = "bonanza.build/pkg/model/core/inlinedtree",
     visibility = ["//visibility:public"],
     deps = [

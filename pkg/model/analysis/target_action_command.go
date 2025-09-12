@@ -731,17 +731,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			{
 				ExternalMessage: model_core.ProtoToMarshalable(outputPathPatternChildren),
 				Encoder:         actionEncoder,
-				ParentAppender: func(
+				ParentAppender: inlinedtree.Capturing(e, func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
-					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+					externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
 				) {
 					command.Message.OutputPathPattern = model_command.GetPathPatternWithChildren(
 						outputPathPatternChildren,
 						externalObject,
 						command.Patcher,
-						e,
 					)
-				},
+				}),
 			},
 		},
 		inlinedTreeOptions,

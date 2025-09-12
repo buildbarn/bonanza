@@ -1954,17 +1954,16 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 			{
 				ExternalMessage: model_core.ProtoToMarshalable(outputPathPatternChildren),
 				Encoder:         mrc.actionEncoder,
-				ParentAppender: func(
+				ParentAppender: inlinedtree.Capturing(mrc.environment, func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
-					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+					externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
 				) {
 					command.Message.OutputPathPattern = model_command.GetPathPatternWithChildren(
 						outputPathPatternChildren,
 						externalObject,
 						command.Patcher,
-						mrc.environment,
 					)
-				},
+				}),
 			},
 		},
 		inlinedTreeOptions,

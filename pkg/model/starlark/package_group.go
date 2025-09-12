@@ -99,9 +99,9 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](n *packageG
 		inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_starlark_pb.PackageGroup_Subpackages, TMetadata]{
 			ExternalMessage: model_core.NewPatchedMessage(model_core.NewProtoMarshalable(&overrides), patcher),
 			Encoder:         encoder,
-			ParentAppender: func(
+			ParentAppender: inlinedtree.Capturing(objectCapturer, func(
 				subpackages model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata],
-				externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+				externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
 			) {
 				if externalObject == nil {
 					subpackages.Message.Overrides = &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
@@ -109,13 +109,10 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](n *packageG
 					}
 				} else {
 					subpackages.Message.Overrides = &model_starlark_pb.PackageGroup_Subpackages_OverridesExternal{
-						OverridesExternal: subpackages.Patcher.CaptureAndAddDecodableReference(
-							*externalObject,
-							objectCapturer,
-						),
+						OverridesExternal: subpackages.Patcher.AddDecodableReference(*externalObject),
 					}
 				}
-			},
+			}),
 		})
 	}
 
