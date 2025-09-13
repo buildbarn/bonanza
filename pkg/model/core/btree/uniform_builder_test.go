@@ -33,7 +33,7 @@ func TestUniformBuilder(t *testing.T) {
 		builder := btree.NewUniformBuilder[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata](chunkerFactory, nodeMerger.Call)
 
 		metadata := NewMockReferenceMetadata(ctrl)
-		node := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
+		node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
 			return &model_filesystem_pb.FileContents{
 				Level: &model_filesystem_pb.FileContents_ChunkReference{
 					ChunkReference: &model_core_pb.DecodableReference{
@@ -60,7 +60,7 @@ func TestUniformBuilder(t *testing.T) {
 
 		// Pushing the first node should only cause it to be stored.
 		metadata1 := NewMockReferenceMetadata(ctrl)
-		node1 := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
+		node1 := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
 			return &model_filesystem_pb.FileContents{
 				Level: &model_filesystem_pb.FileContents_ChunkReference{
 					ChunkReference: &model_core_pb.DecodableReference{
@@ -78,7 +78,7 @@ func TestUniformBuilder(t *testing.T) {
 		// Pushing the second node should cause a new level to
 		// be created.
 		metadata2 := NewMockReferenceMetadata(ctrl)
-		node2 := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
+		node2 := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
 			return &model_filesystem_pb.FileContents{
 				Level: &model_filesystem_pb.FileContents_ChunkReference{
 					ChunkReference: &model_core_pb.DecodableReference{
@@ -102,7 +102,7 @@ func TestUniformBuilder(t *testing.T) {
 		// Finalizing the tree should cause the two-node level
 		// to be finalized as well. The resulting parent node
 		// should be returned as the root of the tree.
-		nodes := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) []*model_filesystem_pb.FileContents {
+		nodes := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) []*model_filesystem_pb.FileContents {
 			patcher.Merge(node1.Patcher)
 			patcher.Merge(node2.Patcher)
 			return []*model_filesystem_pb.FileContents{
@@ -113,7 +113,7 @@ func TestUniformBuilder(t *testing.T) {
 		chunker.EXPECT().PopMultiple(true).Return(nodes)
 		chunker.EXPECT().PopMultiple(true)
 		metadata3 := NewMockReferenceMetadata(ctrl)
-		node3 := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
+		node3 := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
 			return &model_filesystem_pb.FileContents{
 				Level: &model_filesystem_pb.FileContents_ChunkReference{
 					ChunkReference: &model_core_pb.DecodableReference{

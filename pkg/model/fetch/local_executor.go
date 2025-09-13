@@ -100,7 +100,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	)
 
 	var virtualExecutionDuration time.Duration
-	result := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_fetch_pb.Result {
+	result := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_fetch_pb.Result {
 		var result model_fetch_pb.Result
 		actionReader := model_parser.LookupParsedObjectReader[object.LocalReference](
 			parsedObjectPoolIngester,

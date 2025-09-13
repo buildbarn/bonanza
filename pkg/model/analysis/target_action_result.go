@@ -61,7 +61,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 	inputRootReference := model_core.Patch(e, model_core.Nested(inputRoot, inputRoot.Message.InputRootReference))
 	referenceFormat := c.getReferenceFormat()
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(commandReference.Patcher)
 			patcher.Merge(inputRootReference.Patcher)
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
@@ -77,7 +77,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 	}
 
 	actionResult := e.GetSuccessfulActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
 			return &model_analysis_pb.SuccessfulActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					// TODO: Should we make the execution

@@ -164,7 +164,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 				case *model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent_:
 					firstName = firstElement.Parent.FirstName
 				}
-				return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ModuleExtensionRepos_Value_Repo {
+				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ModuleExtensionRepos_Value_Repo {
 					return &model_analysis_pb.ModuleExtensionRepos_Value_Repo{
 						Level: &model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent_{
 							Parent: &model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent{

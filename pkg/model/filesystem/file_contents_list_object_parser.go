@@ -86,7 +86,7 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 
 	if entry.Reference.Value.GetHeight() > 0 {
 		// Large file.
-		return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_filesystem_pb.FileContents {
+		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_filesystem_pb.FileContents {
 			return &model_filesystem_pb.FileContents{
 				Level: &model_filesystem_pb.FileContents_FileContentsListReference{
 					FileContentsListReference: &model_core_pb.DecodableReference{
@@ -103,7 +103,7 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 	}
 
 	// Small file.
-	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_filesystem_pb.FileContents {
+	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_filesystem_pb.FileContents {
 		return &model_filesystem_pb.FileContents{
 			Level: &model_filesystem_pb.FileContents_ChunkReference{
 				ChunkReference: &model_core_pb.DecodableReference{

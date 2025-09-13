@@ -43,7 +43,7 @@ func NewPatchedMessageFromExisting[
 	existing Message[TMessage, TReference],
 	createMetadata ReferenceMetadataCreator[TMetadata],
 ) PatchedMessage[TMessage, TMetadata] {
-	return BuildPatchedMessage(func(patcher *ReferenceMessagePatcher[TMetadata]) TMessage {
+	return MustBuildPatchedMessage(func(patcher *ReferenceMessagePatcher[TMetadata]) TMessage {
 		if existing.OutgoingReferences.GetDegree() == 0 {
 			return existing.Message
 		}
@@ -65,11 +65,11 @@ func NewSimplePatchedMessage[TMetadata ReferenceMetadata, TMessage any](v TMessa
 	return NewPatchedMessage(v, NewReferenceMessagePatcher[TMetadata]())
 }
 
-// BuildPatchedMessage is a convenience function for constructing
+// MustBuildPatchedMessage is a convenience function for constructing
 // PatchedMessage that has a newly created ReferenceMessagePatcher
 // attached to it. A callback is invoked for creating a message that is
 // managed by the ReferenceMessagePatcher.
-func BuildPatchedMessage[TMessage any, TMetadata ReferenceMetadata](
+func MustBuildPatchedMessage[TMessage any, TMetadata ReferenceMetadata](
 	builder func(*ReferenceMessagePatcher[TMetadata]) TMessage,
 ) PatchedMessage[TMessage, TMetadata] {
 	patcher := NewReferenceMessagePatcher[TMetadata]()

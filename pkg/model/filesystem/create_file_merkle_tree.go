@@ -45,7 +45,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 					totalSizeBytes += childNode.TotalSizeBytes
 				}
 
-				return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
+				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
 					return &model_filesystem_pb.FileContents{
 						Level: &model_filesystem_pb.FileContents_FileContentsListReference{
 							FileContentsListReference: patcher.CaptureAndAddDecodableReference(
@@ -85,7 +85,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 
 		// Insert a FileContents message for it into the B-tree.
 		if err := treeBuilder.PushChild(
-			model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
+			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
 				return &model_filesystem_pb.FileContents{
 					Level: &model_filesystem_pb.FileContents_ChunkReference{
 						ChunkReference: &model_core_pb.DecodableReference{

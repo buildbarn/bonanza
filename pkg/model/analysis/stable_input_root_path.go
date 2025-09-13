@@ -95,7 +95,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
 				CommandReference: patcher.CaptureAndAddDecodableReference(createdCommand, e),
 				// TODO: We shouldn't be handcrafting a
@@ -115,7 +115,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 
 	// Invoke "pwd".
 	actionResult := e.GetSuccessfulActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
 			return &model_analysis_pb.SuccessfulActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: repoPlatform.Message.ExecPkixPublicKey,

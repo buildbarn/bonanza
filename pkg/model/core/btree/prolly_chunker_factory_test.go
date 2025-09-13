@@ -47,7 +47,7 @@ func TestProllyChunkerFactory(t *testing.T) {
 		for i := 1000; i < 1010; i++ {
 			metadata := NewMockReferenceMetadata(ctrl)
 			require.NoError(t, chunker.PushSingle(
-				model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
+				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
 					return &model_filesystem_pb.FileContents{
 						TotalSizeBytes: uint64(i),
 						Level: &model_filesystem_pb.FileContents_ChunkReference{

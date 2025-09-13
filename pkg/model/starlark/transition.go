@@ -162,7 +162,7 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeValue(path map
 		), false, nil
 	}
 
-	return model_core.BuildPatchedMessage(
+	return model_core.MustBuildPatchedMessage(
 		func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Value {
 			patchedDefinition := model_core.Patch(options.ObjectCapturer, td.definition)
 			return &model_starlark_pb.Value{
@@ -260,7 +260,7 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) Encode(path ma
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata]{}, err
 	}
-	return model_core.BuildPatchedMessage(
+	return model_core.MustBuildPatchedMessage(
 		func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Transition {
 			return &model_starlark_pb.Transition{
 				Kind: &model_starlark_pb.Transition_UserDefined_{
@@ -281,7 +281,7 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) EncodeValue(pa
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, err
 	}
-	return model_core.BuildPatchedMessage(
+	return model_core.MustBuildPatchedMessage(
 		func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Value {
 			return &model_starlark_pb.Value{
 				Kind: &model_starlark_pb.Value_Transition{

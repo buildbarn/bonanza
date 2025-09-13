@@ -237,7 +237,7 @@ func (tr *TargetReference[TReference, TMetadata]) Get(thread *starlark.Thread, v
 // that it can be written to storage and restored at a later point in
 // time.
 func (tr *TargetReference[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
-	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Value {
+	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Value {
 		m := &model_starlark_pb.TargetReference{
 			OriginalLabel: tr.originalLabel.String(),
 		}

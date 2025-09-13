@@ -483,7 +483,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) model_core.Marshalable {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) model_core.Marshalable {
 			return model_core.NewProtoMarshalable(&model_build_pb.Action{
 				InvocationId:   invocationID.String(),
 				BuildRequestId: buildRequestID.String(),

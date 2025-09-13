@@ -1456,7 +1456,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					case *model_analysis_pb.ConfiguredTarget_Value_Output_Parent_:
 						firstPackageRelativePath = firstElement.Parent.FirstPackageRelativePath
 					}
-					return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
+					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
 						return &model_analysis_pb.ConfiguredTarget_Value_Output{
 							Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent_{
 								Parent: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent{
@@ -1510,7 +1510,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					case *model_analysis_pb.ConfiguredTarget_Value_Action_Parent_:
 						firstID = firstElement.Parent.FirstId
 					}
-					return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
+					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
 						return &model_analysis_pb.ConfiguredTarget_Value_Action{
 							Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent_{
 								Parent: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent{
@@ -2317,7 +2317,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 	valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.environment, nil)
 	var inputsDirect []starlark.Value
 	toolsParentNodeComputer := func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_analysis_pb.FilesToRunProvider) model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider, TMetadata] {
-		return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.FilesToRunProvider {
+		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.FilesToRunProvider {
 			return &model_analysis_pb.FilesToRunProvider{
 				Level: &model_analysis_pb.FilesToRunProvider_Parent_{
 					Parent: &model_analysis_pb.FilesToRunProvider_Parent{
@@ -2415,7 +2415,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 	}
 
 	argsParentNodeComputer := func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_analysis_pb.Args) model_core.PatchedMessage[*model_analysis_pb.Args, TMetadata] {
-		return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args {
+		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args {
 			return &model_analysis_pb.Args{
 				Level: &model_analysis_pb.Args_Parent_{
 					Parent: &model_analysis_pb.Args_Parent{
@@ -3256,7 +3256,7 @@ func (a *args[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, o
 			options.ObjectEncoder,
 			options.ObjectReferenceFormat,
 			func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_analysis_pb.Args_Leaf_Add) model_core.PatchedMessage[*model_analysis_pb.Args_Leaf_Add, TMetadata] {
-				return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args_Leaf_Add {
+				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args_Leaf_Add {
 					return &model_analysis_pb.Args_Leaf_Add{
 						Level: &model_analysis_pb.Args_Leaf_Add_Parent_{
 							Parent: &model_analysis_pb.Args_Leaf_Add_Parent{

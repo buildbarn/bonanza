@@ -397,7 +397,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpArchiveContentsValue(ct
 		return PatchedHttpArchiveContentsValue[TMetadata]{}, err
 	}
 
-	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.HttpArchiveContents_Value {
+	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.HttpArchiveContents_Value {
 		return &model_analysis_pb.HttpArchiveContents_Value{
 			Exists: &model_analysis_pb.HttpArchiveContents_Value_Exists{
 				Contents: createdRootDirectory.ToDirectoryReference(

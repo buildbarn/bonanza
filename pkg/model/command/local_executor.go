@@ -249,7 +249,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	}
 
 	var virtualExecutionDuration time.Duration
-	result := model_core.BuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_command_pb.Result {
+	result := model_core.MustBuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_command_pb.Result {
 		// Fetch the Command message, so that we know the arguments
 		// and environment variables of the process to spawn.
 		var result model_command_pb.Result

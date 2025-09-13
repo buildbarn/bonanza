@@ -89,7 +89,7 @@ func PatchList[
 	capturer ExistingObjectCapturer[TReference, TMetadata],
 	existingList Message[[]*TMessage, TReference],
 ) PatchedMessage[[]*TMessage, TMetadata] {
-	return BuildPatchedMessage(func(patcher *ReferenceMessagePatcher[TMetadata]) []*TMessage {
+	return MustBuildPatchedMessage(func(patcher *ReferenceMessagePatcher[TMetadata]) []*TMessage {
 		if existingList.OutgoingReferences.GetDegree() == 0 {
 			return existingList.Message
 		}

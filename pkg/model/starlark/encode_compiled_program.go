@@ -65,7 +65,7 @@ func (o *ValueEncodingOptions[TReference, TMetadata]) ComputeListParentNode(crea
 		}
 	}
 
-	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.List_Element {
+	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.List_Element {
 		return &model_starlark_pb.List_Element{
 			Level: &model_starlark_pb.List_Element_Parent_{
 				Parent: &model_starlark_pb.List_Element_Parent{
@@ -203,7 +203,7 @@ func EncodeValue[TReference any, TMetadata model_core.CloneableReferenceMetadata
 				createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]],
 				childNodes []*model_starlark_pb.Dict_Entry,
 			) model_core.PatchedMessage[*model_starlark_pb.Dict_Entry, TMetadata] {
-				return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Dict_Entry {
+				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Dict_Entry {
 					return &model_starlark_pb.Dict_Entry{
 						Level: &model_starlark_pb.Dict_Entry_Parent_{
 							Parent: &model_starlark_pb.Dict_Entry_Parent{

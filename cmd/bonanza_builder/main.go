@@ -207,7 +207,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 		instanceName,
 		e.objectContentsWalkerSemaphore,
 	)
-	resultMessage := model_core.BuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_build_pb.Result {
+	resultMessage := model_core.MustBuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_build_pb.Result {
 		var result model_build_pb.Result
 		parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester[buffered.Reference](
 			e.parsedObjectPool,
@@ -310,7 +310,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 					case *model_evaluation_pb.Evaluation_Parent_:
 						firstKeySHA256 = firstEntry.Parent.FirstKeySha256
 					}
-					return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Evaluation {
+					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Evaluation {
 						return &model_evaluation_pb.Evaluation{
 							Level: &model_evaluation_pb.Evaluation_Parent_{
 								Parent: &model_evaluation_pb.Evaluation_Parent{
@@ -356,7 +356,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 					evaluationTreeEncoder,
 					referenceFormat,
 					/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[buffered.ReferenceMetadata]], childNodes []*model_evaluation_pb.Keys) model_core.PatchedMessage[*model_evaluation_pb.Keys, buffered.ReferenceMetadata] {
-						return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Keys {
+						return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Keys {
 							return &model_evaluation_pb.Keys{
 								Level: &model_evaluation_pb.Keys_Parent_{
 									Parent: &model_evaluation_pb.Keys_Parent{

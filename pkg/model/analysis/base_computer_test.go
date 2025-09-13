@@ -166,7 +166,7 @@ func requireEqualPatchedMessage[TMessage proto.Message](
 	got model_core.PatchedMessage[TMessage, model_core.CreatedObjectTree],
 ) {
 	t.Helper()
-	want := model_core.BuildPatchedMessage(wantBuilder)
+	want := model_core.MustBuildPatchedMessage(wantBuilder)
 	if !model_core.PatchedMessagesEqual(want, got) {
 		t.Fatalf("Not equal:\nWant:\n\n%s\n\nGot:\n\n%s", protojson.Format(want.Message), protojson.Format(got.Message))
 	}
@@ -176,7 +176,7 @@ func requireEqualPatchedMessage[TMessage proto.Message](
 func newMessage[TMessage any](
 	builder func(*model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) TMessage,
 ) model_core.Message[TMessage, model_core.CreatedObjectTree] {
-	m, metadata := model_core.BuildPatchedMessage(builder).SortAndSetReferences()
+	m, metadata := model_core.MustBuildPatchedMessage(builder).SortAndSetReferences()
 	return model_core.NewMessage(
 		m.Message,
 		object.OutgoingReferencesList[model_core.CreatedObjectTree](metadata),
@@ -189,7 +189,7 @@ func newObject(
 ) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
 	return util.Must(
 		model_core.MarshalAndEncode(
-			model_core.BuildPatchedMessage(builder),
+			model_core.MustBuildPatchedMessage(builder),
 			util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 			model_encoding.NewChainedBinaryEncoder(nil),
 		),
@@ -234,7 +234,7 @@ func eqPatchedMessage[TMessage proto.Message](
 	builder func(childPatcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) TMessage,
 ) gomock.Matcher {
 	return patchedMessageMatcher[TMessage]{
-		want: model_core.BuildPatchedMessage(builder),
+		want: model_core.MustBuildPatchedMessage(builder),
 	}
 }
 

@@ -1759,7 +1759,7 @@ func bytesToValidString(p []byte) (string, bool) {
 
 func newArgumentsBuilder[TMetadata model_core.ReferenceMetadata](actionEncoder model_encoding.BinaryEncoder, referenceFormat object.ReferenceFormat, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (btree.Builder[*model_command_pb.ArgumentList_Element, TMetadata], btree.ParentNodeComputer[*model_command_pb.ArgumentList_Element, TMetadata]) {
 	parentNodeComputer := func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_command_pb.ArgumentList_Element) model_core.PatchedMessage[*model_command_pb.ArgumentList_Element, TMetadata] {
-		return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_command_pb.ArgumentList_Element {
+		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_command_pb.ArgumentList_Element {
 			return &model_command_pb.ArgumentList_Element{
 				Level: &model_command_pb.ArgumentList_Element_Parent{
 					Parent: patcher.CaptureAndAddDecodableReference(createdObject, objectCapturer),
@@ -1983,7 +1983,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(inputRootReference.Patcher)
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
 				CommandReference:   patcher.CaptureAndAddDecodableReference(createdCommand, mrc.environment),
@@ -1999,7 +1999,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 
 	// Execute the command.
 	actionResult := mrc.environment.GetActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Key {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Key {
 			return &model_analysis_pb.ActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
@@ -2309,7 +2309,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(inputRootReference.Patcher)
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
 				CommandReference:   patcher.CaptureAndAddDecodableReference(createdCommand, mrc.environment),
@@ -2325,7 +2325,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 
 	// Execute the command.
 	actionResult := mrc.environment.GetSuccessfulActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
 			return &model_analysis_pb.SuccessfulActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
@@ -2476,7 +2476,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
 				CommandReference: patcher.CaptureAndAddDecodableReference(createdCommand, mrc.environment),
 				// TODO: We shouldn't be handcrafting a
@@ -2496,7 +2496,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 
 	// Invoke command.
 	actionResult := mrc.environment.GetActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Key {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Key {
 			return &model_analysis_pb.ActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
@@ -2661,7 +2661,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(inputRootReference.Patcher)
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
 				CommandReference:   patcher.CaptureAndAddDecodableReference(createdCommand, mrc.environment),
@@ -2677,7 +2677,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 
 	// Execute the command.
 	actionResult := mrc.environment.GetActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Key {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Key {
 			return &model_analysis_pb.ActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
@@ -2799,7 +2799,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	}
 
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(inputRootReference.Patcher)
 			return model_core.NewProtoMarshalable(&model_command_pb.Action{
 				CommandReference: patcher.CaptureAndAddDecodableReference(
@@ -2817,7 +2817,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	}
 
 	actionResult := mrc.environment.GetSuccessfulActionResultValue(
-		model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
 			return &model_analysis_pb.SuccessfulActionResult_Key{
 				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
 					PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
@@ -3476,7 +3476,7 @@ func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTracking
 		return model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, TMetadata]{}, err
 	}
 
-	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_filesystem_pb.DirectoryReference {
+	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_filesystem_pb.DirectoryReference {
 		return createdRootDirectory.ToDirectoryReference(
 			patcher.CaptureAndAddDecodableReference(createdRootDirectoryObject, e),
 		)
