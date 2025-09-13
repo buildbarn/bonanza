@@ -2198,15 +2198,12 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 		inlinedtree.CandidateList[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata]{
 			// Fields that should always be inlined into the
 			// FilesToRunProvider.
-			{
-				ExternalMessage: model_core.NewPatchedMessage((model_core.Marshalable)(nil), executable.Patcher),
-				ParentAppender: func(
-					filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata],
-					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
+			inlinedtree.AlwaysInline(
+				executable.Patcher,
+				func(filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata]) {
 					filesToRunProvider.Message.Executable = executable.Message
 				},
-			},
+			),
 			// Fields that can be stored externally if needed.
 			{
 				ExternalMessage: model_core.ProtoListToMarshalable(runfilesFiles),
@@ -2643,16 +2640,13 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 		inlinedtree.CandidateList[*model_analysis_pb.TargetActionDefinition, TMetadata]{
 			// Fields that should always be inlined into the
 			// action definition.
-			{
-				ExternalMessage: model_core.NewSimplePatchedMessage[TMetadata]((model_core.Marshalable)(nil)),
-				ParentAppender: func(
-					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
-					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
+			inlinedtree.AlwaysInline(
+				model_core.NewReferenceMessagePatcher[TMetadata](),
+				func(actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata]) {
 					actionDefinition.Message.PlatformPkixPublicKey = rc.execGroups[execGroupIndex].platformPkixPublicKey
 					actionDefinition.Message.UseDefaultShellEnv = useDefaultShellEnv
 				},
-			},
+			),
 			// Fields that can be stored externally if needed.
 			{
 				ExternalMessage: model_core.ProtoListToMarshalable(argsList),

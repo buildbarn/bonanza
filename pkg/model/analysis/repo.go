@@ -1908,18 +1908,15 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 		inlinedtree.CandidateList[*model_command_pb.Command, TMetadata]{
 			// Fields that should always be inlined into the
 			// Command message.
-			{
-				ExternalMessage: model_core.NewSimplePatchedMessage[TMetadata]((model_core.Marshalable)(nil)),
-				ParentAppender: func(
-					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
-					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
+			inlinedtree.AlwaysInline(
+				model_core.NewReferenceMessagePatcher[TMetadata](),
+				func(command model_core.PatchedMessage[*model_command_pb.Command, TMetadata]) {
 					command.Message.DirectoryCreationParameters = mrc.directoryCreationParametersMessage
 					command.Message.FileCreationParameters = mrc.fileCreationParametersMessage
 					command.Message.WorkingDirectory = workingDirectory.GetUNIXString()
 					command.Message.NeedsStableInputRootPath = true
 				},
-			},
+			),
 			// Fields that can be stored externally if needed.
 			{
 				ExternalMessage: model_core.ProtoListToMarshalable(argumentList),

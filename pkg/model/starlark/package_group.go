@@ -66,15 +66,12 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](n *packageG
 	defer inlineCandidates.Discard()
 
 	// Set the IncludeSubpackages field.
-	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_starlark_pb.PackageGroup_Subpackages, TMetadata]{
-		ExternalMessage: model_core.NewSimplePatchedMessage[TMetadata](model_core.Marshalable(nil)),
-		ParentAppender: func(
-			subpackages model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata],
-			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-		) {
+	inlineCandidates = append(inlineCandidates, inlinedtree.AlwaysInline(
+		model_core.NewReferenceMessagePatcher[TMetadata](),
+		func(subpackages model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata]) {
 			subpackages.Message.IncludeSubpackages = n.includeSubpackages
 		},
-	})
+	))
 
 	// If one or more subpackages are present, set the overrides field.
 	if len(n.subpackages) > 0 {

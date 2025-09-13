@@ -40,6 +40,24 @@ type Candidate[TParentMessage any, TMetadata model_core.ReferenceMetadata] struc
 	ParentAppender ParentAppender[TParentMessage, TMetadata]
 }
 
+// AlwaysInline creates a simple Candidate that always inlines data into
+// the parent message. This can be used to set message fields that have
+// no way of getting stored in an external object.
+func AlwaysInline[TParentMessage any, TMetadata model_core.ReferenceMetadata](
+	patcher *model_core.ReferenceMessagePatcher[TMetadata],
+	parentAppender func(parent model_core.PatchedMessage[TParentMessage, TMetadata]),
+) Candidate[TParentMessage, TMetadata] {
+	return Candidate[TParentMessage, TMetadata]{
+		ExternalMessage: model_core.NewPatchedMessage((model_core.Marshalable)(nil), patcher),
+		ParentAppender: func(
+			out model_core.PatchedMessage[TParentMessage, TMetadata],
+			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+		) {
+			parentAppender(out)
+		},
+	}
+}
+
 var marshalOptions = proto.MarshalOptions{UseCachedSize: true}
 
 type queuedCandidate struct {

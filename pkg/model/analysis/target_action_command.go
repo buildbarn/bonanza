@@ -688,17 +688,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		inlinedtree.CandidateList[*model_command_pb.Command, TMetadata]{
 			// Fields that should always be inlined into the
 			// Command message.
-			{
-				ExternalMessage: model_core.NewSimplePatchedMessage[TMetadata]((model_core.Marshalable)(nil)),
-				ParentAppender: func(
-					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
-					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
+			inlinedtree.AlwaysInline(
+				model_core.NewReferenceMessagePatcher[TMetadata](),
+				func(command model_core.PatchedMessage[*model_command_pb.Command, TMetadata]) {
 					command.Message.DirectoryCreationParameters = directoryCreationParametersMessage.Message.DirectoryCreationParameters
 					command.Message.FileCreationParameters = fileCreationParametersMessage.Message.FileCreationParameters
 					command.Message.WorkingDirectory = (*path.Trace)(nil).GetUNIXString()
 				},
-			},
+			),
 			// Fields that can be stored externally if needed.
 			{
 				ExternalMessage: model_core.ProtoListToMarshalable(argumentsList),
@@ -715,19 +712,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 					)
 				},
 			},
-			{
-				ExternalMessage: model_core.NewPatchedMessage((model_core.Marshalable)(nil), environmentVariablesList.Patcher),
-				Encoder:         actionEncoder,
-				ParentAppender: func(
-					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
-					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
+			inlinedtree.AlwaysInline(
+				environmentVariablesList.Patcher,
+				func(command model_core.PatchedMessage[*model_command_pb.Command, TMetadata]) {
 					// TODO: This should push out
 					// the environment variables if
 					// they get too big.
 					command.Message.EnvironmentVariables = environmentVariablesList.Message
 				},
-			},
+			),
 			{
 				ExternalMessage: model_core.ProtoToMarshalable(outputPathPatternChildren),
 				Encoder:         actionEncoder,
