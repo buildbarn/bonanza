@@ -32,18 +32,18 @@ var (
 	ComponentExternal = bb_path.MustNewComponent(ComponentStrExternal)
 )
 
-type File[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type File[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	definition       model_core.Message[*model_starlark_pb.File, TReference]
 	treeRelativePath *bb_path.Trace
 }
 
 var (
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*File[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.Comparable                                                          = (*File[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.HasAttrs                                                            = (*File[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*File[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.Comparable                                                 = (*File[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.HasAttrs                                                   = (*File[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
-func NewFile[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](definition model_core.Message[*model_starlark_pb.File, TReference]) *File[TReference, TMetadata] {
+func NewFile[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](definition model_core.Message[*model_starlark_pb.File, TReference]) *File[TReference, TMetadata] {
 	return &File[TReference, TMetadata]{
 		definition: definition,
 	}

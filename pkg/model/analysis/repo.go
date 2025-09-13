@@ -1480,7 +1480,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetStableInput
 	return nil
 }
 
-func createDownloadSuccessResult[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](integrity *model_fetch_pb.SubresourceIntegrity, sha256 []byte) starlark.Value {
+func createDownloadSuccessResult[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](integrity *model_fetch_pb.SubresourceIntegrity, sha256 []byte) starlark.Value {
 	fields := map[string]any{
 		"success": starlark.Bool(true),
 	}

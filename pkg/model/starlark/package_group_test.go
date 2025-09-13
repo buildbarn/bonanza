@@ -34,7 +34,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 					ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 					MaximumSizeBytes: 0,
 				},
-				NewMockCreatedObjectCapturerForTesting(ctrl),
+				NewMockObjectManagerForTesting(ctrl),
 			)
 			require.NoError(t, err)
 			testutil.RequireEqualProto(t, &model_starlark_pb.PackageGroup{
@@ -53,7 +53,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 					ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 					MaximumSizeBytes: 0,
 				},
-				NewMockCreatedObjectCapturerForTesting(ctrl),
+				NewMockObjectManagerForTesting(ctrl),
 			)
 			require.EqualError(t, err, "//visibility:private may not be combined with other labels")
 		})
@@ -70,7 +70,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 					ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 					MaximumSizeBytes: 0,
 				},
-				NewMockCreatedObjectCapturerForTesting(ctrl),
+				NewMockObjectManagerForTesting(ctrl),
 			)
 			require.NoError(t, err)
 			testutil.RequireEqualProto(t, &model_starlark_pb.PackageGroup{
@@ -91,15 +91,15 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 					ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 					MaximumSizeBytes: 0,
 				},
-				NewMockCreatedObjectCapturerForTesting(ctrl),
+				NewMockObjectManagerForTesting(ctrl),
 			)
 			require.EqualError(t, err, "//visibility:public may not be combined with other labels")
 		})
 	})
 
 	t.Run("Mix", func(t *testing.T) {
-		objectCapturer := NewMockCreatedObjectCapturerForTesting(ctrl)
-		objectCapturer.EXPECT().CaptureCreatedObject(gomock.Any()).AnyTimes()
+		objectManager := NewMockObjectManagerForTesting(ctrl)
+		objectManager.EXPECT().CaptureCreatedObject(gomock.Any()).AnyTimes()
 
 		packageGroup, err := model_starlark.NewPackageGroupFromVisibility(
 			[]label.ResolvedLabel{
@@ -137,7 +137,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 1 << 20,
 			},
-			objectCapturer,
+			objectManager,
 		)
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_starlark_pb.PackageGroup{

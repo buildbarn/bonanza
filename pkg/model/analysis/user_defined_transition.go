@@ -70,7 +70,7 @@ func stringToStarlarkLabelOrNone(v string) *model_starlark_pb.Value {
 	}
 }
 
-func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](e getExpectedTransitionOutputEnvironment[TReference, TMetadata], transitionPackage label.CanonicalPackage, apparentBuildSettingLabel label.ApparentLabel) (expectedTransitionOutput[TReference], error) {
+func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](e getExpectedTransitionOutputEnvironment[TReference, TMetadata], transitionPackage label.CanonicalPackage, apparentBuildSettingLabel label.ApparentLabel) (expectedTransitionOutput[TReference], error) {
 	// Resolve the actual build setting target corresponding
 	// to the string value provided as part of the
 	// transition definition.

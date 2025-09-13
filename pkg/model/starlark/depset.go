@@ -28,7 +28,7 @@ func deduplicateAndAddDirect(thread *starlark.Thread, children *[]any, direct it
 	return nil
 }
 
-func deduplicateAndAddTransitive[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](thread *starlark.Thread, children *[]any, transitive iter.Seq2[int, *Depset[TReference, TMetadata]], valuesSeen *valueSet, encodedListsSeen map[model_core.Decodable[object.LocalReference]]struct{}, depsetsSeen map[*any]struct{}, order model_starlark_pb.Depset_Order) error {
+func deduplicateAndAddTransitive[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *starlark.Thread, children *[]any, transitive iter.Seq2[int, *Depset[TReference, TMetadata]], valuesSeen *valueSet, encodedListsSeen map[model_core.Decodable[object.LocalReference]]struct{}, depsetsSeen map[*any]struct{}, order model_starlark_pb.Depset_Order) error {
 	for _, d := range transitive {
 		switch v := d.children.(type) {
 		case nil:
@@ -82,7 +82,7 @@ func deduplicateAndAddTransitive[TReference object.BasicReference, TMetadata mod
 // being that Bazel requires depsets to provide reference equality. This
 // is provided by the Depset type, which embeds DepsetContents and a
 // unique identifier.
-type DepsetContents[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type DepsetContents[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	children any
 	order    model_starlark_pb.Depset_Order
 }
@@ -91,7 +91,7 @@ type DepsetContents[TReference object.BasicReference, TMetadata model_core.Clone
 // returns a DepsetContents that corresponds to the union of all values.
 // This function can be used to implement the depset() constructor
 // function.
-func NewDepsetContents[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](
+func NewDepsetContents[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	thread *starlark.Thread,
 	direct []starlark.Value,
 	transitive []*Depset[TReference, TMetadata],
@@ -146,7 +146,7 @@ func NewDepsetContents[TReference object.BasicReference, TMetadata model_core.Cl
 // (model_core.Message[*model_starlark_pb.List_Element, TReference]).
 // This function can be used to construct depsets that are (partially)
 // backed by storage.
-func NewDepsetContentsFromList[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](
+func NewDepsetContentsFromList[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	children []any,
 	order model_starlark_pb.Depset_Order,
 ) *DepsetContents[TReference, TMetadata] {
@@ -185,7 +185,7 @@ func NewDepsetContentsFromList[TReference object.BasicReference, TMetadata model
 	}
 }
 
-type depsetChildrenEncoder[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type depsetChildrenEncoder[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	path         map[starlark.Value]struct{}
 	options      *ValueEncodingOptions[TReference, TMetadata]
 	treeBuilder  btree.Builder[*model_starlark_pb.List_Element, TMetadata]
@@ -308,21 +308,21 @@ func (dc *DepsetContents[TReference, TMetadata]) ToList(thread *starlark.Thread)
 
 // Depset is an order preserving set type for Starlark values that
 // supports fast union operations.
-type Depset[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type Depset[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	referenceEqual
 	DepsetContents[TReference, TMetadata]
 }
 
 var (
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*Depset[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.Comparable                                                          = (*Depset[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.HasAttrs                                                            = (*Depset[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Depset[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.Comparable                                                 = (*Depset[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.HasAttrs                                                   = (*Depset[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewDepset creates a Starlark depset object that holds the provided
 // contents. If the depset is non-empty, it attaches a unique identifier
 // to it. This ensures that when depsets provide reference equality.
-func NewDepset[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](contents *DepsetContents[TReference, TMetadata], identifierGenerator ReferenceEqualIdentifierGenerator) *Depset[TReference, TMetadata] {
+func NewDepset[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](contents *DepsetContents[TReference, TMetadata], identifierGenerator ReferenceEqualIdentifierGenerator) *Depset[TReference, TMetadata] {
 	d := &Depset[TReference, TMetadata]{
 		DepsetContents: *contents,
 	}
@@ -426,7 +426,7 @@ func (d *Depset[TReference, TMetadata]) AttrNames() []string {
 	return depsetAttrNames
 }
 
-type depsetToListConverter[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type depsetToListConverter[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	thread *starlark.Thread
 
 	valueDecodingOptions *ValueDecodingOptions[TReference]
@@ -575,11 +575,11 @@ func (vs *valueSet) maybeGrow() {
 	}
 }
 
-type listToDepsetUnpackerInto[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type listToDepsetUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	base unpack.UnpackerInto[[]starlark.Value]
 }
 
-func NewListToDepsetUnpackerInto[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](base unpack.Canonicalizer) unpack.UnpackerInto[*Depset[TReference, TMetadata]] {
+func NewListToDepsetUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](base unpack.Canonicalizer) unpack.UnpackerInto[*Depset[TReference, TMetadata]] {
 	return &listToDepsetUnpackerInto[TReference, TMetadata]{
 		base: unpack.List(unpack.Canonicalize(base)),
 	}

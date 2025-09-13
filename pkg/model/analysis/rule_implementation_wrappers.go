@@ -20,7 +20,7 @@ type RuleImplementationWrappers struct {
 	Subrule starlark.Value
 }
 
-func getImplementationWrapper[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](
+func getImplementationWrapper[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	e RuleImplementationWrappersEnvironment[TReference, TMetadata],
 	identifier string,
 ) (starlark.Value, error) {

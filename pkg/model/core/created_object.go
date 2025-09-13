@@ -33,17 +33,13 @@ func (o CreatedObject[TMetadata]) Capture(capturer CreatedObjectCapturer[TMetada
 type CreatedObjectTree CreatedObject[CreatedObjectTree]
 
 var (
-	_ CloneableReferenceMetadata = CreatedObjectTree{}
-	_ WalkableReferenceMetadata  = CreatedObjectTree{}
-	_ object.BasicReference      = CreatedObjectTree{}
+	_ ReferenceMetadata         = CreatedObjectTree{}
+	_ WalkableReferenceMetadata = CreatedObjectTree{}
+	_ object.BasicReference     = CreatedObjectTree{}
 )
 
 // Discard any resources owned by the CreatedObjectTree.
 func (CreatedObjectTree) Discard() {}
-
-// IsCloneable indicates that instances of CreatedObjectTree may safely
-// be placed in multiple ReferenceMessagePatchers.
-func (CreatedObjectTree) IsCloneable() {}
 
 // ToObjectContentsWalker returns a ObjectContentsWalker that allows
 // traversing all objects contained in the CreatedObjectTree.

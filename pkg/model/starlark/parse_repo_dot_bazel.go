@@ -9,6 +9,7 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/storage/object"
 
 	"go.starlark.net/starlark"
 )
@@ -21,12 +22,12 @@ var DefaultInheritableAttrs = model_starlark_pb.InheritableAttrs{
 
 // ParseRepoDotBazel parses a REPO.bazel file that may be stored at the
 // root of a repository.
-func ParseRepoDotBazel[TReference any, TMetadata model_core.CloneableReferenceMetadata](
+func ParseRepoDotBazel[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	contents string,
 	filename pg_label.CanonicalLabel,
 	encoder model_encoding.BinaryEncoder,
 	inlinedTreeOptions *inlinedtree.Options,
-	objectCapturer model_core.CreatedObjectCapturer[TMetadata],
+	objectCapturer model_core.ObjectCapturer[TReference, TMetadata],
 	labelResolver pg_label.Resolver,
 ) (model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata], error) {
 	thread := &starlark.Thread{
@@ -53,7 +54,7 @@ func ParseRepoDotBazel[TReference any, TMetadata model_core.CloneableReferenceMe
 					b,
 					args,
 					kwargs,
-					model_core.NewSimpleMessage[model_core.CloneableReference[TMetadata]](&DefaultInheritableAttrs),
+					model_core.NewSimpleMessage[TReference](&DefaultInheritableAttrs),
 					encoder,
 					inlinedTreeOptions,
 					objectCapturer,
@@ -74,15 +75,15 @@ func ParseRepoDotBazel[TReference any, TMetadata model_core.CloneableReferenceMe
 
 // getDefaultInheritableAttrs parses the arguments provided to
 // REPO.bazel's repo() function or BUILD.bazel's package() function.
-func getDefaultInheritableAttrs[TReference any, TMetadata model_core.CloneableReferenceMetadata](
+func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	thread *starlark.Thread,
 	b *starlark.Builtin,
 	args starlark.Tuple,
 	kwargs []starlark.Tuple,
-	previousInheritableAttrs model_core.Message[*model_starlark_pb.InheritableAttrs, model_core.CloneableReference[TMetadata]],
+	previousInheritableAttrs model_core.Message[*model_starlark_pb.InheritableAttrs, TReference],
 	encoder model_encoding.BinaryEncoder,
 	inlinedTreeOptions *inlinedtree.Options,
-	objectCapturer model_core.CreatedObjectCapturer[TMetadata],
+	objectCapturer model_core.ObjectCapturer[TReference, TMetadata],
 ) (model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata], error) {
 	if len(args) > 0 {
 		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
@@ -128,7 +129,7 @@ func getDefaultInheritableAttrs[TReference any, TMetadata model_core.CloneableRe
 	} else {
 		// Clone the existing visibility.
 		visibilityPackageGroup = model_core.Patch(
-			model_core.CloningObjectManager[TMetadata]{},
+			objectCapturer,
 			model_core.Nested(previousInheritableAttrs, previousInheritableAttrs.Message.Visibility),
 		)
 	}

@@ -329,12 +329,12 @@ func (r *PathResolver) OnUp() (bb_path.ComponentWalker, error) {
 
 type RepoPathResolver func(canonicalRepo pg_label.CanonicalRepo) (*BarePath, error)
 
-type pathOrLabelOrStringUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type pathOrLabelOrStringUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	repoPathResolver RepoPathResolver
 	workingDirectory *BarePath
 }
 
-func NewPathOrLabelOrStringUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata](repoPathResolver RepoPathResolver, workingDirectory *BarePath) unpack.UnpackerInto[*BarePath] {
+func NewPathOrLabelOrStringUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata](repoPathResolver RepoPathResolver, workingDirectory *BarePath) unpack.UnpackerInto[*BarePath] {
 	return &pathOrLabelOrStringUnpackerInto[TReference, TMetadata]{
 		repoPathResolver: repoPathResolver,
 		workingDirectory: workingDirectory,

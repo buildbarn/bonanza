@@ -15,13 +15,13 @@ import (
 	"go.starlark.net/syntax"
 )
 
-type NamedFunction[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type NamedFunction[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	NamedFunctionDefinition[TReference, TMetadata]
 }
 
-var _ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*NamedFunction[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+var _ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*NamedFunction[object.LocalReference, model_core.ReferenceMetadata])(nil)
 
-func NewNamedFunction[TReference any, TMetadata model_core.CloneableReferenceMetadata](definition NamedFunctionDefinition[TReference, TMetadata]) NamedFunction[TReference, TMetadata] {
+func NewNamedFunction[TReference any, TMetadata model_core.ReferenceMetadata](definition NamedFunctionDefinition[TReference, TMetadata]) NamedFunction[TReference, TMetadata] {
 	return NamedFunction[TReference, TMetadata]{
 		NamedFunctionDefinition: definition,
 	}
@@ -60,7 +60,7 @@ func (f NamedFunction[TReference, TMetadata]) EncodeValue(path map[starlark.Valu
 	), needsCode, nil
 }
 
-type NamedFunctionDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] interface {
+type NamedFunctionDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	CallInternal(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Function, TMetadata], bool, error)
 	Name() string
@@ -68,11 +68,11 @@ type NamedFunctionDefinition[TReference any, TMetadata model_core.CloneableRefer
 	NumParams(thread *starlark.Thread) (int, error)
 }
 
-type starlarkNamedFunctionDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type starlarkNamedFunctionDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	*starlark.Function
 }
 
-func NewStarlarkNamedFunctionDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata](function *starlark.Function) NamedFunctionDefinition[TReference, TMetadata] {
+func NewStarlarkNamedFunctionDefinition[TReference any, TMetadata model_core.ReferenceMetadata](function *starlark.Function) NamedFunctionDefinition[TReference, TMetadata] {
 	return starlarkNamedFunctionDefinition[TReference, TMetadata]{
 		Function: function,
 	}
@@ -151,12 +151,12 @@ type FunctionFactoryResolver = func(filename pg_label.CanonicalLabel) (*starlark
 
 const FunctionFactoryResolverKey = "function_factory_resolver"
 
-type protoNamedFunctionDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type protoNamedFunctionDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	message  model_core.Message[*model_starlark_pb.Function, TReference]
 	function atomic.Pointer[starlark.Function]
 }
 
-func NewProtoNamedFunctionDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](message model_core.Message[*model_starlark_pb.Function, TReference]) NamedFunctionDefinition[TReference, TMetadata] {
+func NewProtoNamedFunctionDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](message model_core.Message[*model_starlark_pb.Function, TReference]) NamedFunctionDefinition[TReference, TMetadata] {
 	return &protoNamedFunctionDefinition[TReference, TMetadata]{
 		message: message,
 	}
@@ -254,9 +254,9 @@ func (d *protoNamedFunctionDefinition[TReference, TMetadata]) NumParams(thread *
 	return function.NumParams(), nil
 }
 
-type namedFunctionUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type namedFunctionUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-func NewNamedFunctionUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata]() unpack.UnpackerInto[NamedFunction[TReference, TMetadata]] {
+func NewNamedFunctionUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata]() unpack.UnpackerInto[NamedFunction[TReference, TMetadata]] {
 	return namedFunctionUnpackerInto[TReference, TMetadata]{}
 }
 

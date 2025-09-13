@@ -110,19 +110,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 			return globValue.Message.MatchedPaths, nil
 		})
 
-		repoDefaultAttrs := model_core.Unpatch(
-			model_core.CloningObjectManager[TMetadata]{},
-			model_core.Patch(
-				e,
-				model_core.Nested(repoDefaultAttrsValue, repoDefaultAttrsValue.Message.InheritableAttrs),
-			),
-		).Decay()
-
-		targetRegistrar := model_starlark.NewTargetRegistrar[TMetadata](
+		targetRegistrar := model_starlark.NewTargetRegistrar(
 			c.getValueObjectEncoder(),
 			c.getInlinedTreeOptions(),
 			e,
-			repoDefaultAttrs,
+			model_core.Nested(repoDefaultAttrsValue, repoDefaultAttrsValue.Message.InheritableAttrs),
 		)
 		thread.SetLocal(model_starlark.TargetRegistrarKey, targetRegistrar)
 

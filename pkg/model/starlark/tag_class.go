@@ -16,19 +16,19 @@ import (
 // on a module extension. After calling use_extension(), the module
 // extension may be annotated with tags. A tag class describes a kind of
 // tag, and defines which attributes may be provided to the tag.
-type TagClass[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type TagClass[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	TagClassDefinition[TReference, TMetadata]
 }
 
 var (
-	_ starlark.Value                                                               = (*TagClass[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*TagClass[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ starlark.Value                                                      = (*TagClass[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*TagClass[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewTagClass returns a Starlark value corresponding to a module
 // extension tag class. Such values are normally created by calling
 // tag_class().
-func NewTagClass[TReference any, TMetadata model_core.CloneableReferenceMetadata](definition TagClassDefinition[TReference, TMetadata]) starlark.Value {
+func NewTagClass[TReference any, TMetadata model_core.ReferenceMetadata](definition TagClassDefinition[TReference, TMetadata]) starlark.Value {
 	return &TagClass[TReference, TMetadata]{
 		TagClassDefinition: definition,
 	}
@@ -83,11 +83,11 @@ func (tc *TagClass[TReference, TMetadata]) EncodeValue(path map[starlark.Value]s
 // class, which may either be backed by other Starlark values due to a
 // call to tag_class() from within a .bzl file, or be backed by a
 // previous encoded definition that has been written to storage.
-type TagClassDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] interface {
+type TagClassDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.TagClass, TMetadata], bool, error)
 }
 
-type starlarkTagClassDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type starlarkTagClassDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]
 }
 
@@ -96,7 +96,7 @@ type starlarkTagClassDefinition[TReference any, TMetadata model_core.CloneableRe
 //
 // This function is called when tag_class() is invoked from within a
 // .bzl file.
-func NewStarlarkTagClassDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata](attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]) TagClassDefinition[TReference, TMetadata] {
+func NewStarlarkTagClassDefinition[TReference any, TMetadata model_core.ReferenceMetadata](attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]) TagClassDefinition[TReference, TMetadata] {
 	return &starlarkTagClassDefinition[TReference, TMetadata]{
 		attrs: attrs,
 	}
@@ -115,7 +115,7 @@ func (tcd *starlarkTagClassDefinition[TReference, TMetadata]) Encode(path map[st
 	), needsCode, nil
 }
 
-type protoTagClassDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type protoTagClassDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	message model_core.Message[*model_starlark_pb.TagClass, TReference]
 }
 
@@ -125,7 +125,7 @@ type protoTagClassDefinition[TReference object.BasicReference, TMetadata model_c
 // This function is invoked when a module extension tag class is stored
 // in a global variable, so that it can be reused by other .bzl files.
 // This is not very common, but does occur in practice.
-func NewProtoTagClassDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](message model_core.Message[*model_starlark_pb.TagClass, TReference]) TagClassDefinition[TReference, TMetadata] {
+func NewProtoTagClassDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](message model_core.Message[*model_starlark_pb.TagClass, TReference]) TagClassDefinition[TReference, TMetadata] {
 	return &protoTagClassDefinition[TReference, TMetadata]{
 		message: message,
 	}

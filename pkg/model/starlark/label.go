@@ -16,18 +16,18 @@ import (
 	"go.starlark.net/syntax"
 )
 
-type Label[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type Label[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	value pg_label.ResolvedLabel
 }
 
 var (
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = Label[object.LocalReference, model_core.CloneableReferenceMetadata]{}
-	_ HasLabels                                                                    = Label[object.LocalReference, model_core.CloneableReferenceMetadata]{}
-	_ starlark.HasAttrs                                                            = Label[object.LocalReference, model_core.CloneableReferenceMetadata]{}
-	_ starlark.Value                                                               = Label[object.LocalReference, model_core.CloneableReferenceMetadata]{}
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = Label[object.LocalReference, model_core.ReferenceMetadata]{}
+	_ HasLabels                                                           = Label[object.LocalReference, model_core.ReferenceMetadata]{}
+	_ starlark.HasAttrs                                                   = Label[object.LocalReference, model_core.ReferenceMetadata]{}
+	_ starlark.Value                                                      = Label[object.LocalReference, model_core.ReferenceMetadata]{}
 )
 
-func NewLabel[TReference any, TMetadata model_core.CloneableReferenceMetadata](value pg_label.ResolvedLabel) starlark.Value {
+func NewLabel[TReference any, TMetadata model_core.ReferenceMetadata](value pg_label.ResolvedLabel) starlark.Value {
 	return Label[TReference, TMetadata]{
 		value: value,
 	}
@@ -160,11 +160,11 @@ const (
 	LabelResolverKey = "label_resolver"
 )
 
-type labelOrStringUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type labelOrStringUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	basePackage pg_label.CanonicalPackage
 }
 
-func NewLabelOrStringUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata](basePackage pg_label.CanonicalPackage) unpack.UnpackerInto[pg_label.ResolvedLabel] {
+func NewLabelOrStringUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata](basePackage pg_label.CanonicalPackage) unpack.UnpackerInto[pg_label.ResolvedLabel] {
 	return &labelOrStringUnpackerInto[TReference, TMetadata]{
 		basePackage: basePackage,
 	}
@@ -211,9 +211,9 @@ func (labelOrStringUnpackerInto[TReference, TMetadata]) GetConcatenationOperator
 	return 0
 }
 
-type labelUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type labelUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-func NewLabelUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata]() unpack.UnpackerInto[pg_label.ResolvedLabel] {
+func NewLabelUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata]() unpack.UnpackerInto[pg_label.ResolvedLabel] {
 	return labelUnpackerInto[TReference, TMetadata]{}
 }
 

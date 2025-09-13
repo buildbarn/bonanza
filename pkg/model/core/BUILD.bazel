@@ -4,7 +4,6 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "core",
     srcs = [
-        "cloneable_reference_metadata.go",
         "created_object.go",
         "decodable.go",
         "get_index_from_reference_message.go",

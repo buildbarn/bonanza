@@ -150,7 +150,7 @@ func (intBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labe
 	return starlark.MakeInt64(v), nil
 }
 
-type labelBuildSettingCanonicalizer[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type labelBuildSettingCanonicalizer[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	unpack.Canonicalizer
 	currentPackage pg_label.CanonicalPackage
 	singletonList  bool
@@ -164,7 +164,7 @@ type labelBuildSettingCanonicalizer[TReference any, TMetadata model_core.Cloneab
 // alias() and not as a rule target, this type does not have an
 // associated BuildSettingType. This is why this
 // BuildSettingCanonicalizer can be constructed independently.
-func NewLabelBuildSettingCanonicalizer[TReference any, TMetadata model_core.CloneableReferenceMetadata](currentPackage pg_label.CanonicalPackage, singletonList bool) BuildSettingCanonicalizer {
+func NewLabelBuildSettingCanonicalizer[TReference any, TMetadata model_core.ReferenceMetadata](currentPackage pg_label.CanonicalPackage, singletonList bool) BuildSettingCanonicalizer {
 	labelSettingUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
 	var canonicalizer unpack.Canonicalizer
 	if singletonList {
@@ -203,11 +203,11 @@ func (bsc *labelBuildSettingCanonicalizer[TReference, TMetadata]) CanonicalizeSt
 	return value, nil
 }
 
-type labelListBuildSettingType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type labelListBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	repeatable bool
 }
 
-func NewLabelListBuildSettingType[TReference any, TMetadata model_core.CloneableReferenceMetadata](repeatable bool) BuildSettingType {
+func NewLabelListBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata](repeatable bool) BuildSettingType {
 	return labelListBuildSettingType[TReference, TMetadata]{
 		repeatable: repeatable,
 	}
@@ -233,7 +233,7 @@ func (bst labelListBuildSettingType[TReference, TMetadata]) GetCanonicalizer(cur
 	}
 }
 
-type labelListBuildSettingCanonicalizer[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type labelListBuildSettingCanonicalizer[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	unpack.Canonicalizer
 
 	currentPackage pg_label.CanonicalPackage

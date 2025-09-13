@@ -20,20 +20,20 @@ import (
 // or user defined transition. Transitions can be used to mutate a
 // configuration, either as part of an incoming or outgoing edge in the
 // build graph.
-type Transition[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type Transition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	TransitionDefinition[TReference, TMetadata]
 }
 
 var (
-	_ starlark.Value                                                               = (*Transition[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*Transition[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ NamedGlobal                                                                  = (*Transition[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ starlark.Value                                                      = (*Transition[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Transition[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ NamedGlobal                                                         = (*Transition[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewTransition creates a new Starlark transition value having a given
 // definition. This function is typically invoked when exec_transition()
 // or transition() is called.
-func NewTransition[TReference any, TMetadata model_core.CloneableReferenceMetadata](definition TransitionDefinition[TReference, TMetadata]) *Transition[TReference, TMetadata] {
+func NewTransition[TReference any, TMetadata model_core.ReferenceMetadata](definition TransitionDefinition[TReference, TMetadata]) *Transition[TReference, TMetadata] {
 	return &Transition[TReference, TMetadata]{
 		TransitionDefinition: definition,
 	}
@@ -69,14 +69,14 @@ func (Transition[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, 
 // transition's properties (inputs, outputs, reference to an
 // implementation function). For predeclared transitions ("exec",
 // "target", config.none(), etc.), the definition may be trivial.
-type TransitionDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] interface {
+type TransitionDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	EncodableValue[TReference, TMetadata]
 	AssignIdentifier(identifier pg_label.CanonicalStarlarkIdentifier)
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata], error)
 	EncodeUserDefinedTransition(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error)
 }
 
-type protoTransitionDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type protoTransitionDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	identifier *pg_label.CanonicalStarlarkIdentifier
 	definition model_core.Message[*model_starlark_pb.Transition, TReference]
 }
@@ -85,7 +85,7 @@ type protoTransitionDefinition[TReference object.BasicReference, TMetadata model
 // backed by a Protobuf message. These may either refer to a
 // user-defined transition using its Starlark identifier, or a
 // predeclared transition ("exec", "target", config.none(), etc.).
-func NewProtoTransitionDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](definition model_core.Message[*model_starlark_pb.Transition, TReference]) TransitionDefinition[TReference, TMetadata] {
+func NewProtoTransitionDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](definition model_core.Message[*model_starlark_pb.Transition, TReference]) TransitionDefinition[TReference, TMetadata] {
 	return &protoTransitionDefinition[TReference, TMetadata]{
 		definition: definition,
 	}
@@ -199,7 +199,7 @@ var (
 	}
 )
 
-type userDefinedTransitionDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type userDefinedTransitionDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	LateNamedValue
 
 	implementation   NamedFunction[TReference, TMetadata]
@@ -211,7 +211,7 @@ type userDefinedTransitionDefinition[TReference any, TMetadata model_core.Clonea
 // NewUserDefinedTransitionDefinition creates an object holding the
 // properties of a new user defined transition, as normally done by
 // exec_transition() or transition().
-func NewUserDefinedTransitionDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, implementation NamedFunction[TReference, TMetadata], inputs, outputs []string, canonicalPackage pg_label.CanonicalPackage) TransitionDefinition[TReference, TMetadata] {
+func NewUserDefinedTransitionDefinition[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, implementation NamedFunction[TReference, TMetadata], inputs, outputs []string, canonicalPackage pg_label.CanonicalPackage) TransitionDefinition[TReference, TMetadata] {
 	return &userDefinedTransitionDefinition[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,
@@ -296,13 +296,13 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) EncodeValue(pa
 	), needsCode, nil
 }
 
-type transitionDefinitionUnpackerInto[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type transitionDefinitionUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct{}
 
 // NewTransitionDefinitionUnpackerInto is capable of unpacking arguments
 // to a Starlark function that are expected to refer to a configuration
 // transition. These may either be user defined transitions, or strings
 // referring to predefined transitions (i.e., "exec" or "target").
-func NewTransitionDefinitionUnpackerInto[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata]() unpack.UnpackerInto[TransitionDefinition[TReference, TMetadata]] {
+func NewTransitionDefinitionUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() unpack.UnpackerInto[TransitionDefinition[TReference, TMetadata]] {
 	return transitionDefinitionUnpackerInto[TReference, TMetadata]{}
 }
 

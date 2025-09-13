@@ -80,7 +80,7 @@ func (t bazelModuleTag) AttrNames() []string {
 
 var repoRulesExtensionName = util.Must(label.NewStarlarkIdentifier("_repo_rules"))
 
-type useRepoRuleCapturingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type useRepoRuleCapturingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	labelResolver         label.Resolver
 	moduleRepo            label.CanonicalRepo
 	ignoreDevDependencies bool

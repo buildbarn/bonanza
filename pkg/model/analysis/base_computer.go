@@ -28,7 +28,7 @@ import (
 )
 
 type BaseComputerReferenceMetadata interface {
-	model_core.CloneableReferenceMetadata
+	model_core.ReferenceMetadata
 }
 
 type baseComputer[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
@@ -299,7 +299,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 			continue
 		}
 		clonedConfigurationReference := model_core.Unpatch(
-			model_core.CloningObjectManager[TMetadata]{},
+			e,
 			targetPlatformConfigurationReference,
 		).Decay()
 
@@ -322,7 +322,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 				&iterErr,
 			) {
 				patchedConfigurationReference1 := model_core.Patch(
-					model_core.CloningObjectManager[TMetadata]{},
+					e,
 					clonedConfigurationReference,
 				)
 				visibleTargetValue := e.GetVisibleTargetValue(
@@ -341,7 +341,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 				}
 
 				patchedConfigurationReference2 := model_core.Patch(
-					model_core.CloningObjectManager[TMetadata]{},
+					e,
 					clonedConfigurationReference,
 				)
 				targetCompletionValue := e.GetTargetCompletionValue(

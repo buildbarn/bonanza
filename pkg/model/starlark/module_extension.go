@@ -14,20 +14,20 @@ import (
 	"go.starlark.net/starlark"
 )
 
-type ModuleExtensionDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] interface {
+type ModuleExtensionDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	EncodableValue[TReference, TMetadata]
 }
 
-type moduleExtension[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type moduleExtension[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	ModuleExtensionDefinition[TReference, TMetadata]
 }
 
 var (
-	_ starlark.Value                                                               = (*moduleExtension[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*moduleExtension[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ starlark.Value                                                      = (*moduleExtension[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*moduleExtension[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
-func NewModuleExtension[TReference any, TMetadata model_core.CloneableReferenceMetadata](definition ModuleExtensionDefinition[TReference, TMetadata]) starlark.Value {
+func NewModuleExtension[TReference any, TMetadata model_core.ReferenceMetadata](definition ModuleExtensionDefinition[TReference, TMetadata]) starlark.Value {
 	return &moduleExtension[TReference, TMetadata]{
 		ModuleExtensionDefinition: definition,
 	}
@@ -51,12 +51,12 @@ func (me *moduleExtension[TReference, TMetadata]) Hash(thread *starlark.Thread) 
 	return 0, errors.New("module_extension cannot be hashed")
 }
 
-type starlarkModuleExtensionDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type starlarkModuleExtensionDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	implementation NamedFunction[TReference, TMetadata]
 	tagClasses     map[pg_label.StarlarkIdentifier]*TagClass[TReference, TMetadata]
 }
 
-func NewStarlarkModuleExtensionDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata](implementation NamedFunction[TReference, TMetadata], tagClasses map[pg_label.StarlarkIdentifier]*TagClass[TReference, TMetadata]) ModuleExtensionDefinition[TReference, TMetadata] {
+func NewStarlarkModuleExtensionDefinition[TReference any, TMetadata model_core.ReferenceMetadata](implementation NamedFunction[TReference, TMetadata], tagClasses map[pg_label.StarlarkIdentifier]*TagClass[TReference, TMetadata]) ModuleExtensionDefinition[TReference, TMetadata] {
 	return &starlarkModuleExtensionDefinition[TReference, TMetadata]{
 		implementation: implementation,
 		tagClasses:     tagClasses,
@@ -100,11 +100,11 @@ func (med *starlarkModuleExtensionDefinition[TReference, TMetadata]) EncodeValue
 	), needsCode, nil
 }
 
-type protoModuleExtensionDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type protoModuleExtensionDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	message model_core.Message[*model_starlark_pb.ModuleExtension, TReference]
 }
 
-func NewProtoModuleExtensionDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](message model_core.Message[*model_starlark_pb.ModuleExtension, TReference]) ModuleExtensionDefinition[TReference, TMetadata] {
+func NewProtoModuleExtensionDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](message model_core.Message[*model_starlark_pb.ModuleExtension, TReference]) ModuleExtensionDefinition[TReference, TMetadata] {
 	return &protoModuleExtensionDefinition[TReference, TMetadata]{
 		message: message,
 	}

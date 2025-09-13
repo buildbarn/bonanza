@@ -24,8 +24,7 @@ type ReferenceMetadata struct {
 	children []ReferenceMetadata
 }
 
-func (ReferenceMetadata) Discard()     {}
-func (ReferenceMetadata) IsCloneable() {}
+func (ReferenceMetadata) Discard() {}
 
 func (m ReferenceMetadata) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
 	if m.contents == nil {

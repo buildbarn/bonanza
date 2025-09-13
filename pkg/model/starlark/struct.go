@@ -32,7 +32,7 @@ import (
 // values of the fields may then be stored in a separate B-tree backed
 // list. This allows functions like dir() and hasattr() to perform well
 // and not read an excessive amount of data from storage.
-type Struct[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type Struct[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	// Constant fields.
 	providerInstanceProperties *ProviderInstanceProperties[TReference, TMetadata]
 	keys                       []string
@@ -45,10 +45,10 @@ type Struct[TReference object.BasicReference, TMetadata model_core.CloneableRefe
 }
 
 var (
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*Struct[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.Comparable                                                          = (*Struct[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.HasAttrs                                                            = (*Struct[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.Mapping                                                             = (*Struct[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Struct[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.Comparable                                                 = (*Struct[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.HasAttrs                                                   = (*Struct[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.Mapping                                                    = (*Struct[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewStructFromDict creates a Starlark struct value that has the fields
@@ -56,7 +56,7 @@ var (
 // having types starlark.Value and
 // model_core.Message[*model_starlark_pb.Value, TReference],
 // respectively.
-func NewStructFromDict[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](providerInstanceProperties *ProviderInstanceProperties[TReference, TMetadata], entries map[string]any) *Struct[TReference, TMetadata] {
+func NewStructFromDict[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](providerInstanceProperties *ProviderInstanceProperties[TReference, TMetadata], entries map[string]any) *Struct[TReference, TMetadata] {
 	keys := make([]string, 0, len(entries))
 	for k := range entries {
 		keys = append(keys, k)
@@ -70,7 +70,7 @@ func NewStructFromDict[TReference object.BasicReference, TMetadata model_core.Cl
 	return newStructFromLists[TReference, TMetadata](providerInstanceProperties, keys, values)
 }
 
-func newStructFromLists[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](providerInstanceProperties *ProviderInstanceProperties[TReference, TMetadata], keys []string, values []any) *Struct[TReference, TMetadata] {
+func newStructFromLists[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](providerInstanceProperties *ProviderInstanceProperties[TReference, TMetadata], keys []string, values []any) *Struct[TReference, TMetadata] {
 	return &Struct[TReference, TMetadata]{
 		providerInstanceProperties: providerInstanceProperties,
 		keys:                       keys,

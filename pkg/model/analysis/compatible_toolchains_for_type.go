@@ -33,7 +33,6 @@ func getTargetPlatformInfoProvider[TReference object.BasicReference, TMetadata B
 		commandLineOptionPlatformsLabel.GetCanonicalPackage().String(),
 		platformsLabelStr,
 		configurationReference,
-		e,
 		platformInfoProviderIdentifier,
 	)
 	if err != nil {

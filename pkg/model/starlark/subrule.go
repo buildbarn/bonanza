@@ -21,20 +21,20 @@ import (
 //
 // Subrules effectively act as utility functions that also have label
 // attributes bound to them.
-type Subrule[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type Subrule[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	LateNamedValue
 	definition SubruleDefinition[TReference, TMetadata]
 }
 
 var (
-	_ starlark.Callable                                                            = (*Subrule[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*Subrule[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ NamedGlobal                                                                  = (*Subrule[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ starlark.Callable                                                   = (*Subrule[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Subrule[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ NamedGlobal                                                         = (*Subrule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewSubrule returns a Starlark value corresponding to a subrule. Such
 // values are typically created using the subrule() function.
-func NewSubrule[TReference any, TMetadata model_core.CloneableReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition SubruleDefinition[TReference, TMetadata]) starlark.Value {
+func NewSubrule[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition SubruleDefinition[TReference, TMetadata]) starlark.Value {
 	return &Subrule[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,
@@ -145,11 +145,11 @@ func (sr *Subrule[TReference, TMetadata]) EncodeValue(path map[starlark.Value]st
 }
 
 // SubruleDefinition contains the definition of a subrule.
-type SubruleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] interface {
+type SubruleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata], bool, error)
 }
 
-type starlarkSubruleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type starlarkSubruleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	attrs          map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]
 	implementation NamedFunction[TReference, TMetadata]
 	subrules       []*Subrule[TReference, TMetadata]
@@ -157,7 +157,7 @@ type starlarkSubruleDefinition[TReference any, TMetadata model_core.CloneableRef
 
 // NewStarlarkSubruleDefinition creates the definition of a subrule,
 // given the parameters that were provided to the subrule() function.
-func NewStarlarkSubruleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata](
+func NewStarlarkSubruleDefinition[TReference any, TMetadata model_core.ReferenceMetadata](
 	attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata],
 	implementation NamedFunction[TReference, TMetadata],
 	subrules []*Subrule[TReference, TMetadata],
@@ -204,7 +204,7 @@ func (sd *starlarkSubruleDefinition[TReference, TMetadata]) Encode(path map[star
 	), needsCode, nil
 }
 
-type protoSubruleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type protoSubruleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
 // NewProtoSubruleDefinition contains the definition of a subrule that
 // was declared in another .bzl file and has subsequently been written
@@ -216,7 +216,7 @@ type protoSubruleDefinition[TReference any, TMetadata model_core.CloneableRefere
 // definition of a subrule to be carried over between .bzl files, as such
 // indirection is always done by referencing the original identifier of the
 // subrule. This type therefore merely acts as a placeholder.
-func NewProtoSubruleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata]() SubruleDefinition[TReference, TMetadata] {
+func NewProtoSubruleDefinition[TReference any, TMetadata model_core.ReferenceMetadata]() SubruleDefinition[TReference, TMetadata] {
 	return &protoSubruleDefinition[TReference, TMetadata]{}
 }
 

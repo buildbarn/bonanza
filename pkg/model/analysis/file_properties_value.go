@@ -22,7 +22,7 @@ import (
 // contained in a repo. All repos are placed in a fictive root
 // directory, which allows symbolic links with targets of shape
 // "../${repo}/${file}" to resolve properly.
-type reposFilePropertiesResolver[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type reposFilePropertiesResolver[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	context          context.Context
 	directoryReaders *DirectoryReaders[TReference]
 	environment      FilePropertiesEnvironment[TReference, TMetadata]
@@ -30,7 +30,7 @@ type reposFilePropertiesResolver[TReference object.BasicReference, TMetadata mod
 	currentRepo *model_filesystem.DirectoryComponentWalker[TReference]
 }
 
-var _ path.ComponentWalker = (*reposFilePropertiesResolver[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+var _ path.ComponentWalker = (*reposFilePropertiesResolver[object.LocalReference, model_core.ReferenceMetadata])(nil)
 
 func (r *reposFilePropertiesResolver[TReference, TMetadata]) handleRepoOnUp() (path.ComponentWalker, error) {
 	r.currentRepo = nil

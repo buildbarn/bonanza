@@ -52,22 +52,22 @@ func NewSelectGroup(conditions map[pg_label.ResolvedLabel]starlark.Value, defaul
 // evaluated. Instead, it causes a new select() object to be returned,
 // recording all of the conditions and the order in which they are
 // supplied.
-type Select[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type Select[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	groups                []SelectGroup
 	concatenationOperator syntax.Token
 	frozen                bool
 }
 
 var (
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*Select[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ HasLabels                                                                    = (*Select[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.HasBinary                                                           = (*Select[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.Value                                                               = (*Select[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Select[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ HasLabels                                                           = (*Select[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.HasBinary                                                  = (*Select[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.Value                                                      = (*Select[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewSelect returns a new Starlark select() object that contains the
 // provided groups of conditions.
-func NewSelect[TReference any, TMetadata model_core.CloneableReferenceMetadata](groups []SelectGroup, concatenationOperator syntax.Token) *Select[TReference, TMetadata] {
+func NewSelect[TReference any, TMetadata model_core.ReferenceMetadata](groups []SelectGroup, concatenationOperator syntax.Token) *Select[TReference, TMetadata] {
 	return &Select[TReference, TMetadata]{
 		groups:                groups,
 		concatenationOperator: concatenationOperator,
@@ -270,7 +270,7 @@ func (s *Select[TReference, TMetadata]) VisitLabels(thread *starlark.Thread, pat
 	return nil
 }
 
-type selectUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type selectUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	valueUnpackerInto unpack.Canonicalizer
 }
 
@@ -280,7 +280,7 @@ type selectUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceM
 // If the provided value is not a select() object, it is converted to a
 // select() object that only has a single group, having a default
 // condition corresponding to the provided value.
-func NewSelectUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata](valueUnpackerInto unpack.Canonicalizer) unpack.UnpackerInto[*Select[TReference, TMetadata]] {
+func NewSelectUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata](valueUnpackerInto unpack.Canonicalizer) unpack.UnpackerInto[*Select[TReference, TMetadata]] {
 	return &selectUnpackerInto[TReference, TMetadata]{
 		valueUnpackerInto: valueUnpackerInto,
 	}

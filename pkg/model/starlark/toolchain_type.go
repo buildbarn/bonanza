@@ -18,20 +18,20 @@ import (
 // normally created by the config_common.toolchain_type() function.
 // These objects can be used to refer to toolchains, expressing whether
 // the dependency on a toolchain is mandatory or optional.
-type ToolchainType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type ToolchainType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	toolchainType pg_label.ResolvedLabel
 	mandatory     bool
 }
 
 var (
-	_ starlark.HasAttrs                                                            = (*ToolchainType[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.Value                                                               = (*ToolchainType[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*ToolchainType[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ starlark.HasAttrs                                                   = (*ToolchainType[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.Value                                                      = (*ToolchainType[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*ToolchainType[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewToolchainType returns a Starlark toolchain type object, as
 // normally created by the config_common.toolchain_type() function.
-func NewToolchainType[TReference any, TMetadata model_core.CloneableReferenceMetadata](toolchainType pg_label.ResolvedLabel, mandatory bool) *ToolchainType[TReference, TMetadata] {
+func NewToolchainType[TReference any, TMetadata model_core.ReferenceMetadata](toolchainType pg_label.ResolvedLabel, mandatory bool) *ToolchainType[TReference, TMetadata] {
 	return &ToolchainType[TReference, TMetadata]{
 		toolchainType: toolchainType,
 		mandatory:     mandatory,
@@ -125,7 +125,7 @@ func (tt *ToolchainType[TReference, TMetadata]) EncodeValue(path map[starlark.Va
 	), false, nil
 }
 
-type toolchainTypeUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type toolchainTypeUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
 // NewToolchainTypeUnpackerInto is capable of unpacking arguments that
 // are provided to functions that accept toolchain types.
@@ -134,7 +134,7 @@ type toolchainTypeUnpackerInto[TReference any, TMetadata model_core.CloneableRef
 // labels, or as values explicitly constructed using the
 // toolchain_type() function. When the former is used, toolchain type
 // dependencies are assumed to be mandatory.
-func NewToolchainTypeUnpackerInto[TReference any, TMetadata model_core.CloneableReferenceMetadata]() unpack.UnpackerInto[*ToolchainType[TReference, TMetadata]] {
+func NewToolchainTypeUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata]() unpack.UnpackerInto[*ToolchainType[TReference, TMetadata]] {
 	return toolchainTypeUnpackerInto[TReference, TMetadata]{}
 }
 

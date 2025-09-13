@@ -59,8 +59,7 @@ func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx 
 			e,
 			fromPackage.String(),
 			constraintValue,
-			model_core.NewSimpleMessage[model_core.CloneableReference[TMetadata]]((*model_core_pb.DecodableReference)(nil)),
-			model_core.CloningObjectManager[TMetadata]{},
+			model_core.NewSimpleMessage[TReference]((*model_core_pb.DecodableReference)(nil)),
 			constraintValueInfoProviderIdentifier,
 		)
 		if err != nil {
@@ -1591,7 +1590,7 @@ func (o *targetOutput[TMetadata]) setDefinition(definition model_core.PatchedMes
 	return nil
 }
 
-type targetOutputRegistrar[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type targetOutputRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference]
 	targetLabel            label.CanonicalLabel
 
@@ -1636,7 +1635,7 @@ func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename 
 // targetOutputRegistrar is able to convert model_starlark.File objects
 // that were declared as part of the current target to targetOutputs.
 // This allows them to be associated to the action that yields them.
-var _ unpack.UnpackerInto[*targetOutput[model_core.CloneableReferenceMetadata]] = (*targetOutputRegistrar[object.BasicReference, model_core.CloneableReferenceMetadata])(nil)
+var _ unpack.UnpackerInto[*targetOutput[model_core.ReferenceMetadata]] = (*targetOutputRegistrar[object.BasicReference, model_core.ReferenceMetadata])(nil)
 
 func (or *targetOutputRegistrar[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst **targetOutput[TMetadata]) error {
 	var f *model_starlark.File[TReference, TMetadata]
@@ -3121,20 +3120,20 @@ func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.Refere
 }
 
 type getProviderFromVisibleConfiguredTargetEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
+	model_core.ObjectManager[TReference, TMetadata]
 	GetConfiguredTargetValue(model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference]
 	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
 }
 
-func getProviderFromVisibleConfiguredTarget[TReference any, TConfigurationReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+func getProviderFromVisibleConfiguredTarget[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	e getProviderFromVisibleConfiguredTargetEnvironment[TReference, TMetadata],
 	fromPackage string,
 	targetLabel string,
-	configurationReference model_core.Message[*model_core_pb.DecodableReference, TConfigurationReference],
-	configurationObjectCapturer model_core.ExistingObjectCapturer[TConfigurationReference, TMetadata],
+	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
 	providerIdentifier label.CanonicalStarlarkIdentifier,
 ) (model_core.Message[*model_starlark_pb.Struct_Fields, TReference], string, error) {
 	patchedConfigurationReference := model_core.Patch(
-		configurationObjectCapturer,
+		e,
 		configurationReference,
 	)
 	visibleTarget := e.GetVisibleTargetValue(
@@ -3154,7 +3153,7 @@ func getProviderFromVisibleConfiguredTarget[TReference any, TConfigurationRefere
 		e,
 		visibleTarget.Message.Label,
 		model_core.Patch(
-			configurationObjectCapturer,
+			e,
 			configurationReference,
 		),
 		providerIdentifier,
@@ -3164,7 +3163,7 @@ func getProviderFromVisibleConfiguredTarget[TReference any, TConfigurationRefere
 
 // argsAdd records all arguments provided to Args.add(), Args.add_all()
 // and Args.add_joined().
-type argsAdd[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type argsAdd[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	startWith         *wrapperspb.StringValue
 	values            starlark.Value
 	expandDirectories bool
@@ -3184,13 +3183,13 @@ type argsUseParamFile struct {
 
 // args records the state of an Args object created through
 // ctx.actions.args().
-type args[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type args[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	adds            []argsAdd[TReference, TMetadata]
 	paramFileFormat model_analysis_pb.Args_Leaf_UseParamFile_Format
 	useParamFile    *argsUseParamFile
 }
 
-var _ starlark.HasAttrs = (*args[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+var _ starlark.HasAttrs = (*args[object.LocalReference, model_core.ReferenceMetadata])(nil)
 
 func (args[TReference, TMetadata]) String() string {
 	return "<Args>"

@@ -11,17 +11,17 @@ import (
 	"go.starlark.net/starlark"
 )
 
-type Aspect[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type Aspect[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	LateNamedValue
 	definition *model_starlark_pb.Aspect_Definition
 }
 
 var (
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*Aspect[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ NamedGlobal                                                                  = (*Aspect[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Aspect[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ NamedGlobal                                                         = (*Aspect[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
-func NewAspect[TReference any, TMetadata model_core.CloneableReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition *model_starlark_pb.Aspect_Definition) starlark.Value {
+func NewAspect[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition *model_starlark_pb.Aspect_Definition) starlark.Value {
 	return &Aspect[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,

@@ -16,7 +16,7 @@ import (
 	"go.starlark.net/starlark"
 )
 
-type ProviderInstanceProperties[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type ProviderInstanceProperties[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	LateNamedValue
 	dictLike       bool
 	computedFields map[string]NamedFunction[TReference, TMetadata]
@@ -55,7 +55,7 @@ func (pip *ProviderInstanceProperties[TReference, TMetadata]) Encode(path map[st
 	), needsCode, nil
 }
 
-func NewProviderInstanceProperties[TReference any, TMetadata model_core.CloneableReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, dictLike bool, computedFields map[string]NamedFunction[TReference, TMetadata], typeName string) *ProviderInstanceProperties[TReference, TMetadata] {
+func NewProviderInstanceProperties[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, dictLike bool, computedFields map[string]NamedFunction[TReference, TMetadata], typeName string) *ProviderInstanceProperties[TReference, TMetadata] {
 	return &ProviderInstanceProperties[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,
@@ -66,20 +66,20 @@ func NewProviderInstanceProperties[TReference any, TMetadata model_core.Cloneabl
 	}
 }
 
-type Provider[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type Provider[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	*ProviderInstanceProperties[TReference, TMetadata]
 	fields       []string
 	initFunction *NamedFunction[TReference, TMetadata]
 }
 
 var (
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*Provider[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ NamedGlobal                                                                  = (*Provider[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.Callable                                                            = (*Provider[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.TotallyOrdered                                                      = (*Provider[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Provider[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ NamedGlobal                                                         = (*Provider[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.Callable                                                   = (*Provider[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.TotallyOrdered                                             = (*Provider[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
-func NewProvider[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](instanceProperties *ProviderInstanceProperties[TReference, TMetadata], fields []string, initFunction *NamedFunction[TReference, TMetadata]) *Provider[TReference, TMetadata] {
+func NewProvider[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](instanceProperties *ProviderInstanceProperties[TReference, TMetadata], fields []string, initFunction *NamedFunction[TReference, TMetadata]) *Provider[TReference, TMetadata] {
 	return &Provider[TReference, TMetadata]{
 		ProviderInstanceProperties: instanceProperties,
 		fields:                     fields,

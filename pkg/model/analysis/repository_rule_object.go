@@ -16,7 +16,7 @@ import (
 	"go.starlark.net/starlark"
 )
 
-type RepositoryRule[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type RepositoryRule[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	Implementation starlark.Callable
 	Attrs          AttrsDict[TReference, TMetadata]
 }
@@ -57,13 +57,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepositoryRuleObjectValue(c
 	}, nil
 }
 
-type PublicAttr[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type PublicAttr[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	Name     string
 	Default  starlark.Value
 	AttrType model_starlark.AttrType[TReference, TMetadata]
 }
 
-type AttrsDict[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type AttrsDict[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	Public  []PublicAttr[TReference, TMetadata]
 	Private starlark.StringDict
 }

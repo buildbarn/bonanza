@@ -18,18 +18,18 @@ import (
 	"go.starlark.net/starlark"
 )
 
-type rule[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type rule[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	LateNamedValue
 	definition RuleDefinition[TReference, TMetadata]
 }
 
 var (
-	_ starlark.Callable                                                            = (*rule[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*rule[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ NamedGlobal                                                                  = (*rule[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ starlark.Callable                                                   = (*rule[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*rule[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ NamedGlobal                                                         = (*rule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
-func NewRule[TReference any, TMetadata model_core.CloneableReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition RuleDefinition[TReference, TMetadata]) starlark.Value {
+func NewRule[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition RuleDefinition[TReference, TMetadata]) starlark.Value {
 	return &rule[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,
@@ -77,7 +77,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	if targetRegistrarValue == nil {
 		return nil, fmt.Errorf("rule cannot be invoked from within this context")
 	}
-	targetRegistrar := targetRegistrarValue.(*TargetRegistrar[TMetadata])
+	targetRegistrar := targetRegistrarValue.(*TargetRegistrar[TReference, TMetadata])
 
 	attrs, err := r.definition.GetAttrsCheap(thread)
 	if err != nil {
@@ -466,7 +466,7 @@ func (r *rule[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 	), needsCode, nil
 }
 
-type RuleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] interface {
+type RuleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error)
 	GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
 	GetBuildSetting(thread *starlark.Thread) (*BuildSetting, error)
@@ -474,7 +474,7 @@ type RuleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetad
 	GetTest(thread *starlark.Thread) (bool, error)
 }
 
-type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	attrs          map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]
 	buildSetting   *BuildSetting
 	cfg            TransitionDefinition[TReference, TMetadata]
@@ -486,7 +486,7 @@ type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_co
 	subrules       []*Subrule[TReference, TMetadata]
 }
 
-func NewStarlarkRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](
+func NewStarlarkRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata],
 	buildSetting *BuildSetting,
 	cfg TransitionDefinition[TReference, TMetadata],
@@ -592,12 +592,12 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetTest(thread *starlar
 	return rd.test, nil
 }
 
-type protoRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type protoRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	message         model_core.Message[*model_starlark_pb.Rule_Definition, TReference]
 	protoAttrsCache protoAttrsCache[TReference, TMetadata]
 }
 
-func NewProtoRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](message model_core.Message[*model_starlark_pb.Rule_Definition, TReference]) RuleDefinition[TReference, TMetadata] {
+func NewProtoRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](message model_core.Message[*model_starlark_pb.Rule_Definition, TReference]) RuleDefinition[TReference, TMetadata] {
 	return &protoRuleDefinition[TReference, TMetadata]{
 		message: message,
 	}
@@ -639,12 +639,12 @@ type GlobalResolver[TReference any] = func(identifier pg_label.CanonicalStarlark
 
 const GlobalResolverKey = "global_resolver"
 
-type reloadingRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type reloadingRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	identifier pg_label.CanonicalStarlarkIdentifier
 	base       atomic.Pointer[RuleDefinition[TReference, TMetadata]]
 }
 
-func NewReloadingRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](identifier pg_label.CanonicalStarlarkIdentifier) RuleDefinition[TReference, TMetadata] {
+func NewReloadingRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](identifier pg_label.CanonicalStarlarkIdentifier) RuleDefinition[TReference, TMetadata] {
 	return &reloadingRuleDefinition[TReference, TMetadata]{
 		identifier: identifier,
 	}
@@ -733,7 +733,7 @@ func (bogusValue) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, errors.New("bogus_value cannot be hashed")
 }
 
-type protoAttrsCache[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type protoAttrsCache[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	attrsCheap atomic.Pointer[map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]]
 }
 

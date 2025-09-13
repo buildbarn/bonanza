@@ -12,6 +12,7 @@ import (
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/storage/object"
 )
 
 // packageGroupNode is a simplified representation of the
@@ -200,4 +201,4 @@ func NewPackageGroupFromVisibility[TMetadata model_core.ReferenceMetadata](visib
 	), nil
 }
 
-type CreatedObjectCapturerForTesting = model_core.CreatedObjectCapturer[model_core.CreatedObjectTree]
+type ObjectManagerForTesting = model_core.ObjectManager[object.LocalReference, model_core.CreatedObjectTree]

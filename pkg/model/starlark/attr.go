@@ -19,17 +19,17 @@ import (
 	"go.starlark.net/syntax"
 )
 
-type Attr[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type Attr[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	attrType     AttrType[TReference, TMetadata]
 	defaultValue starlark.Value
 }
 
 var (
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*Attr[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.Comparable                                                          = (*Attr[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Attr[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.Comparable                                                 = (*Attr[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
-func NewAttr[TReference any, TMetadata model_core.CloneableReferenceMetadata](attrType AttrType[TReference, TMetadata], defaultValue starlark.Value) *Attr[TReference, TMetadata] {
+func NewAttr[TReference any, TMetadata model_core.ReferenceMetadata](attrType AttrType[TReference, TMetadata], defaultValue starlark.Value) *Attr[TReference, TMetadata] {
 	return &Attr[TReference, TMetadata]{
 		attrType:     attrType,
 		defaultValue: defaultValue,
@@ -117,7 +117,7 @@ func (a *Attr[TReference, TMetadata]) CompareSameType(thread *starlark.Thread, o
 	return starlark.Compare(thread, op, a.defaultValue, a2.defaultValue)
 }
 
-type AttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] interface {
+type AttrType[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Type() string
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error
 	GetCanonicalizer(currentPackage pg_label.CanonicalPackage) unpack.Canonicalizer
@@ -157,9 +157,9 @@ func (sloppyBoolUnpackerInto) GetConcatenationOperator() syntax.Token {
 	return 0
 }
 
-type boolAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type boolAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-func NewBoolAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata]() AttrType[TReference, TMetadata] {
+func NewBoolAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return boolAttrType[TReference, TMetadata]{}
 }
 
@@ -182,11 +182,11 @@ func (boolAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type intAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type intAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	values []int32
 }
 
-func NewIntAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata](values []int32) AttrType[TReference, TMetadata] {
+func NewIntAttrType[TReference any, TMetadata model_core.ReferenceMetadata](values []int32) AttrType[TReference, TMetadata] {
 	return &intAttrType[TReference, TMetadata]{
 		values: values,
 	}
@@ -213,9 +213,9 @@ func (intAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type intListAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type intListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-func NewIntListAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata]() AttrType[TReference, TMetadata] {
+func NewIntListAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return intListAttrType[TReference, TMetadata]{}
 }
 
@@ -238,7 +238,7 @@ func (intListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type labelAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type labelAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	allowNone       bool
 	allowSingleFile bool
 	executable      bool
@@ -246,7 +246,7 @@ type labelAttrType[TReference any, TMetadata model_core.CloneableReferenceMetada
 	valueCfg        TransitionDefinition[TReference, TMetadata]
 }
 
-func NewLabelAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata](allowNone, allowSingleFile, executable bool, valueAllowFiles []byte, valueCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+func NewLabelAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowNone, allowSingleFile, executable bool, valueAllowFiles []byte, valueCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelAttrType[TReference, TMetadata]{
 		allowNone:       allowNone,
 		allowSingleFile: allowSingleFile,
@@ -291,12 +291,12 @@ func (labelAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type labelKeyedStringDictAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type labelKeyedStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	dictKeyAllowFiles []byte
 	dictKeyCfg        TransitionDefinition[TReference, TMetadata]
 }
 
-func NewLabelKeyedStringDictAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata](dictKeyAllowFiles []byte, dictKeyCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+func NewLabelKeyedStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](dictKeyAllowFiles []byte, dictKeyCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelKeyedStringDictAttrType[TReference, TMetadata]{
 		dictKeyAllowFiles: dictKeyAllowFiles,
 		dictKeyCfg:        dictKeyCfg,
@@ -331,12 +331,12 @@ func (labelKeyedStringDictAttrType[TReference, TMetadata]) IsOutput() (string, b
 	return "", false
 }
 
-type labelListAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type labelListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	listValueAllowFiles []byte
 	listValueCfg        TransitionDefinition[TReference, TMetadata]
 }
 
-func NewLabelListAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata](listValueAllowFiles []byte, listValueCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+func NewLabelListAttrType[TReference any, TMetadata model_core.ReferenceMetadata](listValueAllowFiles []byte, listValueCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelListAttrType[TReference, TMetadata]{
 		listValueAllowFiles: listValueAllowFiles,
 		listValueCfg:        listValueCfg,
@@ -371,11 +371,11 @@ func (labelListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type outputAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type outputAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	filenameTemplate string
 }
 
-func NewOutputAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata](filenameTemplate string) AttrType[TReference, TMetadata] {
+func NewOutputAttrType[TReference any, TMetadata model_core.ReferenceMetadata](filenameTemplate string) AttrType[TReference, TMetadata] {
 	return &outputAttrType[TReference, TMetadata]{
 		filenameTemplate: filenameTemplate,
 	}
@@ -402,9 +402,9 @@ func (at *outputAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return at.filenameTemplate, true
 }
 
-type outputListAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type outputListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-func NewOutputListAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata]() AttrType[TReference, TMetadata] {
+func NewOutputListAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return &outputListAttrType[TReference, TMetadata]{}
 }
 
@@ -427,11 +427,11 @@ func (outputListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", true
 }
 
-type stringAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type stringAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	values []string
 }
 
-func NewStringAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata](values []string) AttrType[TReference, TMetadata] {
+func NewStringAttrType[TReference any, TMetadata model_core.ReferenceMetadata](values []string) AttrType[TReference, TMetadata] {
 	return &stringAttrType[TReference, TMetadata]{
 		values: values,
 	}
@@ -456,9 +456,9 @@ func (stringAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type stringDictAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type stringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-func NewStringDictAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata]() AttrType[TReference, TMetadata] {
+func NewStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return &stringDictAttrType[TReference, TMetadata]{}
 }
 
@@ -481,9 +481,9 @@ func (stringDictAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type stringListAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type stringListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-func NewStringListAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata]() AttrType[TReference, TMetadata] {
+func NewStringListAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return &stringListAttrType[TReference, TMetadata]{}
 }
 
@@ -506,9 +506,9 @@ func (stringListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type stringListDictAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct{}
+type stringListDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-func NewStringListDictAttrType[TReference any, TMetadata model_core.CloneableReferenceMetadata]() AttrType[TReference, TMetadata] {
+func NewStringListDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return &stringListDictAttrType[TReference, TMetadata]{}
 }
 
@@ -531,7 +531,7 @@ func (stringListDictAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-func encodeNamedAttrs[TReference any, TMetadata model_core.CloneableReferenceMetadata](attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_starlark_pb.NamedAttr, TMetadata], bool, error) {
+func encodeNamedAttrs[TReference any, TMetadata model_core.ReferenceMetadata](attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_starlark_pb.NamedAttr, TMetadata], bool, error) {
 	encodedAttrs := make([]*model_starlark_pb.NamedAttr, 0, len(attrs))
 	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
 	needsCode := false

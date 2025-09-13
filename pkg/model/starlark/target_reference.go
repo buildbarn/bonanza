@@ -18,13 +18,13 @@ import (
 	"go.starlark.net/syntax"
 )
 
-type ConfiguredTargetReference[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type ConfiguredTargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	label            pg_label.CanonicalLabel
 	encodedProviders model_core.Message[[]*model_starlark_pb.Struct, TReference]
 	decodedProviders []atomic.Pointer[Struct[TReference, TMetadata]]
 }
 
-func NewConfiguredTargetReference[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](label pg_label.CanonicalLabel, providers model_core.Message[[]*model_starlark_pb.Struct, TReference]) *ConfiguredTargetReference[TReference, TMetadata] {
+func NewConfiguredTargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](label pg_label.CanonicalLabel, providers model_core.Message[[]*model_starlark_pb.Struct, TReference]) *ConfiguredTargetReference[TReference, TMetadata] {
 	return &ConfiguredTargetReference[TReference, TMetadata]{
 		label:            label,
 		encodedProviders: providers,
@@ -67,7 +67,7 @@ func (ctr *ConfiguredTargetReference[TReference, TMetadata]) getProviderValue(th
 // TargetReference is a Starlark value corresponding to the Target type.
 // These are the values that rule implementations may access through
 // ctx.attr or ctx.split_attr.
-type TargetReference[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type TargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	originalLabel pg_label.ResolvedLabel
 	configured    *ConfiguredTargetReference[TReference, TMetadata]
 }
@@ -76,7 +76,7 @@ type TargetReference[TReference object.BasicReference, TMetadata model_core.Clon
 // to a given label, exposing struct instances corresponding to a set of
 // providers. This function expects these struct instances to be
 // alphabetically sorted by provider identifier.
-func NewTargetReference[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](originalLabel pg_label.ResolvedLabel, configured *ConfiguredTargetReference[TReference, TMetadata]) starlark.Value {
+func NewTargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](originalLabel pg_label.ResolvedLabel, configured *ConfiguredTargetReference[TReference, TMetadata]) starlark.Value {
 	return &TargetReference[TReference, TMetadata]{
 		originalLabel: originalLabel,
 		configured:    configured,
@@ -84,10 +84,10 @@ func NewTargetReference[TReference object.BasicReference, TMetadata model_core.C
 }
 
 var (
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*TargetReference[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.Comparable                                                          = (*TargetReference[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.HasAttrs                                                            = (*TargetReference[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ starlark.Mapping                                                             = (*TargetReference[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.Comparable                                                 = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.HasAttrs                                                   = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ starlark.Mapping                                                    = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 func (tr *TargetReference[TReference, TMetadata]) String() string {

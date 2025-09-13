@@ -36,7 +36,6 @@ CheckConditions:
 			fromPackage.String(),
 			conditionIdentifier,
 			configurationReference,
-			e,
 			configSettingInfoProviderIdentifier,
 		)
 		if err != nil {

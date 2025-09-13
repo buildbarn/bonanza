@@ -65,8 +65,8 @@ const (
 
 type GlobExpander = func(include, exclude []string, includeDirectories bool) ([]string, error)
 
-func labelSetting[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple, flag bool) (starlark.Value, error) {
-	targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TMetadata])
+func labelSetting[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple, flag bool) (starlark.Value, error) {
+	targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 	if targetRegistrar == nil {
 		return nil, errors.New("targets cannot be registered from within this context")
 	}
@@ -142,7 +142,7 @@ var (
 // (sub)rule to an attribute that depends on targets yielding providers
 // of type FragmentInfo. This allows the (sub)rule implementation
 // wrapper function to populate ctx.fragments.
-func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](
+func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	fragments []pg_label.TargetName,
 	attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata],
 	cfg TransitionDefinition[TReference, TMetadata],
@@ -166,7 +166,7 @@ func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_co
 	return nil
 }
 
-func GetBuiltins[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata]() (starlark.StringDict, starlark.StringDict) {
+func GetBuiltins[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() (starlark.StringDict, starlark.StringDict) {
 	providersListUnpackerInto := unpack.Or([]unpack.UnpackerInto[[][]*Provider[TReference, TMetadata]]{
 		unpack.Singleton(unpack.List(unpack.Type[*Provider[TReference, TMetadata]]("provider"))),
 		unpack.List(unpack.List(unpack.Type[*Provider[TReference, TMetadata]]("provider"))),
@@ -950,7 +950,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 			"alias": starlark.NewBuiltin(
 				"native.alias",
 				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TMetadata])
+					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 					if targetRegistrar == nil {
 						return nil, errors.New("targets cannot be registered from within this context")
 					}
@@ -1040,7 +1040,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 			"exports_files": starlark.NewBuiltin(
 				"native.exports_files",
 				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TMetadata])
+					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 					if targetRegistrar == nil {
 						return nil, errors.New("targets cannot be registered from within this context")
 					}
@@ -1152,7 +1152,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 			"package_group": starlark.NewBuiltin(
 				"native.package_group",
 				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TMetadata])
+					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 					if targetRegistrar == nil {
 						return nil, errors.New("targets cannot be registered from within this context")
 					}
@@ -1578,7 +1578,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 		"package": starlark.NewBuiltin(
 			"package",
 			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TMetadata])
+				targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 				if targetRegistrar.setDefaultInheritableAttrs {
 					return nil, fmt.Errorf("%s: function can only be invoked once", b.Name())
 				}
@@ -1586,7 +1586,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 					return nil, fmt.Errorf("%s: function can only be invoked before rule targets", b.Name())
 				}
 
-				newDefaultAttrs, err := getDefaultInheritableAttrs[TMetadata](
+				newDefaultAttrs, err := getDefaultInheritableAttrs(
 					thread,
 					b,
 					args,
@@ -1594,14 +1594,14 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Cloneabl
 					targetRegistrar.defaultInheritableAttrs,
 					targetRegistrar.encoder,
 					targetRegistrar.inlinedTreeOptions,
-					targetRegistrar.objectCapturer,
+					targetRegistrar.objectManager,
 				)
 				if err != nil {
 					return nil, err
 				}
 
 				targetRegistrar.defaultInheritableAttrs = model_core.Unpatch(
-					model_core.CloningObjectManager[TMetadata]{},
+					targetRegistrar.objectManager,
 					newDefaultAttrs,
 				).Decay()
 				targetRegistrar.setDefaultInheritableAttrs = true

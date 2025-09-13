@@ -108,7 +108,7 @@ gomock(
 gomock(
     name = "mocks_starlark",
     out = "mocks_starlark_test.go",
-    interfaces = ["CreatedObjectCapturerForTesting"],
+    interfaces = ["ObjectManagerForTesting"],
     library = ":starlark",
     mockgen_model_library = "@org_uber_go_mock//mockgen/model",
     mockgen_tool = "@org_uber_go_mock//mockgen",

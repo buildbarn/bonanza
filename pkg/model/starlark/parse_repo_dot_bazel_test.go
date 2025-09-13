@@ -38,7 +38,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
-			model_core.CreatedObjectCapturer[model_core.CloneableReferenceMetadata](nil),
+			model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata](nil),
 			labelResolver,
 		)
 		require.NoError(t, err)
@@ -59,7 +59,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
-			model_core.CreatedObjectCapturer[model_core.CloneableReferenceMetadata](nil),
+			model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata](nil),
 			labelResolver,
 		)
 		require.NoError(t, err)
@@ -78,7 +78,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
-			model_core.CreatedObjectCapturer[model_core.CloneableReferenceMetadata](nil),
+			model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata](nil),
 			labelResolver,
 		)
 		require.EqualError(t, err, "repo: function can only be invoked once")
@@ -101,7 +101,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
-			model_core.CreatedObjectCapturer[model_core.CloneableReferenceMetadata](nil),
+			model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata](nil),
 			labelResolver,
 		)
 		require.EqualError(t, err, "repo: default_applicable_licenses and default_package_metadata are mutually exclusive")
@@ -110,8 +110,8 @@ func TestParseModuleDotBazel(t *testing.T) {
 	t.Run("AllArguments", func(t *testing.T) {
 		// Example invocation where all supported arguments are
 		// provided.
-		objectCapturer := NewMockCreatedObjectCapturerForTesting(ctrl)
-		objectCapturer.EXPECT().CaptureCreatedObject(gomock.Any()).AnyTimes()
+		objectManager := NewMockObjectManagerForTesting(ctrl)
+		objectManager.EXPECT().CaptureCreatedObject(gomock.Any()).AnyTimes()
 		labelResolver := NewMockLabelResolver(ctrl)
 
 		defaultAttrs, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
@@ -129,7 +129,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
-			objectCapturer,
+			objectManager,
 			labelResolver,
 		)
 		require.NoError(t, err)

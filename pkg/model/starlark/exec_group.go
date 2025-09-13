@@ -13,12 +13,12 @@ import (
 	"go.starlark.net/starlark"
 )
 
-type ExecGroup[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type ExecGroup[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	execCompatibleWith []string
 	toolchains         []*ToolchainType[TReference, TMetadata]
 }
 
-func NewExecGroup[TReference any, TMetadata model_core.CloneableReferenceMetadata](execCompatibleWith []pg_label.ResolvedLabel, toolchains []*ToolchainType[TReference, TMetadata]) *ExecGroup[TReference, TMetadata] {
+func NewExecGroup[TReference any, TMetadata model_core.ReferenceMetadata](execCompatibleWith []pg_label.ResolvedLabel, toolchains []*ToolchainType[TReference, TMetadata]) *ExecGroup[TReference, TMetadata] {
 	execCompatibleWithStrings := make([]string, 0, len(execCompatibleWith))
 	for _, label := range execCompatibleWith {
 		execCompatibleWithStrings = append(execCompatibleWithStrings, label.String())

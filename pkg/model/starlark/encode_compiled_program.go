@@ -30,7 +30,7 @@ import (
 
 const ValueEncodingOptionsKey = "value_encoding_options"
 
-type ValueEncodingOptions[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	CurrentFilename *pg_label.CanonicalLabel
 
 	// Options to use when storing Starlark values in separate objects.
@@ -84,7 +84,7 @@ func (o *ValueEncodingOptions[TReference, TMetadata]) ComputeListParentNode(crea
 // of one entry in leaves, and a minimum of two entries in parents. This
 // ensures that very large values are stored in separate objects, while
 // ensuring that the B-tree converges to a single root.
-func newSplitBTreeBuilder[TReference any, TMessage proto.Message, TMetadata model_core.CloneableReferenceMetadata](options *ValueEncodingOptions[TReference, TMetadata], parentNodeComputer btree.ParentNodeComputer[TMessage, TMetadata]) btree.Builder[TMessage, TMetadata] {
+func newSplitBTreeBuilder[TReference any, TMessage proto.Message, TMetadata model_core.ReferenceMetadata](options *ValueEncodingOptions[TReference, TMetadata], parentNodeComputer btree.ParentNodeComputer[TMessage, TMetadata]) btree.Builder[TMessage, TMetadata] {
 	return btree.NewSplitProllyBuilder(
 		options.ObjectMinimumSizeBytes,
 		options.ObjectMaximumSizeBytes,
@@ -96,15 +96,15 @@ func newSplitBTreeBuilder[TReference any, TMessage proto.Message, TMetadata mode
 	)
 }
 
-func NewListBuilder[TReference any, TMetadata model_core.CloneableReferenceMetadata](options *ValueEncodingOptions[TReference, TMetadata]) btree.Builder[*model_starlark_pb.List_Element, TMetadata] {
+func NewListBuilder[TReference any, TMetadata model_core.ReferenceMetadata](options *ValueEncodingOptions[TReference, TMetadata]) btree.Builder[*model_starlark_pb.List_Element, TMetadata] {
 	return newSplitBTreeBuilder(options, options.ComputeListParentNode)
 }
 
-type EncodableValue[TReference any, TMetadata model_core.CloneableReferenceMetadata] interface {
+type EncodableValue[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error)
 }
 
-func EncodeCompiledProgram[TReference any, TMetadata model_core.CloneableReferenceMetadata](program *starlark.Program, globals starlark.StringDict, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata], error) {
+func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadata](program *starlark.Program, globals starlark.StringDict, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata], error) {
 	needsCode := false
 	var globalsKeys []string
 	globalsValuesBuilder := NewListBuilder[TReference, TMetadata](options)
@@ -163,7 +163,7 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.CloneableReferen
 	), nil
 }
 
-func EncodeValue[TReference any, TMetadata model_core.CloneableReferenceMetadata](value starlark.Value, path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
+func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](value starlark.Value, path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
 	if value == starlark.None {
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_None{
@@ -351,7 +351,7 @@ func EncodeValue[TReference any, TMetadata model_core.CloneableReferenceMetadata
 
 // encodeListElements encodes a sequence of Starlark values to a B-tree
 // of Protobuf messages.
-func encodeListElements[TReference any, TMetadata model_core.CloneableReferenceMetadata](values iter.Seq[starlark.Value], path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_starlark_pb.List_Element, TMetadata], bool, error) {
+func encodeListElements[TReference any, TMetadata model_core.ReferenceMetadata](values iter.Seq[starlark.Value], path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_starlark_pb.List_Element, TMetadata], bool, error) {
 	listBuilder := NewListBuilder[TReference, TMetadata](options)
 	needsCode := false
 	for value := range values {
@@ -375,7 +375,7 @@ func encodeListElements[TReference any, TMetadata model_core.CloneableReferenceM
 	return elements, needsCode, err
 }
 
-func DecodeGlobals[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](encodedGlobals model_core.Message[*model_starlark_pb.Struct_Fields, TReference], currentFilename pg_label.CanonicalLabel, options *ValueDecodingOptions[TReference]) (starlark.StringDict, error) {
+func DecodeGlobals[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](encodedGlobals model_core.Message[*model_starlark_pb.Struct_Fields, TReference], currentFilename pg_label.CanonicalLabel, options *ValueDecodingOptions[TReference]) (starlark.StringDict, error) {
 	globals := map[string]starlark.Value{}
 	var errIter error
 	for key, encodedValue := range AllStructFields(
@@ -425,7 +425,7 @@ func (o *ValueDecodingOptions[TReference]) getThread() *starlark.Thread {
 	return thread
 }
 
-func DecodeValue[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](encodedValue model_core.Message[*model_starlark_pb.Value, TReference], currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueDecodingOptions[TReference]) (starlark.Value, error) {
+func DecodeValue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](encodedValue model_core.Message[*model_starlark_pb.Value, TReference], currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueDecodingOptions[TReference]) (starlark.Value, error) {
 	switch typedValue := encodedValue.Message.GetKind().(type) {
 	case *model_starlark_pb.Value_Aspect:
 		switch aspectKind := typedValue.Aspect.Kind.(type) {
@@ -736,7 +736,7 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Cloneabl
 	}
 }
 
-func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](attr model_core.Message[*model_starlark_pb.Attr, TReference]) (AttrType[TReference, TMetadata], error) {
+func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](attr model_core.Message[*model_starlark_pb.Attr, TReference]) (AttrType[TReference, TMetadata], error) {
 	switch attrTypeInfo := attr.Message.Type.(type) {
 	case *model_starlark_pb.Attr_Bool:
 		return NewBoolAttrType[TReference, TMetadata](), nil
@@ -794,7 +794,7 @@ func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.Clone
 	}
 }
 
-func DecodeBuildSettingType[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](buildSetting *model_starlark_pb.BuildSetting) (BuildSettingType, error) {
+func DecodeBuildSettingType[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](buildSetting *model_starlark_pb.BuildSetting) (BuildSettingType, error) {
 	switch buildSettingTypeInfo := buildSetting.Type.(type) {
 	case *model_starlark_pb.BuildSetting_Bool:
 		return BoolBuildSettingType, nil
@@ -811,7 +811,7 @@ func DecodeBuildSettingType[TReference object.BasicReference, TMetadata model_co
 	}
 }
 
-func decodeBuildSetting[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](buildSetting *model_starlark_pb.BuildSetting) (*BuildSetting, error) {
+func decodeBuildSetting[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](buildSetting *model_starlark_pb.BuildSetting) (*BuildSetting, error) {
 	buildSettingType, err := DecodeBuildSettingType[TReference, TMetadata](buildSetting)
 	if err != nil {
 		return nil, err
@@ -819,7 +819,7 @@ func decodeBuildSetting[TReference object.BasicReference, TMetadata model_core.C
 	return NewBuildSetting(buildSettingType, buildSetting.Flag), nil
 }
 
-func decodeDepset[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](depset model_core.Message[*model_starlark_pb.Depset, TReference]) *Depset[TReference, TMetadata] {
+func decodeDepset[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](depset model_core.Message[*model_starlark_pb.Depset, TReference]) *Depset[TReference, TMetadata] {
 	children := make([]any, 0, len(depset.Message.Elements))
 	for _, element := range depset.Message.Elements {
 		children = append(children, model_core.Nested(depset, element))
@@ -834,7 +834,7 @@ func decodeDepset[TReference object.BasicReference, TMetadata model_core.Cloneab
 	)
 }
 
-func DecodeProvider[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](m model_core.Message[*model_starlark_pb.Provider, TReference]) (*Provider[TReference, TMetadata], error) {
+func DecodeProvider[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](m model_core.Message[*model_starlark_pb.Provider, TReference]) (*Provider[TReference, TMetadata], error) {
 	instanceProperties := m.Message.InstanceProperties
 	if instanceProperties == nil {
 		return nil, errors.New("provider instance properties are missing")
@@ -857,7 +857,7 @@ func DecodeProvider[TReference object.BasicReference, TMetadata model_core.Clone
 	), nil
 }
 
-func decodeProviderInstanceProperties[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](m model_core.Message[*model_starlark_pb.Provider_InstanceProperties, TReference]) (*ProviderInstanceProperties[TReference, TMetadata], error) {
+func decodeProviderInstanceProperties[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](m model_core.Message[*model_starlark_pb.Provider_InstanceProperties, TReference]) (*ProviderInstanceProperties[TReference, TMetadata], error) {
 	providerIdentifier, err := pg_label.NewCanonicalStarlarkIdentifier(m.Message.ProviderIdentifier)
 	if err != nil {
 		return nil, err
@@ -875,7 +875,7 @@ func decodeProviderInstanceProperties[TReference object.BasicReference, TMetadat
 	return NewProviderInstanceProperties(&providerIdentifier, m.Message.DictLike, computedFields, m.Message.TypeName), nil
 }
 
-func decodeToolchainType[TReference any, TMetadata model_core.CloneableReferenceMetadata](toolchainType *model_starlark_pb.ToolchainType) (*ToolchainType[TReference, TMetadata], error) {
+func decodeToolchainType[TReference any, TMetadata model_core.ReferenceMetadata](toolchainType *model_starlark_pb.ToolchainType) (*ToolchainType[TReference, TMetadata], error) {
 	toolchainTypeLabel, err := pg_label.NewResolvedLabel(toolchainType.ToolchainType)
 	if err != nil {
 		return nil, err
@@ -883,7 +883,7 @@ func decodeToolchainType[TReference any, TMetadata model_core.CloneableReference
 	return NewToolchainType[TReference, TMetadata](toolchainTypeLabel, toolchainType.Mandatory), nil
 }
 
-func DecodeStruct[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](m model_core.Message[*model_starlark_pb.Struct, TReference], options *ValueDecodingOptions[TReference]) (*Struct[TReference, TMetadata], error) {
+func DecodeStruct[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](m model_core.Message[*model_starlark_pb.Struct, TReference], options *ValueDecodingOptions[TReference]) (*Struct[TReference, TMetadata], error) {
 	var providerInstanceProperties *ProviderInstanceProperties[TReference, TMetadata]
 	if pip := m.Message.ProviderInstanceProperties; pip != nil {
 		var err error
@@ -917,7 +917,7 @@ type dictEntriesDecodingOptions[TReference any] struct {
 	out                  *starlark.Dict
 }
 
-func decodeDictEntries[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](in model_core.Message[*model_starlark_pb.Dict, TReference], options *dictEntriesDecodingOptions[TReference]) error {
+func decodeDictEntries[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](in model_core.Message[*model_starlark_pb.Dict, TReference], options *dictEntriesDecodingOptions[TReference]) error {
 	thread := options.valueDecodingOptions.getThread()
 	var errIter error
 	for key, value := range AllDictLeafEntries(
@@ -954,7 +954,7 @@ type listElementsDecodingOptions[TReference any] struct {
 	out                  *starlark.List
 }
 
-func decodeList_Elements[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](in model_core.Message[*model_starlark_pb.List, TReference], options *listElementsDecodingOptions[TReference]) error {
+func decodeList_Elements[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](in model_core.Message[*model_starlark_pb.List, TReference], options *listElementsDecodingOptions[TReference]) error {
 	var errIter error
 	for element := range AllListLeafElements(
 		options.valueDecodingOptions.Context,

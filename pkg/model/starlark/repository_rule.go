@@ -16,18 +16,18 @@ import (
 	"go.starlark.net/starlark"
 )
 
-type repositoryRule[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type repositoryRule[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	LateNamedValue
 	definition RepositoryRuleDefinition[TReference, TMetadata]
 }
 
 var (
-	_ starlark.Callable                                                            = (*repositoryRule[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ EncodableValue[object.LocalReference, model_core.CloneableReferenceMetadata] = (*repositoryRule[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
-	_ NamedGlobal                                                                  = (*repositoryRule[object.LocalReference, model_core.CloneableReferenceMetadata])(nil)
+	_ starlark.Callable                                                   = (*repositoryRule[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*repositoryRule[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ NamedGlobal                                                         = (*repositoryRule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
-func NewRepositoryRule[TReference any, TMetadata model_core.CloneableReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition RepositoryRuleDefinition[TReference, TMetadata]) starlark.Value {
+func NewRepositoryRule[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition RepositoryRuleDefinition[TReference, TMetadata]) starlark.Value {
 	return &repositoryRule[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,
@@ -213,17 +213,17 @@ func (rr *repositoryRule[TReference, TMetadata]) EncodeValue(path map[starlark.V
 	), needsCode, nil
 }
 
-type RepositoryRuleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] interface {
+type RepositoryRuleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.RepositoryRule_Definition, TMetadata], bool, error)
 	GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
 }
 
-type starlarkRepositoryRuleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata] struct {
+type starlarkRepositoryRuleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	implementation NamedFunction[TReference, TMetadata]
 	attrs          map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]
 }
 
-func NewStarlarkRepositoryRuleDefinition[TReference any, TMetadata model_core.CloneableReferenceMetadata](implementation NamedFunction[TReference, TMetadata], attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]) RepositoryRuleDefinition[TReference, TMetadata] {
+func NewStarlarkRepositoryRuleDefinition[TReference any, TMetadata model_core.ReferenceMetadata](implementation NamedFunction[TReference, TMetadata], attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]) RepositoryRuleDefinition[TReference, TMetadata] {
 	return &starlarkRepositoryRuleDefinition[TReference, TMetadata]{
 		implementation: implementation,
 		attrs:          attrs,
@@ -254,12 +254,12 @@ func (rrd *starlarkRepositoryRuleDefinition[TReference, TMetadata]) GetAttrsChea
 	return rrd.attrs, nil
 }
 
-type protoRepositoryRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {
+type protoRepositoryRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	message         model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]
 	protoAttrsCache protoAttrsCache[TReference, TMetadata]
 }
 
-func NewProtoRepositoryRuleDefinition[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](message model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]) RepositoryRuleDefinition[TReference, TMetadata] {
+func NewProtoRepositoryRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](message model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]) RepositoryRuleDefinition[TReference, TMetadata] {
 	return &protoRepositoryRuleDefinition[TReference, TMetadata]{
 		message: message,
 	}

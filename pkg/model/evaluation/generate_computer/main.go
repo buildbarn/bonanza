@@ -102,7 +102,7 @@ func main() {
 		}
 	}
 
-	fmt.Printf("type Computer[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] interface {\n")
+	fmt.Printf("type Computer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {\n")
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		functionDefinition := computerDefinition.Functions[functionName]
 		if nativeValueType := functionDefinition.NativeValueType; nativeValueType == nil {
@@ -126,7 +126,7 @@ func main() {
 	fmt.Printf("}\n")
 
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
-		fmt.Printf("type %sEnvironment[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] interface {\n", functionName)
+		fmt.Printf("type %sEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {\n", functionName)
 		functionDefinition := computerDefinition.Functions[functionName]
 		for _, dependencyName := range slices.Sorted(slices.Values(functionDefinition.DependsOn)) {
 			dependencyDefinition := computerDefinition.Functions[dependencyName]
@@ -150,7 +150,7 @@ func main() {
 		fmt.Printf("}\n")
 	}
 
-	fmt.Printf("type typedEnvironment[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {\n")
+	fmt.Printf("type typedEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {\n")
 	fmt.Printf("\tevaluation.Environment[TReference, TMetadata]\n")
 	fmt.Printf("}\n")
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
@@ -187,10 +187,10 @@ func main() {
 		}
 	}
 
-	fmt.Printf("type typedComputer[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata] struct {\n")
+	fmt.Printf("type typedComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {\n")
 	fmt.Printf("\tbase Computer[TReference, TMetadata]\n")
 	fmt.Printf("}\n")
-	fmt.Printf("func NewTypedComputer[TReference object.BasicReference, TMetadata model_core.CloneableReferenceMetadata](base Computer[TReference, TMetadata]) evaluation.Computer[TReference, TMetadata] {\n")
+	fmt.Printf("func NewTypedComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](base Computer[TReference, TMetadata]) evaluation.Computer[TReference, TMetadata] {\n")
 	fmt.Printf("\treturn &typedComputer[TReference, TMetadata]{base: base}\n")
 	fmt.Printf("}\n")
 
