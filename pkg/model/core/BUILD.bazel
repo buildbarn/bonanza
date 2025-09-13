@@ -7,7 +7,6 @@ go_library(
         "cloneable_reference_metadata.go",
         "created_object.go",
         "decodable.go",
-        "file_writing_object_capturer.go",
         "get_index_from_reference_message.go",
         "marshalable.go",
         "message.go",
