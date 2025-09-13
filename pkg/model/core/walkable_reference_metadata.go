@@ -23,7 +23,7 @@ type WalkableReferenceMetadata interface {
 func MapReferenceMetadataToWalkers[TMetadata WalkableReferenceMetadata](p *ReferenceMessagePatcher[TMetadata]) *ReferenceMessagePatcher[dag.ObjectContentsWalker] {
 	return MapReferenceMessagePatcherMetadata(
 		p,
-		func(capturedObject CapturedObject[TMetadata]) dag.ObjectContentsWalker {
+		func(capturedObject MetadataEntry[TMetadata]) dag.ObjectContentsWalker {
 			return capturedObject.Metadata.ToObjectContentsWalker()
 		},
 	)

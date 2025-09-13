@@ -259,7 +259,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 					model_core.NewProtoMarshalable(ud.leaves.Message),
 					model_core.MapReferenceMessagePatcherMetadata(
 						ud.leaves.Patcher,
-						func(capturedObject model_core.CapturedObject[TFile]) TDirectory {
+						func(capturedObject model_core.MetadataEntry[TFile]) TDirectory {
 							return b.capturer.CaptureFileNode(capturedObject.Metadata)
 						},
 					),
@@ -269,7 +269,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 					model_core.CreatedObjectCapturerFunc[TDirectory](b.capturer.CaptureDirectory),
 					func(
 						directory model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, TDirectory],
-						externalObject *model_core.Decodable[model_core.CapturedObject[TDirectory]],
+						externalObject *model_core.Decodable[model_core.MetadataEntry[TDirectory]],
 					) {
 						if externalObject == nil {
 							directory.Message.Leaves = leavesInline
@@ -299,7 +299,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 						model_core.CreatedObjectCapturerFunc[TDirectory](b.capturer.CaptureLeaves),
 						func(
 							directory model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, TDirectory],
-							externalObject *model_core.Decodable[model_core.CapturedObject[TDirectory]],
+							externalObject *model_core.Decodable[model_core.MetadataEntry[TDirectory]],
 						) {
 							directory.Message.Directories = append(
 								directory.Message.Directories,
@@ -487,7 +487,7 @@ func CreateDirectoryMerkleTree[TDirectory, TFile model_core.ReferenceMetadata](
 // contents of a directory.
 func GetDirectoryWithContents[TMetadata model_core.ReferenceMetadata](
 	createdDirectory *CreatedDirectory[TMetadata],
-	externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
+	externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 	patcher *model_core.ReferenceMessagePatcher[TMetadata],
 ) *model_filesystem_pb.Directory {
 	if externalObject == nil {

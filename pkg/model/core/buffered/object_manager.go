@@ -59,7 +59,7 @@ func (objectManager) CaptureExistingObject(reference Reference) ReferenceMetadat
 	return ReferenceMetadata{}
 }
 
-func (objectManager) ReferenceObject(capturedObject model_core.CapturedObject[ReferenceMetadata]) Reference {
+func (objectManager) ReferenceObject(capturedObject model_core.MetadataEntry[ReferenceMetadata]) Reference {
 	return Reference{
 		LocalReference:   capturedObject.LocalReference,
 		embeddedMetadata: capturedObject.Metadata,

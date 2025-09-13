@@ -90,7 +90,7 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 			return &model_filesystem_pb.FileContents{
 				Level: &model_filesystem_pb.FileContents_FileContentsListReference{
 					FileContentsListReference: &model_core_pb.DecodableReference{
-						Reference: patcher.AddReference(model_core.CapturedObject[dag.ObjectContentsWalker]{
+						Reference: patcher.AddReference(model_core.MetadataEntry[dag.ObjectContentsWalker]{
 							LocalReference: entry.Reference.Value.GetLocalReference(),
 							Metadata:       dag.ExistingObjectContentsWalker,
 						}),
@@ -107,7 +107,7 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 		return &model_filesystem_pb.FileContents{
 			Level: &model_filesystem_pb.FileContents_ChunkReference{
 				ChunkReference: &model_core_pb.DecodableReference{
-					Reference: patcher.AddReference(model_core.CapturedObject[dag.ObjectContentsWalker]{
+					Reference: patcher.AddReference(model_core.MetadataEntry[dag.ObjectContentsWalker]{
 						LocalReference: entry.Reference.Value.GetLocalReference(),
 						Metadata:       dag.ExistingObjectContentsWalker,
 					}),

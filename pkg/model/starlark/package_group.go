@@ -101,7 +101,7 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](n *packageG
 			Encoder:         encoder,
 			ParentAppender: inlinedtree.Capturing(objectCapturer, func(
 				subpackages model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata],
-				externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
+				externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 			) {
 				if externalObject == nil {
 					subpackages.Message.Overrides = &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{

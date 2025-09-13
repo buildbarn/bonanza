@@ -52,7 +52,7 @@ func TestProllyChunkerFactory(t *testing.T) {
 						TotalSizeBytes: uint64(i),
 						Level: &model_filesystem_pb.FileContents_ChunkReference{
 							ChunkReference: &model_core_pb.DecodableReference{
-								Reference: patcher.AddReference(model_core.CapturedObject[model_core.ReferenceMetadata]{
+								Reference: patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
 									LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
 									Metadata:       metadata,
 								}),

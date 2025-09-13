@@ -16,21 +16,12 @@ type CreatedObject[TMetadata any] struct {
 	Metadata []TMetadata
 }
 
-// CapturedObject contains the metadata of an object that was captured,
-// together with a local reference of the object. By having the local
-// reference, the metadata can be attached to a reference managed by a
-// ReferenceMessagePatcher.
-type CapturedObject[TMetadata any] struct {
-	object.LocalReference
-	Metadata TMetadata
-}
-
 // Capture the contents of a created object, returning the metadata of
-// the object in the form of a CapturedObject[TMetadata], which can be
+// the object in the form of a MetadataEntry[TMetadata], which can be
 // provided to ReferenceMessagePatcher.AddReference() to let a message
 // refer to the object.
-func (o CreatedObject[TMetadata]) Capture(capturer CreatedObjectCapturer[TMetadata]) CapturedObject[TMetadata] {
-	return CapturedObject[TMetadata]{
+func (o CreatedObject[TMetadata]) Capture(capturer CreatedObjectCapturer[TMetadata]) MetadataEntry[TMetadata] {
+	return MetadataEntry[TMetadata]{
 		LocalReference: o.GetLocalReference(),
 		Metadata:       capturer.CaptureCreatedObject(o),
 	}

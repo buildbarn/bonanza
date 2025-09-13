@@ -89,7 +89,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 				return &model_filesystem_pb.FileContents{
 					Level: &model_filesystem_pb.FileContents_ChunkReference{
 						ChunkReference: &model_core_pb.DecodableReference{
-							Reference: patcher.AddReference(model_core.CapturedObject[T]{
+							Reference: patcher.AddReference(model_core.MetadataEntry[T]{
 								LocalReference: decodableContents.Value.GetLocalReference(),
 								Metadata:       capturer.CaptureChunk(decodableContents.Value),
 							}),
@@ -144,7 +144,7 @@ func CreateChunkDiscardingFileMerkleTree(ctx context.Context, parameters *FileCr
 		fileContents.Message,
 		model_core.MapReferenceMessagePatcherMetadata(
 			fileContents.Patcher,
-			func(capturedObject model_core.CapturedObject[model_core.CreatedObjectTree]) dag.ObjectContentsWalker {
+			func(capturedObject model_core.MetadataEntry[model_core.CreatedObjectTree]) dag.ObjectContentsWalker {
 				return NewCapturedFileWalker(
 					parameters,
 					f,

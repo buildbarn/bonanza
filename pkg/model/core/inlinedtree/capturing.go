@@ -10,7 +10,7 @@ import (
 // candidates.
 type CapturedParentAppender[TParentMessage any, TMetadata model_core.ReferenceMetadata] func(
 	parent model_core.PatchedMessage[TParentMessage, TMetadata],
-	externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
+	externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 )
 
 // Capturing converts a CapturedParentAppender to a plain

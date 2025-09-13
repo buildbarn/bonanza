@@ -733,7 +733,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				Encoder:         actionEncoder,
 				ParentAppender: inlinedtree.Capturing(e, func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
-					externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
+					externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 				) {
 					command.Message.OutputPathPattern = model_command.GetPathPatternWithChildren(
 						outputPathPatternChildren,

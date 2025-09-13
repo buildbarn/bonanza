@@ -203,7 +203,7 @@ func attachObject(
 	createdObject model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]],
 ) *model_core_pb.DecodableReference {
 	return &model_core_pb.DecodableReference{
-		Reference: parentPatcher.AddReference(model_core.CapturedObject[model_core.CreatedObjectTree]{
+		Reference: parentPatcher.AddReference(model_core.MetadataEntry[model_core.CreatedObjectTree]{
 			LocalReference: createdObject.Value.GetLocalReference(),
 			Metadata:       model_core.CreatedObjectTree(createdObject.Value),
 		}),

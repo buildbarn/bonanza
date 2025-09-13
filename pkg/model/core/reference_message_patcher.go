@@ -65,9 +65,16 @@ func (p *ReferenceMessagePatcher[TMetadata]) maybeIncreaseHeight(height int) {
 	}
 }
 
+// MetadataEntry contains both the key (reference) and value (metadata)
+// of which ReferenceMessagePatcher tracks.
+type MetadataEntry[TMetadata any] struct {
+	object.LocalReference
+	Metadata TMetadata
+}
+
 // AddReference allocates a new Reference message that is associated
 // with a given object.LocalReference and caller provided metadata.
-func (p *ReferenceMessagePatcher[TMetadata]) AddReference(capturedObject CapturedObject[TMetadata]) *core.Reference {
+func (p *ReferenceMessagePatcher[TMetadata]) AddReference(capturedObject MetadataEntry[TMetadata]) *core.Reference {
 	message := &core.Reference{
 		Index: math.MaxUint32,
 	}
@@ -78,7 +85,7 @@ func (p *ReferenceMessagePatcher[TMetadata]) AddReference(capturedObject Capture
 // AddDecodableReference is a helper function for AddReference that can
 // be called in the common case where a DecodableReference needs to be
 // emitted.
-func (p *ReferenceMessagePatcher[TMetadata]) AddDecodableReference(capturedObject Decodable[CapturedObject[TMetadata]]) *core.DecodableReference {
+func (p *ReferenceMessagePatcher[TMetadata]) AddDecodableReference(capturedObject Decodable[MetadataEntry[TMetadata]]) *core.DecodableReference {
 	return &core.DecodableReference{
 		Reference:          p.AddReference(capturedObject.Value),
 		DecodingParameters: capturedObject.GetDecodingParameters(),
@@ -100,7 +107,7 @@ func (p *ReferenceMessagePatcher[TMetadata]) CaptureAndAddDecodableReference(
 	)
 }
 
-func (p *ReferenceMessagePatcher[TMetadata]) addIndex(index *uint32, capturedObject CapturedObject[TMetadata]) {
+func (p *ReferenceMessagePatcher[TMetadata]) addIndex(index *uint32, capturedObject MetadataEntry[TMetadata]) {
 	if p.messagesByReference == nil {
 		p.messagesByReference = map[object.LocalReference]referenceMessages[TMetadata]{}
 	}
@@ -135,7 +142,7 @@ func (a *referenceMessageAdder[TMetadata, TReference]) addReferenceMessagesRecur
 		// any future attempts to resolve it will fail.
 		if index, err := GetIndexFromReferenceMessage(m, a.outgoingReferences.GetDegree()); err == nil {
 			reference := a.outgoingReferences.GetOutgoingReference(index).GetLocalReference()
-			a.patcher.addIndex(&m.Index, CapturedObject[TMetadata]{
+			a.patcher.addIndex(&m.Index, MetadataEntry[TMetadata]{
 				LocalReference: reference,
 				Metadata:       a.createMetadata(index),
 			})
@@ -157,7 +164,7 @@ func (a *referenceMessageAdder[TMetadata, TReference]) addReferenceMessagesRecur
 			}
 			index := int(rawIndex - 1)
 			reference := a.outgoingReferences.GetOutgoingReference(index).GetLocalReference()
-			a.patcher.addIndex(&m.Indices[i], CapturedObject[TMetadata]{
+			a.patcher.addIndex(&m.Indices[i], MetadataEntry[TMetadata]{
 				LocalReference: reference,
 				Metadata:       a.createMetadata(index),
 			})
@@ -280,14 +287,14 @@ func (l referencesList) Less(i, j int) bool {
 // MapReferenceMessagePatcherMetadata replaces a ReferenceMessagePatcher
 // with a new instance that contains the same references, but has
 // metadata mapped to other values, potentially of another type.
-func MapReferenceMessagePatcherMetadata[TOld, TNew ReferenceMetadata](pOld *ReferenceMessagePatcher[TOld], mapMetadata func(CapturedObject[TOld]) TNew) *ReferenceMessagePatcher[TNew] {
+func MapReferenceMessagePatcherMetadata[TOld, TNew ReferenceMetadata](pOld *ReferenceMessagePatcher[TOld], mapMetadata func(MetadataEntry[TOld]) TNew) *ReferenceMessagePatcher[TNew] {
 	pNew := &ReferenceMessagePatcher[TNew]{
 		messagesByReference: make(map[object.LocalReference]referenceMessages[TNew], len(pOld.messagesByReference)),
 		height:              pOld.height,
 	}
 	for reference, oldMessages := range pOld.messagesByReference {
 		pNew.messagesByReference[reference] = referenceMessages[TNew]{
-			metadata: mapMetadata(CapturedObject[TOld]{
+			metadata: mapMetadata(MetadataEntry[TOld]{
 				LocalReference: reference,
 				Metadata:       oldMessages.metadata,
 			}),

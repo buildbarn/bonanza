@@ -329,7 +329,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) CaptureExisting
 	return e.computer.objectManager.CaptureExistingObject(reference)
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) ReferenceObject(capturedObject model_core.CapturedObject[TMetadata]) TReference {
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) ReferenceObject(capturedObject model_core.MetadataEntry[TMetadata]) TReference {
 	return e.computer.objectManager.ReferenceObject(capturedObject)
 }
 

@@ -427,7 +427,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 				RootDirectoryReference: createdRootDirectory.ToDirectoryReference(
 					&model_core_pb.DecodableReference{
 						Reference: buildSpecificationPatcher.AddReference(
-							model_core.CapturedObject[dag.ObjectContentsWalker]{
+							model_core.MetadataEntry[dag.ObjectContentsWalker]{
 								LocalReference: createdObject.Value.GetLocalReference(),
 								Metadata: model_filesystem.NewCapturedDirectoryWalker(
 									directoryParameters.DirectoryAccessParameters,

@@ -37,7 +37,7 @@ func TestUniformBuilder(t *testing.T) {
 			return &model_filesystem_pb.FileContents{
 				Level: &model_filesystem_pb.FileContents_ChunkReference{
 					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: patcher.AddReference(model_core.CapturedObject[model_core.ReferenceMetadata]{
+						Reference: patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
 							LocalReference: object.MustNewSHA256V1LocalReference("8e81422ce5470c6fde1f2455d2eb0eb0eec4d6352eada7c36f99c8182dd3a1df", 42, 0, 0, 0),
 							Metadata:       metadata,
 						}),
@@ -64,7 +64,7 @@ func TestUniformBuilder(t *testing.T) {
 			return &model_filesystem_pb.FileContents{
 				Level: &model_filesystem_pb.FileContents_ChunkReference{
 					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: patcher.AddReference(model_core.CapturedObject[model_core.ReferenceMetadata]{
+						Reference: patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
 							LocalReference: object.MustNewSHA256V1LocalReference("8e81422ce5470c6fde1f2455d2eb0eb0eec4d6352eada7c36f99c8182dd3a1df", 42, 0, 0, 0),
 							Metadata:       metadata1,
 						}),
@@ -82,7 +82,7 @@ func TestUniformBuilder(t *testing.T) {
 			return &model_filesystem_pb.FileContents{
 				Level: &model_filesystem_pb.FileContents_ChunkReference{
 					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: patcher.AddReference(model_core.CapturedObject[model_core.ReferenceMetadata]{
+						Reference: patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
 							LocalReference: object.MustNewSHA256V1LocalReference("8a5aae1152fcf85722d50b557e8462c92d0fe02e34f17aae9e70c389d4d0c140", 51, 0, 0, 0),
 							Metadata:       metadata2,
 						}),
@@ -117,7 +117,7 @@ func TestUniformBuilder(t *testing.T) {
 			return &model_filesystem_pb.FileContents{
 				Level: &model_filesystem_pb.FileContents_ChunkReference{
 					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: patcher.AddReference(model_core.CapturedObject[model_core.ReferenceMetadata]{
+						Reference: patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
 							LocalReference: object.MustNewSHA256V1LocalReference("4a552ba6f6bbd650497185ec68791ba2749364f493b17cbd318d6a53a2fd48eb", 100, 1, 2, 0),
 							Metadata:       metadata3,
 						}),

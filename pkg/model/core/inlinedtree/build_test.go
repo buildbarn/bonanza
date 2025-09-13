@@ -67,7 +67,7 @@ func TestBuild(t *testing.T) {
 				output.Message.Leaves = &model_filesystem_pb.DirectoryContents_LeavesExternal{
 					LeavesExternal: &model_filesystem_pb.LeavesReference{
 						Reference: &model_core_pb.DecodableReference{
-							Reference: output.Patcher.AddReference(model_core.CapturedObject[model_core.ReferenceMetadata]{
+							Reference: output.Patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
 								LocalReference: externalObject.Value.GetLocalReference(),
 								Metadata:       metadata1,
 							}),
@@ -131,7 +131,7 @@ func TestBuild(t *testing.T) {
 				output.Message.Leaves = &model_filesystem_pb.DirectoryContents_LeavesExternal{
 					LeavesExternal: &model_filesystem_pb.LeavesReference{
 						Reference: &model_core_pb.DecodableReference{
-							Reference: output.Patcher.AddReference(model_core.CapturedObject[model_core.ReferenceMetadata]{
+							Reference: output.Patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
 								LocalReference: externalObject.Value.GetLocalReference(),
 								Metadata:       metadata1,
 							}),

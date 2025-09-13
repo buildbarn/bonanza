@@ -18,7 +18,7 @@ import (
 
 func GetPathPatternWithChildren[TMetadata model_core.ReferenceMetadata](
 	children model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],
-	externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
+	externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 	patcher *model_core.ReferenceMessagePatcher[TMetadata],
 ) *model_command_pb.PathPattern {
 	if children.Message == nil {
@@ -44,7 +44,7 @@ func GetPathPatternInlineCandidate[TMetadata model_core.ReferenceMetadata](name 
 		Encoder:         encoder,
 		ParentAppender: inlinedtree.Capturing(objectCapturer, func(
 			children model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],
-			externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
+			externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 		) {
 			children.Message.Children = append(children.Message.Children, &model_command_pb.PathPattern_Child{
 				Name:    name,

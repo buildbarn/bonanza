@@ -2719,7 +2719,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 				Encoder:         rc.actionEncoder,
 				ParentAppender: inlinedtree.Capturing(rc.environment, func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
-					externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
+					externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 				) {
 					actionDefinition.Message.OutputPathPattern = model_command.GetPathPatternWithChildren(
 						outputPathPatternChildren,
@@ -2733,7 +2733,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 				Encoder:         rc.actionEncoder,
 				ParentAppender: inlinedtree.Capturing(rc.environment, func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
-					externalObject *model_core.Decodable[model_core.CapturedObject[TMetadata]],
+					externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 				) {
 					actionDefinition.Message.InitialOutputDirectory = model_filesystem.GetDirectoryWithContents(
 						&createdInitialOutputDirectory,
