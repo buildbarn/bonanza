@@ -2,6 +2,7 @@ package btree
 
 import (
 	model_core "bonanza.build/pkg/model/core"
+	"bonanza.build/pkg/storage/object"
 )
 
 // CapturedParentNodeComputer is a simplified version of
@@ -10,7 +11,7 @@ import (
 // is sufficient for most parent node computers.
 type CapturedParentNodeComputer[TNode any, TMetadata model_core.ReferenceMetadata] func(
 	createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]],
-	childNodes []TNode,
+	childNodes model_core.Message[[]TNode, object.LocalReference],
 ) model_core.PatchedMessage[TNode, TMetadata]
 
 // Capturing converts a CapturedParentNodeComputer to a plain
@@ -27,6 +28,9 @@ func Capturing[TNode any, TMetadata model_core.ReferenceMetadata](
 			createdObject,
 			createdObject.Value.Capture(capturer),
 		)
-		return parentNodeComputer(capturedObject, childNodes)
+		return parentNodeComputer(
+			capturedObject,
+			model_core.NewMessage(childNodes, createdObject.Value.Contents),
+		)
 	}
 }

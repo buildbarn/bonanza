@@ -249,9 +249,9 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 		btree.NewObjectCreatingNodeMerger(
 			c.getValueObjectEncoder(),
 			c.getReferenceFormat(),
-			/* parentNodeComputer = */ btree.Capturing(e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes []*model_analysis_pb.BuildSettingOverride) model_core.PatchedMessage[*model_analysis_pb.BuildSettingOverride, TMetadata] {
+			/* parentNodeComputer = */ btree.Capturing(e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.BuildSettingOverride, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.BuildSettingOverride, TMetadata] {
 				var firstLabel string
-				switch firstEntry := childNodes[0].Level.(type) {
+				switch firstEntry := childNodes.Message[0].Level.(type) {
 				case *model_analysis_pb.BuildSettingOverride_Leaf_:
 					firstLabel = firstEntry.Leaf.Label
 				case *model_analysis_pb.BuildSettingOverride_Parent_:

@@ -298,11 +298,11 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 			btree.NewObjectCreatingNodeMerger(
 				evaluationTreeEncoder,
 				referenceFormat,
-				/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[buffered.ReferenceMetadata]], childNodes []*model_evaluation_pb.Evaluation) model_core.PatchedMessage[*model_evaluation_pb.Evaluation, buffered.ReferenceMetadata] {
+				/* parentNodeComputer = */ btree.Capturing(objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Evaluation, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Evaluation, buffered.ReferenceMetadata] {
 					var firstKeySHA256 []byte
-					switch firstEntry := childNodes[0].Level.(type) {
+					switch firstEntry := childNodes.Message[0].Level.(type) {
 					case *model_evaluation_pb.Evaluation_Leaf_:
-						if flattenedAny, err := model_core.FlattenAny(model_core.NewMessage(firstEntry.Leaf.Key, createdObject.Value.Contents)); err == nil {
+						if flattenedAny, err := model_core.FlattenAny(model_core.Nested(childNodes, firstEntry.Leaf.Key)); err == nil {
 							firstKey, _ := model_core.MarshalTopLevelMessage(flattenedAny)
 							firstKeySHA256Array := sha256.Sum256(firstKey)
 							firstKeySHA256 = firstKeySHA256Array[:]
@@ -314,13 +314,13 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 						return &model_evaluation_pb.Evaluation{
 							Level: &model_evaluation_pb.Evaluation_Parent_{
 								Parent: &model_evaluation_pb.Evaluation_Parent{
-									Reference:      patcher.CaptureAndAddDecodableReference(createdObject, objectManager),
+									Reference:      patcher.AddDecodableReference(createdObject),
 									FirstKeySha256: firstKeySHA256,
 								},
 							},
 						}
 					})
-				},
+				}),
 			),
 		)
 		for evaluation := range recursiveComputer.GetAllEvaluations() {
@@ -355,7 +355,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				btree.NewObjectCreatingNodeMerger(
 					evaluationTreeEncoder,
 					referenceFormat,
-					/* parentNodeComputer = */ btree.Capturing(objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes []*model_evaluation_pb.Keys) model_core.PatchedMessage[*model_evaluation_pb.Keys, buffered.ReferenceMetadata] {
+					/* parentNodeComputer = */ btree.Capturing(objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Keys, buffered.ReferenceMetadata] {
 						return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Keys {
 							return &model_evaluation_pb.Keys{
 								Level: &model_evaluation_pb.Keys_Parent_{

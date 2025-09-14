@@ -10,6 +10,7 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/dag"
+	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -39,11 +40,11 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 			parameters.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(
 				model_core.CreatedObjectCapturerFunc[T](capturer.CaptureFileContentsList),
-				func(createdObject model_core.Decodable[model_core.MetadataEntry[T]], childNodes []*model_filesystem_pb.FileContents) model_core.PatchedMessage[*model_filesystem_pb.FileContents, T] {
+				func(createdObject model_core.Decodable[model_core.MetadataEntry[T]], childNodes model_core.Message[[]*model_filesystem_pb.FileContents, object.LocalReference]) model_core.PatchedMessage[*model_filesystem_pb.FileContents, T] {
 					// Compute the total file size to store
 					// in the parent FileContents node.
 					var totalSizeBytes uint64
-					for _, childNode := range childNodes {
+					for _, childNode := range childNodes.Message {
 						totalSizeBytes += childNode.TotalSizeBytes
 					}
 

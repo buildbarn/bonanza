@@ -16,6 +16,7 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 
@@ -153,9 +154,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 			btree.NewObjectCreatingNodeMerger(
 				c.getValueObjectEncoder(),
 				c.getReferenceFormat(),
-				/* parentNodeComputer = */ btree.Capturing(e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes []*model_analysis_pb.Package_Value_Target) model_core.PatchedMessage[*model_analysis_pb.Package_Value_Target, TMetadata] {
+				/* parentNodeComputer = */ btree.Capturing(e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Package_Value_Target, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Package_Value_Target, TMetadata] {
 					var firstName string
-					switch firstElement := childNodes[0].Level.(type) {
+					switch firstElement := childNodes.Message[0].Level.(type) {
 					case *model_analysis_pb.Package_Value_Target_Leaf:
 						firstName = firstElement.Leaf.Name
 					case *model_analysis_pb.Package_Value_Target_Parent_:
