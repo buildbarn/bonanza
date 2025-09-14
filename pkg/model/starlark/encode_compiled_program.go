@@ -199,23 +199,20 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](value s
 
 		treeBuilder := newSplitBTreeBuilder(
 			options,
-			/* parentNodeComputer = */ func(
-				createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				childNodes []*model_starlark_pb.Dict_Entry,
+			/* parentNodeComputer = */ btree.Capturing(options.ObjectCapturer, func(
+				createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]],
+				childNodes model_core.Message[[]*model_starlark_pb.Dict_Entry, object.LocalReference],
 			) model_core.PatchedMessage[*model_starlark_pb.Dict_Entry, TMetadata] {
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Dict_Entry {
 					return &model_starlark_pb.Dict_Entry{
 						Level: &model_starlark_pb.Dict_Entry_Parent_{
 							Parent: &model_starlark_pb.Dict_Entry_Parent{
-								Reference: patcher.CaptureAndAddDecodableReference(
-									createdObject,
-									options.ObjectCapturer,
-								),
+								Reference: patcher.AddDecodableReference(createdObject),
 							},
 						},
 					}
 				})
-			},
+			}),
 		)
 
 		needsCode := false
