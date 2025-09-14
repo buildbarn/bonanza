@@ -299,7 +299,10 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		ctx,
 		e.dagUploaderClient,
 		action.Reference.Value.WithLocalReference(resultReference),
-		model_core.WalkableCreatedObjectCapturer.CaptureCreatedObject(createdResult.Value),
+		dag.NewSimpleObjectContentsWalker(
+			createdResult.Value.Contents,
+			createdResult.Value.Metadata,
+		),
 		e.objectContentsWalkerSemaphore,
 		// Assume everything we attempt to upload is memory backed.
 		object.Unlimited,

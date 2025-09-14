@@ -48,6 +48,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	}
 	referenceFormat := c.getReferenceFormat()
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
+		ctx,
 		environment,
 		actionEncoder,
 		referenceFormat,
@@ -127,32 +128,42 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create Merkle tree of root directory: %w", err)
 	}
 
-	createdAction, err := model_core.MarshalAndEncode(
-		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
-			patcher.Merge(inputRootReference.Patcher)
-			return model_core.NewProtoMarshalable(&model_command_pb.Action{
-				CommandReference:   patcher.CaptureAndAddDecodableReference(createdCommand, e),
-				InputRootReference: inputRootReference.Message,
-			})
-		}),
-		referenceFormat,
-		actionEncoder,
-	)
+	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (model_core.Marshalable, error) {
+		patcher.Merge(inputRootReference.Patcher)
+		commandReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdCommand, e)
+		if err != nil {
+			return nil, err
+		}
+		return model_core.NewProtoMarshalable(&model_command_pb.Action{
+			CommandReference:   commandReference,
+			InputRootReference: inputRootReference.Message,
+		}), nil
+	})
 	if err != nil {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
 	}
+	createdAction, err := model_core.MarshalAndEncode(action, referenceFormat, actionEncoder)
+	if err != nil {
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to encode action: %w", err)
+	}
 
-	actionResult := e.GetSuccessfulActionResultValue(
-		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
-			return &model_analysis_pb.SuccessfulActionResult_Key{
-				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
-					PlatformPkixPublicKey: repoPlatform.Message.ExecPkixPublicKey,
-					ActionReference:       patcher.CaptureAndAddDecodableReference(createdAction, e),
-					ExecutionTimeout:      &durationpb.Duration{Seconds: 600},
-				},
-			}
-		}),
-	)
+	actionResultKey, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.SuccessfulActionResult_Key, error) {
+		actionReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdAction, e)
+		if err != nil {
+			return nil, err
+		}
+		return &model_analysis_pb.SuccessfulActionResult_Key{
+			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
+				PlatformPkixPublicKey: repoPlatform.Message.ExecPkixPublicKey,
+				ActionReference:       actionReference,
+				ExecutionTimeout:      &durationpb.Duration{Seconds: 600},
+			},
+		}, nil
+	})
+	if err != nil {
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create action result key: %w", err)
+	}
+	actionResult := e.GetSuccessfulActionResultValue(actionResultKey)
 	if !actionResult.IsSet() {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}

@@ -19,7 +19,7 @@ import (
 )
 
 func TestParseModuleDotBazel(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	ctrl, ctx := gomock.WithContext(t.Context(), t)
 
 	encoder := NewMockBinaryEncoder(ctrl)
 	encoder.EXPECT().GetDecodingParametersSizeBytes().Return(0).AnyTimes()
@@ -31,6 +31,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 		labelResolver := NewMockLabelResolver(ctrl)
 
 		defaultAttrs, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
+			ctx,
 			"",
 			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
@@ -52,6 +53,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 		labelResolver := NewMockLabelResolver(ctrl)
 
 		defaultAttrs, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
+			ctx,
 			"repo()",
 			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
@@ -71,6 +73,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 		labelResolver := NewMockLabelResolver(ctrl)
 
 		_, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
+			ctx,
 			"repo()\nrepo()",
 			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
@@ -91,6 +94,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 		labelResolver := NewMockLabelResolver(ctrl)
 
 		_, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
+			ctx,
 			`repo(
 				default_applicable_licenses = ["//:license"],
 				default_package_metadata = ["//:metadata"],
@@ -111,10 +115,11 @@ func TestParseModuleDotBazel(t *testing.T) {
 		// Example invocation where all supported arguments are
 		// provided.
 		objectManager := NewMockObjectManagerForTesting(ctrl)
-		objectManager.EXPECT().CaptureCreatedObject(gomock.Any()).AnyTimes()
+		objectManager.EXPECT().CaptureCreatedObject(gomock.Any(), gomock.Any()).AnyTimes()
 		labelResolver := NewMockLabelResolver(ctrl)
 
 		defaultAttrs, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
+			ctx,
 			`repo(
 				default_deprecation = "All code in this repository is deprecated.",
 				default_package_metadata = ["//:metadata"],

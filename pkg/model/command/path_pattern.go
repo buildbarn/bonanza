@@ -38,11 +38,11 @@ func GetPathPatternWithChildren[TMetadata model_core.ReferenceMetadata](
 	}
 }
 
-func GetPathPatternInlineCandidate[TMetadata model_core.ReferenceMetadata](name string, grandChildren model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], encoder model_encoding.BinaryEncoder, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) inlinedtree.Candidate[*model_command_pb.PathPattern_Children, TMetadata] {
+func GetPathPatternInlineCandidate[TMetadata model_core.ReferenceMetadata](ctx context.Context, name string, grandChildren model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], encoder model_encoding.BinaryEncoder, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) inlinedtree.Candidate[*model_command_pb.PathPattern_Children, TMetadata] {
 	return inlinedtree.Candidate[*model_command_pb.PathPattern_Children, TMetadata]{
 		ExternalMessage: model_core.ProtoToMarshalable(grandChildren),
 		Encoder:         encoder,
-		ParentAppender: inlinedtree.Capturing(objectCapturer, func(
+		ParentAppender: inlinedtree.Capturing(ctx, objectCapturer, func(
 			children model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],
 			externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 		) {
@@ -54,10 +54,10 @@ func GetPathPatternInlineCandidate[TMetadata model_core.ReferenceMetadata](name 
 	}
 }
 
-func PrependDirectoryToPathPatternChildren[TMetadata model_core.ReferenceMetadata](name string, grandChildren model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], error) {
+func PrependDirectoryToPathPatternChildren[TMetadata model_core.ReferenceMetadata](ctx context.Context, name string, grandChildren model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], error) {
 	return inlinedtree.Build(
 		inlinedtree.CandidateList[*model_command_pb.PathPattern_Children, TMetadata]{
-			GetPathPatternInlineCandidate(name, grandChildren, encoder, objectCapturer),
+			GetPathPatternInlineCandidate(ctx, name, grandChildren, encoder, objectCapturer),
 		},
 		inlinedTreeOptions,
 	)
@@ -88,7 +88,7 @@ func (s *PathPatternSet[TMetadata]) Add(path iter.Seq[string]) {
 // ToProto converts the set of relative pathname strings contained in
 // the set to a PathPattern message that can be embedded in a Command
 // message, which is to be processed by a remote worker.
-func (s *PathPatternSet[TMetadata]) ToProto(encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], error) {
+func (s *PathPatternSet[TMetadata]) ToProto(ctx context.Context, encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], error) {
 	if s.included {
 		return model_core.NewSimplePatchedMessage[TMetadata]((*model_command_pb.PathPattern_Children)(nil)), nil
 	}
@@ -98,11 +98,11 @@ func (s *PathPatternSet[TMetadata]) ToProto(encoder model_encoding.BinaryEncoder
 	}
 	inlineCandidates := make(inlinedtree.CandidateList[*model_command_pb.PathPattern_Children, TMetadata], 0, len(s.children))
 	for _, name := range slices.Sorted(maps.Keys(s.children)) {
-		grandChildren, err := s.children[name].ToProto(encoder, inlinedTreeOptions, objectCapturer)
+		grandChildren, err := s.children[name].ToProto(ctx, encoder, inlinedTreeOptions, objectCapturer)
 		if err != nil {
 			return model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata]{}, err
 		}
-		inlineCandidates = append(inlineCandidates, GetPathPatternInlineCandidate(name, grandChildren, encoder, objectCapturer))
+		inlineCandidates = append(inlineCandidates, GetPathPatternInlineCandidate(ctx, name, grandChildren, encoder, objectCapturer))
 	}
 	return inlinedtree.Build(inlineCandidates, inlinedTreeOptions)
 }

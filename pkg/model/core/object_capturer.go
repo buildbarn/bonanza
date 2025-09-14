@@ -13,13 +13,13 @@ import (
 // metadata. Given the contents of an object and the metadata of all of
 // its children, it may yield new metadata.
 type CreatedObjectCapturer[TMetadata any] interface {
-	CaptureCreatedObject(CreatedObject[TMetadata]) TMetadata
+	CaptureCreatedObject(ctx context.Context, createdObject CreatedObject[TMetadata]) (TMetadata, error)
 }
 
-type CreatedObjectCapturerFunc[TMetadata any] func(CreatedObject[TMetadata]) TMetadata
+type CreatedObjectCapturerFunc[TMetadata any] func(ctx context.Context, createdObject CreatedObject[TMetadata]) (TMetadata, error)
 
-func (f CreatedObjectCapturerFunc[TMetadata]) CaptureCreatedObject(createdObject CreatedObject[TMetadata]) TMetadata {
-	return f(createdObject)
+func (f CreatedObjectCapturerFunc[TMetadata]) CaptureCreatedObject(ctx context.Context, createdObject CreatedObject[TMetadata]) (TMetadata, error) {
+	return f(ctx, createdObject)
 }
 
 type walkableCreatedObjectCapturer struct{}
@@ -34,8 +34,8 @@ type walkableCreatedObjectCapturer struct{}
 // single Merkle tree.
 var WalkableCreatedObjectCapturer CreatedObjectCapturer[dag.ObjectContentsWalker] = walkableCreatedObjectCapturer{}
 
-func (walkableCreatedObjectCapturer) CaptureCreatedObject(createdObject CreatedObject[dag.ObjectContentsWalker]) dag.ObjectContentsWalker {
-	return dag.NewSimpleObjectContentsWalker(createdObject.Contents, createdObject.Metadata)
+func (walkableCreatedObjectCapturer) CaptureCreatedObject(ctx context.Context, createdObject CreatedObject[dag.ObjectContentsWalker]) (dag.ObjectContentsWalker, error) {
+	return dag.NewSimpleObjectContentsWalker(createdObject.Contents, createdObject.Metadata), nil
 }
 
 // ExistingObjectCapturer can be used as a factory type for reference

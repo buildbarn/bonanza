@@ -1,6 +1,7 @@
 package starlark
 
 import (
+	"context"
 	"errors"
 	"maps"
 	"slices"
@@ -62,7 +63,7 @@ func (n *packageGroupNode) lookupPackage(canonicalPackage pg_label.CanonicalPack
 
 // toProto converts the data contained in a tree of packageGroupNode to
 // its Protobuf message counterpart.
-func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](n *packageGroupNode, encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata], error) {
+func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](ctx context.Context, n *packageGroupNode, encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata], error) {
 	inlineCandidates := make(inlinedtree.CandidateList[*model_starlark_pb.PackageGroup_Subpackages, TMetadata], 0, 2)
 	defer inlineCandidates.Discard()
 
@@ -82,7 +83,7 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](n *packageG
 		patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
 		for _, component := range slices.Sorted(maps.Keys(n.subpackages)) {
 			nChild := n.subpackages[component]
-			subpackages, err := packageGroupNodeToProto[TMetadata](nChild, encoder, inlinedTreeOptions, objectCapturer)
+			subpackages, err := packageGroupNodeToProto[TMetadata](ctx, nChild, encoder, inlinedTreeOptions, objectCapturer)
 			if err != nil {
 				return model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata]{}, err
 			}
@@ -97,7 +98,7 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](n *packageG
 		inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_starlark_pb.PackageGroup_Subpackages, TMetadata]{
 			ExternalMessage: model_core.NewPatchedMessage(model_core.NewProtoMarshalable(&overrides), patcher),
 			Encoder:         encoder,
-			ParentAppender: inlinedtree.Capturing(objectCapturer, func(
+			ParentAppender: inlinedtree.Capturing(ctx, objectCapturer, func(
 				subpackages model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata],
 				externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 			) {
@@ -120,7 +121,7 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](n *packageG
 // NewPackageGroupFromVisibility generates a PackageGroup message based
 // on a sequence of "visibility" labels provided to repo(), package(),
 // or rule targets.
-func NewPackageGroupFromVisibility[TMetadata model_core.ReferenceMetadata](visibility []pg_label.ResolvedLabel, encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
+func NewPackageGroupFromVisibility[TMetadata model_core.ReferenceMetadata](ctx context.Context, visibility []pg_label.ResolvedLabel, encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
 	tree := packageGroupNode{
 		subpackages: map[string]*packageGroupNode{},
 	}
@@ -186,7 +187,7 @@ func NewPackageGroupFromVisibility[TMetadata model_core.ReferenceMetadata](visib
 		}
 	}
 
-	treeProto, err := packageGroupNodeToProto[TMetadata](&tree, encoder, inlinedTreeOptions, objectCapturer)
+	treeProto, err := packageGroupNodeToProto[TMetadata](ctx, &tree, encoder, inlinedTreeOptions, objectCapturer)
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata]{}, err
 	}

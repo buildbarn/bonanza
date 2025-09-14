@@ -34,6 +34,7 @@ type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata
 	CurrentFilename *pg_label.CanonicalLabel
 
 	// Options to use when storing Starlark values in separate objects.
+	Context                context.Context
 	ObjectEncoder          model_encoding.BinaryEncoder
 	ObjectReferenceFormat  object.ReferenceFormat
 	ObjectCapturer         model_core.ObjectCapturer[TReference, TMetadata]
@@ -94,7 +95,7 @@ func newSplitBTreeBuilder[TReference any, TMessage proto.Message, TMetadata mode
 }
 
 func NewListBuilder[TReference any, TMetadata model_core.ReferenceMetadata](options *ValueEncodingOptions[TReference, TMetadata]) btree.Builder[*model_starlark_pb.List_Element, TMetadata] {
-	return newSplitBTreeBuilder(options, btree.Capturing(options.ObjectCapturer, ComputeListParentNode))
+	return newSplitBTreeBuilder(options, btree.Capturing(options.Context, options.ObjectCapturer, ComputeListParentNode))
 }
 
 type EncodableValue[TReference any, TMetadata model_core.ReferenceMetadata] interface {
@@ -196,7 +197,7 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](value s
 
 		treeBuilder := newSplitBTreeBuilder(
 			options,
-			/* parentNodeComputer = */ btree.Capturing(options.ObjectCapturer, func(
+			/* parentNodeComputer = */ btree.Capturing(options.Context, options.ObjectCapturer, func(
 				createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 				childNodes model_core.Message[[]*model_starlark_pb.Dict_Entry, object.LocalReference],
 			) model_core.PatchedMessage[*model_starlark_pb.Dict_Entry, TMetadata] {

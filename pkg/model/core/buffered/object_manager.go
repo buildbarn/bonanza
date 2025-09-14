@@ -44,11 +44,11 @@ func NewObjectManager() model_core.ObjectManager[Reference, ReferenceMetadata] {
 	return objectManager{}
 }
 
-func (objectManager) CaptureCreatedObject(createdObject model_core.CreatedObject[ReferenceMetadata]) ReferenceMetadata {
+func (objectManager) CaptureCreatedObject(ctx context.Context, createdObject model_core.CreatedObject[ReferenceMetadata]) (ReferenceMetadata, error) {
 	return ReferenceMetadata{
 		contents: createdObject.Contents,
 		children: createdObject.Metadata,
-	}
+	}, nil
 }
 
 func (objectManager) CaptureExistingObject(reference Reference) ReferenceMetadata {

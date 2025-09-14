@@ -39,7 +39,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesV
 	overrideModules := []*model_analysis_pb.ModuleOverride{}
 	handler := &overrideExtractingModuleDotBazelHandler[TReference, TMetadata]{
 		overrideModules:      &overrideModules,
-		valueEncodingOptions: c.getValueEncodingOptions(e, nil),
+		valueEncodingOptions: c.getValueEncodingOptions(ctx, e, nil),
 		patcher:              model_core.NewReferenceMessagePatcher[TMetadata](),
 	}
 	err = c.parseLocalModuleInstanceModuleDotBazel(ctx, rootModuleName.ToModuleInstance(nil), e, handler)

@@ -46,6 +46,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	}
 	referenceFormat := c.getReferenceFormat()
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
+		ctx,
 		environment,
 		actionEncoder,
 		referenceFormat,
@@ -94,37 +95,51 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create input root: %w", err)
 	}
 
-	createdAction, err := model_core.MarshalAndEncode(
-		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
-			return model_core.NewProtoMarshalable(&model_command_pb.Action{
-				CommandReference: patcher.CaptureAndAddDecodableReference(createdCommand, e),
-				// TODO: We shouldn't be handcrafting a
-				// DirectoryReference here.
-				InputRootReference: &model_filesystem_pb.DirectoryReference{
-					Reference:                      patcher.CaptureAndAddDecodableReference(createdInputRoot, e),
-					MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
-				},
-			})
-		}),
-		referenceFormat,
-		actionEncoder,
-	)
+	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (model_core.Marshalable, error) {
+		commandReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdCommand, e)
+		if err != nil {
+			return nil, err
+		}
+		inputRootReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdInputRoot, e)
+		if err != nil {
+			return nil, err
+		}
+		return model_core.NewProtoMarshalable(&model_command_pb.Action{
+			CommandReference: commandReference,
+			// TODO: We shouldn't be handcrafting a
+			// DirectoryReference here.
+			InputRootReference: &model_filesystem_pb.DirectoryReference{
+				Reference:                      inputRootReference,
+				MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
+			},
+		}), nil
+	})
 	if err != nil {
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
 	}
+	createdAction, err := model_core.MarshalAndEncode(action, referenceFormat, actionEncoder)
+	if err != nil {
+		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to encode action: %w", err)
+	}
 
 	// Invoke "pwd".
-	actionResult := e.GetSuccessfulActionResultValue(
-		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
-			return &model_analysis_pb.SuccessfulActionResult_Key{
-				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
-					PlatformPkixPublicKey: repoPlatform.Message.ExecPkixPublicKey,
-					ActionReference:       patcher.CaptureAndAddDecodableReference(createdAction, e),
-					ExecutionTimeout:      &durationpb.Duration{Seconds: 60},
-				},
-			}
-		}),
-	)
+	actionResultKey, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.SuccessfulActionResult_Key, error) {
+		actionReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdAction, e)
+		if err != nil {
+			return nil, err
+		}
+		return &model_analysis_pb.SuccessfulActionResult_Key{
+			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
+				PlatformPkixPublicKey: repoPlatform.Message.ExecPkixPublicKey,
+				ActionReference:       actionReference,
+				ExecutionTimeout:      &durationpb.Duration{Seconds: 60},
+			},
+		}, nil
+	})
+	if err != nil {
+		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create action result key: %w", err)
+	}
+	actionResult := e.GetSuccessfulActionResultValue(actionResultKey)
 	if !actionResult.IsSet() {
 		return PatchedStableInputRootPathValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}

@@ -54,7 +54,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx c
 	}
 
 	// Encode the DefaultInfo provider instance.
-	encodedDefaultInfo, _, err := defaultInfo.Encode(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(e, nil))
+	encodedDefaultInfo, _, err := defaultInfo.Encode(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(ctx, e, nil))
 	if err != nil {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, fmt.Errorf("failed to encode DefaultInfo provider instance: %w", err)
 	}

@@ -79,9 +79,9 @@ func newBaseComputerTester(ctrl *gomock.Controller) *baseComputerTester {
 // expectCaptureCreatedObject can be called by tests to indicate that
 // the analysis function may create new objects.
 func (bct *baseComputerTester) expectCaptureCreatedObject(e *MockFileRootEnvironmentForTesting) *gomock.Call {
-	return e.EXPECT().CaptureCreatedObject(gomock.Any()).
-		DoAndReturn(func(createdObject model_core.CreatedObject[model_core.CreatedObjectTree]) model_core.CreatedObjectTree {
-			return model_core.CreatedObjectTree(createdObject)
+	return e.EXPECT().CaptureCreatedObject(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, createdObject model_core.CreatedObject[model_core.CreatedObjectTree]) (model_core.CreatedObjectTree, error) {
+			return model_core.CreatedObjectTree(createdObject), nil
 		})
 }
 

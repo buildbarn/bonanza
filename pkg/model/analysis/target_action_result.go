@@ -76,22 +76,28 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 		return PatchedTargetActionResultValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
 	}
 
-	actionResult := e.GetSuccessfulActionResultValue(
-		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.SuccessfulActionResult_Key {
-			return &model_analysis_pb.SuccessfulActionResult_Key{
-				ExecuteRequest: &model_analysis_pb.ExecuteRequest{
-					// TODO: Should we make the execution
-					// timeout on build actions configurable?
-					// Bazel with REv2 does not set this field
-					// for build actions, relying on the cluster
-					// to pick a default.
-					ExecutionTimeout:      &durationpb.Duration{Seconds: 3600},
-					ActionReference:       patcher.CaptureAndAddDecodableReference(createdAction, e),
-					PlatformPkixPublicKey: actionDefinition.PlatformPkixPublicKey,
-				},
-			}
-		}),
-	)
+	actionResultKey, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.SuccessfulActionResult_Key, error) {
+		actionReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdAction, e)
+		if err != nil {
+			return nil, err
+		}
+		return &model_analysis_pb.SuccessfulActionResult_Key{
+			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
+				// TODO: Should we make the execution
+				// timeout on build actions configurable?
+				// Bazel with REv2 does not set this field
+				// for build actions, relying on the cluster
+				// to pick a default.
+				ExecutionTimeout:      &durationpb.Duration{Seconds: 3600},
+				ActionReference:       actionReference,
+				PlatformPkixPublicKey: actionDefinition.PlatformPkixPublicKey,
+			},
+		}, nil
+	})
+	if err != nil {
+		return PatchedTargetActionResultValue[TMetadata]{}, fmt.Errorf("failed to create action result key: %w", err)
+	}
+	actionResult := e.GetSuccessfulActionResultValue(actionResultKey)
 	if !actionResult.IsSet() {
 		return PatchedTargetActionResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}

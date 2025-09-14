@@ -1,6 +1,7 @@
 package starlark
 
 import (
+	"context"
 	"fmt"
 
 	pg_label "bonanza.build/pkg/label"
@@ -23,6 +24,7 @@ var DefaultInheritableAttrs = model_starlark_pb.InheritableAttrs{
 // ParseRepoDotBazel parses a REPO.bazel file that may be stored at the
 // root of a repository.
 func ParseRepoDotBazel[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
 	contents string,
 	filename pg_label.CanonicalLabel,
 	encoder model_encoding.BinaryEncoder,
@@ -50,6 +52,7 @@ func ParseRepoDotBazel[TReference object.BasicReference, TMetadata model_core.Re
 					return nil, fmt.Errorf("%s: function can only be invoked once", b.Name())
 				}
 				newDefaultAttrs, err := getDefaultInheritableAttrs[TReference, TMetadata](
+					ctx,
 					thread,
 					b,
 					args,
@@ -76,6 +79,7 @@ func ParseRepoDotBazel[TReference object.BasicReference, TMetadata model_core.Re
 // getDefaultInheritableAttrs parses the arguments provided to
 // REPO.bazel's repo() function or BUILD.bazel's package() function.
 func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
 	thread *starlark.Thread,
 	b *starlark.Builtin,
 	args starlark.Tuple,
@@ -122,7 +126,7 @@ func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata mode
 	if len(visibility) > 0 {
 		// Explicit visibility provided. Construct a new package group.
 		var err error
-		visibilityPackageGroup, err = NewPackageGroupFromVisibility[TMetadata](visibility, encoder, inlinedTreeOptions, objectCapturer)
+		visibilityPackageGroup, err = NewPackageGroupFromVisibility[TMetadata](ctx, visibility, encoder, inlinedTreeOptions, objectCapturer)
 		if err != nil {
 			return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, err
 		}

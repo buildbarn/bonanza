@@ -586,14 +586,17 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 				model_core.NewPatchedMessage(model_core.NewProtoMarshalable(&outputs), outputsPatcher),
 				referenceFormat,
 				directoryEncoder,
-			); err == nil {
-				result.OutputsReference = resultPatcher.CaptureAndAddDecodableReference(
-					createdObject,
-					model_core.WalkableCreatedObjectCapturer,
-				)
-			} else {
+			); err != nil {
 				// TODO: Does this properly release all resources?
 				setError(util.StatusWrap(err, "Failed to marshal outputs"))
+			} else if createdObjectReference, err := resultPatcher.CaptureAndAddDecodableReference(
+				ctx,
+				createdObject,
+				model_core.WalkableCreatedObjectCapturer,
+			); err != nil {
+				setError(util.StatusWrap(err, "Failed to capture outputs"))
+			} else {
+				result.OutputsReference = createdObjectReference
 			}
 		}
 		return &result
@@ -613,7 +616,10 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		ctx,
 		e.dagUploaderClient,
 		action.Reference.Value.WithLocalReference(resultReference),
-		model_core.WalkableCreatedObjectCapturer.CaptureCreatedObject(createdResult.Value),
+		dag.NewSimpleObjectContentsWalker(
+			createdResult.Value.Contents,
+			createdResult.Value.Metadata,
+		),
 		e.objectContentsWalkerSemaphore,
 		// Assume everything we attempt to upload is memory backed.
 		object.Unlimited,

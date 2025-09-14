@@ -156,7 +156,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		btree.NewObjectCreatingNodeMerger(
 			c.getValueObjectEncoder(),
 			c.getReferenceFormat(),
-			/* parentNodeComputer = */ btree.Capturing(e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ModuleExtensionRepos_Value_Repo, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TMetadata] {
+			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ModuleExtensionRepos_Value_Repo, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TMetadata] {
 				var firstName string
 				switch firstElement := childNodes.Message[0].Level.(type) {
 				case *model_analysis_pb.ModuleExtensionRepos_Value_Repo_Leaf:
@@ -201,7 +201,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			moduleRepo:    moduleRepo,
 			ignoreDevDependencies: rootModuleValue.Message.IgnoreRootModuleDevDependencies ||
 				moduleInstance.GetModule().String() != rootModuleValue.Message.RootModuleName,
-			valueEncodingOptions: c.getValueEncodingOptions(e, nil),
+			valueEncodingOptions: c.getValueEncodingOptions(ctx, e, nil),
 			repos:                map[string]model_core.PatchedMessage[*model_starlark_pb.Repo, TMetadata]{},
 		}
 
@@ -391,7 +391,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		// Call into the implementation function to obtain a set of
 		// repos declared by this module extension.
 		thread.SetLocal(model_starlark.CanonicalPackageKey, moduleExtension.GetModuleInstance().GetBareCanonicalRepo().GetRootPackage())
-		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, c.getValueEncodingOptions(e, nil))
+		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, c.getValueEncodingOptions(ctx, e, nil))
 
 		repoRegistrar := model_starlark.NewRepoRegistrar[TMetadata]()
 		thread.SetLocal(model_starlark.RepoRegistrarKey, repoRegistrar)

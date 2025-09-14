@@ -109,7 +109,7 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 		e,
 		model_core.NewSimpleMessage[TReference]((*model_core_pb.DecodableReference)(nil)),
 		buildSettingValuesToApply,
-		c.getValueEncodingOptions(e, nil),
+		c.getValueEncodingOptions(ctx, e, nil),
 	)
 }
 
@@ -221,7 +221,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		e,
 		model_core.NewSimpleMessage[TReference]((*model_core_pb.DecodableReference)(nil)),
 		buildSettingValuesToApply,
-		c.getValueEncodingOptions(e, nil),
+		c.getValueEncodingOptions(ctx, e, nil),
 	)
 	if err != nil {
 		return PatchedExecTransitionValue[TMetadata]{}, err

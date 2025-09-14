@@ -65,10 +65,25 @@ func NewSimplePatchedMessage[TMetadata ReferenceMetadata, TMessage any](v TMessa
 	return NewPatchedMessage(v, NewReferenceMessagePatcher[TMetadata]())
 }
 
-// MustBuildPatchedMessage is a convenience function for constructing
+// BuildPatchedMessage is a convenience function for constructing
 // PatchedMessage that has a newly created ReferenceMessagePatcher
 // attached to it. A callback is invoked for creating a message that is
-// managed by the ReferenceMessagePatcher.
+// managed by the ReferenceMessagePatcher. If the callback returns an
+// error, any intermediate metadata is discarded.
+func BuildPatchedMessage[TMessage any, TMetadata ReferenceMetadata](
+	builder func(*ReferenceMessagePatcher[TMetadata]) (TMessage, error),
+) (PatchedMessage[TMessage, TMetadata], error) {
+	patcher := NewReferenceMessagePatcher[TMetadata]()
+	m, err := builder(patcher)
+	if err != nil {
+		patcher.Discard()
+		return PatchedMessage[TMessage, TMetadata]{}, err
+	}
+	return NewPatchedMessage(m, patcher), nil
+}
+
+// MustBuildPatchedMessage is equivalent to BuildPatchedMessage, except
+// that the callback that is invoked may not fail.
 func MustBuildPatchedMessage[TMessage any, TMetadata ReferenceMetadata](
 	builder func(*ReferenceMessagePatcher[TMetadata]) TMessage,
 ) PatchedMessage[TMessage, TMetadata] {

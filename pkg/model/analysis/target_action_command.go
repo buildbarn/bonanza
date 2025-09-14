@@ -308,7 +308,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	// Construct the list of command line arguments.
 	// TODO: Respect use_param_file().
 	referenceFormat := c.getReferenceFormat()
-	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(actionEncoder, referenceFormat, e)
+	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(ctx, actionEncoder, referenceFormat, e)
 	valueDecodingOptions := c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
 		return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
 	})
@@ -650,6 +650,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	packageComponents := strings.FieldsFunc(targetPackage.GetPackagePath(), func(r rune) bool { return r == '/' })
 	for i := len(packageComponents) - 1; i >= 0; i-- {
 		outputPathPatternChildren, err = model_command.PrependDirectoryToPathPatternChildren(
+			ctx,
 			packageComponents[i],
 			outputPathPatternChildren,
 			actionEncoder,
@@ -672,6 +673,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		model_starlark.ComponentStrBazelOut,
 	} {
 		outputPathPatternChildren, err = model_command.PrependDirectoryToPathPatternChildren(
+			ctx,
 			component,
 			outputPathPatternChildren,
 			actionEncoder,
@@ -703,13 +705,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				ParentAppender: func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
-					command.Message.Arguments = btree.MaybeMergeNodes(
+				) error {
+					arguments, err := btree.MaybeMergeNodes(
 						argumentsList.Message,
 						externalObject,
 						command.Patcher,
 						argumentsParentNodeComputer,
 					)
+					if err != nil {
+						return err
+					}
+					command.Message.Arguments = arguments
+					return nil
 				},
 			},
 			inlinedtree.AlwaysInline(
@@ -724,7 +731,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			{
 				ExternalMessage: model_core.ProtoToMarshalable(outputPathPatternChildren),
 				Encoder:         actionEncoder,
-				ParentAppender: inlinedtree.Capturing(e, func(
+				ParentAppender: inlinedtree.Capturing(ctx, e, func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
 					externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 				) {
@@ -747,13 +754,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		actionEncoder,
 	)
 
-	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
-	return model_core.NewPatchedMessage(
-		&model_analysis_pb.TargetActionCommand_Value{
-			CommandReference: patcher.CaptureAndAddDecodableReference(createdCommand, e),
-		},
-		patcher,
-	), nil
+	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.TargetActionCommand_Value, error) {
+		commandReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdCommand, e)
+		if err != nil {
+			return nil, err
+		}
+		return &model_analysis_pb.TargetActionCommand_Value{
+			CommandReference: commandReference,
+		}, nil
+	})
 }
 
 // directoryExpander implements the DirectoryExpander type that is

@@ -195,13 +195,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 		return PatchedTargetActionInputRootValue[TMetadata]{}, err
 	}
 
-	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
-	return model_core.NewPatchedMessage(
-		&model_analysis_pb.TargetActionInputRoot_Value{
-			InputRootReference: createdRootDirectory.ToDirectoryReference(
-				patcher.CaptureAndAddDecodableReference(rootDirectoryObject, e),
-			),
-		},
-		patcher,
-	), nil
+	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.TargetActionInputRoot_Value, error) {
+		inputRootReference, err := patcher.CaptureAndAddDecodableReference(ctx, rootDirectoryObject, e)
+		if err != nil {
+			return nil, err
+		}
+		return &model_analysis_pb.TargetActionInputRoot_Value{
+			InputRootReference: createdRootDirectory.ToDirectoryReference(inputRootReference),
+		}, nil
+	})
 }

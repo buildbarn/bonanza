@@ -1,5 +1,9 @@
 package core
 
+import (
+	"context"
+)
+
 // NoopReferenceMetadata is a trivial implementation of
 // ReferenceMetadata that does not capture anything. This can be used if
 // the goal is to simply compute the root node of the Merkle tree,
@@ -19,8 +23,8 @@ type discardingCreatedObjectCapturer struct{}
 // tree, discarding any children that were created in the process.
 var DiscardingCreatedObjectCapturer CreatedObjectCapturer[NoopReferenceMetadata] = discardingCreatedObjectCapturer{}
 
-func (discardingCreatedObjectCapturer) CaptureCreatedObject(CreatedObject[NoopReferenceMetadata]) NoopReferenceMetadata {
-	return NoopReferenceMetadata{}
+func (discardingCreatedObjectCapturer) CaptureCreatedObject(ctx context.Context, createdObject CreatedObject[NoopReferenceMetadata]) (NoopReferenceMetadata, error) {
+	return NoopReferenceMetadata{}, nil
 }
 
 type discardingObjectCapturer[TReference any] struct {

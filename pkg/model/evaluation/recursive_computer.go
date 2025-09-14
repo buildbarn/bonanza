@@ -321,8 +321,8 @@ type recursivelyComputingEnvironment[TReference object.BasicReference, TMetadata
 	dependencies map[*KeyState[TReference, TMetadata]]struct{}
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) CaptureCreatedObject(createdObject model_core.CreatedObject[TMetadata]) TMetadata {
-	return e.computer.objectManager.CaptureCreatedObject(createdObject)
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) CaptureCreatedObject(ctx context.Context, createdObject model_core.CreatedObject[TMetadata]) (TMetadata, error) {
+	return e.computer.objectManager.CaptureCreatedObject(ctx, createdObject)
 }
 
 func (e *recursivelyComputingEnvironment[TReference, TMetadata]) CaptureExistingObject(reference TReference) TMetadata {

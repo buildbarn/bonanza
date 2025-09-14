@@ -298,7 +298,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 			btree.NewObjectCreatingNodeMerger(
 				evaluationTreeEncoder,
 				referenceFormat,
-				/* parentNodeComputer = */ btree.Capturing(objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Evaluation, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Evaluation, buffered.ReferenceMetadata] {
+				/* parentNodeComputer = */ btree.Capturing(ctx, objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Evaluation, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Evaluation, buffered.ReferenceMetadata] {
 					var firstKeySHA256 []byte
 					switch firstEntry := childNodes.Message[0].Level.(type) {
 					case *model_evaluation_pb.Evaluation_Leaf_:
@@ -355,7 +355,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				btree.NewObjectCreatingNodeMerger(
 					evaluationTreeEncoder,
 					referenceFormat,
-					/* parentNodeComputer = */ btree.Capturing(objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Keys, buffered.ReferenceMetadata] {
+					/* parentNodeComputer = */ btree.Capturing(ctx, objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Keys, buffered.ReferenceMetadata] {
 						return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Keys {
 							return &model_evaluation_pb.Keys{
 								Level: &model_evaluation_pb.Keys_Parent_{
@@ -443,7 +443,14 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				}
 				return &result
 			}
-			result.EvaluationsReference = resultPatcher.CaptureAndAddDecodableReference(createdEvaluations, objectManager)
+			evaluationsReference, err := resultPatcher.CaptureAndAddDecodableReference(ctx, createdEvaluations, objectManager)
+			if err != nil {
+				result.Failure = &model_build_pb.Result_Failure{
+					Status: status.Convert(err).Proto(),
+				}
+				return &result
+			}
+			result.EvaluationsReference = evaluationsReference
 		}
 
 		if errCompute != nil {
@@ -500,11 +507,13 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 		var badReference model_core.Decodable[object.LocalReference]
 		return badReference, 0, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
 	}
+	capturedResult, err := createdResult.Value.Capture(ctx, objectManager)
+	if err != nil {
+		var badReference model_core.Decodable[object.LocalReference]
+		return badReference, 0, 0, util.StatusWrap(err, "Failed to capture result")
+	}
 
-	resultReference, err := objectExporter.ExportReference(
-		ctx,
-		objectManager.ReferenceObject(createdResult.Value.Capture(objectManager)),
-	)
+	resultReference, err := objectExporter.ExportReference(ctx, objectManager.ReferenceObject(capturedResult))
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
 		return badReference, 0, 0, util.StatusWrap(err, "Failed to export result")

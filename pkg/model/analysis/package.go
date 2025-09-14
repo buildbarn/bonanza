@@ -94,7 +94,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 		}
 
 		thread.SetLocal(model_starlark.CanonicalPackageKey, canonicalPackage)
-		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, c.getValueEncodingOptions(e, nil))
+		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, c.getValueEncodingOptions(ctx, e, nil))
 		thread.SetLocal(model_starlark.GlobExpanderKey, func(includePatterns, excludePatterns []string, includeDirectories bool) ([]string, error) {
 			nfa, err := glob.NewNFAFromPatterns(includePatterns, excludePatterns)
 			if err != nil {
@@ -112,6 +112,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 		})
 
 		targetRegistrar := model_starlark.NewTargetRegistrar(
+			ctx,
 			c.getValueObjectEncoder(),
 			c.getInlinedTreeOptions(),
 			e,
@@ -154,7 +155,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 			btree.NewObjectCreatingNodeMerger(
 				c.getValueObjectEncoder(),
 				c.getReferenceFormat(),
-				/* parentNodeComputer = */ btree.Capturing(e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Package_Value_Target, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Package_Value_Target, TMetadata] {
+				/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Package_Value_Target, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Package_Value_Target, TMetadata] {
 					var firstName string
 					switch firstElement := childNodes.Message[0].Level.(type) {
 					case *model_analysis_pb.Package_Value_Target_Leaf:

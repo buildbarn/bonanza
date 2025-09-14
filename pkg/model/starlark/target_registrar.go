@@ -1,6 +1,7 @@
 package starlark
 
 import (
+	"context"
 	"fmt"
 
 	pg_label "bonanza.build/pkg/label"
@@ -16,6 +17,7 @@ import (
 // invocations of rules to register any targets in the current package.
 type TargetRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	// Immutable fields.
+	context            context.Context
 	encoder            model_encoding.BinaryEncoder
 	inlinedTreeOptions *inlinedtree.Options
 	objectManager      model_core.ObjectManager[TReference, TMetadata]
@@ -30,8 +32,9 @@ type TargetRegistrar[TReference object.BasicReference, TMetadata model_core.Refe
 // creation contains no targets. The caller needs to provide default
 // values for attributes that are provided to calls to repo() in
 // REPO.bazel, so that they can be inherited by registered targets.
-func NewTargetRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectManager model_core.ObjectManager[TReference, TMetadata], defaultInheritableAttrs model_core.Message[*model_starlark_pb.InheritableAttrs, TReference]) *TargetRegistrar[TReference, TMetadata] {
+func NewTargetRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectManager model_core.ObjectManager[TReference, TMetadata], defaultInheritableAttrs model_core.Message[*model_starlark_pb.InheritableAttrs, TReference]) *TargetRegistrar[TReference, TMetadata] {
 	return &TargetRegistrar[TReference, TMetadata]{
+		context:                 ctx,
 		encoder:                 encoder,
 		inlinedTreeOptions:      inlinedTreeOptions,
 		objectManager:           objectManager,
@@ -56,7 +59,7 @@ func (tr *TargetRegistrar[TReference, TMetadata]) GetTargets() map[string]model_
 func (tr *TargetRegistrar[TReference, TMetadata]) getVisibilityPackageGroup(visibility []pg_label.ResolvedLabel) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
 	if len(visibility) > 0 {
 		// Explicit visibility provided. Construct new package group.
-		return NewPackageGroupFromVisibility[TMetadata](visibility, tr.encoder, tr.inlinedTreeOptions, tr.objectManager)
+		return NewPackageGroupFromVisibility[TMetadata](tr.context, visibility, tr.encoder, tr.inlinedTreeOptions, tr.objectManager)
 	}
 
 	// Inherit visibility from repo() in the REPO.bazel file

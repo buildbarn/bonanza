@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"math"
 	"sort"
 
@@ -92,19 +93,20 @@ func (p *ReferenceMessagePatcher[TMetadata]) AddDecodableReference(capturedObjec
 	}
 }
 
-// CaptureAndAddDecodableReference is a helper function for AddReference
-// that can be called in the common case where a DecodableReference
-// needs to be emitted, referring to a newly created object.
+// CaptureAndAddDecodableReference is a helper function for
+// AddDecodableReference, which first captures an object and then
+// creates a decodable reference message for it which can be attached to
+// a parent object.
 func (p *ReferenceMessagePatcher[TMetadata]) CaptureAndAddDecodableReference(
+	ctx context.Context,
 	createdObject Decodable[CreatedObject[TMetadata]],
 	capturer CreatedObjectCapturer[TMetadata],
-) *core.DecodableReference {
-	return p.AddDecodableReference(
-		CopyDecodable(
-			createdObject,
-			createdObject.Value.Capture(capturer),
-		),
-	)
+) (*core.DecodableReference, error) {
+	capturedObject, err := createdObject.Value.Capture(ctx, capturer)
+	if err != nil {
+		return nil, err
+	}
+	return p.AddDecodableReference(CopyDecodable(createdObject, capturedObject)), nil
 }
 
 func (p *ReferenceMessagePatcher[TMetadata]) addIndex(index *uint32, capturedObject MetadataEntry[TMetadata]) {

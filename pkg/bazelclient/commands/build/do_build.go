@@ -274,7 +274,8 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	// Construct Merkle trees for all modules that need to be
 	// uploaded to storage.
 	logger.Info(formatted.Text("Scanning module sources"))
-	group, groupCtx := errgroup.WithContext(context.Background())
+	ctx := context.Background()
+	group, groupCtx := errgroup.WithContext(ctx)
 	moduleRootDirectories := make([]model_filesystem.CapturedDirectory, 0, len(moduleNames))
 	createdModuleRootDirectories := make([]model_filesystem.CreatedDirectory[model_core.CreatedObjectTree], len(moduleNames))
 	createMerkleTreesConcurrency := semaphore.NewWeighted(int64(runtime.NumCPU()))
@@ -482,20 +483,25 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		}
 	}
 
-	createdAction, err := model_core.MarshalAndEncode(
-		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) model_core.Marshalable {
-			return model_core.NewProtoMarshalable(&model_build_pb.Action{
-				InvocationId:   invocationID.String(),
-				BuildRequestId: buildRequestID.String(),
-				BuildSpecificationReference: patcher.CaptureAndAddDecodableReference(
-					createdBuildSpecification,
-					model_core.WalkableCreatedObjectCapturer,
-				),
-			})
-		}),
-		referenceFormat,
-		actionEncoder,
-	)
+	actionMessage, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) (model_core.Marshalable, error) {
+		buildSpecificationReference, err := patcher.CaptureAndAddDecodableReference(
+			ctx,
+			createdBuildSpecification,
+			model_core.WalkableCreatedObjectCapturer,
+		)
+		if err != nil {
+			return nil, err
+		}
+		return model_core.NewProtoMarshalable(&model_build_pb.Action{
+			InvocationId:                invocationID.String(),
+			BuildRequestId:              buildRequestID.String(),
+			BuildSpecificationReference: buildSpecificationReference,
+		}), nil
+	})
+	if err != nil {
+		logger.Fatal(formatted.Textf("Failed to create action message: %s", err))
+	}
+	createdAction, err := model_core.MarshalAndEncode(actionMessage, referenceFormat, actionEncoder)
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to create action object: %s", err))
 	}
@@ -505,7 +511,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	actionReference := createdAction.Value.GetLocalReference()
 	actionGlobalReference := instanceName.WithLocalReference(actionReference)
 	if err := dag.UploadDAG(
-		context.Background(),
+		ctx,
 		dag_pb.NewUploaderClient(remoteCacheClient),
 		actionGlobalReference,
 		dag.NewSimpleObjectContentsWalker(

@@ -39,6 +39,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 			parameters.fileContentsListEncoder,
 			parameters.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(
+				ctx,
 				model_core.CreatedObjectCapturerFunc[T](capturer.CaptureFileContentsList),
 				func(createdObject model_core.Decodable[model_core.MetadataEntry[T]], childNodes model_core.Message[[]*model_filesystem_pb.FileContents, object.LocalReference]) model_core.PatchedMessage[*model_filesystem_pb.FileContents, T] {
 					// Compute the total file size to store
@@ -79,7 +80,11 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 			}
 			return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
 		}
-		decodableContents, err := parameters.EncodeChunk(chunk)
+		encodedChunk, err := parameters.EncodeChunk(chunk)
+		if err != nil {
+			return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
+		}
+		chunkMetadata, err := capturer.CaptureChunk(ctx, encodedChunk.Value)
 		if err != nil {
 			return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
 		}
@@ -91,10 +96,10 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 					Level: &model_filesystem_pb.FileContents_ChunkReference{
 						ChunkReference: &model_core_pb.DecodableReference{
 							Reference: patcher.AddReference(model_core.MetadataEntry[T]{
-								LocalReference: decodableContents.Value.GetLocalReference(),
-								Metadata:       capturer.CaptureChunk(decodableContents.Value),
+								LocalReference: encodedChunk.Value.GetLocalReference(),
+								Metadata:       chunkMetadata,
 							}),
-							DecodingParameters: decodableContents.GetDecodingParameters(),
+							DecodingParameters: encodedChunk.GetDecodingParameters(),
 						},
 					},
 					TotalSizeBytes: uint64(len(chunk)),

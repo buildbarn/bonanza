@@ -56,6 +56,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 		referenceFormat,
 		actionEncoder,
 	)
+	capturedAction, err := createdAction.Value.Capture(ctx, e)
+	if err != nil {
+		return PatchedHttpFileContentsValue[TMetadata]{}, err
+	}
 
 	var resultReference model_core.Decodable[TReference]
 	var errExecution error
@@ -65,9 +69,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 		&model_executewithstorage.Action[TReference]{
 			Reference: model_core.CopyDecodable(
 				createdAction,
-				e.ReferenceObject(
-					createdAction.Value.Capture(e),
-				),
+				e.ReferenceObject(capturedAction),
 			),
 			Encoders: actionEncodersValue.Message.ActionEncoders,
 			Format: &model_core_pb.ObjectFormat{

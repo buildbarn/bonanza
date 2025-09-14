@@ -105,12 +105,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx conte
 }
 
 func convertDictToEnvironmentVariableList[TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
 	environment map[string]string,
 	actionEncoder model_encoding.BinaryEncoder,
 	referenceFormat object.ReferenceFormat,
 	capturer model_core.CreatedObjectCapturer[TMetadata],
 ) (model_core.PatchedMessage[[]*model_command_pb.EnvironmentVariableList_Element, TMetadata], btree.ParentNodeComputer[*model_command_pb.EnvironmentVariableList_Element, TMetadata], error) {
-	parentNodeComputer := btree.Capturing(capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_command_pb.EnvironmentVariableList_Element, object.LocalReference]) model_core.PatchedMessage[*model_command_pb.EnvironmentVariableList_Element, TMetadata] {
+	parentNodeComputer := btree.Capturing(ctx, capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_command_pb.EnvironmentVariableList_Element, object.LocalReference]) model_core.PatchedMessage[*model_command_pb.EnvironmentVariableList_Element, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_command_pb.EnvironmentVariableList_Element {
 			return &model_command_pb.EnvironmentVariableList_Element{
 				Level: &model_command_pb.EnvironmentVariableList_Element_Parent{

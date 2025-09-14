@@ -1,6 +1,8 @@
 package filesystem
 
 import (
+	"context"
+
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/storage/object"
 )
@@ -16,8 +18,8 @@ import (
 // The methods below return metadata. The metadata for the root object
 // will be returned by CreateFileMerkleTree.
 type FileMerkleTreeCapturer[TMetadata any] interface {
-	CaptureChunk(contents *object.Contents) TMetadata
-	CaptureFileContentsList(createdObject model_core.CreatedObject[TMetadata]) TMetadata
+	CaptureChunk(ctx context.Context, contents *object.Contents) (TMetadata, error)
+	CaptureFileContentsList(ctx context.Context, createdObject model_core.CreatedObject[TMetadata]) (TMetadata, error)
 }
 
 type chunkDiscardingFileMerkleTreeCapturer struct{}
@@ -29,18 +31,18 @@ type chunkDiscardingFileMerkleTreeCapturer struct{}
 // full contents of a file in memory.
 var ChunkDiscardingFileMerkleTreeCapturer FileMerkleTreeCapturer[model_core.CreatedObjectTree] = chunkDiscardingFileMerkleTreeCapturer{}
 
-func (chunkDiscardingFileMerkleTreeCapturer) CaptureChunk(contents *object.Contents) model_core.CreatedObjectTree {
-	return model_core.CreatedObjectTree{}
+func (chunkDiscardingFileMerkleTreeCapturer) CaptureChunk(ctx context.Context, contents *object.Contents) (model_core.CreatedObjectTree, error) {
+	return model_core.CreatedObjectTree{}, nil
 }
 
-func (chunkDiscardingFileMerkleTreeCapturer) CaptureFileContentsList(createdObject model_core.CreatedObject[model_core.CreatedObjectTree]) model_core.CreatedObjectTree {
+func (chunkDiscardingFileMerkleTreeCapturer) CaptureFileContentsList(ctx context.Context, createdObject model_core.CreatedObject[model_core.CreatedObjectTree]) (model_core.CreatedObjectTree, error) {
 	o := model_core.CreatedObjectTree{
 		Contents: createdObject.Contents,
 	}
 	if createdObject.GetHeight() > 1 {
 		o.Metadata = createdObject.Metadata
 	}
-	return o
+	return o, nil
 }
 
 type simpleFileMerkleTreeCapturer[TMetadata any] struct {
@@ -56,12 +58,12 @@ func NewSimpleFileMerkleTreeCapturer[TMetadata any](capturer model_core.CreatedO
 	}
 }
 
-func (c simpleFileMerkleTreeCapturer[TMetadata]) CaptureChunk(contents *object.Contents) TMetadata {
-	return c.capturer.CaptureCreatedObject(model_core.CreatedObject[TMetadata]{Contents: contents})
+func (c simpleFileMerkleTreeCapturer[TMetadata]) CaptureChunk(ctx context.Context, contents *object.Contents) (TMetadata, error) {
+	return c.capturer.CaptureCreatedObject(ctx, model_core.CreatedObject[TMetadata]{Contents: contents})
 }
 
-func (c simpleFileMerkleTreeCapturer[TMetadata]) CaptureFileContentsList(createdObject model_core.CreatedObject[TMetadata]) TMetadata {
-	return c.capturer.CaptureCreatedObject(createdObject)
+func (c simpleFileMerkleTreeCapturer[TMetadata]) CaptureFileContentsList(ctx context.Context, createdObject model_core.CreatedObject[TMetadata]) (TMetadata, error) {
+	return c.capturer.CaptureCreatedObject(ctx, createdObject)
 }
 
 type FileMerkleTreeCapturerForTesting FileMerkleTreeCapturer[model_core.ReferenceMetadata]

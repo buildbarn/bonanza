@@ -266,6 +266,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 				),
 				Encoder: b.directoryEncoder,
 				ParentAppender: inlinedtree.Capturing(
+					b.context,
 					model_core.CreatedObjectCapturerFunc[TDirectory](b.capturer.CaptureDirectory),
 					func(
 						directory model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, TDirectory],
@@ -296,6 +297,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 					ExternalMessage: model_core.ProtoToMarshalable(createdDirectory.Message),
 					Encoder:         b.directoryEncoder,
 					ParentAppender: inlinedtree.Capturing(
+						b.context,
 						model_core.CreatedObjectCapturerFunc[TDirectory](b.capturer.CaptureLeaves),
 						func(
 							directory model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, TDirectory],

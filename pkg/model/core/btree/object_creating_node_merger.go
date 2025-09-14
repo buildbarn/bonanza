@@ -17,7 +17,7 @@ import (
 type ParentNodeComputer[TNode any, TMetadata model_core.ReferenceMetadata] func(
 	createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]],
 	childNodes []TNode,
-) model_core.PatchedMessage[TNode, TMetadata]
+) (model_core.PatchedMessage[TNode, TMetadata], error)
 
 // NewObjectCreatingNodeMerger creates a NodeMerger that can be used in
 // combination with Builder to construct B-trees that are backed by
@@ -32,7 +32,7 @@ func NewObjectCreatingNodeMerger[TNode proto.Message, TMetadata model_core.Refer
 
 		// Construct a parent node that references the object
 		// containing the children.
-		return parentNodeComputer(createdObject, list.Message), nil
+		return parentNodeComputer(createdObject, list.Message)
 	}
 }
 
@@ -49,14 +49,17 @@ func MaybeMergeNodes[TNode proto.Message, TMetadata model_core.ReferenceMetadata
 	externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
 	patcher *model_core.ReferenceMessagePatcher[TMetadata],
 	parentNodeComputer ParentNodeComputer[TNode, TMetadata],
-) []TNode {
+) ([]TNode, error) {
 	if externalObject == nil || len(nodes) < 1 {
-		return nodes
+		return nodes, nil
 	}
 
-	merged := parentNodeComputer(*externalObject, nodes)
+	merged, err := parentNodeComputer(*externalObject, nodes)
+	if err != nil {
+		return nil, err
+	}
 	patcher.Merge(merged.Patcher)
-	return []TNode{merged.Message}
+	return []TNode{merged.Message}, nil
 }
 
 // ParentNodeComputerForTesting is an instantiation of

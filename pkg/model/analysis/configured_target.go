@@ -180,7 +180,7 @@ func (c *baseComputer[TReference, TMetadata]) mapStructFields(
 	}
 
 	encodedFields, _, err := model_starlark.NewStructFromDict[TReference, TMetadata](nil, fields).
-		EncodeStructFields(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(e, nil))
+		EncodeStructFields(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(ctx, e, nil))
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata]{}, err
 	}
@@ -1417,7 +1417,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			}
 			providersSeen[providerIdentifier] = struct{}{}
 
-			v, _, err := providerInstance.Encode(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(e, nil))
+			v, _, err := providerInstance.Encode(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(ctx, e, nil))
 			if err != nil {
 				return PatchedConfiguredTargetValue[TMetadata]{}, err
 			}
@@ -1447,7 +1447,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			btree.NewObjectCreatingNodeMerger(
 				c.getValueObjectEncoder(),
 				c.getReferenceFormat(),
-				/* parentNodeComputer = */ btree.Capturing(e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
+				/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
 					var firstPackageRelativePath string
 					switch firstElement := childNodes.Message[0].Level.(type) {
 					case *model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_:
@@ -1501,7 +1501,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			btree.NewObjectCreatingNodeMerger(
 				c.getValueObjectEncoder(),
 				c.getReferenceFormat(),
-				/* parentNodeComputer = */ btree.Capturing(e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
+				/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
 					var firstID []byte
 					switch firstElement := childNodes.Message[0].Level.(type) {
 					case *model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_:
@@ -2178,7 +2178,7 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 	}
 
 	// Encode individual fields.
-	valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.environment, nil)
+	valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.context, rc.environment, nil)
 	executable := model_core.Patch(rc.environment, fields.executable.GetDefinition())
 	runfilesFiles, _, err := fields.runfilesFiles.EncodeList(map[starlark.Value]struct{}{}, valueEncodingOptions)
 	if err != nil {
@@ -2210,16 +2210,22 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 				ParentAppender: func(
 					filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
-					filesToRunProvider.Message.RunfilesFiles = btree.MaybeMergeNodes(
+				) error {
+					runfilesFiles, err := btree.MaybeMergeNodes(
 						runfilesFiles.Message,
 						externalObject,
 						filesToRunProvider.Patcher,
 						btree.Capturing(
+							rc.context,
 							valueEncodingOptions.ObjectCapturer,
 							model_starlark.ComputeListParentNode,
 						),
 					)
+					if err != nil {
+						return err
+					}
+					filesToRunProvider.Message.RunfilesFiles = runfilesFiles
+					return nil
 				},
 			},
 			{
@@ -2228,16 +2234,22 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 				ParentAppender: func(
 					filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
-					filesToRunProvider.Message.RunfilesSymlinks = btree.MaybeMergeNodes(
+				) error {
+					runfilesSymlinks, err := btree.MaybeMergeNodes(
 						runfilesSymlinks.Message,
 						externalObject,
 						filesToRunProvider.Patcher,
 						btree.Capturing(
+							rc.context,
 							valueEncodingOptions.ObjectCapturer,
 							model_starlark.ComputeListParentNode,
 						),
 					)
+					if err != nil {
+						return err
+					}
+					filesToRunProvider.Message.RunfilesSymlinks = runfilesSymlinks
+					return nil
 				},
 			},
 			{
@@ -2246,16 +2258,22 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 				ParentAppender: func(
 					filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
-					filesToRunProvider.Message.RunfilesRootSymlinks = btree.MaybeMergeNodes(
+				) error {
+					runfilesRootSymlinks, err := btree.MaybeMergeNodes(
 						runfilesRootSymlinks.Message,
 						externalObject,
 						filesToRunProvider.Patcher,
 						btree.Capturing(
+							rc.context,
 							valueEncodingOptions.ObjectCapturer,
 							model_starlark.ComputeListParentNode,
 						),
 					)
+					if err != nil {
+						return err
+					}
+					filesToRunProvider.Message.RunfilesRootSymlinks = runfilesRootSymlinks
+					return nil
 				},
 			},
 		},
@@ -2322,9 +2340,9 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 		return nil, err
 	}
 
-	valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.environment, nil)
+	valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.context, rc.environment, nil)
 	var inputsDirect []starlark.Value
-	toolsParentNodeComputer := btree.Capturing(valueEncodingOptions.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.FilesToRunProvider, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider, TMetadata] {
+	toolsParentNodeComputer := btree.Capturing(rc.context, valueEncodingOptions.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.FilesToRunProvider, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.FilesToRunProvider {
 			return &model_analysis_pb.FilesToRunProvider{
 				Level: &model_analysis_pb.FilesToRunProvider_Parent_{
@@ -2419,7 +2437,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 		return nil, err
 	}
 
-	argsParentNodeComputer := btree.Capturing(valueEncodingOptions.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Args, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Args, TMetadata] {
+	argsParentNodeComputer := btree.Capturing(rc.context, valueEncodingOptions.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Args, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Args, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args {
 			return &model_analysis_pb.Args{
 				Level: &model_analysis_pb.Args_Parent_{
@@ -2500,6 +2518,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 	}
 
 	envList, envParentNodeComputer, err := convertDictToEnvironmentVariableList(
+		rc.context,
 		env,
 		rc.actionEncoder,
 		valueEncodingOptions.ObjectReferenceFormat,
@@ -2538,6 +2557,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 		outputPathPatternSet.Add(strings.SplitSeq(output.packageRelativePath.String(), "/"))
 	}
 	outputPathPatternChildren, err := outputPathPatternSet.ToProto(
+		rc.context,
 		rc.actionEncoder,
 		rc.computer.getInlinedTreeOptions(),
 		rc.environment,
@@ -2656,13 +2676,18 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
-					actionDefinition.Message.Arguments = btree.MaybeMergeNodes(
+				) error {
+					arguments, err := btree.MaybeMergeNodes(
 						argsList.Message,
 						externalObject,
 						actionDefinition.Patcher,
 						argsParentNodeComputer,
 					)
+					if err != nil {
+						return err
+					}
+					actionDefinition.Message.Arguments = arguments
+					return nil
 				},
 			},
 			{
@@ -2671,13 +2696,18 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
-					actionDefinition.Message.Env = btree.MaybeMergeNodes(
+				) error {
+					env, err := btree.MaybeMergeNodes(
 						envList.Message,
 						externalObject,
 						actionDefinition.Patcher,
 						envParentNodeComputer,
 					)
+					if err != nil {
+						return err
+					}
+					actionDefinition.Message.Env = env
+					return nil
 				},
 			},
 			{
@@ -2686,16 +2716,22 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
-					actionDefinition.Message.Inputs = btree.MaybeMergeNodes(
+				) error {
+					inputs, err := btree.MaybeMergeNodes(
 						encodedInputs.Message,
 						externalObject,
 						actionDefinition.Patcher,
 						btree.Capturing(
+							rc.context,
 							valueEncodingOptions.ObjectCapturer,
 							model_starlark.ComputeListParentNode,
 						),
 					)
+					if err != nil {
+						return err
+					}
+					actionDefinition.Message.Inputs = inputs
+					return nil
 				},
 			},
 			{
@@ -2704,19 +2740,24 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-				) {
-					actionDefinition.Message.Tools = btree.MaybeMergeNodes(
+				) error {
+					tools, err := btree.MaybeMergeNodes(
 						toolsList.Message,
 						externalObject,
 						actionDefinition.Patcher,
 						toolsParentNodeComputer,
 					)
+					if err != nil {
+						return err
+					}
+					actionDefinition.Message.Tools = tools
+					return nil
 				},
 			},
 			{
 				ExternalMessage: model_core.ProtoToMarshalable(outputPathPatternChildren),
 				Encoder:         rc.actionEncoder,
-				ParentAppender: inlinedtree.Capturing(rc.environment, func(
+				ParentAppender: inlinedtree.Capturing(rc.context, rc.environment, func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
 					externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 				) {
@@ -2730,7 +2771,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 			{
 				ExternalMessage: model_core.ProtoToMarshalable(createdInitialOutputDirectory.Message),
 				Encoder:         rc.actionEncoder,
-				ParentAppender: inlinedtree.Capturing(rc.environment, func(
+				ParentAppender: inlinedtree.Capturing(rc.context, rc.environment, func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
 					externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 				) {
@@ -3260,7 +3301,7 @@ func (a *args[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, o
 		btree.NewObjectCreatingNodeMerger(
 			options.ObjectEncoder,
 			options.ObjectReferenceFormat,
-			btree.Capturing(options.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Args_Leaf_Add, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Args_Leaf_Add, TMetadata] {
+			btree.Capturing(options.Context, options.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Args_Leaf_Add, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Args_Leaf_Add, TMetadata] {
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args_Leaf_Add {
 					return &model_analysis_pb.Args_Leaf_Add{
 						Level: &model_analysis_pb.Args_Leaf_Add_Parent_{

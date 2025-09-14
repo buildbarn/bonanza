@@ -145,9 +145,10 @@ func (c *baseComputer[TReference, TMetadata]) getValueObjectEncoder() model_enco
 	return model_encoding.NewChainedBinaryEncoder(nil)
 }
 
-func (c *baseComputer[TReference, TMetadata]) getValueEncodingOptions(objectCapturer model_core.ObjectCapturer[TReference, TMetadata], currentFilename *label.CanonicalLabel) *model_starlark.ValueEncodingOptions[TReference, TMetadata] {
+func (c *baseComputer[TReference, TMetadata]) getValueEncodingOptions(ctx context.Context, objectCapturer model_core.ObjectCapturer[TReference, TMetadata], currentFilename *label.CanonicalLabel) *model_starlark.ValueEncodingOptions[TReference, TMetadata] {
 	return &model_starlark.ValueEncodingOptions[TReference, TMetadata]{
 		CurrentFilename:        currentFilename,
+		Context:                ctx,
 		ObjectEncoder:          c.getValueObjectEncoder(),
 		ObjectReferenceFormat:  c.getReferenceFormat(),
 		ObjectCapturer:         objectCapturer,
@@ -444,6 +445,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 
 	// Extract the default inheritable attrs from REPO.bazel.
 	defaultAttrs, err := model_starlark.ParseRepoDotBazel[TReference](
+		ctx,
 		string(repoFileData),
 		canonicalRepo.GetRootPackage().AppendTargetName(repoFileName),
 		c.getValueObjectEncoder(),

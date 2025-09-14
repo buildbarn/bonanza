@@ -1587,6 +1587,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				}
 
 				newDefaultAttrs, err := getDefaultInheritableAttrs(
+					targetRegistrar.context,
 					thread,
 					b,
 					args,

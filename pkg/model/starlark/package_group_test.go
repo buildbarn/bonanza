@@ -18,7 +18,7 @@ import (
 )
 
 func TestNewPackageGroupFromVisibility(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	ctrl, ctx := gomock.WithContext(t.Context(), t)
 
 	encoder := NewMockBinaryEncoder(ctrl)
 	encoder.EXPECT().GetDecodingParametersSizeBytes().Return(0).AnyTimes()
@@ -26,6 +26,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 	t.Run("private", func(t *testing.T) {
 		t.Run("Success", func(t *testing.T) {
 			packageGroup, err := model_starlark.NewPackageGroupFromVisibility(
+				ctx,
 				[]label.ResolvedLabel{
 					util.Must(label.NewResolvedLabel("@@foo+//visibility:private")),
 				},
@@ -44,6 +45,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 
 		t.Run("Duplicate", func(t *testing.T) {
 			_, err := model_starlark.NewPackageGroupFromVisibility(
+				ctx,
 				[]label.ResolvedLabel{
 					util.Must(label.NewResolvedLabel("@@foo+//visibility:private")),
 					util.Must(label.NewResolvedLabel("@@foo+//visibility:private")),
@@ -62,6 +64,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 	t.Run("public", func(t *testing.T) {
 		t.Run("Success", func(t *testing.T) {
 			packageGroup, err := model_starlark.NewPackageGroupFromVisibility(
+				ctx,
 				[]label.ResolvedLabel{
 					util.Must(label.NewResolvedLabel("@@foo+//visibility:public")),
 				},
@@ -82,6 +85,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 
 		t.Run("Duplicate", func(t *testing.T) {
 			_, err := model_starlark.NewPackageGroupFromVisibility(
+				ctx,
 				[]label.ResolvedLabel{
 					util.Must(label.NewResolvedLabel("@@foo+//visibility:public")),
 					util.Must(label.NewResolvedLabel("@@foo+//visibility:public")),
@@ -99,9 +103,10 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 
 	t.Run("Mix", func(t *testing.T) {
 		objectManager := NewMockObjectManagerForTesting(ctrl)
-		objectManager.EXPECT().CaptureCreatedObject(gomock.Any()).AnyTimes()
+		objectManager.EXPECT().CaptureCreatedObject(gomock.Any(), gomock.Any()).AnyTimes()
 
 		packageGroup, err := model_starlark.NewPackageGroupFromVisibility(
+			ctx,
 			[]label.ResolvedLabel{
 				// Inclusion of the root package.
 				util.Must(label.NewResolvedLabel("@@toplevel1+//:__pkg__")),

@@ -1,13 +1,15 @@
 package filesystem
 
 import (
+	"context"
+
 	model_core "bonanza.build/pkg/model/core"
 )
 
 type DirectoryMerkleTreeCapturer[TDirectory, TFile any] interface {
 	CaptureFileNode(TFile) TDirectory
-	CaptureDirectory(createdObject model_core.CreatedObject[TDirectory]) TDirectory
-	CaptureLeaves(createdObject model_core.CreatedObject[TDirectory]) TDirectory
+	CaptureDirectory(ctx context.Context, createdObject model_core.CreatedObject[TDirectory]) (TDirectory, error)
+	CaptureLeaves(ctx context.Context, createdObject model_core.CreatedObject[TDirectory]) (TDirectory, error)
 }
 
 type fileDiscardingDirectoryMerkleTreeCapturer struct{}
@@ -26,12 +28,12 @@ func (fileDiscardingDirectoryMerkleTreeCapturer) CaptureFileNode(model_core.Noop
 	return model_core.CreatedObjectTree{}
 }
 
-func (fileDiscardingDirectoryMerkleTreeCapturer) CaptureDirectory(createdObject model_core.CreatedObject[model_core.CreatedObjectTree]) model_core.CreatedObjectTree {
-	return model_core.CreatedObjectTree(createdObject)
+func (fileDiscardingDirectoryMerkleTreeCapturer) CaptureDirectory(ctx context.Context, createdObject model_core.CreatedObject[model_core.CreatedObjectTree]) (model_core.CreatedObjectTree, error) {
+	return model_core.CreatedObjectTree(createdObject), nil
 }
 
-func (fileDiscardingDirectoryMerkleTreeCapturer) CaptureLeaves(createdObject model_core.CreatedObject[model_core.CreatedObjectTree]) model_core.CreatedObjectTree {
-	return model_core.CreatedObjectTree(createdObject)
+func (fileDiscardingDirectoryMerkleTreeCapturer) CaptureLeaves(ctx context.Context, createdObject model_core.CreatedObject[model_core.CreatedObjectTree]) (model_core.CreatedObjectTree, error) {
+	return model_core.CreatedObjectTree(createdObject), nil
 }
 
 type simpleDirectoryMerkleTreeCapturer[TMetadata any] struct {
@@ -52,10 +54,10 @@ func (simpleDirectoryMerkleTreeCapturer[TMetadata]) CaptureFileNode(metadata TMe
 	return metadata
 }
 
-func (c simpleDirectoryMerkleTreeCapturer[TMetadata]) CaptureDirectory(createdObject model_core.CreatedObject[TMetadata]) TMetadata {
-	return c.capturer.CaptureCreatedObject(createdObject)
+func (c simpleDirectoryMerkleTreeCapturer[TMetadata]) CaptureDirectory(ctx context.Context, createdObject model_core.CreatedObject[TMetadata]) (TMetadata, error) {
+	return c.capturer.CaptureCreatedObject(ctx, createdObject)
 }
 
-func (c simpleDirectoryMerkleTreeCapturer[TMetadata]) CaptureLeaves(createdObject model_core.CreatedObject[TMetadata]) TMetadata {
-	return c.capturer.CaptureCreatedObject(createdObject)
+func (c simpleDirectoryMerkleTreeCapturer[TMetadata]) CaptureLeaves(ctx context.Context, createdObject model_core.CreatedObject[TMetadata]) (TMetadata, error) {
+	return c.capturer.CaptureCreatedObject(ctx, createdObject)
 }

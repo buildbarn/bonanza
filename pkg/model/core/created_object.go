@@ -20,11 +20,15 @@ type CreatedObject[TMetadata any] struct {
 // the object in the form of a MetadataEntry[TMetadata], which can be
 // provided to ReferenceMessagePatcher.AddReference() to let a message
 // refer to the object.
-func (o CreatedObject[TMetadata]) Capture(capturer CreatedObjectCapturer[TMetadata]) MetadataEntry[TMetadata] {
+func (o CreatedObject[TMetadata]) Capture(ctx context.Context, capturer CreatedObjectCapturer[TMetadata]) (MetadataEntry[TMetadata], error) {
+	capturedObject, err := capturer.CaptureCreatedObject(ctx, o)
+	if err != nil {
+		return MetadataEntry[TMetadata]{}, err
+	}
 	return MetadataEntry[TMetadata]{
 		LocalReference: o.GetLocalReference(),
-		Metadata:       capturer.CaptureCreatedObject(o),
-	}
+		Metadata:       capturedObject,
+	}, nil
 }
 
 // CreatedObjectTree is CreatedObject applied recursively. Namely, it
