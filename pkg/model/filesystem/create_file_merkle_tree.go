@@ -37,26 +37,26 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 		btree.NewObjectCreatingNodeMerger[*model_filesystem_pb.FileContents, T](
 			parameters.fileContentsListEncoder,
 			parameters.referenceFormat,
-			/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[T]], childNodes []*model_filesystem_pb.FileContents) model_core.PatchedMessage[*model_filesystem_pb.FileContents, T] {
-				// Compute the total file size to store
-				// in the parent FileContents node.
-				var totalSizeBytes uint64
-				for _, childNode := range childNodes {
-					totalSizeBytes += childNode.TotalSizeBytes
-				}
-
-				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
-					return &model_filesystem_pb.FileContents{
-						Level: &model_filesystem_pb.FileContents_FileContentsListReference{
-							FileContentsListReference: patcher.CaptureAndAddDecodableReference(
-								createdObject,
-								model_core.CreatedObjectCapturerFunc[T](capturer.CaptureFileContentsList),
-							),
-						},
-						TotalSizeBytes: totalSizeBytes,
+			/* parentNodeComputer = */ btree.Capturing(
+				model_core.CreatedObjectCapturerFunc[T](capturer.CaptureFileContentsList),
+				func(createdObject model_core.Decodable[model_core.MetadataEntry[T]], childNodes []*model_filesystem_pb.FileContents) model_core.PatchedMessage[*model_filesystem_pb.FileContents, T] {
+					// Compute the total file size to store
+					// in the parent FileContents node.
+					var totalSizeBytes uint64
+					for _, childNode := range childNodes {
+						totalSizeBytes += childNode.TotalSizeBytes
 					}
-				})
-			},
+
+					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
+						return &model_filesystem_pb.FileContents{
+							Level: &model_filesystem_pb.FileContents_FileContentsListReference{
+								FileContentsListReference: patcher.AddDecodableReference(createdObject),
+							},
+							TotalSizeBytes: totalSizeBytes,
+						}
+					})
+				},
+			),
 		),
 	)
 

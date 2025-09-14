@@ -1758,15 +1758,15 @@ func bytesToValidString(p []byte) (string, bool) {
 }
 
 func newArgumentsBuilder[TMetadata model_core.ReferenceMetadata](actionEncoder model_encoding.BinaryEncoder, referenceFormat object.ReferenceFormat, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (btree.Builder[*model_command_pb.ArgumentList_Element, TMetadata], btree.ParentNodeComputer[*model_command_pb.ArgumentList_Element, TMetadata]) {
-	parentNodeComputer := func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_command_pb.ArgumentList_Element) model_core.PatchedMessage[*model_command_pb.ArgumentList_Element, TMetadata] {
+	parentNodeComputer := btree.Capturing(objectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes []*model_command_pb.ArgumentList_Element) model_core.PatchedMessage[*model_command_pb.ArgumentList_Element, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_command_pb.ArgumentList_Element {
 			return &model_command_pb.ArgumentList_Element{
 				Level: &model_command_pb.ArgumentList_Element_Parent{
-					Parent: patcher.CaptureAndAddDecodableReference(createdObject, objectCapturer),
+					Parent: patcher.AddDecodableReference(createdObject),
 				},
 			}
 		})
-	}
+	})
 	return btree.NewSplitProllyBuilder(
 		1<<16,
 		1<<18,

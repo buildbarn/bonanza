@@ -14,7 +14,7 @@ import (
 // ParentNodeComputer can be used by ObjectCreatingNodeMerger to combine
 // the values of nodes stored in an object into a single node that can
 // be stored in its parent.
-type ParentNodeComputer[TNode proto.Message, TMetadata model_core.ReferenceMetadata] func(
+type ParentNodeComputer[TNode any, TMetadata model_core.ReferenceMetadata] func(
 	createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]],
 	childNodes []TNode,
 ) model_core.PatchedMessage[TNode, TMetadata]

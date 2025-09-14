@@ -6,6 +6,7 @@ go_library(
     srcs = [
         "all_leaves.go",
         "builder.go",
+        "capturing.go",
         "chunker_factory.go",
         "find.go",
         "node_merger.go",

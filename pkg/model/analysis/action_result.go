@@ -110,15 +110,15 @@ func convertDictToEnvironmentVariableList[TMetadata model_core.ReferenceMetadata
 	referenceFormat object.ReferenceFormat,
 	capturer model_core.CreatedObjectCapturer[TMetadata],
 ) (model_core.PatchedMessage[[]*model_command_pb.EnvironmentVariableList_Element, TMetadata], btree.ParentNodeComputer[*model_command_pb.EnvironmentVariableList_Element, TMetadata], error) {
-	parentNodeComputer := func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_command_pb.EnvironmentVariableList_Element) model_core.PatchedMessage[*model_command_pb.EnvironmentVariableList_Element, TMetadata] {
+	parentNodeComputer := btree.Capturing(capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes []*model_command_pb.EnvironmentVariableList_Element) model_core.PatchedMessage[*model_command_pb.EnvironmentVariableList_Element, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_command_pb.EnvironmentVariableList_Element {
 			return &model_command_pb.EnvironmentVariableList_Element{
 				Level: &model_command_pb.EnvironmentVariableList_Element_Parent{
-					Parent: patcher.CaptureAndAddDecodableReference(createdObject, capturer),
+					Parent: patcher.AddDecodableReference(createdObject),
 				},
 			}
 		})
-	}
+	})
 	environmentVariablesBuilder := btree.NewSplitProllyBuilder(
 		1<<16,
 		1<<18,

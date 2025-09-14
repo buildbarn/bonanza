@@ -355,17 +355,17 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 				btree.NewObjectCreatingNodeMerger(
 					evaluationTreeEncoder,
 					referenceFormat,
-					/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[buffered.ReferenceMetadata]], childNodes []*model_evaluation_pb.Keys) model_core.PatchedMessage[*model_evaluation_pb.Keys, buffered.ReferenceMetadata] {
+					/* parentNodeComputer = */ btree.Capturing(objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes []*model_evaluation_pb.Keys) model_core.PatchedMessage[*model_evaluation_pb.Keys, buffered.ReferenceMetadata] {
 						return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Keys {
 							return &model_evaluation_pb.Keys{
 								Level: &model_evaluation_pb.Keys_Parent_{
 									Parent: &model_evaluation_pb.Keys_Parent{
-										Reference: patcher.CaptureAndAddDecodableReference(createdObject, objectManager),
+										Reference: patcher.AddDecodableReference(createdObject),
 									},
 								},
 							}
 						})
-					},
+					}),
 				),
 			)
 			for _, dependency := range evaluation.Dependencies {

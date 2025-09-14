@@ -1447,7 +1447,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			btree.NewObjectCreatingNodeMerger(
 				c.getValueObjectEncoder(),
 				c.getReferenceFormat(),
-				/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_analysis_pb.ConfiguredTarget_Value_Output) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
+				/* parentNodeComputer = */ btree.Capturing(e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes []*model_analysis_pb.ConfiguredTarget_Value_Output) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
 					var firstPackageRelativePath string
 					switch firstElement := childNodes[0].Level.(type) {
 					case *model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_:
@@ -1459,13 +1459,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						return &model_analysis_pb.ConfiguredTarget_Value_Output{
 							Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent_{
 								Parent: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent{
-									Reference:                patcher.CaptureAndAddDecodableReference(createdObject, e),
+									Reference:                patcher.AddDecodableReference(createdObject),
 									FirstPackageRelativePath: firstPackageRelativePath,
 								},
 							},
 						}
 					})
-				},
+				}),
 			),
 		)
 		outputsByPackageRelativePath := outputRegistrar.outputsByPackageRelativePath
@@ -1501,7 +1501,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			btree.NewObjectCreatingNodeMerger(
 				c.getValueObjectEncoder(),
 				c.getReferenceFormat(),
-				/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_analysis_pb.ConfiguredTarget_Value_Action) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
+				/* parentNodeComputer = */ btree.Capturing(e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes []*model_analysis_pb.ConfiguredTarget_Value_Action) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
 					var firstID []byte
 					switch firstElement := childNodes[0].Level.(type) {
 					case *model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_:
@@ -1513,13 +1513,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						return &model_analysis_pb.ConfiguredTarget_Value_Action{
 							Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent_{
 								Parent: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent{
-									Reference: patcher.CaptureAndAddDecodableReference(createdObject, e),
+									Reference: patcher.AddDecodableReference(createdObject),
 									FirstId:   firstID,
 								},
 							},
 						}
 					})
-				},
+				}),
 			),
 		)
 		slices.SortFunc(rc.actions, func(a, b model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]) int {
@@ -2315,20 +2315,17 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 
 	valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.environment, nil)
 	var inputsDirect []starlark.Value
-	toolsParentNodeComputer := func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_analysis_pb.FilesToRunProvider) model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider, TMetadata] {
+	toolsParentNodeComputer := btree.Capturing(valueEncodingOptions.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes []*model_analysis_pb.FilesToRunProvider) model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.FilesToRunProvider {
 			return &model_analysis_pb.FilesToRunProvider{
 				Level: &model_analysis_pb.FilesToRunProvider_Parent_{
 					Parent: &model_analysis_pb.FilesToRunProvider_Parent{
-						Reference: patcher.CaptureAndAddDecodableReference(
-							createdObject,
-							valueEncodingOptions.ObjectCapturer,
-						),
+						Reference: patcher.AddDecodableReference(createdObject),
 					},
 				},
 			}
 		})
-	}
+	})
 	toolsBuilder := btree.NewSplitProllyBuilder(
 		valueEncodingOptions.ObjectMinimumSizeBytes,
 		valueEncodingOptions.ObjectMaximumSizeBytes,
@@ -2413,20 +2410,17 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 		return nil, err
 	}
 
-	argsParentNodeComputer := func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_analysis_pb.Args) model_core.PatchedMessage[*model_analysis_pb.Args, TMetadata] {
+	argsParentNodeComputer := btree.Capturing(valueEncodingOptions.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes []*model_analysis_pb.Args) model_core.PatchedMessage[*model_analysis_pb.Args, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args {
 			return &model_analysis_pb.Args{
 				Level: &model_analysis_pb.Args_Parent_{
 					Parent: &model_analysis_pb.Args_Parent{
-						Reference: patcher.CaptureAndAddDecodableReference(
-							createdObject,
-							valueEncodingOptions.ObjectCapturer,
-						),
+						Reference: patcher.AddDecodableReference(createdObject),
 					},
 				},
 			}
 		})
-	}
+	})
 	argsListBuilder := btree.NewSplitProllyBuilder(
 		valueEncodingOptions.ObjectMinimumSizeBytes,
 		valueEncodingOptions.ObjectMaximumSizeBytes,
@@ -3254,20 +3248,17 @@ func (a *args[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, o
 		btree.NewObjectCreatingNodeMerger(
 			options.ObjectEncoder,
 			options.ObjectReferenceFormat,
-			func(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_analysis_pb.Args_Leaf_Add) model_core.PatchedMessage[*model_analysis_pb.Args_Leaf_Add, TMetadata] {
+			btree.Capturing(options.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes []*model_analysis_pb.Args_Leaf_Add) model_core.PatchedMessage[*model_analysis_pb.Args_Leaf_Add, TMetadata] {
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args_Leaf_Add {
 					return &model_analysis_pb.Args_Leaf_Add{
 						Level: &model_analysis_pb.Args_Leaf_Add_Parent_{
 							Parent: &model_analysis_pb.Args_Leaf_Add_Parent{
-								Reference: patcher.CaptureAndAddDecodableReference(
-									createdObject,
-									options.ObjectCapturer,
-								),
+								Reference: patcher.AddDecodableReference(createdObject),
 							},
 						},
 					}
 				})
-			},
+			}),
 		),
 	)
 	for _, add := range a.adds {
