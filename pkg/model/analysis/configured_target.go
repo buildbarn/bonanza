@@ -2215,7 +2215,10 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 						runfilesFiles.Message,
 						externalObject,
 						filesToRunProvider.Patcher,
-						valueEncodingOptions.ComputeListParentNode,
+						btree.Capturing(
+							valueEncodingOptions.ObjectCapturer,
+							model_starlark.ComputeListParentNode,
+						),
 					)
 				},
 			},
@@ -2230,7 +2233,10 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 						runfilesSymlinks.Message,
 						externalObject,
 						filesToRunProvider.Patcher,
-						valueEncodingOptions.ComputeListParentNode,
+						btree.Capturing(
+							valueEncodingOptions.ObjectCapturer,
+							model_starlark.ComputeListParentNode,
+						),
 					)
 				},
 			},
@@ -2245,7 +2251,10 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 						runfilesRootSymlinks.Message,
 						externalObject,
 						filesToRunProvider.Patcher,
-						valueEncodingOptions.ComputeListParentNode,
+						btree.Capturing(
+							valueEncodingOptions.ObjectCapturer,
+							model_starlark.ComputeListParentNode,
+						),
 					)
 				},
 			},
@@ -2682,7 +2691,10 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 						encodedInputs.Message,
 						externalObject,
 						actionDefinition.Patcher,
-						valueEncodingOptions.ComputeListParentNode,
+						btree.Capturing(
+							valueEncodingOptions.ObjectCapturer,
+							model_starlark.ComputeListParentNode,
+						),
 					)
 				},
 			},

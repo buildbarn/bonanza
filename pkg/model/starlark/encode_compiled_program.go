@@ -41,7 +41,7 @@ type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata
 	ObjectMaximumSizeBytes int
 }
 
-func (o *ValueEncodingOptions[TReference, TMetadata]) ComputeListParentNode(createdObject model_core.Decodable[model_core.CreatedObject[TMetadata]], childNodes []*model_starlark_pb.List_Element) model_core.PatchedMessage[*model_starlark_pb.List_Element, TMetadata] {
+func ComputeListParentNode[TMetadata model_core.ReferenceMetadata](createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_starlark_pb.List_Element, object.LocalReference]) model_core.PatchedMessage[*model_starlark_pb.List_Element, TMetadata] {
 	// Compute the total number of elements
 	// contained in the new list.
 	//
@@ -52,7 +52,7 @@ func (o *ValueEncodingOptions[TReference, TMetadata]) ComputeListParentNode(crea
 	// they can't use this field to jump to
 	// arbitrary elements.
 	count := uint64(0)
-	for _, childNode := range childNodes {
+	for _, childNode := range childNodes.Message {
 		childCount := uint64(1)
 		if level, ok := childNode.Level.(*model_starlark_pb.List_Element_Parent_); ok {
 			childCount = level.Parent.Count
@@ -69,11 +69,8 @@ func (o *ValueEncodingOptions[TReference, TMetadata]) ComputeListParentNode(crea
 		return &model_starlark_pb.List_Element{
 			Level: &model_starlark_pb.List_Element_Parent_{
 				Parent: &model_starlark_pb.List_Element_Parent{
-					Reference: patcher.CaptureAndAddDecodableReference(
-						createdObject,
-						o.ObjectCapturer,
-					),
-					Count: count,
+					Reference: patcher.AddDecodableReference(createdObject),
+					Count:     count,
 				},
 			},
 		}
@@ -97,7 +94,7 @@ func newSplitBTreeBuilder[TReference any, TMessage proto.Message, TMetadata mode
 }
 
 func NewListBuilder[TReference any, TMetadata model_core.ReferenceMetadata](options *ValueEncodingOptions[TReference, TMetadata]) btree.Builder[*model_starlark_pb.List_Element, TMetadata] {
-	return newSplitBTreeBuilder(options, options.ComputeListParentNode)
+	return newSplitBTreeBuilder(options, btree.Capturing(options.ObjectCapturer, ComputeListParentNode))
 }
 
 type EncodableValue[TReference any, TMetadata model_core.ReferenceMetadata] interface {
