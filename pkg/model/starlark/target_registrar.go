@@ -3,6 +3,8 @@ package starlark
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
@@ -43,17 +45,43 @@ func NewTargetRegistrar[TReference object.BasicReference, TMetadata model_core.R
 	}
 }
 
-// GetTargets returns the set of targets in the current package that
-// have been registered against this TargetRegistrar.
-//
-// This method returns a map that is keyed by target name. The value
-// denotes the definition of the target. The value may be left unset if
-// the target is implicit, meaning that it is referenced by one of its
-// siblings, but no explicit declaration is provided. The caller may
-// assume that such targets refer to source files that are part of this
-// package.
-func (tr *TargetRegistrar[TReference, TMetadata]) GetTargets() map[string]model_core.PatchedMessage[*model_starlark_pb.Target_Definition, TMetadata] {
-	return tr.targets
+// Discard all targets, so that any resources associated with them are
+// released.
+func (tr *TargetRegistrar[TReference, TMetadata]) Discard() {
+	for _, target := range tr.targets {
+		target.Discard()
+	}
+}
+
+// GetTargetNames returns the set of target names in the current package
+// that have been registered against this TargetRegistrar.
+func (tr *TargetRegistrar[TReference, TMetadata]) GetTargetNames() []string {
+	return slices.Sorted(maps.Keys(tr.targets))
+}
+
+var sourceFileTarget = &model_starlark_pb.Target_Definition{
+	Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
+		SourceFileTarget: &model_starlark_pb.SourceFileTarget{
+			Visibility: &model_starlark_pb.PackageGroup{
+				Tree: &model_starlark_pb.PackageGroup_Subpackages{},
+			},
+		},
+	},
+}
+
+// GetAndRemoveTarget gets the definition of the target from the
+// TargetRegistrar and subsequently removes it. The caller then owns the
+// message and its associated resources.
+func (tr *TargetRegistrar[TReference, TMetadata]) GetAndRemoveTarget(name string) model_core.PatchedMessage[*model_starlark_pb.Target_Definition, TMetadata] {
+	target := tr.targets[name]
+	delete(tr.targets, name)
+	if !target.IsSet() {
+		// Target is referenced, but not provided explicitly.
+		// Assume it refers to a source file with private
+		// visibility.
+		target = model_core.NewSimplePatchedMessage[TMetadata](sourceFileTarget)
+	}
+	return target
 }
 
 func (tr *TargetRegistrar[TReference, TMetadata]) getVisibilityPackageGroup(visibility []pg_label.ResolvedLabel) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {

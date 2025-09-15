@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
-	"slices"
 
 	"bonanza.build/pkg/glob"
 	"bonanza.build/pkg/label"
@@ -118,6 +116,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 			e,
 			model_core.Nested(repoDefaultAttrsValue, repoDefaultAttrsValue.Message.InheritableAttrs),
 		)
+		defer targetRegistrar.Discard()
 		thread.SetLocal(model_starlark.TargetRegistrarKey, targetRegistrar)
 
 		thread.SetLocal(model_starlark.GlobalResolverKey, func(identifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, TReference], error) {
@@ -177,26 +176,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 			),
 		)
 
-		targets := targetRegistrar.GetTargets()
-		for _, name := range slices.Sorted(maps.Keys(targets)) {
-			target := targets[name]
-			if !target.IsSet() {
-				// Target is referenced, but not
-				// provided explicitly. Assume it refers
-				// to a source file with private
-				// visibility.
-				target = model_core.NewSimplePatchedMessage[TMetadata](
-					&model_starlark_pb.Target_Definition{
-						Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-							SourceFileTarget: &model_starlark_pb.SourceFileTarget{
-								Visibility: &model_starlark_pb.PackageGroup{
-									Tree: &model_starlark_pb.PackageGroup_Subpackages{},
-								},
-							},
-						},
-					},
-				)
-			}
+		for _, name := range targetRegistrar.GetTargetNames() {
+			target := targetRegistrar.GetAndRemoveTarget(name)
 			if err := treeBuilder.PushChild(model_core.NewPatchedMessage(
 				&model_analysis_pb.Package_Value_Target{
 					Level: &model_analysis_pb.Package_Value_Target_Leaf{
