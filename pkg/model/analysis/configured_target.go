@@ -1247,6 +1247,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			directoryCreationParameters: directoryCreationParameters,
 			fileCreationParameters:      fileCreationParameters,
 		}
+		defer func() {
+			for _, action := range rc.actions {
+				action.Discard()
+			}
+		}()
 
 		thread.SetLocal(model_starlark.SubruleInvokerKey, func(subruleIdentifier label.CanonicalStarlarkIdentifier, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 			// TODO: Subrules are allowed to be nested. Keep a stack!
@@ -1525,7 +1530,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		slices.SortFunc(rc.actions, func(a, b model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]) int {
 			return bytes.Compare(a.Message.Id, b.Message.Id)
 		})
-		for _, action := range rc.actions {
+		for len(rc.actions) > 0 {
+			action := rc.actions[0]
+			rc.actions = rc.actions[1:]
 			if err := actionsTreeBuilder.PushChild(model_core.NewPatchedMessage(
 				&model_analysis_pb.ConfiguredTarget_Value_Action{
 					Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_{
