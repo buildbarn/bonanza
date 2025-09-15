@@ -6,6 +6,7 @@ go_library(
     srcs = [
         "computer.go",
         "environment.go",
+        "leak_checking_computer.go",
         "recursive_computer.go",
     ],
     importpath = "bonanza.build/pkg/model/evaluation",

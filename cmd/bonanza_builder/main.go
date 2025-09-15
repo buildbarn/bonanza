@@ -16,7 +16,7 @@ import (
 	"bonanza.build/pkg/model/core/buffered"
 	"bonanza.build/pkg/model/encoding"
 	model_encoding "bonanza.build/pkg/model/encoding"
-	"bonanza.build/pkg/model/evaluation"
+	model_evaluation "bonanza.build/pkg/model/evaluation"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
@@ -119,7 +119,7 @@ func main() {
 			return util.StatusWrap(err, "Failed to marshal worker ID")
 		}
 
-		bzlFileBuiltins, buildFileBuiltins := model_starlark.GetBuiltins[buffered.Reference, buffered.ReferenceMetadata]()
+		bzlFileBuiltins, buildFileBuiltins := model_starlark.GetBuiltins[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]()
 		executor := &builderExecutor{
 			objectDownloader:              objectDownloader,
 			parsedObjectPool:              parsedObjectPool,
@@ -245,22 +245,24 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 			return &result
 		}
 
-		recursiveComputer := evaluation.NewRecursiveComputer(
-			model_analysis.NewTypedComputer(model_analysis.NewBaseComputer[buffered.Reference, buffered.ReferenceMetadata](
-				parsedObjectPoolIngester,
-				buildSpecificationReference,
-				actionEncoder,
-				e.filePool,
-				model_executewithstorage.NewObjectExportingClient(
-					model_executewithstorage.NewNamespaceAddingClient(
-						e.executionClient,
-						instanceName,
+		recursiveComputer := model_evaluation.NewRecursiveComputer(
+			model_evaluation.NewLeakCheckingComputer(
+				model_analysis.NewTypedComputer(model_analysis.NewBaseComputer[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]](
+					parsedObjectPoolIngester,
+					buildSpecificationReference,
+					actionEncoder,
+					e.filePool,
+					model_executewithstorage.NewObjectExportingClient(
+						model_executewithstorage.NewNamespaceAddingClient(
+							e.executionClient,
+							instanceName,
+						),
+						objectExporter,
 					),
-					objectExporter,
-				),
-				e.bzlFileBuiltins,
-				e.buildFileBuiltins,
-			)),
+					e.bzlFileBuiltins,
+					e.buildFileBuiltins,
+				)),
+			),
 			objectManager,
 		)
 
@@ -466,7 +468,7 @@ func (e *builderExecutor) Execute(ctx context.Context, action *model_executewith
 			resultPatcher.Merge(marshaledBuildResultKey.Patcher)
 
 			for {
-				var nestedErr evaluation.NestedError[buffered.Reference]
+				var nestedErr model_evaluation.NestedError[buffered.Reference]
 				if !errors.As(errCompute, &nestedErr) {
 					break
 				}

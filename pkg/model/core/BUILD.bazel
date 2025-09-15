@@ -7,6 +7,7 @@ go_library(
         "created_object.go",
         "decodable.go",
         "get_index_from_reference_message.go",
+        "leak_checking_object_manager.go",
         "marshalable.go",
         "message.go",
         "noop_reference_metadata.go",
