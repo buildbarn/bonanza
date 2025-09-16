@@ -2,16 +2,25 @@ package core
 
 import (
 	"context"
-	"sync/atomic"
+	"log"
+	"runtime/debug"
+	"sync"
 
 	"bonanza.build/pkg/storage/object"
 )
+
+type leakCheckingListEntry struct {
+	previous *leakCheckingListEntry
+	next     *leakCheckingListEntry
+	stack    []byte
+}
 
 // leakCheckingState holds the bookkeeping that is shared between
 // LeakCheckingObjectManager and all LeakCheckingReferenceMetadata that
 // are created by it.
 type leakCheckingState struct {
-	validMetadataCount atomic.Uint64
+	lock sync.Mutex
+	list leakCheckingListEntry
 }
 
 // LeakCheckingReferenceMetadata is a wrapper around ReferenceMetadata
@@ -20,15 +29,24 @@ type leakCheckingState struct {
 type LeakCheckingReferenceMetadata[TMetadata ReferenceMetadata] struct {
 	base  TMetadata
 	state *leakCheckingState
+	entry leakCheckingListEntry
 }
 
 var _ ReferenceMetadata = (*LeakCheckingReferenceMetadata[ReferenceMetadata])(nil)
 
-func (rm *LeakCheckingReferenceMetadata[TMetadata]) Discard() {
-	if rm.state.validMetadataCount.Add(^uint64(0)) == ^uint64(0) {
-		panic("invalid valid metadata count")
-	}
+func (rm *LeakCheckingReferenceMetadata[TMetadata]) removeFromList() {
+	s := rm.state
+	s.lock.Lock()
+	e := &rm.entry
+	e.previous.next, e.next.previous = e.next, e.previous
+	s.lock.Unlock()
 	rm.state = nil
+	e.previous = nil
+	e.next = nil
+}
+
+func (rm *LeakCheckingReferenceMetadata[TMetadata]) Discard() {
+	rm.removeFromList()
 	rm.base.Discard()
 }
 
@@ -36,10 +54,7 @@ func (rm *LeakCheckingReferenceMetadata[TMetadata]) Discard() {
 // ReferenceMetadata that it contains. This destroys the
 // LeakCheckingReferenceMetadata in the process.
 func (rm *LeakCheckingReferenceMetadata[TMetadata]) Unwrap() TMetadata {
-	if rm.state.validMetadataCount.Add(^uint64(0)) == ^uint64(0) {
-		panic("invalid valid metadata count")
-	}
-	rm.state = nil
+	rm.removeFromList()
 	return rm.base
 }
 
@@ -56,9 +71,13 @@ type LeakCheckingObjectManager[TReference any, TMetadata ReferenceMetadata] stru
 // is in the initial state, meaning that it has zero valid
 // ReferenceMetadata objects.
 func NewLeakCheckingObjectManager[TReference any, TMetadata ReferenceMetadata](base ObjectManager[TReference, TMetadata]) *LeakCheckingObjectManager[TReference, TMetadata] {
-	return &LeakCheckingObjectManager[TReference, TMetadata]{
+	om := &LeakCheckingObjectManager[TReference, TMetadata]{
 		base: base,
 	}
+	l := &om.state.list
+	l.previous = l
+	l.next = l
+	return om
 }
 
 var _ ObjectManager[object.LocalReference, *LeakCheckingReferenceMetadata[ReferenceMetadata]] = (*LeakCheckingObjectManager[object.LocalReference, ReferenceMetadata])(nil)
@@ -66,11 +85,7 @@ var _ ObjectManager[object.LocalReference, *LeakCheckingReferenceMetadata[Refere
 func (om *LeakCheckingObjectManager[TReference, TMetadata]) CaptureCreatedObject(ctx context.Context, createdObject CreatedObject[*LeakCheckingReferenceMetadata[TMetadata]]) (*LeakCheckingReferenceMetadata[TMetadata], error) {
 	unwrappedMetadata := make([]TMetadata, 0, len(createdObject.Metadata))
 	for _, metadata := range createdObject.Metadata {
-		if metadata.state != &om.state {
-			panic("attempted to call ReferenceObject() against a metadata entry that is no longer valid")
-		}
-		metadata.state = nil
-		unwrappedMetadata = append(unwrappedMetadata, metadata.base)
+		unwrappedMetadata = append(unwrappedMetadata, metadata.Unwrap())
 	}
 	base, err := om.base.CaptureCreatedObject(
 		ctx,
@@ -80,24 +95,32 @@ func (om *LeakCheckingObjectManager[TReference, TMetadata]) CaptureCreatedObject
 		},
 	)
 	if err != nil {
-		om.state.validMetadataCount.Add(-uint64(len(unwrappedMetadata)))
 		return nil, err
 	}
-	om.state.validMetadataCount.Add(1 - uint64(len(unwrappedMetadata)))
-	return &LeakCheckingReferenceMetadata[TMetadata]{
+	return om.wrap(base), nil
+}
+
+func (om *LeakCheckingObjectManager[TReference, TMetadata]) wrap(base TMetadata) *LeakCheckingReferenceMetadata[TMetadata] {
+	rm := &LeakCheckingReferenceMetadata[TMetadata]{
 		base:  base,
 		state: &om.state,
-	}, nil
+		entry: leakCheckingListEntry{
+			stack: debug.Stack(),
+		},
+	}
+	s := &om.state
+	e := &rm.entry
+	s.lock.Lock()
+	e.previous = s.list.previous
+	e.next = &s.list
+	e.previous.next = e
+	e.next.previous = e
+	s.lock.Unlock()
+	return rm
 }
 
 func (om *LeakCheckingObjectManager[TReference, TMetadata]) CaptureExistingObject(reference TReference) *LeakCheckingReferenceMetadata[TMetadata] {
-	if om.state.validMetadataCount.Add(1) == 0 {
-		panic("invalid valid metadata count")
-	}
-	return &LeakCheckingReferenceMetadata[TMetadata]{
-		base:  om.base.CaptureExistingObject(reference),
-		state: &om.state,
-	}
+	return om.wrap(om.base.CaptureExistingObject(reference))
 }
 
 func (om *LeakCheckingObjectManager[TReference, TMetadata]) ReferenceObject(entry MetadataEntry[*LeakCheckingReferenceMetadata[TMetadata]]) TReference {
@@ -112,6 +135,22 @@ func (om *LeakCheckingObjectManager[TReference, TMetadata]) ReferenceObject(entr
 // GetCurrentValidMetadataCount returns the current valid number of
 // ReferenceMetadata objects. When non-zero, ReferenceMetadata objects
 // may have been leaked.
-func (om *LeakCheckingObjectManager[TReference, TMetadata]) GetCurrentValidMetadataCount() uint64 {
-	return om.state.validMetadataCount.Load()
+func (om *LeakCheckingObjectManager[TReference, TMetadata]) GetCurrentValidMetadataCount() int {
+	s := &om.state
+	count := 0
+	s.lock.Lock()
+	seen := map[string]struct{}{}
+	for e := s.list.next; e != &s.list; e = e.next {
+		if count == 0 {
+			log.Print("---- START OF LEAKS ---")
+		}
+		count++
+		stack := string(e.stack)
+		if _, ok := seen[stack]; !ok {
+			log.Print(stack)
+			seen[stack] = struct{}{}
+		}
+	}
+	s.lock.Unlock()
+	return count
 }
