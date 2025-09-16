@@ -114,6 +114,13 @@ func (m *PatchedMessage[T, TMetadata]) Discard() {
 	m.Clear()
 }
 
+// Move the message out of the PatchedMessage by copying it and clearing
+// the original instance.
+func (m *PatchedMessage[T, TMetadata]) Move() PatchedMessage[T, TMetadata] {
+	defer m.Clear()
+	return *m
+}
+
 // Merge the references contained in the patched message into a provided
 // patcher, and return the message that is now owned by the provided
 // patcher.
@@ -158,14 +165,17 @@ func MarshalAndEncode[TMetadata ReferenceMetadata](
 	references, metadata := m.Patcher.SortAndSetReferences()
 	data, err := m.Message.Marshal()
 	if err != nil {
+		m.Discard()
 		return Decodable[CreatedObject[TMetadata]]{}, err
 	}
 	encodedData, decodingParameters, err := encoder.EncodeBinary(data)
 	if err != nil {
+		m.Discard()
 		return Decodable[CreatedObject[TMetadata]]{}, err
 	}
 	contents, err := referenceFormat.NewContents(references, encodedData)
 	if err != nil {
+		m.Discard()
 		return Decodable[CreatedObject[TMetadata]]{}, err
 	}
 	return NewDecodable(
@@ -231,4 +241,19 @@ func ProtoListToMarshalable[TMessage proto.Message, TMetadata ReferenceMetadata]
 		NewProtoListMarshalable(m.Message),
 		m.Patcher,
 	)
+}
+
+// FlattenPatchedSingletonList converts a PatchedMessage containing a
+// single element list to a PatchedMessage containing just that single
+// element.
+//
+// A dedicated function for this is provided, as this is one of the few
+// cases in which obtaining a PatchedMessage for a nested message value
+// is safe. In the general case it is not, as it would cause the
+// resulting PatchedMessage to contain unused reference metadata.
+func FlattenPatchedSingletonList[TMessage any, TMetadata ReferenceMetadata](m PatchedMessage[[]TMessage, TMetadata]) PatchedMessage[TMessage, TMetadata] {
+	if len(m.Message) != 1 {
+		panic("list does not consist of a single element")
+	}
+	return NewPatchedMessage(m.Message[0], m.Patcher)
 }

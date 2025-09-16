@@ -38,14 +38,13 @@ func (b *uniformBuilder[TNode, TMetadata]) pushChildrenToParent(level int, child
 		// Second node to be pushed at a given level. Construct
 		// a new chunker and insert both nodes.
 		b.levels = append(b.levels, b.chunkerFactory.NewChunker())
-		rootNode, err := b.nodeMerger(b.rootChildren)
+		rootNode, err := b.nodeMerger(b.rootChildren.Move())
 		if err != nil {
 			return err
 		}
 		if err := b.levels[level].PushSingle(rootNode); err != nil {
 			return err
 		}
-		b.rootChildren.Clear()
 	}
 
 	node, err := b.nodeMerger(children)
@@ -69,10 +68,11 @@ func (b *uniformBuilder[TNode, TMetadata]) PushChild(node model_core.PatchedMess
 		// Second node to be pushed into the tree. Construct a
 		// new chunker and insert both nodes.
 		b.levels = append(b.levels, b.chunkerFactory.NewChunker())
-		if err := b.levels[0].PushSingle(model_core.NewPatchedMessage(b.rootChildren.Message[0], b.rootChildren.Patcher)); err != nil {
+		firstNode := model_core.FlattenPatchedSingletonList(b.rootChildren.Move())
+		if err := b.levels[0].PushSingle(firstNode); err != nil {
+			node.Discard()
 			return err
 		}
-		b.rootChildren.Clear()
 	}
 	if err := b.levels[0].PushSingle(node); err != nil {
 		return err
@@ -123,7 +123,7 @@ func (b *uniformBuilder[TNode, TMetadata]) FinalizeList() (model_core.PatchedMes
 		return model_core.PatchedMessage[[]TNode, TMetadata]{}, err
 	}
 	if b.rootChildren.IsSet() {
-		return b.rootChildren, nil
+		return b.rootChildren.Move(), nil
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata, []TNode](nil), nil
 }
@@ -138,8 +138,15 @@ func (b *uniformBuilder[TNode, TMetadata]) FinalizeSingle() (model_core.PatchedM
 	case 0:
 		return model_core.PatchedMessage[TNode, TMetadata]{}, nil
 	case 1:
-		return model_core.NewPatchedMessage(b.rootChildren.Message[0], b.rootChildren.Patcher), nil
+		return model_core.FlattenPatchedSingletonList(b.rootChildren.Move()), nil
 	default:
-		return b.nodeMerger(b.rootChildren)
+		return b.nodeMerger(b.rootChildren.Move())
+	}
+}
+
+func (b *uniformBuilder[TNode, TMetadata]) Discard() {
+	b.rootChildren.Discard()
+	for _, level := range b.levels {
+		level.Discard()
 	}
 }

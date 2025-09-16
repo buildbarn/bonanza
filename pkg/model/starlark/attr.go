@@ -55,37 +55,42 @@ func (a *Attr[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, err
 }
 
 func (a *Attr[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata], bool, error) {
-	attr := model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Attr{})
-	var needsCode bool
-
-	if a.defaultValue != nil {
-		defaultValue, defaultValueNeedsCode, err := EncodeValue[TReference, TMetadata](a.defaultValue, path, nil, options)
-		if err != nil {
-			return model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]{}, false, err
+	needsCode := false
+	attr, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_starlark_pb.Attr, error) {
+		var attr model_starlark_pb.Attr
+		if a.defaultValue != nil {
+			defaultValue, defaultValueNeedsCode, err := EncodeValue[TReference, TMetadata](a.defaultValue, path, nil, options)
+			if err != nil {
+				return nil, err
+			}
+			attr.Default = defaultValue.Merge(patcher)
+			needsCode = needsCode || defaultValueNeedsCode
 		}
-		attr.Message.Default = defaultValue.Merge(attr.Patcher)
-		needsCode = needsCode || defaultValueNeedsCode
-	}
 
-	if err := a.attrType.Encode(path, options, attr); err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]{}, false, err
-	}
-	return attr, needsCode, nil
+		if err := a.attrType.Encode(path, options, model_core.NewPatchedMessage(&attr, patcher)); err != nil {
+			return nil, err
+		}
+		return &attr, nil
+	})
+	return attr, needsCode, err
 }
 
 func (a *Attr[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
-	attr, needsCode, err := a.Encode(path, options)
-	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, err
-	}
-	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
+	needsCode := false
+	value, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_starlark_pb.Value, error) {
+		attr, attrNeedsCode, err := a.Encode(path, options)
+		if err != nil {
+			return nil, err
+		}
+		needsCode = needsCode || attrNeedsCode
+
+		return &model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_Attr{
-				Attr: attr.Message,
+				Attr: attr.Merge(patcher),
 			},
-		},
-		attr.Patcher,
-	), needsCode, nil
+		}, nil
+	})
+	return value, needsCode, err
 }
 
 func (a *Attr[TReference, TMetadata]) CompareSameType(thread *starlark.Thread, op syntax.Token, other starlark.Value, depth int) (bool, error) {

@@ -203,6 +203,8 @@ type depsetChildrenEncoder[TReference object.BasicReference, TMetadata model_cor
 // haven't been accessed explicitly. Such redundancy is only eliminated
 // when depset.to_list() is called.
 func (e *depsetChildrenEncoder[TReference, TMetadata]) pushUniqueElement(element model_core.PatchedMessage[*model_starlark_pb.List_Element, TMetadata]) error {
+	defer element.Discard()
+
 	topLevelElement, _ := element.SortAndSetReferences()
 	marshaledElement, err := model_core.MarshalTopLevelMessage(topLevelElement)
 	if err != nil {
@@ -212,7 +214,7 @@ func (e *depsetChildrenEncoder[TReference, TMetadata]) pushUniqueElement(element
 	key := string(marshaledElement)
 	if _, ok := e.elementsSeen[key]; !ok {
 		e.elementsSeen[key] = struct{}{}
-		if err := e.treeBuilder.PushChild(element); err != nil {
+		if err := e.treeBuilder.PushChild(element.Move()); err != nil {
 			return err
 		}
 	}
@@ -273,6 +275,8 @@ func (dc *DepsetContents[TReference, TMetadata]) EncodeList(path map[starlark.Va
 		elementsSeen: map[string]struct{}{},
 		depsetsSeen:  map[*any]struct{}{},
 	}
+	defer e.treeBuilder.Discard()
+
 	if err := e.encode(dc.children); err != nil {
 		return model_core.PatchedMessage[[]*model_starlark_pb.List_Element, TMetadata]{}, false, err
 	}

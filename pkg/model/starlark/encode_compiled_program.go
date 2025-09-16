@@ -348,6 +348,8 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](value s
 // of Protobuf messages.
 func encodeListElements[TReference any, TMetadata model_core.ReferenceMetadata](values iter.Seq[starlark.Value], path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_starlark_pb.List_Element, TMetadata], bool, error) {
 	listBuilder := NewListBuilder[TReference, TMetadata](options)
+	defer listBuilder.Discard()
+
 	needsCode := false
 	for value := range values {
 		encodedValue, valueNeedsCode, err := EncodeValue[TReference, TMetadata](value, path, nil, options)

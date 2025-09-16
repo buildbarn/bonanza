@@ -33,14 +33,13 @@ func (b *splitBuilder[TNode, TMetadata]) pushChildrenToParent(children model_cor
 			return nil
 		}
 
-		rootNode, err := b.leavesNodeMerger(b.firstChildren)
+		rootNode, err := b.leavesNodeMerger(b.firstChildren.Move())
 		if err != nil {
 			return err
 		}
 		if err := b.parentsBuilder.PushChild(rootNode); err != nil {
 			return err
 		}
-		b.firstChildren.Clear()
 		b.multipleLevels = true
 	}
 
@@ -78,7 +77,7 @@ func (b *splitBuilder[TNode, TMetadata]) FinalizeList() (model_core.PatchedMessa
 		return b.parentsBuilder.FinalizeList()
 	}
 	if b.firstChildren.IsSet() {
-		return b.firstChildren, nil
+		return b.firstChildren.Move(), nil
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata, []TNode](nil), nil
 }
@@ -94,8 +93,13 @@ func (b *splitBuilder[TNode, TMetadata]) FinalizeSingle() (model_core.PatchedMes
 	case 0:
 		return model_core.PatchedMessage[TNode, TMetadata]{}, nil
 	case 1:
-		return model_core.NewPatchedMessage(b.firstChildren.Message[0], b.firstChildren.Patcher), nil
+		return model_core.FlattenPatchedSingletonList(b.firstChildren.Move()), nil
 	default:
-		return b.leavesNodeMerger(b.firstChildren)
+		return b.leavesNodeMerger(b.firstChildren.Move())
 	}
+}
+
+func (b *splitBuilder[TNode, TMetadata]) Discard() {
+	b.parentsBuilder.Discard()
+	b.firstChildren.Discard()
 }

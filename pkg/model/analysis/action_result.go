@@ -94,14 +94,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx conte
 	if err := status.ErrorProto(result.Message.Status); err != nil {
 		return PatchedActionResultValue[TMetadata]{}, err
 	}
-	outputsReference := model_core.Patch(e, model_core.Nested(result, result.Message.OutputsReference))
-	return model_core.NewPatchedMessage(
-		&model_analysis_pb.ActionResult_Value{
+	outputsReference := model_core.Nested(result, result.Message.OutputsReference)
+	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Value {
+		return &model_analysis_pb.ActionResult_Value{
 			ExitCode:         result.Message.ExitCode,
-			OutputsReference: outputsReference.Message,
-		},
-		outputsReference.Patcher,
-	), nil
+			OutputsReference: model_core.Patch(e, outputsReference).Merge(patcher),
+		}
+	}), nil
 }
 
 func convertDictToEnvironmentVariableList[TMetadata model_core.ReferenceMetadata](

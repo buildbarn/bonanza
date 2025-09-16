@@ -137,17 +137,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	}
 	model_starlark.NameAndExtractGlobals(globals, canonicalLabel)
 
-	// TODO! Use proper encoding options!
-	compiledProgram, err := model_starlark.EncodeCompiledProgram(program, globals, c.getValueEncodingOptions(ctx, e, &canonicalLabel))
-	if err != nil {
-		return PatchedCompiledBzlFileValue[TMetadata]{}, err
-	}
-	return model_core.NewPatchedMessage(
-		&model_analysis_pb.CompiledBzlFile_Value{
-			CompiledProgram: compiledProgram.Message,
-		},
-		compiledProgram.Patcher,
-	), nil
+	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.CompiledBzlFile_Value, error) {
+		// TODO! Use proper encoding options!
+		compiledProgram, err := model_starlark.EncodeCompiledProgram(program, globals, c.getValueEncodingOptions(ctx, e, &canonicalLabel))
+		if err != nil {
+			return nil, err
+		}
+		return &model_analysis_pb.CompiledBzlFile_Value{
+			CompiledProgram: compiledProgram.Merge(patcher),
+		}, nil
+	})
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileDecodedGlobalsValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFileDecodedGlobals_Key, e CompiledBzlFileDecodedGlobalsEnvironment[TReference, TMetadata]) (starlark.StringDict, error) {

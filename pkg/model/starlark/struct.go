@@ -330,6 +330,8 @@ func (s *Struct[TReference, TMetadata]) ToDict() map[string]any {
 // may be discarded.
 func (s *Struct[TReference, TMetadata]) EncodeStructFields(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Struct_Fields, TMetadata], bool, error) {
 	listBuilder := NewListBuilder[TReference, TMetadata](options)
+	defer listBuilder.Discard()
+
 	needsCode := false
 	for i, value := range s.values {
 		var encodedValue model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]
@@ -384,30 +386,31 @@ func (s *Struct[TReference, TMetadata]) EncodeStructFields(path map[starlark.Val
 // expected to only be a struct or provider instance, such as the return
 // value of a rule implementation function.
 func (s *Struct[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata], bool, error) {
-	fields, needsCode, err := s.EncodeStructFields(path, options)
-	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata]{}, false, err
-	}
-	patcher := fields.Patcher
-
-	var providerInstanceProperties *model_starlark_pb.Provider_InstanceProperties
-	if pip := s.providerInstanceProperties; pip != nil {
-		m, mNeedsCode, err := pip.Encode(path, options)
+	needsCode := false
+	m, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_starlark_pb.Struct, error) {
+		fields, fieldsNeedsCode, err := s.EncodeStructFields(path, options)
 		if err != nil {
-			return model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata]{}, false, err
+			return nil, err
 		}
-		providerInstanceProperties = m.Message
-		patcher.Merge(m.Patcher)
-		needsCode = needsCode || mNeedsCode
-	}
+		patcher.Merge(fields.Patcher)
+		needsCode = needsCode || fieldsNeedsCode
 
-	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Struct{
+		var providerInstanceProperties *model_starlark_pb.Provider_InstanceProperties
+		if pip := s.providerInstanceProperties; pip != nil {
+			m, mNeedsCode, err := pip.Encode(path, options)
+			if err != nil {
+				return nil, err
+			}
+			providerInstanceProperties = m.Merge(patcher)
+			needsCode = needsCode || mNeedsCode
+		}
+
+		return &model_starlark_pb.Struct{
 			Fields:                     fields.Message,
 			ProviderInstanceProperties: providerInstanceProperties,
-		},
-		patcher,
-	), needsCode, nil
+		}, nil
+	})
+	return m, needsCode, err
 }
 
 // EncodeValue encodes a Starlark struct value and all of its fields to

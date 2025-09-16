@@ -322,37 +322,27 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 				/* includeManualTargets = */ false,
 				&iterErr,
 			) {
-				patchedConfigurationReference1 := model_core.Patch(
-					e,
-					clonedConfigurationReference,
-				)
 				visibleTargetValue := e.GetVisibleTargetValue(
-					model_core.NewPatchedMessage(
-						&model_analysis_pb.VisibleTarget_Key{
+					model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.VisibleTarget_Key {
+						return &model_analysis_pb.VisibleTarget_Key{
 							FromPackage:            canonicalTargetLabel.GetCanonicalPackage().String(),
 							ToLabel:                canonicalTargetLabel.String(),
-							ConfigurationReference: patchedConfigurationReference1.Message,
-						},
-						patchedConfigurationReference1.Patcher,
-					),
+							ConfigurationReference: model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
+						}
+					}),
 				)
 				if !visibleTargetValue.IsSet() {
 					missingDependencies = true
 					continue
 				}
 
-				patchedConfigurationReference2 := model_core.Patch(
-					e,
-					clonedConfigurationReference,
-				)
 				targetCompletionValue := e.GetTargetCompletionValue(
-					model_core.NewPatchedMessage(
-						&model_analysis_pb.TargetCompletion_Key{
+					model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetCompletion_Key {
+						return &model_analysis_pb.TargetCompletion_Key{
 							Label:                  visibleTargetValue.Message.Label,
-							ConfigurationReference: patchedConfigurationReference2.Message,
-						},
-						patchedConfigurationReference2.Patcher,
-					),
+							ConfigurationReference: model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
+						}
+					}),
 				)
 				if !targetCompletionValue.IsSet() {
 					missingDependencies = true
@@ -374,18 +364,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeBuildSpecificationValue(ctx context.Context, key *model_analysis_pb.BuildSpecification_Key, e BuildSpecificationEnvironment[TReference, TMetadata]) (PatchedBuildSpecificationValue[TMetadata], error) {
-	buildSpecification, err := c.buildSpecificationReader.ReadParsedObject(ctx, c.buildSpecificationReference)
-	if err != nil {
-		return PatchedBuildSpecificationValue[TMetadata]{}, err
-	}
-
-	patchedBuildSpecification := model_core.Patch(e, buildSpecification)
-	return model_core.NewPatchedMessage(
-		&model_analysis_pb.BuildSpecification_Value{
-			BuildSpecification: patchedBuildSpecification.Message,
-		},
-		patchedBuildSpecification.Patcher,
-	), nil
+	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.BuildSpecification_Value, error) {
+		buildSpecification, err := c.buildSpecificationReader.ReadParsedObject(ctx, c.buildSpecificationReference)
+		if err != nil {
+			return nil, err
+		}
+		return &model_analysis_pb.BuildSpecification_Value{
+			BuildSpecification: model_core.Patch(e, buildSpecification).Merge(patcher),
+		}, nil
+	})
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeBuiltinsModuleNamesValue(ctx context.Context, key *model_analysis_pb.BuiltinsModuleNames_Key, e BuiltinsModuleNamesEnvironment[TReference, TMetadata]) (PatchedBuiltinsModuleNamesValue[TMetadata], error) {
@@ -444,25 +431,23 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 	}
 
 	// Extract the default inheritable attrs from REPO.bazel.
-	defaultAttrs, err := model_starlark.ParseRepoDotBazel[TReference](
-		ctx,
-		string(repoFileData),
-		canonicalRepo.GetRootPackage().AppendTargetName(repoFileName),
-		c.getValueObjectEncoder(),
-		c.getInlinedTreeOptions(),
-		e,
-		newLabelResolver(e),
-	)
-	if err != nil {
-		return PatchedRepoDefaultAttrsValue[TMetadata]{}, fmt.Errorf("failed to parse %#v: %w", repoFileLabel.String(), err)
-	}
-
-	return model_core.NewPatchedMessage(
-		&model_analysis_pb.RepoDefaultAttrs_Value{
-			InheritableAttrs: defaultAttrs.Message,
-		},
-		defaultAttrs.Patcher,
-	), nil
+	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.RepoDefaultAttrs_Value, error) {
+		defaultAttrs, err := model_starlark.ParseRepoDotBazel[TReference](
+			ctx,
+			string(repoFileData),
+			canonicalRepo.GetRootPackage().AppendTargetName(repoFileName),
+			c.getValueObjectEncoder(),
+			c.getInlinedTreeOptions(),
+			e,
+			newLabelResolver(e),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse %#v: %w", repoFileLabel.String(), err)
+		}
+		return &model_analysis_pb.RepoDefaultAttrs_Value{
+			InheritableAttrs: defaultAttrs.Merge(patcher),
+		}, nil
+	})
 }
 
 type ExecutionClientForTesting remoteexecution.Client[*model_executewithstorage.Action[model_core.CreatedObjectTree], model_core.Decodable[model_core.CreatedObjectTree], model_core.Decodable[model_core.CreatedObjectTree]]

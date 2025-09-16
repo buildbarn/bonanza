@@ -11,4 +11,5 @@ type Builder[TNode proto.Message, TMetadata model_core.ReferenceMetadata] interf
 	PushChild(node model_core.PatchedMessage[TNode, TMetadata]) error
 	FinalizeList() (model_core.PatchedMessage[[]TNode, TMetadata], error)
 	FinalizeSingle() (model_core.PatchedMessage[TNode, TMetadata], error)
+	Discard()
 }

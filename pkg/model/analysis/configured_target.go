@@ -753,6 +753,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			outputsByPackageRelativePath: map[string]*targetOutput[TMetadata]{},
 			outputsByFile:                map[*model_starlark.File[TReference, TMetadata]]*targetOutput[TMetadata]{},
 		}
+		defer func() {
+			for _, output := range outputRegistrar.outputsByPackageRelativePath {
+				output.definition.Discard()
+			}
+		}()
+
 	GetNonLabelAttrValues:
 		for _, namedAttr := range ruleDefinition.Message.Attrs {
 			var publicAttrValue *model_starlark_pb.RuleTarget_PublicAttrValue
@@ -1407,157 +1413,162 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("failed to unpack implementation function return value: %w", err)
 		}
 
-		// Convert list of providers to a map where the provider
-		// identifier is the key.
-		providersSeen := make(map[label.CanonicalStarlarkIdentifier]struct{}, len(providerInstances))
-		encodedProviderInstances := make([]*model_starlark_pb.Struct, 0, len(providerInstances)+1)
-		patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
-		for i, providerInstance := range providerInstances {
-			providerIdentifier, err := providerInstance.GetProviderIdentifier()
-			if err != nil {
-				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("struct returned at index %d: %w", i, err)
-			}
-			if _, ok := providersSeen[providerIdentifier]; ok {
-				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("implementation function returned multiple structs for provider %#v", providerIdentifier.String())
-			}
-			providersSeen[providerIdentifier] = struct{}{}
+		return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.ConfiguredTarget_Value, error) {
+			// Convert list of providers to a map where the provider
+			// identifier is the key.
+			providersSeen := make(map[label.CanonicalStarlarkIdentifier]struct{}, len(providerInstances))
+			encodedProviderInstances := make([]*model_starlark_pb.Struct, 0, len(providerInstances)+1)
+			for i, providerInstance := range providerInstances {
+				providerIdentifier, err := providerInstance.GetProviderIdentifier()
+				if err != nil {
+					return nil, fmt.Errorf("struct returned at index %d: %w", i, err)
+				}
+				if _, ok := providersSeen[providerIdentifier]; ok {
+					return nil, fmt.Errorf("implementation function returned multiple structs for provider %#v", providerIdentifier.String())
+				}
+				providersSeen[providerIdentifier] = struct{}{}
 
-			v, _, err := providerInstance.Encode(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(ctx, e, nil))
-			if err != nil {
-				return PatchedConfiguredTargetValue[TMetadata]{}, err
+				v, _, err := providerInstance.Encode(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(ctx, e, nil))
+				if err != nil {
+					return nil, err
+				}
+				encodedProviderInstances = append(encodedProviderInstances, v.Merge(patcher))
 			}
-			encodedProviderInstances = append(encodedProviderInstances, v.Message)
-			patcher.Merge(v.Patcher)
-		}
 
-		// If the rule did not return an instance of
-		// DefaultInfo, inject an empty instance.
-		if _, ok := providersSeen[defaultInfoProviderIdentifier]; !ok {
-			patchedDefaultInfo := model_core.Patch(e, emptyDefaultInfo)
-			encodedProviderInstances = append(encodedProviderInstances, patchedDefaultInfo.Message)
-			patcher.Merge(patchedDefaultInfo.Patcher)
-		}
+			// If the rule did not return an instance of
+			// DefaultInfo, inject an empty instance.
+			if _, ok := providersSeen[defaultInfoProviderIdentifier]; !ok {
+				encodedProviderInstances = append(
+					encodedProviderInstances,
+					model_core.Patch(e, emptyDefaultInfo).Merge(patcher),
+				)
+			}
 
-		slices.SortFunc(encodedProviderInstances, func(a, b *model_starlark_pb.Struct) int {
-			return strings.Compare(
-				a.ProviderInstanceProperties.ProviderIdentifier,
-				b.ProviderInstanceProperties.ProviderIdentifier,
+			slices.SortFunc(encodedProviderInstances, func(a, b *model_starlark_pb.Struct) int {
+				return strings.Compare(
+					a.ProviderInstanceProperties.ProviderIdentifier,
+					b.ProviderInstanceProperties.ProviderIdentifier,
+				)
+			})
+
+			// Construct list of outputs of the target.
+			outputsTreeBuilder := btree.NewSplitProllyBuilder(
+				/* minimumSizeBytes = */ 32*1024,
+				/* maximumSizeBytes = */ 128*1024,
+				btree.NewObjectCreatingNodeMerger(
+					c.getValueObjectEncoder(),
+					c.getReferenceFormat(),
+					/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
+						var firstPackageRelativePath string
+						switch firstElement := childNodes.Message[0].Level.(type) {
+						case *model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_:
+							firstPackageRelativePath = firstElement.Leaf.PackageRelativePath
+						case *model_analysis_pb.ConfiguredTarget_Value_Output_Parent_:
+							firstPackageRelativePath = firstElement.Parent.FirstPackageRelativePath
+						}
+						return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
+							return &model_analysis_pb.ConfiguredTarget_Value_Output{
+								Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent_{
+									Parent: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent{
+										Reference:                patcher.AddDecodableReference(createdObject),
+										FirstPackageRelativePath: firstPackageRelativePath,
+									},
+								},
+							}
+						})
+					}),
+				),
 			)
-		})
+			defer outputsTreeBuilder.Discard()
 
-		// Construct list of outputs of the target.
-		outputsTreeBuilder := btree.NewSplitProllyBuilder(
-			/* minimumSizeBytes = */ 32*1024,
-			/* maximumSizeBytes = */ 128*1024,
-			btree.NewObjectCreatingNodeMerger(
-				c.getValueObjectEncoder(),
-				c.getReferenceFormat(),
-				/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
-					var firstPackageRelativePath string
-					switch firstElement := childNodes.Message[0].Level.(type) {
-					case *model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_:
-						firstPackageRelativePath = firstElement.Leaf.PackageRelativePath
-					case *model_analysis_pb.ConfiguredTarget_Value_Output_Parent_:
-						firstPackageRelativePath = firstElement.Parent.FirstPackageRelativePath
-					}
-					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
+			outputsByPackageRelativePath := outputRegistrar.outputsByPackageRelativePath
+			for _, packageRelativePath := range slices.Sorted(maps.Keys(outputsByPackageRelativePath)) {
+				output := outputsByPackageRelativePath[packageRelativePath]
+				if !output.definition.IsSet() {
+					return nil, fmt.Errorf("file %#v is not an output of any action", packageRelativePath)
+				}
+				if err := outputsTreeBuilder.PushChild(
+					model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
 						return &model_analysis_pb.ConfiguredTarget_Value_Output{
-							Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent_{
-								Parent: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent{
-									Reference:                patcher.AddDecodableReference(createdObject),
-									FirstPackageRelativePath: firstPackageRelativePath,
+							Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_{
+								Leaf: &model_analysis_pb.ConfiguredTarget_Value_Output_Leaf{
+									PackageRelativePath: packageRelativePath,
+									Definition:          output.definition.Merge(patcher),
 								},
 							},
 						}
-					})
-				}),
-			),
-		)
-		outputsByPackageRelativePath := outputRegistrar.outputsByPackageRelativePath
-		for _, packageRelativePath := range slices.Sorted(maps.Keys(outputsByPackageRelativePath)) {
-			output := outputsByPackageRelativePath[packageRelativePath]
-			if !output.definition.IsSet() {
-				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("file %#v is not an output of any action", packageRelativePath)
+					}),
+				); err != nil {
+					return nil, err
+				}
 			}
-			if err := outputsTreeBuilder.PushChild(model_core.NewPatchedMessage(
-				&model_analysis_pb.ConfiguredTarget_Value_Output{
-					Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_{
-						Leaf: &model_analysis_pb.ConfiguredTarget_Value_Output_Leaf{
-							PackageRelativePath: packageRelativePath,
-							Definition:          output.definition.Message,
+			outputsList, err := outputsTreeBuilder.FinalizeList()
+			if err != nil {
+				return nil, err
+			}
+			patcher.Merge(outputsList.Patcher)
+
+			// Construct list of actions of the target.
+			actionsTreeBuilder := btree.NewSplitProllyBuilder(
+				/* minimumSizeBytes = */ 32*1024,
+				/* maximumSizeBytes = */ 128*1024,
+				btree.NewObjectCreatingNodeMerger(
+					c.getValueObjectEncoder(),
+					c.getReferenceFormat(),
+					/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
+						var firstID []byte
+						switch firstElement := childNodes.Message[0].Level.(type) {
+						case *model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_:
+							firstID = firstElement.Leaf.Id
+						case *model_analysis_pb.ConfiguredTarget_Value_Action_Parent_:
+							firstID = firstElement.Parent.FirstId
+						}
+						return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
+							return &model_analysis_pb.ConfiguredTarget_Value_Action{
+								Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent_{
+									Parent: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent{
+										Reference: patcher.AddDecodableReference(createdObject),
+										FirstId:   firstID,
+									},
+								},
+							}
+						})
+					}),
+				),
+			)
+			defer actionsTreeBuilder.Discard()
+
+			slices.SortFunc(rc.actions, func(a, b model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]) int {
+				return bytes.Compare(a.Message.Id, b.Message.Id)
+			})
+			for _, action := range rc.actions {
+				if err := actionsTreeBuilder.PushChild(
+					model_core.MustBuildPatchedMessage(
+						func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
+							return &model_analysis_pb.ConfiguredTarget_Value_Action{
+								Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_{
+									Leaf: action.Merge(patcher),
+								},
+							}
 						},
-					},
-				},
-				output.definition.Patcher,
-			)); err != nil {
-				return PatchedConfiguredTargetValue[TMetadata]{}, err
+					),
+				); err != nil {
+					return nil, err
+				}
 			}
-		}
-		outputsList, err := outputsTreeBuilder.FinalizeList()
-		if err != nil {
-			return PatchedConfiguredTargetValue[TMetadata]{}, err
-		}
-		patcher.Merge(outputsList.Patcher)
-
-		// Construct list of actions of the target.
-		actionsTreeBuilder := btree.NewSplitProllyBuilder(
-			/* minimumSizeBytes = */ 32*1024,
-			/* maximumSizeBytes = */ 128*1024,
-			btree.NewObjectCreatingNodeMerger(
-				c.getValueObjectEncoder(),
-				c.getReferenceFormat(),
-				/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
-					var firstID []byte
-					switch firstElement := childNodes.Message[0].Level.(type) {
-					case *model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_:
-						firstID = firstElement.Leaf.Id
-					case *model_analysis_pb.ConfiguredTarget_Value_Action_Parent_:
-						firstID = firstElement.Parent.FirstId
-					}
-					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
-						return &model_analysis_pb.ConfiguredTarget_Value_Action{
-							Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent_{
-								Parent: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent{
-									Reference: patcher.AddDecodableReference(createdObject),
-									FirstId:   firstID,
-								},
-							},
-						}
-					})
-				}),
-			),
-		)
-		slices.SortFunc(rc.actions, func(a, b model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]) int {
-			return bytes.Compare(a.Message.Id, b.Message.Id)
-		})
-		for len(rc.actions) > 0 {
-			action := rc.actions[0]
-			rc.actions = rc.actions[1:]
-			if err := actionsTreeBuilder.PushChild(model_core.NewPatchedMessage(
-				&model_analysis_pb.ConfiguredTarget_Value_Action{
-					Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_{
-						Leaf: action.Message,
-					},
-				},
-				action.Patcher,
-			)); err != nil {
-				return PatchedConfiguredTargetValue[TMetadata]{}, err
+			actionsList, err := actionsTreeBuilder.FinalizeList()
+			if err != nil {
+				return nil, err
 			}
-		}
-		actionsList, err := actionsTreeBuilder.FinalizeList()
-		if err != nil {
-			return PatchedConfiguredTargetValue[TMetadata]{}, err
-		}
-		patcher.Merge(actionsList.Patcher)
+			patcher.Merge(actionsList.Patcher)
 
-		return model_core.NewPatchedMessage(
-			&model_analysis_pb.ConfiguredTarget_Value{
+			// TODO: We should use inlinedtree.Build() here.
+			return &model_analysis_pb.ConfiguredTarget_Value{
 				ProviderInstances: encodedProviderInstances,
 				Outputs:           outputsList.Message,
 				Actions:           actionsList.Message,
-			},
-			patcher,
-		), nil
+			}, nil
+		})
 	case *model_starlark_pb.Target_Definition_SourceFileTarget:
 		// Handcraft a DefaultInfo provider for this source file.
 		identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
@@ -2369,6 +2380,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 			toolsParentNodeComputer,
 		),
 	)
+	defer toolsBuilder.Discard()
 
 	// Derive argv0 from the executable. Even though it's not
 	// explicitly documented, the executable is also treated as a
@@ -2464,6 +2476,8 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 			argsParentNodeComputer,
 		),
 	)
+	defer argsListBuilder.Discard()
+
 	gotStringArguments := true
 	for _, argument := range arguments {
 		switch typedArgument := argument.(type) {
@@ -3321,41 +3335,47 @@ func (a *args[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, o
 			}),
 		),
 	)
-	for _, add := range a.adds {
-		leaf := &model_analysis_pb.Args_Leaf_Add_Leaf{
-			StartWith:         add.startWith,
-			ExpandDirectories: add.expandDirectories,
-			FormatEach:        add.formatEach,
-			OmitIfEmpty:       add.omitIfEmpty,
-			Uniquify:          add.uniquify,
-		}
+	defer addsListBuilder.Discard()
 
-		values, _, err := model_starlark.EncodeValue(add.values, map[starlark.Value]struct{}{}, nil, options)
+	for _, add := range a.adds {
+		leaf, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.Args_Leaf_Add_Leaf, error) {
+			leaf := &model_analysis_pb.Args_Leaf_Add_Leaf{
+				StartWith:         add.startWith,
+				ExpandDirectories: add.expandDirectories,
+				FormatEach:        add.formatEach,
+				OmitIfEmpty:       add.omitIfEmpty,
+				Uniquify:          add.uniquify,
+			}
+
+			values, _, err := model_starlark.EncodeValue(add.values, map[starlark.Value]struct{}{}, nil, options)
+			if err != nil {
+				return nil, err
+			}
+			leaf.Values = values.Merge(patcher)
+
+			if add.mapEach != nil {
+				mapEach, _, err := add.mapEach.Encode(path, options)
+				if err != nil {
+					return nil, err
+				}
+				leaf.MapEach = mapEach.Merge(patcher)
+			}
+
+			add.setStyle(leaf)
+			return leaf, nil
+		})
 		if err != nil {
 			return model_core.PatchedMessage[*model_analysis_pb.Args_Leaf, TMetadata]{}, err
 		}
-		leaf.Values = values.Message
-		patcher := values.Patcher
-
-		if add.mapEach != nil {
-			mapEach, _, err := add.mapEach.Encode(path, options)
-			if err != nil {
-				return model_core.PatchedMessage[*model_analysis_pb.Args_Leaf, TMetadata]{}, err
-			}
-			leaf.MapEach = mapEach.Message
-			patcher.Merge(mapEach.Patcher)
-		}
-
-		add.setStyle(leaf)
 
 		if err := addsListBuilder.PushChild(
 			model_core.NewPatchedMessage(
 				&model_analysis_pb.Args_Leaf_Add{
 					Level: &model_analysis_pb.Args_Leaf_Add_Leaf_{
-						Leaf: leaf,
+						Leaf: leaf.Message,
 					},
 				},
-				patcher,
+				leaf.Patcher,
 			),
 		); err != nil {
 			return model_core.PatchedMessage[*model_analysis_pb.Args_Leaf, TMetadata]{}, err

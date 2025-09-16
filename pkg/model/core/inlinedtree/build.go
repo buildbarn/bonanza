@@ -140,6 +140,7 @@ func Build[
 	}
 
 	output := model_core.NewSimplePatchedMessage[TMetadata](TParentMessagePtr(new(TParentMessage)))
+	defer output.Discard()
 	candidatesToInline := make([]bool, len(candidates))
 	if everythingInlinedSizeBytes <= options.MaximumSizeBytes {
 		// All candidates can be inlined. This means we don't
@@ -185,6 +186,7 @@ func Build[
 					return output, err
 				}
 				if err := candidate.ParentAppender(parentExternal, &decodableBogusCreatedObject); err != nil {
+					parentExternal.Discard()
 					return model_core.PatchedMessage[TParentMessagePtr, TMetadata]{}, err
 				}
 				externalSizeBytes := parentExternal.Patcher.GetReferencesSizeBytes() + marshalOptions.Size(parentExternal.Message)
@@ -288,18 +290,16 @@ func Build[
 		} else {
 			// Store the message separately, and store a
 			// reference in the parent.
-			createdObject, err := model_core.MarshalAndEncode(candidate.ExternalMessage, options.ReferenceFormat, candidate.Encoder)
+			createdObject, err := model_core.MarshalAndEncode(candidate.ExternalMessage.Move(), options.ReferenceFormat, candidate.Encoder)
 			if err != nil {
-				output.Discard()
 				return model_core.PatchedMessage[TParentMessagePtr, TMetadata]{}, util.StatusWrapf(err, "Failed to create object contents for candidate at index %d", i)
 			}
 			if err := candidate.ParentAppender(output, &createdObject); err != nil {
 				return model_core.PatchedMessage[TParentMessagePtr, TMetadata]{}, err
 			}
-			candidate.ExternalMessage.Clear()
 		}
 	}
-	return output, nil
+	return output.Move(), nil
 }
 
 // ParentAppenderForTesting is an instantiation of ParentAppender for

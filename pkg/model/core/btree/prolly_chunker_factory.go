@@ -175,3 +175,9 @@ func (c *prollyChunker[TNode, TMetadata]) PopMultiple(finalize bool) model_core.
 		return messages
 	})
 }
+
+func (c *prollyChunker[TNode, TMetadata]) Discard() {
+	for i := 0; i < len(c.nodes); i++ {
+		c.nodes[i].Discard()
+	}
+}

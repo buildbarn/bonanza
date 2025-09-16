@@ -79,18 +79,16 @@ FindCompatibleToolchains:
 			if err != nil {
 				return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, fmt.Errorf("invalid target setting label %#v: %w", targetSettingLabel, err)
 			}
-			patchedConfigurationReference := model_core.Patch(e, configurationReference)
 			selectValue := e.GetSelectValue(
-				model_core.NewPatchedMessage(
-					&model_analysis_pb.Select_Key{
+				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Select_Key {
+					return &model_analysis_pb.Select_Key{
 						ConditionIdentifiers:   []string{targetSetting},
-						ConfigurationReference: patchedConfigurationReference.Message,
+						ConfigurationReference: model_core.Patch(e, configurationReference).Merge(patcher),
 						// Visibility for target settings is already
 						// validated when configuring the toolchain target.
 						FromPackage: targetSettingLabel.GetCanonicalPackage().String(),
-					},
-					patchedConfigurationReference.Patcher,
-				),
+					}
+				}),
 			)
 			if !selectValue.IsSet() {
 				missingDependencies = true
