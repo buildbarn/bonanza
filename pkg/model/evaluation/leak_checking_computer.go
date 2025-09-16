@@ -35,7 +35,7 @@ func (c *leakCheckingComputer[TReference, TMetadata]) ComputeMessageValue(ctx co
 	)
 	if err != nil {
 		if c := objectManager.GetCurrentValidMetadataCount(); c != 0 {
-			return model_core.PatchedMessage[proto.Message, TMetadata]{}, fmt.Errorf("%w (leaked %d metadata values)", err, c)
+			return model_core.PatchedMessage[proto.Message, TMetadata]{}, fmt.Errorf("leaked %d metadata values", c)
 		}
 		return model_core.PatchedMessage[proto.Message, TMetadata]{}, err
 	}
@@ -67,9 +67,6 @@ func (c *leakCheckingComputer[TReference, TMetadata]) ComputeNativeValue(ctx con
 		},
 	)
 	if c := objectManager.GetCurrentValidMetadataCount(); c != 0 {
-		if err != nil {
-			return nil, fmt.Errorf("%w (leaked %d metadata values)", err, c)
-		}
 		return nil, fmt.Errorf("leaked %d metadata values", c)
 	}
 	return value, err
