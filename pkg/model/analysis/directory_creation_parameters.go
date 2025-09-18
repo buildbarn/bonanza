@@ -15,7 +15,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryCreationParameters
 		return PatchedDirectoryCreationParametersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.DirectoryCreationParameters_Value{
-		DirectoryCreationParameters: buildSpecification.Message.BuildSpecification.GetDirectoryCreationParameters(),
+		DirectoryCreationParameters: buildSpecification.Message.DirectoryCreationParameters,
 	}), nil
 }
 
@@ -26,6 +26,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryCreationParameters
 	}
 	return model_filesystem.NewDirectoryCreationParametersFromProto(
 		directoryCreationParameters.Message.DirectoryCreationParameters,
-		c.getReferenceFormat(),
+		c.referenceFormat,
 	)
 }

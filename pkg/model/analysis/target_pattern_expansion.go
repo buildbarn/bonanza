@@ -82,7 +82,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue
 		/* maximumSizeBytes = */ 128*1024,
 		btree.NewObjectCreatingNodeMerger(
 			c.getValueObjectEncoder(),
-			c.getReferenceFormat(),
+			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.TargetPatternExpansion_Value_TargetLabel, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.TargetPatternExpansion_Value_TargetLabel, TMetadata] {
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetPatternExpansion_Value_TargetLabel {
 					return &model_analysis_pb.TargetPatternExpansion_Value_TargetLabel{

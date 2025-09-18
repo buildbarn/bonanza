@@ -6,6 +6,7 @@ go_library(
     srcs = [
         "computer.go",
         "environment.go",
+        "executor.go",
         "leak_checking_computer.go",
         "recursive_computer.go",
     ],
@@ -13,9 +14,24 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/model/core",
+        "//pkg/model/core/btree",
+        "//pkg/model/core/buffered",
+        "//pkg/model/encoding",
+        "//pkg/model/executewithstorage",
+        "//pkg/model/parser",
+        "//pkg/proto/model/core",
+        "//pkg/proto/model/evaluation",
+        "//pkg/proto/remoteworker",
+        "//pkg/proto/storage/dag",
+        "//pkg/remoteworker",
         "//pkg/storage/object",
+        "//pkg/storage/object/namespacemapping",
+        "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/util",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
+        "@org_golang_x_sync//semaphore",
     ],
 )
 

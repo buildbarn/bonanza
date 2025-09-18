@@ -59,7 +59,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 
 	commandReference := model_core.Patch(e, model_core.Nested(command, command.Message.CommandReference))
 	inputRootReference := model_core.Patch(e, model_core.Nested(inputRoot, inputRoot.Message.InputRootReference))
-	referenceFormat := c.getReferenceFormat()
+	referenceFormat := c.referenceFormat
 	createdAction, err := model_core.MarshalAndEncode(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
 			patcher.Merge(commandReference.Patcher)

@@ -155,7 +155,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		/* maximumSizeBytes = */ 128*1024,
 		btree.NewObjectCreatingNodeMerger(
 			c.getValueObjectEncoder(),
-			c.getReferenceFormat(),
+			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ModuleExtensionRepos_Value_Repo, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TMetadata] {
 				var firstName string
 				switch firstElement := childNodes.Message[0].Level.(type) {

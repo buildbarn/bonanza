@@ -45,7 +45,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 		return PatchedHttpFileContentsValue[TMetadata]{}, errors.New("no fetch options provided")
 	}
 
-	referenceFormat := c.getReferenceFormat()
+	referenceFormat := c.referenceFormat
 	createdAction, err := model_core.MarshalAndEncode(
 		model_core.NewSimplePatchedMessage[TMetadata](
 			model_core.NewProtoMarshalable(&model_fetch_pb.Action{

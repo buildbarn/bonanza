@@ -44,7 +44,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	for _, environmentVariable := range repoPlatform.Message.RepositoryOsEnviron {
 		environment[environmentVariable.Name] = environmentVariable.Value
 	}
-	referenceFormat := c.getReferenceFormat()
+	referenceFormat := c.referenceFormat
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
 		ctx,
 		environment,

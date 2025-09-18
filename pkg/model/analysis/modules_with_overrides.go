@@ -17,7 +17,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(c
 	}
 
 	moduleOverrides := remoteOverrides.Message.GetModuleOverrides()
-	clientOverrides := buildSpecification.Message.BuildSpecification.GetModules()
+	clientOverrides := buildSpecification.Message.Modules
 	overrideList := make([]*model_analysis_pb.OverridesListModule, 0, len(moduleOverrides)+len(clientOverrides))
 
 	// Merge sort - both lists are already sorted for caching.

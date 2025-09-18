@@ -14,7 +14,6 @@ import (
 	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	model_build_pb "bonanza.build/pkg/proto/model/build"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 
@@ -41,7 +40,7 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 	e createInitialConfigurationEnvironment[TReference, TMetadata],
 	thread *starlark.Thread,
 	rootPackage label.CanonicalPackage,
-	configuration *model_build_pb.Configuration,
+	configuration *model_analysis_pb.BuildSpecification_Value_Configuration,
 ) (model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], error) {
 	// Walk over all provided build setting overrides and group all
 	// values belonging to the same build setting together.

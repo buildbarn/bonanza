@@ -14,7 +14,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRootModuleValue(ctx context
 		return PatchedRootModuleValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RootModule_Value{
-		RootModuleName:                  buildSpecification.Message.BuildSpecification.RootModuleName,
-		IgnoreRootModuleDevDependencies: buildSpecification.Message.BuildSpecification.IgnoreRootModuleDevDependencies,
+		RootModuleName:                  buildSpecification.Message.RootModuleName,
+		IgnoreRootModuleDevDependencies: buildSpecification.Message.IgnoreRootModuleDevDependencies,
 	}), nil
 }

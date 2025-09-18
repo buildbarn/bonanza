@@ -46,7 +46,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 			environment[environmentVariable.Name] = environmentVariable.Value
 		}
 	}
-	referenceFormat := c.getReferenceFormat()
+	referenceFormat := c.referenceFormat
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
 		ctx,
 		environment,

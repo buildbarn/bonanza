@@ -228,6 +228,26 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key mode
 	return ks, nil
 }
 
+func (rc *RecursiveComputer[TReference, TMetadata]) InjectKeyState(key model_core.TopLevelMessage[proto.Message, TReference], value model_core.Message[proto.Message, TReference]) error {
+	keyHash, err := getKeyHash(key)
+	if err != nil {
+		return err
+	}
+
+	rc.lock.Lock()
+	if _, ok := rc.keys[keyHash]; !ok {
+		rc.keys[keyHash] = &KeyState[TReference, TMetadata]{
+			key:     key,
+			keyHash: keyHash,
+			value: &messageValueState[TReference, TMetadata]{
+				value: value,
+			},
+		}
+	}
+	rc.lock.Unlock()
+	return nil
+}
+
 func (rc *RecursiveComputer[TReference, TMetadata]) WaitForMessageValue(ctx context.Context, ks *KeyState[TReference, TMetadata]) (model_core.Message[proto.Message, TReference], error) {
 	rc.lock.Lock()
 	if ks.err == (errKeyNotEvaluated{}) {
@@ -357,7 +377,11 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetMessageValue
 	if vs == nil {
 		return model_core.Message[proto.Message, TReference]{}
 	}
-	return vs.(*messageValueState[TReference, TMetadata]).value
+	mvs, ok := vs.(*messageValueState[TReference, TMetadata])
+	if !ok {
+		panic("TODO: Mark current key as broken")
+	}
+	return mvs.value
 }
 
 func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetNativeValue(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) (any, bool) {
@@ -365,7 +389,11 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetNativeValue(
 	if vs == nil {
 		return nil, false
 	}
-	return vs.(*nativeValueState[TReference, TMetadata]).value, true
+	nvs, ok := vs.(*nativeValueState[TReference, TMetadata])
+	if !ok {
+		panic("TODO: Mark current key as broken")
+	}
+	return nvs.value, true
 }
 
 // KeyState contains all of the evaluation state of RecursiveComputer

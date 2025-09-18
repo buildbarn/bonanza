@@ -55,10 +55,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersV
 	if !buildSpecificationValue.IsSet() {
 		return nil, evaluation.ErrMissingDependency
 	}
-	buildSpecification := buildSpecificationValue.Message.BuildSpecification
-	if buildSpecification == nil {
-		return nil, errors.New("no build specification provided")
-	}
+	buildSpecification := buildSpecificationValue.Message
 
 	ruleImplementationWrapper, err := getImplementationWrapper(e, buildSpecification.RuleImplementationWrapperIdentifier)
 	if err != nil {

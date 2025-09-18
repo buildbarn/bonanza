@@ -1834,7 +1834,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 	// Convert arguments and environment
 	// variables to B-trees, so that they can
 	// be attached to the Command message.
-	referenceFormat := mrc.computer.getReferenceFormat()
+	referenceFormat := mrc.computer.referenceFormat
 	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(mrc.context, mrc.actionEncoder, referenceFormat, mrc.environment)
 	for _, argument := range arguments {
 		var argumentStr string
@@ -2280,7 +2280,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 			environment[environmentVariable.Name] = environmentVariable.Value
 		}
 	}
-	referenceFormat := mrc.computer.getReferenceFormat()
+	referenceFormat := mrc.computer.referenceFormat
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
 		mrc.context,
 		environment,
@@ -2444,7 +2444,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 	for _, environmentVariable := range mrc.repoPlatform.Message.RepositoryOsEnviron {
 		environment[environmentVariable.Name] = environmentVariable.Value
 	}
-	referenceFormat := mrc.computer.getReferenceFormat()
+	referenceFormat := mrc.computer.referenceFormat
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
 		mrc.context,
 		environment,
@@ -2653,7 +2653,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 			environment[environmentVariable.Name] = environmentVariable.Value
 		}
 	}
-	referenceFormat := mrc.computer.getReferenceFormat()
+	referenceFormat := mrc.computer.referenceFormat
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
 		mrc.context,
 		environment,
@@ -2807,7 +2807,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 			environment[environmentVariable.Name] = environmentVariable.Value
 		}
 	}
-	referenceFormat := mrc.computer.getReferenceFormat()
+	referenceFormat := mrc.computer.referenceFormat
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
 		mrc.context,
 		environment,
@@ -3534,7 +3534,7 @@ func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTracking
 	// response, as that prevents it from being accessed separately.
 	createdRootDirectoryObject, err := model_core.MarshalAndEncode(
 		model_core.ProtoToMarshalable(createdRootDirectory.Message),
-		c.getReferenceFormat(),
+		c.referenceFormat,
 		directoryCreationParameters.GetEncoder(),
 	)
 	if err != nil {
@@ -3594,7 +3594,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 
 			// Check to see if the client overrode this module manually.
 			moduleName := moduleInstance.GetModule().String()
-			modules := buildSpecification.Message.BuildSpecification.GetModules()
+			modules := buildSpecification.Message.Modules
 			if i, ok := sort.Find(
 				len(modules),
 				func(i int) int { return strings.Compare(moduleName, modules[i].Name) },

@@ -153,7 +153,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 			/* maximumSizeBytes = */ 128*1024,
 			btree.NewObjectCreatingNodeMerger(
 				c.getValueObjectEncoder(),
-				c.getReferenceFormat(),
+				c.referenceFormat,
 				/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Package_Value_Target, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Package_Value_Target, TMetadata] {
 					var firstName string
 					switch firstElement := childNodes.Message[0].Level.(type) {

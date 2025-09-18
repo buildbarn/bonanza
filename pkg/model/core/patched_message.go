@@ -193,6 +193,7 @@ func MarshalAny[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMe
 	topLevelMessage, metadata := m.SortAndSetReferences()
 	anyMessage, err := MarshalTopLevelAny(topLevelMessage)
 	if err != nil {
+		m.Discard()
 		return PatchedMessage[*model_core_pb.Any, TMetadata]{}, err
 	}
 

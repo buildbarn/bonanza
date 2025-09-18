@@ -2,9 +2,28 @@ syntax = "proto3";
 
 package bonanza.model.evaluation;
 
+import "google/protobuf/timestamp.proto";
+import "google/rpc/status.proto";
 import "pkg/proto/model/core/core.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/evaluation";
+
+// Remote evaluation.
+//
+// This package provides action and result types that a worker can
+// implement if it supports Skyframe-like parallel evaluation
+// (https://bazel.build/reference/skyframe).
+//
+// The client can provide a set of keys for which it wants the worker to
+// compute its values. Furthermore, it can provide overrides for keys,
+// forcing the evaluation to use a value that was already compute
+// previously.
+//
+// This API can be thought of as the bottom half of a build system.
+// Namely, it provides a mechanism for starting builds and specifying
+// what needs to be built. Semantics for how a build behaves (e.g.,
+// interpreting BUILD and .bzl files) should be implemented as a layer
+// on top of this.
 
 message Keys {
   message Parent {
@@ -63,4 +82,63 @@ message Evaluation {
     // B-tree node containing additional Evaluation objects.
     Parent parent = 2;
   }
+}
+
+message Action {
+  // If set, keys for which the evaluation function should not be
+  // invoked. Instead, literal values are provided.
+  bonanza.model.core.DecodableReference overrides_reference = 1
+      [(bonanza.model.core.object_format) = {
+        proto_list_type_name:
+          "bonanza.model.evaluation.Evaluation";
+      }];
+
+  // Keys for which evaluation function should be invoked.
+  repeated Keys requested_keys = 2;
+}
+
+message Progress {
+  message CurrentlyEvaluatingKey {
+    // The input message that is provided to the evaluation function.
+    bonanza.model.core.Any key = 1;
+
+    // The time at which the first attempt was started to evaluate this
+    // key. Evaluation may have stopped due to dependencies whose values
+    // have not been computed yet.
+    google.protobuf.Timestamp first_evaluation_start = 2;
+
+    // The time at which the current attempt was started.
+    google.protobuf.Timestamp current_evaluation_start = 3;
+
+    // The number of times a previous attempt was made to evaluate this
+    // key, but failed due missing dependencies.
+    uint32 restarts = 4;
+  }
+
+  // Keys for which the evaluation function is currently being executed.
+  repeated CurrentlyEvaluatingKey currently_evaluating_keys = 1;
+}
+
+message Result {
+  message Failure {
+    // If set, the failure occurred while executing the evaluation
+    // function. A stack trace of all keys leading up to the failure are
+    // provided. The last element corresponds to the key whose
+    // evaluation caused the failure.
+    repeated bonanza.model.core.Any stack_trace_keys = 1;
+
+    // Failure error message.
+    google.rpc.Status status = 2;
+  }
+
+  // Details of the build failure, if any failure occurred.
+  Failure failure = 1;
+
+  // If set, list of outcomes of the keys that were evaluated during
+  // this build.
+  bonanza.model.core.DecodableReference outcomes_reference = 2
+      [(bonanza.model.core.object_format) = {
+        proto_list_type_name:
+          "bonanza.model.evaluation.Evaluation";
+      }];
 }

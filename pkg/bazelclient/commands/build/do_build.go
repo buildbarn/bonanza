@@ -27,9 +27,10 @@ import (
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
-	model_build_pb "bonanza.build/pkg/proto/model/build"
+	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_encoding_pb "bonanza.build/pkg/proto/model/encoding"
+	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_executewithstorage_pb "bonanza.build/pkg/proto/model/executewithstorage"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	remoteexecution_pb "bonanza.build/pkg/proto/remoteexecution"
@@ -46,7 +47,6 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
-	"github.com/google/uuid"
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
@@ -335,7 +335,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	// CLI only supports specifying build setting overrides and a
 	// single list of platforms. However, there is no way to pick
 	// different build setting overrides depending on the platform.
-	commonBuildSettingOverrides := make([]*model_build_pb.BuildSettingOverride, 0, len(args.BuildSettingOverrides))
+	commonBuildSettingOverrides := make([]*model_analysis_pb.BuildSpecification_Value_BuildSettingOverride, 0, len(args.BuildSettingOverrides))
 	for _, override := range args.BuildSettingOverrides {
 		apparentLabel, err := currentPackage.AppendTargetPattern(override.Label)
 		if err != nil {
@@ -343,7 +343,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		}
 		commonBuildSettingOverrides = append(
 			commonBuildSettingOverrides,
-			&model_build_pb.BuildSettingOverride{
+			&model_analysis_pb.BuildSpecification_Value_BuildSettingOverride{
 				Label: apparentLabel.String(),
 				Value: override.Value,
 			},
@@ -353,11 +353,11 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	if len(targetPlatforms) == 0 {
 		targetPlatforms = []string{"@platforms//host"}
 	}
-	configurations := make([]*model_build_pb.Configuration, 0, len(targetPlatforms))
+	configurations := make([]*model_analysis_pb.BuildSpecification_Value_Configuration, 0, len(targetPlatforms))
 	for _, targetPlatform := range targetPlatforms {
-		configurations = append(configurations, &model_build_pb.Configuration{
+		configurations = append(configurations, &model_analysis_pb.BuildSpecification_Value_Configuration{
 			BuildSettingOverrides: append(
-				[]*model_build_pb.BuildSettingOverride{{
+				[]*model_analysis_pb.BuildSpecification_Value_BuildSettingOverride{{
 					Label: "@bazel_tools//command_line_option:platforms",
 					Value: targetPlatform,
 				}},
@@ -369,7 +369,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	// Construct a BuildSpecification message that lists all the
 	// modules and contains all of the flags to instruct what needs
 	// to be built.
-	buildSpecification := model_build_pb.BuildSpecification{
+	buildSpecification := model_analysis_pb.BuildSpecification_Value{
 		RootModuleName:                         rootModuleName.String(),
 		TargetPatterns:                         targetPatterns,
 		DirectoryCreationParameters:            directoryParametersMessage,
@@ -386,13 +386,13 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	switch args.CommonFlags.LockfileMode {
 	case arguments.LockfileMode_Off:
 	case arguments.LockfileMode_Update:
-		buildSpecification.UseLockfile = &model_build_pb.UseLockfile{}
+		buildSpecification.UseLockfile = &model_analysis_pb.BuildSpecification_Value_UseLockfile{}
 	case arguments.LockfileMode_Refresh:
-		buildSpecification.UseLockfile = &model_build_pb.UseLockfile{
+		buildSpecification.UseLockfile = &model_analysis_pb.BuildSpecification_Value_UseLockfile{
 			Error: true,
 		}
 	case arguments.LockfileMode_Error:
-		buildSpecification.UseLockfile = &model_build_pb.UseLockfile{
+		buildSpecification.UseLockfile = &model_analysis_pb.BuildSpecification_Value_UseLockfile{
 			MaximumCacheDuration: &durationpb.Duration{Seconds: 3600},
 		}
 	default:
@@ -423,7 +423,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		decodingParameters := createdObject.GetDecodingParameters()
 		buildSpecification.Modules = append(
 			buildSpecification.Modules,
-			&model_build_pb.Module{
+			&model_analysis_pb.BuildSpecification_Value_Module{
 				Name: moduleName.String(),
 				RootDirectoryReference: createdRootDirectory.ToDirectoryReference(
 					&model_core_pb.DecodableReference{
@@ -454,48 +454,89 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		logger.Fatal(formatted.Textf("Failed to create action encoder: %s", err))
 	}
 
-	createdBuildSpecification, err := model_core.MarshalAndEncode(
-		model_core.NewPatchedMessage(model_core.NewProtoMarshalable(&buildSpecification), buildSpecificationPatcher),
-		referenceFormat,
-		actionEncoder,
-	)
+	// TODO: Should these be moved into special overrides?
+	/*
+		var invocationID uuid.UUID
+		if v := args.CommonFlags.InvocationId; v == "" {
+			invocationID = uuid.Must(uuid.NewRandom())
+		} else {
+			invocationID, err = uuid.Parse(v)
+			if err != nil {
+				logger.Fatal(formatted.Textf("Invalid --invocation_id=%#v: %s", v, err))
+			}
+		}
+		var buildRequestID uuid.UUID
+		if v := args.CommonFlags.BuildRequestId; v == "" {
+			buildRequestID = uuid.Must(uuid.NewRandom())
+		} else {
+			buildRequestID, err = uuid.Parse(v)
+			if err != nil {
+				logger.Fatal(formatted.Textf("Invalid --build_request_id=%#v: %s", v, err))
+			}
+		}
+	*/
+
+	overrides, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) (model_core.Marshalable, error) {
+		buildSpecificationKey, err := model_core.MarshalAny(
+			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+				&model_analysis_pb.BuildSpecification_Key{},
+			),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		buildSpecificationValue, err := model_core.MarshalAny(
+			model_core.NewPatchedMessage(&buildSpecification, buildSpecificationPatcher),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return model_core.NewProtoListMarshalable([]*model_evaluation_pb.Evaluation{{
+			Level: &model_evaluation_pb.Evaluation_Leaf_{
+				Leaf: &model_evaluation_pb.Evaluation_Leaf{
+					Key:   buildSpecificationKey.Merge(patcher),
+					Value: buildSpecificationValue.Merge(patcher),
+				},
+			},
+		}}), nil
+	})
 	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to create build specification object: %s", err))
+		logger.Fatal(formatted.Textf("Failed to create overrides list message: %s", err))
+	}
+	createdOverrides, err := model_core.MarshalAndEncode(overrides, referenceFormat, actionEncoder)
+	if err != nil {
+		logger.Fatal(formatted.Textf("Failed to create overrides list object: %s", err))
 	}
 
 	// Construct an Action message.
-	var invocationID uuid.UUID
-	if v := args.CommonFlags.InvocationId; v == "" {
-		invocationID = uuid.Must(uuid.NewRandom())
-	} else {
-		invocationID, err = uuid.Parse(v)
-		if err != nil {
-			logger.Fatal(formatted.Textf("Invalid --invocation_id=%#v: %s", v, err))
-		}
-	}
-	var buildRequestID uuid.UUID
-	if v := args.CommonFlags.BuildRequestId; v == "" {
-		buildRequestID = uuid.Must(uuid.NewRandom())
-	} else {
-		buildRequestID, err = uuid.Parse(v)
-		if err != nil {
-			logger.Fatal(formatted.Textf("Invalid --build_request_id=%#v: %s", v, err))
-		}
-	}
-
 	actionMessage, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) (model_core.Marshalable, error) {
-		buildSpecificationReference, err := patcher.CaptureAndAddDecodableReference(
+		overridesReference, err := patcher.CaptureAndAddDecodableReference(
 			ctx,
-			createdBuildSpecification,
+			createdOverrides,
 			model_core.WalkableCreatedObjectCapturer,
 		)
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoMarshalable(&model_build_pb.Action{
-			InvocationId:                invocationID.String(),
-			BuildRequestId:              buildRequestID.String(),
-			BuildSpecificationReference: buildSpecificationReference,
+
+		buildResultKey, err := model_core.MarshalAny(
+			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+				&model_analysis_pb.BuildResult_Key{},
+			),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return model_core.NewProtoMarshalable(&model_evaluation_pb.Action{
+			OverridesReference: overridesReference,
+			RequestedKeys: []*model_evaluation_pb.Keys{{
+				Level: &model_evaluation_pb.Keys_Leaf{
+					Leaf: buildResultKey.Merge(patcher),
+				},
+			}},
 		}), nil
 	})
 	if err != nil {
@@ -575,7 +616,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	actionReferenceStr := model_core.DecodableLocalReferenceToString(decodableActionReference)
 	actionLink := formatted.Text(actionReferenceStr)
 	browserURL := args.CommonFlags.BrowserUrl
-	actionMessageType := "bonanza.model.build.Action"
+	actionMessageType := "bonanza.model.evaluation.Action"
 	if browserURL != "" {
 		if actionURL, err := url.JoinPath(
 			browserURL,
@@ -642,7 +683,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		parsedObjectPoolIngester,
 		model_parser.NewChainedObjectParser(
 			model_parser.NewEncodedObjectParser[object.LocalReference](actionEncoder),
-			model_parser.NewProtoObjectParser[object.LocalReference, model_build_pb.Result](),
+			model_parser.NewProtoObjectParser[object.LocalReference, model_evaluation_pb.Result](),
 		),
 	)
 
@@ -654,22 +695,22 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		logger.Fatal(formatted.Textf("Failed to read result message: %s", err))
 	}
 
-	var evaluationsReference *model_core.Decodable[object.LocalReference]
-	if rm := result.Message.EvaluationsReference; rm != nil {
+	var outcomesReference *model_core.Decodable[object.LocalReference]
+	if rm := result.Message.OutcomesReference; rm != nil {
 		r, err := model_core.FlattenDecodableReference(model_core.Nested(result, rm))
 		if err != nil {
 			logger.Fatal(formatted.Textf("Invalid evaluations reference: %s", err))
 		}
-		evaluationsReference = &r
+		outcomesReference = &r
 	}
 
 	if f := result.Message.Failure; f != nil {
-		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, browserURL, evaluationsReference)
+		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, browserURL, outcomesReference)
 		logger.Fatal(formatted.Textf("Failed to perform build: %s", status.FromProto(f.Status)))
 	}
 }
 
-func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Message[[]*model_core_pb.Any, object.LocalReference], logger logging.Logger, browserURL string, evaluationsReference *model_core.Decodable[object.LocalReference]) {
+func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Message[[]*model_core_pb.Any, object.LocalReference], logger logging.Logger, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference]) {
 	if len(stackTraceKeys.Message) > 0 {
 		logger.Error(formatted.Text("Traceback (most recent key last):"))
 		var f messageJSONFormatter
@@ -700,14 +741,14 @@ func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Messa
 			} else if key, err := model_core.UnmarshalTopLevelAnyNew[object.LocalReference](flattenedKey); err != nil {
 				body = formatted.Bold(formatted.Text(fmt.Sprintf("Failed to unmarshal key: %s", err)))
 			} else {
-				if browserURL != "" && evaluationsReference != nil {
+				if browserURL != "" && outcomesReference != nil {
 					if marshaledKey, err := model_core.MarshalTopLevelMessage(flattenedKey); err == nil {
 						if evaluationURL, err := url.JoinPath(
 							browserURL,
 							"evaluation",
 							url.PathEscape(namespace.InstanceName.String()),
 							namespace.ReferenceFormat.ToProto().String(),
-							model_core.DecodableLocalReferenceToString(*evaluationsReference),
+							model_core.DecodableLocalReferenceToString(*outcomesReference),
 							base64.RawURLEncoding.EncodeToString(marshaledKey),
 						); err == nil {
 							abbreviatedTypeNode = formatted.Link(evaluationURL, abbreviatedTypeNode)

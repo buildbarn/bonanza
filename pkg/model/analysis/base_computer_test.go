@@ -59,13 +59,7 @@ func newBaseComputerTester(ctrl *gomock.Controller) *baseComputerTester {
 	return &baseComputerTester{
 		computer: model_analysis.NewBaseComputer[model_core.CreatedObjectTree, model_core.CreatedObjectTree](
 			parsedObjectPoolIngester,
-			util.Must(model_core.NewDecodable(
-				model_core.CreatedObjectTree{
-					Contents: object.MustNewContents(object_pb.ReferenceFormat_SHA256_V1, nil, []byte("Build specification")),
-				},
-				[]byte("decodeparams"),
-			)),
-			buildSpecificationEncoder,
+			object.SHA256V1ReferenceFormat,
 			filePool,
 			executionClient,
 			bzlFileBuiltins,

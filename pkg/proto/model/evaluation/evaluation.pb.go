@@ -8,8 +8,10 @@ package evaluation
 
 import (
 	core "bonanza.build/pkg/proto/model/core"
+	status "google.golang.org/genproto/googleapis/rpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -186,6 +188,154 @@ func (*Evaluation_Leaf_) isEvaluation_Level() {}
 
 func (*Evaluation_Parent_) isEvaluation_Level() {}
 
+type Action struct {
+	state              protoimpl.MessageState   `protogen:"open.v1"`
+	OverridesReference *core.DecodableReference `protobuf:"bytes,1,opt,name=overrides_reference,json=overridesReference,proto3" json:"overrides_reference,omitempty"`
+	RequestedKeys      []*Keys                  `protobuf:"bytes,2,rep,name=requested_keys,json=requestedKeys,proto3" json:"requested_keys,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *Action) Reset() {
+	*x = Action{}
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Action) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Action) ProtoMessage() {}
+
+func (x *Action) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Action.ProtoReflect.Descriptor instead.
+func (*Action) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Action) GetOverridesReference() *core.DecodableReference {
+	if x != nil {
+		return x.OverridesReference
+	}
+	return nil
+}
+
+func (x *Action) GetRequestedKeys() []*Keys {
+	if x != nil {
+		return x.RequestedKeys
+	}
+	return nil
+}
+
+type Progress struct {
+	state                   protoimpl.MessageState             `protogen:"open.v1"`
+	CurrentlyEvaluatingKeys []*Progress_CurrentlyEvaluatingKey `protobuf:"bytes,1,rep,name=currently_evaluating_keys,json=currentlyEvaluatingKeys,proto3" json:"currently_evaluating_keys,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *Progress) Reset() {
+	*x = Progress{}
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Progress) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Progress) ProtoMessage() {}
+
+func (x *Progress) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Progress.ProtoReflect.Descriptor instead.
+func (*Progress) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Progress) GetCurrentlyEvaluatingKeys() []*Progress_CurrentlyEvaluatingKey {
+	if x != nil {
+		return x.CurrentlyEvaluatingKeys
+	}
+	return nil
+}
+
+type Result struct {
+	state             protoimpl.MessageState   `protogen:"open.v1"`
+	Failure           *Result_Failure          `protobuf:"bytes,1,opt,name=failure,proto3" json:"failure,omitempty"`
+	OutcomesReference *core.DecodableReference `protobuf:"bytes,2,opt,name=outcomes_reference,json=outcomesReference,proto3" json:"outcomes_reference,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *Result) Reset() {
+	*x = Result{}
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Result) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Result) ProtoMessage() {}
+
+func (x *Result) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Result.ProtoReflect.Descriptor instead.
+func (*Result) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Result) GetFailure() *Result_Failure {
+	if x != nil {
+		return x.Failure
+	}
+	return nil
+}
+
+func (x *Result) GetOutcomesReference() *core.DecodableReference {
+	if x != nil {
+		return x.OutcomesReference
+	}
+	return nil
+}
+
 type Keys_Parent struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
 	Reference     *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
@@ -195,7 +345,7 @@ type Keys_Parent struct {
 
 func (x *Keys_Parent) Reset() {
 	*x = Keys_Parent{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -207,7 +357,7 @@ func (x *Keys_Parent) String() string {
 func (*Keys_Parent) ProtoMessage() {}
 
 func (x *Keys_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -240,7 +390,7 @@ type Evaluation_Parent struct {
 
 func (x *Evaluation_Parent) Reset() {
 	*x = Evaluation_Parent{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -252,7 +402,7 @@ func (x *Evaluation_Parent) String() string {
 func (*Evaluation_Parent) ProtoMessage() {}
 
 func (x *Evaluation_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -293,7 +443,7 @@ type Evaluation_Leaf struct {
 
 func (x *Evaluation_Leaf) Reset() {
 	*x = Evaluation_Leaf{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -305,7 +455,7 @@ func (x *Evaluation_Leaf) String() string {
 func (*Evaluation_Leaf) ProtoMessage() {}
 
 func (x *Evaluation_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -342,11 +492,131 @@ func (x *Evaluation_Leaf) GetDependencies() []*Keys {
 	return nil
 }
 
+type Progress_CurrentlyEvaluatingKey struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Key                    *core.Any              `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	FirstEvaluationStart   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=first_evaluation_start,json=firstEvaluationStart,proto3" json:"first_evaluation_start,omitempty"`
+	CurrentEvaluationStart *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=current_evaluation_start,json=currentEvaluationStart,proto3" json:"current_evaluation_start,omitempty"`
+	Restarts               uint32                 `protobuf:"varint,4,opt,name=restarts,proto3" json:"restarts,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) Reset() {
+	*x = Progress_CurrentlyEvaluatingKey{}
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Progress_CurrentlyEvaluatingKey) ProtoMessage() {}
+
+func (x *Progress_CurrentlyEvaluatingKey) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Progress_CurrentlyEvaluatingKey.ProtoReflect.Descriptor instead.
+func (*Progress_CurrentlyEvaluatingKey) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3, 0}
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) GetKey() *core.Any {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) GetFirstEvaluationStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FirstEvaluationStart
+	}
+	return nil
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) GetCurrentEvaluationStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CurrentEvaluationStart
+	}
+	return nil
+}
+
+func (x *Progress_CurrentlyEvaluatingKey) GetRestarts() uint32 {
+	if x != nil {
+		return x.Restarts
+	}
+	return 0
+}
+
+type Result_Failure struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	StackTraceKeys []*core.Any            `protobuf:"bytes,1,rep,name=stack_trace_keys,json=stackTraceKeys,proto3" json:"stack_trace_keys,omitempty"`
+	Status         *status.Status         `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Result_Failure) Reset() {
+	*x = Result_Failure{}
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Result_Failure) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Result_Failure) ProtoMessage() {}
+
+func (x *Result_Failure) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Result_Failure.ProtoReflect.Descriptor instead.
+func (*Result_Failure) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4, 0}
+}
+
+func (x *Result_Failure) GetStackTraceKeys() []*core.Any {
+	if x != nil {
+		return x.StackTraceKeys
+	}
+	return nil
+}
+
+func (x *Result_Failure) GetStatus() *status.Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
 var File_pkg_proto_model_evaluation_evaluation_proto protoreflect.FileDescriptor
 
 const file_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "" +
 	"\n" +
-	"+pkg/proto/model/evaluation/evaluation.proto\x12\x18bonanza.model.evaluation\x1a\x1fpkg/proto/model/core/core.proto\"\xf4\x01\n" +
+	"+pkg/proto/model/evaluation/evaluation.proto\x12\x18bonanza.model.evaluation\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\x1a\x1fpkg/proto/model/core/core.proto\"\xf4\x01\n" +
 	"\x04Keys\x12-\n" +
 	"\x04leaf\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyH\x00R\x04leaf\x12?\n" +
 	"\x06parent\x18\x02 \x01(\v2%.bonanza.model.evaluation.Keys.ParentH\x00R\x06parent\x1as\n" +
@@ -364,7 +634,23 @@ const file_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12-\n" +
 	"\x05value\x18\x02 \x01(\v2\x17.bonanza.model.core.AnyR\x05value\x12B\n" +
 	"\fdependencies\x18\x03 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\fdependenciesB\a\n" +
-	"\x05levelB*Z(bonanza.build/pkg/proto/model/evaluationb\x06proto3"
+	"\x05level\"\xd4\x01\n" +
+	"\x06Action\x12\x82\x01\n" +
+	"\x13overrides_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x12overridesReference\x12E\n" +
+	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\"\x8b\x03\n" +
+	"\bProgress\x12u\n" +
+	"\x19currently_evaluating_keys\x18\x01 \x03(\v29.bonanza.model.evaluation.Progress.CurrentlyEvaluatingKeyR\x17currentlyEvaluatingKeys\x1a\x87\x02\n" +
+	"\x16CurrentlyEvaluatingKey\x12)\n" +
+	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12P\n" +
+	"\x16first_evaluation_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x14firstEvaluationStart\x12T\n" +
+	"\x18current_evaluation_start\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x16currentEvaluationStart\x12\x1a\n" +
+	"\brestarts\x18\x04 \x01(\rR\brestarts\"\xc9\x02\n" +
+	"\x06Result\x12B\n" +
+	"\afailure\x18\x01 \x01(\v2(.bonanza.model.evaluation.Result.FailureR\afailure\x12\x80\x01\n" +
+	"\x12outcomes_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x11outcomesReference\x1ax\n" +
+	"\aFailure\x12A\n" +
+	"\x10stack_trace_keys\x18\x01 \x03(\v2\x17.bonanza.model.core.AnyR\x0estackTraceKeys\x12*\n" +
+	"\x06status\x18\x02 \x01(\v2\x12.google.rpc.StatusR\x06statusB*Z(bonanza.build/pkg/proto/model/evaluationb\x06proto3"
 
 var (
 	file_pkg_proto_model_evaluation_evaluation_proto_rawDescOnce sync.Once
@@ -378,31 +664,48 @@ func file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP() []byte {
 	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescData
 }
 
-var file_pkg_proto_model_evaluation_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_pkg_proto_model_evaluation_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_pkg_proto_model_evaluation_evaluation_proto_goTypes = []any{
-	(*Keys)(nil),                    // 0: bonanza.model.evaluation.Keys
-	(*Evaluation)(nil),              // 1: bonanza.model.evaluation.Evaluation
-	(*Keys_Parent)(nil),             // 2: bonanza.model.evaluation.Keys.Parent
-	(*Evaluation_Parent)(nil),       // 3: bonanza.model.evaluation.Evaluation.Parent
-	(*Evaluation_Leaf)(nil),         // 4: bonanza.model.evaluation.Evaluation.Leaf
-	(*core.Any)(nil),                // 5: bonanza.model.core.Any
-	(*core.DecodableReference)(nil), // 6: bonanza.model.core.DecodableReference
+	(*Keys)(nil),                            // 0: bonanza.model.evaluation.Keys
+	(*Evaluation)(nil),                      // 1: bonanza.model.evaluation.Evaluation
+	(*Action)(nil),                          // 2: bonanza.model.evaluation.Action
+	(*Progress)(nil),                        // 3: bonanza.model.evaluation.Progress
+	(*Result)(nil),                          // 4: bonanza.model.evaluation.Result
+	(*Keys_Parent)(nil),                     // 5: bonanza.model.evaluation.Keys.Parent
+	(*Evaluation_Parent)(nil),               // 6: bonanza.model.evaluation.Evaluation.Parent
+	(*Evaluation_Leaf)(nil),                 // 7: bonanza.model.evaluation.Evaluation.Leaf
+	(*Progress_CurrentlyEvaluatingKey)(nil), // 8: bonanza.model.evaluation.Progress.CurrentlyEvaluatingKey
+	(*Result_Failure)(nil),                  // 9: bonanza.model.evaluation.Result.Failure
+	(*core.Any)(nil),                        // 10: bonanza.model.core.Any
+	(*core.DecodableReference)(nil),         // 11: bonanza.model.core.DecodableReference
+	(*timestamppb.Timestamp)(nil),           // 12: google.protobuf.Timestamp
+	(*status.Status)(nil),                   // 13: google.rpc.Status
 }
 var file_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
-	5, // 0: bonanza.model.evaluation.Keys.leaf:type_name -> bonanza.model.core.Any
-	2, // 1: bonanza.model.evaluation.Keys.parent:type_name -> bonanza.model.evaluation.Keys.Parent
-	4, // 2: bonanza.model.evaluation.Evaluation.leaf:type_name -> bonanza.model.evaluation.Evaluation.Leaf
-	3, // 3: bonanza.model.evaluation.Evaluation.parent:type_name -> bonanza.model.evaluation.Evaluation.Parent
-	6, // 4: bonanza.model.evaluation.Keys.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	6, // 5: bonanza.model.evaluation.Evaluation.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	5, // 6: bonanza.model.evaluation.Evaluation.Leaf.key:type_name -> bonanza.model.core.Any
-	5, // 7: bonanza.model.evaluation.Evaluation.Leaf.value:type_name -> bonanza.model.core.Any
-	0, // 8: bonanza.model.evaluation.Evaluation.Leaf.dependencies:type_name -> bonanza.model.evaluation.Keys
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	10, // 0: bonanza.model.evaluation.Keys.leaf:type_name -> bonanza.model.core.Any
+	5,  // 1: bonanza.model.evaluation.Keys.parent:type_name -> bonanza.model.evaluation.Keys.Parent
+	7,  // 2: bonanza.model.evaluation.Evaluation.leaf:type_name -> bonanza.model.evaluation.Evaluation.Leaf
+	6,  // 3: bonanza.model.evaluation.Evaluation.parent:type_name -> bonanza.model.evaluation.Evaluation.Parent
+	11, // 4: bonanza.model.evaluation.Action.overrides_reference:type_name -> bonanza.model.core.DecodableReference
+	0,  // 5: bonanza.model.evaluation.Action.requested_keys:type_name -> bonanza.model.evaluation.Keys
+	8,  // 6: bonanza.model.evaluation.Progress.currently_evaluating_keys:type_name -> bonanza.model.evaluation.Progress.CurrentlyEvaluatingKey
+	9,  // 7: bonanza.model.evaluation.Result.failure:type_name -> bonanza.model.evaluation.Result.Failure
+	11, // 8: bonanza.model.evaluation.Result.outcomes_reference:type_name -> bonanza.model.core.DecodableReference
+	11, // 9: bonanza.model.evaluation.Keys.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	11, // 10: bonanza.model.evaluation.Evaluation.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	10, // 11: bonanza.model.evaluation.Evaluation.Leaf.key:type_name -> bonanza.model.core.Any
+	10, // 12: bonanza.model.evaluation.Evaluation.Leaf.value:type_name -> bonanza.model.core.Any
+	0,  // 13: bonanza.model.evaluation.Evaluation.Leaf.dependencies:type_name -> bonanza.model.evaluation.Keys
+	10, // 14: bonanza.model.evaluation.Progress.CurrentlyEvaluatingKey.key:type_name -> bonanza.model.core.Any
+	12, // 15: bonanza.model.evaluation.Progress.CurrentlyEvaluatingKey.first_evaluation_start:type_name -> google.protobuf.Timestamp
+	12, // 16: bonanza.model.evaluation.Progress.CurrentlyEvaluatingKey.current_evaluation_start:type_name -> google.protobuf.Timestamp
+	10, // 17: bonanza.model.evaluation.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
+	13, // 18: bonanza.model.evaluation.Result.Failure.status:type_name -> google.rpc.Status
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_pkg_proto_model_evaluation_evaluation_proto_init() }
@@ -424,7 +727,7 @@ func file_pkg_proto_model_evaluation_evaluation_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_model_evaluation_evaluation_proto_rawDesc), len(file_pkg_proto_model_evaluation_evaluation_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

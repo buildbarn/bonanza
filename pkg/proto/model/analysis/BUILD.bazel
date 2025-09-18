@@ -7,7 +7,6 @@ proto_library(
     srcs = ["analysis.proto"],
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/proto/model/build:build_proto",
         "//pkg/proto/model/command:command_proto",
         "//pkg/proto/model/core:core_proto",
         "//pkg/proto/model/encoding:encoding_proto",
@@ -26,7 +25,6 @@ go_proto_library(
     proto = ":analysis_proto",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/proto/model/build",
         "//pkg/proto/model/command",
         "//pkg/proto/model/core",
         "//pkg/proto/model/encoding",

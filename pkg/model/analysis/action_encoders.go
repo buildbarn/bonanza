@@ -15,7 +15,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeActionEncodersValue(ctx con
 		return PatchedActionEncodersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ActionEncoders_Value{
-		ActionEncoders: buildSpecification.Message.BuildSpecification.GetActionEncoders(),
+		ActionEncoders: buildSpecification.Message.ActionEncoders,
 	}), nil
 }
 
@@ -26,6 +26,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeActionEncoderObjectValue(ct
 	}
 	return model_encoding.NewBinaryEncoderFromProto(
 		encoders.Message.ActionEncoders,
-		uint32(c.getReferenceFormat().GetMaximumObjectSizeBytes()),
+		uint32(c.referenceFormat.GetMaximumObjectSizeBytes()),
 	)
 }

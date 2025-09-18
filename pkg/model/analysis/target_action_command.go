@@ -307,7 +307,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 
 	// Construct the list of command line arguments.
 	// TODO: Respect use_param_file().
-	referenceFormat := c.getReferenceFormat()
+	referenceFormat := c.referenceFormat
 	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(ctx, actionEncoder, referenceFormat, e)
 	valueDecodingOptions := c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
 		return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil

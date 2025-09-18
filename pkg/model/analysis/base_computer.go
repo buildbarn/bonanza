@@ -15,7 +15,6 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	model_build_pb "bonanza.build/pkg/proto/model/build"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/remoteexecution"
@@ -31,14 +30,54 @@ type BaseComputerReferenceMetadata interface {
 	model_core.ReferenceMetadata
 }
 
+type baseComputerFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	filePool          pool.FilePool
+	executionClient   remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]]
+	bzlFileBuiltins   starlark.StringDict
+	buildFileBuiltins starlark.StringDict
+}
+
+func NewBaseComputerFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	filePool pool.FilePool,
+	executionClient remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]],
+	bzlFileBuiltins starlark.StringDict,
+	buildFileBuiltins starlark.StringDict,
+) evaluation.ComputerFactory[TReference, TMetadata] {
+	return &baseComputerFactory[TReference, TMetadata]{
+		filePool:          filePool,
+		executionClient:   executionClient,
+		bzlFileBuiltins:   bzlFileBuiltins,
+		buildFileBuiltins: buildFileBuiltins,
+	}
+}
+
+func (cf *baseComputerFactory[TReference, TMetadata]) NewComputer(namespace object.Namespace, parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference], objectExporter model_core.ObjectExporter[TReference, object.LocalReference]) evaluation.Computer[TReference, TMetadata] {
+	return NewTypedComputer(
+		NewBaseComputer[TReference, TMetadata](
+			parsedObjectPoolIngester,
+			namespace.ReferenceFormat,
+			cf.filePool,
+			model_executewithstorage.NewObjectExportingClient(
+				model_executewithstorage.NewNamespaceAddingClient(
+					cf.executionClient,
+					namespace.InstanceName,
+				),
+				objectExporter,
+			),
+			cf.bzlFileBuiltins,
+			cf.buildFileBuiltins,
+		),
+	)
+}
+
 type baseComputer[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
-	parsedObjectPoolIngester    *model_parser.ParsedObjectPoolIngester[TReference]
-	buildSpecificationReference model_core.Decodable[TReference]
-	filePool                    pool.FilePool
-	executionClient             remoteexecution.Client[*model_executewithstorage.Action[TReference], model_core.Decodable[TReference], model_core.Decodable[TReference]]
-	bzlFileBuiltins             starlark.StringDict
-	buildFileBuiltins           starlark.StringDict
-	discardingObjectCapturer    model_core.ObjectCapturer[TReference, model_core.NoopReferenceMetadata]
+	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference]
+	referenceFormat          object.ReferenceFormat
+	filePool                 pool.FilePool
+	executionClient          remoteexecution.Client[*model_executewithstorage.Action[TReference], model_core.Decodable[TReference], model_core.Decodable[TReference]]
+	bzlFileBuiltins          starlark.StringDict
+	buildFileBuiltins        starlark.StringDict
+	discardingObjectCapturer model_core.ObjectCapturer[TReference, model_core.NoopReferenceMetadata]
 
 	// Readers for various message types.
 	// TODO: These should likely be removed and instantiated later
@@ -47,7 +86,6 @@ type baseComputer[TReference object.BasicReference, TMetadata BaseComputerRefere
 	argsReader                                   model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.Args, TReference]]
 	argsAddReader                                model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.Args_Leaf_Add, TReference]]
 	buildSettingOverrideReader                   model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.BuildSettingOverride, TReference]]
-	buildSpecificationReader                     model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_build_pb.BuildSpecification, TReference]]
 	commandOutputsReader                         model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_command_pb.Outputs, TReference]]
 	configuredTargetActionReader                 model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, TReference]]
 	configuredTargetOutputReader                 model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, TReference]]
@@ -59,21 +97,20 @@ type baseComputer[TReference object.BasicReference, TMetadata BaseComputerRefere
 
 func NewBaseComputer[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata](
 	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference],
-	buildSpecificationReference model_core.Decodable[TReference],
-	buildSpecificationEncoder model_encoding.BinaryEncoder,
+	referenceFormat object.ReferenceFormat,
 	filePool pool.FilePool,
 	executionClient remoteexecution.Client[*model_executewithstorage.Action[TReference], model_core.Decodable[TReference], model_core.Decodable[TReference]],
 	bzlFileBuiltins starlark.StringDict,
 	buildFileBuiltins starlark.StringDict,
 ) Computer[TReference, TMetadata] {
 	return &baseComputer[TReference, TMetadata]{
-		parsedObjectPoolIngester:    parsedObjectPoolIngester,
-		buildSpecificationReference: buildSpecificationReference,
-		filePool:                    filePool,
-		executionClient:             executionClient,
-		bzlFileBuiltins:             bzlFileBuiltins,
-		buildFileBuiltins:           buildFileBuiltins,
-		discardingObjectCapturer:    model_core.NewDiscardingObjectCapturer[TReference](),
+		parsedObjectPoolIngester: parsedObjectPoolIngester,
+		referenceFormat:          referenceFormat,
+		filePool:                 filePool,
+		executionClient:          executionClient,
+		bzlFileBuiltins:          bzlFileBuiltins,
+		buildFileBuiltins:        buildFileBuiltins,
+		discardingObjectCapturer: model_core.NewDiscardingObjectCapturer[TReference](),
 
 		// TODO: Set up encoding!
 		valueReaders: model_starlark.ValueReaders[TReference]{
@@ -93,13 +130,6 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata BaseComputerRef
 		argsAddReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Args_Leaf_Add](),
-		),
-		buildSpecificationReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[TReference](buildSpecificationEncoder),
-				model_parser.NewProtoObjectParser[TReference, model_build_pb.BuildSpecification](),
-			),
 		),
 		buildSettingOverrideReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
@@ -136,10 +166,6 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata BaseComputerRef
 	}
 }
 
-func (c *baseComputer[TReference, TMetadata]) getReferenceFormat() object.ReferenceFormat {
-	return c.buildSpecificationReference.Value.GetReferenceFormat()
-}
-
 func (c *baseComputer[TReference, TMetadata]) getValueObjectEncoder() model_encoding.BinaryEncoder {
 	// TODO: Use a proper encoder!
 	return model_encoding.NewChainedBinaryEncoder(nil)
@@ -150,7 +176,7 @@ func (c *baseComputer[TReference, TMetadata]) getValueEncodingOptions(ctx contex
 		CurrentFilename:        currentFilename,
 		Context:                ctx,
 		ObjectEncoder:          c.getValueObjectEncoder(),
-		ObjectReferenceFormat:  c.getReferenceFormat(),
+		ObjectReferenceFormat:  c.referenceFormat,
 		ObjectCapturer:         objectCapturer,
 		ObjectMinimumSizeBytes: 32 * 1024,
 		ObjectMaximumSizeBytes: 128 * 1024,
@@ -168,7 +194,7 @@ func (c *baseComputer[TReference, TMetadata]) getValueDecodingOptions(ctx contex
 
 func (c *baseComputer[TReference, TMetadata]) getInlinedTreeOptions() *inlinedtree.Options {
 	return &inlinedtree.Options{
-		ReferenceFormat:  c.getReferenceFormat(),
+		ReferenceFormat:  c.referenceFormat,
 		MaximumSizeBytes: 32 * 1024,
 	}
 }
@@ -277,7 +303,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	if !buildSpecificationMessage.IsSet() {
 		return PatchedBuildResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	buildSpecification := buildSpecificationMessage.Message.BuildSpecification
+	buildSpecification := buildSpecificationMessage.Message
 
 	rootModuleName := buildSpecification.RootModuleName
 	rootModule, err := label.NewModule(rootModuleName)
@@ -363,25 +389,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	return PatchedBuildResultValue[TMetadata]{}, errors.New("TODO: report build results in a meaningful way")
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeBuildSpecificationValue(ctx context.Context, key *model_analysis_pb.BuildSpecification_Key, e BuildSpecificationEnvironment[TReference, TMetadata]) (PatchedBuildSpecificationValue[TMetadata], error) {
-	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.BuildSpecification_Value, error) {
-		buildSpecification, err := c.buildSpecificationReader.ReadParsedObject(ctx, c.buildSpecificationReference)
-		if err != nil {
-			return nil, err
-		}
-		return &model_analysis_pb.BuildSpecification_Value{
-			BuildSpecification: model_core.Patch(e, buildSpecification).Merge(patcher),
-		}, nil
-	})
-}
-
 func (c *baseComputer[TReference, TMetadata]) ComputeBuiltinsModuleNamesValue(ctx context.Context, key *model_analysis_pb.BuiltinsModuleNames_Key, e BuiltinsModuleNamesEnvironment[TReference, TMetadata]) (PatchedBuiltinsModuleNamesValue[TMetadata], error) {
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecification.IsSet() {
 		return PatchedBuiltinsModuleNamesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.BuiltinsModuleNames_Value{
-		BuiltinsModuleNames: buildSpecification.Message.BuildSpecification.GetBuiltinsModuleNames(),
+		BuiltinsModuleNames: buildSpecification.Message.BuiltinsModuleNames,
 	}), nil
 }
 
@@ -391,7 +405,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryAccessParametersVa
 		return PatchedDirectoryAccessParametersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.DirectoryAccessParameters_Value{
-		DirectoryAccessParameters: buildSpecification.Message.BuildSpecification.GetDirectoryCreationParameters().GetAccess(),
+		DirectoryAccessParameters: buildSpecification.Message.DirectoryCreationParameters.GetAccess(),
 	}), nil
 }
 

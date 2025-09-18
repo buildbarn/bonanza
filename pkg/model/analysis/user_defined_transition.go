@@ -248,7 +248,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 		/* maximumSizeBytes = */ 128*1024,
 		btree.NewObjectCreatingNodeMerger(
 			c.getValueObjectEncoder(),
-			c.getReferenceFormat(),
+			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.BuildSettingOverride, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.BuildSettingOverride, TMetadata] {
 				var firstLabel string
 				switch firstEntry := childNodes.Message[0].Level.(type) {
@@ -345,7 +345,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 
 	createdConfiguration, err := model_core.MarshalAndEncode(
 		model_core.ProtoListToMarshalable(buildSettingOverrides),
-		c.getReferenceFormat(),
+		c.referenceFormat,
 		c.getValueObjectEncoder(),
 	)
 	if err != nil {

@@ -53,16 +53,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue
 	if !buildSpecificationValue.IsSet() {
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	buildSpecification := buildSpecificationValue.Message.BuildSpecification
+	buildSpecification := buildSpecificationValue.Message
 
-	rootModuleName := buildSpecification.GetRootModuleName()
+	rootModuleName := buildSpecification.RootModuleName
 	rootModule, err := label.NewModule(rootModuleName)
 	if err != nil {
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleName, err)
 	}
 	rootRepo := rootModule.ToModuleInstance(nil).GetBareCanonicalRepo()
 
-	repoPlatformStr := buildSpecification.GetRepoPlatform()
+	repoPlatformStr := buildSpecification.RepoPlatform
 	if repoPlatformStr == "" {
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, errors.New("no repo platform specified, meaning module extensions and repository rules cannot be evaluated")
 	}

@@ -15,7 +15,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileCreationParametersValue
 		return PatchedFileCreationParametersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.FileCreationParameters_Value{
-		FileCreationParameters: buildSpecification.Message.BuildSpecification.GetFileCreationParameters(),
+		FileCreationParameters: buildSpecification.Message.FileCreationParameters,
 	}), nil
 }
 
@@ -26,6 +26,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileCreationParametersObjec
 	}
 	return model_filesystem.NewFileCreationParametersFromProto(
 		fileCreationParameters.Message.FileCreationParameters,
-		c.getReferenceFormat(),
+		c.referenceFormat,
 	)
 }

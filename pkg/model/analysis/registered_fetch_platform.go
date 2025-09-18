@@ -14,6 +14,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredFetchPlatformValu
 		return PatchedRegisteredFetchPlatformValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RegisteredFetchPlatform_Value{
-		FetchPlatformPkixPublicKey: buildSpecification.Message.BuildSpecification.GetFetchPlatformPkixPublicKey(),
+		FetchPlatformPkixPublicKey: buildSpecification.Message.FetchPlatformPkixPublicKey,
 	}), nil
 }

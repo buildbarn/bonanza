@@ -14,6 +14,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleRegistryUrlsValue(ctx
 		return PatchedModuleRegistryUrlsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleRegistryUrls_Value{
-		RegistryUrls: buildSpecification.Message.BuildSpecification.ModuleRegistryUrls,
+		RegistryUrls: buildSpecification.Message.ModuleRegistryUrls,
 	}), nil
 }
