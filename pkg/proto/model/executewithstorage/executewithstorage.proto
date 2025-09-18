@@ -11,7 +11,7 @@ option go_package = "bonanza.build/pkg/proto/model/executewithstorage";
 // Unlike REv2, our remote execution and remote worker protocols are
 // completely decoupled from object storage. Actions and their results
 // are just binary payloads. However, for most of our execution needs
-// such a couple is desired. For example, bonanza_worker wants to
+// such a coupling is desired. For example, bonanza_worker wants to
 // receive an action that references a command and input. Upon
 // completion, it wants to return captured output files. bonanza_builder
 // wants to receive a build specification and return the full build
@@ -25,7 +25,7 @@ option go_package = "bonanza.build/pkg/proto/model/executewithstorage";
 // via the scheduler remain bounded in size.
 //
 // As execution event and results are also backed by storage, this
-// protocol are assumed to be of type WeakDecodableReference.
+// protocol assumes they are of type WeakDecodableReference.
 message Action {
   // The namespace in storage where the action is stored and where
   // results may be written.
