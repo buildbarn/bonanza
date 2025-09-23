@@ -363,9 +363,13 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		directoryEncoder := directoryCreationParameters.GetEncoder()
 
 		// Create build directory and expose it via the virtual file system.
+		defaultAttributesSetter := func(requested virtual.AttributesMask, attributes *virtual.Attributes) {
+			attributes.SetOwnerUserID(e.buildDirectoryOwnerUserID)
+			attributes.SetOwnerGroupID(e.buildDirectoryOwnerGroupID)
+		}
 		buildDirectory := virtual.NewInMemoryPrepopulatedDirectory(
 			virtual.NewHandleAllocatingFileAllocator(
-				virtual.NewPoolBackedFileAllocator(e.filePool, ioErrorCapturer),
+				virtual.NewPoolBackedFileAllocator(e.filePool, ioErrorCapturer, defaultAttributesSetter),
 				e.handleAllocator,
 			),
 			e.symlinkFactory,
@@ -375,10 +379,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			e.hiddenFilesMatcher,
 			e.clock,
 			virtual.CaseSensitiveComponentNormalizer,
-			/* defaultAttributesSetter = */ func(requested virtual.AttributesMask, attributes *virtual.Attributes) {
-				attributes.SetOwnerUserID(e.buildDirectoryOwnerUserID)
-				attributes.SetOwnerGroupID(e.buildDirectoryOwnerGroupID)
-			},
+			defaultAttributesSetter,
 		)
 		defer buildDirectory.RemoveAllChildren(true)
 
