@@ -150,7 +150,7 @@ func (r LocalReference) GetMaximumTotalParentsSizeBytes(includeSelf bool) int {
 // no need to track any leases.
 func (r LocalReference) Flatten() (flatReference FlatReference) {
 	copy(flatReference.rawReference[:], r.rawReference[:])
-	return
+	return flatReference
 }
 
 // GetLocalReference trims all properties of the reference, so that only

@@ -49,7 +49,7 @@ func (w *simpleObjectContentsWalker) GetContents(ctx context.Context) (contents 
 	contents = w.contents
 	walkers = w.walkers
 	*w = simpleObjectContentsWalker{}
-	return
+	return contents, walkers, err
 }
 
 func (w *simpleObjectContentsWalker) Discard() {

@@ -56,7 +56,7 @@ func (r FlatReference) GetRawFlatReference() []byte {
 // reference having height zero.
 func (r FlatReference) GetLocalReference() (localReference LocalReference) {
 	copy(localReference.rawReference[:], r.rawReference[:])
-	return
+	return localReference
 }
 
 // GetHash returns the hash of the contents of the object associated

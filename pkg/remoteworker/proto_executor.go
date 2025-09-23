@@ -89,7 +89,7 @@ func (e *protoExecutor[TAction, TEvent, TResult, TActionPtr]) Execute(ctx contex
 	group.Go(func() (err error) {
 		completedEvent, virtualExecutionDuration, result, err = e.Executor.Execute(groupCtx, &actionMessage, executionTimeout, executionEventMessages)
 		close(executionEventMessages)
-		return
+		return err
 	})
 	if err := group.Wait(); err != nil {
 		return nil, 0, 0, err

@@ -103,7 +103,7 @@ func (ReferenceFormat) NewLocalReference(rawReference []byte) (r LocalReference,
 		)
 	}
 
-	return
+	return r, err
 }
 
 func (ReferenceFormat) NewFlatReference(rawReference []byte) (r FlatReference, err error) {
@@ -129,7 +129,7 @@ func (ReferenceFormat) NewFlatReference(rawReference []byte) (r FlatReference, e
 		)
 	}
 
-	return
+	return r, err
 }
 
 // GetMaximumObjectSizeBytes returns the maximum size of objects encoded

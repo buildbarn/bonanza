@@ -111,11 +111,11 @@ func (tp CanonicalTargetPattern) AsSinglePackageTargetPattern() (initialTarget C
 	if targetNameOffset < 0 {
 		// Target patterns of shape "@@a+//b/c" always refer to
 		// a single target.
-		return
+		return initialTarget, includeFileTargets, success
 	}
 	if strings.HasSuffix(tp.value[:targetNameOffset], "/...") {
 		// Recursive target pattern.
-		return
+		return initialTarget, includeFileTargets, success
 	}
 	switch tp.value[targetNameOffset+1:] {
 	case "all":
@@ -126,7 +126,7 @@ func (tp CanonicalTargetPattern) AsSinglePackageTargetPattern() (initialTarget C
 	default:
 		// Target pattern that includes a target name that does
 		// not require expansion.
-		return
+		return initialTarget, includeFileTargets, success
 	}
 
 	return newValidCanonicalLabel(tp.value), includeFileTargets, true
@@ -142,7 +142,7 @@ func (tp CanonicalTargetPattern) AsRecursiveTargetPattern() (basePackage Canonic
 	if !ok {
 		packageName, ok = strings.CutSuffix(tp.value, "/...:*")
 		if !ok {
-			return
+			return basePackage, includeFileTargets, success
 		}
 		includeFileTargets = true
 	}

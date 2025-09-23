@@ -208,5 +208,5 @@ func (rcs *referenceStatsComputer) getStats() (stats [5]byte) {
 		panic("maximumTotalParentsSizeBytes is too large")
 	}
 	binary.LittleEndian.PutUint16(stats[3:], f16)
-	return
+	return stats
 }

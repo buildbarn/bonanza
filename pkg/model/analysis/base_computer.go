@@ -245,7 +245,7 @@ func (c *baseComputer[TReference, TMetadata]) preloadBzlGlobals(e loadBzlGlobals
 			aggregateErr = err
 		}
 	}
-	return
+	return aggregateErr
 }
 
 type starlarkThreadEnvironment[TReference any] interface {
