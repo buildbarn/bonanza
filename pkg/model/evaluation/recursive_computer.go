@@ -9,13 +9,17 @@ import (
 	"maps"
 	"slices"
 	"sync"
+	"time"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	"bonanza.build/pkg/storage/object"
 
+	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // RecursiveComputer can be used to compute values, taking dependencies
@@ -29,6 +33,7 @@ import (
 type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	base          Computer[TReference, TMetadata]
 	objectManager model_core.ObjectManager[TReference, TMetadata]
+	clock         clock.Clock
 
 	lock sync.Mutex
 
@@ -38,15 +43,19 @@ type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.Re
 	// Keys on which currently one or more other keys are blocked.
 	blockingKeys map[*KeyState[TReference, TMetadata]]struct{}
 
-	// The number of keys that are currently being evaluated, which
-	// is at most equal to the number of goroutines calling
+	// Keys which are currently blocked on one or more other keys.
+	blockedKeys keyStateList[TReference, TMetadata]
+
+	// Keys that are currently being evaluated, which is at most
+	// equal to the number of goroutines calling
 	// ProcessNextQueuedKey().
-	currentlyEvaluatingKeysCount uint
+	evaluatingKeys keyStateList[TReference, TMetadata]
 
 	// List of keys for which evaluation should be attempted.
-	firstQueuedKey *KeyState[TReference, TMetadata]
-	lastQueuedKey  **KeyState[TReference, TMetadata]
+	queuedKeys     keyStateList[TReference, TMetadata]
 	queuedKeysWait chan struct{}
+
+	completedKeys keyStateList[TReference, TMetadata]
 }
 
 // NewRecursiveComputer creates a new RecursiveComputer that is in the
@@ -54,27 +63,32 @@ type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.Re
 func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	base Computer[TReference, TMetadata],
 	objectManager model_core.ObjectManager[TReference, TMetadata],
+	clock clock.Clock,
 ) *RecursiveComputer[TReference, TMetadata] {
 	rc := &RecursiveComputer[TReference, TMetadata]{
 		base:          base,
 		objectManager: objectManager,
+		clock:         clock,
 
 		keys:         map[[sha256.Size]byte]*KeyState[TReference, TMetadata]{},
 		blockingKeys: map[*KeyState[TReference, TMetadata]]struct{}{},
 	}
-	rc.lastQueuedKey = &rc.firstQueuedKey
+	rc.blockedKeys.init()
+	rc.evaluatingKeys.init()
+	rc.queuedKeys.init()
+	rc.completedKeys.init()
 	return rc
 }
 
 func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx context.Context) bool {
 	for {
 		rc.lock.Lock()
-		if rc.firstQueuedKey != nil {
+		if !rc.queuedKeys.empty() {
 			// One or more keys are available for evaluation.
 			break
 		}
 
-		if rc.currentlyEvaluatingKeysCount == 0 {
+		if rc.evaluatingKeys.empty() {
 			// If there are no keys queued for evaluation,
 			// we are currently evaluating none of them, but
 			// there are keys blocking others, it means we
@@ -98,13 +112,12 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 	}
 
 	// Extract the first queued key.
-	ks := rc.firstQueuedKey
-	rc.firstQueuedKey = ks.nextQueuedKey
-	ks.nextQueuedKey = nil
-	if rc.firstQueuedKey == nil {
-		rc.lastQueuedKey = &rc.firstQueuedKey
+	ks := rc.queuedKeys.popFirst()
+	rc.evaluatingKeys.pushLast(ks)
+	ks.currentEvaluationStart = rc.clock.Now()
+	if ks.restarts == 0 {
+		ks.firstEvaluationStart = ks.currentEvaluationStart
 	}
-	rc.currentlyEvaluatingKeysCount++
 	rc.lock.Unlock()
 
 	e := recursivelyComputingEnvironment[TReference, TMetadata]{
@@ -116,13 +129,14 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 	dependencies := slices.Collect(maps.Keys(e.dependencies))
 
 	rc.lock.Lock()
-	rc.currentlyEvaluatingKeysCount--
+	rc.evaluatingKeys.remove(ks)
 	if ks.err == (errKeyNotEvaluated{}) {
 		if err == nil {
 			ks.err = nil
 			for _, ksBlocked := range ks.blocking {
 				ksBlocked.blockedCount--
 				if ksBlocked.blockedCount == 0 && ksBlocked.err == (errKeyNotEvaluated{}) {
+					rc.blockedKeys.remove(ksBlocked)
 					rc.enqueue(ksBlocked)
 				}
 			}
@@ -134,6 +148,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 			if ks.blockedCount != 0 {
 				panic("key that is currently being evaluated cannot be blocked")
 			}
+			ks.restarts++
 			restartImmediately := true
 			for _, ksDep := range dependencies {
 				if err := ksDep.err; err == (errKeyNotEvaluated{}) {
@@ -141,6 +156,9 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 						rc.blockingKeys[ksDep] = struct{}{}
 					}
 					ksDep.blocking = append(ksDep.blocking, ks)
+					if ks.blockedCount == 0 {
+						rc.blockedKeys.pushLast(ks)
+					}
 					ks.blockedCount++
 					restartImmediately = false
 				} else if err != nil {
@@ -177,10 +195,14 @@ func getKeyHash[TReference object.BasicReference](key model_core.TopLevelMessage
 
 func (rc *RecursiveComputer[TReference, TMetadata]) propagateFailure(ks *KeyState[TReference, TMetadata], err error) {
 	for _, ksBlocked := range ks.blocking {
-		rc.failKeyState(ksBlocked, NestedError[TReference]{
-			Key: ks.key,
-			Err: err,
-		})
+		if ksBlocked.blockedCount > 0 {
+			rc.blockedKeys.remove(ksBlocked)
+			ksBlocked.blockedCount = 0
+			rc.failKeyState(ksBlocked, NestedError[TReference]{
+				Key: ks.key,
+				Err: err,
+			})
+		}
 	}
 }
 
@@ -199,6 +221,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) completeKeyState(ks *KeyStat
 		close(ks.completionWait)
 		ks.completionWait = nil
 	}
+	rc.completedKeys.pushLast(ks)
 }
 
 func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(key model_core.TopLevelMessage[proto.Message, TReference], keyHash [sha256.Size]byte, initialValueState valueState[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
@@ -274,9 +297,35 @@ func (rc *RecursiveComputer[TReference, TMetadata]) WaitForMessageValue(ctx cont
 	return ks.value.(*messageValueState[TReference, TMetadata]).value, nil
 }
 
+func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress() (model_core.PatchedMessage[*model_evaluation_pb.Progress, TMetadata], error) {
+	rc.lock.Lock()
+	defer rc.lock.Unlock()
+
+	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_evaluation_pb.Progress, error) {
+		evaluatingKeys := make([]*model_evaluation_pb.Progress_EvaluatingKey, 0, rc.evaluatingKeys.count)
+		for ks := rc.evaluatingKeys.head.nextKey; ks != &rc.evaluatingKeys.head; ks = ks.nextKey {
+			anyKey, err := model_core.MarshalAny(model_core.Patch(rc.objectManager, ks.key.Decay()))
+			if err != nil {
+				return nil, err
+			}
+			evaluatingKeys = append(evaluatingKeys, &model_evaluation_pb.Progress_EvaluatingKey{
+				Key:                    anyKey.Merge(patcher),
+				FirstEvaluationStart:   timestamppb.New(ks.firstEvaluationStart),
+				CurrentEvaluationStart: timestamppb.New(ks.currentEvaluationStart),
+				Restarts:               ks.restarts,
+			})
+		}
+		return &model_evaluation_pb.Progress{
+			CompletedKeysCount: rc.completedKeys.count,
+			EvaluatingKeys:     evaluatingKeys,
+			QueuedKeysCount:    rc.queuedKeys.count,
+			BlockedKeysCount:   rc.blockedKeys.count,
+		}, nil
+	})
+}
+
 func (rc *RecursiveComputer[TReference, TMetadata]) enqueue(ks *KeyState[TReference, TMetadata]) {
-	*rc.lastQueuedKey = ks
-	rc.lastQueuedKey = &ks.nextQueuedKey
+	rc.queuedKeys.pushLast(ks)
 	// TODO: This wakes up all threads.
 	if rc.queuedKeysWait != nil {
 		close(rc.queuedKeysWait)
@@ -396,6 +445,50 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetNativeValue(
 	return nvs.value, true
 }
 
+type keyStateList[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	head  KeyState[TReference, TMetadata]
+	count uint64
+}
+
+func (ksl *keyStateList[TReference, TMetadata]) init() {
+	ksl.head.previousKey = &ksl.head
+	ksl.head.nextKey = &ksl.head
+}
+
+func (ksl *keyStateList[TReference, TMetadata]) empty() bool {
+	return ksl.head.nextKey == &ksl.head
+}
+
+func (ksl *keyStateList[TReference, TMetadata]) popFirst() *KeyState[TReference, TMetadata] {
+	ks := ksl.head.nextKey
+	ksl.remove(ks)
+	return ks
+}
+
+func (ksl *keyStateList[TReference, TMetadata]) pushLast(ks *KeyState[TReference, TMetadata]) {
+	if ks.previousKey != nil || ks.nextKey != nil {
+		panic("element is already in a list")
+	}
+
+	ks.previousKey = ksl.head.previousKey
+	ks.nextKey = &ksl.head
+	ks.previousKey.nextKey = ks
+	ks.nextKey.previousKey = ks
+	ksl.count++
+}
+
+func (ksl *keyStateList[TReference, TMetadata]) remove(ks *KeyState[TReference, TMetadata]) {
+	if ksl.count == 0 {
+		panic("invalid list element count")
+	}
+
+	ks.previousKey.nextKey = ks.nextKey
+	ks.nextKey.previousKey = ks.previousKey
+	ks.previousKey = nil
+	ks.nextKey = nil
+	ksl.count--
+}
+
 // KeyState contains all of the evaluation state of RecursiveComputer
 // for a given key. If evaluation has not yet completed, it stores the
 // list of keys that are currently blocked on its completion (i.e., its
@@ -406,9 +499,9 @@ type KeyState[TReference object.BasicReference, TMetadata model_core.ReferenceMe
 	key     model_core.TopLevelMessage[proto.Message, TReference]
 	keyHash [sha256.Size]byte
 
-	// If the key is queued for evaluation, this field is set to the
-	// next queued key, if any.
-	nextQueuedKey *KeyState[TReference, TMetadata]
+	// Pointers to siblings in the keyStateList.
+	previousKey *KeyState[TReference, TMetadata]
+	nextKey     *KeyState[TReference, TMetadata]
 
 	// The number of keys on which this key depends that have not
 	// been computed yet. Keys may not be queued if this field is
@@ -427,6 +520,10 @@ type KeyState[TReference object.BasicReference, TMetadata model_core.ReferenceMe
 	completionWait chan struct{}
 	value          valueState[TReference, TMetadata]
 	err            error
+
+	firstEvaluationStart   time.Time
+	currentEvaluationStart time.Time
+	restarts               uint32
 }
 
 type valueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {

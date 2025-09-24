@@ -20,6 +20,7 @@ import (
 	"bonanza.build/pkg/storage/object"
 	object_namespacemapping "bonanza.build/pkg/storage/object/namespacemapping"
 
+	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/program"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
@@ -44,6 +45,7 @@ type executor struct {
 	dagUploaderClient             dag_pb.UploaderClient
 	objectContentsWalkerSemaphore *semaphore.Weighted
 	evaluationConcurrency         int32
+	clock                         clock.Clock
 }
 
 func NewExecutor(
@@ -53,6 +55,7 @@ func NewExecutor(
 	dagUploaderClient dag_pb.UploaderClient,
 	objectContentsWalkerSemaphore *semaphore.Weighted,
 	evaluationConcurrency int32,
+	clock clock.Clock,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &executor{
 		objectDownloader:              objectDownloader,
@@ -61,6 +64,7 @@ func NewExecutor(
 		dagUploaderClient:             dagUploaderClient,
 		objectContentsWalkerSemaphore: objectContentsWalkerSemaphore,
 		evaluationConcurrency:         evaluationConcurrency,
+		clock:                         clock,
 	}
 }
 
@@ -137,6 +141,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				),
 			),
 			objectManager,
+			e.clock,
 		)
 
 		// Set keys for which we have overrides in place.
@@ -261,6 +266,51 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		// Perform the build.
 		var value model_core.Message[proto.Message, buffered.Reference]
 		errCompute := program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+			// Launch a goroutine for reporting progress.
+			dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+				for {
+					t, tChan := e.clock.NewTimer(10 * time.Second)
+					select {
+					case <-ctx.Done():
+						t.Stop()
+						return nil
+					case <-tChan:
+					}
+
+					progress, err := recursiveComputer.GetProgress()
+					if err != nil {
+						return err
+					}
+					createdProgress, err := model_core.MarshalAndEncode(
+						model_core.ProtoToMarshalable(progress),
+						referenceFormat,
+						actionEncoder,
+					)
+					if err != nil {
+						return err
+					}
+					capturedProgress, err := createdProgress.Value.Capture(ctx, objectManager)
+					if err != nil {
+						if ctx.Err() != nil {
+							return nil
+						}
+						return err
+					}
+					progressReference, err := objectExporter.ExportReference(ctx, objectManager.ReferenceObject(capturedProgress))
+					if err != nil {
+						if ctx.Err() != nil {
+							return nil
+						}
+						return err
+					}
+
+					select {
+					case <-ctx.Done():
+					case executionEvents <- model_core.CopyDecodable(createdProgress, progressReference):
+					}
+				}
+			})
+
 			// Launch goroutines for performing evaluation.
 			for i := int32(0); i < e.evaluationConcurrency; i++ {
 				dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {

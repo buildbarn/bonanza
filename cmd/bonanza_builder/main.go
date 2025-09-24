@@ -130,6 +130,7 @@ func main() {
 						dag_pb.NewUploaderClient(storageGRPCClient),
 						semaphore.NewWeighted(int64(runtime.NumCPU())),
 						configuration.EvaluationConcurrency,
+						clock.SystemClock,
 					),
 				),
 			),

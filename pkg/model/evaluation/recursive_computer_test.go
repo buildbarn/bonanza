@@ -9,6 +9,7 @@ import (
 	"bonanza.build/pkg/model/evaluation"
 	"bonanza.build/pkg/storage/object"
 
+	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/program"
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
@@ -60,7 +61,7 @@ func TestRecursiveComputer(t *testing.T) {
 			AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 
-		recursiveComputer := evaluation.NewRecursiveComputer(computer, objectManager)
+		recursiveComputer := evaluation.NewRecursiveComputer(computer, objectManager, clock.SystemClock)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 				&wrapperspb.UInt32Value{
@@ -103,7 +104,7 @@ func TestRecursiveComputer(t *testing.T) {
 			})
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 
-		recursiveComputer := evaluation.NewRecursiveComputer(computer, objectManager)
+		recursiveComputer := evaluation.NewRecursiveComputer(computer, objectManager, clock.SystemClock)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 				&wrapperspb.UInt32Value{
@@ -161,7 +162,7 @@ func TestRecursiveComputer(t *testing.T) {
 			Times(4)
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 
-		recursiveComputer := evaluation.NewRecursiveComputer(computer, objectManager)
+		recursiveComputer := evaluation.NewRecursiveComputer(computer, objectManager, clock.SystemClock)
 
 		keyState2, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](

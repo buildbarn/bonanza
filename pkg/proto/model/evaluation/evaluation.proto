@@ -98,7 +98,7 @@ message Action {
 }
 
 message Progress {
-  message CurrentlyEvaluatingKey {
+  message EvaluatingKey {
     // The input message that is provided to the evaluation function.
     bonanza.model.core.Any key = 1;
 
@@ -115,8 +115,19 @@ message Progress {
     uint32 restarts = 4;
   }
 
+  // The number of keys for which evaluation has completed.
+  uint64 completed_keys_count = 1;
+
   // Keys for which the evaluation function is currently being executed.
-  repeated CurrentlyEvaluatingKey currently_evaluating_keys = 1;
+  repeated EvaluatingKey evaluating_keys = 2;
+
+  // The number of keys which are currently queued for execution.
+  uint64 queued_keys_count = 3;
+
+  // The number of keys which still need to be evaluated, but have not
+  // been queued because one of their dependencies has not been
+  // evaluated yet.
+  uint64 blocked_keys_count = 4;
 }
 
 message Result {

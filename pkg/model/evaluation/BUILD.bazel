@@ -26,11 +26,13 @@ go_library(
         "//pkg/remoteworker",
         "//pkg/storage/object",
         "//pkg/storage/object/namespacemapping",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/timestamppb",
         "@org_golang_x_sync//semaphore",
     ],
 )
@@ -45,6 +47,7 @@ go_test(
     deps = [
         "//pkg/model/core",
         "//pkg/storage/object",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",

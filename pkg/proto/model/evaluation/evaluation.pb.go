@@ -241,10 +241,13 @@ func (x *Action) GetRequestedKeys() []*Keys {
 }
 
 type Progress struct {
-	state                   protoimpl.MessageState             `protogen:"open.v1"`
-	CurrentlyEvaluatingKeys []*Progress_CurrentlyEvaluatingKey `protobuf:"bytes,1,rep,name=currently_evaluating_keys,json=currentlyEvaluatingKeys,proto3" json:"currently_evaluating_keys,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state              protoimpl.MessageState    `protogen:"open.v1"`
+	CompletedKeysCount uint64                    `protobuf:"varint,1,opt,name=completed_keys_count,json=completedKeysCount,proto3" json:"completed_keys_count,omitempty"`
+	EvaluatingKeys     []*Progress_EvaluatingKey `protobuf:"bytes,2,rep,name=evaluating_keys,json=evaluatingKeys,proto3" json:"evaluating_keys,omitempty"`
+	QueuedKeysCount    uint64                    `protobuf:"varint,3,opt,name=queued_keys_count,json=queuedKeysCount,proto3" json:"queued_keys_count,omitempty"`
+	BlockedKeysCount   uint64                    `protobuf:"varint,4,opt,name=blocked_keys_count,json=blockedKeysCount,proto3" json:"blocked_keys_count,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Progress) Reset() {
@@ -277,11 +280,32 @@ func (*Progress) Descriptor() ([]byte, []int) {
 	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *Progress) GetCurrentlyEvaluatingKeys() []*Progress_CurrentlyEvaluatingKey {
+func (x *Progress) GetCompletedKeysCount() uint64 {
 	if x != nil {
-		return x.CurrentlyEvaluatingKeys
+		return x.CompletedKeysCount
+	}
+	return 0
+}
+
+func (x *Progress) GetEvaluatingKeys() []*Progress_EvaluatingKey {
+	if x != nil {
+		return x.EvaluatingKeys
 	}
 	return nil
+}
+
+func (x *Progress) GetQueuedKeysCount() uint64 {
+	if x != nil {
+		return x.QueuedKeysCount
+	}
+	return 0
+}
+
+func (x *Progress) GetBlockedKeysCount() uint64 {
+	if x != nil {
+		return x.BlockedKeysCount
+	}
+	return 0
 }
 
 type Result struct {
@@ -492,7 +516,7 @@ func (x *Evaluation_Leaf) GetDependencies() []*Keys {
 	return nil
 }
 
-type Progress_CurrentlyEvaluatingKey struct {
+type Progress_EvaluatingKey struct {
 	state                  protoimpl.MessageState `protogen:"open.v1"`
 	Key                    *core.Any              `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	FirstEvaluationStart   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=first_evaluation_start,json=firstEvaluationStart,proto3" json:"first_evaluation_start,omitempty"`
@@ -502,20 +526,20 @@ type Progress_CurrentlyEvaluatingKey struct {
 	sizeCache              protoimpl.SizeCache
 }
 
-func (x *Progress_CurrentlyEvaluatingKey) Reset() {
-	*x = Progress_CurrentlyEvaluatingKey{}
+func (x *Progress_EvaluatingKey) Reset() {
+	*x = Progress_EvaluatingKey{}
 	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Progress_CurrentlyEvaluatingKey) String() string {
+func (x *Progress_EvaluatingKey) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Progress_CurrentlyEvaluatingKey) ProtoMessage() {}
+func (*Progress_EvaluatingKey) ProtoMessage() {}
 
-func (x *Progress_CurrentlyEvaluatingKey) ProtoReflect() protoreflect.Message {
+func (x *Progress_EvaluatingKey) ProtoReflect() protoreflect.Message {
 	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -527,33 +551,33 @@ func (x *Progress_CurrentlyEvaluatingKey) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Progress_CurrentlyEvaluatingKey.ProtoReflect.Descriptor instead.
-func (*Progress_CurrentlyEvaluatingKey) Descriptor() ([]byte, []int) {
+// Deprecated: Use Progress_EvaluatingKey.ProtoReflect.Descriptor instead.
+func (*Progress_EvaluatingKey) Descriptor() ([]byte, []int) {
 	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3, 0}
 }
 
-func (x *Progress_CurrentlyEvaluatingKey) GetKey() *core.Any {
+func (x *Progress_EvaluatingKey) GetKey() *core.Any {
 	if x != nil {
 		return x.Key
 	}
 	return nil
 }
 
-func (x *Progress_CurrentlyEvaluatingKey) GetFirstEvaluationStart() *timestamppb.Timestamp {
+func (x *Progress_EvaluatingKey) GetFirstEvaluationStart() *timestamppb.Timestamp {
 	if x != nil {
 		return x.FirstEvaluationStart
 	}
 	return nil
 }
 
-func (x *Progress_CurrentlyEvaluatingKey) GetCurrentEvaluationStart() *timestamppb.Timestamp {
+func (x *Progress_EvaluatingKey) GetCurrentEvaluationStart() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CurrentEvaluationStart
 	}
 	return nil
 }
 
-func (x *Progress_CurrentlyEvaluatingKey) GetRestarts() uint32 {
+func (x *Progress_EvaluatingKey) GetRestarts() uint32 {
 	if x != nil {
 		return x.Restarts
 	}
@@ -637,10 +661,13 @@ const file_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "" +
 	"\x05level\"\xd4\x01\n" +
 	"\x06Action\x12\x82\x01\n" +
 	"\x13overrides_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x12overridesReference\x12E\n" +
-	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\"\x8b\x03\n" +
-	"\bProgress\x12u\n" +
-	"\x19currently_evaluating_keys\x18\x01 \x03(\v29.bonanza.model.evaluation.Progress.CurrentlyEvaluatingKeyR\x17currentlyEvaluatingKeys\x1a\x87\x02\n" +
-	"\x16CurrentlyEvaluatingKey\x12)\n" +
+	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\"\xf2\x03\n" +
+	"\bProgress\x120\n" +
+	"\x14completed_keys_count\x18\x01 \x01(\x04R\x12completedKeysCount\x12Y\n" +
+	"\x0fevaluating_keys\x18\x02 \x03(\v20.bonanza.model.evaluation.Progress.EvaluatingKeyR\x0eevaluatingKeys\x12*\n" +
+	"\x11queued_keys_count\x18\x03 \x01(\x04R\x0fqueuedKeysCount\x12,\n" +
+	"\x12blocked_keys_count\x18\x04 \x01(\x04R\x10blockedKeysCount\x1a\xfe\x01\n" +
+	"\rEvaluatingKey\x12)\n" +
 	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12P\n" +
 	"\x16first_evaluation_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x14firstEvaluationStart\x12T\n" +
 	"\x18current_evaluation_start\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x16currentEvaluationStart\x12\x1a\n" +
@@ -666,20 +693,20 @@ func file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP() []byte {
 
 var file_pkg_proto_model_evaluation_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_pkg_proto_model_evaluation_evaluation_proto_goTypes = []any{
-	(*Keys)(nil),                            // 0: bonanza.model.evaluation.Keys
-	(*Evaluation)(nil),                      // 1: bonanza.model.evaluation.Evaluation
-	(*Action)(nil),                          // 2: bonanza.model.evaluation.Action
-	(*Progress)(nil),                        // 3: bonanza.model.evaluation.Progress
-	(*Result)(nil),                          // 4: bonanza.model.evaluation.Result
-	(*Keys_Parent)(nil),                     // 5: bonanza.model.evaluation.Keys.Parent
-	(*Evaluation_Parent)(nil),               // 6: bonanza.model.evaluation.Evaluation.Parent
-	(*Evaluation_Leaf)(nil),                 // 7: bonanza.model.evaluation.Evaluation.Leaf
-	(*Progress_CurrentlyEvaluatingKey)(nil), // 8: bonanza.model.evaluation.Progress.CurrentlyEvaluatingKey
-	(*Result_Failure)(nil),                  // 9: bonanza.model.evaluation.Result.Failure
-	(*core.Any)(nil),                        // 10: bonanza.model.core.Any
-	(*core.DecodableReference)(nil),         // 11: bonanza.model.core.DecodableReference
-	(*timestamppb.Timestamp)(nil),           // 12: google.protobuf.Timestamp
-	(*status.Status)(nil),                   // 13: google.rpc.Status
+	(*Keys)(nil),                    // 0: bonanza.model.evaluation.Keys
+	(*Evaluation)(nil),              // 1: bonanza.model.evaluation.Evaluation
+	(*Action)(nil),                  // 2: bonanza.model.evaluation.Action
+	(*Progress)(nil),                // 3: bonanza.model.evaluation.Progress
+	(*Result)(nil),                  // 4: bonanza.model.evaluation.Result
+	(*Keys_Parent)(nil),             // 5: bonanza.model.evaluation.Keys.Parent
+	(*Evaluation_Parent)(nil),       // 6: bonanza.model.evaluation.Evaluation.Parent
+	(*Evaluation_Leaf)(nil),         // 7: bonanza.model.evaluation.Evaluation.Leaf
+	(*Progress_EvaluatingKey)(nil),  // 8: bonanza.model.evaluation.Progress.EvaluatingKey
+	(*Result_Failure)(nil),          // 9: bonanza.model.evaluation.Result.Failure
+	(*core.Any)(nil),                // 10: bonanza.model.core.Any
+	(*core.DecodableReference)(nil), // 11: bonanza.model.core.DecodableReference
+	(*timestamppb.Timestamp)(nil),   // 12: google.protobuf.Timestamp
+	(*status.Status)(nil),           // 13: google.rpc.Status
 }
 var file_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
 	10, // 0: bonanza.model.evaluation.Keys.leaf:type_name -> bonanza.model.core.Any
@@ -688,7 +715,7 @@ var file_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
 	6,  // 3: bonanza.model.evaluation.Evaluation.parent:type_name -> bonanza.model.evaluation.Evaluation.Parent
 	11, // 4: bonanza.model.evaluation.Action.overrides_reference:type_name -> bonanza.model.core.DecodableReference
 	0,  // 5: bonanza.model.evaluation.Action.requested_keys:type_name -> bonanza.model.evaluation.Keys
-	8,  // 6: bonanza.model.evaluation.Progress.currently_evaluating_keys:type_name -> bonanza.model.evaluation.Progress.CurrentlyEvaluatingKey
+	8,  // 6: bonanza.model.evaluation.Progress.evaluating_keys:type_name -> bonanza.model.evaluation.Progress.EvaluatingKey
 	9,  // 7: bonanza.model.evaluation.Result.failure:type_name -> bonanza.model.evaluation.Result.Failure
 	11, // 8: bonanza.model.evaluation.Result.outcomes_reference:type_name -> bonanza.model.core.DecodableReference
 	11, // 9: bonanza.model.evaluation.Keys.Parent.reference:type_name -> bonanza.model.core.DecodableReference
@@ -696,9 +723,9 @@ var file_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
 	10, // 11: bonanza.model.evaluation.Evaluation.Leaf.key:type_name -> bonanza.model.core.Any
 	10, // 12: bonanza.model.evaluation.Evaluation.Leaf.value:type_name -> bonanza.model.core.Any
 	0,  // 13: bonanza.model.evaluation.Evaluation.Leaf.dependencies:type_name -> bonanza.model.evaluation.Keys
-	10, // 14: bonanza.model.evaluation.Progress.CurrentlyEvaluatingKey.key:type_name -> bonanza.model.core.Any
-	12, // 15: bonanza.model.evaluation.Progress.CurrentlyEvaluatingKey.first_evaluation_start:type_name -> google.protobuf.Timestamp
-	12, // 16: bonanza.model.evaluation.Progress.CurrentlyEvaluatingKey.current_evaluation_start:type_name -> google.protobuf.Timestamp
+	10, // 14: bonanza.model.evaluation.Progress.EvaluatingKey.key:type_name -> bonanza.model.core.Any
+	12, // 15: bonanza.model.evaluation.Progress.EvaluatingKey.first_evaluation_start:type_name -> google.protobuf.Timestamp
+	12, // 16: bonanza.model.evaluation.Progress.EvaluatingKey.current_evaluation_start:type_name -> google.protobuf.Timestamp
 	10, // 17: bonanza.model.evaluation.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
 	13, // 18: bonanza.model.evaluation.Result.Failure.status:type_name -> google.rpc.Status
 	19, // [19:19] is the sub-list for method output_type
