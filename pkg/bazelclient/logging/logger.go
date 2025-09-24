@@ -13,6 +13,7 @@ type Logger interface {
 	Error(message formatted.Node)
 	Fatal(message formatted.Node)
 	Info(message formatted.Node)
+	RemovePreviousLines(int)
 }
 
 func NewLoggerFromFlags(commonFlags *arguments.CommonFlags) Logger {

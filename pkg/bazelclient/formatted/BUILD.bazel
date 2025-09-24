@@ -4,8 +4,11 @@ go_library(
     name = "formatted",
     srcs = [
         "attr.go",
+        "cursor.go",
+        "erase_display.go",
         "join.go",
         "link.go",
+        "no_wrap.go",
         "node.go",
         "text.go",
         "write_plain_text.go",

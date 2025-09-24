@@ -627,15 +627,50 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			actionLink = formatted.Link(actionURL, actionLink)
 		}
 	}
-	logger.Info(formatted.Join(formatted.Text("Performing build "), actionLink))
 
+	parsedObjectPool := model_parser.NewParsedObjectPool(
+		eviction.NewLRUSet[model_parser.ParsedObjectEvictionKey](),
+		/* maximumCount = */ 1e3,
+		/* maximumSizeBytes = */ 1e5,
+	)
+	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester[object.LocalReference](
+		parsedObjectPool,
+		model_parser.NewDownloadingParsedObjectReader(
+			object_namespacemapping.NewNamespaceAddingDownloader(
+				object_grpc.NewGRPCDownloader(object_pb.NewDownloaderClient(remoteCacheClient)),
+				instanceName,
+			),
+		),
+	)
+
+	var jsonFormatter messageJSONFormatter
+	if browserURL != "" {
+		if baseURL, err := url.JoinPath(
+			browserURL,
+			"object",
+			url.PathEscape(instanceName.String()),
+			referenceFormat.ToProto().String(),
+		); err == nil {
+			jsonFormatter.baseURL = baseURL
+		}
+	}
+
+	logger.Info(formatted.Join(formatted.Text("Performing build "), actionLink))
 	var resultReference model_core.Decodable[object.LocalReference]
 	var errBuild error
 	namespace := object.Namespace{
 		InstanceName:    instanceName,
 		ReferenceFormat: referenceFormat,
 	}
-	for range builderClient.RunAction(
+	progressReader := model_parser.LookupParsedObjectReader(
+		parsedObjectPoolIngester,
+		model_parser.NewChainedObjectParser(
+			model_parser.NewEncodedObjectParser[object.LocalReference](actionEncoder),
+			model_parser.NewProtoObjectParser[object.LocalReference, model_evaluation_pb.Progress](),
+		),
+	)
+	progressLinesWritten := 0
+	for progressReference := range builderClient.RunAction(
 		context.Background(),
 		builderECDHPublicKey,
 		&model_executewithstorage.Action[object.LocalReference]{
@@ -656,26 +691,50 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		&resultReference,
 		&errBuild,
 	) {
-		// TODO: Display events as they come in.
+		progress, err := progressReader.ReadParsedObject(context.Background(), progressReference)
+		if err != nil {
+			logger.Fatal(formatted.Textf("Failed to read progress message: %s", err))
+		}
+		logger.RemovePreviousLines(progressLinesWritten)
+		progressLinesWritten = 0
+
+		logger.Info(formatted.Textf(
+			"🏁 %d   🚗💨 %d   🚦 %d   🚧 %d",
+			progress.Message.CompletedKeysCount,
+			len(progress.Message.EvaluatingKeys),
+			progress.Message.QueuedKeysCount,
+			progress.Message.BlockedKeysCount,
+		))
+		progressLinesWritten++
+
+		longestType := 0
+		for _, evaluatingKey := range progress.Message.EvaluatingKeys {
+			if l := len(getAbbreviatedTypeURL(evaluatingKey.Key.GetValue().GetTypeUrl())); longestType < l {
+				longestType = l
+			}
+		}
+
+		for _, evaluatingKey := range progress.Message.EvaluatingKeys {
+			logger.Info(
+				formatted.NoWrap(
+					formatKey(
+						namespace,
+						model_core.Nested(progress, evaluatingKey.Key),
+						&jsonFormatter,
+						browserURL,
+						/* outcomesReference = */ nil,
+						longestType,
+					),
+				),
+			)
+			progressLinesWritten++
+		}
 	}
 	if errBuild != nil {
 		logger.Fatal(formatted.Textf("Failed to perform build: %s", errBuild))
 	}
+	logger.RemovePreviousLines(progressLinesWritten)
 
-	parsedObjectPool := model_parser.NewParsedObjectPool(
-		eviction.NewLRUSet[model_parser.ParsedObjectEvictionKey](),
-		/* maximumCount = */ 1e3,
-		/* maximumSizeBytes = */ 1e5,
-	)
-	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester[object.LocalReference](
-		parsedObjectPool,
-		model_parser.NewDownloadingParsedObjectReader(
-			object_namespacemapping.NewNamespaceAddingDownloader(
-				object_grpc.NewGRPCDownloader(object_pb.NewDownloaderClient(remoteCacheClient)),
-				instanceName,
-			),
-		),
-	)
 	resultReader := model_parser.LookupParsedObjectReader(
 		parsedObjectPoolIngester,
 		model_parser.NewChainedObjectParser(
@@ -702,25 +761,48 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 
 	if f := result.Message.Failure; f != nil {
-		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, browserURL, outcomesReference)
+		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, &jsonFormatter, browserURL, outcomesReference)
 		logger.Fatal(formatted.Textf("Failed to perform build: %s", status.FromProto(f.Status)))
 	}
 }
 
-func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Message[[]*model_core_pb.Any, object.LocalReference], logger logging.Logger, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference]) {
-	if len(stackTraceKeys.Message) > 0 {
-		logger.Error(formatted.Text("Traceback (most recent key last):"))
-		var f messageJSONFormatter
-		if browserURL != "" {
-			if baseURL, err := url.JoinPath(
-				browserURL,
-				"object",
-				url.PathEscape(namespace.InstanceName.String()),
-				namespace.ReferenceFormat.ToProto().String(),
-			); err == nil {
-				f.baseURL = baseURL
+func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core_pb.Any, object.LocalReference], jsonFormatter *messageJSONFormatter, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference], longestType int) formatted.Node {
+	abbreviatedType := getAbbreviatedTypeURL(keyAny.Message.GetValue().GetTypeUrl())
+	abbreviatedTypeNode := formatted.Text(abbreviatedType)
+	var body formatted.Node
+	if flattenedKey, err := model_core.FlattenAny(keyAny); err != nil {
+		body = formatted.Bold(formatted.Text(fmt.Sprintf("Failed to flatten key: %s", err)))
+	} else if key, err := model_core.UnmarshalTopLevelAnyNew[object.LocalReference](flattenedKey); err != nil {
+		body = formatted.Bold(formatted.Text(fmt.Sprintf("Failed to unmarshal key: %s", err)))
+	} else {
+		if browserURL != "" && outcomesReference != nil {
+			if marshaledKey, err := model_core.MarshalTopLevelMessage(flattenedKey); err == nil {
+				if evaluationURL, err := url.JoinPath(
+					browserURL,
+					"evaluation",
+					url.PathEscape(namespace.InstanceName.String()),
+					namespace.ReferenceFormat.ToProto().String(),
+					model_core.DecodableLocalReferenceToString(*outcomesReference),
+					base64.RawURLEncoding.EncodeToString(marshaledKey),
+				); err == nil {
+					abbreviatedTypeNode = formatted.Link(evaluationURL, abbreviatedTypeNode)
+				}
 			}
 		}
+		body = jsonFormatter.formatJSONMessage(model_core.Nested(key.Decay(), key.Message.ProtoReflect()))
+	}
+	return formatted.Join(
+		formatted.Text("  "),
+		abbreviatedTypeNode,
+		formatted.Textf("%*s", longestType-len(abbreviatedType), ""),
+		formatted.Textf("  "),
+		body,
+	)
+}
+
+func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Message[[]*model_core_pb.Any, object.LocalReference], logger logging.Logger, jsonFormatter *messageJSONFormatter, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference]) {
+	if len(stackTraceKeys.Message) > 0 {
+		logger.Error(formatted.Text("Traceback (most recent key last):"))
 
 		longestType := 0
 		for _, keyAny := range stackTraceKeys.Message {
@@ -730,37 +812,15 @@ func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Messa
 		}
 
 		for _, keyAny := range stackTraceKeys.Message {
-			abbreviatedType := getAbbreviatedTypeURL(keyAny.Value.GetTypeUrl())
-			abbreviatedTypeNode := formatted.Text(abbreviatedType)
-			var body formatted.Node
-			if flattenedKey, err := model_core.FlattenAny(model_core.Nested(stackTraceKeys, keyAny)); err != nil {
-				body = formatted.Bold(formatted.Text(fmt.Sprintf("Failed to flatten key: %s", err)))
-			} else if key, err := model_core.UnmarshalTopLevelAnyNew[object.LocalReference](flattenedKey); err != nil {
-				body = formatted.Bold(formatted.Text(fmt.Sprintf("Failed to unmarshal key: %s", err)))
-			} else {
-				if browserURL != "" && outcomesReference != nil {
-					if marshaledKey, err := model_core.MarshalTopLevelMessage(flattenedKey); err == nil {
-						if evaluationURL, err := url.JoinPath(
-							browserURL,
-							"evaluation",
-							url.PathEscape(namespace.InstanceName.String()),
-							namespace.ReferenceFormat.ToProto().String(),
-							model_core.DecodableLocalReferenceToString(*outcomesReference),
-							base64.RawURLEncoding.EncodeToString(marshaledKey),
-						); err == nil {
-							abbreviatedTypeNode = formatted.Link(evaluationURL, abbreviatedTypeNode)
-						}
-					}
-				}
-				body = f.formatJSONMessage(model_core.Nested(key.Decay(), key.Message.ProtoReflect()))
-			}
-			logger.Error(formatted.Join(
-				formatted.Text("  "),
-				abbreviatedTypeNode,
-				formatted.Textf("%*s", longestType-len(abbreviatedType), ""),
-				formatted.Textf("  "),
-				body,
-			))
+			logger.Error(
+				formatKey(
+					namespace,
+					model_core.Nested(stackTraceKeys, keyAny),
+					jsonFormatter,
+					browserURL,
+					outcomesReference,
+					longestType),
+			)
 		}
 	}
 }

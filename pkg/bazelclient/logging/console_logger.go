@@ -52,3 +52,15 @@ func (l *consoleLogger) Info(message formatted.Node) {
 	)
 	l.w.Write(b.Bytes())
 }
+
+func (l *consoleLogger) RemovePreviousLines(linesCount int) {
+	var b bytes.Buffer
+	l.writeFormatted(
+		formatted.Join(
+			formatted.CursorUp(linesCount),
+			formatted.EraseDisplay,
+		),
+		&b,
+	)
+	l.w.Write(b.Bytes())
+}
