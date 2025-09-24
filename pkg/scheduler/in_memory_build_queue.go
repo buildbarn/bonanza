@@ -859,6 +859,7 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 			t := w.currentTask
 			t.lastExecutionEvent = event
 			t.executionEventsSeen++
+			t.reportNonFinalStageChange()
 		}
 
 		// Allow the worker to continue with what it's doing
