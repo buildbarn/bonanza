@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"log"
-	"runtime/debug"
 	"sync"
 
 	"bonanza.build/pkg/storage/object"
@@ -105,7 +104,8 @@ func (om *LeakCheckingObjectManager[TReference, TMetadata]) wrap(base TMetadata)
 		base:  base,
 		state: &om.state,
 		entry: leakCheckingListEntry{
-			stack: debug.Stack(),
+			// TODO: This is too heavy to always leave enabled.
+			// stack: debug.Stack(),
 		},
 	}
 	s := &om.state
