@@ -61,9 +61,6 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
-
-	// Needed to display proper stack traces.
-	_ "bonanza.build/pkg/proto/model/analysis"
 )
 
 func newGRPCClient(endpoint string, commonFlags *arguments.CommonFlags) (*grpc.ClientConn, error) {
