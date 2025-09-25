@@ -24,7 +24,7 @@ def _wrap_actions(actions, bin_dir, label):
     def actions_run_shell(*, command, arguments = [], **kwargs):
         actions.run(
             executable = "/bin/bash",
-            arguments = ["-c", command] + arguments,
+            arguments = ["-c", command, ""] + arguments,
             **kwargs
         )
 
