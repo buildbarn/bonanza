@@ -21,10 +21,10 @@ def _wrap_actions(actions, bin_dir, label):
 
         return actions.declare_file(path.removeprefix(expected_path_prefix))
 
-    def actions_run_shell(*, command, **kwargs):
+    def actions_run_shell(*, command, arguments = [], **kwargs):
         actions.run(
             executable = "/bin/bash",
-            arguments = ["-c", command],
+            arguments = ["-c", command] + arguments,
             **kwargs
         )
 
