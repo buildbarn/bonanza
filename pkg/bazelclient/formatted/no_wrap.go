@@ -30,7 +30,7 @@ func (n *noWrap) writeVT100(w io.StringWriter, attributesState *vt100AttributesS
 		return nTotal, err
 	}
 
-	nPart, err = w.WriteString("\x1b[?7l")
+	nPart, err = w.WriteString("\x1b[?7h")
 	nTotal += nPart
 	return nTotal, err
 }
