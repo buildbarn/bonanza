@@ -134,10 +134,12 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 		if err == nil {
 			ks.err = nil
 			for _, ksBlocked := range ks.blocking {
-				ksBlocked.blockedCount--
-				if ksBlocked.blockedCount == 0 && ksBlocked.err == (errKeyNotEvaluated{}) {
-					rc.blockedKeys.remove(ksBlocked)
-					rc.enqueue(ksBlocked)
+				if ksBlocked.blockedCount > 0 {
+					ksBlocked.blockedCount--
+					if ksBlocked.blockedCount == 0 {
+						rc.blockedKeys.remove(ksBlocked)
+						rc.enqueue(ksBlocked)
+					}
 				}
 			}
 			rc.completeKeyState(ks)
@@ -151,22 +153,28 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 			ks.restarts++
 			restartImmediately := true
 			for _, ksDep := range dependencies {
-				if err := ksDep.err; err == (errKeyNotEvaluated{}) {
-					if len(ksDep.blocking) == 0 {
-						rc.blockingKeys[ksDep] = struct{}{}
-					}
-					ksDep.blocking = append(ksDep.blocking, ks)
-					if ks.blockedCount == 0 {
-						rc.blockedKeys.pushLast(ks)
-					}
-					ks.blockedCount++
-					restartImmediately = false
-				} else if err != nil {
+				if err := ksDep.err; err != nil && err != (errKeyNotEvaluated{}) {
 					rc.failKeyState(ks, NestedError[TReference]{
 						Key: ksDep.key,
 						Err: err,
 					})
 					restartImmediately = false
+					break
+				}
+			}
+			if restartImmediately {
+				for _, ksDep := range dependencies {
+					if ksDep.err == (errKeyNotEvaluated{}) {
+						if len(ksDep.blocking) == 0 {
+							rc.blockingKeys[ksDep] = struct{}{}
+						}
+						ksDep.blocking = append(ksDep.blocking, ks)
+						if ks.blockedCount == 0 {
+							rc.blockedKeys.pushLast(ks)
+						}
+						ks.blockedCount++
+						restartImmediately = false
+					}
 				}
 			}
 			if restartImmediately {
@@ -207,11 +215,9 @@ func (rc *RecursiveComputer[TReference, TMetadata]) propagateFailure(ks *KeyStat
 }
 
 func (rc *RecursiveComputer[TReference, TMetadata]) failKeyState(ks *KeyState[TReference, TMetadata], err error) {
-	if ks.err == (errKeyNotEvaluated{}) {
-		ks.err = err
-		rc.propagateFailure(ks, err)
-		rc.completeKeyState(ks)
-	}
+	ks.err = err
+	rc.propagateFailure(ks, err)
+	rc.completeKeyState(ks)
 }
 
 func (rc *RecursiveComputer[TReference, TMetadata]) completeKeyState(ks *KeyState[TReference, TMetadata]) {
