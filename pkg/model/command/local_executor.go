@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"maps"
 	"sort"
 	"strings"
 	"sync"
@@ -311,7 +312,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			return &result
 		}
 
-		environmentVariables := map[string]string{}
+		environmentVariables := maps.Clone(e.environmentVariables)
 		for entry := range btree.AllLeaves(
 			ctx,
 			model_parser.LookupParsedObjectReader(
