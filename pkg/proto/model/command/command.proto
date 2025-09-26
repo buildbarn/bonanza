@@ -42,14 +42,14 @@ message Command {
   // the input root. The directory MUST exist within the input root.
   string working_directory = 6;
 
-  // The command to be run requires that the input root path is stable
-  // between actions.
+  // If non-empty, the command to be run requires that the input root
+  // path is stable between actions, identified by a given UUID.
   //
   // In the case of Bazel, this may be because the command belongs to a
   // module extension or repository rule. Such commands are,
   // unfortunately, allowed to assume that the main source tree and any
   // repositories are situated at stable locations.
-  bool needs_stable_input_root_path = 7;
+  string stable_input_root_path_uuid = 7;
 }
 
 message PathPattern {

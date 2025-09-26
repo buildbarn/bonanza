@@ -69,7 +69,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 				DirectoryCreationParameters: directoryCreationParametersValue.Message.DirectoryCreationParameters,
 				FileCreationParameters:      fileCreationParametersValue.Message.FileCreationParameters,
 				WorkingDirectory:            path.EmptyBuilder.GetUNIXString(),
-				NeedsStableInputRootPath:    true,
+				StableInputRootPathUuid:     repoRuleStableInputRootPathUUID,
 			}),
 			environmentVariableList.Patcher,
 		),

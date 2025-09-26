@@ -134,6 +134,12 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) maximumSymlinkEscapemen
 	return false
 }
 
+// repoRuleStableInputRootPathUUID is a randomly generated UUID that is
+// sent to workers for all actions that belong to repository rules and
+// module extensions. This causes the working directory path of these
+// actions to be stable.
+const repoRuleStableInputRootPathUUID = "c6add83b-eeae-4755-9dde-68ad80fed342"
+
 func (d *changeTrackingDirectory[TReference, TMetadata]) setContents(contents model_core.Message[*model_filesystem_pb.DirectoryContents, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
 	leaves, err := model_filesystem.DirectoryGetLeaves(options.context, options.leavesReader, contents)
 	if err != nil {
@@ -1961,7 +1967,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 					command.Message.DirectoryCreationParameters = mrc.directoryCreationParametersMessage
 					command.Message.FileCreationParameters = mrc.fileCreationParametersMessage
 					command.Message.WorkingDirectory = workingDirectory.GetUNIXString()
-					command.Message.NeedsStableInputRootPath = true
+					command.Message.StableInputRootPathUuid = repoRuleStableInputRootPathUUID
 				},
 			),
 			// Fields that can be stored externally if needed.
@@ -2357,7 +2363,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 				DirectoryCreationParameters: mrc.directoryCreationParametersMessage,
 				FileCreationParameters:      mrc.fileCreationParametersMessage,
 				WorkingDirectory:            "/",
-				NeedsStableInputRootPath:    true,
+				StableInputRootPathUuid:     repoRuleStableInputRootPathUUID,
 			}),
 			environmentVariableList.Patcher,
 		),
@@ -2735,7 +2741,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 				DirectoryCreationParameters: mrc.directoryCreationParametersMessage,
 				FileCreationParameters:      mrc.fileCreationParametersMessage,
 				WorkingDirectory:            "/",
-				NeedsStableInputRootPath:    true,
+				StableInputRootPathUuid:     repoRuleStableInputRootPathUUID,
 			}),
 			environmentVariableList.Patcher,
 		),
@@ -2884,7 +2890,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 				DirectoryCreationParameters: mrc.directoryCreationParametersMessage,
 				FileCreationParameters:      mrc.fileCreationParametersMessage,
 				WorkingDirectory:            p.GetUNIXString(),
-				NeedsStableInputRootPath:    true,
+				StableInputRootPathUuid:     repoRuleStableInputRootPathUUID,
 			}),
 			environmentVariableList.Patcher,
 		),

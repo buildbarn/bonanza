@@ -33,7 +33,7 @@ type Command struct {
 	FileCreationParameters      *filesystem.FileCreationParameters      `protobuf:"bytes,4,opt,name=file_creation_parameters,json=fileCreationParameters,proto3" json:"file_creation_parameters,omitempty"`
 	OutputPathPattern           *PathPattern                            `protobuf:"bytes,5,opt,name=output_path_pattern,json=outputPathPattern,proto3" json:"output_path_pattern,omitempty"`
 	WorkingDirectory            string                                  `protobuf:"bytes,6,opt,name=working_directory,json=workingDirectory,proto3" json:"working_directory,omitempty"`
-	NeedsStableInputRootPath    bool                                    `protobuf:"varint,7,opt,name=needs_stable_input_root_path,json=needsStableInputRootPath,proto3" json:"needs_stable_input_root_path,omitempty"`
+	StableInputRootPathUuid     string                                  `protobuf:"bytes,7,opt,name=stable_input_root_path_uuid,json=stableInputRootPathUuid,proto3" json:"stable_input_root_path_uuid,omitempty"`
 	unknownFields               protoimpl.UnknownFields
 	sizeCache                   protoimpl.SizeCache
 }
@@ -110,11 +110,11 @@ func (x *Command) GetWorkingDirectory() string {
 	return ""
 }
 
-func (x *Command) GetNeedsStableInputRootPath() bool {
+func (x *Command) GetStableInputRootPathUuid() string {
 	if x != nil {
-		return x.NeedsStableInputRootPath
+		return x.StableInputRootPathUuid
 	}
-	return false
+	return ""
 }
 
 type PathPattern struct {
@@ -783,15 +783,15 @@ var File_pkg_proto_model_command_command_proto protoreflect.FileDescriptor
 
 const file_pkg_proto_model_command_command_proto_rawDesc = "" +
 	"\n" +
-	"%pkg/proto/model/command/command.proto\x12\x15bonanza.model.command\x1a\x19google/protobuf/any.proto\x1a\x17google/rpc/status.proto\x1a\x1fpkg/proto/model/core/core.proto\x1a+pkg/proto/model/filesystem/filesystem.proto\"\xe9\x04\n" +
+	"%pkg/proto/model/command/command.proto\x12\x15bonanza.model.command\x1a\x19google/protobuf/any.proto\x1a\x17google/rpc/status.proto\x1a\x1fpkg/proto/model/core/core.proto\x1a+pkg/proto/model/filesystem/filesystem.proto\"\xe7\x04\n" +
 	"\aCommand\x12I\n" +
 	"\targuments\x18\x01 \x03(\v2+.bonanza.model.command.ArgumentList.ElementR\targuments\x12k\n" +
 	"\x15environment_variables\x18\x02 \x03(\v26.bonanza.model.command.EnvironmentVariableList.ElementR\x14environmentVariables\x12y\n" +
 	"\x1ddirectory_creation_parameters\x18\x03 \x01(\v25.bonanza.model.filesystem.DirectoryCreationParametersR\x1bdirectoryCreationParameters\x12j\n" +
 	"\x18file_creation_parameters\x18\x04 \x01(\v20.bonanza.model.filesystem.FileCreationParametersR\x16fileCreationParameters\x12R\n" +
 	"\x13output_path_pattern\x18\x05 \x01(\v2\".bonanza.model.command.PathPatternR\x11outputPathPattern\x12+\n" +
-	"\x11working_directory\x18\x06 \x01(\tR\x10workingDirectory\x12>\n" +
-	"\x1cneeds_stable_input_root_path\x18\a \x01(\bR\x18needsStableInputRootPath\"\xa8\x03\n" +
+	"\x11working_directory\x18\x06 \x01(\tR\x10workingDirectory\x12<\n" +
+	"\x1bstable_input_root_path_uuid\x18\a \x01(\tR\x17stableInputRootPathUuid\"\xa8\x03\n" +
 	"\vPathPattern\x12\x87\x01\n" +
 	"\x11children_external\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB0\xea\xd7 ,\x12*bonanza.model.command.PathPattern.ChildrenH\x00R\x10childrenExternal\x12V\n" +
 	"\x0fchildren_inline\x18\x02 \x01(\v2+.bonanza.model.command.PathPattern.ChildrenH\x00R\x0echildrenInline\x1aY\n" +

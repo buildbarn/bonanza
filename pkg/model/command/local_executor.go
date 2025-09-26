@@ -443,17 +443,22 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			return &result
 		}
 
-		// If the command requires a stable input root path, we should
-		// attach the build directory name under a fixed name. We
-		// ideally don't want to do this, because it limits prevents any
-		// form of parallelism.
-		var buildDirectoryName path.Component
-		if command.Message.NeedsStableInputRootPath {
-			buildDirectoryName = stableInputRootComponent
+		// If the command requires a stable input root path, we
+		// should attach the build directory name under a fixed
+		// name. We ideally don't want to do this, because it
+		// limits prevents any form of parallelism.
+		var buildDirectoryUUID uuid.UUID
+		if u := command.Message.StableInputRootPathUuid; u != "" {
+			buildDirectoryUUID, err = uuid.Parse(u)
+			if err != nil {
+				result.Status = status.Convert(util.StatusWrap(err, "Invalid stable input root path UUID")).Proto()
+				return &result
+			}
 		} else {
-			buildDirectoryName = path.MustNewComponent(uuid.Must(e.uuidGenerator()).String())
+			buildDirectoryUUID = util.Must(e.uuidGenerator())
 		}
 
+		buildDirectoryName := path.MustNewComponent(buildDirectoryUUID.String())
 		if err := e.topLevelDirectory.AddChild(ctx, buildDirectoryName, virtual.DirectoryChild{}.FromDirectory(buildDirectory)); err != nil {
 			result.Status = status.Convert(util.StatusWrap(err, "Failed to attach build directory")).Proto()
 			return &result
@@ -464,7 +469,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		// directory entries even if we fully disable any form of
 		// caching. Figure out what's going on here, so we can get rid
 		// of this unnecessary delay.
-		if command.Message.NeedsStableInputRootPath {
+		if command.Message.StableInputRootPathUuid != "" {
 			time.Sleep(1)
 		}
 
