@@ -118,8 +118,14 @@ message Progress {
   // The number of keys for which evaluation has completed.
   uint64 completed_keys_count = 1;
 
-  // Keys for which the evaluation function is currently being executed.
-  repeated EvaluatingKey evaluating_keys = 2;
+  // Keys for which the evaluation function is currently being executed,
+  // sorted from oldest to newest. This list may be truncated if the
+  // number of keys being processed is very large.
+  repeated EvaluatingKey oldest_evaluating_keys = 2;
+
+  // The number of keys for which the evaluation function is currently
+  // being executed, which could not be stored in the list above.
+  uint64 additional_evaluating_keys_count = 5;
 
   // The number of keys which are currently queued for execution.
   uint64 queued_keys_count = 3;

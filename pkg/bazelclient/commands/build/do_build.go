@@ -50,6 +50,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+	"golang.org/x/term"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -701,20 +702,43 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		logger.Info(formatted.Textf(
 			"🏁 %d   🚗💨 %d   🚦 %d   🚧 %d",
 			progress.Message.CompletedKeysCount,
-			len(progress.Message.EvaluatingKeys),
+			uint64(len(progress.Message.OldestEvaluatingKeys))+progress.Message.AdditionalEvaluatingKeysCount,
 			progress.Message.QueuedKeysCount,
 			progress.Message.BlockedKeysCount,
 		))
 		progressLinesWritten++
 
+		// Determine how many currently evaluating keys we want
+		// to display in the terminal. If we can't display all
+		// of them (or if the server wasn't able to fit all of
+		// them in the progress event), we'll display the number
+		// not shown at the bottom of the screen.
+		evaluatingKeysToDisplay := progress.Message.OldestEvaluatingKeys
+		additionalEvaluatingKeysCount := progress.Message.AdditionalEvaluatingKeysCount
+		_, terminalLines, err := term.GetSize(1)
+		if err != nil {
+			terminalLines = 24
+		}
+		maximumEvaluatingKeysToDisplay := terminalLines - progressLinesWritten - 1
+		if additionalEvaluatingKeysCount > 0 || len(evaluatingKeysToDisplay) > maximumEvaluatingKeysToDisplay {
+			maximumEvaluatingKeysToDisplay--
+		}
+		if maximumEvaluatingKeysToDisplay < 0 {
+			maximumEvaluatingKeysToDisplay = 0
+		}
+		if len(evaluatingKeysToDisplay) > maximumEvaluatingKeysToDisplay {
+			additionalEvaluatingKeysCount += uint64(len(evaluatingKeysToDisplay)) - uint64(maximumEvaluatingKeysToDisplay)
+			evaluatingKeysToDisplay = evaluatingKeysToDisplay[:maximumEvaluatingKeysToDisplay]
+		}
+
 		longestType := 0
-		for _, evaluatingKey := range progress.Message.EvaluatingKeys {
+		for _, evaluatingKey := range progress.Message.OldestEvaluatingKeys {
 			if l := len(getAbbreviatedTypeURL(evaluatingKey.Key.GetValue().GetTypeUrl())); longestType < l {
 				longestType = l
 			}
 		}
 
-		for _, evaluatingKey := range progress.Message.EvaluatingKeys {
+		for _, evaluatingKey := range evaluatingKeysToDisplay {
 			logger.Info(
 				formatted.NoWrap(
 					formatKey(
@@ -727,6 +751,11 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 					),
 				),
 			)
+			progressLinesWritten++
+		}
+
+		if additionalEvaluatingKeysCount > 0 {
+			logger.Info(formatted.Textf("  ... and %d more", additionalEvaluatingKeysCount))
 			progressLinesWritten++
 		}
 	}

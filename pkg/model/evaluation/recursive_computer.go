@@ -308,6 +308,8 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress() (model_core.Pa
 	defer rc.lock.Unlock()
 
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_evaluation_pb.Progress, error) {
+		// TODO: Set additional_evaluating_keys_count if we have
+		// too many keys to fit in a message.
 		evaluatingKeys := make([]*model_evaluation_pb.Progress_EvaluatingKey, 0, rc.evaluatingKeys.count)
 		for ks := rc.evaluatingKeys.head.nextKey; ks != &rc.evaluatingKeys.head; ks = ks.nextKey {
 			anyKey, err := model_core.MarshalAny(model_core.Patch(rc.objectManager, ks.key.Decay()))
@@ -322,10 +324,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress() (model_core.Pa
 			})
 		}
 		return &model_evaluation_pb.Progress{
-			CompletedKeysCount: rc.completedKeys.count,
-			EvaluatingKeys:     evaluatingKeys,
-			QueuedKeysCount:    rc.queuedKeys.count,
-			BlockedKeysCount:   rc.blockedKeys.count,
+			CompletedKeysCount:   rc.completedKeys.count,
+			OldestEvaluatingKeys: evaluatingKeys,
+			QueuedKeysCount:      rc.queuedKeys.count,
+			BlockedKeysCount:     rc.blockedKeys.count,
 		}, nil
 	})
 }

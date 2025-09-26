@@ -241,13 +241,14 @@ func (x *Action) GetRequestedKeys() []*Keys {
 }
 
 type Progress struct {
-	state              protoimpl.MessageState    `protogen:"open.v1"`
-	CompletedKeysCount uint64                    `protobuf:"varint,1,opt,name=completed_keys_count,json=completedKeysCount,proto3" json:"completed_keys_count,omitempty"`
-	EvaluatingKeys     []*Progress_EvaluatingKey `protobuf:"bytes,2,rep,name=evaluating_keys,json=evaluatingKeys,proto3" json:"evaluating_keys,omitempty"`
-	QueuedKeysCount    uint64                    `protobuf:"varint,3,opt,name=queued_keys_count,json=queuedKeysCount,proto3" json:"queued_keys_count,omitempty"`
-	BlockedKeysCount   uint64                    `protobuf:"varint,4,opt,name=blocked_keys_count,json=blockedKeysCount,proto3" json:"blocked_keys_count,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState    `protogen:"open.v1"`
+	CompletedKeysCount            uint64                    `protobuf:"varint,1,opt,name=completed_keys_count,json=completedKeysCount,proto3" json:"completed_keys_count,omitempty"`
+	OldestEvaluatingKeys          []*Progress_EvaluatingKey `protobuf:"bytes,2,rep,name=oldest_evaluating_keys,json=oldestEvaluatingKeys,proto3" json:"oldest_evaluating_keys,omitempty"`
+	AdditionalEvaluatingKeysCount uint64                    `protobuf:"varint,5,opt,name=additional_evaluating_keys_count,json=additionalEvaluatingKeysCount,proto3" json:"additional_evaluating_keys_count,omitempty"`
+	QueuedKeysCount               uint64                    `protobuf:"varint,3,opt,name=queued_keys_count,json=queuedKeysCount,proto3" json:"queued_keys_count,omitempty"`
+	BlockedKeysCount              uint64                    `protobuf:"varint,4,opt,name=blocked_keys_count,json=blockedKeysCount,proto3" json:"blocked_keys_count,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *Progress) Reset() {
@@ -287,11 +288,18 @@ func (x *Progress) GetCompletedKeysCount() uint64 {
 	return 0
 }
 
-func (x *Progress) GetEvaluatingKeys() []*Progress_EvaluatingKey {
+func (x *Progress) GetOldestEvaluatingKeys() []*Progress_EvaluatingKey {
 	if x != nil {
-		return x.EvaluatingKeys
+		return x.OldestEvaluatingKeys
 	}
 	return nil
+}
+
+func (x *Progress) GetAdditionalEvaluatingKeysCount() uint64 {
+	if x != nil {
+		return x.AdditionalEvaluatingKeysCount
+	}
+	return 0
 }
 
 func (x *Progress) GetQueuedKeysCount() uint64 {
@@ -661,10 +669,11 @@ const file_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "" +
 	"\x05level\"\xd4\x01\n" +
 	"\x06Action\x12\x82\x01\n" +
 	"\x13overrides_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x12overridesReference\x12E\n" +
-	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\"\xf2\x03\n" +
+	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\"\xc8\x04\n" +
 	"\bProgress\x120\n" +
-	"\x14completed_keys_count\x18\x01 \x01(\x04R\x12completedKeysCount\x12Y\n" +
-	"\x0fevaluating_keys\x18\x02 \x03(\v20.bonanza.model.evaluation.Progress.EvaluatingKeyR\x0eevaluatingKeys\x12*\n" +
+	"\x14completed_keys_count\x18\x01 \x01(\x04R\x12completedKeysCount\x12f\n" +
+	"\x16oldest_evaluating_keys\x18\x02 \x03(\v20.bonanza.model.evaluation.Progress.EvaluatingKeyR\x14oldestEvaluatingKeys\x12G\n" +
+	" additional_evaluating_keys_count\x18\x05 \x01(\x04R\x1dadditionalEvaluatingKeysCount\x12*\n" +
 	"\x11queued_keys_count\x18\x03 \x01(\x04R\x0fqueuedKeysCount\x12,\n" +
 	"\x12blocked_keys_count\x18\x04 \x01(\x04R\x10blockedKeysCount\x1a\xfe\x01\n" +
 	"\rEvaluatingKey\x12)\n" +
@@ -715,7 +724,7 @@ var file_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
 	6,  // 3: bonanza.model.evaluation.Evaluation.parent:type_name -> bonanza.model.evaluation.Evaluation.Parent
 	11, // 4: bonanza.model.evaluation.Action.overrides_reference:type_name -> bonanza.model.core.DecodableReference
 	0,  // 5: bonanza.model.evaluation.Action.requested_keys:type_name -> bonanza.model.evaluation.Keys
-	8,  // 6: bonanza.model.evaluation.Progress.evaluating_keys:type_name -> bonanza.model.evaluation.Progress.EvaluatingKey
+	8,  // 6: bonanza.model.evaluation.Progress.oldest_evaluating_keys:type_name -> bonanza.model.evaluation.Progress.EvaluatingKey
 	9,  // 7: bonanza.model.evaluation.Result.failure:type_name -> bonanza.model.evaluation.Result.Failure
 	11, // 8: bonanza.model.evaluation.Result.outcomes_reference:type_name -> bonanza.model.core.DecodableReference
 	11, // 9: bonanza.model.evaluation.Keys.Parent.reference:type_name -> bonanza.model.core.DecodableReference
