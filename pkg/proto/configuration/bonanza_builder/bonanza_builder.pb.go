@@ -8,6 +8,7 @@ package bonanza_builder
 
 import (
 	parser "bonanza.build/pkg/proto/configuration/model/parser"
+	local "bonanza.build/pkg/proto/configuration/storage/object/local"
 	filesystem "github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem"
 	global "github.com/buildbarn/bb-storage/pkg/proto/configuration/global"
 	grpc "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc"
@@ -38,6 +39,7 @@ type ApplicationConfiguration struct {
 	PlatformPrivateKeys             []string                                     `protobuf:"bytes,11,rep,name=platform_private_keys,json=platformPrivateKeys,proto3" json:"platform_private_keys,omitempty"`
 	ClientCertificateVerifier       *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,12,opt,name=client_certificate_verifier,json=clientCertificateVerifier,proto3" json:"client_certificate_verifier,omitempty"`
 	WorkerId                        map[string]string                            `protobuf:"bytes,13,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	LocalObjectStore                *local.StoreConfiguration                    `protobuf:"bytes,17,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
 	ParsedObjectPool                *parser.ParsedObjectPool                     `protobuf:"bytes,14,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
 	LocalEvaluationConcurrency      uint32                                       `protobuf:"varint,15,opt,name=local_evaluation_concurrency,json=localEvaluationConcurrency,proto3" json:"local_evaluation_concurrency,omitempty"`
 	RemoteEvaluationConcurrency     uint32                                       `protobuf:"varint,16,opt,name=remote_evaluation_concurrency,json=remoteEvaluationConcurrency,proto3" json:"remote_evaluation_concurrency,omitempty"`
@@ -145,6 +147,13 @@ func (x *ApplicationConfiguration) GetWorkerId() map[string]string {
 	return nil
 }
 
+func (x *ApplicationConfiguration) GetLocalObjectStore() *local.StoreConfiguration {
+	if x != nil {
+		return x.LocalObjectStore
+	}
+	return nil
+}
+
 func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPool {
 	if x != nil {
 		return x.ParsedObjectPool
@@ -170,7 +179,8 @@ var File_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto protorefl
 
 const file_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDesc = "" +
 	"\n" +
-	"=pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a3pkg/proto/configuration/filesystem/filesystem.proto\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\x1a'pkg/proto/configuration/x509/x509.proto\"\xcd\t\n" +
+	"=pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a3pkg/proto/configuration/filesystem/filesystem.proto\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\x1a8pkg/proto/configuration/storage/object/local/local.proto\x1a'pkg/proto/configuration/x509/x509.proto\"\xbb\n" +
+	"\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x03 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12V\n" +
@@ -182,7 +192,8 @@ const file_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDesc
 	" \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x16remoteWorkerGrpcClient\x122\n" +
 	"\x15platform_private_keys\x18\v \x03(\tR\x13platformPrivateKeys\x12\x84\x01\n" +
 	"\x1bclient_certificate_verifier\x18\f \x01(\v2D.buildbarn.configuration.x509.ClientCertificateVerifierConfigurationR\x19clientCertificateVerifier\x12j\n" +
-	"\tworker_id\x18\r \x03(\v2M.bonanza.configuration.bonanza_builder.ApplicationConfiguration.WorkerIdEntryR\bworkerId\x12b\n" +
+	"\tworker_id\x18\r \x03(\v2M.bonanza.configuration.bonanza_builder.ApplicationConfiguration.WorkerIdEntryR\bworkerId\x12l\n" +
+	"\x12local_object_store\x18\x11 \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x12b\n" +
 	"\x12parsed_object_pool\x18\x0e \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\x12@\n" +
 	"\x1clocal_evaluation_concurrency\x18\x0f \x01(\rR\x1alocalEvaluationConcurrency\x12B\n" +
 	"\x1dremote_evaluation_concurrency\x18\x10 \x01(\rR\x1bremoteEvaluationConcurrency\x1a;\n" +
@@ -210,7 +221,8 @@ var file_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_goTypes =
 	(*grpc.ClientConfiguration)(nil),         // 3: buildbarn.configuration.grpc.ClientConfiguration
 	(*filesystem.FilePoolConfiguration)(nil), // 4: buildbarn.configuration.filesystem.FilePoolConfiguration
 	(*x509.ClientCertificateVerifierConfiguration)(nil), // 5: buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
-	(*parser.ParsedObjectPool)(nil),                     // 6: bonanza.configuration.model.parser.ParsedObjectPool
+	(*local.StoreConfiguration)(nil),                    // 6: bonanza.configuration.storage.object.local.StoreConfiguration
+	(*parser.ParsedObjectPool)(nil),                     // 7: bonanza.configuration.model.parser.ParsedObjectPool
 }
 var file_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_depIdxs = []int32{
 	2, // 0: bonanza.configuration.bonanza_builder.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
@@ -220,12 +232,13 @@ var file_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_depIdxs =
 	3, // 4: bonanza.configuration.bonanza_builder.ApplicationConfiguration.remote_worker_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
 	5, // 5: bonanza.configuration.bonanza_builder.ApplicationConfiguration.client_certificate_verifier:type_name -> buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
 	1, // 6: bonanza.configuration.bonanza_builder.ApplicationConfiguration.worker_id:type_name -> bonanza.configuration.bonanza_builder.ApplicationConfiguration.WorkerIdEntry
-	6, // 7: bonanza.configuration.bonanza_builder.ApplicationConfiguration.parsed_object_pool:type_name -> bonanza.configuration.model.parser.ParsedObjectPool
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	6, // 7: bonanza.configuration.bonanza_builder.ApplicationConfiguration.local_object_store:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration
+	7, // 8: bonanza.configuration.bonanza_builder.ApplicationConfiguration.parsed_object_pool:type_name -> bonanza.configuration.model.parser.ParsedObjectPool
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_init() }

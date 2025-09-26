@@ -6,6 +6,7 @@ import "pkg/proto/configuration/global/global.proto";
 import "pkg/proto/configuration/grpc/grpc.proto";
 import "pkg/proto/configuration/http/http.proto";
 import "pkg/proto/configuration/model/parser/parser.proto";
+import "pkg/proto/configuration/storage/object/local/local.proto";
 
 option go_package = "bonanza.build/pkg/proto/configuration/bonanza_browser";
 
@@ -18,6 +19,12 @@ message ApplicationConfiguration {
 
   // gRPC client that communicates with the storage frontend.
   buildbarn.configuration.grpc.ClientConfiguration storage_grpc_client = 3;
+
+  // Cache that resides on disk of objects read from storage that have
+  // not yet been decoded or parsed. When not set, objects are only
+  // cached in memory (see 'parsed_object_pool').
+  bonanza.configuration.storage.object.local.StoreConfiguration
+      local_object_store = 6;
 
   // Cache that resides in memory of objects read from storage that have
   // been decoded and parsed.

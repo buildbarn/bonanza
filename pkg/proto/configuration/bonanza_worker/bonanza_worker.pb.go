@@ -8,6 +8,7 @@ package bonanza_worker
 
 import (
 	parser "bonanza.build/pkg/proto/configuration/model/parser"
+	local "bonanza.build/pkg/proto/configuration/storage/object/local"
 	filesystem "github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem"
 	virtual "github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/virtual"
 	global "github.com/buildbarn/bb-storage/pkg/proto/configuration/global"
@@ -35,6 +36,7 @@ type ApplicationConfiguration struct {
 	SchedulerGrpcClient *grpc.ClientConfiguration         `protobuf:"bytes,3,opt,name=scheduler_grpc_client,json=schedulerGrpcClient,proto3" json:"scheduler_grpc_client,omitempty"`
 	BuildDirectories    []*BuildDirectoryConfiguration    `protobuf:"bytes,4,rep,name=build_directories,json=buildDirectories,proto3" json:"build_directories,omitempty"`
 	FilePool            *filesystem.FilePoolConfiguration `protobuf:"bytes,5,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
+	LocalObjectStore    *local.StoreConfiguration         `protobuf:"bytes,7,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
 	ParsedObjectPool    *parser.ParsedObjectPool          `protobuf:"bytes,6,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
@@ -101,6 +103,13 @@ func (x *ApplicationConfiguration) GetBuildDirectories() []*BuildDirectoryConfig
 func (x *ApplicationConfiguration) GetFilePool() *filesystem.FilePoolConfiguration {
 	if x != nil {
 		return x.FilePool
+	}
+	return nil
+}
+
+func (x *ApplicationConfiguration) GetLocalObjectStore() *local.StoreConfiguration {
+	if x != nil {
+		return x.LocalObjectStore
 	}
 	return nil
 }
@@ -332,13 +341,14 @@ var File_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto protoreflec
 
 const file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc = "" +
 	"\n" +
-	";pkg/proto/configuration/bonanza_worker/bonanza_worker.proto\x12$bonanza.configuration.bonanza_worker\x1a\x1egoogle/protobuf/duration.proto\x1a3pkg/proto/configuration/filesystem/filesystem.proto\x1a8pkg/proto/configuration/filesystem/virtual/virtual.proto\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\x1a'pkg/proto/configuration/x509/x509.proto\"\xd7\x04\n" +
+	";pkg/proto/configuration/bonanza_worker/bonanza_worker.proto\x12$bonanza.configuration.bonanza_worker\x1a\x1egoogle/protobuf/duration.proto\x1a3pkg/proto/configuration/filesystem/filesystem.proto\x1a8pkg/proto/configuration/filesystem/virtual/virtual.proto\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\x1a8pkg/proto/configuration/storage/object/local/local.proto\x1a'pkg/proto/configuration/x509/x509.proto\"\xc5\x05\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x02 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12e\n" +
 	"\x15scheduler_grpc_client\x18\x03 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x13schedulerGrpcClient\x12n\n" +
 	"\x11build_directories\x18\x04 \x03(\v2A.bonanza.configuration.bonanza_worker.BuildDirectoryConfigurationR\x10buildDirectories\x12V\n" +
-	"\tfile_pool\x18\x05 \x01(\v29.buildbarn.configuration.filesystem.FilePoolConfigurationR\bfilePool\x12b\n" +
+	"\tfile_pool\x18\x05 \x01(\v29.buildbarn.configuration.filesystem.FilePoolConfigurationR\bfilePool\x12l\n" +
+	"\x12local_object_store\x18\a \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x12b\n" +
 	"\x12parsed_object_pool\x18\x06 \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\"\xc8\x01\n" +
 	"\x1bBuildDirectoryConfiguration\x12S\n" +
 	"\arunners\x18\x01 \x03(\v29.bonanza.configuration.bonanza_worker.RunnerConfigurationR\arunners\x12T\n" +
@@ -384,18 +394,19 @@ func file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZI
 
 var file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_goTypes = []any{
-	(*ApplicationConfiguration)(nil),         // 0: bonanza.configuration.bonanza_worker.ApplicationConfiguration
-	(*BuildDirectoryConfiguration)(nil),      // 1: bonanza.configuration.bonanza_worker.BuildDirectoryConfiguration
-	(*RunnerConfiguration)(nil),              // 2: bonanza.configuration.bonanza_worker.RunnerConfiguration
-	nil,                                      // 3: bonanza.configuration.bonanza_worker.RunnerConfiguration.WorkerIdEntry
-	nil,                                      // 4: bonanza.configuration.bonanza_worker.RunnerConfiguration.EnvironmentVariablesEntry
-	(*global.Configuration)(nil),             // 5: buildbarn.configuration.global.Configuration
-	(*grpc.ClientConfiguration)(nil),         // 6: buildbarn.configuration.grpc.ClientConfiguration
-	(*filesystem.FilePoolConfiguration)(nil), // 7: buildbarn.configuration.filesystem.FilePoolConfiguration
-	(*parser.ParsedObjectPool)(nil),          // 8: bonanza.configuration.model.parser.ParsedObjectPool
-	(*virtual.MountConfiguration)(nil),       // 9: buildbarn.configuration.filesystem.virtual.MountConfiguration
-	(*x509.ClientCertificateVerifierConfiguration)(nil), // 10: buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
-	(*durationpb.Duration)(nil),                         // 11: google.protobuf.Duration
+	(*ApplicationConfiguration)(nil),                    // 0: bonanza.configuration.bonanza_worker.ApplicationConfiguration
+	(*BuildDirectoryConfiguration)(nil),                 // 1: bonanza.configuration.bonanza_worker.BuildDirectoryConfiguration
+	(*RunnerConfiguration)(nil),                         // 2: bonanza.configuration.bonanza_worker.RunnerConfiguration
+	nil,                                                 // 3: bonanza.configuration.bonanza_worker.RunnerConfiguration.WorkerIdEntry
+	nil,                                                 // 4: bonanza.configuration.bonanza_worker.RunnerConfiguration.EnvironmentVariablesEntry
+	(*global.Configuration)(nil),                        // 5: buildbarn.configuration.global.Configuration
+	(*grpc.ClientConfiguration)(nil),                    // 6: buildbarn.configuration.grpc.ClientConfiguration
+	(*filesystem.FilePoolConfiguration)(nil),            // 7: buildbarn.configuration.filesystem.FilePoolConfiguration
+	(*local.StoreConfiguration)(nil),                    // 8: bonanza.configuration.storage.object.local.StoreConfiguration
+	(*parser.ParsedObjectPool)(nil),                     // 9: bonanza.configuration.model.parser.ParsedObjectPool
+	(*virtual.MountConfiguration)(nil),                  // 10: buildbarn.configuration.filesystem.virtual.MountConfiguration
+	(*x509.ClientCertificateVerifierConfiguration)(nil), // 11: buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
+	(*durationpb.Duration)(nil),                         // 12: google.protobuf.Duration
 }
 var file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_depIdxs = []int32{
 	5,  // 0: bonanza.configuration.bonanza_worker.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
@@ -403,20 +414,21 @@ var file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_depIdxs = [
 	6,  // 2: bonanza.configuration.bonanza_worker.ApplicationConfiguration.scheduler_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
 	1,  // 3: bonanza.configuration.bonanza_worker.ApplicationConfiguration.build_directories:type_name -> bonanza.configuration.bonanza_worker.BuildDirectoryConfiguration
 	7,  // 4: bonanza.configuration.bonanza_worker.ApplicationConfiguration.file_pool:type_name -> buildbarn.configuration.filesystem.FilePoolConfiguration
-	8,  // 5: bonanza.configuration.bonanza_worker.ApplicationConfiguration.parsed_object_pool:type_name -> bonanza.configuration.model.parser.ParsedObjectPool
-	2,  // 6: bonanza.configuration.bonanza_worker.BuildDirectoryConfiguration.runners:type_name -> bonanza.configuration.bonanza_worker.RunnerConfiguration
-	9,  // 7: bonanza.configuration.bonanza_worker.BuildDirectoryConfiguration.mount:type_name -> buildbarn.configuration.filesystem.virtual.MountConfiguration
-	6,  // 8: bonanza.configuration.bonanza_worker.RunnerConfiguration.endpoint:type_name -> buildbarn.configuration.grpc.ClientConfiguration
-	10, // 9: bonanza.configuration.bonanza_worker.RunnerConfiguration.client_certificate_verifier:type_name -> buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
-	11, // 10: bonanza.configuration.bonanza_worker.RunnerConfiguration.maximum_execution_timeout_compensation:type_name -> google.protobuf.Duration
-	11, // 11: bonanza.configuration.bonanza_worker.RunnerConfiguration.maximum_writable_file_upload_delay:type_name -> google.protobuf.Duration
-	3,  // 12: bonanza.configuration.bonanza_worker.RunnerConfiguration.worker_id:type_name -> bonanza.configuration.bonanza_worker.RunnerConfiguration.WorkerIdEntry
-	4,  // 13: bonanza.configuration.bonanza_worker.RunnerConfiguration.environment_variables:type_name -> bonanza.configuration.bonanza_worker.RunnerConfiguration.EnvironmentVariablesEntry
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	8,  // 5: bonanza.configuration.bonanza_worker.ApplicationConfiguration.local_object_store:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration
+	9,  // 6: bonanza.configuration.bonanza_worker.ApplicationConfiguration.parsed_object_pool:type_name -> bonanza.configuration.model.parser.ParsedObjectPool
+	2,  // 7: bonanza.configuration.bonanza_worker.BuildDirectoryConfiguration.runners:type_name -> bonanza.configuration.bonanza_worker.RunnerConfiguration
+	10, // 8: bonanza.configuration.bonanza_worker.BuildDirectoryConfiguration.mount:type_name -> buildbarn.configuration.filesystem.virtual.MountConfiguration
+	6,  // 9: bonanza.configuration.bonanza_worker.RunnerConfiguration.endpoint:type_name -> buildbarn.configuration.grpc.ClientConfiguration
+	11, // 10: bonanza.configuration.bonanza_worker.RunnerConfiguration.client_certificate_verifier:type_name -> buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
+	12, // 11: bonanza.configuration.bonanza_worker.RunnerConfiguration.maximum_execution_timeout_compensation:type_name -> google.protobuf.Duration
+	12, // 12: bonanza.configuration.bonanza_worker.RunnerConfiguration.maximum_writable_file_upload_delay:type_name -> google.protobuf.Duration
+	3,  // 13: bonanza.configuration.bonanza_worker.RunnerConfiguration.worker_id:type_name -> bonanza.configuration.bonanza_worker.RunnerConfiguration.WorkerIdEntry
+	4,  // 14: bonanza.configuration.bonanza_worker.RunnerConfiguration.environment_variables:type_name -> bonanza.configuration.bonanza_worker.RunnerConfiguration.EnvironmentVariablesEntry
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_init() }

@@ -10,6 +10,8 @@ import (
 	"bonanza.build/pkg/proto/configuration/bonanza_browser"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
+	object_local "bonanza.build/pkg/storage/object/local"
+	object_readcaching "bonanza.build/pkg/storage/object/readcaching"
 
 	"github.com/buildbarn/bb-storage/pkg/global"
 	bb_http "github.com/buildbarn/bb-storage/pkg/http"
@@ -53,6 +55,20 @@ func main() {
 		objectDownloader := object_grpc.NewGRPCDownloader(
 			object_pb.NewDownloaderClient(storageGRPCClient),
 		)
+		if configuration.LocalObjectStore != nil {
+			localObjectStore, err := object_local.NewStoreFromConfiguration(
+				dependenciesGroup,
+				configuration.LocalObjectStore,
+			)
+			if err != nil {
+				return util.StatusWrap(err, "Failed to create local object store")
+			}
+			objectDownloader = object_readcaching.NewDownloader(
+				objectDownloader,
+				localObjectStore,
+			)
+		}
+
 		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.ParsedObjectPool)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create parsed object pool")

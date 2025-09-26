@@ -20,6 +20,8 @@ import (
 	"bonanza.build/pkg/remoteworker"
 	object_existenceprecondition "bonanza.build/pkg/storage/object/existenceprecondition"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
+	object_local "bonanza.build/pkg/storage/object/local"
+	object_readcaching "bonanza.build/pkg/storage/object/readcaching"
 
 	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
 	"github.com/buildbarn/bb-storage/pkg/clock"
@@ -60,6 +62,20 @@ func main() {
 				object_pb.NewDownloaderClient(storageGRPCClient),
 			),
 		)
+		if configuration.LocalObjectStore != nil {
+			localObjectStore, err := object_local.NewStoreFromConfiguration(
+				dependenciesGroup,
+				configuration.LocalObjectStore,
+			)
+			if err != nil {
+				return util.StatusWrap(err, "Failed to create local object store")
+			}
+			objectDownloader = object_readcaching.NewDownloader(
+				objectDownloader,
+				localObjectStore,
+			)
+		}
+
 		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.ParsedObjectPool)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create parsed object pool")

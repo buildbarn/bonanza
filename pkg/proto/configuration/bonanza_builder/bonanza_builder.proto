@@ -6,6 +6,7 @@ import "pkg/proto/configuration/filesystem/filesystem.proto";
 import "pkg/proto/configuration/global/global.proto";
 import "pkg/proto/configuration/grpc/grpc.proto";
 import "pkg/proto/configuration/model/parser/parser.proto";
+import "pkg/proto/configuration/storage/object/local/local.proto";
 import "pkg/proto/configuration/x509/x509.proto";
 
 option go_package = "bonanza.build/pkg/proto/configuration/bonanza_builder";
@@ -63,6 +64,12 @@ message ApplicationConfiguration {
   // Fields that need to be attached to the ID of the worker, as
   // announced to the scheduler.
   map<string, string> worker_id = 13;
+
+  // Cache that resides on disk of objects read from storage that have
+  // not yet been decoded or parsed. When not set, objects are only
+  // cached in memory (see 'parsed_object_pool').
+  bonanza.configuration.storage.object.local.StoreConfiguration
+      local_object_store = 17;
 
   // Cache that resides in memory of objects read from storage that have
   // been decoded and parsed.

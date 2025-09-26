@@ -18,6 +18,8 @@ go_library(
         "//pkg/remoteworker",
         "//pkg/storage/object/existenceprecondition",
         "//pkg/storage/object/grpc",
+        "//pkg/storage/object/local",
+        "//pkg/storage/object/readcaching",
         "@com_github_buildbarn_bb_remote_execution//pkg/clock",
         "@com_github_buildbarn_bb_remote_execution//pkg/filesystem/pool",
         "@com_github_buildbarn_bb_remote_execution//pkg/filesystem/virtual",

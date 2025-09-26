@@ -8,6 +8,7 @@ package bonanza_browser
 
 import (
 	parser "bonanza.build/pkg/proto/configuration/model/parser"
+	local "bonanza.build/pkg/proto/configuration/storage/object/local"
 	global "github.com/buildbarn/bb-storage/pkg/proto/configuration/global"
 	grpc "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc"
 	http "github.com/buildbarn/bb-storage/pkg/proto/configuration/http"
@@ -30,6 +31,7 @@ type ApplicationConfiguration struct {
 	Global                    *global.Configuration       `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
 	HttpServers               []*http.ServerConfiguration `protobuf:"bytes,2,rep,name=http_servers,json=httpServers,proto3" json:"http_servers,omitempty"`
 	StorageGrpcClient         *grpc.ClientConfiguration   `protobuf:"bytes,3,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
+	LocalObjectStore          *local.StoreConfiguration   `protobuf:"bytes,6,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
 	ParsedObjectPool          *parser.ParsedObjectPool    `protobuf:"bytes,4,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
 	BuildQueueStateGrpcClient *grpc.ClientConfiguration   `protobuf:"bytes,5,opt,name=build_queue_state_grpc_client,json=buildQueueStateGrpcClient,proto3" json:"build_queue_state_grpc_client,omitempty"`
 	unknownFields             protoimpl.UnknownFields
@@ -87,6 +89,13 @@ func (x *ApplicationConfiguration) GetStorageGrpcClient() *grpc.ClientConfigurat
 	return nil
 }
 
+func (x *ApplicationConfiguration) GetLocalObjectStore() *local.StoreConfiguration {
+	if x != nil {
+		return x.LocalObjectStore
+	}
+	return nil
+}
+
 func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPool {
 	if x != nil {
 		return x.ParsedObjectPool
@@ -105,11 +114,12 @@ var File_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto protorefl
 
 const file_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_rawDesc = "" +
 	"\n" +
-	"=pkg/proto/configuration/bonanza_browser/bonanza_browser.proto\x12%bonanza.configuration.bonanza_browser\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a'pkg/proto/configuration/http/http.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\"\xf3\x03\n" +
+	"=pkg/proto/configuration/bonanza_browser/bonanza_browser.proto\x12%bonanza.configuration.bonanza_browser\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a'pkg/proto/configuration/http/http.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\x1a8pkg/proto/configuration/storage/object/local/local.proto\"\xe1\x04\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12T\n" +
 	"\fhttp_servers\x18\x02 \x03(\v21.buildbarn.configuration.http.ServerConfigurationR\vhttpServers\x12a\n" +
-	"\x13storage_grpc_client\x18\x03 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12b\n" +
+	"\x13storage_grpc_client\x18\x03 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12l\n" +
+	"\x12local_object_store\x18\x06 \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x12b\n" +
 	"\x12parsed_object_pool\x18\x04 \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\x12s\n" +
 	"\x1dbuild_queue_state_grpc_client\x18\x05 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x19buildQueueStateGrpcClientB7Z5bonanza.build/pkg/proto/configuration/bonanza_browserb\x06proto3"
 
@@ -131,19 +141,21 @@ var file_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_goTypes =
 	(*global.Configuration)(nil),     // 1: buildbarn.configuration.global.Configuration
 	(*http.ServerConfiguration)(nil), // 2: buildbarn.configuration.http.ServerConfiguration
 	(*grpc.ClientConfiguration)(nil), // 3: buildbarn.configuration.grpc.ClientConfiguration
-	(*parser.ParsedObjectPool)(nil),  // 4: bonanza.configuration.model.parser.ParsedObjectPool
+	(*local.StoreConfiguration)(nil), // 4: bonanza.configuration.storage.object.local.StoreConfiguration
+	(*parser.ParsedObjectPool)(nil),  // 5: bonanza.configuration.model.parser.ParsedObjectPool
 }
 var file_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_depIdxs = []int32{
 	1, // 0: bonanza.configuration.bonanza_browser.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
 	2, // 1: bonanza.configuration.bonanza_browser.ApplicationConfiguration.http_servers:type_name -> buildbarn.configuration.http.ServerConfiguration
 	3, // 2: bonanza.configuration.bonanza_browser.ApplicationConfiguration.storage_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
-	4, // 3: bonanza.configuration.bonanza_browser.ApplicationConfiguration.parsed_object_pool:type_name -> bonanza.configuration.model.parser.ParsedObjectPool
-	3, // 4: bonanza.configuration.bonanza_browser.ApplicationConfiguration.build_queue_state_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	4, // 3: bonanza.configuration.bonanza_browser.ApplicationConfiguration.local_object_store:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration
+	5, // 4: bonanza.configuration.bonanza_browser.ApplicationConfiguration.parsed_object_pool:type_name -> bonanza.configuration.model.parser.ParsedObjectPool
+	3, // 5: bonanza.configuration.bonanza_browser.ApplicationConfiguration.build_queue_state_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_init() }

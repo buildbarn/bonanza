@@ -28,6 +28,8 @@ go_library(
         "//pkg/storage/object",
         "//pkg/storage/object/existenceprecondition",
         "//pkg/storage/object/grpc",
+        "//pkg/storage/object/local",
+        "//pkg/storage/object/readcaching",
         "@com_github_buildbarn_bb_remote_execution//pkg/filesystem/pool",
         "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/global",
