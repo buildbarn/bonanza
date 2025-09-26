@@ -456,7 +456,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	/*
 		var invocationID uuid.UUID
 		if v := args.CommonFlags.InvocationId; v == "" {
-			invocationID = uuid.Must(uuid.NewRandom())
+			invocationID = util.Must(uuid.NewRandom())
 		} else {
 			invocationID, err = uuid.Parse(v)
 			if err != nil {
@@ -465,7 +465,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		}
 		var buildRequestID uuid.UUID
 		if v := args.CommonFlags.BuildRequestId; v == "" {
-			buildRequestID = uuid.Must(uuid.NewRandom())
+			buildRequestID = util.Must(uuid.NewRandom())
 		} else {
 			buildRequestID, err = uuid.Parse(v)
 			if err != nil {

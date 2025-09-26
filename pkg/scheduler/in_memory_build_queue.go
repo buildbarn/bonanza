@@ -34,7 +34,6 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/otel"
 	"github.com/buildbarn/bb-storage/pkg/random"
 	"github.com/buildbarn/bb-storage/pkg/util"
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"google.golang.org/grpc/codes"
@@ -461,7 +460,7 @@ func (bq *InMemoryBuildQueue) Execute(in *remoteexecution_pb.ExecuteRequest, out
 		operations:       map[*invocation]*operation{},
 		deduplicationKey: deduplicationKey,
 		desiredState: remoteworker_pb.DesiredState_Executing{
-			TaskUuid:                  uuid.Must(bq.uuidGenerator()).String(),
+			TaskUuid:                  util.Must(bq.uuidGenerator()).String(),
 			Action:                    action,
 			EffectiveExecutionTimeout: durationpb.New(timeout),
 			QueuedTimestamp:           bq.getCurrentTime(),
@@ -2467,7 +2466,7 @@ type task struct {
 // deduplication.
 func (t *task) newOperation(bq *InMemoryBuildQueue, priority int32, i *invocation, mayExistWithoutWaiters bool) *operation {
 	o := &operation{
-		name:                   uuid.Must(bq.uuidGenerator()).String(),
+		name:                   util.Must(bq.uuidGenerator()).String(),
 		task:                   t,
 		priority:               priority,
 		invocation:             i,
@@ -2679,7 +2678,7 @@ func (t *task) complete(bq *InMemoryBuildQueue, completed *remoteworker_pb.Curre
 					backgroundTask := &task{
 						operations: map[*invocation]*operation{},
 						desiredState: remoteworker_pb.DesiredState_Executing{
-							TaskUuid:                  uuid.Must(bq.uuidGenerator()).String(),
+							TaskUuid:                  util.Must(bq.uuidGenerator()).String(),
 							Action:                    t.desiredState.Action,
 							EffectiveExecutionTimeout: durationpb.New(backgroundTimeout),
 							QueuedTimestamp:           t.desiredState.QueuedTimestamp,

@@ -164,7 +164,7 @@ func NewLocalExecutor(
 
 func (e *localExecutor) CheckReadiness(ctx context.Context) error {
 	// Create a randomly named directory.
-	directoryName := path.MustNewComponent(uuid.Must(e.uuidGenerator()).String())
+	directoryName := path.MustNewComponent(util.Must(e.uuidGenerator()).String())
 	if err := e.topLevelDirectory.AddChild(
 		ctx,
 		directoryName,
