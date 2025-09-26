@@ -69,6 +69,19 @@ message ApplicationConfiguration {
   bonanza.configuration.model.parser.ParsedObjectPool parsed_object_pool = 14;
 
   // The maximum number of times the evaluation function may be invoked
-  // in parallel.
-  int32 evaluation_concurrency = 15;
+  // in parallel for evaluation steps that are performed locally (e.g.,
+  // configuring a target, or constructing an action's input root).
+  //
+  // This option should be set to a value that is proportional to the
+  // number of CPU cores available to bonanza_builder.
+  uint32 local_evaluation_concurrency = 15;
+
+  // The maximum number of times the evaluation function may be invoked
+  // in parallel for evaluation steps that are performed remotely (e.g.,
+  // running an action on bonanza_worker, or instructing bonanza_fetcher
+  // to download a file).
+  //
+  // This option should be set to a value that is proportional to the
+  // maximum number of workers a single build may utilize.
+  uint32 remote_evaluation_concurrency = 16;
 }

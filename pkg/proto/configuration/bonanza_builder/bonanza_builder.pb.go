@@ -39,7 +39,8 @@ type ApplicationConfiguration struct {
 	ClientCertificateVerifier       *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,12,opt,name=client_certificate_verifier,json=clientCertificateVerifier,proto3" json:"client_certificate_verifier,omitempty"`
 	WorkerId                        map[string]string                            `protobuf:"bytes,13,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	ParsedObjectPool                *parser.ParsedObjectPool                     `protobuf:"bytes,14,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
-	EvaluationConcurrency           int32                                        `protobuf:"varint,15,opt,name=evaluation_concurrency,json=evaluationConcurrency,proto3" json:"evaluation_concurrency,omitempty"`
+	LocalEvaluationConcurrency      uint32                                       `protobuf:"varint,15,opt,name=local_evaluation_concurrency,json=localEvaluationConcurrency,proto3" json:"local_evaluation_concurrency,omitempty"`
+	RemoteEvaluationConcurrency     uint32                                       `protobuf:"varint,16,opt,name=remote_evaluation_concurrency,json=remoteEvaluationConcurrency,proto3" json:"remote_evaluation_concurrency,omitempty"`
 	unknownFields                   protoimpl.UnknownFields
 	sizeCache                       protoimpl.SizeCache
 }
@@ -151,9 +152,16 @@ func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPoo
 	return nil
 }
 
-func (x *ApplicationConfiguration) GetEvaluationConcurrency() int32 {
+func (x *ApplicationConfiguration) GetLocalEvaluationConcurrency() uint32 {
 	if x != nil {
-		return x.EvaluationConcurrency
+		return x.LocalEvaluationConcurrency
+	}
+	return 0
+}
+
+func (x *ApplicationConfiguration) GetRemoteEvaluationConcurrency() uint32 {
+	if x != nil {
+		return x.RemoteEvaluationConcurrency
 	}
 	return 0
 }
@@ -162,7 +170,7 @@ var File_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto protorefl
 
 const file_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDesc = "" +
 	"\n" +
-	"=pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a3pkg/proto/configuration/filesystem/filesystem.proto\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\x1a'pkg/proto/configuration/x509/x509.proto\"\xfe\b\n" +
+	"=pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a3pkg/proto/configuration/filesystem/filesystem.proto\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\x1a'pkg/proto/configuration/x509/x509.proto\"\xcd\t\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x03 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12V\n" +
@@ -175,8 +183,9 @@ const file_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDesc
 	"\x15platform_private_keys\x18\v \x03(\tR\x13platformPrivateKeys\x12\x84\x01\n" +
 	"\x1bclient_certificate_verifier\x18\f \x01(\v2D.buildbarn.configuration.x509.ClientCertificateVerifierConfigurationR\x19clientCertificateVerifier\x12j\n" +
 	"\tworker_id\x18\r \x03(\v2M.bonanza.configuration.bonanza_builder.ApplicationConfiguration.WorkerIdEntryR\bworkerId\x12b\n" +
-	"\x12parsed_object_pool\x18\x0e \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\x125\n" +
-	"\x16evaluation_concurrency\x18\x0f \x01(\x05R\x15evaluationConcurrency\x1a;\n" +
+	"\x12parsed_object_pool\x18\x0e \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\x12@\n" +
+	"\x1clocal_evaluation_concurrency\x18\x0f \x01(\rR\x1alocalEvaluationConcurrency\x12B\n" +
+	"\x1dremote_evaluation_concurrency\x18\x10 \x01(\rR\x1bremoteEvaluationConcurrency\x1a;\n" +
 	"\rWorkerIdEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B7Z5bonanza.build/pkg/proto/configuration/bonanza_builderb\x06proto3"

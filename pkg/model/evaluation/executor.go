@@ -41,29 +41,29 @@ type ComputerFactory[TReference any, TMetadata model_core.ReferenceMetadata] int
 type executor struct {
 	objectDownloader              object.Downloader[object.GlobalReference]
 	computerFactory               ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
+	queuesFactory                 RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
 	parsedObjectPool              *model_parser.ParsedObjectPool
 	dagUploaderClient             dag_pb.UploaderClient
 	objectContentsWalkerSemaphore *semaphore.Weighted
-	evaluationConcurrency         int32
 	clock                         clock.Clock
 }
 
 func NewExecutor(
 	objectDownloader object.Downloader[object.GlobalReference],
 	computerFactory ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]],
+	queuesFactory RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata],
 	parsedObjectPool *model_parser.ParsedObjectPool,
 	dagUploaderClient dag_pb.UploaderClient,
 	objectContentsWalkerSemaphore *semaphore.Weighted,
-	evaluationConcurrency int32,
 	clock clock.Clock,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &executor{
 		objectDownloader:              objectDownloader,
 		computerFactory:               computerFactory,
+		queuesFactory:                 queuesFactory,
 		parsedObjectPool:              parsedObjectPool,
 		dagUploaderClient:             dagUploaderClient,
 		objectContentsWalkerSemaphore: objectContentsWalkerSemaphore,
-		evaluationConcurrency:         evaluationConcurrency,
 		clock:                         clock,
 	}
 }
@@ -132,6 +132,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			return &result
 		}
 
+		queues := e.queuesFactory.NewQueues()
 		recursiveComputer := NewRecursiveComputer(
 			NewLeakCheckingComputer(
 				e.computerFactory.NewComputer(
@@ -140,6 +141,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 					objectExporter,
 				),
 			),
+			queues,
 			objectManager,
 			e.clock,
 		)
@@ -312,13 +314,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			})
 
 			// Launch goroutines for performing evaluation.
-			for i := int32(0); i < e.evaluationConcurrency; i++ {
-				dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-					for recursiveComputer.ProcessNextQueuedKey(ctx) {
-					}
-					return nil
-				})
-			}
+			queues.ProcessAllQueuedKeys(dependenciesGroup, recursiveComputer)
 
 			// Launch goroutines for waiting for build completion.
 			for i, requestedKeyState := range requestedKeyStates {

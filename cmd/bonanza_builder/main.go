@@ -15,6 +15,7 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	"bonanza.build/pkg/proto/configuration/bonanza_builder"
+	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_executewithstorage_pb "bonanza.build/pkg/proto/model/executewithstorage"
 	remoteexecution_pb "bonanza.build/pkg/proto/remoteexecution"
@@ -23,6 +24,7 @@ import (
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	remoteexecution "bonanza.build/pkg/remoteexecution"
 	"bonanza.build/pkg/remoteworker"
+	"bonanza.build/pkg/storage/object"
 	object_existenceprecondition "bonanza.build/pkg/storage/object/existenceprecondition"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
 
@@ -37,6 +39,7 @@ import (
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -126,10 +129,13 @@ func main() {
 							bzlFileBuiltins,
 							buildFileBuiltins,
 						),
+						&queuesFactory[buffered.Reference, buffered.ReferenceMetadata]{
+							local:  model_evaluation.NewSimpleRecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.LocalEvaluationConcurrency),
+							remote: model_evaluation.NewSimpleRecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.RemoteEvaluationConcurrency),
+						},
 						parsedObjectPool,
 						dag_pb.NewUploaderClient(storageGRPCClient),
 						semaphore.NewWeighted(int64(runtime.NumCPU())),
-						configuration.EvaluationConcurrency,
 						clock.SystemClock,
 					),
 				),
@@ -150,4 +156,45 @@ func main() {
 		lifecycleState.MarkReadyAndWait(siblingsGroup)
 		return nil
 	})
+}
+
+// queuesFactory is responsible for creating scheduling queues used by
+// RecursiveComputer. In our case we want to let it be backed by two
+// queues: one for running local evaluation steps (having a lower
+// concurrency) and one for running remote evaluation steps (having a
+// higher concurrency).
+type queuesFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	local  model_evaluation.RecursiveComputerQueuesFactory[TReference, TMetadata]
+	remote model_evaluation.RecursiveComputerQueuesFactory[TReference, TMetadata]
+}
+
+func (qf *queuesFactory[TReference, TMetadata]) NewQueues() model_evaluation.RecursiveComputerQueues[TReference, TMetadata] {
+	return &queues[TReference, TMetadata]{
+		local:  qf.local.NewQueues(),
+		remote: qf.remote.NewQueues(),
+	}
+}
+
+type queues[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	local  model_evaluation.RecursiveComputerQueues[TReference, TMetadata]
+	remote model_evaluation.RecursiveComputerQueues[TReference, TMetadata]
+}
+
+func (q *queues[TReference, TMetadata]) PickQueue(key model_core.Message[proto.Message, TReference]) *model_evaluation.RecursiveComputerQueue[TReference, TMetadata] {
+	switch key.Message.(type) {
+	case *model_analysis_pb.HttpFileContents_Key:
+	case *model_analysis_pb.ActionResult_Key:
+		// Run evaluation steps that call into the remote
+		// execution client with a higher concurrency.
+		return q.remote.PickQueue(key)
+	}
+
+	// Run all other evaluation steps that run locally with a lower
+	// concurrency.
+	return q.local.PickQueue(key)
+}
+
+func (q *queues[TReference, TMetadata]) ProcessAllQueuedKeys(group program.Group, computer *model_evaluation.RecursiveComputer[TReference, TMetadata]) {
+	q.local.ProcessAllQueuedKeys(group, computer)
+	q.remote.ProcessAllQueuedKeys(group, computer)
 }

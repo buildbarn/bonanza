@@ -22,6 +22,34 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// RecursiveComputerQueue represents a queue of evaluation keys that are
+// currently not blocked and are ready to be evaluated.
+//
+// Instances of RecursiveComputer can make use of multiple queues. This
+// can be used to enforce that different types of keys are evaluated
+// with different amounts of concurrency. For example, keys that are CPU
+// intensive to evaluate can be executed with a concurrency proportional
+// to the number of locally available CPU cores, while keys that perform
+// long-running network requests can use a higher amount of concurrency.
+type RecursiveComputerQueue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	queuedKeys     keyStateList[TReference, TMetadata]
+	queuedKeysWait chan struct{}
+}
+
+// NewRecursiveComputerQueue creates a new RecursiveComputerQueue that
+// does not have any queues keys.
+func NewRecursiveComputerQueue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() *RecursiveComputerQueue[TReference, TMetadata] {
+	var rcq RecursiveComputerQueue[TReference, TMetadata]
+	rcq.queuedKeys.init()
+	return &rcq
+}
+
+// RecursiveComputerQueuePicker is used by RecursiveComputer to pick a
+// RecursiveComputerQueue to which a given key should be assigned.
+type RecursiveComputerQueuePicker[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
+	PickQueue(model_core.Message[proto.Message, TReference]) *RecursiveComputerQueue[TReference, TMetadata]
+}
+
 // RecursiveComputer can be used to compute values, taking dependencies
 // between keys into account.
 //
@@ -32,6 +60,7 @@ import (
 // repeates itself until all requested keys are exhausted.
 type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	base          Computer[TReference, TMetadata]
+	queuePicker   RecursiveComputerQueuePicker[TReference, TMetadata]
 	objectManager model_core.ObjectManager[TReference, TMetadata]
 	clock         clock.Clock
 
@@ -51,9 +80,8 @@ type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.Re
 	// ProcessNextQueuedKey().
 	evaluatingKeys keyStateList[TReference, TMetadata]
 
-	// List of keys for which evaluation should be attempted.
-	queuedKeys     keyStateList[TReference, TMetadata]
-	queuedKeysWait chan struct{}
+	// Total number of keys for which evaluation should be attempted.
+	totalQueuedKeysCount uint64
 
 	completedKeys keyStateList[TReference, TMetadata]
 }
@@ -62,11 +90,13 @@ type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.Re
 // initial state (i.e., having no queued or evaluated keys).
 func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	base Computer[TReference, TMetadata],
+	queuePicker RecursiveComputerQueuePicker[TReference, TMetadata],
 	objectManager model_core.ObjectManager[TReference, TMetadata],
 	clock clock.Clock,
 ) *RecursiveComputer[TReference, TMetadata] {
 	rc := &RecursiveComputer[TReference, TMetadata]{
 		base:          base,
+		queuePicker:   queuePicker,
 		objectManager: objectManager,
 		clock:         clock,
 
@@ -75,20 +105,19 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 	}
 	rc.blockedKeys.init()
 	rc.evaluatingKeys.init()
-	rc.queuedKeys.init()
 	rc.completedKeys.init()
 	return rc
 }
 
-func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx context.Context) bool {
+func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx context.Context, rcq *RecursiveComputerQueue[TReference, TMetadata]) bool {
 	for {
 		rc.lock.Lock()
-		if !rc.queuedKeys.empty() {
+		if !rcq.queuedKeys.empty() {
 			// One or more keys are available for evaluation.
 			break
 		}
 
-		if rc.evaluatingKeys.empty() {
+		if rc.totalQueuedKeysCount == 0 && rc.evaluatingKeys.empty() {
 			// If there are no keys queued for evaluation,
 			// we are currently evaluating none of them, but
 			// there are keys blocking others, it means we
@@ -98,10 +127,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 			}
 		}
 
-		if rc.queuedKeysWait == nil {
-			rc.queuedKeysWait = make(chan struct{})
+		if rcq.queuedKeysWait == nil {
+			rcq.queuedKeysWait = make(chan struct{})
 		}
-		queuedKeysWait := rc.queuedKeysWait
+		queuedKeysWait := rcq.queuedKeysWait
 		rc.lock.Unlock()
 
 		select {
@@ -112,7 +141,8 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 	}
 
 	// Extract the first queued key.
-	ks := rc.queuedKeys.popFirst()
+	ks := rcq.queuedKeys.popFirst()
+	rc.totalQueuedKeysCount--
 	rc.evaluatingKeys.pushLast(ks)
 	ks.currentEvaluationStart = rc.clock.Now()
 	if ks.restarts == 0 {
@@ -326,18 +356,20 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress() (model_core.Pa
 		return &model_evaluation_pb.Progress{
 			CompletedKeysCount:   rc.completedKeys.count,
 			OldestEvaluatingKeys: evaluatingKeys,
-			QueuedKeysCount:      rc.queuedKeys.count,
+			QueuedKeysCount:      rc.totalQueuedKeysCount,
 			BlockedKeysCount:     rc.blockedKeys.count,
 		}, nil
 	})
 }
 
 func (rc *RecursiveComputer[TReference, TMetadata]) enqueue(ks *KeyState[TReference, TMetadata]) {
-	rc.queuedKeys.pushLast(ks)
+	rcq := rc.queuePicker.PickQueue(ks.key.Decay())
+	rcq.queuedKeys.pushLast(ks)
+	rc.totalQueuedKeysCount++
 	// TODO: This wakes up all threads.
-	if rc.queuedKeysWait != nil {
-		close(rc.queuedKeysWait)
-		rc.queuedKeysWait = nil
+	if rcq.queuedKeysWait != nil {
+		close(rcq.queuedKeysWait)
+		rcq.queuedKeysWait = nil
 	}
 }
 

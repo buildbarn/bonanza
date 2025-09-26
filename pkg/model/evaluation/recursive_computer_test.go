@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	model_core "bonanza.build/pkg/model/core"
-	"bonanza.build/pkg/model/evaluation"
+	model_evaluation "bonanza.build/pkg/model/evaluation"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
@@ -31,7 +31,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// memoization, this should run in polynomial time.
 		computer := NewMockComputerForTesting(ctrl)
 		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				// Base case: fib(0) and fib(1).
 				k := key.Message.(*wrapperspb.UInt32Value)
 				if k.Value <= 1 {
@@ -50,7 +50,7 @@ func TestRecursiveComputer(t *testing.T) {
 					Value: k.Value - 1,
 				}))
 				if !v0.IsSet() || !v1.IsSet() {
-					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, evaluation.ErrMissingDependency
+					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 				}
 				return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
 					&wrapperspb.UInt64Value{
@@ -61,7 +61,9 @@ func TestRecursiveComputer(t *testing.T) {
 			AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 
-		recursiveComputer := evaluation.NewRecursiveComputer(computer, objectManager, clock.SystemClock)
+		queuesFactory := model_evaluation.NewSimpleRecursiveComputerQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
+		queues := queuesFactory.NewQueues()
+		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, objectManager, clock.SystemClock)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 				&wrapperspb.UInt32Value{
@@ -75,11 +77,7 @@ func TestRecursiveComputer(t *testing.T) {
 		require.NoError(
 			t,
 			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-				dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-					for recursiveComputer.ProcessNextQueuedKey(ctx) {
-					}
-					return nil
-				})
+				queues.ProcessAllQueuedKeys(dependenciesGroup, recursiveComputer)
 
 				var err error
 				value, err = recursiveComputer.WaitForMessageValue(ctx, keyState)
@@ -97,14 +95,16 @@ func TestRecursiveComputer(t *testing.T) {
 		// immediately trigger cycle detection.
 		computer := NewMockComputerForTesting(ctrl)
 		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				v := e.GetMessageValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](key.Message))
 				require.False(t, v.IsSet())
-				return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, evaluation.ErrMissingDependency
+				return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 			})
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 
-		recursiveComputer := evaluation.NewRecursiveComputer(computer, objectManager, clock.SystemClock)
+		queuesFactory := model_evaluation.NewSimpleRecursiveComputerQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
+		queues := queuesFactory.NewQueues()
+		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, objectManager, clock.SystemClock)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 				&wrapperspb.UInt32Value{
@@ -116,7 +116,7 @@ func TestRecursiveComputer(t *testing.T) {
 
 		require.EqualExportedValues(
 			t,
-			evaluation.NestedError[object.LocalReference]{
+			model_evaluation.NestedError[object.LocalReference]{
 				Key: model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 					&wrapperspb.UInt32Value{
 						Value: 42,
@@ -125,11 +125,7 @@ func TestRecursiveComputer(t *testing.T) {
 				Err: errors.New("cyclic evaluation detected"),
 			},
 			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-				dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-					for recursiveComputer.ProcessNextQueuedKey(ctx) {
-					}
-					return nil
-				})
+				queues.ProcessAllQueuedKeys(dependenciesGroup, recursiveComputer)
 
 				_, err := recursiveComputer.WaitForMessageValue(ctx, keyState)
 				return err
@@ -143,7 +139,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// should be propagated all the way back up.
 		computer := NewMockComputerForTesting(ctrl)
 		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				k := key.Message.(*wrapperspb.UInt32Value)
 				if k.Value == 0 {
 					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, errors.New("reached zero")
@@ -153,7 +149,7 @@ func TestRecursiveComputer(t *testing.T) {
 					Value: k.Value - 1,
 				}))
 				if !v.IsSet() {
-					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, evaluation.ErrMissingDependency
+					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 				}
 				return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
 					&emptypb.Empty{},
@@ -162,7 +158,9 @@ func TestRecursiveComputer(t *testing.T) {
 			Times(4)
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 
-		recursiveComputer := evaluation.NewRecursiveComputer(computer, objectManager, clock.SystemClock)
+		queuesFactory := model_evaluation.NewSimpleRecursiveComputerQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
+		queues := queuesFactory.NewQueues()
+		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, objectManager, clock.SystemClock)
 
 		keyState2, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
@@ -174,13 +172,13 @@ func TestRecursiveComputer(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualExportedValues(
 			t,
-			evaluation.NestedError[object.LocalReference]{
+			model_evaluation.NestedError[object.LocalReference]{
 				Key: model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 					&wrapperspb.UInt32Value{
 						Value: 1,
 					},
 				),
-				Err: evaluation.NestedError[object.LocalReference]{
+				Err: model_evaluation.NestedError[object.LocalReference]{
 					Key: model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 						&wrapperspb.UInt32Value{
 							Value: 0,
@@ -190,11 +188,7 @@ func TestRecursiveComputer(t *testing.T) {
 				},
 			},
 			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-				dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-					for recursiveComputer.ProcessNextQueuedKey(ctx) {
-					}
-					return nil
-				})
+				queues.ProcessAllQueuedKeys(dependenciesGroup, recursiveComputer)
 
 				_, err := recursiveComputer.WaitForMessageValue(ctx, keyState2)
 				return err
@@ -214,19 +208,19 @@ func TestRecursiveComputer(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualExportedValues(
 			t,
-			evaluation.NestedError[object.LocalReference]{
+			model_evaluation.NestedError[object.LocalReference]{
 				Key: model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 					&wrapperspb.UInt32Value{
 						Value: 2,
 					},
 				),
-				Err: evaluation.NestedError[object.LocalReference]{
+				Err: model_evaluation.NestedError[object.LocalReference]{
 					Key: model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 						&wrapperspb.UInt32Value{
 							Value: 1,
 						},
 					),
-					Err: evaluation.NestedError[object.LocalReference]{
+					Err: model_evaluation.NestedError[object.LocalReference]{
 						Key: model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 							&wrapperspb.UInt32Value{
 								Value: 0,
@@ -237,11 +231,7 @@ func TestRecursiveComputer(t *testing.T) {
 				},
 			},
 			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-				dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-					for recursiveComputer.ProcessNextQueuedKey(ctx) {
-					}
-					return nil
-				})
+				queues.ProcessAllQueuedKeys(dependenciesGroup, recursiveComputer)
 
 				_, err := recursiveComputer.WaitForMessageValue(ctx, keyState3)
 				return err
