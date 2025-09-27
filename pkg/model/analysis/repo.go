@@ -1818,9 +1818,14 @@ func newArgumentsBuilder[TMetadata model_core.ReferenceMetadata](ctx context.Con
 			}
 		})
 	})
-	return btree.NewSplitProllyBuilder(
-		1<<16,
-		1<<18,
+	return btree.NewUniformBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			/* minimumSizeBytes = */ 1<<16,
+			/* maximumSizeBytes = */ 1<<18,
+			/* isParent = */ func(element *model_command_pb.ArgumentList_Element) bool {
+				return element.GetParent() != nil
+			},
+		),
 		btree.NewObjectCreatingNodeMerger(
 			actionEncoder,
 			referenceFormat,

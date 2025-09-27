@@ -334,9 +334,14 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		// Store all evaluation results to permit debugging of the build.
 		// TODO: Use a proper configuration.
 		evaluationTreeEncoder := model_encoding.NewChainedBinaryEncoder(nil)
-		outcomesTreeBuilder := btree.NewSplitProllyBuilder(
-			1<<16,
-			1<<18,
+		outcomesTreeBuilder := btree.NewUniformBuilder(
+			btree.NewProllyChunkerFactory[buffered.ReferenceMetadata](
+				/* minimumSizeBytes = */ 1<<16,
+				/* maximumSizeBytes = */ 1<<18,
+				/* isParent = */ func(evaluation *model_evaluation_pb.Evaluation) bool {
+					return evaluation.GetParent() != nil
+				},
+			),
 			btree.NewObjectCreatingNodeMerger(
 				evaluationTreeEncoder,
 				referenceFormat,
@@ -393,9 +398,14 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				patcher.Merge(value.Patcher)
 			}
 
-			dependencyTreeBuilder := btree.NewSplitProllyBuilder(
-				1<<16,
-				1<<18,
+			dependencyTreeBuilder := btree.NewUniformBuilder(
+				btree.NewProllyChunkerFactory[buffered.ReferenceMetadata](
+					/* minimumSizeBytes = */ 1<<16,
+					/* minimumSizeBytes = */ 1<<18,
+					/* isParent = */ func(keys *model_evaluation_pb.Keys) bool {
+						return keys.GetParent() != nil
+					},
+				),
 				btree.NewObjectCreatingNodeMerger(
 					evaluationTreeEncoder,
 					referenceFormat,

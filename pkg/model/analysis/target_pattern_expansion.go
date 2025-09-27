@@ -77,9 +77,14 @@ func (c *baseComputer[TReference, TMetadata]) expandCanonicalTargetPattern(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue(ctx context.Context, key *model_analysis_pb.TargetPatternExpansion_Key, e TargetPatternExpansionEnvironment[TReference, TMetadata]) (PatchedTargetPatternExpansionValue[TMetadata], error) {
-	treeBuilder := btree.NewSplitProllyBuilder(
-		/* minimumSizeBytes = */ 32*1024,
-		/* maximumSizeBytes = */ 128*1024,
+	treeBuilder := btree.NewUniformBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			/* minimumSizeBytes = */ 32*1024,
+			/* maximumSizeBytes = */ 128*1024,
+			/* isParent = */ func(targetLabel *model_analysis_pb.TargetPatternExpansion_Value_TargetLabel) bool {
+				return targetLabel.GetParent() != nil
+			},
+		),
 		btree.NewObjectCreatingNodeMerger(
 			c.getValueObjectEncoder(),
 			c.referenceFormat,

@@ -32,9 +32,14 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 		parameters.chunkMinimumSizeBytes,
 		parameters.chunkMaximumSizeBytes,
 	)
-	treeBuilder := btree.NewUniformProllyBuilder(
-		parameters.fileContentsListMinimumSizeBytes,
-		parameters.fileContentsListMaximumSizeBytes,
+	treeBuilder := btree.NewUniformBuilder(
+		btree.NewProllyChunkerFactory[T](
+			parameters.fileContentsListMinimumSizeBytes,
+			parameters.fileContentsListMaximumSizeBytes,
+			/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
+				return contents.GetFileContentsListReference() != nil
+			},
+		),
 		btree.NewObjectCreatingNodeMerger[*model_filesystem_pb.FileContents, T](
 			parameters.fileContentsListEncoder,
 			parameters.referenceFormat,

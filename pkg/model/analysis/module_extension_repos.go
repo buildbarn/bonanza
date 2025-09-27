@@ -150,9 +150,14 @@ func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRe
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepos_Key, e ModuleExtensionReposEnvironment[TReference, TMetadata]) (PatchedModuleExtensionReposValue[TMetadata], error) {
 	// Store all repos in a B-tree.
-	treeBuilder := btree.NewSplitProllyBuilder(
-		/* minimumSizeBytes = */ 32*1024,
-		/* maximumSizeBytes = */ 128*1024,
+	treeBuilder := btree.NewUniformBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			/* minimumSizeBytes = */ 32*1024,
+			/* maximumSizeBytes = */ 128*1024,
+			/* isParent = */ func(repo *model_analysis_pb.ModuleExtensionRepos_Value_Repo) bool {
+				return repo.GetParent() != nil
+			},
+		),
 		btree.NewObjectCreatingNodeMerger(
 			c.getValueObjectEncoder(),
 			c.referenceFormat,

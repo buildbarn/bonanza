@@ -148,9 +148,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 
 		// Store all targets in a B-tree.
 		// TODO: Use a proper encoder!
-		treeBuilder := btree.NewSplitProllyBuilder(
-			/* minimumSizeBytes = */ 32*1024,
-			/* maximumSizeBytes = */ 128*1024,
+		treeBuilder := btree.NewUniformBuilder(
+			btree.NewProllyChunkerFactory[TMetadata](
+				/* minimumSizeBytes = */ 32*1024,
+				/* maximumSizeBytes = */ 128*1024,
+				/* isParent = */ func(target *model_analysis_pb.Package_Value_Target) bool {
+					return target.GetParent() != nil
+				},
+			),
 			btree.NewObjectCreatingNodeMerger(
 				c.getValueObjectEncoder(),
 				c.referenceFormat,

@@ -78,14 +78,19 @@ func ComputeListParentNode[TMetadata model_core.ReferenceMetadata](createdObject
 	})
 }
 
-// newSplitBTreeBuilder creates a B-tree builder that stores a minimium
-// of one entry in leaves, and a minimum of two entries in parents. This
-// ensures that very large values are stored in separate objects, while
-// ensuring that the B-tree converges to a single root.
-func newSplitBTreeBuilder[TReference any, TMessage proto.Message, TMetadata model_core.ReferenceMetadata](options *ValueEncodingOptions[TReference, TMetadata], parentNodeComputer btree.ParentNodeComputer[TMessage, TMetadata]) btree.Builder[TMessage, TMetadata] {
-	return btree.NewSplitProllyBuilder(
-		options.ObjectMinimumSizeBytes,
-		options.ObjectMaximumSizeBytes,
+// newBTreeBuilder creates a B-tree builder suitable for encoding lists
+// of Starlark values.
+func newBTreeBuilder[TReference any, TMessage proto.Message, TMetadata model_core.ReferenceMetadata](
+	options *ValueEncodingOptions[TReference, TMetadata],
+	isParent func(TMessage) bool,
+	parentNodeComputer btree.ParentNodeComputer[TMessage, TMetadata],
+) btree.Builder[TMessage, TMetadata] {
+	return btree.NewUniformBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			options.ObjectMinimumSizeBytes,
+			options.ObjectMaximumSizeBytes,
+			isParent,
+		),
 		btree.NewObjectCreatingNodeMerger(
 			options.ObjectEncoder,
 			options.ObjectReferenceFormat,
@@ -95,7 +100,13 @@ func newSplitBTreeBuilder[TReference any, TMessage proto.Message, TMetadata mode
 }
 
 func NewListBuilder[TReference any, TMetadata model_core.ReferenceMetadata](options *ValueEncodingOptions[TReference, TMetadata]) btree.Builder[*model_starlark_pb.List_Element, TMetadata] {
-	return newSplitBTreeBuilder(options, btree.Capturing(options.Context, options.ObjectCapturer, ComputeListParentNode))
+	return newBTreeBuilder(
+		options,
+		func(element *model_starlark_pb.List_Element) bool {
+			return element.GetParent() != nil
+		},
+		btree.Capturing(options.Context, options.ObjectCapturer, ComputeListParentNode),
+	)
 }
 
 type EncodableValue[TReference any, TMetadata model_core.ReferenceMetadata] interface {
@@ -195,8 +206,11 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](value s
 		path[value] = struct{}{}
 		defer delete(path, value)
 
-		treeBuilder := newSplitBTreeBuilder(
+		treeBuilder := newBTreeBuilder(
 			options,
+			/* isParent = */ func(entry *model_starlark_pb.Dict_Entry) bool {
+				return entry.GetParent() != nil
+			},
 			/* parentNodeComputer = */ btree.Capturing(options.Context, options.ObjectCapturer, func(
 				createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 				childNodes model_core.Message[[]*model_starlark_pb.Dict_Entry, object.LocalReference],

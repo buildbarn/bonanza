@@ -119,9 +119,14 @@ func convertDictToEnvironmentVariableList[TMetadata model_core.ReferenceMetadata
 			}
 		})
 	})
-	environmentVariablesBuilder := btree.NewSplitProllyBuilder(
-		1<<16,
-		1<<18,
+	environmentVariablesBuilder := btree.NewUniformBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			/* minimumSizeBytes = */ 1<<16,
+			/* maximumSizeBytes = */ 1<<18,
+			/* isParent = */ func(element *model_command_pb.EnvironmentVariableList_Element) bool {
+				return element.GetParent() != nil
+			},
+		),
 		btree.NewObjectCreatingNodeMerger(
 			actionEncoder,
 			referenceFormat,

@@ -1452,9 +1452,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			})
 
 			// Construct list of outputs of the target.
-			outputsTreeBuilder := btree.NewSplitProllyBuilder(
-				/* minimumSizeBytes = */ 32*1024,
-				/* maximumSizeBytes = */ 128*1024,
+			outputsTreeBuilder := btree.NewUniformBuilder(
+				btree.NewProllyChunkerFactory[TMetadata](
+					/* minimumSizeBytes = */ 32*1024,
+					/* maximumSizeBytes = */ 128*1024,
+					/* isParent = */ func(output *model_analysis_pb.ConfiguredTarget_Value_Output) bool {
+						return output.GetParent() != nil
+					},
+				),
 				btree.NewObjectCreatingNodeMerger(
 					c.getValueObjectEncoder(),
 					c.referenceFormat,
@@ -1509,9 +1514,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			patcher.Merge(outputsList.Patcher)
 
 			// Construct list of actions of the target.
-			actionsTreeBuilder := btree.NewSplitProllyBuilder(
-				/* minimumSizeBytes = */ 32*1024,
-				/* maximumSizeBytes = */ 128*1024,
+			actionsTreeBuilder := btree.NewUniformBuilder(
+				btree.NewProllyChunkerFactory[TMetadata](
+					/* minimumSizeBytes = */ 32*1024,
+					/* maximumSizeBytes = */ 128*1024,
+					/* isParent = */ func(action *model_analysis_pb.ConfiguredTarget_Value_Action) bool {
+						return action.GetParent() != nil
+					},
+				),
 				btree.NewObjectCreatingNodeMerger(
 					c.getValueObjectEncoder(),
 					c.referenceFormat,
@@ -2371,9 +2381,14 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 			}
 		})
 	})
-	toolsBuilder := btree.NewSplitProllyBuilder(
-		valueEncodingOptions.ObjectMinimumSizeBytes,
-		valueEncodingOptions.ObjectMaximumSizeBytes,
+	toolsBuilder := btree.NewUniformBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			valueEncodingOptions.ObjectMinimumSizeBytes,
+			valueEncodingOptions.ObjectMaximumSizeBytes,
+			/* isParent = */ func(filesToRunProvider *model_analysis_pb.FilesToRunProvider) bool {
+				return filesToRunProvider.GetParent() != nil
+			},
+		),
 		btree.NewObjectCreatingNodeMerger(
 			valueEncodingOptions.ObjectEncoder,
 			valueEncodingOptions.ObjectReferenceFormat,
@@ -2467,9 +2482,14 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 			}
 		})
 	})
-	argsListBuilder := btree.NewSplitProllyBuilder(
-		valueEncodingOptions.ObjectMinimumSizeBytes,
-		valueEncodingOptions.ObjectMaximumSizeBytes,
+	argsListBuilder := btree.NewUniformBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			valueEncodingOptions.ObjectMinimumSizeBytes,
+			valueEncodingOptions.ObjectMaximumSizeBytes,
+			/* isParent = */ func(args *model_analysis_pb.Args) bool {
+				return args.GetParent() != nil
+			},
+		),
 		btree.NewObjectCreatingNodeMerger(
 			valueEncodingOptions.ObjectEncoder,
 			valueEncodingOptions.ObjectReferenceFormat,
@@ -3316,9 +3336,14 @@ func (a *args[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, o
 		}
 	}
 
-	addsListBuilder := btree.NewSplitProllyBuilder(
-		options.ObjectMinimumSizeBytes,
-		options.ObjectMaximumSizeBytes,
+	addsListBuilder := btree.NewUniformBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			options.ObjectMinimumSizeBytes,
+			options.ObjectMaximumSizeBytes,
+			/* isParent = */ func(add *model_analysis_pb.Args_Leaf_Add) bool {
+				return add.GetParent() != nil
+			},
+		),
 		btree.NewObjectCreatingNodeMerger(
 			options.ObjectEncoder,
 			options.ObjectReferenceFormat,

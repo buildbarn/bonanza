@@ -243,9 +243,14 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 	defer existingIterStop()
 
 	// TODO: Use a proper encoder!
-	treeBuilder := btree.NewSplitProllyBuilder(
-		/* minimumSizeBytes = */ 32*1024,
-		/* maximumSizeBytes = */ 128*1024,
+	treeBuilder := btree.NewUniformBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			/* minimumSizeBytes = */ 32*1024,
+			/* maximumSizeBytes = */ 128*1024,
+			/* isParent = */ func(buildSettingOverride *model_analysis_pb.BuildSettingOverride) bool {
+				return buildSettingOverride.GetParent() != nil
+			},
+		),
 		btree.NewObjectCreatingNodeMerger(
 			c.getValueObjectEncoder(),
 			c.referenceFormat,
