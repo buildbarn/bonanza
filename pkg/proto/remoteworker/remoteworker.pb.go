@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/remoteworker/remoteworker.proto
+// source: bonanza.build/pkg/proto/remoteworker/remoteworker.proto
 
 package remoteworker
 
@@ -60,11 +60,11 @@ func (x CurrentState_Completed_Result) String() string {
 }
 
 func (CurrentState_Completed_Result) Descriptor() protoreflect.EnumDescriptor {
-	return file_pkg_proto_remoteworker_remoteworker_proto_enumTypes[0].Descriptor()
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_enumTypes[0].Descriptor()
 }
 
 func (CurrentState_Completed_Result) Type() protoreflect.EnumType {
-	return &file_pkg_proto_remoteworker_remoteworker_proto_enumTypes[0]
+	return &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_enumTypes[0]
 }
 
 func (x CurrentState_Completed_Result) Number() protoreflect.EnumNumber {
@@ -73,7 +73,7 @@ func (x CurrentState_Completed_Result) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CurrentState_Completed_Result.Descriptor instead.
 func (CurrentState_Completed_Result) EnumDescriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 2, 0}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 2, 0}
 }
 
 type SynchronizeRequest struct {
@@ -89,7 +89,7 @@ type SynchronizeRequest struct {
 
 func (x *SynchronizeRequest) Reset() {
 	*x = SynchronizeRequest{}
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -101,7 +101,7 @@ func (x *SynchronizeRequest) String() string {
 func (*SynchronizeRequest) ProtoMessage() {}
 
 func (x *SynchronizeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -114,7 +114,7 @@ func (x *SynchronizeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SynchronizeRequest.ProtoReflect.Descriptor instead.
 func (*SynchronizeRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SynchronizeRequest) GetWorkerId() map[string]string {
@@ -167,7 +167,7 @@ type CurrentState struct {
 
 func (x *CurrentState) Reset() {
 	*x = CurrentState{}
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -179,7 +179,7 @@ func (x *CurrentState) String() string {
 func (*CurrentState) ProtoMessage() {}
 
 func (x *CurrentState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -192,7 +192,7 @@ func (x *CurrentState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentState.ProtoReflect.Descriptor instead.
 func (*CurrentState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CurrentState) GetWorkerState() isCurrentState_WorkerState {
@@ -276,7 +276,7 @@ type SynchronizeResponse struct {
 
 func (x *SynchronizeResponse) Reset() {
 	*x = SynchronizeResponse{}
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -288,7 +288,7 @@ func (x *SynchronizeResponse) String() string {
 func (*SynchronizeResponse) ProtoMessage() {}
 
 func (x *SynchronizeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -301,7 +301,7 @@ func (x *SynchronizeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SynchronizeResponse.ProtoReflect.Descriptor instead.
 func (*SynchronizeResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *SynchronizeResponse) GetNextSynchronizationAt() *timestamppb.Timestamp {
@@ -332,7 +332,7 @@ type DesiredState struct {
 
 func (x *DesiredState) Reset() {
 	*x = DesiredState{}
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -344,7 +344,7 @@ func (x *DesiredState) String() string {
 func (*DesiredState) ProtoMessage() {}
 
 func (x *DesiredState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -357,7 +357,7 @@ func (x *DesiredState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DesiredState.ProtoReflect.Descriptor instead.
 func (*DesiredState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DesiredState) GetWorkerState() isDesiredState_WorkerState {
@@ -426,7 +426,7 @@ type SynchronizeRequest_PublicKey struct {
 
 func (x *SynchronizeRequest_PublicKey) Reset() {
 	*x = SynchronizeRequest_PublicKey{}
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -438,7 +438,7 @@ func (x *SynchronizeRequest_PublicKey) String() string {
 func (*SynchronizeRequest_PublicKey) ProtoMessage() {}
 
 func (x *SynchronizeRequest_PublicKey) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -451,7 +451,7 @@ func (x *SynchronizeRequest_PublicKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SynchronizeRequest_PublicKey.ProtoReflect.Descriptor instead.
 func (*SynchronizeRequest_PublicKey) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{0, 1}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{0, 1}
 }
 
 func (x *SynchronizeRequest_PublicKey) GetPkixPublicKey() []byte {
@@ -478,7 +478,7 @@ type CurrentState_Rejected struct {
 
 func (x *CurrentState_Rejected) Reset() {
 	*x = CurrentState_Rejected{}
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -490,7 +490,7 @@ func (x *CurrentState_Rejected) String() string {
 func (*CurrentState_Rejected) ProtoMessage() {}
 
 func (x *CurrentState_Rejected) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -503,7 +503,7 @@ func (x *CurrentState_Rejected) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentState_Rejected.ProtoReflect.Descriptor instead.
 func (*CurrentState_Rejected) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 0}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 0}
 }
 
 func (x *CurrentState_Rejected) GetTaskUuid() string {
@@ -530,7 +530,7 @@ type CurrentState_Executing struct {
 
 func (x *CurrentState_Executing) Reset() {
 	*x = CurrentState_Executing{}
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -542,7 +542,7 @@ func (x *CurrentState_Executing) String() string {
 func (*CurrentState_Executing) ProtoMessage() {}
 
 func (x *CurrentState_Executing) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -555,7 +555,7 @@ func (x *CurrentState_Executing) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentState_Executing.ProtoReflect.Descriptor instead.
 func (*CurrentState_Executing) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 1}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 1}
 }
 
 func (x *CurrentState_Executing) GetTaskUuid() string {
@@ -584,7 +584,7 @@ type CurrentState_Completed struct {
 
 func (x *CurrentState_Completed) Reset() {
 	*x = CurrentState_Completed{}
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -596,7 +596,7 @@ func (x *CurrentState_Completed) String() string {
 func (*CurrentState_Completed) ProtoMessage() {}
 
 func (x *CurrentState_Completed) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -609,7 +609,7 @@ func (x *CurrentState_Completed) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentState_Completed.ProtoReflect.Descriptor instead.
 func (*CurrentState_Completed) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 2}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 2}
 }
 
 func (x *CurrentState_Completed) GetTaskUuid() string {
@@ -649,7 +649,7 @@ type DesiredState_VerifyingPublicKeys struct {
 
 func (x *DesiredState_VerifyingPublicKeys) Reset() {
 	*x = DesiredState_VerifyingPublicKeys{}
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -661,7 +661,7 @@ func (x *DesiredState_VerifyingPublicKeys) String() string {
 func (*DesiredState_VerifyingPublicKeys) ProtoMessage() {}
 
 func (x *DesiredState_VerifyingPublicKeys) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -674,7 +674,7 @@ func (x *DesiredState_VerifyingPublicKeys) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DesiredState_VerifyingPublicKeys.ProtoReflect.Descriptor instead.
 func (*DesiredState_VerifyingPublicKeys) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{3, 0}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{3, 0}
 }
 
 func (x *DesiredState_VerifyingPublicKeys) GetVerificationPkixPublicKeys() [][]byte {
@@ -698,7 +698,7 @@ type DesiredState_Executing struct {
 
 func (x *DesiredState_Executing) Reset() {
 	*x = DesiredState_Executing{}
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -710,7 +710,7 @@ func (x *DesiredState_Executing) String() string {
 func (*DesiredState_Executing) ProtoMessage() {}
 
 func (x *DesiredState_Executing) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -723,7 +723,7 @@ func (x *DesiredState_Executing) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DesiredState_Executing.ProtoReflect.Descriptor instead.
 func (*DesiredState_Executing) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{3, 1}
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{3, 1}
 }
 
 func (x *DesiredState_Executing) GetTaskUuid() string {
@@ -768,11 +768,11 @@ func (x *DesiredState_Executing) GetW3CTraceContext() map[string]string {
 	return nil
 }
 
-var File_pkg_proto_remoteworker_remoteworker_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_remoteworker_remoteworker_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_remoteworker_remoteworker_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDesc = "" +
 	"\n" +
-	")pkg/proto/remoteworker/remoteworker.proto\x12\x14bonanza.remoteworker\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\x1a/pkg/proto/encryptedaction/encryptedaction.proto\"\xf3\x03\n" +
+	"7bonanza.build/pkg/proto/remoteworker/remoteworker.proto\x12\x14bonanza.remoteworker\x1a=bonanza.build/pkg/proto/encryptedaction/encryptedaction.proto\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\"\xf3\x03\n" +
 	"\x12SynchronizeRequest\x12S\n" +
 	"\tworker_id\x18\x01 \x03(\v26.bonanza.remoteworker.SynchronizeRequest.WorkerIdEntryR\bworkerId\x12S\n" +
 	"\vpublic_keys\x18\x02 \x03(\v22.bonanza.remoteworker.SynchronizeRequest.PublicKeyR\n" +
@@ -833,20 +833,20 @@ const file_pkg_proto_remoteworker_remoteworker_proto_rawDesc = "" +
 	"\vSynchronize\x12(.bonanza.remoteworker.SynchronizeRequest\x1a).bonanza.remoteworker.SynchronizeResponseB&Z$bonanza.build/pkg/proto/remoteworkerb\x06proto3"
 
 var (
-	file_pkg_proto_remoteworker_remoteworker_proto_rawDescOnce sync.Once
-	file_pkg_proto_remoteworker_remoteworker_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescData []byte
 )
 
-func file_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP() []byte {
-	file_pkg_proto_remoteworker_remoteworker_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_remoteworker_remoteworker_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_remoteworker_remoteworker_proto_rawDesc), len(file_pkg_proto_remoteworker_remoteworker_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDesc), len(file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDesc)))
 	})
-	return file_pkg_proto_remoteworker_remoteworker_proto_rawDescData
+	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescData
 }
 
-var file_pkg_proto_remoteworker_remoteworker_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_pkg_proto_remoteworker_remoteworker_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_pkg_proto_remoteworker_remoteworker_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_goTypes = []any{
 	(CurrentState_Completed_Result)(0),       // 0: bonanza.remoteworker.CurrentState.Completed.Result
 	(*SynchronizeRequest)(nil),               // 1: bonanza.remoteworker.SynchronizeRequest
 	(*CurrentState)(nil),                     // 2: bonanza.remoteworker.CurrentState
@@ -868,7 +868,7 @@ var file_pkg_proto_remoteworker_remoteworker_proto_goTypes = []any{
 	(*encryptedaction.Action)(nil),           // 18: bonanza.encryptedaction.Action
 	(*anypb.Any)(nil),                        // 19: google.protobuf.Any
 }
-var file_pkg_proto_remoteworker_remoteworker_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_depIdxs = []int32{
 	5,  // 0: bonanza.remoteworker.SynchronizeRequest.worker_id:type_name -> bonanza.remoteworker.SynchronizeRequest.WorkerIdEntry
 	6,  // 1: bonanza.remoteworker.SynchronizeRequest.public_keys:type_name -> bonanza.remoteworker.SynchronizeRequest.PublicKey
 	2,  // 2: bonanza.remoteworker.SynchronizeRequest.current_state:type_name -> bonanza.remoteworker.CurrentState
@@ -900,18 +900,18 @@ var file_pkg_proto_remoteworker_remoteworker_proto_depIdxs = []int32{
 	0,  // [0:22] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_remoteworker_remoteworker_proto_init() }
-func file_pkg_proto_remoteworker_remoteworker_proto_init() {
-	if File_pkg_proto_remoteworker_remoteworker_proto != nil {
+func init() { file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_init() }
+func file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_init() {
+	if File_bonanza_build_pkg_proto_remoteworker_remoteworker_proto != nil {
 		return
 	}
-	file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[1].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[1].OneofWrappers = []any{
 		(*CurrentState_Idle)(nil),
 		(*CurrentState_Rejected_)(nil),
 		(*CurrentState_Executing_)(nil),
 		(*CurrentState_Completed_)(nil),
 	}
-	file_pkg_proto_remoteworker_remoteworker_proto_msgTypes[3].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[3].OneofWrappers = []any{
 		(*DesiredState_VerifyingPublicKeys_)(nil),
 		(*DesiredState_Idle)(nil),
 		(*DesiredState_Executing_)(nil),
@@ -920,18 +920,18 @@ func file_pkg_proto_remoteworker_remoteworker_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_remoteworker_remoteworker_proto_rawDesc), len(file_pkg_proto_remoteworker_remoteworker_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDesc), len(file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_pkg_proto_remoteworker_remoteworker_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_remoteworker_remoteworker_proto_depIdxs,
-		EnumInfos:         file_pkg_proto_remoteworker_remoteworker_proto_enumTypes,
-		MessageInfos:      file_pkg_proto_remoteworker_remoteworker_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_depIdxs,
+		EnumInfos:         file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_enumTypes,
+		MessageInfos:      file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_remoteworker_remoteworker_proto = out.File
-	file_pkg_proto_remoteworker_remoteworker_proto_goTypes = nil
-	file_pkg_proto_remoteworker_remoteworker_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_remoteworker_remoteworker_proto = out.File
+	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_depIdxs = nil
 }

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package bonanza.configuration.model.parser;
 
-import "pkg/proto/configuration/eviction/eviction.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/eviction/eviction.proto";
 
 message ParsedObjectPool {
   // The cache replacement for evicting parsed objects from the pool.

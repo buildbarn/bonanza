@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package bonanza.model.command;
 
+import "bonanza.build/pkg/proto/model/core/core.proto";
+import "bonanza.build/pkg/proto/model/filesystem/filesystem.proto";
 import "google/protobuf/any.proto";
 import "google/rpc/status.proto";
-import "pkg/proto/model/core/core.proto";
-import "pkg/proto/model/filesystem/filesystem.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/command";
 

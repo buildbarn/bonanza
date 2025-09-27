@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package bonanza.configuration.bonanza_browser;
 
-import "pkg/proto/configuration/global/global.proto";
-import "pkg/proto/configuration/grpc/grpc.proto";
-import "pkg/proto/configuration/http/http.proto";
-import "pkg/proto/configuration/model/parser/parser.proto";
-import "pkg/proto/configuration/storage/object/local/local.proto";
+import "bonanza.build/pkg/proto/configuration/model/parser/parser.proto";
+import "bonanza.build/pkg/proto/configuration/storage/object/local/local.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/http/server/server.proto";
 
 option go_package = "bonanza.build/pkg/proto/configuration/bonanza_browser";
 
@@ -15,7 +15,7 @@ message ApplicationConfiguration {
   buildbarn.configuration.global.Configuration global = 1;
 
   // Configuration for HTTP servers that expose the web UI.
-  repeated buildbarn.configuration.http.ServerConfiguration http_servers = 2;
+  repeated buildbarn.configuration.http.server.Configuration http_servers = 2;
 
   // gRPC client that communicates with the storage frontend.
   buildbarn.configuration.grpc.ClientConfiguration storage_grpc_client = 3;

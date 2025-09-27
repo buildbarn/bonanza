@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/buildqueuestate/buildqueuestate.proto
+// source: bonanza.build/pkg/proto/buildqueuestate/buildqueuestate.proto
 
 package buildqueuestate
 
@@ -63,11 +63,11 @@ func (x ListOperationsRequest_ExecutionStage) String() string {
 }
 
 func (ListOperationsRequest_ExecutionStage) Descriptor() protoreflect.EnumDescriptor {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes[0].Descriptor()
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes[0].Descriptor()
 }
 
 func (ListOperationsRequest_ExecutionStage) Type() protoreflect.EnumType {
-	return &file_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes[0]
+	return &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes[0]
 }
 
 func (x ListOperationsRequest_ExecutionStage) Number() protoreflect.EnumNumber {
@@ -76,7 +76,7 @@ func (x ListOperationsRequest_ExecutionStage) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ListOperationsRequest_ExecutionStage.Descriptor instead.
 func (ListOperationsRequest_ExecutionStage) EnumDescriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{12, 0}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{12, 0}
 }
 
 type ListInvocationChildrenRequest_Filter int32
@@ -112,11 +112,11 @@ func (x ListInvocationChildrenRequest_Filter) String() string {
 }
 
 func (ListInvocationChildrenRequest_Filter) Descriptor() protoreflect.EnumDescriptor {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes[1].Descriptor()
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes[1].Descriptor()
 }
 
 func (ListInvocationChildrenRequest_Filter) Type() protoreflect.EnumType {
-	return &file_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes[1]
+	return &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes[1]
 }
 
 func (x ListInvocationChildrenRequest_Filter) Number() protoreflect.EnumNumber {
@@ -125,7 +125,7 @@ func (x ListInvocationChildrenRequest_Filter) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ListInvocationChildrenRequest_Filter.Descriptor instead.
 func (ListInvocationChildrenRequest_Filter) EnumDescriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{16, 0}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{16, 0}
 }
 
 type PaginationInfo struct {
@@ -138,7 +138,7 @@ type PaginationInfo struct {
 
 func (x *PaginationInfo) Reset() {
 	*x = PaginationInfo{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -150,7 +150,7 @@ func (x *PaginationInfo) String() string {
 func (*PaginationInfo) ProtoMessage() {}
 
 func (x *PaginationInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -163,7 +163,7 @@ func (x *PaginationInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PaginationInfo.ProtoReflect.Descriptor instead.
 func (*PaginationInfo) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *PaginationInfo) GetStartIndex() uint32 {
@@ -190,7 +190,7 @@ type SizeClassQueueName struct {
 
 func (x *SizeClassQueueName) Reset() {
 	*x = SizeClassQueueName{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -202,7 +202,7 @@ func (x *SizeClassQueueName) String() string {
 func (*SizeClassQueueName) ProtoMessage() {}
 
 func (x *SizeClassQueueName) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -215,7 +215,7 @@ func (x *SizeClassQueueName) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SizeClassQueueName.ProtoReflect.Descriptor instead.
 func (*SizeClassQueueName) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SizeClassQueueName) GetPlatformPkixPublicKey() []byte {
@@ -242,7 +242,7 @@ type InvocationName struct {
 
 func (x *InvocationName) Reset() {
 	*x = InvocationName{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -254,7 +254,7 @@ func (x *InvocationName) String() string {
 func (*InvocationName) ProtoMessage() {}
 
 func (x *InvocationName) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -267,7 +267,7 @@ func (x *InvocationName) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvocationName.ProtoReflect.Descriptor instead.
 func (*InvocationName) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *InvocationName) GetSizeClassQueueName() *SizeClassQueueName {
@@ -305,7 +305,7 @@ type OperationState struct {
 
 func (x *OperationState) Reset() {
 	*x = OperationState{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -317,7 +317,7 @@ func (x *OperationState) String() string {
 func (*OperationState) ProtoMessage() {}
 
 func (x *OperationState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -330,7 +330,7 @@ func (x *OperationState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OperationState.ProtoReflect.Descriptor instead.
 func (*OperationState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *OperationState) GetName() string {
@@ -451,7 +451,7 @@ type SizeClassQueueState struct {
 
 func (x *SizeClassQueueState) Reset() {
 	*x = SizeClassQueueState{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -463,7 +463,7 @@ func (x *SizeClassQueueState) String() string {
 func (*SizeClassQueueState) ProtoMessage() {}
 
 func (x *SizeClassQueueState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -476,7 +476,7 @@ func (x *SizeClassQueueState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SizeClassQueueState.ProtoReflect.Descriptor instead.
 func (*SizeClassQueueState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{4}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SizeClassQueueState) GetSizeClass() uint32 {
@@ -524,7 +524,7 @@ type PlatformQueueState struct {
 
 func (x *PlatformQueueState) Reset() {
 	*x = PlatformQueueState{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -536,7 +536,7 @@ func (x *PlatformQueueState) String() string {
 func (*PlatformQueueState) ProtoMessage() {}
 
 func (x *PlatformQueueState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -549,7 +549,7 @@ func (x *PlatformQueueState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlatformQueueState.ProtoReflect.Descriptor instead.
 func (*PlatformQueueState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{5}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PlatformQueueState) GetPkixPublicKeys() [][]byte {
@@ -581,7 +581,7 @@ type InvocationState struct {
 
 func (x *InvocationState) Reset() {
 	*x = InvocationState{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -593,7 +593,7 @@ func (x *InvocationState) String() string {
 func (*InvocationState) ProtoMessage() {}
 
 func (x *InvocationState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -606,7 +606,7 @@ func (x *InvocationState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvocationState.ProtoReflect.Descriptor instead.
 func (*InvocationState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{6}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *InvocationState) GetQueuedOperationsCount() uint32 {
@@ -668,7 +668,7 @@ type InvocationChildState struct {
 
 func (x *InvocationChildState) Reset() {
 	*x = InvocationChildState{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -680,7 +680,7 @@ func (x *InvocationChildState) String() string {
 func (*InvocationChildState) ProtoMessage() {}
 
 func (x *InvocationChildState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -693,7 +693,7 @@ func (x *InvocationChildState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvocationChildState.ProtoReflect.Descriptor instead.
 func (*InvocationChildState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{7}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *InvocationChildState) GetId() *anypb.Any {
@@ -722,7 +722,7 @@ type WorkerState struct {
 
 func (x *WorkerState) Reset() {
 	*x = WorkerState{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -734,7 +734,7 @@ func (x *WorkerState) String() string {
 func (*WorkerState) ProtoMessage() {}
 
 func (x *WorkerState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -747,7 +747,7 @@ func (x *WorkerState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkerState.ProtoReflect.Descriptor instead.
 func (*WorkerState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{8}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *WorkerState) GetId() map[string]string {
@@ -788,7 +788,7 @@ type DrainState struct {
 
 func (x *DrainState) Reset() {
 	*x = DrainState{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -800,7 +800,7 @@ func (x *DrainState) String() string {
 func (*DrainState) ProtoMessage() {}
 
 func (x *DrainState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -813,7 +813,7 @@ func (x *DrainState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DrainState.ProtoReflect.Descriptor instead.
 func (*DrainState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{9}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DrainState) GetWorkerIdPattern() map[string]string {
@@ -839,7 +839,7 @@ type GetOperationRequest struct {
 
 func (x *GetOperationRequest) Reset() {
 	*x = GetOperationRequest{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -851,7 +851,7 @@ func (x *GetOperationRequest) String() string {
 func (*GetOperationRequest) ProtoMessage() {}
 
 func (x *GetOperationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -864,7 +864,7 @@ func (x *GetOperationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOperationRequest.ProtoReflect.Descriptor instead.
 func (*GetOperationRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{10}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetOperationRequest) GetOperationName() string {
@@ -883,7 +883,7 @@ type GetOperationResponse struct {
 
 func (x *GetOperationResponse) Reset() {
 	*x = GetOperationResponse{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[11]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -895,7 +895,7 @@ func (x *GetOperationResponse) String() string {
 func (*GetOperationResponse) ProtoMessage() {}
 
 func (x *GetOperationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[11]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -908,7 +908,7 @@ func (x *GetOperationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOperationResponse.ProtoReflect.Descriptor instead.
 func (*GetOperationResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{11}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetOperationResponse) GetOperation() *OperationState {
@@ -930,7 +930,7 @@ type ListOperationsRequest struct {
 
 func (x *ListOperationsRequest) Reset() {
 	*x = ListOperationsRequest{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[12]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -942,7 +942,7 @@ func (x *ListOperationsRequest) String() string {
 func (*ListOperationsRequest) ProtoMessage() {}
 
 func (x *ListOperationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[12]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -955,7 +955,7 @@ func (x *ListOperationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOperationsRequest.ProtoReflect.Descriptor instead.
 func (*ListOperationsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{12}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListOperationsRequest) GetPageSize() uint32 {
@@ -996,7 +996,7 @@ type ListOperationsResponse struct {
 
 func (x *ListOperationsResponse) Reset() {
 	*x = ListOperationsResponse{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[13]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1008,7 +1008,7 @@ func (x *ListOperationsResponse) String() string {
 func (*ListOperationsResponse) ProtoMessage() {}
 
 func (x *ListOperationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[13]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1021,7 +1021,7 @@ func (x *ListOperationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOperationsResponse.ProtoReflect.Descriptor instead.
 func (*ListOperationsResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{13}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListOperationsResponse) GetOperations() []*OperationState {
@@ -1048,7 +1048,7 @@ type KillOperationsRequest struct {
 
 func (x *KillOperationsRequest) Reset() {
 	*x = KillOperationsRequest{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[14]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1060,7 +1060,7 @@ func (x *KillOperationsRequest) String() string {
 func (*KillOperationsRequest) ProtoMessage() {}
 
 func (x *KillOperationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[14]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1073,7 +1073,7 @@ func (x *KillOperationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KillOperationsRequest.ProtoReflect.Descriptor instead.
 func (*KillOperationsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{14}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *KillOperationsRequest) GetFilter() *KillOperationsRequest_Filter {
@@ -1099,7 +1099,7 @@ type ListPlatformQueuesResponse struct {
 
 func (x *ListPlatformQueuesResponse) Reset() {
 	*x = ListPlatformQueuesResponse{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[15]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1111,7 +1111,7 @@ func (x *ListPlatformQueuesResponse) String() string {
 func (*ListPlatformQueuesResponse) ProtoMessage() {}
 
 func (x *ListPlatformQueuesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[15]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1124,7 +1124,7 @@ func (x *ListPlatformQueuesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPlatformQueuesResponse.ProtoReflect.Descriptor instead.
 func (*ListPlatformQueuesResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{15}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListPlatformQueuesResponse) GetPlatformQueues() []*PlatformQueueState {
@@ -1144,7 +1144,7 @@ type ListInvocationChildrenRequest struct {
 
 func (x *ListInvocationChildrenRequest) Reset() {
 	*x = ListInvocationChildrenRequest{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[16]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1156,7 +1156,7 @@ func (x *ListInvocationChildrenRequest) String() string {
 func (*ListInvocationChildrenRequest) ProtoMessage() {}
 
 func (x *ListInvocationChildrenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[16]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1169,7 +1169,7 @@ func (x *ListInvocationChildrenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInvocationChildrenRequest.ProtoReflect.Descriptor instead.
 func (*ListInvocationChildrenRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{16}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListInvocationChildrenRequest) GetInvocationName() *InvocationName {
@@ -1195,7 +1195,7 @@ type ListInvocationChildrenResponse struct {
 
 func (x *ListInvocationChildrenResponse) Reset() {
 	*x = ListInvocationChildrenResponse{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[17]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1207,7 +1207,7 @@ func (x *ListInvocationChildrenResponse) String() string {
 func (*ListInvocationChildrenResponse) ProtoMessage() {}
 
 func (x *ListInvocationChildrenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[17]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1220,7 +1220,7 @@ func (x *ListInvocationChildrenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInvocationChildrenResponse.ProtoReflect.Descriptor instead.
 func (*ListInvocationChildrenResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{17}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListInvocationChildrenResponse) GetChildren() []*InvocationChildState {
@@ -1241,7 +1241,7 @@ type ListQueuedOperationsRequest struct {
 
 func (x *ListQueuedOperationsRequest) Reset() {
 	*x = ListQueuedOperationsRequest{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[18]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1253,7 +1253,7 @@ func (x *ListQueuedOperationsRequest) String() string {
 func (*ListQueuedOperationsRequest) ProtoMessage() {}
 
 func (x *ListQueuedOperationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[18]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1266,7 +1266,7 @@ func (x *ListQueuedOperationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListQueuedOperationsRequest.ProtoReflect.Descriptor instead.
 func (*ListQueuedOperationsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{18}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListQueuedOperationsRequest) GetInvocationName() *InvocationName {
@@ -1300,7 +1300,7 @@ type ListQueuedOperationsResponse struct {
 
 func (x *ListQueuedOperationsResponse) Reset() {
 	*x = ListQueuedOperationsResponse{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[19]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1312,7 +1312,7 @@ func (x *ListQueuedOperationsResponse) String() string {
 func (*ListQueuedOperationsResponse) ProtoMessage() {}
 
 func (x *ListQueuedOperationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[19]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1325,7 +1325,7 @@ func (x *ListQueuedOperationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListQueuedOperationsResponse.ProtoReflect.Descriptor instead.
 func (*ListQueuedOperationsResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{19}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListQueuedOperationsResponse) GetQueuedOperations() []*OperationState {
@@ -1353,7 +1353,7 @@ type ListWorkersRequest struct {
 
 func (x *ListWorkersRequest) Reset() {
 	*x = ListWorkersRequest{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[20]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1365,7 +1365,7 @@ func (x *ListWorkersRequest) String() string {
 func (*ListWorkersRequest) ProtoMessage() {}
 
 func (x *ListWorkersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[20]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1378,7 +1378,7 @@ func (x *ListWorkersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkersRequest.ProtoReflect.Descriptor instead.
 func (*ListWorkersRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{20}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListWorkersRequest) GetFilter() *ListWorkersRequest_Filter {
@@ -1412,7 +1412,7 @@ type ListWorkersResponse struct {
 
 func (x *ListWorkersResponse) Reset() {
 	*x = ListWorkersResponse{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[21]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1424,7 +1424,7 @@ func (x *ListWorkersResponse) String() string {
 func (*ListWorkersResponse) ProtoMessage() {}
 
 func (x *ListWorkersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[21]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1437,7 +1437,7 @@ func (x *ListWorkersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkersResponse.ProtoReflect.Descriptor instead.
 func (*ListWorkersResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{21}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListWorkersResponse) GetWorkers() []*WorkerState {
@@ -1463,7 +1463,7 @@ type TerminateWorkersRequest struct {
 
 func (x *TerminateWorkersRequest) Reset() {
 	*x = TerminateWorkersRequest{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[22]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1475,7 +1475,7 @@ func (x *TerminateWorkersRequest) String() string {
 func (*TerminateWorkersRequest) ProtoMessage() {}
 
 func (x *TerminateWorkersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[22]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1488,7 +1488,7 @@ func (x *TerminateWorkersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateWorkersRequest.ProtoReflect.Descriptor instead.
 func (*TerminateWorkersRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{22}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *TerminateWorkersRequest) GetWorkerIdPattern() map[string]string {
@@ -1507,7 +1507,7 @@ type ListDrainsRequest struct {
 
 func (x *ListDrainsRequest) Reset() {
 	*x = ListDrainsRequest{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[23]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1519,7 +1519,7 @@ func (x *ListDrainsRequest) String() string {
 func (*ListDrainsRequest) ProtoMessage() {}
 
 func (x *ListDrainsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[23]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1532,7 +1532,7 @@ func (x *ListDrainsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDrainsRequest.ProtoReflect.Descriptor instead.
 func (*ListDrainsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{23}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListDrainsRequest) GetSizeClassQueueName() *SizeClassQueueName {
@@ -1551,7 +1551,7 @@ type ListDrainsResponse struct {
 
 func (x *ListDrainsResponse) Reset() {
 	*x = ListDrainsResponse{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[24]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1563,7 +1563,7 @@ func (x *ListDrainsResponse) String() string {
 func (*ListDrainsResponse) ProtoMessage() {}
 
 func (x *ListDrainsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[24]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1576,7 +1576,7 @@ func (x *ListDrainsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDrainsResponse.ProtoReflect.Descriptor instead.
 func (*ListDrainsResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{24}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListDrainsResponse) GetDrains() []*DrainState {
@@ -1596,7 +1596,7 @@ type AddOrRemoveDrainRequest struct {
 
 func (x *AddOrRemoveDrainRequest) Reset() {
 	*x = AddOrRemoveDrainRequest{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[25]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1608,7 +1608,7 @@ func (x *AddOrRemoveDrainRequest) String() string {
 func (*AddOrRemoveDrainRequest) ProtoMessage() {}
 
 func (x *AddOrRemoveDrainRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[25]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1621,7 +1621,7 @@ func (x *AddOrRemoveDrainRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddOrRemoveDrainRequest.ProtoReflect.Descriptor instead.
 func (*AddOrRemoveDrainRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{25}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *AddOrRemoveDrainRequest) GetSizeClassQueueName() *SizeClassQueueName {
@@ -1646,7 +1646,7 @@ type BackgroundLearning struct {
 
 func (x *BackgroundLearning) Reset() {
 	*x = BackgroundLearning{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[26]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1658,7 +1658,7 @@ func (x *BackgroundLearning) String() string {
 func (*BackgroundLearning) ProtoMessage() {}
 
 func (x *BackgroundLearning) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[26]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1671,7 +1671,7 @@ func (x *BackgroundLearning) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackgroundLearning.ProtoReflect.Descriptor instead.
 func (*BackgroundLearning) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{26}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{26}
 }
 
 type ListOperationsRequest_StartAfter struct {
@@ -1683,7 +1683,7 @@ type ListOperationsRequest_StartAfter struct {
 
 func (x *ListOperationsRequest_StartAfter) Reset() {
 	*x = ListOperationsRequest_StartAfter{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[29]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1695,7 +1695,7 @@ func (x *ListOperationsRequest_StartAfter) String() string {
 func (*ListOperationsRequest_StartAfter) ProtoMessage() {}
 
 func (x *ListOperationsRequest_StartAfter) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[29]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1708,7 +1708,7 @@ func (x *ListOperationsRequest_StartAfter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOperationsRequest_StartAfter.ProtoReflect.Descriptor instead.
 func (*ListOperationsRequest_StartAfter) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{12, 0}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{12, 0}
 }
 
 func (x *ListOperationsRequest_StartAfter) GetOperationName() string {
@@ -1731,7 +1731,7 @@ type KillOperationsRequest_Filter struct {
 
 func (x *KillOperationsRequest_Filter) Reset() {
 	*x = KillOperationsRequest_Filter{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[30]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1743,7 +1743,7 @@ func (x *KillOperationsRequest_Filter) String() string {
 func (*KillOperationsRequest_Filter) ProtoMessage() {}
 
 func (x *KillOperationsRequest_Filter) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[30]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1756,7 +1756,7 @@ func (x *KillOperationsRequest_Filter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KillOperationsRequest_Filter.ProtoReflect.Descriptor instead.
 func (*KillOperationsRequest_Filter) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{14, 0}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{14, 0}
 }
 
 func (x *KillOperationsRequest_Filter) GetType() isKillOperationsRequest_Filter_Type {
@@ -1812,7 +1812,7 @@ type ListQueuedOperationsRequest_StartAfter struct {
 
 func (x *ListQueuedOperationsRequest_StartAfter) Reset() {
 	*x = ListQueuedOperationsRequest_StartAfter{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[31]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1824,7 +1824,7 @@ func (x *ListQueuedOperationsRequest_StartAfter) String() string {
 func (*ListQueuedOperationsRequest_StartAfter) ProtoMessage() {}
 
 func (x *ListQueuedOperationsRequest_StartAfter) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[31]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1837,7 +1837,7 @@ func (x *ListQueuedOperationsRequest_StartAfter) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use ListQueuedOperationsRequest_StartAfter.ProtoReflect.Descriptor instead.
 func (*ListQueuedOperationsRequest_StartAfter) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{18, 0}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{18, 0}
 }
 
 func (x *ListQueuedOperationsRequest_StartAfter) GetPriority() int32 {
@@ -1875,7 +1875,7 @@ type ListWorkersRequest_Filter struct {
 
 func (x *ListWorkersRequest_Filter) Reset() {
 	*x = ListWorkersRequest_Filter{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[32]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1887,7 +1887,7 @@ func (x *ListWorkersRequest_Filter) String() string {
 func (*ListWorkersRequest_Filter) ProtoMessage() {}
 
 func (x *ListWorkersRequest_Filter) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[32]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1900,7 +1900,7 @@ func (x *ListWorkersRequest_Filter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkersRequest_Filter.ProtoReflect.Descriptor instead.
 func (*ListWorkersRequest_Filter) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{20, 0}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{20, 0}
 }
 
 func (x *ListWorkersRequest_Filter) GetType() isListWorkersRequest_Filter_Type {
@@ -1968,7 +1968,7 @@ type ListWorkersRequest_StartAfter struct {
 
 func (x *ListWorkersRequest_StartAfter) Reset() {
 	*x = ListWorkersRequest_StartAfter{}
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[33]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1980,7 +1980,7 @@ func (x *ListWorkersRequest_StartAfter) String() string {
 func (*ListWorkersRequest_StartAfter) ProtoMessage() {}
 
 func (x *ListWorkersRequest_StartAfter) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[33]
+	mi := &file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1993,7 +1993,7 @@ func (x *ListWorkersRequest_StartAfter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkersRequest_StartAfter.ProtoReflect.Descriptor instead.
 func (*ListWorkersRequest_StartAfter) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{20, 1}
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{20, 1}
 }
 
 func (x *ListWorkersRequest_StartAfter) GetWorkerId() map[string]string {
@@ -2003,11 +2003,11 @@ func (x *ListWorkersRequest_StartAfter) GetWorkerId() map[string]string {
 	return nil
 }
 
-var File_pkg_proto_buildqueuestate_buildqueuestate_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc = "" +
 	"\n" +
-	"/pkg/proto/buildqueuestate/buildqueuestate.proto\x12\x17bonanza.buildqueuestate\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\x1a/pkg/proto/encryptedaction/encryptedaction.proto\"V\n" +
+	"=bonanza.build/pkg/proto/buildqueuestate/buildqueuestate.proto\x12\x17bonanza.buildqueuestate\x1a=bonanza.build/pkg/proto/encryptedaction/encryptedaction.proto\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\"V\n" +
 	"\x0ePaginationInfo\x12\x1f\n" +
 	"\vstart_index\x18\x01 \x01(\rR\n" +
 	"startIndex\x12#\n" +
@@ -2175,20 +2175,20 @@ const file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc = "" +
 	"\vRemoveDrain\x120.bonanza.buildqueuestate.AddOrRemoveDrainRequest\x1a\x16.google.protobuf.EmptyB)Z'bonanza.build/pkg/proto/buildqueuestateb\x06proto3"
 
 var (
-	file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescOnce sync.Once
-	file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescData []byte
 )
 
-func file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP() []byte {
-	file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc), len(file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc), len(file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc)))
 	})
-	return file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescData
+	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescData
 }
 
-var file_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
-var file_pkg_proto_buildqueuestate_buildqueuestate_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_goTypes = []any{
 	(ListOperationsRequest_ExecutionStage)(0),      // 0: bonanza.buildqueuestate.ListOperationsRequest.ExecutionStage
 	(ListInvocationChildrenRequest_Filter)(0),      // 1: bonanza.buildqueuestate.ListInvocationChildrenRequest.Filter
 	(*PaginationInfo)(nil),                         // 2: bonanza.buildqueuestate.PaginationInfo
@@ -2235,7 +2235,7 @@ var file_pkg_proto_buildqueuestate_buildqueuestate_proto_goTypes = []any{
 	(*emptypb.Empty)(nil),                          // 43: google.protobuf.Empty
 	(*status.Status)(nil),                          // 44: google.rpc.Status
 }
-var file_pkg_proto_buildqueuestate_buildqueuestate_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_depIdxs = []int32{
 	3,  // 0: bonanza.buildqueuestate.InvocationName.size_class_queue_name:type_name -> bonanza.buildqueuestate.SizeClassQueueName
 	39, // 1: bonanza.buildqueuestate.InvocationName.ids:type_name -> google.protobuf.Any
 	4,  // 2: bonanza.buildqueuestate.OperationState.invocation_name:type_name -> bonanza.buildqueuestate.InvocationName
@@ -2317,21 +2317,21 @@ var file_pkg_proto_buildqueuestate_buildqueuestate_proto_depIdxs = []int32{
 	0,  // [0:52] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_buildqueuestate_buildqueuestate_proto_init() }
-func file_pkg_proto_buildqueuestate_buildqueuestate_proto_init() {
-	if File_pkg_proto_buildqueuestate_buildqueuestate_proto != nil {
+func init() { file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_init() }
+func file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_init() {
+	if File_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto != nil {
 		return
 	}
-	file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[3].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[3].OneofWrappers = []any{
 		(*OperationState_Queued)(nil),
 		(*OperationState_Executing)(nil),
 		(*OperationState_Completed)(nil),
 	}
-	file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[30].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[30].OneofWrappers = []any{
 		(*KillOperationsRequest_Filter_OperationName)(nil),
 		(*KillOperationsRequest_Filter_SizeClassQueueWithoutWorkers)(nil),
 	}
-	file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[32].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[32].OneofWrappers = []any{
 		(*ListWorkersRequest_Filter_All)(nil),
 		(*ListWorkersRequest_Filter_Executing)(nil),
 		(*ListWorkersRequest_Filter_IdleSynchronizing)(nil),
@@ -2340,18 +2340,18 @@ func file_pkg_proto_buildqueuestate_buildqueuestate_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc), len(file_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc), len(file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc)),
 			NumEnums:      2,
 			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_pkg_proto_buildqueuestate_buildqueuestate_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_buildqueuestate_buildqueuestate_proto_depIdxs,
-		EnumInfos:         file_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes,
-		MessageInfos:      file_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_depIdxs,
+		EnumInfos:         file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes,
+		MessageInfos:      file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_buildqueuestate_buildqueuestate_proto = out.File
-	file_pkg_proto_buildqueuestate_buildqueuestate_proto_goTypes = nil
-	file_pkg_proto_buildqueuestate_buildqueuestate_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto = out.File
+	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_depIdxs = nil
 }

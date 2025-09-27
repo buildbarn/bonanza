@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/configuration/bonanza_fetcher/bonanza_fetcher.proto
+// source: bonanza.build/pkg/proto/configuration/bonanza_fetcher/bonanza_fetcher.proto
 
 package bonanza_fetcher
 
@@ -12,7 +12,7 @@ import (
 	filesystem "github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem"
 	global "github.com/buildbarn/bb-storage/pkg/proto/configuration/global"
 	grpc "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc"
-	http "github.com/buildbarn/bb-storage/pkg/proto/configuration/http"
+	client "github.com/buildbarn/bb-storage/pkg/proto/configuration/http/client"
 	x509 "github.com/buildbarn/bb-storage/pkg/proto/configuration/x509"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -32,7 +32,7 @@ type ApplicationConfiguration struct {
 	state                     protoimpl.MessageState                       `protogen:"open.v1"`
 	Global                    *global.Configuration                        `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
 	StorageGrpcClient         *grpc.ClientConfiguration                    `protobuf:"bytes,2,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
-	HttpClient                *http.ClientConfiguration                    `protobuf:"bytes,3,opt,name=http_client,json=httpClient,proto3" json:"http_client,omitempty"`
+	HttpClient                *client.Configuration                        `protobuf:"bytes,3,opt,name=http_client,json=httpClient,proto3" json:"http_client,omitempty"`
 	FilePool                  *filesystem.FilePoolConfiguration            `protobuf:"bytes,4,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
 	CacheDirectoryPath        string                                       `protobuf:"bytes,5,opt,name=cache_directory_path,json=cacheDirectoryPath,proto3" json:"cache_directory_path,omitempty"`
 	RemoteWorkerGrpcClient    *grpc.ClientConfiguration                    `protobuf:"bytes,6,opt,name=remote_worker_grpc_client,json=remoteWorkerGrpcClient,proto3" json:"remote_worker_grpc_client,omitempty"`
@@ -48,7 +48,7 @@ type ApplicationConfiguration struct {
 
 func (x *ApplicationConfiguration) Reset() {
 	*x = ApplicationConfiguration{}
-	mi := &file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -60,7 +60,7 @@ func (x *ApplicationConfiguration) String() string {
 func (*ApplicationConfiguration) ProtoMessage() {}
 
 func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -73,7 +73,7 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
 func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
@@ -90,7 +90,7 @@ func (x *ApplicationConfiguration) GetStorageGrpcClient() *grpc.ClientConfigurat
 	return nil
 }
 
-func (x *ApplicationConfiguration) GetHttpClient() *http.ClientConfiguration {
+func (x *ApplicationConfiguration) GetHttpClient() *client.Configuration {
 	if x != nil {
 		return x.HttpClient
 	}
@@ -160,15 +160,15 @@ func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPoo
 	return nil
 }
 
-var File_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc = "" +
 	"\n" +
-	"=pkg/proto/configuration/bonanza_fetcher/bonanza_fetcher.proto\x12%bonanza.configuration.bonanza_fetcher\x1a3pkg/proto/configuration/filesystem/filesystem.proto\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a'pkg/proto/configuration/http/http.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\x1a8pkg/proto/configuration/storage/object/local/local.proto\x1a'pkg/proto/configuration/x509/x509.proto\"\xe8\b\n" +
+	"Kbonanza.build/pkg/proto/configuration/bonanza_fetcher/bonanza_fetcher.proto\x12%bonanza.configuration.bonanza_fetcher\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aPgithub.com/buildbarn/bb-storage/pkg/proto/configuration/http/client/client.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\xe9\b\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
-	"\x13storage_grpc_client\x18\x02 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12R\n" +
-	"\vhttp_client\x18\x03 \x01(\v21.buildbarn.configuration.http.ClientConfigurationR\n" +
+	"\x13storage_grpc_client\x18\x02 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12S\n" +
+	"\vhttp_client\x18\x03 \x01(\v22.buildbarn.configuration.http.client.ConfigurationR\n" +
 	"httpClient\x12V\n" +
 	"\tfile_pool\x18\x04 \x01(\v29.buildbarn.configuration.filesystem.FilePoolConfigurationR\bfilePool\x120\n" +
 	"\x14cache_directory_path\x18\x05 \x01(\tR\x12cacheDirectoryPath\x12l\n" +
@@ -185,33 +185,33 @@ const file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B7Z5bonanza.build/pkg/proto/configuration/bonanza_fetcherb\x06proto3"
 
 var (
-	file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescOnce sync.Once
-	file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescData []byte
 )
 
-func file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescGZIP() []byte {
-	file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc), len(file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc)))
 	})
-	return file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescData
+	return file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescData
 }
 
-var file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_goTypes = []any{
 	(*ApplicationConfiguration)(nil),                    // 0: bonanza.configuration.bonanza_fetcher.ApplicationConfiguration
 	nil,                                                 // 1: bonanza.configuration.bonanza_fetcher.ApplicationConfiguration.WorkerIdEntry
 	(*global.Configuration)(nil),                        // 2: buildbarn.configuration.global.Configuration
 	(*grpc.ClientConfiguration)(nil),                    // 3: buildbarn.configuration.grpc.ClientConfiguration
-	(*http.ClientConfiguration)(nil),                    // 4: buildbarn.configuration.http.ClientConfiguration
+	(*client.Configuration)(nil),                        // 4: buildbarn.configuration.http.client.Configuration
 	(*filesystem.FilePoolConfiguration)(nil),            // 5: buildbarn.configuration.filesystem.FilePoolConfiguration
 	(*x509.ClientCertificateVerifierConfiguration)(nil), // 6: buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
 	(*local.StoreConfiguration)(nil),                    // 7: bonanza.configuration.storage.object.local.StoreConfiguration
 	(*parser.ParsedObjectPool)(nil),                     // 8: bonanza.configuration.model.parser.ParsedObjectPool
 }
-var file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_depIdxs = []int32{
 	2, // 0: bonanza.configuration.bonanza_fetcher.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
 	3, // 1: bonanza.configuration.bonanza_fetcher.ApplicationConfiguration.storage_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
-	4, // 2: bonanza.configuration.bonanza_fetcher.ApplicationConfiguration.http_client:type_name -> buildbarn.configuration.http.ClientConfiguration
+	4, // 2: bonanza.configuration.bonanza_fetcher.ApplicationConfiguration.http_client:type_name -> buildbarn.configuration.http.client.Configuration
 	5, // 3: bonanza.configuration.bonanza_fetcher.ApplicationConfiguration.file_pool:type_name -> buildbarn.configuration.filesystem.FilePoolConfiguration
 	3, // 4: bonanza.configuration.bonanza_fetcher.ApplicationConfiguration.remote_worker_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
 	6, // 5: bonanza.configuration.bonanza_fetcher.ApplicationConfiguration.client_certificate_verifier:type_name -> buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
@@ -225,26 +225,26 @@ var file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_depIdxs =
 	0, // [0:9] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_init() }
-func file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_init() {
-	if File_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto != nil {
+func init() { file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_init() }
+func file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_init() {
+	if File_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc), len(file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto = out.File
-	file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_goTypes = nil
-	file_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto = out.File
+	file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_depIdxs = nil
 }

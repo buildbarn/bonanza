@@ -5,6 +5,7 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 proto_library(
     name = "remoteexecution_proto",
     srcs = ["remoteexecution.proto"],
+    import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = ["//pkg/proto/encryptedaction:encryptedaction_proto"],
 )

@@ -5,6 +5,7 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 proto_library(
     name = "mount_directory_proto",
     srcs = ["mount_directory.proto"],
+    import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/configuration/model/parser:bonanza_configuration_model_parser_proto",

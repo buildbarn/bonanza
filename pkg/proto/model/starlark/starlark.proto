@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package bonanza.model.starlark;
 
+import "bonanza.build/pkg/proto/model/core/core.proto";
 import "google/protobuf/empty.proto";
-import "pkg/proto/model/core/core.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/starlark";
 

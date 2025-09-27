@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/configuration/bonanza_worker/bonanza_worker.proto
+// source: bonanza.build/pkg/proto/configuration/bonanza_worker/bonanza_worker.proto
 
 package bonanza_worker
 
@@ -44,7 +44,7 @@ type ApplicationConfiguration struct {
 
 func (x *ApplicationConfiguration) Reset() {
 	*x = ApplicationConfiguration{}
-	mi := &file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -56,7 +56,7 @@ func (x *ApplicationConfiguration) String() string {
 func (*ApplicationConfiguration) ProtoMessage() {}
 
 func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -69,7 +69,7 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
 func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
@@ -131,7 +131,7 @@ type BuildDirectoryConfiguration struct {
 
 func (x *BuildDirectoryConfiguration) Reset() {
 	*x = BuildDirectoryConfiguration{}
-	mi := &file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -143,7 +143,7 @@ func (x *BuildDirectoryConfiguration) String() string {
 func (*BuildDirectoryConfiguration) ProtoMessage() {}
 
 func (x *BuildDirectoryConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -156,7 +156,7 @@ func (x *BuildDirectoryConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildDirectoryConfiguration.ProtoReflect.Descriptor instead.
 func (*BuildDirectoryConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *BuildDirectoryConfiguration) GetRunners() []*RunnerConfiguration {
@@ -197,7 +197,7 @@ type RunnerConfiguration struct {
 
 func (x *RunnerConfiguration) Reset() {
 	*x = RunnerConfiguration{}
-	mi := &file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -209,7 +209,7 @@ func (x *RunnerConfiguration) String() string {
 func (*RunnerConfiguration) ProtoMessage() {}
 
 func (x *RunnerConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -222,7 +222,7 @@ func (x *RunnerConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunnerConfiguration.ProtoReflect.Descriptor instead.
 func (*RunnerConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RunnerConfiguration) GetEndpoint() *grpc.ClientConfiguration {
@@ -337,11 +337,11 @@ func (x *RunnerConfiguration) GetBuildDirectoryOwnerGroupId() uint32 {
 	return 0
 }
 
-var File_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc = "" +
 	"\n" +
-	";pkg/proto/configuration/bonanza_worker/bonanza_worker.proto\x12$bonanza.configuration.bonanza_worker\x1a\x1egoogle/protobuf/duration.proto\x1a3pkg/proto/configuration/filesystem/filesystem.proto\x1a8pkg/proto/configuration/filesystem/virtual/virtual.proto\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\x1a8pkg/proto/configuration/storage/object/local/local.proto\x1a'pkg/proto/configuration/x509/x509.proto\"\xc5\x05\n" +
+	"Ibonanza.build/pkg/proto/configuration/bonanza_worker/bonanza_worker.proto\x12$bonanza.configuration.bonanza_worker\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aagithub.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/virtual/virtual.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\x1a\x1egoogle/protobuf/duration.proto\"\xc5\x05\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x02 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12e\n" +
@@ -381,19 +381,19 @@ const file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc =
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B6Z4bonanza.build/pkg/proto/configuration/bonanza_workerb\x06proto3"
 
 var (
-	file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescOnce sync.Once
-	file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescData []byte
 )
 
-func file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP() []byte {
-	file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc), len(file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc)))
 	})
-	return file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescData
+	return file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescData
 }
 
-var file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_goTypes = []any{
 	(*ApplicationConfiguration)(nil),                    // 0: bonanza.configuration.bonanza_worker.ApplicationConfiguration
 	(*BuildDirectoryConfiguration)(nil),                 // 1: bonanza.configuration.bonanza_worker.BuildDirectoryConfiguration
 	(*RunnerConfiguration)(nil),                         // 2: bonanza.configuration.bonanza_worker.RunnerConfiguration
@@ -408,7 +408,7 @@ var file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_goTypes = [
 	(*x509.ClientCertificateVerifierConfiguration)(nil), // 11: buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
 	(*durationpb.Duration)(nil),                         // 12: google.protobuf.Duration
 }
-var file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_depIdxs = []int32{
 	5,  // 0: bonanza.configuration.bonanza_worker.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
 	6,  // 1: bonanza.configuration.bonanza_worker.ApplicationConfiguration.storage_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
 	6,  // 2: bonanza.configuration.bonanza_worker.ApplicationConfiguration.scheduler_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
@@ -431,26 +431,26 @@ var file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_depIdxs = [
 	0,  // [0:15] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_init() }
-func file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_init() {
-	if File_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto != nil {
+func init() { file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_init() }
+func file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_init() {
+	if File_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc), len(file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto = out.File
-	file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_goTypes = nil
-	file_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto = out.File
+	file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_depIdxs = nil
 }

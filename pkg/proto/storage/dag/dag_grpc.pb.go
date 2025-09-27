@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.31.1
-// source: pkg/proto/storage/dag/dag.proto
+// source: bonanza.build/pkg/proto/storage/dag/dag.proto
 
 package dag
 
@@ -109,5 +109,5 @@ var Uploader_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "pkg/proto/storage/dag/dag.proto",
+	Metadata: "bonanza.build/pkg/proto/storage/dag/dag.proto",
 }

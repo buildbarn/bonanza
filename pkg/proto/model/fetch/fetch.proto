@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package bonanza.model.fetch;
 
+import "bonanza.build/pkg/proto/model/filesystem/filesystem.proto";
 import "google/rpc/status.proto";
-import "pkg/proto/model/filesystem/filesystem.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/fetch";
 

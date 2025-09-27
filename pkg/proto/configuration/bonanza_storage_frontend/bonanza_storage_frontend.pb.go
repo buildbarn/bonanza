@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/configuration/bonanza_storage_frontend/bonanza_storage_frontend.proto
+// source: bonanza.build/pkg/proto/configuration/bonanza_storage_frontend/bonanza_storage_frontend.proto
 
 package bonanza_storage_frontend
 
@@ -39,7 +39,7 @@ type ApplicationConfiguration struct {
 
 func (x *ApplicationConfiguration) Reset() {
 	*x = ApplicationConfiguration{}
-	mi := &file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -51,7 +51,7 @@ func (x *ApplicationConfiguration) String() string {
 func (*ApplicationConfiguration) ProtoMessage() {}
 
 func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -64,7 +64,7 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
 func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
@@ -126,7 +126,7 @@ type ApplicationConfiguration_Shard struct {
 
 func (x *ApplicationConfiguration_Shard) Reset() {
 	*x = ApplicationConfiguration_Shard{}
-	mi := &file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -138,7 +138,7 @@ func (x *ApplicationConfiguration_Shard) String() string {
 func (*ApplicationConfiguration_Shard) ProtoMessage() {}
 
 func (x *ApplicationConfiguration_Shard) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -151,7 +151,7 @@ func (x *ApplicationConfiguration_Shard) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplicationConfiguration_Shard.ProtoReflect.Descriptor instead.
 func (*ApplicationConfiguration_Shard) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescGZIP(), []int{0, 0}
+	return file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescGZIP(), []int{0, 0}
 }
 
 func (x *ApplicationConfiguration_Shard) GetClient() *grpc.ClientConfiguration {
@@ -168,11 +168,11 @@ func (x *ApplicationConfiguration_Shard) GetWeight() uint32 {
 	return 0
 }
 
-var File_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc = "" +
 	"\n" +
-	"Opkg/proto/configuration/bonanza_storage_frontend/bonanza_storage_frontend.proto\x12.bonanza.configuration.bonanza_storage_frontend\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a%pkg/proto/storage/object/object.proto\"\xc6\b\n" +
+	"]bonanza.build/pkg/proto/configuration/bonanza_storage_frontend/bonanza_storage_frontend.proto\x12.bonanza.configuration.bonanza_storage_frontend\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\"\xc6\b\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12T\n" +
 	"\fgrpc_servers\x18\x02 \x03(\v21.buildbarn.configuration.grpc.ServerConfigurationR\vgrpcServers\x128\n" +
@@ -192,19 +192,19 @@ const file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_fron
 	"\x05value\x18\x02 \x01(\v2N.bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardR\x05value:\x028\x01B@Z>bonanza.build/pkg/proto/configuration/bonanza_storage_frontendb\x06proto3"
 
 var (
-	file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescOnce sync.Once
-	file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescData []byte
 )
 
-func file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescGZIP() []byte {
-	file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc), len(file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc)))
 	})
-	return file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescData
+	return file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescData
 }
 
-var file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_goTypes = []any{
 	(*ApplicationConfiguration)(nil),       // 0: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration
 	(*ApplicationConfiguration_Shard)(nil), // 1: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.Shard
 	nil,                                    // 2: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardsReplicaAEntry
@@ -214,7 +214,7 @@ var file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_fronte
 	(*object.Limit)(nil),                   // 6: bonanza.storage.object.Limit
 	(*grpc.ClientConfiguration)(nil),       // 7: buildbarn.configuration.grpc.ClientConfiguration
 }
-var file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_depIdxs = []int32{
 	4, // 0: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
 	5, // 1: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.grpc_servers:type_name -> buildbarn.configuration.grpc.ServerConfiguration
 	6, // 2: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.maximum_unfinalized_parents_limit:type_name -> bonanza.storage.object.Limit
@@ -231,27 +231,27 @@ var file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_fronte
 }
 
 func init() {
-	file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_init()
+	file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_init()
 }
-func file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_init() {
-	if File_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto != nil {
+func file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_init() {
+	if File_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc), len(file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto = out.File
-	file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_goTypes = nil
-	file_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto = out.File
+	file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_depIdxs = nil
 }

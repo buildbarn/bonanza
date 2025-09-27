@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.31.1
-// source: pkg/proto/remoteexecution/remoteexecution.proto
+// source: bonanza.build/pkg/proto/remoteexecution/remoteexecution.proto
 
 package remoteexecution
 
@@ -159,5 +159,5 @@ var Execution_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "pkg/proto/remoteexecution/remoteexecution.proto",
+	Metadata: "bonanza.build/pkg/proto/remoteexecution/remoteexecution.proto",
 }

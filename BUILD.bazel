@@ -7,24 +7,13 @@ exports_files(["LICENSE"])
 # gazelle:go_grpc_compilers @rules_go//proto:go_proto,@rules_go//proto:go_grpc_v2
 # gazelle:go_naming_convention_external import
 # gazelle:prefix bonanza.build
+# gazelle:proto_import_prefix bonanza.build
 # gazelle:resolve proto go google/rpc/status.proto @org_golang_google_genproto_googleapis_rpc//status
-# gazelle:resolve proto go pkg/proto/configuration/blockdevice/blockdevice.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/blockdevice
-# gazelle:resolve proto go pkg/proto/configuration/eviction/eviction.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/eviction
-# gazelle:resolve proto go pkg/proto/configuration/filesystem/filesystem.proto @com_github_buildbarn_bb_remote_execution//pkg/proto/configuration/filesystem
-# gazelle:resolve proto go pkg/proto/configuration/filesystem/virtual/virtual.proto @com_github_buildbarn_bb_remote_execution//pkg/proto/configuration/filesystem/virtual
-# gazelle:resolve proto go pkg/proto/configuration/global/global.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/global
-# gazelle:resolve proto go pkg/proto/configuration/grpc/grpc.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/grpc
-# gazelle:resolve proto go pkg/proto/configuration/http/http.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/http
-# gazelle:resolve proto go pkg/proto/configuration/x509/x509.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/x509
 # gazelle:resolve proto google/rpc/status.proto @googleapis//google/rpc:status_proto
-# gazelle:resolve proto pkg/proto/configuration/blockdevice/blockdevice.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/blockdevice:blockdevice_proto
-# gazelle:resolve proto pkg/proto/configuration/eviction/eviction.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/eviction:eviction_proto
-# gazelle:resolve proto pkg/proto/configuration/filesystem/filesystem.proto @com_github_buildbarn_bb_remote_execution//pkg/proto/configuration/filesystem:filesystem_proto
-# gazelle:resolve proto pkg/proto/configuration/filesystem/virtual/virtual.proto @com_github_buildbarn_bb_remote_execution//pkg/proto/configuration/filesystem/virtual:virtual_proto
-# gazelle:resolve proto pkg/proto/configuration/global/global.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/global:global_proto
-# gazelle:resolve proto pkg/proto/configuration/grpc/grpc.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/grpc:grpc_proto
-# gazelle:resolve proto pkg/proto/configuration/http/http.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/http:http_proto
-# gazelle:resolve proto pkg/proto/configuration/x509/x509.proto @com_github_buildbarn_bb_storage//pkg/proto/configuration/x509:x509_proto
+# gazelle:resolve_regexp proto github.com/buildbarn/bb-remote-execution/(.*)/(.*)\.proto @com_github_buildbarn_bb_remote_execution//$1:${2}_proto
+# gazelle:resolve_regexp proto github.com/buildbarn/bb-storage/(.*)/(.*)\.proto @com_github_buildbarn_bb_storage//$1:${2}_proto
+# gazelle:resolve_regexp proto go github.com/buildbarn/bb-remote-execution/(.*)/(.*)\.proto @com_github_buildbarn_bb_remote_execution//$1:$2
+# gazelle:resolve_regexp proto go github.com/buildbarn/bb-storage/(.*)/(.*)\.proto @com_github_buildbarn_bb_storage//$1:$2
 gazelle(
     name = "gazelle",
 )

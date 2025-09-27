@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.31.1
-// source: pkg/proto/storage/object/object.proto
+// source: bonanza.build/pkg/proto/storage/object/object.proto
 
 package object
 
@@ -115,7 +115,7 @@ var Downloader_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/proto/storage/object/object.proto",
+	Metadata: "bonanza.build/pkg/proto/storage/object/object.proto",
 }
 
 const (
@@ -215,5 +215,5 @@ var Uploader_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/proto/storage/object/object.proto",
+	Metadata: "bonanza.build/pkg/proto/storage/object/object.proto",
 }

@@ -5,6 +5,7 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 proto_library(
     name = "scheduler_proto",
     srcs = ["scheduler.proto"],
+    import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
         "@protobuf//:duration_proto",

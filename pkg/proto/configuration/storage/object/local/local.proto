@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package bonanza.configuration.storage.object.local;
 
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/blockdevice/blockdevice.proto";
 import "google/protobuf/duration.proto";
-import "pkg/proto/configuration/blockdevice/blockdevice.proto";
 
 option go_package = "bonanza.build/pkg/proto/configuration/storage/object/local";
 

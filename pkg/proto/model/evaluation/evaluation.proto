@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package bonanza.model.evaluation;
 
+import "bonanza.build/pkg/proto/model/core/core.proto";
 import "google/protobuf/timestamp.proto";
 import "google/rpc/status.proto";
-import "pkg/proto/model/core/core.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/evaluation";
 

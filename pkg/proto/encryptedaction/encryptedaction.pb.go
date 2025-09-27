@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/encryptedaction/encryptedaction.proto
+// source: bonanza.build/pkg/proto/encryptedaction/encryptedaction.proto
 
 package encryptedaction
 
@@ -35,7 +35,7 @@ type Action struct {
 
 func (x *Action) Reset() {
 	*x = Action{}
-	mi := &file_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -47,7 +47,7 @@ func (x *Action) String() string {
 func (*Action) ProtoMessage() {}
 
 func (x *Action) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +60,7 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Action.ProtoReflect.Descriptor instead.
 func (*Action) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Action) GetPlatformPkixPublicKey() []byte {
@@ -108,7 +108,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -120,7 +120,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -133,7 +133,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Event) GetNonce() []byte {
@@ -160,7 +160,7 @@ type Action_AdditionalData struct {
 
 func (x *Action_AdditionalData) Reset() {
 	*x = Action_AdditionalData{}
-	mi := &file_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -172,7 +172,7 @@ func (x *Action_AdditionalData) String() string {
 func (*Action_AdditionalData) ProtoMessage() {}
 
 func (x *Action_AdditionalData) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -185,7 +185,7 @@ func (x *Action_AdditionalData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Action_AdditionalData.ProtoReflect.Descriptor instead.
 func (*Action_AdditionalData) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP(), []int{0, 0}
+	return file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP(), []int{0, 0}
 }
 
 func (x *Action_AdditionalData) GetStableFingerprint() []byte {
@@ -202,11 +202,11 @@ func (x *Action_AdditionalData) GetExecutionTimeout() *durationpb.Duration {
 	return nil
 }
 
-var File_pkg_proto_encryptedaction_encryptedaction_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc = "" +
 	"\n" +
-	"/pkg/proto/encryptedaction/encryptedaction.proto\x12\x17bonanza.encryptedaction\x1a\x1egoogle/protobuf/duration.proto\"\x94\x03\n" +
+	"=bonanza.build/pkg/proto/encryptedaction/encryptedaction.proto\x12\x17bonanza.encryptedaction\x1a\x1egoogle/protobuf/duration.proto\"\x94\x03\n" +
 	"\x06Action\x127\n" +
 	"\x18platform_pkix_public_key\x18\x01 \x01(\fR\x15platformPkixPublicKey\x128\n" +
 	"\x18client_certificate_chain\x18\x02 \x03(\fR\x16clientCertificateChain\x12\x14\n" +
@@ -225,25 +225,25 @@ const file_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc = "" +
 	"ciphertextB)Z'bonanza.build/pkg/proto/encryptedactionb\x06proto3"
 
 var (
-	file_pkg_proto_encryptedaction_encryptedaction_proto_rawDescOnce sync.Once
-	file_pkg_proto_encryptedaction_encryptedaction_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescData []byte
 )
 
-func file_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP() []byte {
-	file_pkg_proto_encryptedaction_encryptedaction_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_encryptedaction_encryptedaction_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc), len(file_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc), len(file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc)))
 	})
-	return file_pkg_proto_encryptedaction_encryptedaction_proto_rawDescData
+	return file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescData
 }
 
-var file_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_pkg_proto_encryptedaction_encryptedaction_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_goTypes = []any{
 	(*Action)(nil),                // 0: bonanza.encryptedaction.Action
 	(*Event)(nil),                 // 1: bonanza.encryptedaction.Event
 	(*Action_AdditionalData)(nil), // 2: bonanza.encryptedaction.Action.AdditionalData
 	(*durationpb.Duration)(nil),   // 3: google.protobuf.Duration
 }
-var file_pkg_proto_encryptedaction_encryptedaction_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_depIdxs = []int32{
 	2, // 0: bonanza.encryptedaction.Action.additional_data:type_name -> bonanza.encryptedaction.Action.AdditionalData
 	3, // 1: bonanza.encryptedaction.Action.AdditionalData.execution_timeout:type_name -> google.protobuf.Duration
 	2, // [2:2] is the sub-list for method output_type
@@ -253,26 +253,26 @@ var file_pkg_proto_encryptedaction_encryptedaction_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_encryptedaction_encryptedaction_proto_init() }
-func file_pkg_proto_encryptedaction_encryptedaction_proto_init() {
-	if File_pkg_proto_encryptedaction_encryptedaction_proto != nil {
+func init() { file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_init() }
+func file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_init() {
+	if File_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc), len(file_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc), len(file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_encryptedaction_encryptedaction_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_encryptedaction_encryptedaction_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_encryptedaction_encryptedaction_proto = out.File
-	file_pkg_proto_encryptedaction_encryptedaction_proto_goTypes = nil
-	file_pkg_proto_encryptedaction_encryptedaction_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto = out.File
+	file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_depIdxs = nil
 }

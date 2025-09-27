@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/configuration/scheduler/scheduler.proto
+// source: bonanza.build/pkg/proto/configuration/scheduler/scheduler.proto
 
 package scheduler
 
@@ -35,7 +35,7 @@ type ActionRouterConfiguration struct {
 
 func (x *ActionRouterConfiguration) Reset() {
 	*x = ActionRouterConfiguration{}
-	mi := &file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -47,7 +47,7 @@ func (x *ActionRouterConfiguration) String() string {
 func (*ActionRouterConfiguration) ProtoMessage() {}
 
 func (x *ActionRouterConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +60,7 @@ func (x *ActionRouterConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ActionRouterConfiguration.ProtoReflect.Descriptor instead.
 func (*ActionRouterConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ActionRouterConfiguration) GetKind() isActionRouterConfiguration_Kind {
@@ -99,7 +99,7 @@ type SimpleActionRouterConfiguration struct {
 
 func (x *SimpleActionRouterConfiguration) Reset() {
 	*x = SimpleActionRouterConfiguration{}
-	mi := &file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -111,7 +111,7 @@ func (x *SimpleActionRouterConfiguration) String() string {
 func (*SimpleActionRouterConfiguration) ProtoMessage() {}
 
 func (x *SimpleActionRouterConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -124,7 +124,7 @@ func (x *SimpleActionRouterConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SimpleActionRouterConfiguration.ProtoReflect.Descriptor instead.
 func (*SimpleActionRouterConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SimpleActionRouterConfiguration) GetInvocationKeyExtractors() []*InvocationKeyExtractorConfiguration {
@@ -153,7 +153,7 @@ type InvocationKeyExtractorConfiguration struct {
 
 func (x *InvocationKeyExtractorConfiguration) Reset() {
 	*x = InvocationKeyExtractorConfiguration{}
-	mi := &file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -165,7 +165,7 @@ func (x *InvocationKeyExtractorConfiguration) String() string {
 func (*InvocationKeyExtractorConfiguration) ProtoMessage() {}
 
 func (x *InvocationKeyExtractorConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -178,7 +178,7 @@ func (x *InvocationKeyExtractorConfiguration) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use InvocationKeyExtractorConfiguration.ProtoReflect.Descriptor instead.
 func (*InvocationKeyExtractorConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *InvocationKeyExtractorConfiguration) GetKind() isInvocationKeyExtractorConfiguration_Kind {
@@ -217,7 +217,7 @@ type InitialSizeClassAnalyzerConfiguration struct {
 
 func (x *InitialSizeClassAnalyzerConfiguration) Reset() {
 	*x = InitialSizeClassAnalyzerConfiguration{}
-	mi := &file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -229,7 +229,7 @@ func (x *InitialSizeClassAnalyzerConfiguration) String() string {
 func (*InitialSizeClassAnalyzerConfiguration) ProtoMessage() {}
 
 func (x *InitialSizeClassAnalyzerConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -242,7 +242,7 @@ func (x *InitialSizeClassAnalyzerConfiguration) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use InitialSizeClassAnalyzerConfiguration.ProtoReflect.Descriptor instead.
 func (*InitialSizeClassAnalyzerConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *InitialSizeClassAnalyzerConfiguration) GetMaximumExecutionTimeout() *durationpb.Duration {
@@ -252,11 +252,11 @@ func (x *InitialSizeClassAnalyzerConfiguration) GetMaximumExecutionTimeout() *du
 	return nil
 }
 
-var File_pkg_proto_configuration_scheduler_scheduler_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc = "" +
 	"\n" +
-	"1pkg/proto/configuration/scheduler/scheduler.proto\x12\x1fbonanza.configuration.scheduler\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x7f\n" +
+	"?bonanza.build/pkg/proto/configuration/scheduler/scheduler.proto\x12\x1fbonanza.configuration.scheduler\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x7f\n" +
 	"\x19ActionRouterConfiguration\x12Z\n" +
 	"\x06simple\x18\x01 \x01(\v2@.bonanza.configuration.scheduler.SimpleActionRouterConfigurationH\x00R\x06simpleB\x06\n" +
 	"\x04kind\"\xac\x02\n" +
@@ -270,19 +270,19 @@ const file_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc = "" +
 	"\x19maximum_execution_timeout\x18\x01 \x01(\v2\x19.google.protobuf.DurationR\x17maximumExecutionTimeoutB1Z/bonanza.build/pkg/proto/configuration/schedulerb\x06proto3"
 
 var (
-	file_pkg_proto_configuration_scheduler_scheduler_proto_rawDescOnce sync.Once
-	file_pkg_proto_configuration_scheduler_scheduler_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescData []byte
 )
 
-func file_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP() []byte {
-	file_pkg_proto_configuration_scheduler_scheduler_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_configuration_scheduler_scheduler_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc), len(file_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc)))
 	})
-	return file_pkg_proto_configuration_scheduler_scheduler_proto_rawDescData
+	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescData
 }
 
-var file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_pkg_proto_configuration_scheduler_scheduler_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_goTypes = []any{
 	(*ActionRouterConfiguration)(nil),             // 0: bonanza.configuration.scheduler.ActionRouterConfiguration
 	(*SimpleActionRouterConfiguration)(nil),       // 1: bonanza.configuration.scheduler.SimpleActionRouterConfiguration
 	(*InvocationKeyExtractorConfiguration)(nil),   // 2: bonanza.configuration.scheduler.InvocationKeyExtractorConfiguration
@@ -290,7 +290,7 @@ var file_pkg_proto_configuration_scheduler_scheduler_proto_goTypes = []any{
 	(*emptypb.Empty)(nil),                         // 4: google.protobuf.Empty
 	(*durationpb.Duration)(nil),                   // 5: google.protobuf.Duration
 }
-var file_pkg_proto_configuration_scheduler_scheduler_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_depIdxs = []int32{
 	1, // 0: bonanza.configuration.scheduler.ActionRouterConfiguration.simple:type_name -> bonanza.configuration.scheduler.SimpleActionRouterConfiguration
 	2, // 1: bonanza.configuration.scheduler.SimpleActionRouterConfiguration.invocation_key_extractors:type_name -> bonanza.configuration.scheduler.InvocationKeyExtractorConfiguration
 	3, // 2: bonanza.configuration.scheduler.SimpleActionRouterConfiguration.initial_size_class_analyzer:type_name -> bonanza.configuration.scheduler.InitialSizeClassAnalyzerConfiguration
@@ -303,32 +303,32 @@ var file_pkg_proto_configuration_scheduler_scheduler_proto_depIdxs = []int32{
 	0, // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_configuration_scheduler_scheduler_proto_init() }
-func file_pkg_proto_configuration_scheduler_scheduler_proto_init() {
-	if File_pkg_proto_configuration_scheduler_scheduler_proto != nil {
+func init() { file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_init() }
+func file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_init() {
+	if File_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto != nil {
 		return
 	}
-	file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[0].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[0].OneofWrappers = []any{
 		(*ActionRouterConfiguration_Simple)(nil),
 	}
-	file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[2].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[2].OneofWrappers = []any{
 		(*InvocationKeyExtractorConfiguration_AuthenticationMetadata)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc), len(file_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_configuration_scheduler_scheduler_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_configuration_scheduler_scheduler_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_configuration_scheduler_scheduler_proto = out.File
-	file_pkg_proto_configuration_scheduler_scheduler_proto_goTypes = nil
-	file_pkg_proto_configuration_scheduler_scheduler_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto = out.File
+	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_depIdxs = nil
 }

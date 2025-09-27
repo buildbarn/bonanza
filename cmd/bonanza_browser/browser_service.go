@@ -38,7 +38,7 @@ import (
 	"bonanza.build/pkg/storage/object"
 	object_namespacemapping "bonanza.build/pkg/storage/object/namespacemapping"
 
-	bb_http "github.com/buildbarn/bb-storage/pkg/http"
+	http_server "github.com/buildbarn/bb-storage/pkg/http/server"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	g "maragu.dev/gomponents"
@@ -84,7 +84,7 @@ func wrapHandler(handler func(http.ResponseWriter, *http.Request) (g.Node, error
 		node, err := handler(w, r)
 		if err != nil {
 			st := status.Convert(err)
-			http.Error(w, err.Error(), bb_http.StatusCodeFromGRPCCode(st.Code()))
+			http.Error(w, err.Error(), http_server.StatusCodeFromGRPCCode(st.Code()))
 			return
 		}
 

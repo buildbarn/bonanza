@@ -5,6 +5,7 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 proto_library(
     name = "bonanza_storage_frontend_proto",
     srcs = ["bonanza_storage_frontend.proto"],
+    import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/storage/object:object_proto",

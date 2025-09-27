@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package bonanza.remoteexecution;
 
-import "pkg/proto/encryptedaction/encryptedaction.proto";
+import "bonanza.build/pkg/proto/encryptedaction/encryptedaction.proto";
 
 option go_package = "bonanza.build/pkg/proto/remoteexecution";
 

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/model/filesystem/filesystem.proto
+// source: bonanza.build/pkg/proto/model/filesystem/filesystem.proto
 
 package filesystem
 
@@ -34,7 +34,7 @@ type Leaves struct {
 
 func (x *Leaves) Reset() {
 	*x = Leaves{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +46,7 @@ func (x *Leaves) String() string {
 func (*Leaves) ProtoMessage() {}
 
 func (x *Leaves) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +59,7 @@ func (x *Leaves) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Leaves.ProtoReflect.Descriptor instead.
 func (*Leaves) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Leaves) GetFiles() []*FileNode {
@@ -86,7 +86,7 @@ type LeavesReference struct {
 
 func (x *LeavesReference) Reset() {
 	*x = LeavesReference{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -98,7 +98,7 @@ func (x *LeavesReference) String() string {
 func (*LeavesReference) ProtoMessage() {}
 
 func (x *LeavesReference) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -111,7 +111,7 @@ func (x *LeavesReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LeavesReference.ProtoReflect.Descriptor instead.
 func (*LeavesReference) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *LeavesReference) GetReference() *core.DecodableReference {
@@ -138,7 +138,7 @@ type FileProperties struct {
 
 func (x *FileProperties) Reset() {
 	*x = FileProperties{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -150,7 +150,7 @@ func (x *FileProperties) String() string {
 func (*FileProperties) ProtoMessage() {}
 
 func (x *FileProperties) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -163,7 +163,7 @@ func (x *FileProperties) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileProperties.ProtoReflect.Descriptor instead.
 func (*FileProperties) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *FileProperties) GetContents() *FileContents {
@@ -190,7 +190,7 @@ type FileNode struct {
 
 func (x *FileNode) Reset() {
 	*x = FileNode{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -202,7 +202,7 @@ func (x *FileNode) String() string {
 func (*FileNode) ProtoMessage() {}
 
 func (x *FileNode) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -215,7 +215,7 @@ func (x *FileNode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileNode.ProtoReflect.Descriptor instead.
 func (*FileNode) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *FileNode) GetName() string {
@@ -242,7 +242,7 @@ type SymlinkNode struct {
 
 func (x *SymlinkNode) Reset() {
 	*x = SymlinkNode{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -254,7 +254,7 @@ func (x *SymlinkNode) String() string {
 func (*SymlinkNode) ProtoMessage() {}
 
 func (x *SymlinkNode) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -267,7 +267,7 @@ func (x *SymlinkNode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SymlinkNode.ProtoReflect.Descriptor instead.
 func (*SymlinkNode) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{4}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SymlinkNode) GetName() string {
@@ -298,7 +298,7 @@ type DirectoryContents struct {
 
 func (x *DirectoryContents) Reset() {
 	*x = DirectoryContents{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +310,7 @@ func (x *DirectoryContents) String() string {
 func (*DirectoryContents) ProtoMessage() {}
 
 func (x *DirectoryContents) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +323,7 @@ func (x *DirectoryContents) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DirectoryContents.ProtoReflect.Descriptor instead.
 func (*DirectoryContents) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{5}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DirectoryContents) GetLeaves() isDirectoryContents_Leaves {
@@ -387,7 +387,7 @@ type Directory struct {
 
 func (x *Directory) Reset() {
 	*x = Directory{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -399,7 +399,7 @@ func (x *Directory) String() string {
 func (*Directory) ProtoMessage() {}
 
 func (x *Directory) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -412,7 +412,7 @@ func (x *Directory) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Directory.ProtoReflect.Descriptor instead.
 func (*Directory) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{6}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Directory) GetContents() isDirectory_Contents {
@@ -466,7 +466,7 @@ type DirectoryNode struct {
 
 func (x *DirectoryNode) Reset() {
 	*x = DirectoryNode{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -478,7 +478,7 @@ func (x *DirectoryNode) String() string {
 func (*DirectoryNode) ProtoMessage() {}
 
 func (x *DirectoryNode) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -491,7 +491,7 @@ func (x *DirectoryNode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DirectoryNode.ProtoReflect.Descriptor instead.
 func (*DirectoryNode) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{7}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DirectoryNode) GetName() string {
@@ -519,7 +519,7 @@ type DirectoryReference struct {
 
 func (x *DirectoryReference) Reset() {
 	*x = DirectoryReference{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -531,7 +531,7 @@ func (x *DirectoryReference) String() string {
 func (*DirectoryReference) ProtoMessage() {}
 
 func (x *DirectoryReference) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -544,7 +544,7 @@ func (x *DirectoryReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DirectoryReference.ProtoReflect.Descriptor instead.
 func (*DirectoryReference) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{8}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DirectoryReference) GetReference() *core.DecodableReference {
@@ -582,7 +582,7 @@ type FileContents struct {
 
 func (x *FileContents) Reset() {
 	*x = FileContents{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -594,7 +594,7 @@ func (x *FileContents) String() string {
 func (*FileContents) ProtoMessage() {}
 
 func (x *FileContents) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -607,7 +607,7 @@ func (x *FileContents) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileContents.ProtoReflect.Descriptor instead.
 func (*FileContents) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{9}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *FileContents) GetLevel() isFileContents_Level {
@@ -667,7 +667,7 @@ type DirectoryAccessParameters struct {
 
 func (x *DirectoryAccessParameters) Reset() {
 	*x = DirectoryAccessParameters{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -679,7 +679,7 @@ func (x *DirectoryAccessParameters) String() string {
 func (*DirectoryAccessParameters) ProtoMessage() {}
 
 func (x *DirectoryAccessParameters) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -692,7 +692,7 @@ func (x *DirectoryAccessParameters) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DirectoryAccessParameters.ProtoReflect.Descriptor instead.
 func (*DirectoryAccessParameters) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{10}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DirectoryAccessParameters) GetEncoders() []*encoding.BinaryEncoder {
@@ -712,7 +712,7 @@ type DirectoryCreationParameters struct {
 
 func (x *DirectoryCreationParameters) Reset() {
 	*x = DirectoryCreationParameters{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[11]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -724,7 +724,7 @@ func (x *DirectoryCreationParameters) String() string {
 func (*DirectoryCreationParameters) ProtoMessage() {}
 
 func (x *DirectoryCreationParameters) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[11]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -737,7 +737,7 @@ func (x *DirectoryCreationParameters) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DirectoryCreationParameters.ProtoReflect.Descriptor instead.
 func (*DirectoryCreationParameters) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{11}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DirectoryCreationParameters) GetAccess() *DirectoryAccessParameters {
@@ -764,7 +764,7 @@ type FileAccessParameters struct {
 
 func (x *FileAccessParameters) Reset() {
 	*x = FileAccessParameters{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[12]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -776,7 +776,7 @@ func (x *FileAccessParameters) String() string {
 func (*FileAccessParameters) ProtoMessage() {}
 
 func (x *FileAccessParameters) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[12]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -789,7 +789,7 @@ func (x *FileAccessParameters) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileAccessParameters.ProtoReflect.Descriptor instead.
 func (*FileAccessParameters) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{12}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *FileAccessParameters) GetChunkEncoders() []*encoding.BinaryEncoder {
@@ -819,7 +819,7 @@ type FileCreationParameters struct {
 
 func (x *FileCreationParameters) Reset() {
 	*x = FileCreationParameters{}
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[13]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -831,7 +831,7 @@ func (x *FileCreationParameters) String() string {
 func (*FileCreationParameters) ProtoMessage() {}
 
 func (x *FileCreationParameters) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[13]
+	mi := &file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -844,7 +844,7 @@ func (x *FileCreationParameters) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileCreationParameters.ProtoReflect.Descriptor instead.
 func (*FileCreationParameters) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{13}
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *FileCreationParameters) GetAccess() *FileAccessParameters {
@@ -882,11 +882,11 @@ func (x *FileCreationParameters) GetFileContentsListMaximumSizeBytes() uint32 {
 	return 0
 }
 
-var File_pkg_proto_model_filesystem_filesystem_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_model_filesystem_filesystem_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "" +
 	"\n" +
-	"+pkg/proto/model/filesystem/filesystem.proto\x12\x18bonanza.model.filesystem\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1fpkg/proto/model/core/core.proto\x1a'pkg/proto/model/encoding/encoding.proto\"\x85\x01\n" +
+	"9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x12\x18bonanza.model.filesystem\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x85\x01\n" +
 	"\x06Leaves\x128\n" +
 	"\x05files\x18\x01 \x03(\v2\".bonanza.model.filesystem.FileNodeR\x05files\x12A\n" +
 	"\bsymlinks\x18\x02 \x03(\v2%.bonanza.model.filesystem.SymlinkNodeR\bsymlinks\"\xe7\x01\n" +
@@ -943,19 +943,19 @@ const file_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "" +
 	"%file_contents_list_maximum_size_bytes\x18\x05 \x01(\rR fileContentsListMaximumSizeBytesB*Z(bonanza.build/pkg/proto/model/filesystemb\x06proto3"
 
 var (
-	file_pkg_proto_model_filesystem_filesystem_proto_rawDescOnce sync.Once
-	file_pkg_proto_model_filesystem_filesystem_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescData []byte
 )
 
-func file_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP() []byte {
-	file_pkg_proto_model_filesystem_filesystem_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_model_filesystem_filesystem_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_model_filesystem_filesystem_proto_rawDesc), len(file_pkg_proto_model_filesystem_filesystem_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc)))
 	})
-	return file_pkg_proto_model_filesystem_filesystem_proto_rawDescData
+	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescData
 }
 
-var file_pkg_proto_model_filesystem_filesystem_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
-var file_pkg_proto_model_filesystem_filesystem_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_goTypes = []any{
 	(*Leaves)(nil),                      // 0: bonanza.model.filesystem.Leaves
 	(*LeavesReference)(nil),             // 1: bonanza.model.filesystem.LeavesReference
 	(*FileProperties)(nil),              // 2: bonanza.model.filesystem.FileProperties
@@ -974,7 +974,7 @@ var file_pkg_proto_model_filesystem_filesystem_proto_goTypes = []any{
 	(*wrapperspb.UInt32Value)(nil),      // 15: google.protobuf.UInt32Value
 	(*encoding.BinaryEncoder)(nil),      // 16: bonanza.model.encoding.BinaryEncoder
 }
-var file_pkg_proto_model_filesystem_filesystem_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_depIdxs = []int32{
 	3,  // 0: bonanza.model.filesystem.Leaves.files:type_name -> bonanza.model.filesystem.FileNode
 	4,  // 1: bonanza.model.filesystem.Leaves.symlinks:type_name -> bonanza.model.filesystem.SymlinkNode
 	14, // 2: bonanza.model.filesystem.LeavesReference.reference:type_name -> bonanza.model.core.DecodableReference
@@ -1003,20 +1003,20 @@ var file_pkg_proto_model_filesystem_filesystem_proto_depIdxs = []int32{
 	0,  // [0:21] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_model_filesystem_filesystem_proto_init() }
-func file_pkg_proto_model_filesystem_filesystem_proto_init() {
-	if File_pkg_proto_model_filesystem_filesystem_proto != nil {
+func init() { file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_init() }
+func file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_init() {
+	if File_bonanza_build_pkg_proto_model_filesystem_filesystem_proto != nil {
 		return
 	}
-	file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[5].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[5].OneofWrappers = []any{
 		(*DirectoryContents_LeavesExternal)(nil),
 		(*DirectoryContents_LeavesInline)(nil),
 	}
-	file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[6].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[6].OneofWrappers = []any{
 		(*Directory_ContentsExternal)(nil),
 		(*Directory_ContentsInline)(nil),
 	}
-	file_pkg_proto_model_filesystem_filesystem_proto_msgTypes[9].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[9].OneofWrappers = []any{
 		(*FileContents_FileContentsListReference)(nil),
 		(*FileContents_ChunkReference)(nil),
 	}
@@ -1024,17 +1024,17 @@ func file_pkg_proto_model_filesystem_filesystem_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_model_filesystem_filesystem_proto_rawDesc), len(file_pkg_proto_model_filesystem_filesystem_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_model_filesystem_filesystem_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_model_filesystem_filesystem_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_model_filesystem_filesystem_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_model_filesystem_filesystem_proto = out.File
-	file_pkg_proto_model_filesystem_filesystem_proto_goTypes = nil
-	file_pkg_proto_model_filesystem_filesystem_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_model_filesystem_filesystem_proto = out.File
+	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_depIdxs = nil
 }

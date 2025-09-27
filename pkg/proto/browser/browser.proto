@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package bonanza.browser;
 
+import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
 import "google/protobuf/timestamp.proto";
-import "pkg/proto/model/encoding/encoding.proto";
 
 option go_package = "bonanza.build/pkg/proto/browser";
 

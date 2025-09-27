@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.31.1
-// source: pkg/proto/storage/tag/tag.proto
+// source: bonanza.build/pkg/proto/storage/tag/tag.proto
 
 package tag
 
@@ -116,7 +116,7 @@ var Resolver_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/proto/storage/tag/tag.proto",
+	Metadata: "bonanza.build/pkg/proto/storage/tag/tag.proto",
 }
 
 const (
@@ -216,5 +216,5 @@ var Updater_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/proto/storage/tag/tag.proto",
+	Metadata: "bonanza.build/pkg/proto/storage/tag/tag.proto",
 }

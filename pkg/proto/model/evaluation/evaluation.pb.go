@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/model/evaluation/evaluation.proto
+// source: bonanza.build/pkg/proto/model/evaluation/evaluation.proto
 
 package evaluation
 
@@ -37,7 +37,7 @@ type Keys struct {
 
 func (x *Keys) Reset() {
 	*x = Keys{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +49,7 @@ func (x *Keys) String() string {
 func (*Keys) ProtoMessage() {}
 
 func (x *Keys) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +62,7 @@ func (x *Keys) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Keys.ProtoReflect.Descriptor instead.
 func (*Keys) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Keys) GetLevel() isKeys_Level {
@@ -119,7 +119,7 @@ type Evaluation struct {
 
 func (x *Evaluation) Reset() {
 	*x = Evaluation{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -131,7 +131,7 @@ func (x *Evaluation) String() string {
 func (*Evaluation) ProtoMessage() {}
 
 func (x *Evaluation) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,7 +144,7 @@ func (x *Evaluation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Evaluation.ProtoReflect.Descriptor instead.
 func (*Evaluation) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Evaluation) GetLevel() isEvaluation_Level {
@@ -198,7 +198,7 @@ type Action struct {
 
 func (x *Action) Reset() {
 	*x = Action{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -210,7 +210,7 @@ func (x *Action) String() string {
 func (*Action) ProtoMessage() {}
 
 func (x *Action) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -223,7 +223,7 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Action.ProtoReflect.Descriptor instead.
 func (*Action) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Action) GetOverridesReference() *core.DecodableReference {
@@ -253,7 +253,7 @@ type Progress struct {
 
 func (x *Progress) Reset() {
 	*x = Progress{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -265,7 +265,7 @@ func (x *Progress) String() string {
 func (*Progress) ProtoMessage() {}
 
 func (x *Progress) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -278,7 +278,7 @@ func (x *Progress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Progress.ProtoReflect.Descriptor instead.
 func (*Progress) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Progress) GetCompletedKeysCount() uint64 {
@@ -326,7 +326,7 @@ type Result struct {
 
 func (x *Result) Reset() {
 	*x = Result{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -338,7 +338,7 @@ func (x *Result) String() string {
 func (*Result) ProtoMessage() {}
 
 func (x *Result) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -351,7 +351,7 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result.ProtoReflect.Descriptor instead.
 func (*Result) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Result) GetFailure() *Result_Failure {
@@ -377,7 +377,7 @@ type Keys_Parent struct {
 
 func (x *Keys_Parent) Reset() {
 	*x = Keys_Parent{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -389,7 +389,7 @@ func (x *Keys_Parent) String() string {
 func (*Keys_Parent) ProtoMessage() {}
 
 func (x *Keys_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -402,7 +402,7 @@ func (x *Keys_Parent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Keys_Parent.ProtoReflect.Descriptor instead.
 func (*Keys_Parent) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{0, 0}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{0, 0}
 }
 
 func (x *Keys_Parent) GetReference() *core.DecodableReference {
@@ -422,7 +422,7 @@ type Evaluation_Parent struct {
 
 func (x *Evaluation_Parent) Reset() {
 	*x = Evaluation_Parent{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -434,7 +434,7 @@ func (x *Evaluation_Parent) String() string {
 func (*Evaluation_Parent) ProtoMessage() {}
 
 func (x *Evaluation_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -447,7 +447,7 @@ func (x *Evaluation_Parent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Evaluation_Parent.ProtoReflect.Descriptor instead.
 func (*Evaluation_Parent) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1, 0}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1, 0}
 }
 
 func (x *Evaluation_Parent) GetReference() *core.DecodableReference {
@@ -475,7 +475,7 @@ type Evaluation_Leaf struct {
 
 func (x *Evaluation_Leaf) Reset() {
 	*x = Evaluation_Leaf{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -487,7 +487,7 @@ func (x *Evaluation_Leaf) String() string {
 func (*Evaluation_Leaf) ProtoMessage() {}
 
 func (x *Evaluation_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -500,7 +500,7 @@ func (x *Evaluation_Leaf) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Evaluation_Leaf.ProtoReflect.Descriptor instead.
 func (*Evaluation_Leaf) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1, 1}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1, 1}
 }
 
 func (x *Evaluation_Leaf) GetKey() *core.Any {
@@ -536,7 +536,7 @@ type Progress_EvaluatingKey struct {
 
 func (x *Progress_EvaluatingKey) Reset() {
 	*x = Progress_EvaluatingKey{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -548,7 +548,7 @@ func (x *Progress_EvaluatingKey) String() string {
 func (*Progress_EvaluatingKey) ProtoMessage() {}
 
 func (x *Progress_EvaluatingKey) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -561,7 +561,7 @@ func (x *Progress_EvaluatingKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Progress_EvaluatingKey.ProtoReflect.Descriptor instead.
 func (*Progress_EvaluatingKey) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3, 0}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3, 0}
 }
 
 func (x *Progress_EvaluatingKey) GetKey() *core.Any {
@@ -602,7 +602,7 @@ type Result_Failure struct {
 
 func (x *Result_Failure) Reset() {
 	*x = Result_Failure{}
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -614,7 +614,7 @@ func (x *Result_Failure) String() string {
 func (*Result_Failure) ProtoMessage() {}
 
 func (x *Result_Failure) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -627,7 +627,7 @@ func (x *Result_Failure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result_Failure.ProtoReflect.Descriptor instead.
 func (*Result_Failure) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4, 0}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4, 0}
 }
 
 func (x *Result_Failure) GetStackTraceKeys() []*core.Any {
@@ -644,11 +644,11 @@ func (x *Result_Failure) GetStatus() *status.Status {
 	return nil
 }
 
-var File_pkg_proto_model_evaluation_evaluation_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_model_evaluation_evaluation_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "" +
 	"\n" +
-	"+pkg/proto/model/evaluation/evaluation.proto\x12\x18bonanza.model.evaluation\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\x1a\x1fpkg/proto/model/core/core.proto\"\xf4\x01\n" +
+	"9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x12\x18bonanza.model.evaluation\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\"\xf4\x01\n" +
 	"\x04Keys\x12-\n" +
 	"\x04leaf\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyH\x00R\x04leaf\x12?\n" +
 	"\x06parent\x18\x02 \x01(\v2%.bonanza.model.evaluation.Keys.ParentH\x00R\x06parent\x1as\n" +
@@ -689,19 +689,19 @@ const file_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\v2\x12.google.rpc.StatusR\x06statusB*Z(bonanza.build/pkg/proto/model/evaluationb\x06proto3"
 
 var (
-	file_pkg_proto_model_evaluation_evaluation_proto_rawDescOnce sync.Once
-	file_pkg_proto_model_evaluation_evaluation_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescData []byte
 )
 
-func file_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP() []byte {
-	file_pkg_proto_model_evaluation_evaluation_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_model_evaluation_evaluation_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_model_evaluation_evaluation_proto_rawDesc), len(file_pkg_proto_model_evaluation_evaluation_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc)))
 	})
-	return file_pkg_proto_model_evaluation_evaluation_proto_rawDescData
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescData
 }
 
-var file_pkg_proto_model_evaluation_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
-var file_pkg_proto_model_evaluation_evaluation_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_goTypes = []any{
 	(*Keys)(nil),                    // 0: bonanza.model.evaluation.Keys
 	(*Evaluation)(nil),              // 1: bonanza.model.evaluation.Evaluation
 	(*Action)(nil),                  // 2: bonanza.model.evaluation.Action
@@ -717,7 +717,7 @@ var file_pkg_proto_model_evaluation_evaluation_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),   // 12: google.protobuf.Timestamp
 	(*status.Status)(nil),           // 13: google.rpc.Status
 }
-var file_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
 	10, // 0: bonanza.model.evaluation.Keys.leaf:type_name -> bonanza.model.core.Any
 	5,  // 1: bonanza.model.evaluation.Keys.parent:type_name -> bonanza.model.evaluation.Keys.Parent
 	7,  // 2: bonanza.model.evaluation.Evaluation.leaf:type_name -> bonanza.model.evaluation.Evaluation.Leaf
@@ -744,16 +744,16 @@ var file_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
 	0,  // [0:19] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_model_evaluation_evaluation_proto_init() }
-func file_pkg_proto_model_evaluation_evaluation_proto_init() {
-	if File_pkg_proto_model_evaluation_evaluation_proto != nil {
+func init() { file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_init() }
+func file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_init() {
+	if File_bonanza_build_pkg_proto_model_evaluation_evaluation_proto != nil {
 		return
 	}
-	file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[0].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[0].OneofWrappers = []any{
 		(*Keys_Leaf)(nil),
 		(*Keys_Parent_)(nil),
 	}
-	file_pkg_proto_model_evaluation_evaluation_proto_msgTypes[1].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[1].OneofWrappers = []any{
 		(*Evaluation_Leaf_)(nil),
 		(*Evaluation_Parent_)(nil),
 	}
@@ -761,17 +761,17 @@ func file_pkg_proto_model_evaluation_evaluation_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_model_evaluation_evaluation_proto_rawDesc), len(file_pkg_proto_model_evaluation_evaluation_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_model_evaluation_evaluation_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_model_evaluation_evaluation_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_model_evaluation_evaluation_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_model_evaluation_evaluation_proto = out.File
-	file_pkg_proto_model_evaluation_evaluation_proto_goTypes = nil
-	file_pkg_proto_model_evaluation_evaluation_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_model_evaluation_evaluation_proto = out.File
+	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_depIdxs = nil
 }

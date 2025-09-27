@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/storage/tag/tag.proto
+// source: bonanza.build/pkg/proto/storage/tag/tag.proto
 
 package tag
 
@@ -34,7 +34,7 @@ type ResolveTagRequest struct {
 
 func (x *ResolveTagRequest) Reset() {
 	*x = ResolveTagRequest{}
-	mi := &file_pkg_proto_storage_tag_tag_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +46,7 @@ func (x *ResolveTagRequest) String() string {
 func (*ResolveTagRequest) ProtoMessage() {}
 
 func (x *ResolveTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_tag_tag_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +59,7 @@ func (x *ResolveTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveTagRequest.ProtoReflect.Descriptor instead.
 func (*ResolveTagRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ResolveTagRequest) GetNamespace() *object.Namespace {
@@ -86,7 +86,7 @@ type ResolveTagResponse struct {
 
 func (x *ResolveTagResponse) Reset() {
 	*x = ResolveTagResponse{}
-	mi := &file_pkg_proto_storage_tag_tag_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -98,7 +98,7 @@ func (x *ResolveTagResponse) String() string {
 func (*ResolveTagResponse) ProtoMessage() {}
 
 func (x *ResolveTagResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_tag_tag_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -111,7 +111,7 @@ func (x *ResolveTagResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveTagResponse.ProtoReflect.Descriptor instead.
 func (*ResolveTagResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ResolveTagResponse) GetReference() []byte {
@@ -141,7 +141,7 @@ type UpdateTagRequest struct {
 
 func (x *UpdateTagRequest) Reset() {
 	*x = UpdateTagRequest{}
-	mi := &file_pkg_proto_storage_tag_tag_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -153,7 +153,7 @@ func (x *UpdateTagRequest) String() string {
 func (*UpdateTagRequest) ProtoMessage() {}
 
 func (x *UpdateTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_tag_tag_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -166,7 +166,7 @@ func (x *UpdateTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTagRequest.ProtoReflect.Descriptor instead.
 func (*UpdateTagRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *UpdateTagRequest) GetNamespace() *object.Namespace {
@@ -204,11 +204,11 @@ func (x *UpdateTagRequest) GetOverwrite() bool {
 	return false
 }
 
-var File_pkg_proto_storage_tag_tag_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_storage_tag_tag_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_storage_tag_tag_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc = "" +
 	"\n" +
-	"\x1fpkg/proto/storage/tag/tag.proto\x12\x13bonanza.storage.tag\x1a\x19google/protobuf/any.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a%pkg/proto/storage/object/object.proto\"|\n" +
+	"-bonanza.build/pkg/proto/storage/tag/tag.proto\x12\x13bonanza.storage.tag\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1a\x19google/protobuf/any.proto\x1a\x1bgoogle/protobuf/empty.proto\"|\n" +
 	"\x11ResolveTagRequest\x12?\n" +
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12&\n" +
 	"\x03tag\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x03tag\"N\n" +
@@ -228,19 +228,19 @@ const file_pkg_proto_storage_tag_tag_proto_rawDesc = "" +
 	"\tUpdateTag\x12%.bonanza.storage.tag.UpdateTagRequest\x1a\x16.google.protobuf.EmptyB%Z#bonanza.build/pkg/proto/storage/tagb\x06proto3"
 
 var (
-	file_pkg_proto_storage_tag_tag_proto_rawDescOnce sync.Once
-	file_pkg_proto_storage_tag_tag_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescData []byte
 )
 
-func file_pkg_proto_storage_tag_tag_proto_rawDescGZIP() []byte {
-	file_pkg_proto_storage_tag_tag_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_storage_tag_tag_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_storage_tag_tag_proto_rawDesc), len(file_pkg_proto_storage_tag_tag_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc)))
 	})
-	return file_pkg_proto_storage_tag_tag_proto_rawDescData
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescData
 }
 
-var file_pkg_proto_storage_tag_tag_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_pkg_proto_storage_tag_tag_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_bonanza_build_pkg_proto_storage_tag_tag_proto_goTypes = []any{
 	(*ResolveTagRequest)(nil),  // 0: bonanza.storage.tag.ResolveTagRequest
 	(*ResolveTagResponse)(nil), // 1: bonanza.storage.tag.ResolveTagResponse
 	(*UpdateTagRequest)(nil),   // 2: bonanza.storage.tag.UpdateTagRequest
@@ -248,7 +248,7 @@ var file_pkg_proto_storage_tag_tag_proto_goTypes = []any{
 	(*anypb.Any)(nil),          // 4: google.protobuf.Any
 	(*emptypb.Empty)(nil),      // 5: google.protobuf.Empty
 }
-var file_pkg_proto_storage_tag_tag_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_storage_tag_tag_proto_depIdxs = []int32{
 	3, // 0: bonanza.storage.tag.ResolveTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
 	4, // 1: bonanza.storage.tag.ResolveTagRequest.tag:type_name -> google.protobuf.Any
 	3, // 2: bonanza.storage.tag.UpdateTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
@@ -264,26 +264,26 @@ var file_pkg_proto_storage_tag_tag_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_storage_tag_tag_proto_init() }
-func file_pkg_proto_storage_tag_tag_proto_init() {
-	if File_pkg_proto_storage_tag_tag_proto != nil {
+func init() { file_bonanza_build_pkg_proto_storage_tag_tag_proto_init() }
+func file_bonanza_build_pkg_proto_storage_tag_tag_proto_init() {
+	if File_bonanza_build_pkg_proto_storage_tag_tag_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_storage_tag_tag_proto_rawDesc), len(file_pkg_proto_storage_tag_tag_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
-		GoTypes:           file_pkg_proto_storage_tag_tag_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_storage_tag_tag_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_storage_tag_tag_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_storage_tag_tag_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_storage_tag_tag_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_storage_tag_tag_proto = out.File
-	file_pkg_proto_storage_tag_tag_proto_goTypes = nil
-	file_pkg_proto_storage_tag_tag_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_storage_tag_tag_proto = out.File
+	file_bonanza_build_pkg_proto_storage_tag_tag_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_storage_tag_tag_proto_depIdxs = nil
 }

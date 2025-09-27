@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/model/command/command.proto
+// source: bonanza.build/pkg/proto/model/command/command.proto
 
 package command
 
@@ -40,7 +40,7 @@ type Command struct {
 
 func (x *Command) Reset() {
 	*x = Command{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -52,7 +52,7 @@ func (x *Command) String() string {
 func (*Command) ProtoMessage() {}
 
 func (x *Command) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -65,7 +65,7 @@ func (x *Command) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Command.ProtoReflect.Descriptor instead.
 func (*Command) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Command) GetArguments() []*ArgumentList_Element {
@@ -130,7 +130,7 @@ type PathPattern struct {
 
 func (x *PathPattern) Reset() {
 	*x = PathPattern{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -142,7 +142,7 @@ func (x *PathPattern) String() string {
 func (*PathPattern) ProtoMessage() {}
 
 func (x *PathPattern) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -155,7 +155,7 @@ func (x *PathPattern) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PathPattern.ProtoReflect.Descriptor instead.
 func (*PathPattern) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *PathPattern) GetChildren() isPathPattern_Children {
@@ -208,7 +208,7 @@ type ArgumentList struct {
 
 func (x *ArgumentList) Reset() {
 	*x = ArgumentList{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -220,7 +220,7 @@ func (x *ArgumentList) String() string {
 func (*ArgumentList) ProtoMessage() {}
 
 func (x *ArgumentList) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -233,7 +233,7 @@ func (x *ArgumentList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArgumentList.ProtoReflect.Descriptor instead.
 func (*ArgumentList) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ArgumentList) GetElements() []*ArgumentList_Element {
@@ -252,7 +252,7 @@ type EnvironmentVariableList struct {
 
 func (x *EnvironmentVariableList) Reset() {
 	*x = EnvironmentVariableList{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -264,7 +264,7 @@ func (x *EnvironmentVariableList) String() string {
 func (*EnvironmentVariableList) ProtoMessage() {}
 
 func (x *EnvironmentVariableList) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -277,7 +277,7 @@ func (x *EnvironmentVariableList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnvironmentVariableList.ProtoReflect.Descriptor instead.
 func (*EnvironmentVariableList) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *EnvironmentVariableList) GetElements() []*EnvironmentVariableList_Element {
@@ -298,7 +298,7 @@ type Outputs struct {
 
 func (x *Outputs) Reset() {
 	*x = Outputs{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +310,7 @@ func (x *Outputs) String() string {
 func (*Outputs) ProtoMessage() {}
 
 func (x *Outputs) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +323,7 @@ func (x *Outputs) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Outputs.ProtoReflect.Descriptor instead.
 func (*Outputs) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{4}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Outputs) GetStdout() *filesystem.FileContents {
@@ -357,7 +357,7 @@ type Action struct {
 
 func (x *Action) Reset() {
 	*x = Action{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +369,7 @@ func (x *Action) String() string {
 func (*Action) ProtoMessage() {}
 
 func (x *Action) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,7 +382,7 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Action.ProtoReflect.Descriptor instead.
 func (*Action) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{5}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Action) GetCommandReference() *core.DecodableReference {
@@ -411,7 +411,7 @@ type Result struct {
 
 func (x *Result) Reset() {
 	*x = Result{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -423,7 +423,7 @@ func (x *Result) String() string {
 func (*Result) ProtoMessage() {}
 
 func (x *Result) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -436,7 +436,7 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result.ProtoReflect.Descriptor instead.
 func (*Result) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{6}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Result) GetStatus() *status.Status {
@@ -477,7 +477,7 @@ type PathPattern_Child struct {
 
 func (x *PathPattern_Child) Reset() {
 	*x = PathPattern_Child{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -489,7 +489,7 @@ func (x *PathPattern_Child) String() string {
 func (*PathPattern_Child) ProtoMessage() {}
 
 func (x *PathPattern_Child) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -502,7 +502,7 @@ func (x *PathPattern_Child) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PathPattern_Child.ProtoReflect.Descriptor instead.
 func (*PathPattern_Child) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{1, 0}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{1, 0}
 }
 
 func (x *PathPattern_Child) GetName() string {
@@ -528,7 +528,7 @@ type PathPattern_Children struct {
 
 func (x *PathPattern_Children) Reset() {
 	*x = PathPattern_Children{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -540,7 +540,7 @@ func (x *PathPattern_Children) String() string {
 func (*PathPattern_Children) ProtoMessage() {}
 
 func (x *PathPattern_Children) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -553,7 +553,7 @@ func (x *PathPattern_Children) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PathPattern_Children.ProtoReflect.Descriptor instead.
 func (*PathPattern_Children) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{1, 1}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{1, 1}
 }
 
 func (x *PathPattern_Children) GetChildren() []*PathPattern_Child {
@@ -576,7 +576,7 @@ type ArgumentList_Element struct {
 
 func (x *ArgumentList_Element) Reset() {
 	*x = ArgumentList_Element{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -588,7 +588,7 @@ func (x *ArgumentList_Element) String() string {
 func (*ArgumentList_Element) ProtoMessage() {}
 
 func (x *ArgumentList_Element) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -601,7 +601,7 @@ func (x *ArgumentList_Element) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArgumentList_Element.ProtoReflect.Descriptor instead.
 func (*ArgumentList_Element) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{2, 0}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{2, 0}
 }
 
 func (x *ArgumentList_Element) GetLevel() isArgumentList_Element_Level {
@@ -658,7 +658,7 @@ type EnvironmentVariableList_Element struct {
 
 func (x *EnvironmentVariableList_Element) Reset() {
 	*x = EnvironmentVariableList_Element{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -670,7 +670,7 @@ func (x *EnvironmentVariableList_Element) String() string {
 func (*EnvironmentVariableList_Element) ProtoMessage() {}
 
 func (x *EnvironmentVariableList_Element) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -683,7 +683,7 @@ func (x *EnvironmentVariableList_Element) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnvironmentVariableList_Element.ProtoReflect.Descriptor instead.
 func (*EnvironmentVariableList_Element) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{3, 0}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{3, 0}
 }
 
 func (x *EnvironmentVariableList_Element) GetLevel() isEnvironmentVariableList_Element_Level {
@@ -737,7 +737,7 @@ type EnvironmentVariableList_Element_Leaf struct {
 
 func (x *EnvironmentVariableList_Element_Leaf) Reset() {
 	*x = EnvironmentVariableList_Element_Leaf{}
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[11]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -749,7 +749,7 @@ func (x *EnvironmentVariableList_Element_Leaf) String() string {
 func (*EnvironmentVariableList_Element_Leaf) ProtoMessage() {}
 
 func (x *EnvironmentVariableList_Element_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_command_command_proto_msgTypes[11]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -762,7 +762,7 @@ func (x *EnvironmentVariableList_Element_Leaf) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use EnvironmentVariableList_Element_Leaf.ProtoReflect.Descriptor instead.
 func (*EnvironmentVariableList_Element_Leaf) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{3, 0, 0}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{3, 0, 0}
 }
 
 func (x *EnvironmentVariableList_Element_Leaf) GetName() string {
@@ -779,11 +779,11 @@ func (x *EnvironmentVariableList_Element_Leaf) GetValue() string {
 	return ""
 }
 
-var File_pkg_proto_model_command_command_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_model_command_command_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_model_command_command_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc = "" +
 	"\n" +
-	"%pkg/proto/model/command/command.proto\x12\x15bonanza.model.command\x1a\x19google/protobuf/any.proto\x1a\x17google/rpc/status.proto\x1a\x1fpkg/proto/model/core/core.proto\x1a+pkg/proto/model/filesystem/filesystem.proto\"\xe7\x04\n" +
+	"3bonanza.build/pkg/proto/model/command/command.proto\x12\x15bonanza.model.command\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x1a\x19google/protobuf/any.proto\x1a\x17google/rpc/status.proto\"\xe7\x04\n" +
 	"\aCommand\x12I\n" +
 	"\targuments\x18\x01 \x03(\v2+.bonanza.model.command.ArgumentList.ElementR\targuments\x12k\n" +
 	"\x15environment_variables\x18\x02 \x03(\v26.bonanza.model.command.EnvironmentVariableList.ElementR\x14environmentVariables\x12y\n" +
@@ -832,19 +832,19 @@ const file_pkg_proto_model_command_command_proto_rawDesc = "" +
 	"\x12auxiliary_metadata\x18\x04 \x03(\v2\x14.google.protobuf.AnyR\x11auxiliaryMetadataB'Z%bonanza.build/pkg/proto/model/commandb\x06proto3"
 
 var (
-	file_pkg_proto_model_command_command_proto_rawDescOnce sync.Once
-	file_pkg_proto_model_command_command_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_model_command_command_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_model_command_command_proto_rawDescData []byte
 )
 
-func file_pkg_proto_model_command_command_proto_rawDescGZIP() []byte {
-	file_pkg_proto_model_command_command_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_model_command_command_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_model_command_command_proto_rawDesc), len(file_pkg_proto_model_command_command_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_model_command_command_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_model_command_command_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc)))
 	})
-	return file_pkg_proto_model_command_command_proto_rawDescData
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescData
 }
 
-var file_pkg_proto_model_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_pkg_proto_model_command_command_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_bonanza_build_pkg_proto_model_command_command_proto_goTypes = []any{
 	(*Command)(nil),                                // 0: bonanza.model.command.Command
 	(*PathPattern)(nil),                            // 1: bonanza.model.command.PathPattern
 	(*ArgumentList)(nil),                           // 2: bonanza.model.command.ArgumentList
@@ -866,7 +866,7 @@ var file_pkg_proto_model_command_command_proto_goTypes = []any{
 	(*status.Status)(nil),                          // 18: google.rpc.Status
 	(*anypb.Any)(nil),                              // 19: google.protobuf.Any
 }
-var file_pkg_proto_model_command_command_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_model_command_command_proto_depIdxs = []int32{
 	9,  // 0: bonanza.model.command.Command.arguments:type_name -> bonanza.model.command.ArgumentList.Element
 	10, // 1: bonanza.model.command.Command.environment_variables:type_name -> bonanza.model.command.EnvironmentVariableList.Element
 	12, // 2: bonanza.model.command.Command.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
@@ -896,20 +896,20 @@ var file_pkg_proto_model_command_command_proto_depIdxs = []int32{
 	0,  // [0:22] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_model_command_command_proto_init() }
-func file_pkg_proto_model_command_command_proto_init() {
-	if File_pkg_proto_model_command_command_proto != nil {
+func init() { file_bonanza_build_pkg_proto_model_command_command_proto_init() }
+func file_bonanza_build_pkg_proto_model_command_command_proto_init() {
+	if File_bonanza_build_pkg_proto_model_command_command_proto != nil {
 		return
 	}
-	file_pkg_proto_model_command_command_proto_msgTypes[1].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[1].OneofWrappers = []any{
 		(*PathPattern_ChildrenExternal)(nil),
 		(*PathPattern_ChildrenInline)(nil),
 	}
-	file_pkg_proto_model_command_command_proto_msgTypes[9].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[9].OneofWrappers = []any{
 		(*ArgumentList_Element_Leaf)(nil),
 		(*ArgumentList_Element_Parent)(nil),
 	}
-	file_pkg_proto_model_command_command_proto_msgTypes[10].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[10].OneofWrappers = []any{
 		(*EnvironmentVariableList_Element_Leaf_)(nil),
 		(*EnvironmentVariableList_Element_Parent)(nil),
 	}
@@ -917,17 +917,17 @@ func file_pkg_proto_model_command_command_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_model_command_command_proto_rawDesc), len(file_pkg_proto_model_command_command_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_model_command_command_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_model_command_command_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_model_command_command_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_model_command_command_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_model_command_command_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_model_command_command_proto = out.File
-	file_pkg_proto_model_command_command_proto_goTypes = nil
-	file_pkg_proto_model_command_command_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_model_command_command_proto = out.File
+	file_bonanza_build_pkg_proto_model_command_command_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_model_command_command_proto_depIdxs = nil
 }

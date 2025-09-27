@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package bonanza.configuration.bonanza_storage_frontend;
 
-import "pkg/proto/configuration/global/global.proto";
-import "pkg/proto/configuration/grpc/grpc.proto";
-import "pkg/proto/storage/object/object.proto";
+import "bonanza.build/pkg/proto/storage/object/object.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
 
 option go_package = "bonanza.build/pkg/proto/configuration/bonanza_storage_frontend";
 

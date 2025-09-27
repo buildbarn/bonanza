@@ -5,6 +5,7 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 proto_library(
     name = "bonanza_scheduler_proto",
     srcs = ["bonanza_scheduler.proto"],
+    import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/configuration/scheduler:scheduler_proto",

@@ -38,7 +38,7 @@ go_library(
         "//pkg/storage/object/namespacemapping",
         "//pkg/storage/object/readcaching",
         "@com_github_buildbarn_bb_storage//pkg/global",
-        "@com_github_buildbarn_bb_storage//pkg/http",
+        "@com_github_buildbarn_bb_storage//pkg/http/server",
         "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@dev_maragu_gomponents//:gomponents",

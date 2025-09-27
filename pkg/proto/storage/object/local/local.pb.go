@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/storage/object/local/local.proto
+// source: bonanza.build/pkg/proto/storage/object/local/local.proto
 
 package local
 
@@ -31,7 +31,7 @@ type EpochState struct {
 
 func (x *EpochState) Reset() {
 	*x = EpochState{}
-	mi := &file_pkg_proto_storage_object_local_local_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_storage_object_local_local_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *EpochState) String() string {
 func (*EpochState) ProtoMessage() {}
 
 func (x *EpochState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_local_local_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_storage_object_local_local_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *EpochState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EpochState.ProtoReflect.Descriptor instead.
 func (*EpochState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_local_local_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *EpochState) GetHashSeed() uint64 {
@@ -85,7 +85,7 @@ type PersistentState struct {
 
 func (x *PersistentState) Reset() {
 	*x = PersistentState{}
-	mi := &file_pkg_proto_storage_object_local_local_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_storage_object_local_local_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -97,7 +97,7 @@ func (x *PersistentState) String() string {
 func (*PersistentState) ProtoMessage() {}
 
 func (x *PersistentState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_local_local_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_storage_object_local_local_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +110,7 @@ func (x *PersistentState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PersistentState.ProtoReflect.Descriptor instead.
 func (*PersistentState) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_local_local_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *PersistentState) GetMinimumEpochId() uint32 {
@@ -141,11 +141,11 @@ func (x *PersistentState) GetEpochs() []*EpochState {
 	return nil
 }
 
-var File_pkg_proto_storage_object_local_local_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_storage_object_local_local_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_storage_object_local_local_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDesc = "" +
 	"\n" +
-	"*pkg/proto/storage/object/local/local.proto\x12\x1cbonanza.storage.object.local\"V\n" +
+	"8bonanza.build/pkg/proto/storage/object/local/local.proto\x12\x1cbonanza.storage.object.local\"V\n" +
 	"\n" +
 	"EpochState\x12\x1b\n" +
 	"\thash_seed\x18\x01 \x01(\x06R\bhashSeed\x12+\n" +
@@ -157,23 +157,23 @@ const file_pkg_proto_storage_object_local_local_proto_rawDesc = "" +
 	"\x06epochs\x18\x04 \x03(\v2(.bonanza.storage.object.local.EpochStateR\x06epochsB.Z,bonanza.build/pkg/proto/storage/object/localb\x06proto3"
 
 var (
-	file_pkg_proto_storage_object_local_local_proto_rawDescOnce sync.Once
-	file_pkg_proto_storage_object_local_local_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescData []byte
 )
 
-func file_pkg_proto_storage_object_local_local_proto_rawDescGZIP() []byte {
-	file_pkg_proto_storage_object_local_local_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_storage_object_local_local_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_storage_object_local_local_proto_rawDesc), len(file_pkg_proto_storage_object_local_local_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDesc)))
 	})
-	return file_pkg_proto_storage_object_local_local_proto_rawDescData
+	return file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescData
 }
 
-var file_pkg_proto_storage_object_local_local_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_pkg_proto_storage_object_local_local_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_storage_object_local_local_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_bonanza_build_pkg_proto_storage_object_local_local_proto_goTypes = []any{
 	(*EpochState)(nil),      // 0: bonanza.storage.object.local.EpochState
 	(*PersistentState)(nil), // 1: bonanza.storage.object.local.PersistentState
 }
-var file_pkg_proto_storage_object_local_local_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_storage_object_local_local_proto_depIdxs = []int32{
 	0, // 0: bonanza.storage.object.local.PersistentState.epochs:type_name -> bonanza.storage.object.local.EpochState
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
@@ -182,26 +182,26 @@ var file_pkg_proto_storage_object_local_local_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_storage_object_local_local_proto_init() }
-func file_pkg_proto_storage_object_local_local_proto_init() {
-	if File_pkg_proto_storage_object_local_local_proto != nil {
+func init() { file_bonanza_build_pkg_proto_storage_object_local_local_proto_init() }
+func file_bonanza_build_pkg_proto_storage_object_local_local_proto_init() {
+	if File_bonanza_build_pkg_proto_storage_object_local_local_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_storage_object_local_local_proto_rawDesc), len(file_pkg_proto_storage_object_local_local_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_storage_object_local_local_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_storage_object_local_local_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_storage_object_local_local_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_storage_object_local_local_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_storage_object_local_local_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_storage_object_local_local_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_storage_object_local_local_proto = out.File
-	file_pkg_proto_storage_object_local_local_proto_goTypes = nil
-	file_pkg_proto_storage_object_local_local_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_storage_object_local_local_proto = out.File
+	file_bonanza_build_pkg_proto_storage_object_local_local_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_storage_object_local_local_proto_depIdxs = nil
 }

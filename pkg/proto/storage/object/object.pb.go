@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/storage/object/object.proto
+// source: bonanza.build/pkg/proto/storage/object/object.proto
 
 package object
 
@@ -51,11 +51,11 @@ func (x ReferenceFormat_Value) String() string {
 }
 
 func (ReferenceFormat_Value) Descriptor() protoreflect.EnumDescriptor {
-	return file_pkg_proto_storage_object_object_proto_enumTypes[0].Descriptor()
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_enumTypes[0].Descriptor()
 }
 
 func (ReferenceFormat_Value) Type() protoreflect.EnumType {
-	return &file_pkg_proto_storage_object_object_proto_enumTypes[0]
+	return &file_bonanza_build_pkg_proto_storage_object_object_proto_enumTypes[0]
 }
 
 func (x ReferenceFormat_Value) Number() protoreflect.EnumNumber {
@@ -64,7 +64,7 @@ func (x ReferenceFormat_Value) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ReferenceFormat_Value.Descriptor instead.
 func (ReferenceFormat_Value) EnumDescriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{0, 0}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{0, 0}
 }
 
 type ReferenceFormat struct {
@@ -75,7 +75,7 @@ type ReferenceFormat struct {
 
 func (x *ReferenceFormat) Reset() {
 	*x = ReferenceFormat{}
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -87,7 +87,7 @@ func (x *ReferenceFormat) String() string {
 func (*ReferenceFormat) ProtoMessage() {}
 
 func (x *ReferenceFormat) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -100,7 +100,7 @@ func (x *ReferenceFormat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReferenceFormat.ProtoReflect.Descriptor instead.
 func (*ReferenceFormat) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{0}
 }
 
 type Namespace struct {
@@ -113,7 +113,7 @@ type Namespace struct {
 
 func (x *Namespace) Reset() {
 	*x = Namespace{}
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -125,7 +125,7 @@ func (x *Namespace) String() string {
 func (*Namespace) ProtoMessage() {}
 
 func (x *Namespace) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -138,7 +138,7 @@ func (x *Namespace) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Namespace.ProtoReflect.Descriptor instead.
 func (*Namespace) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Namespace) GetInstanceName() string {
@@ -165,7 +165,7 @@ type DownloadObjectRequest struct {
 
 func (x *DownloadObjectRequest) Reset() {
 	*x = DownloadObjectRequest{}
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -177,7 +177,7 @@ func (x *DownloadObjectRequest) String() string {
 func (*DownloadObjectRequest) ProtoMessage() {}
 
 func (x *DownloadObjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -190,7 +190,7 @@ func (x *DownloadObjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadObjectRequest.ProtoReflect.Descriptor instead.
 func (*DownloadObjectRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DownloadObjectRequest) GetNamespace() *Namespace {
@@ -216,7 +216,7 @@ type DownloadObjectResponse struct {
 
 func (x *DownloadObjectResponse) Reset() {
 	*x = DownloadObjectResponse{}
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -228,7 +228,7 @@ func (x *DownloadObjectResponse) String() string {
 func (*DownloadObjectResponse) ProtoMessage() {}
 
 func (x *DownloadObjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -241,7 +241,7 @@ func (x *DownloadObjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadObjectResponse.ProtoReflect.Descriptor instead.
 func (*DownloadObjectResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DownloadObjectResponse) GetContents() []byte {
@@ -264,7 +264,7 @@ type UploadObjectRequest struct {
 
 func (x *UploadObjectRequest) Reset() {
 	*x = UploadObjectRequest{}
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -276,7 +276,7 @@ func (x *UploadObjectRequest) String() string {
 func (*UploadObjectRequest) ProtoMessage() {}
 
 func (x *UploadObjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -289,7 +289,7 @@ func (x *UploadObjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadObjectRequest.ProtoReflect.Descriptor instead.
 func (*UploadObjectRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{4}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UploadObjectRequest) GetNamespace() *Namespace {
@@ -340,7 +340,7 @@ type UploadObjectResponse struct {
 
 func (x *UploadObjectResponse) Reset() {
 	*x = UploadObjectResponse{}
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -352,7 +352,7 @@ func (x *UploadObjectResponse) String() string {
 func (*UploadObjectResponse) ProtoMessage() {}
 
 func (x *UploadObjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -365,7 +365,7 @@ func (x *UploadObjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadObjectResponse.ProtoReflect.Descriptor instead.
 func (*UploadObjectResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{5}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *UploadObjectResponse) GetType() isUploadObjectResponse_Type {
@@ -419,7 +419,7 @@ type Limit struct {
 
 func (x *Limit) Reset() {
 	*x = Limit{}
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -431,7 +431,7 @@ func (x *Limit) String() string {
 func (*Limit) ProtoMessage() {}
 
 func (x *Limit) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -444,7 +444,7 @@ func (x *Limit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Limit.ProtoReflect.Descriptor instead.
 func (*Limit) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{6}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Limit) GetCount() uint32 {
@@ -470,7 +470,7 @@ type UploadObjectResponse_Complete struct {
 
 func (x *UploadObjectResponse_Complete) Reset() {
 	*x = UploadObjectResponse_Complete{}
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -482,7 +482,7 @@ func (x *UploadObjectResponse_Complete) String() string {
 func (*UploadObjectResponse_Complete) ProtoMessage() {}
 
 func (x *UploadObjectResponse_Complete) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -495,7 +495,7 @@ func (x *UploadObjectResponse_Complete) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadObjectResponse_Complete.ProtoReflect.Descriptor instead.
 func (*UploadObjectResponse_Complete) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{5, 0}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{5, 0}
 }
 
 func (x *UploadObjectResponse_Complete) GetLease() []byte {
@@ -515,7 +515,7 @@ type UploadObjectResponse_Incomplete struct {
 
 func (x *UploadObjectResponse_Incomplete) Reset() {
 	*x = UploadObjectResponse_Incomplete{}
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -527,7 +527,7 @@ func (x *UploadObjectResponse_Incomplete) String() string {
 func (*UploadObjectResponse_Incomplete) ProtoMessage() {}
 
 func (x *UploadObjectResponse_Incomplete) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_object_object_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -540,7 +540,7 @@ func (x *UploadObjectResponse_Incomplete) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadObjectResponse_Incomplete.ProtoReflect.Descriptor instead.
 func (*UploadObjectResponse_Incomplete) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{5, 1}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{5, 1}
 }
 
 func (x *UploadObjectResponse_Incomplete) GetContents() []byte {
@@ -557,11 +557,11 @@ func (x *UploadObjectResponse_Incomplete) GetWantOutgoingReferencesLeases() []ui
 	return nil
 }
 
-var File_pkg_proto_storage_object_object_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_storage_object_object_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_storage_object_object_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc = "" +
 	"\n" +
-	"%pkg/proto/storage/object/object.proto\x12\x16bonanza.storage.object\"6\n" +
+	"3bonanza.build/pkg/proto/storage/object/object.proto\x12\x16bonanza.storage.object\"6\n" +
 	"\x0fReferenceFormat\"#\n" +
 	"\x05Value\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\r\n" +
@@ -603,20 +603,20 @@ const file_pkg_proto_storage_object_object_proto_rawDesc = "" +
 	"\fUploadObject\x12+.bonanza.storage.object.UploadObjectRequest\x1a,.bonanza.storage.object.UploadObjectResponseB(Z&bonanza.build/pkg/proto/storage/objectb\x06proto3"
 
 var (
-	file_pkg_proto_storage_object_object_proto_rawDescOnce sync.Once
-	file_pkg_proto_storage_object_object_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescData []byte
 )
 
-func file_pkg_proto_storage_object_object_proto_rawDescGZIP() []byte {
-	file_pkg_proto_storage_object_object_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_storage_object_object_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_storage_object_object_proto_rawDesc), len(file_pkg_proto_storage_object_object_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc)))
 	})
-	return file_pkg_proto_storage_object_object_proto_rawDescData
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescData
 }
 
-var file_pkg_proto_storage_object_object_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_pkg_proto_storage_object_object_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_pkg_proto_storage_object_object_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_storage_object_object_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_bonanza_build_pkg_proto_storage_object_object_proto_goTypes = []any{
 	(ReferenceFormat_Value)(0),              // 0: bonanza.storage.object.ReferenceFormat.Value
 	(*ReferenceFormat)(nil),                 // 1: bonanza.storage.object.ReferenceFormat
 	(*Namespace)(nil),                       // 2: bonanza.storage.object.Namespace
@@ -628,7 +628,7 @@ var file_pkg_proto_storage_object_object_proto_goTypes = []any{
 	(*UploadObjectResponse_Complete)(nil),   // 8: bonanza.storage.object.UploadObjectResponse.Complete
 	(*UploadObjectResponse_Incomplete)(nil), // 9: bonanza.storage.object.UploadObjectResponse.Incomplete
 }
-var file_pkg_proto_storage_object_object_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_storage_object_object_proto_depIdxs = []int32{
 	0, // 0: bonanza.storage.object.Namespace.reference_format:type_name -> bonanza.storage.object.ReferenceFormat.Value
 	2, // 1: bonanza.storage.object.DownloadObjectRequest.namespace:type_name -> bonanza.storage.object.Namespace
 	2, // 2: bonanza.storage.object.UploadObjectRequest.namespace:type_name -> bonanza.storage.object.Namespace
@@ -645,12 +645,12 @@ var file_pkg_proto_storage_object_object_proto_depIdxs = []int32{
 	0, // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_storage_object_object_proto_init() }
-func file_pkg_proto_storage_object_object_proto_init() {
-	if File_pkg_proto_storage_object_object_proto != nil {
+func init() { file_bonanza_build_pkg_proto_storage_object_object_proto_init() }
+func file_bonanza_build_pkg_proto_storage_object_object_proto_init() {
+	if File_bonanza_build_pkg_proto_storage_object_object_proto != nil {
 		return
 	}
-	file_pkg_proto_storage_object_object_proto_msgTypes[5].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[5].OneofWrappers = []any{
 		(*UploadObjectResponse_Complete_)(nil),
 		(*UploadObjectResponse_Incomplete_)(nil),
 	}
@@ -658,18 +658,18 @@ func file_pkg_proto_storage_object_object_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_storage_object_object_proto_rawDesc), len(file_pkg_proto_storage_object_object_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
-		GoTypes:           file_pkg_proto_storage_object_object_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_storage_object_object_proto_depIdxs,
-		EnumInfos:         file_pkg_proto_storage_object_object_proto_enumTypes,
-		MessageInfos:      file_pkg_proto_storage_object_object_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_storage_object_object_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_storage_object_object_proto_depIdxs,
+		EnumInfos:         file_bonanza_build_pkg_proto_storage_object_object_proto_enumTypes,
+		MessageInfos:      file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_storage_object_object_proto = out.File
-	file_pkg_proto_storage_object_object_proto_goTypes = nil
-	file_pkg_proto_storage_object_object_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_storage_object_object_proto = out.File
+	file_bonanza_build_pkg_proto_storage_object_object_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_storage_object_object_proto_depIdxs = nil
 }

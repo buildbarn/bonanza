@@ -5,13 +5,14 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 proto_library(
     name = "bonanza_browser_proto",
     srcs = ["bonanza_browser.proto"],
+    import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/configuration/model/parser:bonanza_configuration_model_parser_proto",
         "//pkg/proto/configuration/storage/object/local:local_proto",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/global:global_proto",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/grpc:grpc_proto",
-        "@com_github_buildbarn_bb_storage//pkg/proto/configuration/http:http_proto",
+        "@com_github_buildbarn_bb_storage//pkg/proto/configuration/http/server:server_proto",
     ],
 )
 
@@ -25,7 +26,7 @@ go_proto_library(
         "//pkg/proto/configuration/storage/object/local",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/global",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/grpc",
-        "@com_github_buildbarn_bb_storage//pkg/proto/configuration/http",
+        "@com_github_buildbarn_bb_storage//pkg/proto/configuration/http/server",
     ],
 )
 

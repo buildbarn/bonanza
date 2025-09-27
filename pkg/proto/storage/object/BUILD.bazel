@@ -5,6 +5,7 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 proto_library(
     name = "object_proto",
     srcs = ["object.proto"],
+    import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
 )
 

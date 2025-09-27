@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/configuration/mount_directory/mount_directory.proto
+// source: bonanza.build/pkg/proto/configuration/mount_directory/mount_directory.proto
 
 package mount_directory
 
@@ -45,7 +45,7 @@ type ApplicationConfiguration struct {
 
 func (x *ApplicationConfiguration) Reset() {
 	*x = ApplicationConfiguration{}
-	mi := &file_pkg_proto_configuration_mount_directory_mount_directory_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -57,7 +57,7 @@ func (x *ApplicationConfiguration) String() string {
 func (*ApplicationConfiguration) ProtoMessage() {}
 
 func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_mount_directory_mount_directory_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -70,7 +70,7 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
 func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
@@ -136,11 +136,11 @@ func (x *ApplicationConfiguration) GetConcatenatedFileEncoders() []*encoding.Bin
 	return nil
 }
 
-var File_pkg_proto_configuration_mount_directory_mount_directory_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc = "" +
 	"\n" +
-	"=pkg/proto/configuration/mount_directory/mount_directory.proto\x12%bonanza.configuration.mount_directory\x1a8pkg/proto/configuration/filesystem/virtual/virtual.proto\x1a+pkg/proto/configuration/global/global.proto\x1a'pkg/proto/configuration/grpc/grpc.proto\x1a1pkg/proto/configuration/model/parser/parser.proto\x1a\x1fpkg/proto/model/core/core.proto\x1a'pkg/proto/model/encoding/encoding.proto\x1a%pkg/proto/storage/object/object.proto\"\xdb\x06\n" +
+	"Kbonanza.build/pkg/proto/configuration/mount_directory/mount_directory.proto\x12%bonanza.configuration.mount_directory\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1aagithub.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/virtual/virtual.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\"\xdb\x06\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12T\n" +
 	"\x05mount\x18\x02 \x01(\v2>.buildbarn.configuration.filesystem.virtual.MountConfigurationR\x05mount\x12b\n" +
@@ -154,19 +154,19 @@ const file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc
 	"\x1aconcatenated_file_encoders\x18\t \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x18concatenatedFileEncodersB7Z5bonanza.build/pkg/proto/configuration/mount_directoryb\x06proto3"
 
 var (
-	file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescOnce sync.Once
-	file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescData []byte
 )
 
-func file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescGZIP() []byte {
-	file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc), len(file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc)))
 	})
-	return file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescData
+	return file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescData
 }
 
-var file_pkg_proto_configuration_mount_directory_mount_directory_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_pkg_proto_configuration_mount_directory_mount_directory_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_goTypes = []any{
 	(*ApplicationConfiguration)(nil),    // 0: bonanza.configuration.mount_directory.ApplicationConfiguration
 	(*global.Configuration)(nil),        // 1: buildbarn.configuration.global.Configuration
 	(*virtual.MountConfiguration)(nil),  // 2: buildbarn.configuration.filesystem.virtual.MountConfiguration
@@ -176,7 +176,7 @@ var file_pkg_proto_configuration_mount_directory_mount_directory_proto_goTypes =
 	(*core.WeakDecodableReference)(nil), // 6: bonanza.model.core.WeakDecodableReference
 	(*encoding.BinaryEncoder)(nil),      // 7: bonanza.model.encoding.BinaryEncoder
 }
-var file_pkg_proto_configuration_mount_directory_mount_directory_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_depIdxs = []int32{
 	1, // 0: bonanza.configuration.mount_directory.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
 	2, // 1: bonanza.configuration.mount_directory.ApplicationConfiguration.mount:type_name -> buildbarn.configuration.filesystem.virtual.MountConfiguration
 	3, // 2: bonanza.configuration.mount_directory.ApplicationConfiguration.parsed_object_pool:type_name -> bonanza.configuration.model.parser.ParsedObjectPool
@@ -193,26 +193,26 @@ var file_pkg_proto_configuration_mount_directory_mount_directory_proto_depIdxs =
 	0, // [0:9] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_configuration_mount_directory_mount_directory_proto_init() }
-func file_pkg_proto_configuration_mount_directory_mount_directory_proto_init() {
-	if File_pkg_proto_configuration_mount_directory_mount_directory_proto != nil {
+func init() { file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_init() }
+func file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_init() {
+	if File_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc), len(file_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_configuration_mount_directory_mount_directory_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_configuration_mount_directory_mount_directory_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_configuration_mount_directory_mount_directory_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_configuration_mount_directory_mount_directory_proto = out.File
-	file_pkg_proto_configuration_mount_directory_mount_directory_proto_goTypes = nil
-	file_pkg_proto_configuration_mount_directory_mount_directory_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto = out.File
+	file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_depIdxs = nil
 }

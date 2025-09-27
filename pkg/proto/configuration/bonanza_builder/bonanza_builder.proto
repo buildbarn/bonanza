@@ -2,12 +2,12 @@ syntax = "proto3";
 
 package bonanza.configuration.bonanza_builder;
 
-import "pkg/proto/configuration/filesystem/filesystem.proto";
-import "pkg/proto/configuration/global/global.proto";
-import "pkg/proto/configuration/grpc/grpc.proto";
-import "pkg/proto/configuration/model/parser/parser.proto";
-import "pkg/proto/configuration/storage/object/local/local.proto";
-import "pkg/proto/configuration/x509/x509.proto";
+import "bonanza.build/pkg/proto/configuration/model/parser/parser.proto";
+import "bonanza.build/pkg/proto/configuration/storage/object/local/local.proto";
+import "github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto";
 
 option go_package = "bonanza.build/pkg/proto/configuration/bonanza_builder";
 

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/model/encoding/encoding.proto
+// source: bonanza.build/pkg/proto/model/encoding/encoding.proto
 
 package encoding
 
@@ -31,7 +31,7 @@ type DeterministicEncryptingBinaryEncoder struct {
 
 func (x *DeterministicEncryptingBinaryEncoder) Reset() {
 	*x = DeterministicEncryptingBinaryEncoder{}
-	mi := &file_pkg_proto_model_encoding_encoding_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *DeterministicEncryptingBinaryEncoder) String() string {
 func (*DeterministicEncryptingBinaryEncoder) ProtoMessage() {}
 
 func (x *DeterministicEncryptingBinaryEncoder) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_encoding_encoding_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *DeterministicEncryptingBinaryEncoder) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use DeterministicEncryptingBinaryEncoder.ProtoReflect.Descriptor instead.
 func (*DeterministicEncryptingBinaryEncoder) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_encoding_encoding_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *DeterministicEncryptingBinaryEncoder) GetEncryptionKey() []byte {
@@ -79,7 +79,7 @@ type BinaryEncoder struct {
 
 func (x *BinaryEncoder) Reset() {
 	*x = BinaryEncoder{}
-	mi := &file_pkg_proto_model_encoding_encoding_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -91,7 +91,7 @@ func (x *BinaryEncoder) String() string {
 func (*BinaryEncoder) ProtoMessage() {}
 
 func (x *BinaryEncoder) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_encoding_encoding_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -104,7 +104,7 @@ func (x *BinaryEncoder) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BinaryEncoder.ProtoReflect.Descriptor instead.
 func (*BinaryEncoder) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_encoding_encoding_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *BinaryEncoder) GetEncoder() isBinaryEncoder_Encoder {
@@ -157,7 +157,7 @@ type BinaryEncoderList struct {
 
 func (x *BinaryEncoderList) Reset() {
 	*x = BinaryEncoderList{}
-	mi := &file_pkg_proto_model_encoding_encoding_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -169,7 +169,7 @@ func (x *BinaryEncoderList) String() string {
 func (*BinaryEncoderList) ProtoMessage() {}
 
 func (x *BinaryEncoderList) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_encoding_encoding_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -182,7 +182,7 @@ func (x *BinaryEncoderList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BinaryEncoderList.ProtoReflect.Descriptor instead.
 func (*BinaryEncoderList) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_encoding_encoding_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *BinaryEncoderList) GetEncoders() []*BinaryEncoder {
@@ -192,11 +192,11 @@ func (x *BinaryEncoderList) GetEncoders() []*BinaryEncoder {
 	return nil
 }
 
-var File_pkg_proto_model_encoding_encoding_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_model_encoding_encoding_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_model_encoding_encoding_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDesc = "" +
 	"\n" +
-	"'pkg/proto/model/encoding/encoding.proto\x12\x16bonanza.model.encoding\x1a\x1bgoogle/protobuf/empty.proto\"M\n" +
+	"5bonanza.build/pkg/proto/model/encoding/encoding.proto\x12\x16bonanza.model.encoding\x1a\x1bgoogle/protobuf/empty.proto\"M\n" +
 	"$DeterministicEncryptingBinaryEncoder\x12%\n" +
 	"\x0eencryption_key\x18\x01 \x01(\fR\rencryptionKey\"\xd8\x01\n" +
 	"\rBinaryEncoder\x12A\n" +
@@ -207,25 +207,25 @@ const file_pkg_proto_model_encoding_encoding_proto_rawDesc = "" +
 	"\bencoders\x18\x01 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\bencodersB(Z&bonanza.build/pkg/proto/model/encodingb\x06proto3"
 
 var (
-	file_pkg_proto_model_encoding_encoding_proto_rawDescOnce sync.Once
-	file_pkg_proto_model_encoding_encoding_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescData []byte
 )
 
-func file_pkg_proto_model_encoding_encoding_proto_rawDescGZIP() []byte {
-	file_pkg_proto_model_encoding_encoding_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_model_encoding_encoding_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_model_encoding_encoding_proto_rawDesc), len(file_pkg_proto_model_encoding_encoding_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDesc)))
 	})
-	return file_pkg_proto_model_encoding_encoding_proto_rawDescData
+	return file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescData
 }
 
-var file_pkg_proto_model_encoding_encoding_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_pkg_proto_model_encoding_encoding_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_bonanza_build_pkg_proto_model_encoding_encoding_proto_goTypes = []any{
 	(*DeterministicEncryptingBinaryEncoder)(nil), // 0: bonanza.model.encoding.DeterministicEncryptingBinaryEncoder
 	(*BinaryEncoder)(nil),                        // 1: bonanza.model.encoding.BinaryEncoder
 	(*BinaryEncoderList)(nil),                    // 2: bonanza.model.encoding.BinaryEncoderList
 	(*emptypb.Empty)(nil),                        // 3: google.protobuf.Empty
 }
-var file_pkg_proto_model_encoding_encoding_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_model_encoding_encoding_proto_depIdxs = []int32{
 	3, // 0: bonanza.model.encoding.BinaryEncoder.lzw_compressing:type_name -> google.protobuf.Empty
 	0, // 1: bonanza.model.encoding.BinaryEncoder.deterministic_encrypting:type_name -> bonanza.model.encoding.DeterministicEncryptingBinaryEncoder
 	1, // 2: bonanza.model.encoding.BinaryEncoderList.encoders:type_name -> bonanza.model.encoding.BinaryEncoder
@@ -236,12 +236,12 @@ var file_pkg_proto_model_encoding_encoding_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_model_encoding_encoding_proto_init() }
-func file_pkg_proto_model_encoding_encoding_proto_init() {
-	if File_pkg_proto_model_encoding_encoding_proto != nil {
+func init() { file_bonanza_build_pkg_proto_model_encoding_encoding_proto_init() }
+func file_bonanza_build_pkg_proto_model_encoding_encoding_proto_init() {
+	if File_bonanza_build_pkg_proto_model_encoding_encoding_proto != nil {
 		return
 	}
-	file_pkg_proto_model_encoding_encoding_proto_msgTypes[1].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[1].OneofWrappers = []any{
 		(*BinaryEncoder_LzwCompressing)(nil),
 		(*BinaryEncoder_DeterministicEncrypting)(nil),
 	}
@@ -249,17 +249,17 @@ func file_pkg_proto_model_encoding_encoding_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_model_encoding_encoding_proto_rawDesc), len(file_pkg_proto_model_encoding_encoding_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_model_encoding_encoding_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_model_encoding_encoding_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_model_encoding_encoding_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_model_encoding_encoding_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_model_encoding_encoding_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_model_encoding_encoding_proto = out.File
-	file_pkg_proto_model_encoding_encoding_proto_goTypes = nil
-	file_pkg_proto_model_encoding_encoding_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_model_encoding_encoding_proto = out.File
+	file_bonanza_build_pkg_proto_model_encoding_encoding_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_model_encoding_encoding_proto_depIdxs = nil
 }

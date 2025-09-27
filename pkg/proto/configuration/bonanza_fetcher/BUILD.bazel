@@ -5,6 +5,7 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 proto_library(
     name = "bonanza_fetcher_proto",
     srcs = ["bonanza_fetcher.proto"],
+    import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/configuration/model/parser:bonanza_configuration_model_parser_proto",
@@ -12,7 +13,7 @@ proto_library(
         "@com_github_buildbarn_bb_remote_execution//pkg/proto/configuration/filesystem:filesystem_proto",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/global:global_proto",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/grpc:grpc_proto",
-        "@com_github_buildbarn_bb_storage//pkg/proto/configuration/http:http_proto",
+        "@com_github_buildbarn_bb_storage//pkg/proto/configuration/http/client:client_proto",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/x509:x509_proto",
     ],
 )
@@ -28,7 +29,7 @@ go_proto_library(
         "@com_github_buildbarn_bb_remote_execution//pkg/proto/configuration/filesystem",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/global",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/grpc",
-        "@com_github_buildbarn_bb_storage//pkg/proto/configuration/http",
+        "@com_github_buildbarn_bb_storage//pkg/proto/configuration/http/client",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/x509",
     ],
 )

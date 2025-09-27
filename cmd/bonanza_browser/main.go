@@ -14,7 +14,7 @@ import (
 	object_readcaching "bonanza.build/pkg/storage/object/readcaching"
 
 	"github.com/buildbarn/bb-storage/pkg/global"
-	bb_http "github.com/buildbarn/bb-storage/pkg/http"
+	http_server "github.com/buildbarn/bb-storage/pkg/http/server"
 	"github.com/buildbarn/bb-storage/pkg/program"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
@@ -81,9 +81,9 @@ func main() {
 			parsedObjectPool,
 		)
 		browserService.RegisterHandlers(mux)
-		bb_http.NewServersFromConfigurationAndServe(
+		http_server.NewServersFromConfigurationAndServe(
 			configuration.HttpServers,
-			bb_http.NewMetricsHandler(mux, "BrowserUI"),
+			http_server.NewMetricsHandler(mux, "BrowserUI"),
 			siblingsGroup,
 			grpcClientFactory,
 		)

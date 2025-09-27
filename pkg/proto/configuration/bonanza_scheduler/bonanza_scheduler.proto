@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package bonanza.configuration.bonanza_scheduler;
 
+import "bonanza.build/pkg/proto/configuration/scheduler/scheduler.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
 import "google/protobuf/duration.proto";
-import "pkg/proto/configuration/global/global.proto";
-import "pkg/proto/configuration/grpc/grpc.proto";
-import "pkg/proto/configuration/scheduler/scheduler.proto";
 
 option go_package = "bonanza.build/pkg/proto/configuration/bonanza_scheduler";
 

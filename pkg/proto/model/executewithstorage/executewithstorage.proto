@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package bonanza.model.executewithstorage;
 
-import "pkg/proto/model/core/core.proto";
-import "pkg/proto/model/encoding/encoding.proto";
-import "pkg/proto/storage/object/object.proto";
+import "bonanza.build/pkg/proto/model/core/core.proto";
+import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
+import "bonanza.build/pkg/proto/storage/object/object.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/executewithstorage";
 

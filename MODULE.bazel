@@ -26,13 +26,13 @@ git_override(
 
 git_override(
     module_name = "com_github_buildbarn_bb_remote_execution",
-    commit = "410ea5cf12ac778e3774f2c84af938bf98f47c57",
+    commit = "ae26acb2ea1a9cb325c7358101840ba242b98007",
     remote = "https://github.com/buildbarn/bb-remote-execution.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_bb_storage",
-    commit = "28933ca0f282bbf81f8363c864377a1a969e2f2b",
+    commit = "7d1ca2fb9d2c4c282e256709672cdd9c40e4790d",
     patches = ["//:patches/com_github_buildbarn_bb_storage/no-golint.diff"],
     remote = "https://github.com/buildbarn/bb-storage.git",
 )

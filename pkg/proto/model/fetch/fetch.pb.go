@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/model/fetch/fetch.proto
+// source: bonanza.build/pkg/proto/model/fetch/fetch.proto
 
 package fetch
 
@@ -56,11 +56,11 @@ func (x SubresourceIntegrity_HashAlgorithm) String() string {
 }
 
 func (SubresourceIntegrity_HashAlgorithm) Descriptor() protoreflect.EnumDescriptor {
-	return file_pkg_proto_model_fetch_fetch_proto_enumTypes[0].Descriptor()
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_enumTypes[0].Descriptor()
 }
 
 func (SubresourceIntegrity_HashAlgorithm) Type() protoreflect.EnumType {
-	return &file_pkg_proto_model_fetch_fetch_proto_enumTypes[0]
+	return &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_enumTypes[0]
 }
 
 func (x SubresourceIntegrity_HashAlgorithm) Number() protoreflect.EnumNumber {
@@ -69,7 +69,7 @@ func (x SubresourceIntegrity_HashAlgorithm) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SubresourceIntegrity_HashAlgorithm.Descriptor instead.
 func (SubresourceIntegrity_HashAlgorithm) EnumDescriptor() ([]byte, []int) {
-	return file_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{0, 0}
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{0, 0}
 }
 
 type SubresourceIntegrity struct {
@@ -82,7 +82,7 @@ type SubresourceIntegrity struct {
 
 func (x *SubresourceIntegrity) Reset() {
 	*x = SubresourceIntegrity{}
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -94,7 +94,7 @@ func (x *SubresourceIntegrity) String() string {
 func (*SubresourceIntegrity) ProtoMessage() {}
 
 func (x *SubresourceIntegrity) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -107,7 +107,7 @@ func (x *SubresourceIntegrity) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubresourceIntegrity.ProtoReflect.Descriptor instead.
 func (*SubresourceIntegrity) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SubresourceIntegrity) GetHashAlgorithm() SubresourceIntegrity_HashAlgorithm {
@@ -135,7 +135,7 @@ type Target struct {
 
 func (x *Target) Reset() {
 	*x = Target{}
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -147,7 +147,7 @@ func (x *Target) String() string {
 func (*Target) ProtoMessage() {}
 
 func (x *Target) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -160,7 +160,7 @@ func (x *Target) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Target.ProtoReflect.Descriptor instead.
 func (*Target) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Target) GetUrls() []string {
@@ -194,7 +194,7 @@ type Action struct {
 
 func (x *Action) Reset() {
 	*x = Action{}
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -206,7 +206,7 @@ func (x *Action) String() string {
 func (*Action) ProtoMessage() {}
 
 func (x *Action) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -219,7 +219,7 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Action.ProtoReflect.Descriptor instead.
 func (*Action) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Action) GetFileCreationParameters() *filesystem.FileCreationParameters {
@@ -249,7 +249,7 @@ type Result struct {
 
 func (x *Result) Reset() {
 	*x = Result{}
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -261,7 +261,7 @@ func (x *Result) String() string {
 func (*Result) ProtoMessage() {}
 
 func (x *Result) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -274,7 +274,7 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result.ProtoReflect.Descriptor instead.
 func (*Result) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Result) GetOutcome() isResult_Outcome {
@@ -328,7 +328,7 @@ type Target_Header struct {
 
 func (x *Target_Header) Reset() {
 	*x = Target_Header{}
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -340,7 +340,7 @@ func (x *Target_Header) String() string {
 func (*Target_Header) ProtoMessage() {}
 
 func (x *Target_Header) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -353,7 +353,7 @@ func (x *Target_Header) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Target_Header.ProtoReflect.Descriptor instead.
 func (*Target_Header) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{1, 0}
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{1, 0}
 }
 
 func (x *Target_Header) GetName() string {
@@ -380,7 +380,7 @@ type Result_Success struct {
 
 func (x *Result_Success) Reset() {
 	*x = Result_Success{}
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -392,7 +392,7 @@ func (x *Result_Success) String() string {
 func (*Result_Success) ProtoMessage() {}
 
 func (x *Result_Success) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_model_fetch_fetch_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -405,7 +405,7 @@ func (x *Result_Success) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result_Success.ProtoReflect.Descriptor instead.
 func (*Result_Success) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{3, 0}
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{3, 0}
 }
 
 func (x *Result_Success) GetContents() *filesystem.FileContents {
@@ -422,11 +422,11 @@ func (x *Result_Success) GetSha256() []byte {
 	return nil
 }
 
-var File_pkg_proto_model_fetch_fetch_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_model_fetch_fetch_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_model_fetch_fetch_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc = "" +
 	"\n" +
-	"!pkg/proto/model/fetch/fetch.proto\x12\x13bonanza.model.fetch\x1a\x17google/rpc/status.proto\x1a+pkg/proto/model/filesystem/filesystem.proto\"\xbf\x01\n" +
+	"/bonanza.build/pkg/proto/model/fetch/fetch.proto\x12\x13bonanza.model.fetch\x1a9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x1a\x17google/rpc/status.proto\"\xbf\x01\n" +
 	"\x14SubresourceIntegrity\x12^\n" +
 	"\x0ehash_algorithm\x18\x01 \x01(\x0e27.bonanza.model.fetch.SubresourceIntegrity.HashAlgorithmR\rhashAlgorithm\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\fR\x04hash\"3\n" +
@@ -456,20 +456,20 @@ const file_pkg_proto_model_fetch_fetch_proto_rawDesc = "" +
 	"\aoutcomeB%Z#bonanza.build/pkg/proto/model/fetchb\x06proto3"
 
 var (
-	file_pkg_proto_model_fetch_fetch_proto_rawDescOnce sync.Once
-	file_pkg_proto_model_fetch_fetch_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescData []byte
 )
 
-func file_pkg_proto_model_fetch_fetch_proto_rawDescGZIP() []byte {
-	file_pkg_proto_model_fetch_fetch_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_model_fetch_fetch_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_model_fetch_fetch_proto_rawDesc), len(file_pkg_proto_model_fetch_fetch_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc)))
 	})
-	return file_pkg_proto_model_fetch_fetch_proto_rawDescData
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescData
 }
 
-var file_pkg_proto_model_fetch_fetch_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_pkg_proto_model_fetch_fetch_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_pkg_proto_model_fetch_fetch_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_goTypes = []any{
 	(SubresourceIntegrity_HashAlgorithm)(0),   // 0: bonanza.model.fetch.SubresourceIntegrity.HashAlgorithm
 	(*SubresourceIntegrity)(nil),              // 1: bonanza.model.fetch.SubresourceIntegrity
 	(*Target)(nil),                            // 2: bonanza.model.fetch.Target
@@ -481,7 +481,7 @@ var file_pkg_proto_model_fetch_fetch_proto_goTypes = []any{
 	(*status.Status)(nil),                     // 8: google.rpc.Status
 	(*filesystem.FileContents)(nil),           // 9: bonanza.model.filesystem.FileContents
 }
-var file_pkg_proto_model_fetch_fetch_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_depIdxs = []int32{
 	0, // 0: bonanza.model.fetch.SubresourceIntegrity.hash_algorithm:type_name -> bonanza.model.fetch.SubresourceIntegrity.HashAlgorithm
 	1, // 1: bonanza.model.fetch.Target.integrity:type_name -> bonanza.model.fetch.SubresourceIntegrity
 	5, // 2: bonanza.model.fetch.Target.headers:type_name -> bonanza.model.fetch.Target.Header
@@ -497,12 +497,12 @@ var file_pkg_proto_model_fetch_fetch_proto_depIdxs = []int32{
 	0, // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_model_fetch_fetch_proto_init() }
-func file_pkg_proto_model_fetch_fetch_proto_init() {
-	if File_pkg_proto_model_fetch_fetch_proto != nil {
+func init() { file_bonanza_build_pkg_proto_model_fetch_fetch_proto_init() }
+func file_bonanza_build_pkg_proto_model_fetch_fetch_proto_init() {
+	if File_bonanza_build_pkg_proto_model_fetch_fetch_proto != nil {
 		return
 	}
-	file_pkg_proto_model_fetch_fetch_proto_msgTypes[3].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[3].OneofWrappers = []any{
 		(*Result_Failure)(nil),
 		(*Result_Success_)(nil),
 	}
@@ -510,18 +510,18 @@ func file_pkg_proto_model_fetch_fetch_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_model_fetch_fetch_proto_rawDesc), len(file_pkg_proto_model_fetch_fetch_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_model_fetch_fetch_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_model_fetch_fetch_proto_depIdxs,
-		EnumInfos:         file_pkg_proto_model_fetch_fetch_proto_enumTypes,
-		MessageInfos:      file_pkg_proto_model_fetch_fetch_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_model_fetch_fetch_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_model_fetch_fetch_proto_depIdxs,
+		EnumInfos:         file_bonanza_build_pkg_proto_model_fetch_fetch_proto_enumTypes,
+		MessageInfos:      file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_model_fetch_fetch_proto = out.File
-	file_pkg_proto_model_fetch_fetch_proto_goTypes = nil
-	file_pkg_proto_model_fetch_fetch_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_model_fetch_fetch_proto = out.File
+	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_depIdxs = nil
 }

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/remoteexecution/remoteexecution.proto
+// source: bonanza.build/pkg/proto/remoteexecution/remoteexecution.proto
 
 package remoteexecution
 
@@ -32,7 +32,7 @@ type ExecuteRequest struct {
 
 func (x *ExecuteRequest) Reset() {
 	*x = ExecuteRequest{}
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *ExecuteRequest) String() string {
 func (*ExecuteRequest) ProtoMessage() {}
 
 func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +57,7 @@ func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteRequest.ProtoReflect.Descriptor instead.
 func (*ExecuteRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ExecuteRequest) GetAction() *encryptedaction.Action {
@@ -83,7 +83,7 @@ type WaitExecutionRequest struct {
 
 func (x *WaitExecutionRequest) Reset() {
 	*x = WaitExecutionRequest{}
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -95,7 +95,7 @@ func (x *WaitExecutionRequest) String() string {
 func (*WaitExecutionRequest) ProtoMessage() {}
 
 func (x *WaitExecutionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -108,7 +108,7 @@ func (x *WaitExecutionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WaitExecutionRequest.ProtoReflect.Descriptor instead.
 func (*WaitExecutionRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *WaitExecutionRequest) GetName() string {
@@ -133,7 +133,7 @@ type ExecuteResponse struct {
 
 func (x *ExecuteResponse) Reset() {
 	*x = ExecuteResponse{}
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -145,7 +145,7 @@ func (x *ExecuteResponse) String() string {
 func (*ExecuteResponse) ProtoMessage() {}
 
 func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -158,7 +158,7 @@ func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteResponse.ProtoReflect.Descriptor instead.
 func (*ExecuteResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ExecuteResponse) GetName() string {
@@ -232,7 +232,7 @@ type ExecuteResponse_Queued struct {
 
 func (x *ExecuteResponse_Queued) Reset() {
 	*x = ExecuteResponse_Queued{}
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -244,7 +244,7 @@ func (x *ExecuteResponse_Queued) String() string {
 func (*ExecuteResponse_Queued) ProtoMessage() {}
 
 func (x *ExecuteResponse_Queued) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -257,7 +257,7 @@ func (x *ExecuteResponse_Queued) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteResponse_Queued.ProtoReflect.Descriptor instead.
 func (*ExecuteResponse_Queued) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2, 0}
+	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2, 0}
 }
 
 type ExecuteResponse_Executing struct {
@@ -269,7 +269,7 @@ type ExecuteResponse_Executing struct {
 
 func (x *ExecuteResponse_Executing) Reset() {
 	*x = ExecuteResponse_Executing{}
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -281,7 +281,7 @@ func (x *ExecuteResponse_Executing) String() string {
 func (*ExecuteResponse_Executing) ProtoMessage() {}
 
 func (x *ExecuteResponse_Executing) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -294,7 +294,7 @@ func (x *ExecuteResponse_Executing) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteResponse_Executing.ProtoReflect.Descriptor instead.
 func (*ExecuteResponse_Executing) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2, 1}
+	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2, 1}
 }
 
 func (x *ExecuteResponse_Executing) GetLastEvent() *encryptedaction.Event {
@@ -313,7 +313,7 @@ type ExecuteResponse_Completed struct {
 
 func (x *ExecuteResponse_Completed) Reset() {
 	*x = ExecuteResponse_Completed{}
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -325,7 +325,7 @@ func (x *ExecuteResponse_Completed) String() string {
 func (*ExecuteResponse_Completed) ProtoMessage() {}
 
 func (x *ExecuteResponse_Completed) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -338,7 +338,7 @@ func (x *ExecuteResponse_Completed) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteResponse_Completed.ProtoReflect.Descriptor instead.
 func (*ExecuteResponse_Completed) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2, 2}
+	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2, 2}
 }
 
 func (x *ExecuteResponse_Completed) GetCompletionEvent() *encryptedaction.Event {
@@ -348,11 +348,11 @@ func (x *ExecuteResponse_Completed) GetCompletionEvent() *encryptedaction.Event 
 	return nil
 }
 
-var File_pkg_proto_remoteexecution_remoteexecution_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc = "" +
 	"\n" +
-	"/pkg/proto/remoteexecution/remoteexecution.proto\x12\x17bonanza.remoteexecution\x1a/pkg/proto/encryptedaction/encryptedaction.proto\"e\n" +
+	"=bonanza.build/pkg/proto/remoteexecution/remoteexecution.proto\x12\x17bonanza.remoteexecution\x1a=bonanza.build/pkg/proto/encryptedaction/encryptedaction.proto\"e\n" +
 	"\x0eExecuteRequest\x127\n" +
 	"\x06action\x18\x01 \x01(\v2\x1f.bonanza.encryptedaction.ActionR\x06action\x12\x1a\n" +
 	"\bpriority\x18\x02 \x01(\x05R\bpriority\"*\n" +
@@ -375,19 +375,19 @@ const file_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc = "" +
 	"\rWaitExecution\x12-.bonanza.remoteexecution.WaitExecutionRequest\x1a(.bonanza.remoteexecution.ExecuteResponse0\x01B)Z'bonanza.build/pkg/proto/remoteexecutionb\x06proto3"
 
 var (
-	file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescOnce sync.Once
-	file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescData []byte
 )
 
-func file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP() []byte {
-	file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc), len(file_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc), len(file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc)))
 	})
-	return file_pkg_proto_remoteexecution_remoteexecution_proto_rawDescData
+	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescData
 }
 
-var file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_pkg_proto_remoteexecution_remoteexecution_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_goTypes = []any{
 	(*ExecuteRequest)(nil),            // 0: bonanza.remoteexecution.ExecuteRequest
 	(*WaitExecutionRequest)(nil),      // 1: bonanza.remoteexecution.WaitExecutionRequest
 	(*ExecuteResponse)(nil),           // 2: bonanza.remoteexecution.ExecuteResponse
@@ -397,7 +397,7 @@ var file_pkg_proto_remoteexecution_remoteexecution_proto_goTypes = []any{
 	(*encryptedaction.Action)(nil),    // 6: bonanza.encryptedaction.Action
 	(*encryptedaction.Event)(nil),     // 7: bonanza.encryptedaction.Event
 }
-var file_pkg_proto_remoteexecution_remoteexecution_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_depIdxs = []int32{
 	6, // 0: bonanza.remoteexecution.ExecuteRequest.action:type_name -> bonanza.encryptedaction.Action
 	3, // 1: bonanza.remoteexecution.ExecuteResponse.queued:type_name -> bonanza.remoteexecution.ExecuteResponse.Queued
 	4, // 2: bonanza.remoteexecution.ExecuteResponse.executing:type_name -> bonanza.remoteexecution.ExecuteResponse.Executing
@@ -415,12 +415,12 @@ var file_pkg_proto_remoteexecution_remoteexecution_proto_depIdxs = []int32{
 	0, // [0:6] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_remoteexecution_remoteexecution_proto_init() }
-func file_pkg_proto_remoteexecution_remoteexecution_proto_init() {
-	if File_pkg_proto_remoteexecution_remoteexecution_proto != nil {
+func init() { file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_init() }
+func file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_init() {
+	if File_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto != nil {
 		return
 	}
-	file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[2].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[2].OneofWrappers = []any{
 		(*ExecuteResponse_Queued_)(nil),
 		(*ExecuteResponse_Executing_)(nil),
 		(*ExecuteResponse_Completed_)(nil),
@@ -429,17 +429,17 @@ func file_pkg_proto_remoteexecution_remoteexecution_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc), len(file_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc), len(file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_pkg_proto_remoteexecution_remoteexecution_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_remoteexecution_remoteexecution_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_remoteexecution_remoteexecution_proto = out.File
-	file_pkg_proto_remoteexecution_remoteexecution_proto_goTypes = nil
-	file_pkg_proto_remoteexecution_remoteexecution_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto = out.File
+	file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_depIdxs = nil
 }

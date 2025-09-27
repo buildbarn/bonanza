@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/configuration/storage/object/local/local.proto
+// source: bonanza.build/pkg/proto/configuration/storage/object/local/local.proto
 
 package local
 
@@ -47,7 +47,7 @@ type StoreConfiguration struct {
 
 func (x *StoreConfiguration) Reset() {
 	*x = StoreConfiguration{}
-	mi := &file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -59,7 +59,7 @@ func (x *StoreConfiguration) String() string {
 func (*StoreConfiguration) ProtoMessage() {}
 
 func (x *StoreConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -72,7 +72,7 @@ func (x *StoreConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoreConfiguration.ProtoReflect.Descriptor instead.
 func (*StoreConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *StoreConfiguration) GetReferenceLocationMapBackend() isStoreConfiguration_ReferenceLocationMapBackend {
@@ -211,7 +211,7 @@ type StoreConfiguration_ReferenceLocationMapInMemory struct {
 
 func (x *StoreConfiguration_ReferenceLocationMapInMemory) Reset() {
 	*x = StoreConfiguration_ReferenceLocationMapInMemory{}
-	mi := &file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -223,7 +223,7 @@ func (x *StoreConfiguration_ReferenceLocationMapInMemory) String() string {
 func (*StoreConfiguration_ReferenceLocationMapInMemory) ProtoMessage() {}
 
 func (x *StoreConfiguration_ReferenceLocationMapInMemory) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -236,7 +236,7 @@ func (x *StoreConfiguration_ReferenceLocationMapInMemory) ProtoReflect() protore
 
 // Deprecated: Use StoreConfiguration_ReferenceLocationMapInMemory.ProtoReflect.Descriptor instead.
 func (*StoreConfiguration_ReferenceLocationMapInMemory) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0, 0}
+	return file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0, 0}
 }
 
 func (x *StoreConfiguration_ReferenceLocationMapInMemory) GetEntries() uint64 {
@@ -255,7 +255,7 @@ type StoreConfiguration_LocationBlobMapInMemory struct {
 
 func (x *StoreConfiguration_LocationBlobMapInMemory) Reset() {
 	*x = StoreConfiguration_LocationBlobMapInMemory{}
-	mi := &file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -267,7 +267,7 @@ func (x *StoreConfiguration_LocationBlobMapInMemory) String() string {
 func (*StoreConfiguration_LocationBlobMapInMemory) ProtoMessage() {}
 
 func (x *StoreConfiguration_LocationBlobMapInMemory) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +280,7 @@ func (x *StoreConfiguration_LocationBlobMapInMemory) ProtoReflect() protoreflect
 
 // Deprecated: Use StoreConfiguration_LocationBlobMapInMemory.ProtoReflect.Descriptor instead.
 func (*StoreConfiguration_LocationBlobMapInMemory) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0, 1}
+	return file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0, 1}
 }
 
 func (x *StoreConfiguration_LocationBlobMapInMemory) GetSizeBytes() uint64 {
@@ -300,7 +300,7 @@ type StoreConfiguration_Persistent struct {
 
 func (x *StoreConfiguration_Persistent) Reset() {
 	*x = StoreConfiguration_Persistent{}
-	mi := &file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -312,7 +312,7 @@ func (x *StoreConfiguration_Persistent) String() string {
 func (*StoreConfiguration_Persistent) ProtoMessage() {}
 
 func (x *StoreConfiguration_Persistent) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -325,7 +325,7 @@ func (x *StoreConfiguration_Persistent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoreConfiguration_Persistent.ProtoReflect.Descriptor instead.
 func (*StoreConfiguration_Persistent) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0, 2}
+	return file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0, 2}
 }
 
 func (x *StoreConfiguration_Persistent) GetStateDirectoryPath() string {
@@ -342,11 +342,11 @@ func (x *StoreConfiguration_Persistent) GetMinimumEpochInterval() *durationpb.Du
 	return nil
 }
 
-var File_pkg_proto_configuration_storage_object_local_local_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_configuration_storage_object_local_local_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDesc = "" +
 	"\n" +
-	"8pkg/proto/configuration/storage/object/local/local.proto\x12*bonanza.configuration.storage.object.local\x1a\x1egoogle/protobuf/duration.proto\x1a5pkg/proto/configuration/blockdevice/blockdevice.proto\"\xe9\n" +
+	"Fbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x12*bonanza.configuration.storage.object.local\x1aUgithub.com/buildbarn/bb-storage/pkg/proto/configuration/blockdevice/blockdevice.proto\x1a\x1egoogle/protobuf/duration.proto\"\xe9\n" +
 	"\n" +
 	"\x12StoreConfiguration\x12\xa5\x01\n" +
 	" reference_location_map_in_memory\x18\x01 \x01(\v2[.bonanza.configuration.storage.object.local.StoreConfiguration.ReferenceLocationMapInMemoryH\x00R\x1creferenceLocationMapInMemory\x12\x87\x01\n" +
@@ -375,19 +375,19 @@ const file_pkg_proto_configuration_storage_object_local_local_proto_rawDesc = ""
 	"\x19location_blob_map_backendB<Z:bonanza.build/pkg/proto/configuration/storage/object/localb\x06proto3"
 
 var (
-	file_pkg_proto_configuration_storage_object_local_local_proto_rawDescOnce sync.Once
-	file_pkg_proto_configuration_storage_object_local_local_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescData []byte
 )
 
-func file_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP() []byte {
-	file_pkg_proto_configuration_storage_object_local_local_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_configuration_storage_object_local_local_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_storage_object_local_local_proto_rawDesc), len(file_pkg_proto_configuration_storage_object_local_local_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDesc)))
 	})
-	return file_pkg_proto_configuration_storage_object_local_local_proto_rawDescData
+	return file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescData
 }
 
-var file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_pkg_proto_configuration_storage_object_local_local_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_goTypes = []any{
 	(*StoreConfiguration)(nil),                              // 0: bonanza.configuration.storage.object.local.StoreConfiguration
 	(*StoreConfiguration_ReferenceLocationMapInMemory)(nil), // 1: bonanza.configuration.storage.object.local.StoreConfiguration.ReferenceLocationMapInMemory
 	(*StoreConfiguration_LocationBlobMapInMemory)(nil),      // 2: bonanza.configuration.storage.object.local.StoreConfiguration.LocationBlobMapInMemory
@@ -395,7 +395,7 @@ var file_pkg_proto_configuration_storage_object_local_local_proto_goTypes = []an
 	(*blockdevice.Configuration)(nil),                       // 4: buildbarn.configuration.blockdevice.Configuration
 	(*durationpb.Duration)(nil),                             // 5: google.protobuf.Duration
 }
-var file_pkg_proto_configuration_storage_object_local_local_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_depIdxs = []int32{
 	1, // 0: bonanza.configuration.storage.object.local.StoreConfiguration.reference_location_map_in_memory:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration.ReferenceLocationMapInMemory
 	4, // 1: bonanza.configuration.storage.object.local.StoreConfiguration.reference_location_map_on_block_device:type_name -> buildbarn.configuration.blockdevice.Configuration
 	2, // 2: bonanza.configuration.storage.object.local.StoreConfiguration.location_blob_map_in_memory:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration.LocationBlobMapInMemory
@@ -409,12 +409,12 @@ var file_pkg_proto_configuration_storage_object_local_local_proto_depIdxs = []in
 	0, // [0:6] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_configuration_storage_object_local_local_proto_init() }
-func file_pkg_proto_configuration_storage_object_local_local_proto_init() {
-	if File_pkg_proto_configuration_storage_object_local_local_proto != nil {
+func init() { file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_init() }
+func file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_init() {
+	if File_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto != nil {
 		return
 	}
-	file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[0].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[0].OneofWrappers = []any{
 		(*StoreConfiguration_ReferenceLocationMapInMemory_)(nil),
 		(*StoreConfiguration_ReferenceLocationMapOnBlockDevice)(nil),
 		(*StoreConfiguration_LocationBlobMapInMemory_)(nil),
@@ -424,17 +424,17 @@ func file_pkg_proto_configuration_storage_object_local_local_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_configuration_storage_object_local_local_proto_rawDesc), len(file_pkg_proto_configuration_storage_object_local_local_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_configuration_storage_object_local_local_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_configuration_storage_object_local_local_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_configuration_storage_object_local_local_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_configuration_storage_object_local_local_proto = out.File
-	file_pkg_proto_configuration_storage_object_local_local_proto_goTypes = nil
-	file_pkg_proto_configuration_storage_object_local_local_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto = out.File
+	file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_depIdxs = nil
 }

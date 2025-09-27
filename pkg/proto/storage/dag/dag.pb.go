@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/storage/dag/dag.proto
+// source: bonanza.build/pkg/proto/storage/dag/dag.proto
 
 package dag
 
@@ -38,7 +38,7 @@ type UploadDagsRequest struct {
 
 func (x *UploadDagsRequest) Reset() {
 	*x = UploadDagsRequest{}
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -50,7 +50,7 @@ func (x *UploadDagsRequest) String() string {
 func (*UploadDagsRequest) ProtoMessage() {}
 
 func (x *UploadDagsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -63,7 +63,7 @@ func (x *UploadDagsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadDagsRequest.ProtoReflect.Descriptor instead.
 func (*UploadDagsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *UploadDagsRequest) GetType() isUploadDagsRequest_Type {
@@ -136,7 +136,7 @@ type UploadDagsResponse struct {
 
 func (x *UploadDagsResponse) Reset() {
 	*x = UploadDagsResponse{}
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -148,7 +148,7 @@ func (x *UploadDagsResponse) String() string {
 func (*UploadDagsResponse) ProtoMessage() {}
 
 func (x *UploadDagsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -161,7 +161,7 @@ func (x *UploadDagsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadDagsResponse.ProtoReflect.Descriptor instead.
 func (*UploadDagsResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *UploadDagsResponse) GetType() isUploadDagsResponse_Type {
@@ -230,7 +230,7 @@ type UploadDagsRequest_Handshake struct {
 
 func (x *UploadDagsRequest_Handshake) Reset() {
 	*x = UploadDagsRequest_Handshake{}
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -242,7 +242,7 @@ func (x *UploadDagsRequest_Handshake) String() string {
 func (*UploadDagsRequest_Handshake) ProtoMessage() {}
 
 func (x *UploadDagsRequest_Handshake) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -255,7 +255,7 @@ func (x *UploadDagsRequest_Handshake) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadDagsRequest_Handshake.ProtoReflect.Descriptor instead.
 func (*UploadDagsRequest_Handshake) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 0}
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 0}
 }
 
 func (x *UploadDagsRequest_Handshake) GetNamespace() *object.Namespace {
@@ -282,7 +282,7 @@ type UploadDagsRequest_InitiateDag struct {
 
 func (x *UploadDagsRequest_InitiateDag) Reset() {
 	*x = UploadDagsRequest_InitiateDag{}
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -294,7 +294,7 @@ func (x *UploadDagsRequest_InitiateDag) String() string {
 func (*UploadDagsRequest_InitiateDag) ProtoMessage() {}
 
 func (x *UploadDagsRequest_InitiateDag) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -307,7 +307,7 @@ func (x *UploadDagsRequest_InitiateDag) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadDagsRequest_InitiateDag.ProtoReflect.Descriptor instead.
 func (*UploadDagsRequest_InitiateDag) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 1}
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 1}
 }
 
 func (x *UploadDagsRequest_InitiateDag) GetRootReference() []byte {
@@ -334,7 +334,7 @@ type UploadDagsRequest_ProvideObjectContents struct {
 
 func (x *UploadDagsRequest_ProvideObjectContents) Reset() {
 	*x = UploadDagsRequest_ProvideObjectContents{}
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -346,7 +346,7 @@ func (x *UploadDagsRequest_ProvideObjectContents) String() string {
 func (*UploadDagsRequest_ProvideObjectContents) ProtoMessage() {}
 
 func (x *UploadDagsRequest_ProvideObjectContents) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -359,7 +359,7 @@ func (x *UploadDagsRequest_ProvideObjectContents) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use UploadDagsRequest_ProvideObjectContents.ProtoReflect.Descriptor instead.
 func (*UploadDagsRequest_ProvideObjectContents) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 2}
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 2}
 }
 
 func (x *UploadDagsRequest_ProvideObjectContents) GetLowestReferenceIndex() uint64 {
@@ -385,7 +385,7 @@ type UploadDagsResponse_Handshake struct {
 
 func (x *UploadDagsResponse_Handshake) Reset() {
 	*x = UploadDagsResponse_Handshake{}
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -397,7 +397,7 @@ func (x *UploadDagsResponse_Handshake) String() string {
 func (*UploadDagsResponse_Handshake) ProtoMessage() {}
 
 func (x *UploadDagsResponse_Handshake) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -410,7 +410,7 @@ func (x *UploadDagsResponse_Handshake) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadDagsResponse_Handshake.ProtoReflect.Descriptor instead.
 func (*UploadDagsResponse_Handshake) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 0}
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 0}
 }
 
 func (x *UploadDagsResponse_Handshake) GetMaximumUnfinalizedDagsCount() uint32 {
@@ -431,7 +431,7 @@ type UploadDagsResponse_RequestObject struct {
 
 func (x *UploadDagsResponse_RequestObject) Reset() {
 	*x = UploadDagsResponse_RequestObject{}
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -443,7 +443,7 @@ func (x *UploadDagsResponse_RequestObject) String() string {
 func (*UploadDagsResponse_RequestObject) ProtoMessage() {}
 
 func (x *UploadDagsResponse_RequestObject) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -456,7 +456,7 @@ func (x *UploadDagsResponse_RequestObject) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadDagsResponse_RequestObject.ProtoReflect.Descriptor instead.
 func (*UploadDagsResponse_RequestObject) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 1}
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 1}
 }
 
 func (x *UploadDagsResponse_RequestObject) GetLowestReferenceIndex() uint64 {
@@ -490,7 +490,7 @@ type UploadDagsResponse_FinalizeDag struct {
 
 func (x *UploadDagsResponse_FinalizeDag) Reset() {
 	*x = UploadDagsResponse_FinalizeDag{}
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -502,7 +502,7 @@ func (x *UploadDagsResponse_FinalizeDag) String() string {
 func (*UploadDagsResponse_FinalizeDag) ProtoMessage() {}
 
 func (x *UploadDagsResponse_FinalizeDag) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_storage_dag_dag_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -515,7 +515,7 @@ func (x *UploadDagsResponse_FinalizeDag) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadDagsResponse_FinalizeDag.ProtoReflect.Descriptor instead.
 func (*UploadDagsResponse_FinalizeDag) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 2}
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 2}
 }
 
 func (x *UploadDagsResponse_FinalizeDag) GetRootReferenceIndex() uint64 {
@@ -532,11 +532,11 @@ func (x *UploadDagsResponse_FinalizeDag) GetStatus() *status.Status {
 	return nil
 }
 
-var File_pkg_proto_storage_dag_dag_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_storage_dag_dag_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_storage_dag_dag_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc = "" +
 	"\n" +
-	"\x1fpkg/proto/storage/dag/dag.proto\x12\x13bonanza.storage.dag\x1a\x19google/protobuf/any.proto\x1a\x17google/rpc/status.proto\x1a%pkg/proto/storage/object/object.proto\"\xd6\x05\n" +
+	"-bonanza.build/pkg/proto/storage/dag/dag.proto\x12\x13bonanza.storage.dag\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1a\x19google/protobuf/any.proto\x1a\x17google/rpc/status.proto\"\xd6\x05\n" +
 	"\x11UploadDagsRequest\x12P\n" +
 	"\thandshake\x18\x01 \x01(\v20.bonanza.storage.dag.UploadDagsRequest.HandshakeH\x00R\thandshake\x12W\n" +
 	"\finitiate_dag\x18\x02 \x01(\v22.bonanza.storage.dag.UploadDagsRequest.InitiateDagH\x00R\vinitiateDag\x12v\n" +
@@ -570,19 +570,19 @@ const file_pkg_proto_storage_dag_dag_proto_rawDesc = "" +
 	"UploadDags\x12&.bonanza.storage.dag.UploadDagsRequest\x1a'.bonanza.storage.dag.UploadDagsResponse(\x010\x01B%Z#bonanza.build/pkg/proto/storage/dagb\x06proto3"
 
 var (
-	file_pkg_proto_storage_dag_dag_proto_rawDescOnce sync.Once
-	file_pkg_proto_storage_dag_dag_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescData []byte
 )
 
-func file_pkg_proto_storage_dag_dag_proto_rawDescGZIP() []byte {
-	file_pkg_proto_storage_dag_dag_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_storage_dag_dag_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_storage_dag_dag_proto_rawDesc), len(file_pkg_proto_storage_dag_dag_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc)))
 	})
-	return file_pkg_proto_storage_dag_dag_proto_rawDescData
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescData
 }
 
-var file_pkg_proto_storage_dag_dag_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
-var file_pkg_proto_storage_dag_dag_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_bonanza_build_pkg_proto_storage_dag_dag_proto_goTypes = []any{
 	(*UploadDagsRequest)(nil),                       // 0: bonanza.storage.dag.UploadDagsRequest
 	(*UploadDagsResponse)(nil),                      // 1: bonanza.storage.dag.UploadDagsResponse
 	(*UploadDagsRequest_Handshake)(nil),             // 2: bonanza.storage.dag.UploadDagsRequest.Handshake
@@ -596,7 +596,7 @@ var file_pkg_proto_storage_dag_dag_proto_goTypes = []any{
 	(*anypb.Any)(nil),                               // 10: google.protobuf.Any
 	(*status.Status)(nil),                           // 11: google.rpc.Status
 }
-var file_pkg_proto_storage_dag_dag_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_storage_dag_dag_proto_depIdxs = []int32{
 	2,  // 0: bonanza.storage.dag.UploadDagsRequest.handshake:type_name -> bonanza.storage.dag.UploadDagsRequest.Handshake
 	3,  // 1: bonanza.storage.dag.UploadDagsRequest.initiate_dag:type_name -> bonanza.storage.dag.UploadDagsRequest.InitiateDag
 	4,  // 2: bonanza.storage.dag.UploadDagsRequest.provide_object_contents:type_name -> bonanza.storage.dag.UploadDagsRequest.ProvideObjectContents
@@ -616,17 +616,17 @@ var file_pkg_proto_storage_dag_dag_proto_depIdxs = []int32{
 	0,  // [0:10] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_storage_dag_dag_proto_init() }
-func file_pkg_proto_storage_dag_dag_proto_init() {
-	if File_pkg_proto_storage_dag_dag_proto != nil {
+func init() { file_bonanza_build_pkg_proto_storage_dag_dag_proto_init() }
+func file_bonanza_build_pkg_proto_storage_dag_dag_proto_init() {
+	if File_bonanza_build_pkg_proto_storage_dag_dag_proto != nil {
 		return
 	}
-	file_pkg_proto_storage_dag_dag_proto_msgTypes[0].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[0].OneofWrappers = []any{
 		(*UploadDagsRequest_Handshake_)(nil),
 		(*UploadDagsRequest_InitiateDag_)(nil),
 		(*UploadDagsRequest_ProvideObjectContents_)(nil),
 	}
-	file_pkg_proto_storage_dag_dag_proto_msgTypes[1].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[1].OneofWrappers = []any{
 		(*UploadDagsResponse_Handshake_)(nil),
 		(*UploadDagsResponse_RequestObject_)(nil),
 		(*UploadDagsResponse_FinalizeDag_)(nil),
@@ -635,17 +635,17 @@ func file_pkg_proto_storage_dag_dag_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_storage_dag_dag_proto_rawDesc), len(file_pkg_proto_storage_dag_dag_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_pkg_proto_storage_dag_dag_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_storage_dag_dag_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_storage_dag_dag_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_storage_dag_dag_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_storage_dag_dag_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_storage_dag_dag_proto = out.File
-	file_pkg_proto_storage_dag_dag_proto_goTypes = nil
-	file_pkg_proto_storage_dag_dag_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_storage_dag_dag_proto = out.File
+	file_bonanza_build_pkg_proto_storage_dag_dag_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_storage_dag_dag_proto_depIdxs = nil
 }

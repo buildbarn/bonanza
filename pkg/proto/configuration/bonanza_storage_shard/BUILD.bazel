@@ -5,6 +5,7 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 proto_library(
     name = "bonanza_storage_shard_proto",
     srcs = ["bonanza_storage_shard.proto"],
+    import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/configuration/storage/object/local:local_proto",

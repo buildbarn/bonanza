@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.31.1
-// source: pkg/proto/browser/browser.proto
+// source: bonanza.build/pkg/proto/browser/browser.proto
 
 package browser
 
@@ -33,7 +33,7 @@ type RecentlyObservedEncoder struct {
 
 func (x *RecentlyObservedEncoder) Reset() {
 	*x = RecentlyObservedEncoder{}
-	mi := &file_pkg_proto_browser_browser_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -45,7 +45,7 @@ func (x *RecentlyObservedEncoder) String() string {
 func (*RecentlyObservedEncoder) ProtoMessage() {}
 
 func (x *RecentlyObservedEncoder) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_browser_browser_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -58,7 +58,7 @@ func (x *RecentlyObservedEncoder) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecentlyObservedEncoder.ProtoReflect.Descriptor instead.
 func (*RecentlyObservedEncoder) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *RecentlyObservedEncoder) GetConfiguration() []*encoding.BinaryEncoder {
@@ -85,7 +85,7 @@ type Cookie struct {
 
 func (x *Cookie) Reset() {
 	*x = Cookie{}
-	mi := &file_pkg_proto_browser_browser_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -97,7 +97,7 @@ func (x *Cookie) String() string {
 func (*Cookie) ProtoMessage() {}
 
 func (x *Cookie) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_browser_browser_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +110,7 @@ func (x *Cookie) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Cookie.ProtoReflect.Descriptor instead.
 func (*Cookie) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Cookie) GetRecentlyObservedEncoders() []*RecentlyObservedEncoder {
@@ -138,7 +138,7 @@ type RecentlyObservedEncoder_LastObservation struct {
 
 func (x *RecentlyObservedEncoder_LastObservation) Reset() {
 	*x = RecentlyObservedEncoder_LastObservation{}
-	mi := &file_pkg_proto_browser_browser_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -150,7 +150,7 @@ func (x *RecentlyObservedEncoder_LastObservation) String() string {
 func (*RecentlyObservedEncoder_LastObservation) ProtoMessage() {}
 
 func (x *RecentlyObservedEncoder_LastObservation) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_browser_browser_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -163,7 +163,7 @@ func (x *RecentlyObservedEncoder_LastObservation) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use RecentlyObservedEncoder_LastObservation.ProtoReflect.Descriptor instead.
 func (*RecentlyObservedEncoder_LastObservation) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{0, 0}
+	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{0, 0}
 }
 
 func (x *RecentlyObservedEncoder_LastObservation) GetTime() *timestamppb.Timestamp {
@@ -187,11 +187,11 @@ func (x *RecentlyObservedEncoder_LastObservation) GetFieldName() string {
 	return ""
 }
 
-var File_pkg_proto_browser_browser_proto protoreflect.FileDescriptor
+var File_bonanza_build_pkg_proto_browser_browser_proto protoreflect.FileDescriptor
 
-const file_pkg_proto_browser_browser_proto_rawDesc = "" +
+const file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc = "" +
 	"\n" +
-	"\x1fpkg/proto/browser/browser.proto\x12\x0fbonanza.browser\x1a\x1fgoogle/protobuf/timestamp.proto\x1a'pkg/proto/model/encoding/encoding.proto\"\xd1\x02\n" +
+	"-bonanza.build/pkg/proto/browser/browser.proto\x12\x0fbonanza.browser\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd1\x02\n" +
 	"\x17RecentlyObservedEncoder\x12K\n" +
 	"\rconfiguration\x18\x01 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\rconfiguration\x12c\n" +
 	"\x10last_observation\x18\x02 \x01(\v28.bonanza.browser.RecentlyObservedEncoder.LastObservationR\x0flastObservation\x1a\x83\x01\n" +
@@ -205,26 +205,26 @@ const file_pkg_proto_browser_browser_proto_rawDesc = "" +
 	"\x11ecdh_private_keys\x18\x02 \x03(\fR\x0fecdhPrivateKeysB!Z\x1fbonanza.build/pkg/proto/browserb\x06proto3"
 
 var (
-	file_pkg_proto_browser_browser_proto_rawDescOnce sync.Once
-	file_pkg_proto_browser_browser_proto_rawDescData []byte
+	file_bonanza_build_pkg_proto_browser_browser_proto_rawDescOnce sync.Once
+	file_bonanza_build_pkg_proto_browser_browser_proto_rawDescData []byte
 )
 
-func file_pkg_proto_browser_browser_proto_rawDescGZIP() []byte {
-	file_pkg_proto_browser_browser_proto_rawDescOnce.Do(func() {
-		file_pkg_proto_browser_browser_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pkg_proto_browser_browser_proto_rawDesc), len(file_pkg_proto_browser_browser_proto_rawDesc)))
+func file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP() []byte {
+	file_bonanza_build_pkg_proto_browser_browser_proto_rawDescOnce.Do(func() {
+		file_bonanza_build_pkg_proto_browser_browser_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc), len(file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc)))
 	})
-	return file_pkg_proto_browser_browser_proto_rawDescData
+	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescData
 }
 
-var file_pkg_proto_browser_browser_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_pkg_proto_browser_browser_proto_goTypes = []any{
+var file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_bonanza_build_pkg_proto_browser_browser_proto_goTypes = []any{
 	(*RecentlyObservedEncoder)(nil),                 // 0: bonanza.browser.RecentlyObservedEncoder
 	(*Cookie)(nil),                                  // 1: bonanza.browser.Cookie
 	(*RecentlyObservedEncoder_LastObservation)(nil), // 2: bonanza.browser.RecentlyObservedEncoder.LastObservation
 	(*encoding.BinaryEncoder)(nil),                  // 3: bonanza.model.encoding.BinaryEncoder
 	(*timestamppb.Timestamp)(nil),                   // 4: google.protobuf.Timestamp
 }
-var file_pkg_proto_browser_browser_proto_depIdxs = []int32{
+var file_bonanza_build_pkg_proto_browser_browser_proto_depIdxs = []int32{
 	3, // 0: bonanza.browser.RecentlyObservedEncoder.configuration:type_name -> bonanza.model.encoding.BinaryEncoder
 	2, // 1: bonanza.browser.RecentlyObservedEncoder.last_observation:type_name -> bonanza.browser.RecentlyObservedEncoder.LastObservation
 	0, // 2: bonanza.browser.Cookie.recently_observed_encoders:type_name -> bonanza.browser.RecentlyObservedEncoder
@@ -236,26 +236,26 @@ var file_pkg_proto_browser_browser_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_pkg_proto_browser_browser_proto_init() }
-func file_pkg_proto_browser_browser_proto_init() {
-	if File_pkg_proto_browser_browser_proto != nil {
+func init() { file_bonanza_build_pkg_proto_browser_browser_proto_init() }
+func file_bonanza_build_pkg_proto_browser_browser_proto_init() {
+	if File_bonanza_build_pkg_proto_browser_browser_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_browser_browser_proto_rawDesc), len(file_pkg_proto_browser_browser_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc), len(file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_proto_browser_browser_proto_goTypes,
-		DependencyIndexes: file_pkg_proto_browser_browser_proto_depIdxs,
-		MessageInfos:      file_pkg_proto_browser_browser_proto_msgTypes,
+		GoTypes:           file_bonanza_build_pkg_proto_browser_browser_proto_goTypes,
+		DependencyIndexes: file_bonanza_build_pkg_proto_browser_browser_proto_depIdxs,
+		MessageInfos:      file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes,
 	}.Build()
-	File_pkg_proto_browser_browser_proto = out.File
-	file_pkg_proto_browser_browser_proto_goTypes = nil
-	file_pkg_proto_browser_browser_proto_depIdxs = nil
+	File_bonanza_build_pkg_proto_browser_browser_proto = out.File
+	file_bonanza_build_pkg_proto_browser_browser_proto_goTypes = nil
+	file_bonanza_build_pkg_proto_browser_browser_proto_depIdxs = nil
 }
