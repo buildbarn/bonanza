@@ -143,14 +143,14 @@ func (c *prollyChunker[TNode, TMetadata]) PushSingle(node model_core.PatchedMess
 	}
 }
 
-func (c *prollyChunker[TNode, TMetadata]) PopMultiple(finalize bool) model_core.PatchedMessage[[]TNode, TMetadata] {
+func (c *prollyChunker[TNode, TMetadata]) PopMultiple(finalize bool) []model_core.PatchedMessage[TNode, TMetadata] {
 	// Determine whether we've collected enough nodes to be able to
 	// create a new object, and how many nodes should go into it.
 	cf := c.factory
 	cutPoint := c.cuts[1].point
 	if finalize {
 		if len(c.nodes) == 0 {
-			return model_core.PatchedMessage[[]TNode, TMetadata]{}
+			return nil
 		}
 		if !c.isLargeEnough(prollyCutPoint{}, cutPoint) {
 			// We've reached the end. Add all nodes for
@@ -169,7 +169,7 @@ func (c *prollyChunker[TNode, TMetadata]) PopMultiple(finalize bool) model_core.
 		}
 	} else {
 		if !c.isLargeEnough(prollyCutPoint{}, cutPoint) || c.cuts[len(c.cuts)-1].point.cumulativeSizeBytes < cf.maximumSizeBytes {
-			return model_core.PatchedMessage[[]TNode, TMetadata]{}
+			return nil
 		}
 	}
 
@@ -191,15 +191,7 @@ func (c *prollyChunker[TNode, TMetadata]) PopMultiple(finalize bool) model_core.
 		c.cuts = append(c.cuts[:1], prollyCut{})
 	}
 
-	// Combine the nodes into a single list.
-	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) []TNode {
-		messages := make([]TNode, 0, len(nodes))
-		for _, node := range nodes {
-			messages = append(messages, node.Message)
-			patcher.Merge(node.Patcher)
-		}
-		return messages
-	})
+	return nodes
 }
 
 func (c *prollyChunker[TNode, TMetadata]) Discard() {

@@ -102,15 +102,11 @@ func TestUniformBuilder(t *testing.T) {
 		// Finalizing the tree should cause the two-node level
 		// to be finalized as well. The resulting parent node
 		// should be returned as the root of the tree.
-		nodes := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) []*model_filesystem_pb.FileContents {
-			patcher.Merge(node1.Patcher)
-			patcher.Merge(node2.Patcher)
-			return []*model_filesystem_pb.FileContents{
-				node1.Message,
-				node2.Message,
-			}
-		})
-		chunker.EXPECT().PopMultiple(true).Return(nodes)
+		chunker.EXPECT().PopMultiple(true).
+			Return([]model_core.PatchedMessage[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]{
+				node1,
+				node2,
+			})
 		chunker.EXPECT().PopMultiple(true)
 		metadata3 := NewMockReferenceMetadata(ctrl)
 		node3 := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
@@ -126,8 +122,9 @@ func TestUniformBuilder(t *testing.T) {
 				TotalSizeBytes: 93,
 			}
 		})
-		nodeMerger.EXPECT().Call(nodes).
-			DoAndReturn(func(model_core.PatchedMessage[[]*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata], error) {
+		nodeMerger.EXPECT().Call(gomock.Any()).
+			DoAndReturn(func(nodes model_core.PatchedMessage[[]*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata], error) {
+				require.Len(t, nodes.Message, 2)
 				return node3, nil
 			})
 

@@ -18,7 +18,7 @@ type ChunkerFactory[TNode proto.Message, TMetadata model_core.ReferenceMetadata]
 // same level.
 type Chunker[TNode proto.Message, TMetadata model_core.ReferenceMetadata] interface {
 	PushSingle(node model_core.PatchedMessage[TNode, TMetadata]) error
-	PopMultiple(finalize bool) model_core.PatchedMessage[[]TNode, TMetadata]
+	PopMultiple(finalize bool) []model_core.PatchedMessage[TNode, TMetadata]
 	Discard()
 }
 

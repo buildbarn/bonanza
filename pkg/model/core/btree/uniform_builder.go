@@ -25,13 +25,20 @@ func NewUniformBuilder[TNode proto.Message, TMetadata model_core.ReferenceMetada
 	}
 }
 
-func (b *uniformBuilder[TNode, TMetadata]) pushChildrenToParent(level int, children model_core.PatchedMessage[[]TNode, TMetadata]) error {
+func (b *uniformBuilder[TNode, TMetadata]) pushChildrenToParent(level int, children []model_core.PatchedMessage[TNode, TMetadata]) error {
+	mergedChildren := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) []TNode {
+		childrenMessages := make([]TNode, 0, len(children))
+		for _, child := range children {
+			childrenMessages = append(childrenMessages, child.Merge(patcher))
+		}
+		return childrenMessages
+	})
 	if level == len(b.levels) {
 		if !b.rootChildren.IsSet() {
 			// First node to be pushed at a given level.
 			// This might be the new root node. Don't insert
 			// it into the chunker just yet.
-			b.rootChildren = children
+			b.rootChildren = mergedChildren
 			return nil
 		}
 
@@ -47,7 +54,7 @@ func (b *uniformBuilder[TNode, TMetadata]) pushChildrenToParent(level int, child
 		}
 	}
 
-	node, err := b.nodeMerger(children)
+	node, err := b.nodeMerger(mergedChildren)
 	if err != nil {
 		return err
 	}
@@ -81,7 +88,7 @@ func (b *uniformBuilder[TNode, TMetadata]) PushChild(node model_core.PatchedMess
 	// See if there are any new parent nodes that we can propagate upward.
 	for childLevel := 0; childLevel < len(b.levels); childLevel++ {
 		children := b.levels[childLevel].PopMultiple(false)
-		if !children.IsSet() {
+		if len(children) == 0 {
 			return nil
 		}
 		parentLevel := childLevel + 1
@@ -90,7 +97,7 @@ func (b *uniformBuilder[TNode, TMetadata]) PushChild(node model_core.PatchedMess
 				return err
 			}
 			children = b.levels[childLevel].PopMultiple(false)
-			if !children.IsSet() {
+			if len(children) == 0 {
 				break
 			}
 		}
@@ -104,7 +111,7 @@ func (b *uniformBuilder[TNode, TMetadata]) drain() error {
 		parentLevel := childLevel + 1
 		for {
 			children := b.levels[childLevel].PopMultiple(true)
-			if !children.IsSet() {
+			if len(children) == 0 {
 				break
 			}
 			if err := b.pushChildrenToParent(parentLevel, children); err != nil {

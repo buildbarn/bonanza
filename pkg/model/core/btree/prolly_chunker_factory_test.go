@@ -21,7 +21,7 @@ func TestProllyChunkerFactory(t *testing.T) {
 		// If we don't push any children into the level builder,
 		// PopMultiple() should always return a nil node, even
 		// when finalizing.
-		chunkerFactory := btree.NewProllyChunkerFactory[model_core.ReferenceMetadata](
+		chunkerFactory := btree.NewProllyChunkerFactory[*MockReferenceMetadata](
 			/* minimumSizeBytes = */ 1024,
 			/* maximumSizeBytes = */ 4*1024,
 			/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
@@ -30,8 +30,8 @@ func TestProllyChunkerFactory(t *testing.T) {
 		)
 		chunker := chunkerFactory.NewChunker()
 
-		require.False(t, chunker.PopMultiple(false).IsSet())
-		require.False(t, chunker.PopMultiple(true).IsSet())
+		require.Empty(t, chunker.PopMultiple(false))
+		require.Empty(t, chunker.PopMultiple(true))
 	})
 
 	t.Run("Tiny", func(t *testing.T) {
@@ -39,7 +39,7 @@ func TestProllyChunkerFactory(t *testing.T) {
 			// When the minimum and maximum sizes are set far too
 			// low, we should still store at least one leaf node in
 			// every object.
-			chunkerFactory := btree.NewProllyChunkerFactory[model_core.ReferenceMetadata](
+			chunkerFactory := btree.NewProllyChunkerFactory[*MockReferenceMetadata](
 				/* minimumSizeBytes = */ 0,
 				/* maximumSizeBytes = */ 0,
 				/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
@@ -48,47 +48,36 @@ func TestProllyChunkerFactory(t *testing.T) {
 			)
 			chunker := chunkerFactory.NewChunker()
 
-			expectedMetadatas := make([]*MockReferenceMetadata, 0, 10)
+			expectedNodes := make([]model_core.PatchedMessage[*model_filesystem_pb.FileContents, *MockReferenceMetadata], 0, 10)
 			for i := 1000; i < 1010; i++ {
-				metadata := NewMockReferenceMetadata(ctrl)
-				require.NoError(t, chunker.PushSingle(
-					model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
-						return &model_filesystem_pb.FileContents{
-							TotalSizeBytes: uint64(i),
-							Level: &model_filesystem_pb.FileContents_ChunkReference{
-								ChunkReference: &model_core_pb.DecodableReference{
-									Reference: patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
-										LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
-										Metadata:       metadata,
-									}),
-								},
+				node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[*MockReferenceMetadata]) *model_filesystem_pb.FileContents {
+					return &model_filesystem_pb.FileContents{
+						TotalSizeBytes: uint64(i),
+						Level: &model_filesystem_pb.FileContents_ChunkReference{
+							ChunkReference: &model_core_pb.DecodableReference{
+								Reference: patcher.AddReference(model_core.MetadataEntry[*MockReferenceMetadata]{
+									LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
+									Metadata:       NewMockReferenceMetadata(ctrl),
+								}),
 							},
-						}
-					}),
-				))
-				expectedMetadatas = append(expectedMetadatas, metadata)
+						},
+					}
+				})
+				require.NoError(t, chunker.PushSingle(node))
+				expectedNodes = append(expectedNodes, node)
 			}
 
-			for i, metadata := range expectedMetadatas {
-				nodes := chunker.PopMultiple(true)
-				require.True(t, nodes.IsSet())
-
-				references, actualMetadatas := nodes.Patcher.SortAndSetReferences()
-				require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
-					object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(1000+i), 0, 0, 0),
-				}, references)
-				require.Equal(t, []model_core.ReferenceMetadata{
-					metadata,
-				}, actualMetadatas)
+			for i := range expectedNodes {
+				require.Equal(t, expectedNodes[i:i+1], chunker.PopMultiple(true))
 			}
-			require.False(t, chunker.PopMultiple(true).IsSet())
+			require.Empty(t, chunker.PopMultiple(true))
 		})
 
 		t.Run("ParentNodes", func(t *testing.T) {
 			// We should never store single parent nodes in
 			// their own object, as that would just be
 			// unnecessary indirection.
-			chunkerFactory := btree.NewProllyChunkerFactory[model_core.ReferenceMetadata](
+			chunkerFactory := btree.NewProllyChunkerFactory[*MockReferenceMetadata](
 				/* minimumSizeBytes = */ 0,
 				/* maximumSizeBytes = */ 0,
 				/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
@@ -97,42 +86,29 @@ func TestProllyChunkerFactory(t *testing.T) {
 			)
 			chunker := chunkerFactory.NewChunker()
 
-			expectedMetadatas := make([]*MockReferenceMetadata, 0, 10)
+			expectedNodes := make([]model_core.PatchedMessage[*model_filesystem_pb.FileContents, *MockReferenceMetadata], 0, 10)
 			for i := 1000; i < 1010; i++ {
-				metadata := NewMockReferenceMetadata(ctrl)
-				require.NoError(t, chunker.PushSingle(
-					model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
-						return &model_filesystem_pb.FileContents{
-							TotalSizeBytes: uint64(i),
-							Level: &model_filesystem_pb.FileContents_FileContentsListReference{
-								FileContentsListReference: &model_core_pb.DecodableReference{
-									Reference: patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
-										LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
-										Metadata:       metadata,
-									}),
-								},
+				node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[*MockReferenceMetadata]) *model_filesystem_pb.FileContents {
+					return &model_filesystem_pb.FileContents{
+						TotalSizeBytes: uint64(i),
+						Level: &model_filesystem_pb.FileContents_FileContentsListReference{
+							FileContentsListReference: &model_core_pb.DecodableReference{
+								Reference: patcher.AddReference(model_core.MetadataEntry[*MockReferenceMetadata]{
+									LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
+									Metadata:       NewMockReferenceMetadata(ctrl),
+								}),
 							},
-						}
-					}),
-				))
-				expectedMetadatas = append(expectedMetadatas, metadata)
+						},
+					}
+				})
+				require.NoError(t, chunker.PushSingle(node))
+				expectedNodes = append(expectedNodes, node)
 			}
 
-			for i := 0; i < len(expectedMetadatas); i += 2 {
-				nodes := chunker.PopMultiple(true)
-				require.True(t, nodes.IsSet())
-
-				references, actualMetadatas := nodes.Patcher.SortAndSetReferences()
-				require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
-					object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(1000+i), 0, 0, 0),
-					object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(1001+i), 0, 0, 0),
-				}, references)
-				require.Equal(t, []model_core.ReferenceMetadata{
-					expectedMetadatas[i],
-					expectedMetadatas[i+1],
-				}, actualMetadatas)
+			for i := 0; i < len(expectedNodes); i += 2 {
+				require.Equal(t, expectedNodes[i:i+2], chunker.PopMultiple(true))
 			}
-			require.False(t, chunker.PopMultiple(true).IsSet())
+			require.Empty(t, chunker.PopMultiple(true))
 		})
 	})
 }
