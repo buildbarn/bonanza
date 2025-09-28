@@ -13,6 +13,7 @@ go_library(
         "noop_reference_metadata.go",
         "object_capturer.go",
         "patched_message.go",
+        "patched_message_list.go",
         "reference_message_patcher.go",
         "top_level_message.go",
         "walkable_reference_metadata.go",

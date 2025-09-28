@@ -103,7 +103,7 @@ func TestUniformBuilder(t *testing.T) {
 		// to be finalized as well. The resulting parent node
 		// should be returned as the root of the tree.
 		chunker.EXPECT().PopMultiple(btree.PopAll).
-			Return([]model_core.PatchedMessage[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]{
+			Return(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]{
 				node1,
 				node2,
 			})

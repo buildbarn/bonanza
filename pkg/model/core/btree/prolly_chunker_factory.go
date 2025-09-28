@@ -61,7 +61,7 @@ type prollyCut struct {
 type prollyChunker[TNode proto.Message, TMetadata model_core.ReferenceMetadata] struct {
 	factory *prollyChunkerFactory[TNode, TMetadata]
 
-	nodes               []model_core.PatchedMessage[TNode, TMetadata]
+	nodes               model_core.PatchedMessageList[TNode, TMetadata]
 	uncutSizesBytes     []int
 	totalUncutSizeBytes int
 	cuts                []prollyCut
@@ -143,7 +143,7 @@ func (c *prollyChunker[TNode, TMetadata]) PushSingle(node model_core.PatchedMess
 	}
 }
 
-func (c *prollyChunker[TNode, TMetadata]) PopMultiple(threshold PopThreshold) []model_core.PatchedMessage[TNode, TMetadata] {
+func (c *prollyChunker[TNode, TMetadata]) PopMultiple(threshold PopThreshold) model_core.PatchedMessageList[TNode, TMetadata] {
 	// Determine whether we've collected enough nodes to be able to
 	// create a new object, and how many nodes should go into it.
 	cf := c.factory
@@ -198,7 +198,5 @@ func (c *prollyChunker[TNode, TMetadata]) PopMultiple(threshold PopThreshold) []
 }
 
 func (c *prollyChunker[TNode, TMetadata]) Discard() {
-	for i := 0; i < len(c.nodes); i++ {
-		c.nodes[i].Discard()
-	}
+	c.nodes.Discard()
 }

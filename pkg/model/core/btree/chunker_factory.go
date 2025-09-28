@@ -34,7 +34,7 @@ const (
 // same level.
 type Chunker[TNode proto.Message, TMetadata model_core.ReferenceMetadata] interface {
 	PushSingle(node model_core.PatchedMessage[TNode, TMetadata]) error
-	PopMultiple(threshold PopThreshold) []model_core.PatchedMessage[TNode, TMetadata]
+	PopMultiple(threshold PopThreshold) model_core.PatchedMessageList[TNode, TMetadata]
 	Discard()
 }
 

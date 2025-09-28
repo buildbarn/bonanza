@@ -25,20 +25,13 @@ func NewUniformBuilder[TNode proto.Message, TMetadata model_core.ReferenceMetada
 	}
 }
 
-func (b *uniformBuilder[TNode, TMetadata]) pushChildrenToParent(level int, children []model_core.PatchedMessage[TNode, TMetadata]) error {
-	mergedChildren := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) []TNode {
-		childrenMessages := make([]TNode, 0, len(children))
-		for _, child := range children {
-			childrenMessages = append(childrenMessages, child.Merge(patcher))
-		}
-		return childrenMessages
-	})
+func (b *uniformBuilder[TNode, TMetadata]) pushChildrenToParent(level int, children model_core.PatchedMessageList[TNode, TMetadata]) error {
 	if level == len(b.levels) {
 		if !b.rootChildren.IsSet() {
 			// First node to be pushed at a given level.
 			// This might be the new root node. Don't insert
 			// it into the chunker just yet.
-			b.rootChildren = mergedChildren
+			b.rootChildren = children.Merge()
 			return nil
 		}
 
@@ -47,14 +40,16 @@ func (b *uniformBuilder[TNode, TMetadata]) pushChildrenToParent(level int, child
 		b.levels = append(b.levels, b.chunkerFactory.NewChunker())
 		rootNode, err := b.nodeMerger(b.rootChildren.Move())
 		if err != nil {
+			children.Discard()
 			return err
 		}
 		if err := b.levels[level].PushSingle(rootNode); err != nil {
+			children.Discard()
 			return err
 		}
 	}
 
-	node, err := b.nodeMerger(mergedChildren)
+	node, err := b.nodeMerger(children.Merge())
 	if err != nil {
 		return err
 	}

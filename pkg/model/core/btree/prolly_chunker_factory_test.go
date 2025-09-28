@@ -48,7 +48,7 @@ func TestProllyChunkerFactory(t *testing.T) {
 			)
 			chunker := chunkerFactory.NewChunker()
 
-			expectedNodes := make([]model_core.PatchedMessage[*model_filesystem_pb.FileContents, *MockReferenceMetadata], 0, 10)
+			expectedNodes := make(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, *MockReferenceMetadata], 0, 10)
 			for i := 1000; i < 1010; i++ {
 				node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[*MockReferenceMetadata]) *model_filesystem_pb.FileContents {
 					return &model_filesystem_pb.FileContents{
@@ -86,7 +86,7 @@ func TestProllyChunkerFactory(t *testing.T) {
 			)
 			chunker := chunkerFactory.NewChunker()
 
-			expectedNodes := make([]model_core.PatchedMessage[*model_filesystem_pb.FileContents, *MockReferenceMetadata], 0, 10)
+			expectedNodes := make(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, *MockReferenceMetadata], 0, 10)
 			for i := 1000; i < 1010; i++ {
 				node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[*MockReferenceMetadata]) *model_filesystem_pb.FileContents {
 					return &model_filesystem_pb.FileContents{

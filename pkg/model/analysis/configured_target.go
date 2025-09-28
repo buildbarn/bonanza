@@ -1254,9 +1254,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			fileCreationParameters:      fileCreationParameters,
 		}
 		defer func() {
-			for _, action := range rc.actions {
-				action.Discard()
-			}
+			rc.actions.Discard()
 		}()
 
 		thread.SetLocal(model_starlark.SubruleInvokerKey, func(subruleIdentifier label.CanonicalStarlarkIdentifier, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -1713,7 +1711,7 @@ type ruleContext[TReference object.BasicReference, TMetadata BaseComputerReferen
 	actionEncoder               model_encoding.BinaryEncoder
 	directoryCreationParameters *model_filesystem.DirectoryCreationParameters
 	fileCreationParameters      *model_filesystem.FileCreationParameters
-	actions                     []model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]
+	actions                     model_core.PatchedMessageList[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]
 }
 
 var _ starlark.HasAttrs = (*ruleContext[object.GlobalReference, BaseComputerReferenceMetadata])(nil)
