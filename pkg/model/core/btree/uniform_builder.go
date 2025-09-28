@@ -87,7 +87,7 @@ func (b *uniformBuilder[TNode, TMetadata]) PushChild(node model_core.PatchedMess
 
 	// See if there are any new parent nodes that we can propagate upward.
 	for childLevel := 0; childLevel < len(b.levels); childLevel++ {
-		children := b.levels[childLevel].PopMultiple(false)
+		children := b.levels[childLevel].PopMultiple(PopDefinitive)
 		if len(children) == 0 {
 			return nil
 		}
@@ -96,7 +96,7 @@ func (b *uniformBuilder[TNode, TMetadata]) PushChild(node model_core.PatchedMess
 			if err := b.pushChildrenToParent(parentLevel, children); err != nil {
 				return err
 			}
-			children = b.levels[childLevel].PopMultiple(false)
+			children = b.levels[childLevel].PopMultiple(PopDefinitive)
 			if len(children) == 0 {
 				break
 			}
@@ -110,7 +110,7 @@ func (b *uniformBuilder[TNode, TMetadata]) drain() error {
 	for childLevel := 0; childLevel < len(b.levels); childLevel++ {
 		parentLevel := childLevel + 1
 		for {
-			children := b.levels[childLevel].PopMultiple(true)
+			children := b.levels[childLevel].PopMultiple(PopAll)
 			if len(children) == 0 {
 				break
 			}

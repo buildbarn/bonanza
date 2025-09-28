@@ -30,8 +30,8 @@ func TestProllyChunkerFactory(t *testing.T) {
 		)
 		chunker := chunkerFactory.NewChunker()
 
-		require.Empty(t, chunker.PopMultiple(false))
-		require.Empty(t, chunker.PopMultiple(true))
+		require.Empty(t, chunker.PopMultiple(btree.PopDefinitive))
+		require.Empty(t, chunker.PopMultiple(btree.PopAll))
 	})
 
 	t.Run("Tiny", func(t *testing.T) {
@@ -68,9 +68,9 @@ func TestProllyChunkerFactory(t *testing.T) {
 			}
 
 			for i := range expectedNodes {
-				require.Equal(t, expectedNodes[i:i+1], chunker.PopMultiple(true))
+				require.Equal(t, expectedNodes[i:i+1], chunker.PopMultiple(btree.PopAll))
 			}
-			require.Empty(t, chunker.PopMultiple(true))
+			require.Empty(t, chunker.PopMultiple(btree.PopAll))
 		})
 
 		t.Run("ParentNodes", func(t *testing.T) {
@@ -106,9 +106,9 @@ func TestProllyChunkerFactory(t *testing.T) {
 			}
 
 			for i := 0; i < len(expectedNodes); i += 2 {
-				require.Equal(t, expectedNodes[i:i+2], chunker.PopMultiple(true))
+				require.Equal(t, expectedNodes[i:i+2], chunker.PopMultiple(btree.PopAll))
 			}
-			require.Empty(t, chunker.PopMultiple(true))
+			require.Empty(t, chunker.PopMultiple(btree.PopAll))
 		})
 	})
 }

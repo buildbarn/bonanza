@@ -143,12 +143,17 @@ func (c *prollyChunker[TNode, TMetadata]) PushSingle(node model_core.PatchedMess
 	}
 }
 
-func (c *prollyChunker[TNode, TMetadata]) PopMultiple(finalize bool) []model_core.PatchedMessage[TNode, TMetadata] {
+func (c *prollyChunker[TNode, TMetadata]) PopMultiple(threshold PopThreshold) []model_core.PatchedMessage[TNode, TMetadata] {
 	// Determine whether we've collected enough nodes to be able to
 	// create a new object, and how many nodes should go into it.
 	cf := c.factory
 	cutPoint := c.cuts[1].point
-	if finalize {
+	switch threshold {
+	case PopDefinitive:
+		if !c.isLargeEnough(prollyCutPoint{}, cutPoint) || c.cuts[len(c.cuts)-1].point.cumulativeSizeBytes < cf.maximumSizeBytes {
+			return nil
+		}
+	case PopAll:
 		if len(c.nodes) == 0 {
 			return nil
 		}
@@ -167,10 +172,8 @@ func (c *prollyChunker[TNode, TMetadata]) PopMultiple(finalize bool) []model_cor
 			c.uncutSizesBytes = c.uncutSizesBytes[:0]
 			c.totalUncutSizeBytes = 0
 		}
-	} else {
-		if !c.isLargeEnough(prollyCutPoint{}, cutPoint) || c.cuts[len(c.cuts)-1].point.cumulativeSizeBytes < cf.maximumSizeBytes {
-			return nil
-		}
+	default:
+		panic("unknown pop threshold")
 	}
 
 	// Remove nodes and cuts.

@@ -95,19 +95,19 @@ func TestUniformBuilder(t *testing.T) {
 		chunkerFactory.EXPECT().NewChunker().Return(chunker)
 		chunker.EXPECT().PushSingle(node1)
 		chunker.EXPECT().PushSingle(node2)
-		chunker.EXPECT().PopMultiple(false)
+		chunker.EXPECT().PopMultiple(btree.PopDefinitive)
 
 		require.NoError(t, builder.PushChild(node2))
 
 		// Finalizing the tree should cause the two-node level
 		// to be finalized as well. The resulting parent node
 		// should be returned as the root of the tree.
-		chunker.EXPECT().PopMultiple(true).
+		chunker.EXPECT().PopMultiple(btree.PopAll).
 			Return([]model_core.PatchedMessage[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]{
 				node1,
 				node2,
 			})
-		chunker.EXPECT().PopMultiple(true)
+		chunker.EXPECT().PopMultiple(btree.PopAll)
 		metadata3 := NewMockReferenceMetadata(ctrl)
 		node3 := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
 			return &model_filesystem_pb.FileContents{
