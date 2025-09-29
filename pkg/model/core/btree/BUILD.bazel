@@ -9,10 +9,10 @@ go_library(
         "capturing.go",
         "chunker_factory.go",
         "find.go",
+        "height_aware_builder.go",
         "node_merger.go",
         "object_creating_node_merger.go",
         "prolly_chunker_factory.go",
-        "uniform_builder.go",
     ],
     importpath = "bonanza.build/pkg/model/core/btree",
     visibility = ["//visibility:public"],
@@ -32,11 +32,11 @@ go_library(
 go_test(
     name = "btree_test",
     srcs = [
+        "height_aware_builder_test.go",
         "mocks_btree_test.go",
         "mocks_core_test.go",
         "mocks_encoding_test.go",
         "prolly_chunker_factory_test.go",
-        "uniform_builder_test.go",
     ],
     embed = [":btree"],
     deps = [

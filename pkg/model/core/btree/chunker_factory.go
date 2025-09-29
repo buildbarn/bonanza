@@ -26,6 +26,9 @@ const (
 	// Only pop chunks of nodes if it is certain that the current
 	// level of the B-tree is not going to be the root.
 	PopChild
+	// Only pop chunks of nodes if they are at least as large as the
+	// desired minimum size.
+	PopLargeEnough
 	// Pop chunks containing all nodes that were pushed, even if it
 	// leads to chunks that are smaller than the desired minimum
 	// size. This can be used to finalize a B-tree.

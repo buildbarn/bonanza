@@ -32,7 +32,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 		parameters.chunkMinimumSizeBytes,
 		parameters.chunkMaximumSizeBytes,
 	)
-	treeBuilder := btree.NewUniformBuilder(
+	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[T](
 			parameters.fileContentsListMinimumSizeBytes,
 			parameters.fileContentsListMaximumSizeBytes,

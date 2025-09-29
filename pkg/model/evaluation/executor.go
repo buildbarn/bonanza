@@ -334,7 +334,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		// Store all evaluation results to permit debugging of the build.
 		// TODO: Use a proper configuration.
 		evaluationTreeEncoder := model_encoding.NewChainedBinaryEncoder(nil)
-		outcomesTreeBuilder := btree.NewUniformBuilder(
+		outcomesTreeBuilder := btree.NewHeightAwareBuilder(
 			btree.NewProllyChunkerFactory[buffered.ReferenceMetadata](
 				/* minimumSizeBytes = */ 1<<16,
 				/* maximumSizeBytes = */ 1<<18,
@@ -398,7 +398,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				patcher.Merge(value.Patcher)
 			}
 
-			dependencyTreeBuilder := btree.NewUniformBuilder(
+			dependencyTreeBuilder := btree.NewHeightAwareBuilder(
 				btree.NewProllyChunkerFactory[buffered.ReferenceMetadata](
 					/* minimumSizeBytes = */ 1<<16,
 					/* minimumSizeBytes = */ 1<<18,

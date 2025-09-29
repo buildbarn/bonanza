@@ -149,6 +149,10 @@ func (c *prollyChunker[TNode, TMetadata]) PopMultiple(threshold PopThreshold) mo
 	cf := c.factory
 	cutPoint := c.cuts[1].point
 	cutPointIsLargeEnough := c.isLargeEnough(prollyCutPoint{}, cutPoint)
+	endCutPoint := prollyCutPoint{
+		index:               len(c.nodes),
+		cumulativeSizeBytes: c.cuts[len(c.cuts)-1].point.cumulativeSizeBytes + c.totalUncutSizeBytes,
+	}
 	switch threshold {
 	case PopDefinitive:
 		if !cutPointIsLargeEnough || c.cuts[len(c.cuts)-1].point.cumulativeSizeBytes < cf.maximumSizeBytes {
@@ -158,27 +162,29 @@ func (c *prollyChunker[TNode, TMetadata]) PopMultiple(threshold PopThreshold) mo
 		if !cutPointIsLargeEnough {
 			return nil
 		}
+	case PopLargeEnough:
+		if !c.isLargeEnough(prollyCutPoint{}, endCutPoint) {
+			return nil
+		}
 	case PopAll:
 		if len(c.nodes) == 0 {
 			return nil
 		}
-		if !cutPointIsLargeEnough {
-			// We've reached the end. Add all nodes for
-			// which we didn't compute cuts yet, thereby
-			// ensuring that the last object also respects
-			// the minimum node count and size limit.
-			if len(c.cuts) > 2 {
-				panic("can't have multiple cuts if the first cut is still below limits")
-			}
-			cutPoint = prollyCutPoint{
-				index:               len(c.nodes),
-				cumulativeSizeBytes: c.cuts[len(c.cuts)-1].point.cumulativeSizeBytes + c.totalUncutSizeBytes,
-			}
-			c.uncutSizesBytes = c.uncutSizesBytes[:0]
-			c.totalUncutSizeBytes = 0
-		}
 	default:
 		panic("unknown pop threshold")
+	}
+
+	if !cutPointIsLargeEnough {
+		// We've reached the end. Add all nodes for which we
+		// didn't compute cuts yet, thereby ensuring that the
+		// last object also respects the minimum node count and
+		// size limit.
+		if len(c.cuts) > 2 {
+			panic("can't have multiple cuts if the first cut is still below limits")
+		}
+		cutPoint = endCutPoint
+		c.uncutSizesBytes = c.uncutSizesBytes[:0]
+		c.totalUncutSizeBytes = 0
 	}
 
 	// Remove nodes and cuts.

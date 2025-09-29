@@ -119,7 +119,7 @@ func convertDictToEnvironmentVariableList[TMetadata model_core.ReferenceMetadata
 			}
 		})
 	})
-	environmentVariablesBuilder := btree.NewUniformBuilder(
+	environmentVariablesBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			/* minimumSizeBytes = */ 1<<16,
 			/* maximumSizeBytes = */ 1<<18,

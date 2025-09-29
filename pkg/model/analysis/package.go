@@ -148,7 +148,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 
 		// Store all targets in a B-tree.
 		// TODO: Use a proper encoder!
-		treeBuilder := btree.NewUniformBuilder(
+		treeBuilder := btree.NewHeightAwareBuilder(
 			btree.NewProllyChunkerFactory[TMetadata](
 				/* minimumSizeBytes = */ 32*1024,
 				/* maximumSizeBytes = */ 128*1024,

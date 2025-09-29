@@ -14,13 +14,13 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestUniformBuilder(t *testing.T) {
+func TestHeightAwareBuilder(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	t.Run("EmptyTree", func(t *testing.T) {
 		chunkerFactory := NewMockChunkerFactoryForTesting(ctrl)
 		nodeMerger := NewMockNodeMergerForTesting(ctrl)
-		builder := btree.NewUniformBuilder[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata](chunkerFactory, nodeMerger.Call)
+		builder := btree.NewHeightAwareBuilder[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata](chunkerFactory, nodeMerger.Call)
 
 		rootNode, err := builder.FinalizeSingle()
 		require.NoError(t, err)
@@ -30,10 +30,12 @@ func TestUniformBuilder(t *testing.T) {
 	t.Run("SingleNodeTree", func(t *testing.T) {
 		chunkerFactory := NewMockChunkerFactoryForTesting(ctrl)
 		nodeMerger := NewMockNodeMergerForTesting(ctrl)
-		builder := btree.NewUniformBuilder[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata](chunkerFactory, nodeMerger.Call)
+		builder := btree.NewHeightAwareBuilder[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata](chunkerFactory, nodeMerger.Call)
 
-		chunker := NewMockChunkerForTesting(ctrl)
-		chunkerFactory.EXPECT().NewChunker().Return(chunker)
+		chunker0 := NewMockChunkerForTesting(ctrl)
+		chunkerFactory.EXPECT().NewChunker().Return(chunker0)
+		chunker1 := NewMockChunkerForTesting(ctrl)
+		chunkerFactory.EXPECT().NewChunker().Return(chunker1)
 		metadata := NewMockReferenceMetadata(ctrl)
 		node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
 			return &model_filesystem_pb.FileContents{
@@ -48,13 +50,17 @@ func TestUniformBuilder(t *testing.T) {
 				TotalSizeBytes: 42,
 			}
 		})
-		chunker.EXPECT().PushSingle(node)
-		chunker.EXPECT().PopMultiple(btree.PopDefinitive)
+		chunker0.EXPECT().PopMultiple(btree.PopLargeEnough)
+		chunker0.EXPECT().PopMultiple(btree.PopAll)
+		chunker1.EXPECT().PushSingle(node)
+		chunker1.EXPECT().PopMultiple(btree.PopDefinitive)
 
 		require.NoError(t, builder.PushChild(node))
 
-		chunker.EXPECT().PopMultiple(btree.PopChild)
-		chunker.EXPECT().PopMultiple(btree.PopAll).
+		chunker0.EXPECT().PopMultiple(btree.PopLargeEnough)
+		chunker0.EXPECT().PopMultiple(btree.PopAll)
+		chunker1.EXPECT().PopMultiple(btree.PopChild)
+		chunker1.EXPECT().PopMultiple(btree.PopAll).
 			Return(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]{
 				node,
 			})
@@ -82,7 +88,7 @@ func TestUniformBuilder(t *testing.T) {
 	t.Run("TwoNodeTree", func(t *testing.T) {
 		chunkerFactory := NewMockChunkerFactoryForTesting(ctrl)
 		nodeMerger := NewMockNodeMergerForTesting(ctrl)
-		builder := btree.NewUniformBuilder[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata](chunkerFactory, nodeMerger.Call)
+		builder := btree.NewHeightAwareBuilder[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata](chunkerFactory, nodeMerger.Call)
 
 		// Pushing the first node should only cause it to be stored.
 		metadata1 := NewMockReferenceMetadata(ctrl)
@@ -99,10 +105,14 @@ func TestUniformBuilder(t *testing.T) {
 				TotalSizeBytes: 42,
 			}
 		})
-		chunker := NewMockChunkerForTesting(ctrl)
-		chunkerFactory.EXPECT().NewChunker().Return(chunker)
-		chunker.EXPECT().PushSingle(node1)
-		chunker.EXPECT().PopMultiple(btree.PopDefinitive)
+		chunker0 := NewMockChunkerForTesting(ctrl)
+		chunkerFactory.EXPECT().NewChunker().Return(chunker0)
+		chunker0.EXPECT().PopMultiple(btree.PopLargeEnough)
+		chunker0.EXPECT().PopMultiple(btree.PopAll)
+		chunker1 := NewMockChunkerForTesting(ctrl)
+		chunkerFactory.EXPECT().NewChunker().Return(chunker1)
+		chunker1.EXPECT().PushSingle(node1)
+		chunker1.EXPECT().PopMultiple(btree.PopDefinitive)
 
 		require.NoError(t, builder.PushChild(node1))
 
@@ -122,16 +132,20 @@ func TestUniformBuilder(t *testing.T) {
 				TotalSizeBytes: 51,
 			}
 		})
-		chunker.EXPECT().PushSingle(node2)
-		chunker.EXPECT().PopMultiple(btree.PopDefinitive)
+		chunker0.EXPECT().PopMultiple(btree.PopLargeEnough)
+		chunker0.EXPECT().PopMultiple(btree.PopAll)
+		chunker1.EXPECT().PushSingle(node2)
+		chunker1.EXPECT().PopMultiple(btree.PopDefinitive)
 
 		require.NoError(t, builder.PushChild(node2))
 
 		// Finalizing the tree should cause the two-node level
 		// to be finalized as well. The resulting parent node
 		// should be returned as the root of the tree.
-		chunker.EXPECT().PopMultiple(btree.PopChild)
-		chunker.EXPECT().PopMultiple(btree.PopAll).
+		chunker0.EXPECT().PopMultiple(btree.PopLargeEnough)
+		chunker0.EXPECT().PopMultiple(btree.PopAll)
+		chunker1.EXPECT().PopMultiple(btree.PopChild)
+		chunker1.EXPECT().PopMultiple(btree.PopAll).
 			Return(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]{
 				node1,
 				node2,

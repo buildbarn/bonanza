@@ -1818,7 +1818,7 @@ func newArgumentsBuilder[TMetadata model_core.ReferenceMetadata](ctx context.Con
 			}
 		})
 	})
-	return btree.NewUniformBuilder(
+	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			/* minimumSizeBytes = */ 1<<16,
 			/* maximumSizeBytes = */ 1<<18,

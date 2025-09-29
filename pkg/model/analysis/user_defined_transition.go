@@ -243,7 +243,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 	defer existingIterStop()
 
 	// TODO: Use a proper encoder!
-	treeBuilder := btree.NewUniformBuilder(
+	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			/* minimumSizeBytes = */ 32*1024,
 			/* maximumSizeBytes = */ 128*1024,

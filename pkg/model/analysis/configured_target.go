@@ -1450,7 +1450,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			})
 
 			// Construct list of outputs of the target.
-			outputsTreeBuilder := btree.NewUniformBuilder(
+			outputsTreeBuilder := btree.NewHeightAwareBuilder(
 				btree.NewProllyChunkerFactory[TMetadata](
 					/* minimumSizeBytes = */ 32*1024,
 					/* maximumSizeBytes = */ 128*1024,
@@ -1512,7 +1512,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			patcher.Merge(outputsList.Patcher)
 
 			// Construct list of actions of the target.
-			actionsTreeBuilder := btree.NewUniformBuilder(
+			actionsTreeBuilder := btree.NewHeightAwareBuilder(
 				btree.NewProllyChunkerFactory[TMetadata](
 					/* minimumSizeBytes = */ 32*1024,
 					/* maximumSizeBytes = */ 128*1024,
@@ -2379,7 +2379,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 			}
 		})
 	})
-	toolsBuilder := btree.NewUniformBuilder(
+	toolsBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			valueEncodingOptions.ObjectMinimumSizeBytes,
 			valueEncodingOptions.ObjectMaximumSizeBytes,
@@ -2480,7 +2480,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 			}
 		})
 	})
-	argsListBuilder := btree.NewUniformBuilder(
+	argsListBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			valueEncodingOptions.ObjectMinimumSizeBytes,
 			valueEncodingOptions.ObjectMaximumSizeBytes,
@@ -3334,7 +3334,7 @@ func (a *args[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, o
 		}
 	}
 
-	addsListBuilder := btree.NewUniformBuilder(
+	addsListBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			options.ObjectMinimumSizeBytes,
 			options.ObjectMaximumSizeBytes,

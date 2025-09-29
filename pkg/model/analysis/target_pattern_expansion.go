@@ -77,7 +77,7 @@ func (c *baseComputer[TReference, TMetadata]) expandCanonicalTargetPattern(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue(ctx context.Context, key *model_analysis_pb.TargetPatternExpansion_Key, e TargetPatternExpansionEnvironment[TReference, TMetadata]) (PatchedTargetPatternExpansionValue[TMetadata], error) {
-	treeBuilder := btree.NewUniformBuilder(
+	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			/* minimumSizeBytes = */ 32*1024,
 			/* maximumSizeBytes = */ 128*1024,

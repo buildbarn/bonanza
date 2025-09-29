@@ -85,7 +85,7 @@ func newBTreeBuilder[TReference any, TMessage proto.Message, TMetadata model_cor
 	isParent func(TMessage) bool,
 	parentNodeComputer btree.ParentNodeComputer[TMessage, TMetadata],
 ) btree.Builder[TMessage, TMetadata] {
-	return btree.NewUniformBuilder(
+	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			options.ObjectMinimumSizeBytes,
 			options.ObjectMaximumSizeBytes,
