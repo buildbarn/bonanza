@@ -148,16 +148,21 @@ func (c *prollyChunker[TNode, TMetadata]) PopMultiple(threshold PopThreshold) mo
 	// create a new object, and how many nodes should go into it.
 	cf := c.factory
 	cutPoint := c.cuts[1].point
+	cutPointIsLargeEnough := c.isLargeEnough(prollyCutPoint{}, cutPoint)
 	switch threshold {
 	case PopDefinitive:
-		if !c.isLargeEnough(prollyCutPoint{}, cutPoint) || c.cuts[len(c.cuts)-1].point.cumulativeSizeBytes < cf.maximumSizeBytes {
+		if !cutPointIsLargeEnough || c.cuts[len(c.cuts)-1].point.cumulativeSizeBytes < cf.maximumSizeBytes {
+			return nil
+		}
+	case PopChild:
+		if !cutPointIsLargeEnough {
 			return nil
 		}
 	case PopAll:
 		if len(c.nodes) == 0 {
 			return nil
 		}
-		if !c.isLargeEnough(prollyCutPoint{}, cutPoint) {
+		if !cutPointIsLargeEnough {
 			// We've reached the end. Add all nodes for
 			// which we didn't compute cuts yet, thereby
 			// ensuring that the last object also respects

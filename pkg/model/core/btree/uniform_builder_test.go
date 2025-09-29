@@ -32,6 +32,8 @@ func TestUniformBuilder(t *testing.T) {
 		nodeMerger := NewMockNodeMergerForTesting(ctrl)
 		builder := btree.NewUniformBuilder[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata](chunkerFactory, nodeMerger.Call)
 
+		chunker := NewMockChunkerForTesting(ctrl)
+		chunkerFactory.EXPECT().NewChunker().Return(chunker)
 		metadata := NewMockReferenceMetadata(ctrl)
 		node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
 			return &model_filesystem_pb.FileContents{
@@ -46,11 +48,35 @@ func TestUniformBuilder(t *testing.T) {
 				TotalSizeBytes: 42,
 			}
 		})
+		chunker.EXPECT().PushSingle(node)
+		chunker.EXPECT().PopMultiple(btree.PopDefinitive)
+
 		require.NoError(t, builder.PushChild(node))
+
+		chunker.EXPECT().PopMultiple(btree.PopChild)
+		chunker.EXPECT().PopMultiple(btree.PopAll).
+			Return(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]{
+				node,
+			})
 
 		rootNode, err := builder.FinalizeSingle()
 		require.NoError(t, err)
-		require.Equal(t, node, rootNode)
+		require.True(t, model_core.PatchedMessagesEqual(
+			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
+				return &model_filesystem_pb.FileContents{
+					Level: &model_filesystem_pb.FileContents_ChunkReference{
+						ChunkReference: &model_core_pb.DecodableReference{
+							Reference: patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
+								LocalReference: object.MustNewSHA256V1LocalReference("8e81422ce5470c6fde1f2455d2eb0eb0eec4d6352eada7c36f99c8182dd3a1df", 42, 0, 0, 0),
+								Metadata:       metadata,
+							}),
+						},
+					},
+					TotalSizeBytes: 42,
+				}
+			}),
+			rootNode,
+		))
 	})
 
 	t.Run("TwoNodeTree", func(t *testing.T) {
@@ -73,6 +99,11 @@ func TestUniformBuilder(t *testing.T) {
 				TotalSizeBytes: 42,
 			}
 		})
+		chunker := NewMockChunkerForTesting(ctrl)
+		chunkerFactory.EXPECT().NewChunker().Return(chunker)
+		chunker.EXPECT().PushSingle(node1)
+		chunker.EXPECT().PopMultiple(btree.PopDefinitive)
+
 		require.NoError(t, builder.PushChild(node1))
 
 		// Pushing the second node should cause a new level to
@@ -91,9 +122,6 @@ func TestUniformBuilder(t *testing.T) {
 				TotalSizeBytes: 51,
 			}
 		})
-		chunker := NewMockChunkerForTesting(ctrl)
-		chunkerFactory.EXPECT().NewChunker().Return(chunker)
-		chunker.EXPECT().PushSingle(node1)
 		chunker.EXPECT().PushSingle(node2)
 		chunker.EXPECT().PopMultiple(btree.PopDefinitive)
 
@@ -102,12 +130,12 @@ func TestUniformBuilder(t *testing.T) {
 		// Finalizing the tree should cause the two-node level
 		// to be finalized as well. The resulting parent node
 		// should be returned as the root of the tree.
+		chunker.EXPECT().PopMultiple(btree.PopChild)
 		chunker.EXPECT().PopMultiple(btree.PopAll).
 			Return(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]{
 				node1,
 				node2,
 			})
-		chunker.EXPECT().PopMultiple(btree.PopAll)
 		metadata3 := NewMockReferenceMetadata(ctrl)
 		node3 := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.ReferenceMetadata]) *model_filesystem_pb.FileContents {
 			return &model_filesystem_pb.FileContents{
