@@ -333,6 +333,9 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 				result.Status = status.New(codes.InvalidArgument, "Invalid leaf entry in environment variables").Proto()
 				return &result
 			}
+			if environmentVariables == nil {
+				environmentVariables = map[string]string{}
+			}
 			environmentVariables[level.Leaf.Name] = level.Leaf.Value
 		}
 		if errIter != nil {
