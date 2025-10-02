@@ -57,6 +57,7 @@ func (l *consoleLogger) RemovePreviousLines(linesCount int) {
 	var b bytes.Buffer
 	l.writeFormatted(
 		formatted.Join(
+			formatted.Text("\r"),
 			formatted.CursorUp(linesCount),
 			formatted.EraseDisplay,
 		),
