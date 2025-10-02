@@ -320,56 +320,11 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	// that any relative target patterns are resolved correctly.
 	currentPackage := rootModuleName.ToModuleInstance(nil).GetBareCanonicalRepo().GetRootPackage()
 
-	targetPatterns := make([]string, 0, len(args.Arguments))
-	for _, targetPattern := range args.Arguments {
-		apparentTargetPattern, err := currentPackage.AppendTargetPattern(targetPattern)
-		if err != nil {
-			logger.Fatal(formatted.Textf("Invalid target pattern %#v: %s", targetPattern, err))
-		}
-		targetPatterns = append(targetPatterns, apparentTargetPattern.String())
-	}
-
-	// Determine the configurations for which to build. The Bazel
-	// CLI only supports specifying build setting overrides and a
-	// single list of platforms. However, there is no way to pick
-	// different build setting overrides depending on the platform.
-	commonBuildSettingOverrides := make([]*model_analysis_pb.BuildSpecification_Value_BuildSettingOverride, 0, len(args.BuildSettingOverrides))
-	for _, override := range args.BuildSettingOverrides {
-		apparentLabel, err := currentPackage.AppendTargetPattern(override.Label)
-		if err != nil {
-			logger.Fatal(formatted.Textf("Invalid build setting override --%s=%#v: %s", override.Label, override.Value, err))
-		}
-		commonBuildSettingOverrides = append(
-			commonBuildSettingOverrides,
-			&model_analysis_pb.BuildSpecification_Value_BuildSettingOverride{
-				Label: apparentLabel.String(),
-				Value: override.Value,
-			},
-		)
-	}
-	targetPlatforms := strings.FieldsFunc(args.BuildFlags.Platforms, func(r rune) bool { return r == ',' })
-	if len(targetPlatforms) == 0 {
-		targetPlatforms = []string{"@platforms//host"}
-	}
-	configurations := make([]*model_analysis_pb.BuildSpecification_Value_Configuration, 0, len(targetPlatforms))
-	for _, targetPlatform := range targetPlatforms {
-		configurations = append(configurations, &model_analysis_pb.BuildSpecification_Value_Configuration{
-			BuildSettingOverrides: append(
-				[]*model_analysis_pb.BuildSpecification_Value_BuildSettingOverride{{
-					Label: "@bazel_tools//command_line_option:platforms",
-					Value: targetPlatform,
-				}},
-				commonBuildSettingOverrides...,
-			),
-		})
-	}
-
 	// Construct a BuildSpecification message that lists all the
 	// modules and contains all of the flags to instruct what needs
 	// to be built.
 	buildSpecification := model_analysis_pb.BuildSpecification_Value{
 		RootModuleName:                         rootModuleName.String(),
-		TargetPatterns:                         targetPatterns,
 		DirectoryCreationParameters:            directoryParametersMessage,
 		FileCreationParameters:                 fileParametersMessage,
 		IgnoreRootModuleDevDependencies:        args.CommonFlags.IgnoreDevDependency,
@@ -377,7 +332,6 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		RepoPlatform:                           args.CommonFlags.RepoPlatform,
 		FetchPlatformPkixPublicKey:             fetcherPKIXPublicKey,
 		ActionEncoders:                         defaultEncoders,
-		Configurations:                         configurations,
 		RuleImplementationWrapperIdentifier:    args.CommonFlags.RuleImplementationWrapperIdentifier,
 		SubruleImplementationWrapperIdentifier: args.CommonFlags.SubruleImplementationWrapperIdentifier,
 	}
@@ -508,6 +462,50 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		logger.Fatal(formatted.Textf("Failed to create overrides list object: %s", err))
 	}
 
+	targetPatterns := make([]string, 0, len(args.Arguments))
+	for _, targetPattern := range args.Arguments {
+		apparentTargetPattern, err := currentPackage.AppendTargetPattern(targetPattern)
+		if err != nil {
+			logger.Fatal(formatted.Textf("Invalid target pattern %#v: %s", targetPattern, err))
+		}
+		targetPatterns = append(targetPatterns, apparentTargetPattern.String())
+	}
+
+	// Determine the configurations for which to build. The Bazel
+	// CLI only supports specifying build setting overrides and a
+	// single list of platforms. However, there is no way to pick
+	// different build setting overrides depending on the platform.
+	commonBuildSettingOverrides := make([]*model_analysis_pb.BuildResult_Key_BuildSettingOverride, 0, len(args.BuildSettingOverrides))
+	for _, override := range args.BuildSettingOverrides {
+		apparentLabel, err := currentPackage.AppendTargetPattern(override.Label)
+		if err != nil {
+			logger.Fatal(formatted.Textf("Invalid build setting override --%s=%#v: %s", override.Label, override.Value, err))
+		}
+		commonBuildSettingOverrides = append(
+			commonBuildSettingOverrides,
+			&model_analysis_pb.BuildResult_Key_BuildSettingOverride{
+				Label: apparentLabel.String(),
+				Value: override.Value,
+			},
+		)
+	}
+	targetPlatforms := strings.FieldsFunc(args.BuildFlags.Platforms, func(r rune) bool { return r == ',' })
+	if len(targetPlatforms) == 0 {
+		targetPlatforms = []string{"@platforms//host"}
+	}
+	configurations := make([]*model_analysis_pb.BuildResult_Key_Configuration, 0, len(targetPlatforms))
+	for _, targetPlatform := range targetPlatforms {
+		configurations = append(configurations, &model_analysis_pb.BuildResult_Key_Configuration{
+			BuildSettingOverrides: append(
+				[]*model_analysis_pb.BuildResult_Key_BuildSettingOverride{{
+					Label: "@bazel_tools//command_line_option:platforms",
+					Value: targetPlatform,
+				}},
+				commonBuildSettingOverrides...,
+			),
+		})
+	}
+
 	// Construct an Action message.
 	actionMessage, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) (model_core.Marshalable, error) {
 		overridesReference, err := patcher.CaptureAndAddDecodableReference(
@@ -521,7 +519,10 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 
 		buildResultKey, err := model_core.MarshalAny(
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
-				&model_analysis_pb.BuildResult_Key{},
+				&model_analysis_pb.BuildResult_Key{
+					TargetPatterns: targetPatterns,
+					Configurations: configurations,
+				},
 			),
 		)
 		if err != nil {

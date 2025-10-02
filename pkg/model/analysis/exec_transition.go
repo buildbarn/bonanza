@@ -40,7 +40,7 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 	e createInitialConfigurationEnvironment[TReference, TMetadata],
 	thread *starlark.Thread,
 	rootPackage label.CanonicalPackage,
-	configuration *model_analysis_pb.BuildSpecification_Value_Configuration,
+	configuration *model_analysis_pb.BuildResult_Key_Configuration,
 ) (model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], error) {
 	// Walk over all provided build setting overrides and group all
 	// values belonging to the same build setting together.

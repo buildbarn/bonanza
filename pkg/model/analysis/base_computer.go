@@ -316,7 +316,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	thread := c.newStarlarkThread(ctx, e, buildSpecification.BuiltinsModuleNames)
 	missingDependencies := false
 	labelResolver := newLabelResolver(e)
-	for i, configuration := range buildSpecification.Configurations {
+	for i, configuration := range key.Configurations {
 		targetPlatformConfigurationReference, err := c.createInitialConfiguration(ctx, e, thread, rootPackage, configuration)
 		if err != nil {
 			if !errors.Is(err, evaluation.ErrMissingDependency) {
@@ -330,7 +330,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 			targetPlatformConfigurationReference,
 		).Decay()
 
-		for _, targetPattern := range buildSpecification.TargetPatterns {
+		for _, targetPattern := range key.TargetPatterns {
 			apparentTargetPattern, err := label.NewApparentTargetPattern(targetPattern)
 			if err != nil {
 				return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("invalid target pattern %#v: %w", targetPattern, err)

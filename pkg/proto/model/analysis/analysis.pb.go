@@ -4327,22 +4327,20 @@ func (*BuildSpecification_Key) Descriptor() ([]byte, []int) {
 }
 
 type BuildSpecification_Value struct {
-	state                                  protoimpl.MessageState                    `protogen:"open.v1"`
-	Modules                                []*BuildSpecification_Value_Module        `protobuf:"bytes,1,rep,name=modules,proto3" json:"modules,omitempty"`
-	RootModuleName                         string                                    `protobuf:"bytes,2,opt,name=root_module_name,json=rootModuleName,proto3" json:"root_module_name,omitempty"`
-	TargetPatterns                         []string                                  `protobuf:"bytes,3,rep,name=target_patterns,json=targetPatterns,proto3" json:"target_patterns,omitempty"`
-	DirectoryCreationParameters            *filesystem.DirectoryCreationParameters   `protobuf:"bytes,4,opt,name=directory_creation_parameters,json=directoryCreationParameters,proto3" json:"directory_creation_parameters,omitempty"`
-	FileCreationParameters                 *filesystem.FileCreationParameters        `protobuf:"bytes,5,opt,name=file_creation_parameters,json=fileCreationParameters,proto3" json:"file_creation_parameters,omitempty"`
-	UseLockfile                            *BuildSpecification_Value_UseLockfile     `protobuf:"bytes,6,opt,name=use_lockfile,json=useLockfile,proto3" json:"use_lockfile,omitempty"`
-	ModuleRegistryUrls                     []string                                  `protobuf:"bytes,7,rep,name=module_registry_urls,json=moduleRegistryUrls,proto3" json:"module_registry_urls,omitempty"`
-	IgnoreRootModuleDevDependencies        bool                                      `protobuf:"varint,8,opt,name=ignore_root_module_dev_dependencies,json=ignoreRootModuleDevDependencies,proto3" json:"ignore_root_module_dev_dependencies,omitempty"`
-	BuiltinsModuleNames                    []string                                  `protobuf:"bytes,9,rep,name=builtins_module_names,json=builtinsModuleNames,proto3" json:"builtins_module_names,omitempty"`
-	RepoPlatform                           string                                    `protobuf:"bytes,10,opt,name=repo_platform,json=repoPlatform,proto3" json:"repo_platform,omitempty"`
-	ActionEncoders                         []*encoding.BinaryEncoder                 `protobuf:"bytes,11,rep,name=action_encoders,json=actionEncoders,proto3" json:"action_encoders,omitempty"`
-	Configurations                         []*BuildSpecification_Value_Configuration `protobuf:"bytes,12,rep,name=configurations,proto3" json:"configurations,omitempty"`
-	RuleImplementationWrapperIdentifier    string                                    `protobuf:"bytes,13,opt,name=rule_implementation_wrapper_identifier,json=ruleImplementationWrapperIdentifier,proto3" json:"rule_implementation_wrapper_identifier,omitempty"`
-	SubruleImplementationWrapperIdentifier string                                    `protobuf:"bytes,14,opt,name=subrule_implementation_wrapper_identifier,json=subruleImplementationWrapperIdentifier,proto3" json:"subrule_implementation_wrapper_identifier,omitempty"`
-	FetchPlatformPkixPublicKey             []byte                                    `protobuf:"bytes,15,opt,name=fetch_platform_pkix_public_key,json=fetchPlatformPkixPublicKey,proto3" json:"fetch_platform_pkix_public_key,omitempty"`
+	state                                  protoimpl.MessageState                  `protogen:"open.v1"`
+	Modules                                []*BuildSpecification_Value_Module      `protobuf:"bytes,1,rep,name=modules,proto3" json:"modules,omitempty"`
+	RootModuleName                         string                                  `protobuf:"bytes,2,opt,name=root_module_name,json=rootModuleName,proto3" json:"root_module_name,omitempty"`
+	DirectoryCreationParameters            *filesystem.DirectoryCreationParameters `protobuf:"bytes,4,opt,name=directory_creation_parameters,json=directoryCreationParameters,proto3" json:"directory_creation_parameters,omitempty"`
+	FileCreationParameters                 *filesystem.FileCreationParameters      `protobuf:"bytes,5,opt,name=file_creation_parameters,json=fileCreationParameters,proto3" json:"file_creation_parameters,omitempty"`
+	UseLockfile                            *BuildSpecification_Value_UseLockfile   `protobuf:"bytes,6,opt,name=use_lockfile,json=useLockfile,proto3" json:"use_lockfile,omitempty"`
+	ModuleRegistryUrls                     []string                                `protobuf:"bytes,7,rep,name=module_registry_urls,json=moduleRegistryUrls,proto3" json:"module_registry_urls,omitempty"`
+	IgnoreRootModuleDevDependencies        bool                                    `protobuf:"varint,8,opt,name=ignore_root_module_dev_dependencies,json=ignoreRootModuleDevDependencies,proto3" json:"ignore_root_module_dev_dependencies,omitempty"`
+	BuiltinsModuleNames                    []string                                `protobuf:"bytes,9,rep,name=builtins_module_names,json=builtinsModuleNames,proto3" json:"builtins_module_names,omitempty"`
+	RepoPlatform                           string                                  `protobuf:"bytes,10,opt,name=repo_platform,json=repoPlatform,proto3" json:"repo_platform,omitempty"`
+	ActionEncoders                         []*encoding.BinaryEncoder               `protobuf:"bytes,11,rep,name=action_encoders,json=actionEncoders,proto3" json:"action_encoders,omitempty"`
+	RuleImplementationWrapperIdentifier    string                                  `protobuf:"bytes,13,opt,name=rule_implementation_wrapper_identifier,json=ruleImplementationWrapperIdentifier,proto3" json:"rule_implementation_wrapper_identifier,omitempty"`
+	SubruleImplementationWrapperIdentifier string                                  `protobuf:"bytes,14,opt,name=subrule_implementation_wrapper_identifier,json=subruleImplementationWrapperIdentifier,proto3" json:"subrule_implementation_wrapper_identifier,omitempty"`
+	FetchPlatformPkixPublicKey             []byte                                  `protobuf:"bytes,15,opt,name=fetch_platform_pkix_public_key,json=fetchPlatformPkixPublicKey,proto3" json:"fetch_platform_pkix_public_key,omitempty"`
 	unknownFields                          protoimpl.UnknownFields
 	sizeCache                              protoimpl.SizeCache
 }
@@ -4389,13 +4387,6 @@ func (x *BuildSpecification_Value) GetRootModuleName() string {
 		return x.RootModuleName
 	}
 	return ""
-}
-
-func (x *BuildSpecification_Value) GetTargetPatterns() []string {
-	if x != nil {
-		return x.TargetPatterns
-	}
-	return nil
 }
 
 func (x *BuildSpecification_Value) GetDirectoryCreationParameters() *filesystem.DirectoryCreationParameters {
@@ -4450,13 +4441,6 @@ func (x *BuildSpecification_Value) GetRepoPlatform() string {
 func (x *BuildSpecification_Value) GetActionEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
 		return x.ActionEncoders
-	}
-	return nil
-}
-
-func (x *BuildSpecification_Value) GetConfigurations() []*BuildSpecification_Value_Configuration {
-	if x != nil {
-		return x.Configurations
 	}
 	return nil
 }
@@ -4586,102 +4570,6 @@ func (x *BuildSpecification_Value_UseLockfile) GetMaximumCacheDuration() *durati
 	return nil
 }
 
-type BuildSpecification_Value_BuildSettingOverride struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
-	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BuildSpecification_Value_BuildSettingOverride) Reset() {
-	*x = BuildSpecification_Value_BuildSettingOverride{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[102]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BuildSpecification_Value_BuildSettingOverride) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BuildSpecification_Value_BuildSettingOverride) ProtoMessage() {}
-
-func (x *BuildSpecification_Value_BuildSettingOverride) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[102]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BuildSpecification_Value_BuildSettingOverride.ProtoReflect.Descriptor instead.
-func (*BuildSpecification_Value_BuildSettingOverride) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDescGZIP(), []int{5, 1, 2}
-}
-
-func (x *BuildSpecification_Value_BuildSettingOverride) GetLabel() string {
-	if x != nil {
-		return x.Label
-	}
-	return ""
-}
-
-func (x *BuildSpecification_Value_BuildSettingOverride) GetValue() string {
-	if x != nil {
-		return x.Value
-	}
-	return ""
-}
-
-type BuildSpecification_Value_Configuration struct {
-	state                 protoimpl.MessageState                           `protogen:"open.v1"`
-	BuildSettingOverrides []*BuildSpecification_Value_BuildSettingOverride `protobuf:"bytes,1,rep,name=build_setting_overrides,json=buildSettingOverrides,proto3" json:"build_setting_overrides,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
-}
-
-func (x *BuildSpecification_Value_Configuration) Reset() {
-	*x = BuildSpecification_Value_Configuration{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[103]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BuildSpecification_Value_Configuration) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BuildSpecification_Value_Configuration) ProtoMessage() {}
-
-func (x *BuildSpecification_Value_Configuration) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[103]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BuildSpecification_Value_Configuration.ProtoReflect.Descriptor instead.
-func (*BuildSpecification_Value_Configuration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDescGZIP(), []int{5, 1, 3}
-}
-
-func (x *BuildSpecification_Value_Configuration) GetBuildSettingOverrides() []*BuildSpecification_Value_BuildSettingOverride {
-	if x != nil {
-		return x.BuildSettingOverrides
-	}
-	return nil
-}
-
 type BuiltinsModuleNames_Key struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -4690,7 +4578,7 @@ type BuiltinsModuleNames_Key struct {
 
 func (x *BuiltinsModuleNames_Key) Reset() {
 	*x = BuiltinsModuleNames_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[104]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4702,7 +4590,7 @@ func (x *BuiltinsModuleNames_Key) String() string {
 func (*BuiltinsModuleNames_Key) ProtoMessage() {}
 
 func (x *BuiltinsModuleNames_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[104]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4727,7 +4615,7 @@ type BuiltinsModuleNames_Value struct {
 
 func (x *BuiltinsModuleNames_Value) Reset() {
 	*x = BuiltinsModuleNames_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[105]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4739,7 +4627,7 @@ func (x *BuiltinsModuleNames_Value) String() string {
 func (*BuiltinsModuleNames_Value) ProtoMessage() {}
 
 func (x *BuiltinsModuleNames_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[105]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4763,14 +4651,16 @@ func (x *BuiltinsModuleNames_Value) GetBuiltinsModuleNames() []string {
 }
 
 type BuildResult_Key struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState           `protogen:"open.v1"`
+	Configurations []*BuildResult_Key_Configuration `protobuf:"bytes,1,rep,name=configurations,proto3" json:"configurations,omitempty"`
+	TargetPatterns []string                         `protobuf:"bytes,2,rep,name=target_patterns,json=targetPatterns,proto3" json:"target_patterns,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *BuildResult_Key) Reset() {
 	*x = BuildResult_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[106]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4782,7 +4672,7 @@ func (x *BuildResult_Key) String() string {
 func (*BuildResult_Key) ProtoMessage() {}
 
 func (x *BuildResult_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[106]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4798,6 +4688,20 @@ func (*BuildResult_Key) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDescGZIP(), []int{7, 0}
 }
 
+func (x *BuildResult_Key) GetConfigurations() []*BuildResult_Key_Configuration {
+	if x != nil {
+		return x.Configurations
+	}
+	return nil
+}
+
+func (x *BuildResult_Key) GetTargetPatterns() []string {
+	if x != nil {
+		return x.TargetPatterns
+	}
+	return nil
+}
+
 type BuildResult_Value struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -4806,7 +4710,7 @@ type BuildResult_Value struct {
 
 func (x *BuildResult_Value) Reset() {
 	*x = BuildResult_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[107]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4818,7 +4722,7 @@ func (x *BuildResult_Value) String() string {
 func (*BuildResult_Value) ProtoMessage() {}
 
 func (x *BuildResult_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[107]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4832,6 +4736,102 @@ func (x *BuildResult_Value) ProtoReflect() protoreflect.Message {
 // Deprecated: Use BuildResult_Value.ProtoReflect.Descriptor instead.
 func (*BuildResult_Value) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDescGZIP(), []int{7, 1}
+}
+
+type BuildResult_Key_BuildSettingOverride struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BuildResult_Key_BuildSettingOverride) Reset() {
+	*x = BuildResult_Key_BuildSettingOverride{}
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[106]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuildResult_Key_BuildSettingOverride) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildResult_Key_BuildSettingOverride) ProtoMessage() {}
+
+func (x *BuildResult_Key_BuildSettingOverride) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[106]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildResult_Key_BuildSettingOverride.ProtoReflect.Descriptor instead.
+func (*BuildResult_Key_BuildSettingOverride) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDescGZIP(), []int{7, 0, 0}
+}
+
+func (x *BuildResult_Key_BuildSettingOverride) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *BuildResult_Key_BuildSettingOverride) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+type BuildResult_Key_Configuration struct {
+	state                 protoimpl.MessageState                  `protogen:"open.v1"`
+	BuildSettingOverrides []*BuildResult_Key_BuildSettingOverride `protobuf:"bytes,1,rep,name=build_setting_overrides,json=buildSettingOverrides,proto3" json:"build_setting_overrides,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *BuildResult_Key_Configuration) Reset() {
+	*x = BuildResult_Key_Configuration{}
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[107]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuildResult_Key_Configuration) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildResult_Key_Configuration) ProtoMessage() {}
+
+func (x *BuildResult_Key_Configuration) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[107]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildResult_Key_Configuration.ProtoReflect.Descriptor instead.
+func (*BuildResult_Key_Configuration) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDescGZIP(), []int{7, 0, 1}
+}
+
+func (x *BuildResult_Key_Configuration) GetBuildSettingOverrides() []*BuildResult_Key_BuildSettingOverride {
+	if x != nil {
+		return x.BuildSettingOverrides
+	}
+	return nil
 }
 
 type CanonicalRepoName_Key struct {
@@ -13024,13 +13024,13 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x0fexecute_request\x18\x01 \x01(\v2&.bonanza.model.analysis.ExecuteRequestR\x0eexecuteRequest\x1a\x9e\x01\n" +
 	"\x05Value\x12\x1b\n" +
 	"\texit_code\x18\x01 \x01(\x03R\bexitCode\x12x\n" +
-	"\x11outputs_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.OutputsR\x10outputsReference\"\xea\f\n" +
+	"\x11outputs_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.OutputsR\x10outputsReference\"\x84\n" +
+	"\n" +
 	"\x12BuildSpecification\x1a\x05\n" +
-	"\x03Key\x1a\xcc\f\n" +
+	"\x03Key\x1a\xe6\t\n" +
 	"\x05Value\x12Q\n" +
 	"\amodules\x18\x01 \x03(\v27.bonanza.model.analysis.BuildSpecification.Value.ModuleR\amodules\x12(\n" +
-	"\x10root_module_name\x18\x02 \x01(\tR\x0erootModuleName\x12'\n" +
-	"\x0ftarget_patterns\x18\x03 \x03(\tR\x0etargetPatterns\x12y\n" +
+	"\x10root_module_name\x18\x02 \x01(\tR\x0erootModuleName\x12y\n" +
 	"\x1ddirectory_creation_parameters\x18\x04 \x01(\v25.bonanza.model.filesystem.DirectoryCreationParametersR\x1bdirectoryCreationParameters\x12j\n" +
 	"\x18file_creation_parameters\x18\x05 \x01(\v20.bonanza.model.filesystem.FileCreationParametersR\x16fileCreationParameters\x12_\n" +
 	"\fuse_lockfile\x18\x06 \x01(\v2<.bonanza.model.analysis.BuildSpecification.Value.UseLockfileR\vuseLockfile\x120\n" +
@@ -13039,8 +13039,7 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x15builtins_module_names\x18\t \x03(\tR\x13builtinsModuleNames\x12#\n" +
 	"\rrepo_platform\x18\n" +
 	" \x01(\tR\frepoPlatform\x12N\n" +
-	"\x0faction_encoders\x18\v \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eactionEncoders\x12f\n" +
-	"\x0econfigurations\x18\f \x03(\v2>.bonanza.model.analysis.BuildSpecification.Value.ConfigurationR\x0econfigurations\x12S\n" +
+	"\x0faction_encoders\x18\v \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eactionEncoders\x12S\n" +
 	"&rule_implementation_wrapper_identifier\x18\r \x01(\tR#ruleImplementationWrapperIdentifier\x12Y\n" +
 	")subrule_implementation_wrapper_identifier\x18\x0e \x01(\tR&subruleImplementationWrapperIdentifier\x12B\n" +
 	"\x1efetch_platform_pkix_public_key\x18\x0f \x01(\fR\x1afetchPlatformPkixPublicKey\x1a\x84\x01\n" +
@@ -13049,18 +13048,20 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x18root_directory_reference\x18\x02 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x16rootDirectoryReference\x1at\n" +
 	"\vUseLockfile\x12\x14\n" +
 	"\x05error\x18\x01 \x01(\bR\x05error\x12O\n" +
-	"\x16maximum_cache_duration\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x14maximumCacheDuration\x1aB\n" +
-	"\x14BuildSettingOverride\x12\x14\n" +
-	"\x05label\x18\x01 \x01(\tR\x05label\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\x1a\x8e\x01\n" +
-	"\rConfiguration\x12}\n" +
-	"\x17build_setting_overrides\x18\x01 \x03(\v2E.bonanza.model.analysis.BuildSpecification.Value.BuildSettingOverrideR\x15buildSettingOverrides\"Y\n" +
+	"\x16maximum_cache_duration\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x14maximumCacheDuration\"Y\n" +
 	"\x13BuiltinsModuleNames\x1a\x05\n" +
 	"\x03Key\x1a;\n" +
 	"\x05Value\x122\n" +
-	"\x15builtins_module_names\x18\x01 \x03(\tR\x13builtinsModuleNames\"\x1d\n" +
-	"\vBuildResult\x1a\x05\n" +
-	"\x03Key\x1a\a\n" +
+	"\x15builtins_module_names\x18\x01 \x03(\tR\x13builtinsModuleNames\"\xf2\x02\n" +
+	"\vBuildResult\x1a\xd9\x02\n" +
+	"\x03Key\x12]\n" +
+	"\x0econfigurations\x18\x01 \x03(\v25.bonanza.model.analysis.BuildResult.Key.ConfigurationR\x0econfigurations\x12'\n" +
+	"\x0ftarget_patterns\x18\x02 \x03(\tR\x0etargetPatterns\x1aB\n" +
+	"\x14BuildSettingOverride\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\x1a\x85\x01\n" +
+	"\rConfiguration\x12t\n" +
+	"\x17build_setting_overrides\x18\x01 \x03(\v2<.bonanza.model.analysis.BuildResult.Key.BuildSettingOverrideR\x15buildSettingOverrides\x1a\a\n" +
 	"\x05Value\"\xa9\x01\n" +
 	"\x11CanonicalRepoName\x1a_\n" +
 	"\x03Key\x12.\n" +
@@ -13786,12 +13787,12 @@ var file_bonanza_build_pkg_proto_model_analysis_analysis_proto_goTypes = []any{
 	(*BuildSpecification_Value)(nil),                           // 102: bonanza.model.analysis.BuildSpecification.Value
 	(*BuildSpecification_Value_Module)(nil),                    // 103: bonanza.model.analysis.BuildSpecification.Value.Module
 	(*BuildSpecification_Value_UseLockfile)(nil),               // 104: bonanza.model.analysis.BuildSpecification.Value.UseLockfile
-	(*BuildSpecification_Value_BuildSettingOverride)(nil),      // 105: bonanza.model.analysis.BuildSpecification.Value.BuildSettingOverride
-	(*BuildSpecification_Value_Configuration)(nil),             // 106: bonanza.model.analysis.BuildSpecification.Value.Configuration
-	(*BuiltinsModuleNames_Key)(nil),                            // 107: bonanza.model.analysis.BuiltinsModuleNames.Key
-	(*BuiltinsModuleNames_Value)(nil),                          // 108: bonanza.model.analysis.BuiltinsModuleNames.Value
-	(*BuildResult_Key)(nil),                                    // 109: bonanza.model.analysis.BuildResult.Key
-	(*BuildResult_Value)(nil),                                  // 110: bonanza.model.analysis.BuildResult.Value
+	(*BuiltinsModuleNames_Key)(nil),                            // 105: bonanza.model.analysis.BuiltinsModuleNames.Key
+	(*BuiltinsModuleNames_Value)(nil),                          // 106: bonanza.model.analysis.BuiltinsModuleNames.Value
+	(*BuildResult_Key)(nil),                                    // 107: bonanza.model.analysis.BuildResult.Key
+	(*BuildResult_Value)(nil),                                  // 108: bonanza.model.analysis.BuildResult.Value
+	(*BuildResult_Key_BuildSettingOverride)(nil),               // 109: bonanza.model.analysis.BuildResult.Key.BuildSettingOverride
+	(*BuildResult_Key_Configuration)(nil),                      // 110: bonanza.model.analysis.BuildResult.Key.Configuration
 	(*CanonicalRepoName_Key)(nil),                              // 111: bonanza.model.analysis.CanonicalRepoName.Key
 	(*CanonicalRepoName_Value)(nil),                            // 112: bonanza.model.analysis.CanonicalRepoName.Value
 	(*CompatibleExecutionPlatforms_Key)(nil),                   // 113: bonanza.model.analysis.CompatibleExecutionPlatforms.Key
@@ -14027,10 +14028,10 @@ var file_bonanza_build_pkg_proto_model_analysis_analysis_proto_depIdxs = []int32
 	290, // 31: bonanza.model.analysis.BuildSpecification.Value.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
 	104, // 32: bonanza.model.analysis.BuildSpecification.Value.use_lockfile:type_name -> bonanza.model.analysis.BuildSpecification.Value.UseLockfile
 	288, // 33: bonanza.model.analysis.BuildSpecification.Value.action_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	106, // 34: bonanza.model.analysis.BuildSpecification.Value.configurations:type_name -> bonanza.model.analysis.BuildSpecification.Value.Configuration
-	291, // 35: bonanza.model.analysis.BuildSpecification.Value.Module.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
-	280, // 36: bonanza.model.analysis.BuildSpecification.Value.UseLockfile.maximum_cache_duration:type_name -> google.protobuf.Duration
-	105, // 37: bonanza.model.analysis.BuildSpecification.Value.Configuration.build_setting_overrides:type_name -> bonanza.model.analysis.BuildSpecification.Value.BuildSettingOverride
+	291, // 34: bonanza.model.analysis.BuildSpecification.Value.Module.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
+	280, // 35: bonanza.model.analysis.BuildSpecification.Value.UseLockfile.maximum_cache_duration:type_name -> google.protobuf.Duration
+	110, // 36: bonanza.model.analysis.BuildResult.Key.configurations:type_name -> bonanza.model.analysis.BuildResult.Key.Configuration
+	109, // 37: bonanza.model.analysis.BuildResult.Key.Configuration.build_setting_overrides:type_name -> bonanza.model.analysis.BuildResult.Key.BuildSettingOverride
 	61,  // 38: bonanza.model.analysis.CompatibleExecutionPlatforms.Key.constraints:type_name -> bonanza.model.analysis.Constraint
 	62,  // 39: bonanza.model.analysis.CompatibleExecutionPlatforms.Value.execution_platforms:type_name -> bonanza.model.analysis.ExecutionPlatform
 	279, // 40: bonanza.model.analysis.CompatibleToolchainsForType.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
