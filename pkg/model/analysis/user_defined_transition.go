@@ -363,7 +363,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 
 type getBuildSettingValueEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
-	GetConfiguredTargetValue(model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference]
+	GetTargetProvidersValue(model_core.PatchedMessage[*model_analysis_pb.TargetProviders_Key, TMetadata]) model_core.Message[*model_analysis_pb.TargetProviders_Value, TReference]
 	GetTargetValue(*model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, TReference]
 	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
 }
@@ -452,20 +452,20 @@ func (c *baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.C
 		// Not a build setting, but the target may provide
 		// FeatureFlagInfo if configured.
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
-		configuredTarget := e.GetConfiguredTargetValue(
+		targetProviders := e.GetTargetProvidersValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.ConfiguredTarget_Key{
+				&model_analysis_pb.TargetProviders_Key{
 					Label:                  visibleBuildSettingLabel,
 					ConfigurationReference: patchedConfigurationReference.Message,
 				},
 				patchedConfigurationReference.Patcher,
 			),
 		)
-		if !configuredTarget.IsSet() {
+		if !targetProviders.IsSet() {
 			return model_core.Message[*model_starlark_pb.Value, TReference]{}, evaluation.ErrMissingDependency
 		}
 		featureFlagInfoProviderIdentifierStr := featureFlagInfoProviderIdentifier.String()
-		providerInstances := configuredTarget.Message.ProviderInstances
+		providerInstances := targetProviders.Message.ProviderInstances
 		featureFlagInfoIndex, ok := sort.Find(
 			len(providerInstances),
 			func(i int) int {
@@ -478,7 +478,7 @@ func (c *baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.C
 		featureFlagValue, err := model_starlark.GetStructFieldValue(
 			ctx,
 			c.valueReaders.List,
-			model_core.Nested(configuredTarget, providerInstances[featureFlagInfoIndex].Fields),
+			model_core.Nested(targetProviders, providerInstances[featureFlagInfoIndex].Fields),
 			"value",
 		)
 		if err != nil {

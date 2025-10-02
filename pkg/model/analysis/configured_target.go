@@ -446,16 +446,16 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 
 					// Obtain the providers of the target.
 					patchedConfigurationReference2 := model_core.Patch(e, configurationReference)
-					configuredTarget := e.GetConfiguredTargetValue(
+					targetProviders := e.GetTargetProvidersValue(
 						model_core.NewPatchedMessage(
-							&model_analysis_pb.ConfiguredTarget_Key{
+							&model_analysis_pb.TargetProviders_Key{
 								Label:                  resolvedLabelStr,
 								ConfigurationReference: patchedConfigurationReference2.Message,
 							},
 							patchedConfigurationReference2.Patcher,
 						),
 					)
-					if !configuredTarget.IsSet() {
+					if !targetProviders.IsSet() {
 						missingDependencies = true
 						return starlark.None, nil
 					}
@@ -464,7 +464,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 						originalLabel,
 						model_starlark.NewConfiguredTargetReference[TReference, TMetadata](
 							resolvedLabel,
-							model_core.Nested(configuredTarget, configuredTarget.Message.ProviderInstances),
+							model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances),
 						),
 					), nil
 				} else {
@@ -1065,20 +1065,20 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 
 							// Obtain the providers of the target.
 							patchedConfigurationReference2 := model_core.Patch(e, outputConfigurationReference)
-							configuredTarget := e.GetConfiguredTargetValue(
+							targetProviders := e.GetTargetProvidersValue(
 								model_core.NewPatchedMessage(
-									&model_analysis_pb.ConfiguredTarget_Key{
+									&model_analysis_pb.TargetProviders_Key{
 										Label:                  resolvedLabelStr,
 										ConfigurationReference: patchedConfigurationReference2.Message,
 									},
 									patchedConfigurationReference2.Patcher,
 								),
 							)
-							if !configuredTarget.IsSet() {
+							if !targetProviders.IsSet() {
 								missingDependencies = true
 								return starlark.None, nil
 							}
-							providerInstances := model_core.Nested(configuredTarget, configuredTarget.Message.ProviderInstances)
+							providerInstances := model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances)
 
 							defaultInfoProviderIdentifierStr := defaultInfoProviderIdentifier.String()
 							defaultInfoIndex, ok := sort.Find(
@@ -3173,41 +3173,41 @@ type ruleContextExecGroupState struct {
 }
 
 type getProviderFromConfiguredTargetEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	GetConfiguredTargetValue(key model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference]
+	GetTargetProvidersValue(key model_core.PatchedMessage[*model_analysis_pb.TargetProviders_Key, TMetadata]) model_core.Message[*model_analysis_pb.TargetProviders_Value, TReference]
 }
 
 // getProviderFromConfiguredTarget looks up a single provider that is
 // provided by a configured target.
 func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.ReferenceMetadata](e getProviderFromConfiguredTargetEnvironment[TReference, TMetadata], targetLabel string, configurationReference model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], providerIdentifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Struct_Fields, TReference], error) {
-	configuredTargetValue := e.GetConfiguredTargetValue(
+	targetProvidersValue := e.GetTargetProvidersValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.ConfiguredTarget_Key{
+			&model_analysis_pb.TargetProviders_Key{
 				Label:                  targetLabel,
 				ConfigurationReference: configurationReference.Message,
 			},
 			configurationReference.Patcher,
 		),
 	)
-	if !configuredTargetValue.IsSet() {
+	if !targetProvidersValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, evaluation.ErrMissingDependency
 	}
 
 	providerIdentifierStr := providerIdentifier.String()
-	providerInstances := configuredTargetValue.Message.ProviderInstances
+	providerInstances := targetProvidersValue.Message.ProviderInstances
 	if providerIndex, ok := sort.Find(
 		len(providerInstances),
 		func(i int) int {
 			return strings.Compare(providerIdentifierStr, providerInstances[i].ProviderInstanceProperties.GetProviderIdentifier())
 		},
 	); ok {
-		return model_core.Nested(configuredTargetValue, providerInstances[providerIndex].Fields), nil
+		return model_core.Nested(targetProvidersValue, providerInstances[providerIndex].Fields), nil
 	}
 	return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, fmt.Errorf("target did not yield provider %#v", providerIdentifierStr)
 }
 
 type getProviderFromVisibleConfiguredTargetEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ObjectManager[TReference, TMetadata]
-	GetConfiguredTargetValue(model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference]
+	getProviderFromConfiguredTargetEnvironment[TReference, TMetadata]
 	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
 }
 

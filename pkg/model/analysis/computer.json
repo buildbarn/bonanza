@@ -65,10 +65,10 @@
       },
       "CompatibleToolchainsForType": {
          "dependsOn": [
-            "ConfiguredTarget",
             "RegisteredToolchainsForType",
             "Select",
             "Target",
+            "TargetProviders",
             "VisibleTarget"
          ],
          "keyContainsReferences": true
@@ -125,16 +125,16 @@
             "CompiledBzlFileDecodedGlobals",
             "CompiledBzlFileFunctionFactory",
             "CompiledBzlFileGlobal",
-            "ConfiguredTarget",
             "DirectoryCreationParametersObject",
-            "FileCreationParametersObject",
             "EmptyDefaultInfo",
             "ExecTransition",
+            "FileCreationParametersObject",
             "ResolvedToolchains",
             "RootModule",
             "RuleImplementationWrappers",
             "Select",
             "Target",
+            "TargetProviders",
             "UserDefinedTransition",
             "VisibleTarget"
          ],
@@ -186,9 +186,9 @@
             "CompiledBzlFileDecodedGlobals",
             "CompiledBzlFileFunctionFactory",
             "CompiledBzlFileGlobal",
-            "ConfiguredTarget",
             "RootModule",
             "Target",
+            "TargetProviders",
             "VisibleTarget"
          ],
          "keyContainsReferences": true
@@ -417,12 +417,12 @@
       "RegisteredExecutionPlatforms": {
          "dependsOn": [
             "CanonicalRepoName",
-            "ConfiguredTarget",
             "FileReader",
             "ModuleDotBazelContents",
             "ModulesWithMultipleVersionsObject",
             "RootModule",
-            "TargetPatternExpansion"
+            "TargetPatternExpansion",
+            "TargetProviders"
          ]
       },
       "RegisteredFetchPlatform": {
@@ -434,14 +434,13 @@
          "dependsOn": [
             "BuildSpecification",
             "CanonicalRepoName",
-            "ConfiguredTarget",
-            "RootModule"
+            "RootModule",
+            "TargetProviders"
          ]
       },
       "RegisteredToolchains": {
          "dependsOn": [
             "CanonicalRepoName",
-            "ConfiguredTarget",
             "FileReader",
             "ModuleDotBazelContents",
             "ModulesWithMultipleVersionsObject",
@@ -449,6 +448,7 @@
             "Select",
             "Target",
             "TargetPatternExpansion",
+            "TargetProviders",
             "VisibleTarget"
          ]
       },
@@ -540,9 +540,9 @@
       "Select": {
          "dependsOn": [
             "CanonicalRepoName",
-            "ConfiguredTarget",
             "RootModule",
             "Target",
+            "TargetProviders",
             "VisibleTarget"
          ],
          "keyContainsReferences": true
@@ -630,8 +630,8 @@
       },
       "TargetCompletion": {
          "dependsOn": [
-            "ConfiguredTarget",
-            "FileRoot"
+            "FileRoot",
+            "TargetProviders"
          ],
          "keyContainsReferences": true
       },
@@ -647,6 +647,12 @@
             "PackagesAtAndBelow",
             "TargetPatternExpansion"
          ]
+      },
+      "TargetProviders": {
+         "dependsOn": [
+            "ConfiguredTarget"
+         ],
+         "keyContainsReferences": true
       },
       "UsedModuleExtension": {
          "dependsOn": [
@@ -669,9 +675,9 @@
             "CompiledBzlFileDecodedGlobals",
             "CompiledBzlFileFunctionFactory",
             "CompiledBzlFileGlobal",
-            "ConfiguredTarget",
             "RootModule",
             "Target",
+            "TargetProviders",
             "VisibleTarget"
          ],
          "keyContainsReferences": true

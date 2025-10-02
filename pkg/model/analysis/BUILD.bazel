@@ -73,6 +73,7 @@ go_library(
         "target_completion.go",
         "target_output.go",
         "target_pattern_expansion.go",
+        "target_providers.go",
         "used_module_extension.go",
         "used_module_extensions.go",
         "user_defined_transition.go",
