@@ -54,10 +54,10 @@ func (fr *FileReader[TReference]) readNextChunk(ctx context.Context, fileContent
 			// Reached a chunk.
 			chunk, err := fr.fileChunkReader.ReadParsedObject(ctx, partReference)
 			if err != nil {
-				return nil, util.StatusWrapf(err, "Failed to read chunk with reference %s", partReference)
+				return nil, util.StatusWrapf(err, "Failed to read chunk with reference %s", model_core.DecodableLocalReferenceToString(partReference))
 			}
 			if uint64(len(chunk)) != partSizeBytes {
-				return nil, status.Errorf(codes.InvalidArgument, "Chunk is %d bytes in size, while %d bytes were expected", len(chunk), partSizeBytes)
+				return nil, status.Errorf(codes.InvalidArgument, "Chunk with reference %s is %d bytes in size, while %d bytes were expected", model_core.DecodableLocalReferenceToString(partReference), len(chunk), partSizeBytes)
 			}
 			fileContentsIterator.ToNextPart()
 			return chunk[partOffsetBytes:], nil
@@ -67,10 +67,10 @@ func (fr *FileReader[TReference]) readNextChunk(ctx context.Context, fileContent
 		// the stack to reach a chunk.
 		fileContentsList, err := fr.fileContentsListReader.ReadParsedObject(ctx, partReference)
 		if err != nil {
-			return nil, util.StatusWrapf(err, "Failed to read file contents list with reference %s", partReference)
+			return nil, util.StatusWrapf(err, "Failed to read file contents list with reference %s", model_core.DecodableLocalReferenceToString(partReference))
 		}
 		if err := fileContentsIterator.PushFileContentsList(fileContentsList); err != nil {
-			return nil, util.StatusWrapf(err, "Invalid file contents list with reference %s", partReference)
+			return nil, util.StatusWrapf(err, "Invalid file contents list with reference %s", model_core.DecodableLocalReferenceToString(partReference))
 		}
 	}
 }
@@ -169,3 +169,8 @@ func (r *randomAccessFileReader[TReference]) ReadAt(p []byte, offsetBytes int64)
 
 	return r.fileReader.FileReadAt(r.context, r.fileContents, p, uint64(offsetBytes))
 }
+
+type (
+	FileContentsListReaderForTesting = model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], FileContentsList[object.LocalReference]]
+	FileChunkReaderForTesting        = model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], []byte]
+)
