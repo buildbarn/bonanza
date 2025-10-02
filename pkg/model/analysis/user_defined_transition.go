@@ -7,7 +7,6 @@ import (
 	"iter"
 	"maps"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -363,7 +362,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 
 type getBuildSettingValueEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
-	GetTargetProvidersValue(model_core.PatchedMessage[*model_analysis_pb.TargetProviders_Key, TMetadata]) model_core.Message[*model_analysis_pb.TargetProviders_Value, TReference]
+	GetTargetProviderValue(model_core.PatchedMessage[*model_analysis_pb.TargetProvider_Key, TMetadata]) model_core.Message[*model_analysis_pb.TargetProvider_Value, TReference]
 	GetTargetValue(*model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, TReference]
 	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
 }
@@ -451,34 +450,27 @@ func (c *baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.C
 
 		// Not a build setting, but the target may provide
 		// FeatureFlagInfo if configured.
-		patchedConfigurationReference := model_core.Patch(e, configurationReference)
-		targetProviders := e.GetTargetProvidersValue(
-			model_core.NewPatchedMessage(
-				&model_analysis_pb.TargetProviders_Key{
+		featureFlagInfoProviderIdentifierStr := featureFlagInfoProviderIdentifier.String()
+		featureFlagProvider := e.GetTargetProviderValue(
+			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Key {
+				return &model_analysis_pb.TargetProvider_Key{
 					Label:                  visibleBuildSettingLabel,
-					ConfigurationReference: patchedConfigurationReference.Message,
-				},
-				patchedConfigurationReference.Patcher,
-			),
+					ConfigurationReference: model_core.Patch(e, configurationReference).Merge(patcher),
+					ProviderIdentifier:     featureFlagInfoProviderIdentifierStr,
+				}
+			}),
 		)
-		if !targetProviders.IsSet() {
+		if !featureFlagProvider.IsSet() {
 			return model_core.Message[*model_starlark_pb.Value, TReference]{}, evaluation.ErrMissingDependency
 		}
-		featureFlagInfoProviderIdentifierStr := featureFlagInfoProviderIdentifier.String()
-		providerInstances := targetProviders.Message.ProviderInstances
-		featureFlagInfoIndex, ok := sort.Find(
-			len(providerInstances),
-			func(i int) int {
-				return strings.Compare(featureFlagInfoProviderIdentifierStr, providerInstances[i].ProviderInstanceProperties.GetProviderIdentifier())
-			},
-		)
-		if !ok {
+		featureFlagProviderFields := featureFlagProvider.Message.Fields
+		if featureFlagProviderFields == nil {
 			return model_core.Message[*model_starlark_pb.Value, TReference]{}, fmt.Errorf("rule %#v used by build setting %#v does not have \"build_setting\" set, nor does it yield provider FeatureFlagInfo", targetKind.RuleTarget.RuleIdentifier, visibleBuildSettingLabel)
 		}
 		featureFlagValue, err := model_starlark.GetStructFieldValue(
 			ctx,
 			c.valueReaders.List,
-			model_core.Nested(targetProviders, providerInstances[featureFlagInfoIndex].Fields),
+			model_core.Nested(featureFlagProvider, featureFlagProviderFields),
 			"value",
 		)
 		if err != nil {

@@ -68,7 +68,7 @@
             "RegisteredToolchainsForType",
             "Select",
             "Target",
-            "TargetProviders",
+            "TargetProvider",
             "VisibleTarget"
          ],
          "keyContainsReferences": true
@@ -134,6 +134,7 @@
             "RuleImplementationWrappers",
             "Select",
             "Target",
+            "TargetProvider",
             "TargetProviders",
             "UserDefinedTransition",
             "VisibleTarget"
@@ -188,7 +189,7 @@
             "CompiledBzlFileGlobal",
             "RootModule",
             "Target",
-            "TargetProviders",
+            "TargetProvider",
             "VisibleTarget"
          ],
          "keyContainsReferences": true
@@ -422,7 +423,7 @@
             "ModulesWithMultipleVersionsObject",
             "RootModule",
             "TargetPatternExpansion",
-            "TargetProviders"
+            "TargetProvider"
          ]
       },
       "RegisteredFetchPlatform": {
@@ -435,7 +436,7 @@
             "BuildSpecification",
             "CanonicalRepoName",
             "RootModule",
-            "TargetProviders"
+            "TargetProvider"
          ]
       },
       "RegisteredToolchains": {
@@ -448,7 +449,7 @@
             "Select",
             "Target",
             "TargetPatternExpansion",
-            "TargetProviders",
+            "TargetProvider",
             "VisibleTarget"
          ]
       },
@@ -542,7 +543,7 @@
             "CanonicalRepoName",
             "RootModule",
             "Target",
-            "TargetProviders",
+            "TargetProvider",
             "VisibleTarget"
          ],
          "keyContainsReferences": true
@@ -631,7 +632,7 @@
       "TargetCompletion": {
          "dependsOn": [
             "FileRoot",
-            "TargetProviders"
+            "TargetProvider"
          ],
          "keyContainsReferences": true
       },
@@ -647,6 +648,12 @@
             "PackagesAtAndBelow",
             "TargetPatternExpansion"
          ]
+      },
+      "TargetProvider": {
+         "dependsOn": [
+            "TargetProviders"
+         ],
+         "keyContainsReferences": true
       },
       "TargetProviders": {
          "dependsOn": [
@@ -677,7 +684,7 @@
             "CompiledBzlFileGlobal",
             "RootModule",
             "Target",
-            "TargetProviders",
+            "TargetProvider",
             "VisibleTarget"
          ],
          "keyContainsReferences": true

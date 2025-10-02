@@ -3173,36 +3173,30 @@ type ruleContextExecGroupState struct {
 }
 
 type getProviderFromConfiguredTargetEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	GetTargetProvidersValue(key model_core.PatchedMessage[*model_analysis_pb.TargetProviders_Key, TMetadata]) model_core.Message[*model_analysis_pb.TargetProviders_Value, TReference]
+	GetTargetProviderValue(key model_core.PatchedMessage[*model_analysis_pb.TargetProvider_Key, TMetadata]) model_core.Message[*model_analysis_pb.TargetProvider_Value, TReference]
 }
 
 // getProviderFromConfiguredTarget looks up a single provider that is
 // provided by a configured target.
 func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.ReferenceMetadata](e getProviderFromConfiguredTargetEnvironment[TReference, TMetadata], targetLabel string, configurationReference model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], providerIdentifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Struct_Fields, TReference], error) {
-	targetProvidersValue := e.GetTargetProvidersValue(
-		model_core.NewPatchedMessage(
-			&model_analysis_pb.TargetProviders_Key{
+	providerIdentifierStr := providerIdentifier.String()
+	targetProvider := e.GetTargetProviderValue(
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Key {
+			return &model_analysis_pb.TargetProvider_Key{
 				Label:                  targetLabel,
-				ConfigurationReference: configurationReference.Message,
-			},
-			configurationReference.Patcher,
-		),
+				ConfigurationReference: configurationReference.Merge(patcher),
+				ProviderIdentifier:     providerIdentifierStr,
+			}
+		}),
 	)
-	if !targetProvidersValue.IsSet() {
+	if !targetProvider.IsSet() {
 		return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, evaluation.ErrMissingDependency
 	}
-
-	providerIdentifierStr := providerIdentifier.String()
-	providerInstances := targetProvidersValue.Message.ProviderInstances
-	if providerIndex, ok := sort.Find(
-		len(providerInstances),
-		func(i int) int {
-			return strings.Compare(providerIdentifierStr, providerInstances[i].ProviderInstanceProperties.GetProviderIdentifier())
-		},
-	); ok {
-		return model_core.Nested(targetProvidersValue, providerInstances[providerIndex].Fields), nil
+	fields := targetProvider.Message.Fields
+	if fields == nil {
+		return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, fmt.Errorf("target did not yield provider %#v", providerIdentifierStr)
 	}
-	return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, fmt.Errorf("target did not yield provider %#v", providerIdentifierStr)
+	return model_core.Nested(targetProvider, fields), nil
 }
 
 type getProviderFromVisibleConfiguredTargetEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {

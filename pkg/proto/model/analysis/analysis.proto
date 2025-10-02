@@ -1853,6 +1853,35 @@ message TargetPatternExpansion {
   }
 }
 
+message TargetProvider {
+  message Key {
+    // The label of the package. The label MUST include a canonical repo
+    // name, and MUST NOT include a target name if it matches the last
+    // component of the package path.
+    string label = 1;
+
+    // Platform constraints and build settings that are currently active.
+    //
+    // If this reference is not set, the target is configured without
+    // any platform constraints and build settings in place.
+    bonanza.model.core.DecodableReference configuration_reference = 2
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.BuildSettingOverride";
+        }];
+
+    // The identifier of the provider whose value is requested.
+    string provider_identifier = 3;
+  }
+
+  message Value {
+    // The fields of the provider instance that this target produced.
+    // This may be left unset if the target did not yield an instance of
+    // this provider.
+    bonanza.model.starlark.Struct.Fields fields = 1;
+  }
+}
+
 message TargetProviders {
   message Key {
     // The label of the package. The label MUST include a canonical repo
