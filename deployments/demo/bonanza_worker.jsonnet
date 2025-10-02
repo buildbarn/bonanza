@@ -1,5 +1,6 @@
 local os = std.extVar('OS');
 local statePath = std.extVar('STATE_PATH');
+local ncpu = std.parseInt(std.extVar('NCPU'));
 
 {
   // If enabled, use NFSv4 instead of FUSE.
@@ -27,14 +28,14 @@ local statePath = std.extVar('STATE_PATH');
   },
   filePool: { blockDevice: { file: {
     path: statePath + '/bonanza_worker_filepool',
-    sizeBytes: 1e9,
+    sizeBytes: 1e9 * ncpu,
   } } },
   buildDirectories: [{
     runners: [{
       endpoint: {
         address: 'unix://%s/bb_runner.sock' % statePath,
       },
-      concurrency: std.extVar('NCPU'),
+      concurrency: ncpu,
       platformPrivateKeys: [
         |||
           -----BEGIN PRIVATE KEY-----
