@@ -191,8 +191,10 @@ func (d *objectBackedDirectory) lookupFile(fileNode model_core.Message[*model_fi
 
 func (d *objectBackedDirectory) VirtualGetAttributes(ctx context.Context, requested virtual.AttributesMask, attributes *virtual.Attributes) {
 	attributes.SetChangeID(0)
-	attributes.SetLinkCount(virtual.EmptyDirectoryLinkCount + d.directoriesCount)
 	attributes.SetFileType(filesystem.FileTypeDirectory)
+	attributes.SetHasNamedAttributes(false)
+	attributes.SetIsInNamedAttributeDirectory(false)
+	attributes.SetLinkCount(virtual.EmptyDirectoryLinkCount + d.directoriesCount)
 	attributes.SetPermissions(virtual.PermissionsRead | virtual.PermissionsExecute)
 	attributes.SetSizeBytes(uint64(d.clusterReference.Value.GetSizeBytes()))
 }
@@ -423,4 +425,11 @@ func (d *objectBackedDirectory) VirtualReadDir(ctx context.Context, firstCookie 
 
 func (objectBackedDirectory) VirtualApply(data any) bool {
 	return false
+}
+
+func (objectBackedDirectory) VirtualOpenNamedAttributes(ctx context.Context, createDirectory bool, requested virtual.AttributesMask, attributes *virtual.Attributes) (virtual.Directory, virtual.Status) {
+	if createDirectory {
+		return nil, virtual.StatusErrAccess
+	}
+	return nil, virtual.StatusErrNoEnt
 }

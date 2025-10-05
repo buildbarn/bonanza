@@ -62,6 +62,8 @@ func (d *WorkerTopLevelDirectory) RemoveChild(name path.Component) {
 
 func (d *WorkerTopLevelDirectory) VirtualGetAttributes(ctx context.Context, requested virtual.AttributesMask, attributes *virtual.Attributes) {
 	attributes.SetFileType(filesystem.FileTypeDirectory)
+	attributes.SetHasNamedAttributes(false)
+	attributes.SetIsInNamedAttributeDirectory(false)
 	attributes.SetPermissions(virtual.PermissionsExecute)
 	attributes.SetSizeBytes(0)
 	if requested&(virtual.AttributesMaskChangeID|virtual.AttributesMaskLinkCount) != 0 {
@@ -94,4 +96,11 @@ func (WorkerTopLevelDirectory) VirtualReadDir(ctx context.Context, firstCookie u
 
 func (WorkerTopLevelDirectory) VirtualApply(data any) bool {
 	return false
+}
+
+func (WorkerTopLevelDirectory) VirtualOpenNamedAttributes(ctx context.Context, createDirectory bool, requested virtual.AttributesMask, attributes *virtual.Attributes) (virtual.Directory, virtual.Status) {
+	if createDirectory {
+		return nil, virtual.StatusErrAccess
+	}
+	return nil, virtual.StatusErrNoEnt
 }

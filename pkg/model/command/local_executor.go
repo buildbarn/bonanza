@@ -371,9 +371,29 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			attributes.SetOwnerUserID(e.buildDirectoryOwnerUserID)
 			attributes.SetOwnerGroupID(e.buildDirectoryOwnerGroupID)
 		}
+		namedAttributesFactory := virtual.NewInMemoryNamedAttributesFactory(
+			virtual.NewHandleAllocatingFileAllocator(
+				virtual.NewPoolBackedFileAllocator(
+					e.filePool,
+					ioErrorCapturer,
+					defaultAttributesSetter,
+					virtual.InNamedAttributeDirectoryNamedAttributesFactory,
+				),
+				e.handleAllocator,
+			),
+			e.symlinkFactory,
+			ioErrorCapturer,
+			e.handleAllocator,
+			e.clock,
+		)
 		buildDirectory := virtual.NewInMemoryPrepopulatedDirectory(
 			virtual.NewHandleAllocatingFileAllocator(
-				virtual.NewPoolBackedFileAllocator(e.filePool, ioErrorCapturer, defaultAttributesSetter),
+				virtual.NewPoolBackedFileAllocator(
+					e.filePool,
+					ioErrorCapturer,
+					defaultAttributesSetter,
+					namedAttributesFactory,
+				),
 				e.handleAllocator,
 			),
 			e.symlinkFactory,
@@ -384,6 +404,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			e.clock,
 			virtual.CaseSensitiveComponentNormalizer,
 			defaultAttributesSetter,
+			namedAttributesFactory,
 		)
 		defer buildDirectory.RemoveAllChildren(true)
 

@@ -16,7 +16,7 @@ cd bb-storage
 git checkout eschouten/bonanza
 ```
 
-Be sure to run a `git diff master...` to get an idea of the kinds of
+Be sure to run a `git diff main...` to get an idea of the kinds of
 changes that had to be made to support Bonanza.
 
 ## Step 2: Extending your `~/.bazelrc`

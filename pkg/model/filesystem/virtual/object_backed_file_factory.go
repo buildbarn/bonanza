@@ -61,6 +61,8 @@ func (objectBackedFile) VirtualClose(shareAccess virtual.ShareMask) {}
 func (f *objectBackedFile) VirtualGetAttributes(ctx context.Context, requested virtual.AttributesMask, attributes *virtual.Attributes) {
 	attributes.SetChangeID(0)
 	attributes.SetFileType(filesystem.FileTypeRegularFile)
+	attributes.SetHasNamedAttributes(false)
+	attributes.SetIsInNamedAttributeDirectory(false)
 	permissions := virtual.PermissionsRead
 	if f.isExecutable {
 		permissions |= virtual.PermissionsExecute
@@ -140,4 +142,11 @@ func (f *objectBackedFile) VirtualApply(data any) bool {
 		return false
 	}
 	return true
+}
+
+func (objectBackedFile) VirtualOpenNamedAttributes(ctx context.Context, createDirectory bool, requested virtual.AttributesMask, attributes *virtual.Attributes) (virtual.Directory, virtual.Status) {
+	if createDirectory {
+		return nil, virtual.StatusErrAccess
+	}
+	return nil, virtual.StatusErrNoEnt
 }

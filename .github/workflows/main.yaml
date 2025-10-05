@@ -1067,12 +1067,11 @@
          }
       }
    },
-   "name": "master",
+   "name": "main",
    "on": {
       "push": {
          "branches": [
-            "main",
-            "master"
+            "main"
          ]
       }
    }
