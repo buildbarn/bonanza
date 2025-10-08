@@ -405,6 +405,7 @@ type Result struct {
 	ExitCode          int64                    `protobuf:"varint,2,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
 	OutputsReference  *core.DecodableReference `protobuf:"bytes,3,opt,name=outputs_reference,json=outputsReference,proto3" json:"outputs_reference,omitempty"`
 	AuxiliaryMetadata []*anypb.Any             `protobuf:"bytes,4,rep,name=auxiliary_metadata,json=auxiliaryMetadata,proto3" json:"auxiliary_metadata,omitempty"`
+	WorkerId          map[string]string        `protobuf:"bytes,5,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -463,6 +464,13 @@ func (x *Result) GetOutputsReference() *core.DecodableReference {
 func (x *Result) GetAuxiliaryMetadata() []*anypb.Any {
 	if x != nil {
 		return x.AuxiliaryMetadata
+	}
+	return nil
+}
+
+func (x *Result) GetWorkerId() map[string]string {
+	if x != nil {
+		return x.WorkerId
 	}
 	return nil
 }
@@ -824,12 +832,16 @@ const file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc = "" +
 	"outputRoot\"\xe2\x01\n" +
 	"\x06Action\x12x\n" +
 	"\x11command_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.CommandR\x10commandReference\x12^\n" +
-	"\x14input_root_reference\x18\x02 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x12inputRootReference\"\x90\x02\n" +
+	"\x14input_root_reference\x18\x02 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x12inputRootReference\"\x97\x03\n" +
 	"\x06Result\x12*\n" +
 	"\x06status\x18\x01 \x01(\v2\x12.google.rpc.StatusR\x06status\x12\x1b\n" +
 	"\texit_code\x18\x02 \x01(\x03R\bexitCode\x12x\n" +
 	"\x11outputs_reference\x18\x03 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.OutputsR\x10outputsReference\x12C\n" +
-	"\x12auxiliary_metadata\x18\x04 \x03(\v2\x14.google.protobuf.AnyR\x11auxiliaryMetadataB'Z%bonanza.build/pkg/proto/model/commandb\x06proto3"
+	"\x12auxiliary_metadata\x18\x04 \x03(\v2\x14.google.protobuf.AnyR\x11auxiliaryMetadata\x12H\n" +
+	"\tworker_id\x18\x05 \x03(\v2+.bonanza.model.command.Result.WorkerIdEntryR\bworkerId\x1a;\n" +
+	"\rWorkerIdEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B'Z%bonanza.build/pkg/proto/model/commandb\x06proto3"
 
 var (
 	file_bonanza_build_pkg_proto_model_command_command_proto_rawDescOnce sync.Once
@@ -843,57 +855,59 @@ func file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP() []by
 	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescData
 }
 
-var file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_bonanza_build_pkg_proto_model_command_command_proto_goTypes = []any{
-	(*Command)(nil),                                // 0: bonanza.model.command.Command
-	(*PathPattern)(nil),                            // 1: bonanza.model.command.PathPattern
-	(*ArgumentList)(nil),                           // 2: bonanza.model.command.ArgumentList
-	(*EnvironmentVariableList)(nil),                // 3: bonanza.model.command.EnvironmentVariableList
-	(*Outputs)(nil),                                // 4: bonanza.model.command.Outputs
-	(*Action)(nil),                                 // 5: bonanza.model.command.Action
-	(*Result)(nil),                                 // 6: bonanza.model.command.Result
-	(*PathPattern_Child)(nil),                      // 7: bonanza.model.command.PathPattern.Child
-	(*PathPattern_Children)(nil),                   // 8: bonanza.model.command.PathPattern.Children
-	(*ArgumentList_Element)(nil),                   // 9: bonanza.model.command.ArgumentList.Element
-	(*EnvironmentVariableList_Element)(nil),        // 10: bonanza.model.command.EnvironmentVariableList.Element
-	(*EnvironmentVariableList_Element_Leaf)(nil),   // 11: bonanza.model.command.EnvironmentVariableList.Element.Leaf
-	(*filesystem.DirectoryCreationParameters)(nil), // 12: bonanza.model.filesystem.DirectoryCreationParameters
-	(*filesystem.FileCreationParameters)(nil),      // 13: bonanza.model.filesystem.FileCreationParameters
-	(*core.DecodableReference)(nil),                // 14: bonanza.model.core.DecodableReference
-	(*filesystem.FileContents)(nil),                // 15: bonanza.model.filesystem.FileContents
-	(*filesystem.DirectoryContents)(nil),           // 16: bonanza.model.filesystem.DirectoryContents
-	(*filesystem.DirectoryReference)(nil),          // 17: bonanza.model.filesystem.DirectoryReference
-	(*status.Status)(nil),                          // 18: google.rpc.Status
-	(*anypb.Any)(nil),                              // 19: google.protobuf.Any
+	(*Command)(nil),                              // 0: bonanza.model.command.Command
+	(*PathPattern)(nil),                          // 1: bonanza.model.command.PathPattern
+	(*ArgumentList)(nil),                         // 2: bonanza.model.command.ArgumentList
+	(*EnvironmentVariableList)(nil),              // 3: bonanza.model.command.EnvironmentVariableList
+	(*Outputs)(nil),                              // 4: bonanza.model.command.Outputs
+	(*Action)(nil),                               // 5: bonanza.model.command.Action
+	(*Result)(nil),                               // 6: bonanza.model.command.Result
+	(*PathPattern_Child)(nil),                    // 7: bonanza.model.command.PathPattern.Child
+	(*PathPattern_Children)(nil),                 // 8: bonanza.model.command.PathPattern.Children
+	(*ArgumentList_Element)(nil),                 // 9: bonanza.model.command.ArgumentList.Element
+	(*EnvironmentVariableList_Element)(nil),      // 10: bonanza.model.command.EnvironmentVariableList.Element
+	(*EnvironmentVariableList_Element_Leaf)(nil), // 11: bonanza.model.command.EnvironmentVariableList.Element.Leaf
+	nil, // 12: bonanza.model.command.Result.WorkerIdEntry
+	(*filesystem.DirectoryCreationParameters)(nil), // 13: bonanza.model.filesystem.DirectoryCreationParameters
+	(*filesystem.FileCreationParameters)(nil),      // 14: bonanza.model.filesystem.FileCreationParameters
+	(*core.DecodableReference)(nil),                // 15: bonanza.model.core.DecodableReference
+	(*filesystem.FileContents)(nil),                // 16: bonanza.model.filesystem.FileContents
+	(*filesystem.DirectoryContents)(nil),           // 17: bonanza.model.filesystem.DirectoryContents
+	(*filesystem.DirectoryReference)(nil),          // 18: bonanza.model.filesystem.DirectoryReference
+	(*status.Status)(nil),                          // 19: google.rpc.Status
+	(*anypb.Any)(nil),                              // 20: google.protobuf.Any
 }
 var file_bonanza_build_pkg_proto_model_command_command_proto_depIdxs = []int32{
 	9,  // 0: bonanza.model.command.Command.arguments:type_name -> bonanza.model.command.ArgumentList.Element
 	10, // 1: bonanza.model.command.Command.environment_variables:type_name -> bonanza.model.command.EnvironmentVariableList.Element
-	12, // 2: bonanza.model.command.Command.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
-	13, // 3: bonanza.model.command.Command.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
+	13, // 2: bonanza.model.command.Command.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
+	14, // 3: bonanza.model.command.Command.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
 	1,  // 4: bonanza.model.command.Command.output_path_pattern:type_name -> bonanza.model.command.PathPattern
-	14, // 5: bonanza.model.command.PathPattern.children_external:type_name -> bonanza.model.core.DecodableReference
+	15, // 5: bonanza.model.command.PathPattern.children_external:type_name -> bonanza.model.core.DecodableReference
 	8,  // 6: bonanza.model.command.PathPattern.children_inline:type_name -> bonanza.model.command.PathPattern.Children
 	9,  // 7: bonanza.model.command.ArgumentList.elements:type_name -> bonanza.model.command.ArgumentList.Element
 	10, // 8: bonanza.model.command.EnvironmentVariableList.elements:type_name -> bonanza.model.command.EnvironmentVariableList.Element
-	15, // 9: bonanza.model.command.Outputs.stdout:type_name -> bonanza.model.filesystem.FileContents
-	15, // 10: bonanza.model.command.Outputs.stderr:type_name -> bonanza.model.filesystem.FileContents
-	16, // 11: bonanza.model.command.Outputs.output_root:type_name -> bonanza.model.filesystem.DirectoryContents
-	14, // 12: bonanza.model.command.Action.command_reference:type_name -> bonanza.model.core.DecodableReference
-	17, // 13: bonanza.model.command.Action.input_root_reference:type_name -> bonanza.model.filesystem.DirectoryReference
-	18, // 14: bonanza.model.command.Result.status:type_name -> google.rpc.Status
-	14, // 15: bonanza.model.command.Result.outputs_reference:type_name -> bonanza.model.core.DecodableReference
-	19, // 16: bonanza.model.command.Result.auxiliary_metadata:type_name -> google.protobuf.Any
-	1,  // 17: bonanza.model.command.PathPattern.Child.pattern:type_name -> bonanza.model.command.PathPattern
-	7,  // 18: bonanza.model.command.PathPattern.Children.children:type_name -> bonanza.model.command.PathPattern.Child
-	14, // 19: bonanza.model.command.ArgumentList.Element.parent:type_name -> bonanza.model.core.DecodableReference
-	11, // 20: bonanza.model.command.EnvironmentVariableList.Element.leaf:type_name -> bonanza.model.command.EnvironmentVariableList.Element.Leaf
-	14, // 21: bonanza.model.command.EnvironmentVariableList.Element.parent:type_name -> bonanza.model.core.DecodableReference
-	22, // [22:22] is the sub-list for method output_type
-	22, // [22:22] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	16, // 9: bonanza.model.command.Outputs.stdout:type_name -> bonanza.model.filesystem.FileContents
+	16, // 10: bonanza.model.command.Outputs.stderr:type_name -> bonanza.model.filesystem.FileContents
+	17, // 11: bonanza.model.command.Outputs.output_root:type_name -> bonanza.model.filesystem.DirectoryContents
+	15, // 12: bonanza.model.command.Action.command_reference:type_name -> bonanza.model.core.DecodableReference
+	18, // 13: bonanza.model.command.Action.input_root_reference:type_name -> bonanza.model.filesystem.DirectoryReference
+	19, // 14: bonanza.model.command.Result.status:type_name -> google.rpc.Status
+	15, // 15: bonanza.model.command.Result.outputs_reference:type_name -> bonanza.model.core.DecodableReference
+	20, // 16: bonanza.model.command.Result.auxiliary_metadata:type_name -> google.protobuf.Any
+	12, // 17: bonanza.model.command.Result.worker_id:type_name -> bonanza.model.command.Result.WorkerIdEntry
+	1,  // 18: bonanza.model.command.PathPattern.Child.pattern:type_name -> bonanza.model.command.PathPattern
+	7,  // 19: bonanza.model.command.PathPattern.Children.children:type_name -> bonanza.model.command.PathPattern.Child
+	15, // 20: bonanza.model.command.ArgumentList.Element.parent:type_name -> bonanza.model.core.DecodableReference
+	11, // 21: bonanza.model.command.EnvironmentVariableList.Element.leaf:type_name -> bonanza.model.command.EnvironmentVariableList.Element.Leaf
+	15, // 22: bonanza.model.command.EnvironmentVariableList.Element.parent:type_name -> bonanza.model.core.DecodableReference
+	23, // [23:23] is the sub-list for method output_type
+	23, // [23:23] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_command_command_proto_init() }
@@ -919,7 +933,7 @@ func file_bonanza_build_pkg_proto_model_command_command_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

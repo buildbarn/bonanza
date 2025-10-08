@@ -176,4 +176,11 @@ message Result {
   // on POSIX-like systems this could contain a message with
   // getrusage(2) statistics.
   repeated google.protobuf.Any auxiliary_metadata = 4;
+
+  // Set of key-value properties that uniquely identify (a thread of)
+  // the worker that ran the action.
+  //
+  // TODO: Should this be a list, so that it's easy to encode
+  // deterministically?
+  map<string, string> worker_id = 5;
 }

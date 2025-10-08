@@ -112,6 +112,7 @@ type localExecutor struct {
 	buildDirectoryOwnerGroupID          uint32
 	readinessCheckingDirectory          virtual.Directory
 	maximumExecutionTimeoutCompensation time.Duration
+	workerID                            map[string]string
 }
 
 func NewLocalExecutor(
@@ -133,6 +134,7 @@ func NewLocalExecutor(
 	buildDirectoryOwnerUserID uint32,
 	buildDirectoryOwnerGroupID uint32,
 	maximumExecutionTimeoutCompensation time.Duration,
+	workerID map[string]string,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &localExecutor{
 		objectDownloader:               objectDownloader,
@@ -159,6 +161,7 @@ func NewLocalExecutor(
 			),
 		),
 		maximumExecutionTimeoutCompensation: maximumExecutionTimeoutCompensation,
+		workerID:                            workerID,
 	}
 }
 
@@ -253,7 +256,9 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	result := model_core.MustBuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_command_pb.Result {
 		// Fetch the Command message, so that we know the arguments
 		// and environment variables of the process to spawn.
-		var result model_command_pb.Result
+		result := model_command_pb.Result{
+			WorkerId: e.workerID,
+		}
 		actionReader := model_parser.LookupParsedObjectReader[object.LocalReference](
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(

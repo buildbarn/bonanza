@@ -220,6 +220,7 @@ func main() {
 						runnerConfiguration.BuildDirectoryOwnerUserId,
 						runnerConfiguration.BuildDirectoryOwnerGroupId,
 						maximumExecutionTimeoutCompensation,
+						workerID,
 					)
 
 					client, err := remoteworker.NewClient(
