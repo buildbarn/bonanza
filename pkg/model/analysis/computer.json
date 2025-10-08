@@ -26,8 +26,8 @@
       },
       "ActionResult": {
          "dependsOn": [
-            "ActionEncoders",
-            "ActionReaders"
+            "ActionReaders",
+            "RawActionResult"
          ],
          "keyContainsReferences": true
       },
@@ -414,6 +414,13 @@
             "DirectoryReaders",
             "Repo"
          ]
+      },
+      "RawActionResult": {
+         "dependsOn": [
+            "ActionEncoders",
+            "ActionReaders"
+         ],
+         "keyContainsReferences": true
       },
       "RegisteredExecutionPlatforms": {
          "dependsOn": [

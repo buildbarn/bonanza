@@ -1386,6 +1386,20 @@ message PackagesAtAndBelow {
   }
 }
 
+message RawActionResult {
+  message Key {
+    ExecuteRequest execute_request = 1;
+  }
+
+  message Value {
+    bonanza.model.core.DecodableReference result_reference = 2
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.command.Result";
+        }];
+  }
+}
+
 message Constraint {
   // The label of the constraint_setting() target.
   string setting = 1;

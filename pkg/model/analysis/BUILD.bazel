@@ -51,6 +51,7 @@ go_library(
         "package.go",
         "package_group_contains.go",
         "packages_at_and_below.go",
+        "raw_action_result.go",
         "registered_execution_platforms.go",
         "registered_fetch_platform.go",
         "registered_repo_platform.go",

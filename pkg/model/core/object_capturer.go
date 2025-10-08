@@ -39,10 +39,23 @@ func (walkableCreatedObjectCapturer) CaptureCreatedObject(ctx context.Context, c
 }
 
 // ExistingObjectCapturer can be used as a factory type for reference
-// metadata. Given a reference of an object that already exists ins
-// torage, it may yield metadata.
+// metadata. Given a reference of an object that already exists in
+// storage, it may yield metadata.
 type ExistingObjectCapturer[TReference, TMetadata any] interface {
 	CaptureExistingObject(TReference) TMetadata
+}
+
+// CaptureExistingObject creates reference metadata for an object that
+// already exists, and returns it in the form of a MetadataEntry that
+// can be passed to ReferenceMessagePatcher.AddReference().
+func CaptureExistingObject[TReference object.BasicReference, TMetadata any](
+	capturer ExistingObjectCapturer[TReference, TMetadata],
+	reference TReference,
+) MetadataEntry[TMetadata] {
+	return MetadataEntry[TMetadata]{
+		LocalReference: reference.GetLocalReference(),
+		Metadata:       capturer.CaptureExistingObject(reference),
+	}
 }
 
 // ObjectCapturer is a combination of CreatedObjectCapturer and

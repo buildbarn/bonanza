@@ -199,7 +199,7 @@ type queues[TReference object.BasicReference, TMetadata model_core.ReferenceMeta
 func (q *queues[TReference, TMetadata]) PickQueue(key model_core.Message[proto.Message, TReference]) *model_evaluation.RecursiveComputerQueue[TReference, TMetadata] {
 	switch key.Message.(type) {
 	case *model_analysis_pb.HttpFileContents_Key:
-	case *model_analysis_pb.ActionResult_Key:
+	case *model_analysis_pb.RawActionResult_Key:
 		// Run evaluation steps that call into the remote
 		// execution client with a higher concurrency.
 		return q.remote.PickQueue(key)
