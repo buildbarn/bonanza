@@ -1394,7 +1394,7 @@ message RawActionResult {
   message Value {
     bonanza.model.core.DecodableReference result_reference = 2
         [(bonanza.model.core.object_format) = {
-          proto_list_type_name:
+          proto_type_name:
             "bonanza.model.command.Result";
         }];
   }

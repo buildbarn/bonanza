@@ -13572,7 +13572,7 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x03Key\x12O\n" +
 	"\x0fexecute_request\x18\x01 \x01(\v2&.bonanza.model.analysis.ExecuteRequestR\x0eexecuteRequest\x1a~\n" +
 	"\x05Value\x12u\n" +
-	"\x10result_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB\"\xea\xd7 \x1e\x1a\x1cbonanza.model.command.ResultR\x0fresultReference\"<\n" +
+	"\x10result_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB\"\xea\xd7 \x1e\x12\x1cbonanza.model.command.ResultR\x0fresultReference\"<\n" +
 	"\n" +
 	"Constraint\x12\x18\n" +
 	"\asetting\x18\x01 \x01(\tR\asetting\x12\x14\n" +
