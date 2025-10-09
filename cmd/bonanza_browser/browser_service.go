@@ -2268,6 +2268,35 @@ func (d *messageJSONRenderer) renderMessageCommon(m model_core.Message[protorefl
 					},
 				)
 			}
+		} else if fieldDescriptor.IsMap() {
+			mapField := value.Map()
+			mapLength := mapField.Len()
+			if mapLength == 0 {
+				valueNodes = []g.Node{
+					g.Text("{}"),
+				}
+			} else {
+				mapParts := make([]g.Node, 0, len(fields))
+				mapField.Range(func(entryKey protoreflect.MapKey, entryValue protoreflect.Value) bool {
+					entryNodes := append(
+						append(
+							d.renderField(fieldDescriptor.MapKey(), model_core.Nested(m, entryKey.Value())),
+							g.Text(": "),
+						),
+						d.renderField(fieldDescriptor.MapValue(), model_core.Nested(m, entryValue))...,
+					)
+					if len(mapParts) != mapLength-1 {
+						entryNodes = append(entryNodes, g.Text(","))
+					}
+					mapParts = append(mapParts, h.Li(entryNodes...))
+					return true
+				})
+				valueNodes = []g.Node{
+					g.Text("{"),
+					h.Ul(mapParts...),
+					g.Text("}"),
+				}
+			}
 		} else {
 			valueNodes = d.renderField(fieldDescriptor, model_core.Nested(m, value))
 		}
