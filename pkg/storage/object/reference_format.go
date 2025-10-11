@@ -43,7 +43,7 @@ func (ReferenceFormat) GetReferenceSizeBytes() int {
 	return referenceSizeBytes
 }
 
-// NewLocalReference converts a reference that is stored in binary
+// NewLocalReference converts a local reference that is stored in binary
 // format to an in-memory representation. It also validates that all
 // fields contained in the reference are within bounds.
 func (ReferenceFormat) NewLocalReference(rawReference []byte) (r LocalReference, err error) {
@@ -106,6 +106,9 @@ func (ReferenceFormat) NewLocalReference(rawReference []byte) (r LocalReference,
 	return r, err
 }
 
+// NewFlatReference converts a flat reference that is stored in binary
+// format to an in-memory representation. It also validates that all
+// fields contained in the reference are within bounds.
 func (ReferenceFormat) NewFlatReference(rawReference []byte) (r FlatReference, err error) {
 	// Construct the reference.
 	if len(rawReference) != SHA256V1FlatReferenceSizeBytes {

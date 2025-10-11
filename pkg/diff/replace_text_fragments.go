@@ -6,6 +6,9 @@ import (
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 )
 
+// ByteStringWriter is used by ReplaceTextFragments() to either copy
+// unmodified binary data from an input file, or write replacement
+// strings to an output file.
 type ByteStringWriter interface {
 	io.Writer
 	io.StringWriter

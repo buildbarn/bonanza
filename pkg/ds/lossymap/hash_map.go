@@ -207,6 +207,10 @@ func (m *hashMap[TKey, TValue, TExpirationData]) Put(key TKey, value TValue, exp
 }
 
 type (
+	// RecordArrayForTesting is declared for unit testing the hash map.
+	RecordArrayForTesting = RecordArray[int, int, int]
+	// RecordKeyHasherForTesting is declared for unit testing the hash map.
 	RecordKeyHasherForTesting = RecordKeyHasher[int]
+	// ValueComparatorForTesting is declared for unit testing the hash map.
 	ValueComparatorForTesting = ValueComparator[int]
 )

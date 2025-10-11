@@ -152,8 +152,8 @@ var (
 	targetIdentifierGitRepository = util.Must(label.NewCanonicalStarlarkIdentifier("@@bazel_tools+//tools/build_defs/repo:git.bzl%git_repository"))
 )
 
-// Parse a MODULE.bazel file, and call into ModuleDotBazelHandler for
-// every observed declaration.
+// ParseModuleDotBazel parses a MODULE.bazel file, and call into
+// ModuleDotBazelHandler for every observed declaration.
 func ParseModuleDotBazel(contents string, filename label.CanonicalLabel, localPathFormat path.Format, handler RootModuleDotBazelHandler) error {
 	repositoryRuleOverrideFunc := func(targetIdentifier label.CanonicalStarlarkIdentifier) func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		return func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

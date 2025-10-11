@@ -6,6 +6,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
+// SHA256V1FlatReferenceSizeBytes corresponds to the number of bytes
+// that are needed to store a flat reference of type SHA256_V1.
 const SHA256V1FlatReferenceSizeBytes = 35
 
 // FlatReference is a simplified version of LocalReference that assumes
@@ -23,7 +25,7 @@ type FlatReference struct {
 	rawReference [SHA256V1FlatReferenceSizeBytes]byte
 }
 
-// MustNewSHA256V1LocalReference creates a flat reference that uses
+// MustNewSHA256V1FlatReference creates a flat reference that uses
 // reference format SHA256_V1. This function can be used as part of
 // tests.
 func MustNewSHA256V1FlatReference(hash string, sizeBytes uint32) (flatReference FlatReference) {

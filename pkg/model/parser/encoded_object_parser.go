@@ -9,6 +9,8 @@ type encodedObjectParser[TReference any] struct {
 	encoder model_encoding.BinaryEncoder
 }
 
+// NewEncodedObjectParser creates an ObjectParser that decodes objects.
+// Decoding operations may include decompression and decryption.
 func NewEncodedObjectParser[
 	TReference any,
 ](encoder model_encoding.BinaryEncoder) ObjectParser[TReference, model_core.Message[[]byte, TReference]] {

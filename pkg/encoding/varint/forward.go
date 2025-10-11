@@ -214,6 +214,8 @@ func ConsumeForward[T constraints.Integer](src []byte) (T, int) {
 	return converted, length
 }
 
+// ReadForward consumes an integer value from the start of a ByteReader,
+// which was encoded using AppendForward().
 func ReadForward[T constraints.Integer](r io.ByteReader) (T, error) {
 	b, err := r.ReadByte()
 	if err != nil {

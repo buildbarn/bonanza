@@ -49,6 +49,9 @@ type persistentEpochInfo struct {
 	maximumLocation uint64
 }
 
+// PersistentEpochList is an implementation of EpochList whose internal
+// state can be extracted and persisted. This allows data contained in
+// the local object store to be accessed after restarts.
 type PersistentEpochList struct {
 	maximumLocationSpan   uint64
 	randomNumberGenerator random.SingleThreadedGenerator
@@ -74,6 +77,9 @@ var (
 	_ PersistentStateSource = (*PersistentEpochList)(nil)
 )
 
+// NewPersistentEpochList creates an instance of PersistentEpochList
+// having state on epochs that have been reloaded from a persistent
+// state file.
 func NewPersistentEpochList(
 	maximumLocationSpan uint64,
 	randomNumberGenerator random.SingleThreadedGenerator,
@@ -140,6 +146,12 @@ func (el *PersistentEpochList) pruneStaleEpochs() {
 	}
 }
 
+// FinalizeWriteUpToLocation is called after writing an object to
+// storage has finished. This either causes a new epoch to be started,
+// or the maximum location covered by the latest epoch to be raised. It
+// may also cause old epochs to be discarded, if it is known that all
+// objects covered by those epochs have in the meantime been
+// overwritten.
 func (el *PersistentEpochList) FinalizeWriteUpToLocation(location uint64) error {
 	if el.closedForWriting {
 		return status.Error(codes.Unavailable, "Cannot write object to storage, as storage is shutting down")
@@ -181,6 +193,8 @@ func (el *PersistentEpochList) FinalizeWriteUpToLocation(location uint64) error 
 	return nil
 }
 
+// DiscardUpToLocation discards epochs up to a given location. This
+// method is invoked when data corruption is detected.
 func (el *PersistentEpochList) DiscardUpToLocation(location uint64) {
 	if el.minimumLocation < location {
 		el.minimumLocation = location
@@ -189,6 +203,10 @@ func (el *PersistentEpochList) DiscardUpToLocation(location uint64) {
 	}
 }
 
+// GetEpochStateForEpochID returns a hash seed that was used by a given
+// epoch ID, and the minimum and maximum locations covered by this
+// epoch. This can be used to suppress reference-location map entries
+// that refer to overwritten or corrupted data.
 func (el *PersistentEpochList) GetEpochStateForEpochID(epochID uint32) (EpochState, bool) {
 	epochIndex := epochID - el.minimumEpochID
 	if epochIndex >= uint32(len(el.epochs)) {
@@ -202,6 +220,8 @@ func (el *PersistentEpochList) GetEpochStateForEpochID(epochID uint32) (EpochSta
 	}, true
 }
 
+// GetCurrentEpochState returns the hash seed to use when writing new
+// entries into the reference-location map.
 func (el *PersistentEpochList) GetCurrentEpochState() (EpochState, uint32) {
 	if len(el.epochs) != el.synchronizingEpochs+1 {
 		panic("GetCurrentEpochState() should always be preceded by FinalizeWriteUpToLocation(), which should have created a new epoch")

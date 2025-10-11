@@ -49,6 +49,10 @@ type localExecutor struct {
 	cacheDirectory                filesystem.Directory
 }
 
+// NewLocalExecutor creates a remote worker protocol executor that is
+// capable of processing "fetch" actions. URLs listed in the action are
+// fetched using a HTTP client, and the resulting file is uploaded to
+// storage.
 func NewLocalExecutor(
 	objectDownloader object.Downloader[object.GlobalReference],
 	parsedObjectPool *model_parser.ParsedObjectPool,

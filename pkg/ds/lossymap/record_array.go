@@ -31,5 +31,3 @@ type RecordArray[TKey comparable, TValue, TExpirationData any] interface {
 // expired. This can be used by HashMap to stop probing before the
 // maximum number of attempts is reached.
 var ErrRecordInvalidOrExpired = errors.New("record is invalid or expired")
-
-type RecordArrayForTesting = RecordArray[int, int, int]

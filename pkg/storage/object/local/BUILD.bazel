@@ -17,7 +17,7 @@ go_library(
         "persistent_epoch_list.go",
         "persistent_state_source.go",
         "persistent_state_store.go",
-        "reference_location_record_array.go",
+        "reference_location_map.go",
         "store.go",
         "volatile_epoch_list.go",
     ],

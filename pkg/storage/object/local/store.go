@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"bonanza.build/pkg/ds/lossymap"
 	"bonanza.build/pkg/storage/object"
 
 	"google.golang.org/grpc/codes"
@@ -13,7 +12,7 @@ import (
 
 type store struct {
 	lock                 *sync.RWMutex
-	referenceLocationMap lossymap.Map[object.FlatReference, uint64, EpochIDResolver]
+	referenceLocationMap ReferenceLocationMap
 	locationBlobMap      LocationBlobMap
 	epochList            EpochList
 
@@ -24,7 +23,7 @@ type store struct {
 // its backing store.
 func NewStore(
 	lock *sync.RWMutex,
-	referenceLocationMap lossymap.Map[object.FlatReference, uint64, EpochIDResolver],
+	referenceLocationMap ReferenceLocationMap,
 	locationBlobMap LocationBlobMap,
 	epochList EpochList,
 ) object.Store[object.FlatReference, struct{}] {

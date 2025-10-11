@@ -9,6 +9,13 @@ type chainedObjectParser[TReference, TParsedObject any] struct {
 	parserB ObjectParser[TReference, TParsedObject]
 }
 
+// NewChainedObjectParser chains two ObjectParsers together, returning a
+// single instance that parses objects by running them through both
+// underlying implementations.
+//
+// An example use case for this is to parse objects containing
+// compressed/encrypted Protobuf messages. Such objects first need to be
+// decompressed/decrypted before getting unmarshaled.
 func NewChainedObjectParser[TReference, TParsedObject any](parserA ObjectParser[TReference, model_core.Message[[]byte, TReference]], parserB ObjectParser[TReference, TParsedObject]) ObjectParser[TReference, TParsedObject] {
 	return &chainedObjectParser[TReference, TParsedObject]{
 		parserA: parserA,

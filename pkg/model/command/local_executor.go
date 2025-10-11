@@ -87,6 +87,12 @@ func (el *capturingErrorLogger) GetError() error {
 	return el.error
 }
 
+// TopLevelDirectory represents the top-level directory that is exposed
+// as a virtual file system in which builds take place.
+//
+// Whenever an action needs to be run, the executor creates a new
+// virtual file system directory and attaches it to the top-level
+// directory. It is removed after the action has finished executing.
 type TopLevelDirectory interface {
 	AddChild(ctx context.Context, name path.Component, child virtual.DirectoryChild) error
 	RemoveChild(name path.Component)
