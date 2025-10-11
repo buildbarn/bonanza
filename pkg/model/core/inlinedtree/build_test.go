@@ -1,6 +1,7 @@
 package inlinedtree_test
 
 import (
+	"encoding"
 	"testing"
 
 	model_core "bonanza.build/pkg/model/core"
@@ -81,7 +82,7 @@ func TestBuild(t *testing.T) {
 
 		output, err := inlinedtree.Build(
 			inlinedtree.CandidateList[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]{{
-				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoMarshalable(leaves)),
+				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoBinaryMarshaler(leaves)),
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
 			}},
@@ -145,7 +146,7 @@ func TestBuild(t *testing.T) {
 
 		output, err := inlinedtree.Build(
 			inlinedtree.CandidateList[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]{{
-				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoMarshalable(leaves)),
+				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoBinaryMarshaler(leaves)),
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
 			}},
@@ -201,7 +202,7 @@ func TestBuild(t *testing.T) {
 
 		output, err := inlinedtree.Build(
 			inlinedtree.CandidateList[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]{{
-				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoMarshalable(leaves)),
+				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoBinaryMarshaler(leaves)),
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
 			}},
@@ -243,7 +244,7 @@ func TestBuild(t *testing.T) {
 
 		output, err := inlinedtree.Build(
 			inlinedtree.CandidateList[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]{{
-				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.Marshalable(nil)),
+				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](encoding.BinaryMarshaler(nil)),
 				ParentAppender:  parentAppender.Call,
 			}},
 			&inlinedtree.Options{

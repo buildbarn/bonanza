@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"context"
+	"encoding"
 	"errors"
 	"fmt"
 	"sort"
@@ -64,7 +65,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	const capturedFilename = "captured"
 	createdCommand, err := model_core.MarshalAndEncode(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoMarshalable(&model_command_pb.Command{
+			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
 						Level: &model_command_pb.ArgumentList_Element_Leaf{
@@ -128,13 +129,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create Merkle tree of root directory: %w", err)
 	}
 
-	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (model_core.Marshalable, error) {
+	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (encoding.BinaryMarshaler, error) {
 		patcher.Merge(inputRootReference.Patcher)
 		commandReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdCommand, e)
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoMarshalable(&model_command_pb.Action{
+		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
 		}), nil

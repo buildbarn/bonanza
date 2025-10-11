@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"context"
+	"encoding"
 	"errors"
 	"fmt"
 
@@ -61,10 +62,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 	inputRootReference := model_core.Patch(e, model_core.Nested(inputRoot, inputRoot.Message.InputRootReference))
 	referenceFormat := c.referenceFormat
 	createdAction, err := model_core.MarshalAndEncode(
-		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) model_core.Marshalable {
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) encoding.BinaryMarshaler {
 			patcher.Merge(commandReference.Patcher)
 			patcher.Merge(inputRootReference.Patcher)
-			return model_core.NewProtoMarshalable(&model_command_pb.Action{
+			return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
 				CommandReference:   commandReference.Message,
 				InputRootReference: inputRootReference.Message,
 			})

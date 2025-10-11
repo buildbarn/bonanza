@@ -2,6 +2,7 @@ package build
 
 import (
 	"context"
+	"encoding"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -363,7 +364,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			logger.Fatal(formatted.Textf("Module %#v contains one or more symbolic links that potentially escape the module's root directory", moduleName.String()))
 		}
 		createdObject, err := model_core.MarshalAndEncode(
-			model_core.ProtoToMarshalable(createdModuleRootDirectories[i].Message),
+			model_core.ProtoToBinaryMarshaler(createdModuleRootDirectories[i].Message),
 			referenceFormat,
 			directoryParameters.GetEncoder(),
 		)
@@ -428,7 +429,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		}
 	*/
 
-	overrides, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) (model_core.Marshalable, error) {
+	overrides, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) (encoding.BinaryMarshaler, error) {
 		buildSpecificationKey, err := model_core.MarshalAny(
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
 				&model_analysis_pb.BuildSpecification_Key{},
@@ -445,7 +446,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			return nil, err
 		}
 
-		return model_core.NewProtoListMarshalable([]*model_evaluation_pb.Evaluation{{
+		return model_core.NewProtoListBinaryMarshaler([]*model_evaluation_pb.Evaluation{{
 			Level: &model_evaluation_pb.Evaluation_Leaf_{
 				Leaf: &model_evaluation_pb.Evaluation_Leaf{
 					Key:   buildSpecificationKey.Merge(patcher),
@@ -507,7 +508,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 
 	// Construct an Action message.
-	actionMessage, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) (model_core.Marshalable, error) {
+	actionMessage, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) (encoding.BinaryMarshaler, error) {
 		overridesReference, err := patcher.CaptureAndAddDecodableReference(
 			ctx,
 			createdOverrides,
@@ -529,7 +530,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			return nil, err
 		}
 
-		return model_core.NewProtoMarshalable(&model_evaluation_pb.Action{
+		return model_core.NewProtoBinaryMarshaler(&model_evaluation_pb.Action{
 			OverridesReference: overridesReference,
 			RequestedKeys: []*model_evaluation_pb.Keys{{
 				Level: &model_evaluation_pb.Keys_Leaf{

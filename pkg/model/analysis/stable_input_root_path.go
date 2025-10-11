@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"context"
+	"encoding"
 	"fmt"
 	"strings"
 
@@ -59,7 +60,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncode(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoMarshalable(&model_command_pb.Command{
+			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{{
 					Level: &model_command_pb.ArgumentList_Element_Leaf{
 						Leaf: "pwd",
@@ -82,7 +83,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 
 	createdInputRoot, err := model_core.MarshalAndEncode(
 		model_core.NewSimplePatchedMessage[TMetadata](
-			model_core.NewProtoMarshalable(&model_filesystem_pb.DirectoryContents{
+			model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
 				Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
 					LeavesInline: &model_filesystem_pb.Leaves{},
 				},
@@ -95,7 +96,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create input root: %w", err)
 	}
 
-	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (model_core.Marshalable, error) {
+	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (encoding.BinaryMarshaler, error) {
 		commandReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdCommand, e)
 		if err != nil {
 			return nil, err
@@ -104,7 +105,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoMarshalable(&model_command_pb.Action{
+		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
 			CommandReference: commandReference,
 			// TODO: We shouldn't be handcrafting a
 			// DirectoryReference here.

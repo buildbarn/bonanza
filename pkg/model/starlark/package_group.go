@@ -96,7 +96,7 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](ctx context
 		}
 
 		inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_starlark_pb.PackageGroup_Subpackages, TMetadata]{
-			ExternalMessage: model_core.NewPatchedMessage(model_core.NewProtoMarshalable(&overrides), patcher),
+			ExternalMessage: model_core.NewPatchedMessage(model_core.NewProtoBinaryMarshaler(&overrides), patcher),
 			Encoder:         encoder,
 			ParentAppender: inlinedtree.Capturing(ctx, objectCapturer, func(
 				subpackages model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata],

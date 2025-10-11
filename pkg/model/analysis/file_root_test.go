@@ -1,6 +1,7 @@
 package analysis_test
 
 import (
+	"encoding"
 	"testing"
 
 	model_analysis "bonanza.build/pkg/model/analysis"
@@ -49,8 +50,8 @@ func TestFileRoot(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(t.Context(), t)
 	bct := newBaseComputerTester(ctrl)
 
-	exampleConfiguration := newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-		return model_core.NewProtoListMarshalable([]*model_analysis_pb.BuildSettingOverride{{
+	exampleConfiguration := newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+		return model_core.NewProtoListBinaryMarshaler([]*model_analysis_pb.BuildSettingOverride{{
 			Level: &model_analysis_pb.BuildSettingOverride_Leaf_{
 				Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
 					Label: "@@bazel_tools+//command_line_option:platforms",
@@ -124,8 +125,8 @@ func TestFileRoot(t *testing.T) {
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
 				return &model_analysis_pb.Repo_Value{
 					RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
-						Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-							return model_core.NewProtoMarshalable(&model_filesystem_pb.DirectoryContents{
+						Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+							return model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
 								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
 									LeavesInline: &model_filesystem_pb.Leaves{
 										Files: []*model_filesystem_pb.FileNode{{
@@ -173,8 +174,8 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
 					return &model_analysis_pb.Repo_Value{
 						RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
-							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-								return model_core.NewProtoMarshalable(&model_filesystem_pb.DirectoryContents{
+							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+								return model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
 									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
 										LeavesInline: &model_filesystem_pb.Leaves{
 											Files: []*model_filesystem_pb.FileNode{
@@ -293,8 +294,8 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
 					return &model_analysis_pb.Repo_Value{
 						RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
-							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-								return model_core.NewProtoMarshalable(&model_filesystem_pb.DirectoryContents{
+							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+								return model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
 									Directories: []*model_filesystem_pb.DirectoryNode{
 										directoryNode("dir1", &model_filesystem_pb.DirectoryContents{
 											Directories: []*model_filesystem_pb.DirectoryNode{
@@ -367,8 +368,8 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
 					return &model_analysis_pb.Repo_Value{
 						RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
-							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-								return model_core.NewProtoMarshalable(&model_filesystem_pb.DirectoryContents{
+							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+								return model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
 									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
 										LeavesInline: &model_filesystem_pb.Leaves{
 											Files: []*model_filesystem_pb.FileNode{
@@ -612,8 +613,8 @@ func TestFileRoot(t *testing.T) {
 																Properties: &model_filesystem_pb.FileProperties{
 																	Contents: &model_filesystem_pb.FileContents{
 																		Level: &model_filesystem_pb.FileContents_ChunkReference{
-																			ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-																				return model_core.NewRawMarshalable([]byte("File contents go here"))
+																			ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																				return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
 																			})),
 																		},
 																		TotalSizeBytes: 21,
@@ -675,8 +676,8 @@ func TestFileRoot(t *testing.T) {
 															Properties: &model_filesystem_pb.FileProperties{
 																Contents: &model_filesystem_pb.FileContents{
 																	Level: &model_filesystem_pb.FileContents_ChunkReference{
-																		ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-																			return model_core.NewRawMarshalable([]byte("File contents go here"))
+																		ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																			return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
 																		})),
 																	},
 																	TotalSizeBytes: 21,
@@ -711,8 +712,8 @@ func TestFileRoot(t *testing.T) {
 												Properties: &model_filesystem_pb.FileProperties{
 													Contents: &model_filesystem_pb.FileContents{
 														Level: &model_filesystem_pb.FileContents_ChunkReference{
-															ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-																return model_core.NewRawMarshalable([]byte("File contents go here"))
+															ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
 															})),
 														},
 														TotalSizeBytes: 21,
@@ -1157,8 +1158,8 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionInputRoot_Value {
 					return &model_analysis_pb.TargetActionInputRoot_Value{
 						InputRootReference: &model_filesystem_pb.DirectoryReference{
-							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-								return model_core.NewProtoMarshalable(singleChildDirectoryContents(
+							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+								return model_core.NewProtoBinaryMarshaler(singleChildDirectoryContents(
 									"bazel-out",
 									singleChildDirectoryContents(
 										"Cg6Kx80o8BPYmGdgWYfRZvbKyWojQ7snQzHOx70XAwRPAAAAAAAAAA.",
@@ -1607,8 +1608,8 @@ func TestFileRoot(t *testing.T) {
 													Properties: &model_filesystem_pb.FileProperties{
 														Contents: &model_filesystem_pb.FileContents{
 															Level: &model_filesystem_pb.FileContents_ChunkReference{
-																ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-																	return model_core.NewRawMarshalable([]byte("{{first_name}} {{last_name}}"))
+																ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																	return model_core.NewRawBinaryMarshaler([]byte("{{first_name}} {{last_name}}"))
 																})),
 															},
 															TotalSizeBytes: 28,
@@ -1669,8 +1670,8 @@ func TestFileRoot(t *testing.T) {
 																Properties: &model_filesystem_pb.FileProperties{
 																	Contents: &model_filesystem_pb.FileContents{
 																		Level: &model_filesystem_pb.FileContents_ChunkReference{
-																			ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-																				return model_core.NewRawMarshalable([]byte("Albert Einstein"))
+																			ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																				return model_core.NewRawBinaryMarshaler([]byte("Albert Einstein"))
 																			})),
 																		},
 																		TotalSizeBytes: 15,
@@ -1707,8 +1708,8 @@ func TestFileRoot(t *testing.T) {
 												Properties: &model_filesystem_pb.FileProperties{
 													Contents: &model_filesystem_pb.FileContents{
 														Level: &model_filesystem_pb.FileContents_ChunkReference{
-															ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable {
-																return model_core.NewRawMarshalable([]byte("Albert Einstein"))
+															ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																return model_core.NewRawBinaryMarshaler([]byte("Albert Einstein"))
 															})),
 														},
 														TotalSizeBytes: 15,

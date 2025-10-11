@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -1977,7 +1978,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 			),
 			// Fields that can be stored externally if needed.
 			{
-				ExternalMessage: model_core.ProtoListToMarshalable(argumentList),
+				ExternalMessage: model_core.ProtoListToBinaryMarshaler(argumentList),
 				Encoder:         mrc.actionEncoder,
 				ParentAppender: func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
@@ -1997,7 +1998,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoListToMarshalable(environmentVariableList),
+				ExternalMessage: model_core.ProtoListToBinaryMarshaler(environmentVariableList),
 				Encoder:         mrc.actionEncoder,
 				ParentAppender: func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
@@ -2017,7 +2018,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoToMarshalable(outputPathPatternChildren),
+				ExternalMessage: model_core.ProtoToBinaryMarshaler(outputPathPatternChildren),
 				Encoder:         mrc.actionEncoder,
 				ParentAppender: inlinedtree.Capturing(mrc.context, mrc.environment, func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
@@ -2037,7 +2038,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 		return nil, err
 	}
 	createdCommand, err := model_core.MarshalAndEncode(
-		model_core.ProtoToMarshalable(command),
+		model_core.ProtoToBinaryMarshaler(command),
 		referenceFormat,
 		mrc.actionEncoder,
 	)
@@ -2050,13 +2051,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 		return nil, fmt.Errorf("failed to create Merkle tree of root directory: %w", err)
 	}
 
-	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (model_core.Marshalable, error) {
+	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (encoding.BinaryMarshaler, error) {
 		patcher.Merge(inputRootReference.Patcher)
 		commandReference, err := patcher.CaptureAndAddDecodableReference(mrc.context, createdCommand, mrc.environment)
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoMarshalable(&model_command_pb.Action{
+		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
 		}), nil
@@ -2351,7 +2352,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncode(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoMarshalable(&model_command_pb.Command{
+			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
 						Level: &model_command_pb.ArgumentList_Element_Leaf{
@@ -2384,13 +2385,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 		return nil, fmt.Errorf("failed to create Merkle tree of root directory: %w", err)
 	}
 
-	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (model_core.Marshalable, error) {
+	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (encoding.BinaryMarshaler, error) {
 		patcher.Merge(inputRootReference.Patcher)
 		commandReference, err := patcher.CaptureAndAddDecodableReference(mrc.context, createdCommand, mrc.environment)
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoMarshalable(&model_command_pb.Action{
+		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
 		}), nil
@@ -2515,7 +2516,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncode(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoMarshalable(&model_command_pb.Command{
+			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
 						Level: &model_command_pb.ArgumentList_Element_Leaf{
@@ -2549,7 +2550,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 
 	createdInputRoot, err := model_core.MarshalAndEncode(
 		model_core.NewSimplePatchedMessage[TMetadata](
-			model_core.NewProtoMarshalable(&model_filesystem_pb.DirectoryContents{
+			model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
 				Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
 					LeavesInline: &model_filesystem_pb.Leaves{},
 				},
@@ -2562,7 +2563,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 		return nil, fmt.Errorf("failed to create input root: %w", err)
 	}
 
-	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (model_core.Marshalable, error) {
+	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (encoding.BinaryMarshaler, error) {
 		commandReference, err := patcher.CaptureAndAddDecodableReference(mrc.context, createdCommand, mrc.environment)
 		if err != nil {
 			return nil, err
@@ -2571,7 +2572,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoMarshalable(&model_command_pb.Action{
+		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
 			CommandReference: commandReference,
 			// TODO: We shouldn't be handcrafting a
 			// DirectoryReference here.
@@ -2724,7 +2725,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncode(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoMarshalable(&model_command_pb.Command{
+			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
 						Level: &model_command_pb.ArgumentList_Element_Leaf{
@@ -2762,13 +2763,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 		return false, fmt.Errorf("failed to create Merkle tree of root directory: %w", err)
 	}
 
-	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (model_core.Marshalable, error) {
+	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (encoding.BinaryMarshaler, error) {
 		patcher.Merge(inputRootReference.Patcher)
 		commandReference, err := patcher.CaptureAndAddDecodableReference(mrc.context, createdCommand, mrc.environment)
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoMarshalable(&model_command_pb.Action{
+		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
 		}), nil
@@ -2878,7 +2879,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncode(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoMarshalable(&model_command_pb.Command{
+			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
 						Level: &model_command_pb.ArgumentList_Element_Leaf{
@@ -2911,13 +2912,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 		return nil, fmt.Errorf("failed to create Merkle tree of root directory: %w", err)
 	}
 
-	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (model_core.Marshalable, error) {
+	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (encoding.BinaryMarshaler, error) {
 		patcher.Merge(inputRootReference.Patcher)
 		commandReference, err := patcher.CaptureAndAddDecodableReference(mrc.context, createdCommand, mrc.environment)
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoMarshalable(&model_command_pb.Action{
+		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
 		}), nil
@@ -3644,7 +3645,7 @@ func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTracking
 	// Store the root directory itself. We don't embed it into the
 	// response, as that prevents it from being accessed separately.
 	createdRootDirectoryObject, err := model_core.MarshalAndEncode(
-		model_core.ProtoToMarshalable(createdRootDirectory.Message),
+		model_core.ProtoToBinaryMarshaler(createdRootDirectory.Message),
 		c.referenceFormat,
 		directoryCreationParameters.GetEncoder(),
 	)

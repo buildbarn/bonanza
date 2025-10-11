@@ -290,7 +290,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	})
 
 	createdResult, err := model_core.MarshalAndEncode(
-		model_core.ProtoToMarshalable(result),
+		model_core.ProtoToBinaryMarshaler(result),
 		referenceFormat,
 		actionEncoder,
 	)

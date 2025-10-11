@@ -2,10 +2,11 @@ package inlinedtree
 
 import (
 	"container/heap"
+	"encoding"
 
 	"bonanza.build/pkg/ds"
 	model_core "bonanza.build/pkg/model/core"
-	"bonanza.build/pkg/model/encoding"
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
@@ -32,9 +33,9 @@ type ParentAppender[TParentMessage any, TMetadata model_core.ReferenceMetadata] 
 type Candidate[TParentMessage any, TMetadata model_core.ReferenceMetadata] struct {
 	// Message to store in a child object if no space is present to
 	// inline it into the parent object.
-	ExternalMessage model_core.PatchedMessage[model_core.Marshalable, TMetadata]
+	ExternalMessage model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata]
 	// Encoder to use when storing ExternalMessage in a child object.
-	Encoder encoding.BinaryEncoder
+	Encoder model_encoding.BinaryEncoder
 	// Function to invoke to either inline the message into the
 	// output, or create a reference to the child object.
 	ParentAppender ParentAppender[TParentMessage, TMetadata]
@@ -48,7 +49,7 @@ func AlwaysInline[TParentMessage any, TMetadata model_core.ReferenceMetadata](
 	parentAppender func(parent model_core.PatchedMessage[TParentMessage, TMetadata]),
 ) Candidate[TParentMessage, TMetadata] {
 	return Candidate[TParentMessage, TMetadata]{
-		ExternalMessage: model_core.NewPatchedMessage((model_core.Marshalable)(nil), patcher),
+		ExternalMessage: model_core.NewPatchedMessage((encoding.BinaryMarshaler)(nil), patcher),
 		ParentAppender: func(
 			out model_core.PatchedMessage[TParentMessage, TMetadata],
 			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],

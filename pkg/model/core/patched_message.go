@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding"
 	"math"
 
 	model_encoding "bonanza.build/pkg/model/encoding"
@@ -158,12 +159,12 @@ func PatchedMessagesEqual[
 // MarshalAndEncode marshals a patched message, encodes it, and converts
 // it to an object that can be written to storage.
 func MarshalAndEncode[TMetadata ReferenceMetadata](
-	m PatchedMessage[Marshalable, TMetadata],
+	m PatchedMessage[encoding.BinaryMarshaler, TMetadata],
 	referenceFormat object.ReferenceFormat,
 	encoder model_encoding.BinaryEncoder,
 ) (Decodable[CreatedObject[TMetadata]], error) {
 	references, metadata := m.Patcher.SortAndSetReferences()
-	data, err := m.Message.Marshal()
+	data, err := m.Message.MarshalBinary()
 	if err != nil {
 		m.Discard()
 		return Decodable[CreatedObject[TMetadata]]{}, err
@@ -230,16 +231,16 @@ func MarshalAny[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMe
 	), nil
 }
 
-func ProtoToMarshalable[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMessage[TMessage, TMetadata]) PatchedMessage[Marshalable, TMetadata] {
+func ProtoToBinaryMarshaler[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMessage[TMessage, TMetadata]) PatchedMessage[encoding.BinaryMarshaler, TMetadata] {
 	return NewPatchedMessage(
-		NewProtoMarshalable(m.Message),
+		NewProtoBinaryMarshaler(m.Message),
 		m.Patcher,
 	)
 }
 
-func ProtoListToMarshalable[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMessage[[]TMessage, TMetadata]) PatchedMessage[Marshalable, TMetadata] {
+func ProtoListToBinaryMarshaler[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMessage[[]TMessage, TMetadata]) PatchedMessage[encoding.BinaryMarshaler, TMetadata] {
 	return NewPatchedMessage(
-		NewProtoListMarshalable(m.Message),
+		NewProtoListBinaryMarshaler(m.Message),
 		m.Patcher,
 	)
 }

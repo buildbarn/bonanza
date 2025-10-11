@@ -284,7 +284,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 						return err
 					}
 					createdProgress, err := model_core.MarshalAndEncode(
-						model_core.ProtoToMarshalable(progress),
+						model_core.ProtoToBinaryMarshaler(progress),
 						referenceFormat,
 						actionEncoder,
 					)
@@ -487,7 +487,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		}
 		if len(outcomes.Message) > 0 {
 			createdEvaluations, err := model_core.MarshalAndEncode(
-				model_core.ProtoListToMarshalable(outcomes),
+				model_core.ProtoListToBinaryMarshaler(outcomes),
 				referenceFormat,
 				evaluationTreeEncoder,
 			)
@@ -543,7 +543,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	})
 
 	createdResult, err := model_core.MarshalAndEncode(
-		model_core.ProtoToMarshalable(resultMessage),
+		model_core.ProtoToBinaryMarshaler(resultMessage),
 		referenceFormat,
 		actionEncoder,
 	)

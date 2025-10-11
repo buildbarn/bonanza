@@ -625,7 +625,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			// Action has one or more outputs. Upload them and
 			// attach a reference to the result message.
 			if createdObject, err := model_core.MarshalAndEncode(
-				model_core.NewPatchedMessage(model_core.NewProtoMarshalable(&outputs), outputsPatcher),
+				model_core.NewPatchedMessage(model_core.NewProtoBinaryMarshaler(&outputs), outputsPatcher),
 				referenceFormat,
 				directoryEncoder,
 			); err != nil {
@@ -645,7 +645,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	})
 
 	createdResult, err := model_core.MarshalAndEncode(
-		model_core.ProtoToMarshalable(result),
+		model_core.ProtoToBinaryMarshaler(result),
 		referenceFormat,
 		actionEncoder,
 	)

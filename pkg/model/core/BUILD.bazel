@@ -4,11 +4,11 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "core",
     srcs = [
+        "binary_marshaler.go",
         "created_object.go",
         "decodable.go",
         "get_index_from_reference_message.go",
         "leak_checking_object_manager.go",
-        "marshalable.go",
         "message.go",
         "noop_reference_metadata.go",
         "object_capturer.go",

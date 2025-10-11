@@ -2,6 +2,7 @@ package analysis_test
 
 import (
 	"context"
+	"encoding"
 	"testing"
 
 	model_analysis "bonanza.build/pkg/model/analysis"
@@ -179,7 +180,7 @@ func newMessage[TMessage any](
 
 // newMessage creates a new storage object as part of tests.
 func newObject(
-	builder func(childPatcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) model_core.Marshalable,
+	builder func(childPatcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler,
 ) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
 	return util.Must(
 		model_core.MarshalAndEncode(

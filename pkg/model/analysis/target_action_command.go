@@ -700,7 +700,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			),
 			// Fields that can be stored externally if needed.
 			{
-				ExternalMessage: model_core.ProtoListToMarshalable(argumentsList),
+				ExternalMessage: model_core.ProtoListToBinaryMarshaler(argumentsList),
 				Encoder:         actionEncoder,
 				ParentAppender: func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
@@ -729,7 +729,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				},
 			),
 			{
-				ExternalMessage: model_core.ProtoToMarshalable(outputPathPatternChildren),
+				ExternalMessage: model_core.ProtoToBinaryMarshaler(outputPathPatternChildren),
 				Encoder:         actionEncoder,
 				ParentAppender: inlinedtree.Capturing(ctx, e, func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
@@ -749,7 +749,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		return PatchedTargetActionCommandValue[TMetadata]{}, err
 	}
 	createdCommand, err := model_core.MarshalAndEncode(
-		model_core.ProtoToMarshalable(command),
+		model_core.ProtoToBinaryMarshaler(command),
 		referenceFormat,
 		actionEncoder,
 	)

@@ -256,7 +256,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 			inlineCandidates,
 			inlinedtree.Candidate[*model_filesystem_pb.DirectoryContents, TDirectory]{
 				ExternalMessage: model_core.NewPatchedMessage(
-					model_core.NewProtoMarshalable(ud.leaves.Message),
+					model_core.NewProtoBinaryMarshaler(ud.leaves.Message),
 					model_core.MapReferenceMessagePatcherMetadata(
 						ud.leaves.Patcher,
 						func(capturedObject model_core.MetadataEntry[TFile]) TDirectory {
@@ -294,7 +294,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 			inlineCandidates = append(
 				inlineCandidates,
 				inlinedtree.Candidate[*model_filesystem_pb.DirectoryContents, TDirectory]{
-					ExternalMessage: model_core.ProtoToMarshalable(createdDirectory.Message),
+					ExternalMessage: model_core.ProtoToBinaryMarshaler(createdDirectory.Message),
 					Encoder:         b.directoryEncoder,
 					ParentAppender: inlinedtree.Capturing(
 						b.context,
