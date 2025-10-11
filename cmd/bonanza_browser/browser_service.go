@@ -238,7 +238,7 @@ func getEncoderFromForm(r *http.Request) ([]*browser_pb.RecentlyObservedEncoder,
 	if provided == "" {
 		return nil, "", nil
 	}
-	var unmarshaled ProtoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder]
+	var unmarshaled protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder]
 	if err := json.Unmarshal([]byte(provided), &unmarshaled); err != nil {
 		return nil, provided, fmt.Errorf("failed to unmarshal encoder configuration: %w", err)
 	}
@@ -407,7 +407,7 @@ func renderReferenceCard(title string, decodableReference model_core.Decodable[o
 func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder, currentEncoderConfiguration string) []g.Node {
 	if currentEncoderConfiguration == "" {
 		if marshaled, err := json.MarshalIndent(
-			ProtoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder](
+			protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder](
 				recentlyObservedEncoders[0].Configuration,
 			),
 			/* prefix = */ "",
@@ -425,7 +425,7 @@ func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObserv
 		),
 	}
 	for _, recentlyObservedEncoder := range recentlyObservedEncoders {
-		l := ProtoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder](recentlyObservedEncoder.Configuration)
+		l := protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder](recentlyObservedEncoder.Configuration)
 		compact, err := json.Marshal(l)
 		if err != nil {
 			continue
@@ -1826,7 +1826,7 @@ func (s *BrowserService) doWorkers(w http.ResponseWriter, r *http.Request) (g.No
 	}), nil
 }
 
-type ProtoList[
+type protoList[
 	TMessage any,
 	TMessagePtr interface {
 		*TMessage
@@ -1835,11 +1835,11 @@ type ProtoList[
 ] []*TMessage
 
 var (
-	_ json.Marshaler   = ProtoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder]{}
-	_ json.Unmarshaler = &ProtoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder]{}
+	_ json.Marshaler   = protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder]{}
+	_ json.Unmarshaler = &protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder]{}
 )
 
-func (pl ProtoList[TMessage, TMessagePtr]) MarshalJSON() ([]byte, error) {
+func (pl protoList[TMessage, TMessagePtr]) MarshalJSON() ([]byte, error) {
 	b := []byte("[")
 	for i, m := range pl {
 		var err error
@@ -1854,7 +1854,7 @@ func (pl ProtoList[TMessage, TMessagePtr]) MarshalJSON() ([]byte, error) {
 	return append(b, ']'), nil
 }
 
-func (pl *ProtoList[TMessage, TMessagePtr]) UnmarshalJSON(b []byte) error {
+func (pl *protoList[TMessage, TMessagePtr]) UnmarshalJSON(b []byte) error {
 	decoder := json.NewDecoder(bytes.NewReader(b))
 	t, err := decoder.Token()
 	if err != nil {
@@ -1864,7 +1864,7 @@ func (pl *ProtoList[TMessage, TMessagePtr]) UnmarshalJSON(b []byte) error {
 		return errors.New("expected start of list")
 	}
 
-	var values ProtoList[TMessage, TMessagePtr]
+	var values protoList[TMessage, TMessagePtr]
 	for decoder.More() {
 		var value protoUnmarshaler[TMessage, TMessagePtr]
 		if err := decoder.Decode(&value); err != nil {

@@ -16,8 +16,14 @@ type CreatedObjectCapturer[TMetadata any] interface {
 	CaptureCreatedObject(ctx context.Context, createdObject CreatedObject[TMetadata]) (TMetadata, error)
 }
 
+// CreatedObjectCapturerFunc has the same signature as
+// CreatedObjectCapturer.CaptureCreatedObject(). It is provided to allow
+// a single type to provide multiple capturing functions, and to pass
+// each of these methods to a function taking a CreatedObjectCapturer.
 type CreatedObjectCapturerFunc[TMetadata any] func(ctx context.Context, createdObject CreatedObject[TMetadata]) (TMetadata, error)
 
+// CaptureCreatedObject forwards the call to create reference metadata
+// to the underlying CreatedObjectCapturerFunc.
 func (f CreatedObjectCapturerFunc[TMetadata]) CaptureCreatedObject(ctx context.Context, createdObject CreatedObject[TMetadata]) (TMetadata, error) {
 	return f(ctx, createdObject)
 }
