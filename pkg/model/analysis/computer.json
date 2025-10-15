@@ -517,7 +517,8 @@
       },
       "RepositoryRuleObject": {
          "dependsOn": [
-            "CompiledBzlFileGlobal"
+            "CompiledBzlFileGlobal",
+            "RepositoryRuleObject"
          ],
          "nativeValueType": {
             "type": "*RepositoryRule[TReference, TMetadata]"

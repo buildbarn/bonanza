@@ -33,28 +33,41 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepositoryRuleObjectValue(c
 	if !ok {
 		return nil, errors.New("global value is not a repository rule")
 	}
-	d, ok := v.RepositoryRule.Kind.(*model_starlark_pb.RepositoryRule_Definition_)
-	if !ok {
-		return nil, errors.New("global value is not a repository rule definition")
-	}
+	switch kind := v.RepositoryRule.Kind.(type) {
+	case *model_starlark_pb.RepositoryRule_Definition_:
+		attrs, err := c.decodeAttrsDict(
+			ctx,
+			model_core.Nested(repositoryRuleValue, kind.Definition.Attrs),
+			func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
+				return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
 
-	attrs, err := c.decodeAttrsDict(
-		ctx,
-		model_core.Nested(repositoryRuleValue, d.Definition.Attrs),
-		func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
-			return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
-		},
-	)
-	if err != nil {
-		return nil, err
+		return &RepositoryRule[TReference, TMetadata]{
+			Implementation: model_starlark.NewNamedFunction(model_starlark.NewProtoNamedFunctionDefinition[TReference, TMetadata](
+				model_core.Nested(repositoryRuleValue, kind.Definition.Implementation),
+			)),
+			Attrs: attrs,
+		}, nil
+	case *model_starlark_pb.RepositoryRule_Reference:
+		// When use_repo_rule() is used, the repository rule
+		// identifier may still refer to a global that refers to
+		// the actual repository rule object.
+		repositoryRuleObject, ok := e.GetRepositoryRuleObjectValue(
+			&model_analysis_pb.RepositoryRuleObject_Key{
+				Identifier: kind.Reference,
+			},
+		)
+		if !ok {
+			return nil, evaluation.ErrMissingDependency
+		}
+		return repositoryRuleObject, nil
+	default:
+		return nil, errors.New("unknown kind of repository rule")
 	}
-
-	return &RepositoryRule[TReference, TMetadata]{
-		Implementation: model_starlark.NewNamedFunction(model_starlark.NewProtoNamedFunctionDefinition[TReference, TMetadata](
-			model_core.Nested(repositoryRuleValue, d.Definition.Implementation),
-		)),
-		Attrs: attrs,
-	}, nil
 }
 
 type PublicAttr[TReference any, TMetadata model_core.ReferenceMetadata] struct {
