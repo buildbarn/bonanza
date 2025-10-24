@@ -8,6 +8,7 @@ go_library(
     srcs = [
         "browser_service.go",
         "main.go",
+        "pretty.go",
     ],
     # keep
     embedsrcs = ["stylesheet_for_host"],
