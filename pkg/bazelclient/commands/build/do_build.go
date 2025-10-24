@@ -22,6 +22,7 @@ import (
 	"bonanza.build/pkg/bazelclient/logging"
 	"bonanza.build/pkg/crypto"
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/core"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
@@ -906,17 +907,9 @@ func (f *messageJSONFormatter) formatJSONField(fieldDescriptor protoreflect.Fiel
 						// the field options. Emit a link to
 						// the object.
 						objectFormat := proto.GetExtension(fieldOptions, model_core_pb.E_ObjectFormat).(*model_core_pb.ObjectFormat)
-						switch format := objectFormat.GetFormat().(type) {
-						case *model_core_pb.ObjectFormat_Raw:
-							if link, err := url.JoinPath(f.baseURL, rawReference, "raw"); err == nil {
-								return formatReferenceLink(link, rawReference)
-							}
-						case *model_core_pb.ObjectFormat_ProtoTypeName:
-							if link, err := url.JoinPath(f.baseURL, rawReference, "proto", format.ProtoTypeName); err == nil {
-								return formatReferenceLink(link, rawReference)
-							}
-						case *model_core_pb.ObjectFormat_ProtoListTypeName:
-							if link, err := url.JoinPath(f.baseURL, rawReference, "proto_list", format.ProtoListTypeName); err == nil {
+						segments, ok := core.ObjectFormatToPath(objectFormat)
+						if ok {
+							if link, err := url.JoinPath(f.baseURL, append([]string{rawReference}, segments...)...); err == nil {
 								return formatReferenceLink(link, rawReference)
 							}
 						}
