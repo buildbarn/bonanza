@@ -194,6 +194,7 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 			h.Td(),
 			h.Td(g.Text(path)),
 		))
+		return res
 	}
 
 	slices.Sort(names)
