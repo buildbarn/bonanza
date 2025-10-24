@@ -18,6 +18,24 @@ async function main() {
       list-style: none;
       padding-inline-start: 25px;
     }
+
+    .message-contents table {
+      width: 100%;
+    }
+
+    .message-contents tr {
+      border-bottom: 1px dotted #555;
+    }
+
+    .message-contents tr th {
+      padding: 5px;
+      text-align: left;
+    }
+
+    .message-contents tr td {
+      padding: 5px;
+      text-wrap: nowrap;
+    }
   `, {
     base: process.cwd(),
     onDependency(path) {},
@@ -94,6 +112,7 @@ async function main() {
     'text-amber-200',
     'text-center',
     'text-fuchsia-300',
+    'text-gray-500',
     'text-left',
     'text-neutral-content!',
     'text-neutral-content',

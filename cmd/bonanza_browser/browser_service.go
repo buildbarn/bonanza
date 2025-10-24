@@ -984,6 +984,7 @@ func (s *BrowserService) doProtoObject(w http.ResponseWriter, r *http.Request) (
 			rawPayloadRenderer{},
 			decodedPayloadRenderer{},
 			messageJSONPayloadRenderer{},
+			messagePrettyRenderer{},
 		},
 		2,
 	)
@@ -2006,9 +2007,14 @@ type messageJSONRenderer struct {
 	fallbackObjectFormat *model_core_pb.ObjectFormat
 	referenceFormat      *object.ReferenceFormat
 	now                  time.Time
+	customRenderer       JSONCustomRenderer
 
 	observedEncoders []*browser_pb.RecentlyObservedEncoder
 }
+
+// A function that can provide custom rendering for a particular message. If it
+// is set and returns a nonempty slice, the returned rendering is used.
+type JSONCustomRenderer func(d *messageJSONRenderer, m model_core.Message[protoreflect.Message, object.LocalReference], fields map[string][]g.Node) []g.Node
 
 func (d *messageJSONRenderer) renderReferenceField(fieldDescriptor protoreflect.FieldDescriptor, reference model_core.Decodable[object.LocalReference]) []g.Node {
 	fieldOptions := fieldDescriptor.Options().(*descriptorpb.FieldOptions)
@@ -2209,6 +2215,12 @@ func (d *messageJSONRenderer) renderMessage(m model_core.Message[protoreflect.Me
 }
 
 func (d *messageJSONRenderer) renderMessageCommon(m model_core.Message[protoreflect.Message, object.LocalReference], fields map[string][]g.Node) []g.Node {
+	if d.customRenderer != nil {
+		r := d.customRenderer(d, m, fields)
+		if len(r) > 0 {
+			return r
+		}
+	}
 	switch v := m.Message.Interface().(type) {
 	case *durationpb.Duration:
 		if jsonValue, err := protojson.Marshal(v); err == nil {
