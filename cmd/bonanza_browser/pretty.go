@@ -236,7 +236,11 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 				))
 
 			case *model_filesystem_pb.Directory_ContentsInline:
-				res = append(res, renderDirectoryPretty(r, model_core.Nested(dirMessage, contents.ContentsInline), path+file.Name+"/")...)
+				children := renderDirectoryPretty(r, model_core.Nested(dirMessage, contents.ContentsInline), path+file.Name+"/")
+				if len(children) > 0 {
+					firstPrefix = true
+				}
+				res = append(res, children...)
 			}
 
 		case *model_filesystem_pb.LeavesReference:
