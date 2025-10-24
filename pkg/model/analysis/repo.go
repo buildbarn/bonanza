@@ -3257,13 +3257,14 @@ func (rc *repositoryContext[TReference, TMetadata]) doDelete(thread *starlark.Th
 func (rc *repositoryContext[TReference, TMetadata]) doPatch(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	mrc := rc.moduleOrRepositoryContext
 	mrc.maybeGetDirectoryCreationParameters()
+	mrc.maybeGetFileReader()
 	if err := mrc.maybeGetStableInputRootPath(); err != nil {
 		return nil, err
 	}
 	if err := mrc.maybeInitializePatchedFiles(); err != nil {
 		return nil, err
 	}
-	if mrc.directoryLoadOptions == nil {
+	if mrc.directoryLoadOptions == nil || mrc.fileReader == nil {
 		return nil, evaluation.ErrMissingDependency
 	}
 
