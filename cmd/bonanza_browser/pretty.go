@@ -192,7 +192,7 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 		res = append(res, h.Tr(
 			h.Td(g.Text("dr-x")),
 			h.Td(),
-			h.Td(g.Text(path+"/")),
+			h.Td(g.Text(path)),
 		))
 	}
 
