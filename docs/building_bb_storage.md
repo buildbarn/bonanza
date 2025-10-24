@@ -59,6 +59,12 @@ common:bonanza --remote_encryption_key=U3YDUwfejfiRDeD4aqoR7A==
 #     openssl pkey -in private.pem -pubout -out public.pem
 common:bonanza --remote_executor_builder_pkix_public_key=MCowBQYDK2VuAyEAE+onXE9lGj+1ykKMdYJ7ORbbGvDg6mXwX9H90afmdDI=
 
+# Fetching of file from Bazel Central Registry and other locations takes
+# place on a process named bonanza_fetcher. For this process we also
+# need to provide the public key, so that bonanza_builder is capable of
+# sending requests to it.
+common:bonanza --remote_executor_fetcher_pkix_public_key=MCowBQYDK2VuAyEA4TFZl07r2DStbhdLuI3C6zU36syOXo0K9WXFOthelW4=
+
 # bonanza_builder only accepts build requests that are accompanied with
 # a trusted X.509 certificate. We also need to provide the private key
 # that corresponds to the elliptic-curve public key in the certificate,
