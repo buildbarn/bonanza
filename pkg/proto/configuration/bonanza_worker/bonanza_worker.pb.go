@@ -185,8 +185,8 @@ type RunnerConfiguration struct {
 	HiddenFilesPattern                  string                                       `protobuf:"bytes,8,opt,name=hidden_files_pattern,json=hiddenFilesPattern,proto3" json:"hidden_files_pattern,omitempty"`
 	MaximumExecutionTimeoutCompensation *durationpb.Duration                         `protobuf:"bytes,9,opt,name=maximum_execution_timeout_compensation,json=maximumExecutionTimeoutCompensation,proto3" json:"maximum_execution_timeout_compensation,omitempty"`
 	MaximumWritableFileUploadDelay      *durationpb.Duration                         `protobuf:"bytes,10,opt,name=maximum_writable_file_upload_delay,json=maximumWritableFileUploadDelay,proto3" json:"maximum_writable_file_upload_delay,omitempty"`
-	MaximumFilePoolFileCount            int64                                        `protobuf:"varint,11,opt,name=maximum_file_pool_file_count,json=maximumFilePoolFileCount,proto3" json:"maximum_file_pool_file_count,omitempty"`
-	MaximumFilePoolSizeBytes            int64                                        `protobuf:"varint,12,opt,name=maximum_file_pool_size_bytes,json=maximumFilePoolSizeBytes,proto3" json:"maximum_file_pool_size_bytes,omitempty"`
+	MaximumFilePoolFileCount            uint64                                       `protobuf:"varint,11,opt,name=maximum_file_pool_file_count,json=maximumFilePoolFileCount,proto3" json:"maximum_file_pool_file_count,omitempty"`
+	MaximumFilePoolSizeBytes            uint64                                       `protobuf:"varint,12,opt,name=maximum_file_pool_size_bytes,json=maximumFilePoolSizeBytes,proto3" json:"maximum_file_pool_size_bytes,omitempty"`
 	WorkerId                            map[string]string                            `protobuf:"bytes,13,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	EnvironmentVariables                map[string]string                            `protobuf:"bytes,14,rep,name=environment_variables,json=environmentVariables,proto3" json:"environment_variables,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	BuildDirectoryOwnerUserId           uint32                                       `protobuf:"varint,15,opt,name=build_directory_owner_user_id,json=buildDirectoryOwnerUserId,proto3" json:"build_directory_owner_user_id,omitempty"`
@@ -295,14 +295,14 @@ func (x *RunnerConfiguration) GetMaximumWritableFileUploadDelay() *durationpb.Du
 	return nil
 }
 
-func (x *RunnerConfiguration) GetMaximumFilePoolFileCount() int64 {
+func (x *RunnerConfiguration) GetMaximumFilePoolFileCount() uint64 {
 	if x != nil {
 		return x.MaximumFilePoolFileCount
 	}
 	return 0
 }
 
-func (x *RunnerConfiguration) GetMaximumFilePoolSizeBytes() int64 {
+func (x *RunnerConfiguration) GetMaximumFilePoolSizeBytes() uint64 {
 	if x != nil {
 		return x.MaximumFilePoolSizeBytes
 	}
@@ -367,8 +367,8 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_p
 	"&maximum_execution_timeout_compensation\x18\t \x01(\v2\x19.google.protobuf.DurationR#maximumExecutionTimeoutCompensation\x12e\n" +
 	"\"maximum_writable_file_upload_delay\x18\n" +
 	" \x01(\v2\x19.google.protobuf.DurationR\x1emaximumWritableFileUploadDelay\x12>\n" +
-	"\x1cmaximum_file_pool_file_count\x18\v \x01(\x03R\x18maximumFilePoolFileCount\x12>\n" +
-	"\x1cmaximum_file_pool_size_bytes\x18\f \x01(\x03R\x18maximumFilePoolSizeBytes\x12d\n" +
+	"\x1cmaximum_file_pool_file_count\x18\v \x01(\x04R\x18maximumFilePoolFileCount\x12>\n" +
+	"\x1cmaximum_file_pool_size_bytes\x18\f \x01(\x04R\x18maximumFilePoolSizeBytes\x12d\n" +
 	"\tworker_id\x18\r \x03(\v2G.bonanza.configuration.bonanza_worker.RunnerConfiguration.WorkerIdEntryR\bworkerId\x12\x88\x01\n" +
 	"\x15environment_variables\x18\x0e \x03(\v2S.bonanza.configuration.bonanza_worker.RunnerConfiguration.EnvironmentVariablesEntryR\x14environmentVariables\x12@\n" +
 	"\x1dbuild_directory_owner_user_id\x18\x0f \x01(\rR\x19buildDirectoryOwnerUserId\x12B\n" +
