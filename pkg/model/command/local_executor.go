@@ -18,7 +18,6 @@ import (
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_filesystem_virtual "bonanza.build/pkg/model/filesystem/virtual"
-	pg_vfs "bonanza.build/pkg/model/filesystem/virtual"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -428,7 +427,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		}
 		if err := buildDirectory.CreateChildren(map[path.Component]virtual.InitialChild{
 			inputRootDirectoryComponent: virtual.InitialChild{}.FromDirectory(
-				pg_vfs.NewObjectBackedInitialContentsFetcher(
+				model_filesystem_virtual.NewObjectBackedInitialContentsFetcher(
 					ctxWithIOError,
 					model_parser.LookupParsedObjectReader(
 						parsedObjectPoolIngester,
@@ -444,8 +443,8 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 							model_parser.NewProtoObjectParser[object.LocalReference, model_filesystem_pb.Leaves](),
 						),
 					),
-					pg_vfs.NewStatelessHandleAllocatingFileFactory(
-						pg_vfs.NewObjectBackedFileFactory(
+					model_filesystem_virtual.NewStatelessHandleAllocatingFileFactory(
+						model_filesystem_virtual.NewObjectBackedFileFactory(
 							ctxWithIOError,
 							model_filesystem.NewFileReader(
 								model_parser.LookupParsedObjectReader(
