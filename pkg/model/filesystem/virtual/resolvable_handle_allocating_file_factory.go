@@ -11,16 +11,19 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/virtual"
+	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
 type resolvableHandleAllocatingFileFactory struct {
 	FileFactory
 	handleAllocator virtual.ResolvableHandleAllocator
+	errorLogger     util.ErrorLogger
 }
 
-func NewResolvableHandleAllocatingFileFactory(base FileFactory, handleAllocation virtual.ResolvableHandleAllocation) FileFactory {
+func NewResolvableHandleAllocatingFileFactory(base FileFactory, handleAllocation virtual.ResolvableHandleAllocation, errorLogger util.ErrorLogger) FileFactory {
 	ff := &resolvableHandleAllocatingFileFactory{
 		FileFactory: base,
+		errorLogger: errorLogger,
 	}
 	ff.handleAllocator = handleAllocation.AsResolvableAllocator(ff.resolveHandle)
 	return ff
@@ -76,15 +79,18 @@ func (ff *resolvableHandleAllocatingFileFactory) resolveHandle(r io.ByteReader) 
 	}
 	isExecutable := b != 0x00
 
-	return virtual.DirectoryChild{}.FromLeaf(
-		ff.LookupFile(
-			model_filesystem.FileContentsEntry[object.LocalReference]{
-				EndBytes:  endBytes,
-				Reference: reference,
-			},
-			isExecutable,
-		),
-	), virtual.StatusOK
+	f, err := ff.LookupFile(
+		model_filesystem.FileContentsEntry[object.LocalReference]{
+			EndBytes:  endBytes,
+			Reference: reference,
+		},
+		isExecutable,
+	)
+	if err != nil {
+		ff.errorLogger.Log(util.StatusWrap(err, "Failed to look up file"))
+		return virtual.DirectoryChild{}, virtual.StatusErrIO
+	}
+	return virtual.DirectoryChild{}.FromLeaf(f), virtual.StatusOK
 }
 
 func computeFileID(fileContents model_filesystem.FileContentsEntry[object.LocalReference], isExecutable bool) io.WriterTo {
@@ -102,8 +108,10 @@ func computeFileID(fileContents model_filesystem.FileContentsEntry[object.LocalR
 	return bytes.NewBuffer(handle)
 }
 
-func (ff *resolvableHandleAllocatingFileFactory) LookupFile(fileContents model_filesystem.FileContentsEntry[object.LocalReference], isExecutable bool) virtual.LinkableLeaf {
-	return ff.handleAllocator.
-		New(computeFileID(fileContents, isExecutable)).
-		AsLinkableLeaf(ff.FileFactory.LookupFile(fileContents, isExecutable))
+func (ff *resolvableHandleAllocatingFileFactory) LookupFile(fileContents model_filesystem.FileContentsEntry[object.LocalReference], isExecutable bool) (virtual.LinkableLeaf, error) {
+	f, err := ff.FileFactory.LookupFile(fileContents, isExecutable)
+	if err != nil {
+		return nil, err
+	}
+	return ff.handleAllocator.New(computeFileID(fileContents, isExecutable)).AsLinkableLeaf(f), nil
 }

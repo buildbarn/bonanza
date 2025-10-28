@@ -25,12 +25,12 @@ func NewObjectBackedFileFactory(ctx context.Context, fileReader *model_filesyste
 	}
 }
 
-func (ff *objectBackedFileFactory) LookupFile(fileContents model_filesystem.FileContentsEntry[object.LocalReference], isExecutable bool) virtual.LinkableLeaf {
+func (ff *objectBackedFileFactory) LookupFile(fileContents model_filesystem.FileContentsEntry[object.LocalReference], isExecutable bool) (virtual.LinkableLeaf, error) {
 	return &objectBackedFile{
 		factory:      ff,
 		fileContents: fileContents,
 		isExecutable: isExecutable,
-	}
+	}, nil
 }
 
 func (ff *objectBackedFileFactory) GetDecodingParametersSizeBytes(isFilecontentsList bool) int {

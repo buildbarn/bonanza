@@ -141,6 +141,7 @@ func main() {
 				util.DefaultErrorLogger,
 			),
 			rootHandleAllocator.New(),
+			util.DefaultErrorLogger,
 		)
 		directoryFactory := model_filesystem_virtual.NewObjectBackedDirectoryFactory(
 			rootHandleAllocator.New(),

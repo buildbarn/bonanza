@@ -146,10 +146,13 @@ func (icf *objectBackedInitialContentsFetcher) FetchContents(fileReadMonitorFact
 			return nil, util.StatusWrapf(err, "Invalid contents for file %#v", entry.Name)
 		}
 
-		leaf := options.fileFactory.LookupFile(
+		leaf, err := options.fileFactory.LookupFile(
 			fileContents,
 			properties.IsExecutable,
 		)
+		if err != nil {
+			return nil, util.StatusWrapf(err, "Failed to look up file %#v", entry.Name)
+		}
 		children[component] = virtual.InitialChild{}.FromLeaf(leaf)
 		leavesToUnlink = append(leavesToUnlink, leaf)
 	}

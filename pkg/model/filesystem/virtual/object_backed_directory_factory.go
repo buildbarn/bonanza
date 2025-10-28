@@ -183,10 +183,15 @@ func (d *objectBackedDirectory) lookupFile(fileNode model_core.Message[*model_fi
 		df.errorLogger.Log(util.StatusWrapf(err, "Invalid contents for file %#v", fileNode.Message.Name))
 		return nil, virtual.StatusErrIO
 	}
-	return df.fileFactory.LookupFile(
+	f, err := df.fileFactory.LookupFile(
 		fileContents,
 		properties.IsExecutable,
-	), virtual.StatusOK
+	)
+	if err != nil {
+		df.errorLogger.Log(util.StatusWrapf(err, "Failed to look up file %#v", fileNode.Message.Name))
+		return nil, virtual.StatusErrIO
+	}
+	return f, virtual.StatusOK
 }
 
 func (d *objectBackedDirectory) VirtualGetAttributes(ctx context.Context, requested virtual.AttributesMask, attributes *virtual.Attributes) {

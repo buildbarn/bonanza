@@ -19,8 +19,10 @@ func NewStatelessHandleAllocatingFileFactory(base FileFactory, handleAllocation 
 	}
 }
 
-func (ff *statelessHandleAllocatingFileFactory) LookupFile(fileContents model_filesystem.FileContentsEntry[object.LocalReference], isExecutable bool) virtual.LinkableLeaf {
-	return ff.handleAllocator.
-		New(computeFileID(fileContents, isExecutable)).
-		AsLinkableLeaf(ff.FileFactory.LookupFile(fileContents, isExecutable))
+func (ff *statelessHandleAllocatingFileFactory) LookupFile(fileContents model_filesystem.FileContentsEntry[object.LocalReference], isExecutable bool) (virtual.LinkableLeaf, error) {
+	f, err := ff.FileFactory.LookupFile(fileContents, isExecutable)
+	if err != nil {
+		return nil, err
+	}
+	return ff.handleAllocator.New(computeFileID(fileContents, isExecutable)).AsLinkableLeaf(f), nil
 }
