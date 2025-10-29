@@ -396,16 +396,14 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			e.handleAllocator,
 			e.clock,
 		)
+		fileAllocator := virtual.NewPoolBackedFileAllocator(
+			e.filePool,
+			ioErrorCapturer,
+			defaultAttributesSetter,
+			namedAttributesFactory,
+		)
 		buildDirectory := virtual.NewInMemoryPrepopulatedDirectory(
-			virtual.NewHandleAllocatingFileAllocator(
-				virtual.NewPoolBackedFileAllocator(
-					e.filePool,
-					ioErrorCapturer,
-					defaultAttributesSetter,
-					namedAttributesFactory,
-				),
-				e.handleAllocator,
-			),
+			virtual.NewHandleAllocatingFileAllocator(fileAllocator, e.handleAllocator),
 			e.symlinkFactory,
 			ioErrorCapturer,
 			e.handleAllocator,
@@ -417,6 +415,49 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			namedAttributesFactory,
 		)
 		defer buildDirectory.RemoveAllChildren(true)
+
+		// For regular build actions we want input files to be
+		// read-only. This matches the behavior of existing
+		// tools like Bazel and Buildbarn. However, repository
+		// rules require input files to be writable.
+		inputFileReader := model_filesystem.NewFileReader(
+			model_parser.LookupParsedObjectReader(
+				parsedObjectPoolIngester,
+				model_parser.NewChainedObjectParser(
+					model_parser.NewEncodedObjectParser[object.LocalReference](fileCreationParameters.GetFileContentsListEncoder()),
+					model_filesystem.NewFileContentsListObjectParser[object.LocalReference](),
+				),
+			),
+			model_parser.LookupParsedObjectReader(
+				parsedObjectPoolIngester,
+				model_parser.NewChainedObjectParser(
+					model_parser.NewEncodedObjectParser[object.LocalReference](fileCreationParameters.GetChunkEncoder()),
+					model_parser.NewRawObjectParser[object.LocalReference](),
+				),
+			),
+		)
+		var inputFileFactory model_filesystem_virtual.FileFactory
+		if command.Message.NeedsWritableInputFiles {
+			inputFileFactory = model_filesystem_virtual.NewStatefulHandleAllocatingFileFactory(
+				model_filesystem_virtual.NewMutationTrackingFileFactory(
+					model_filesystem_virtual.NewObjectInitializedFileFactory(
+						ctxWithIOError,
+						inputFileReader,
+						fileAllocator,
+					),
+				),
+				e.handleAllocator,
+			)
+		} else {
+			inputFileFactory = model_filesystem_virtual.NewStatelessHandleAllocatingFileFactory(
+				model_filesystem_virtual.NewObjectBackedFileFactory(
+					ctxWithIOError,
+					inputFileReader,
+					ioErrorCapturer,
+				),
+				e.handleAllocator.New(),
+			)
+		}
 
 		// Create subdirectories that should be present when the command
 		// is executed, such as the input root directory.
@@ -443,29 +484,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 							model_parser.NewProtoObjectParser[object.LocalReference, model_filesystem_pb.Leaves](),
 						),
 					),
-					model_filesystem_virtual.NewStatelessHandleAllocatingFileFactory(
-						model_filesystem_virtual.NewObjectBackedFileFactory(
-							ctxWithIOError,
-							model_filesystem.NewFileReader(
-								model_parser.LookupParsedObjectReader(
-									parsedObjectPoolIngester,
-									model_parser.NewChainedObjectParser(
-										model_parser.NewEncodedObjectParser[object.LocalReference](fileCreationParameters.GetFileContentsListEncoder()),
-										model_filesystem.NewFileContentsListObjectParser[object.LocalReference](),
-									),
-								),
-								model_parser.LookupParsedObjectReader(
-									parsedObjectPoolIngester,
-									model_parser.NewChainedObjectParser(
-										model_parser.NewEncodedObjectParser[object.LocalReference](fileCreationParameters.GetChunkEncoder()),
-										model_parser.NewRawObjectParser[object.LocalReference](),
-									),
-								),
-							),
-							ioErrorCapturer,
-						),
-						e.handleAllocator.New(),
-					),
+					inputFileFactory,
 					e.symlinkFactory,
 					inputRootReference,
 				),

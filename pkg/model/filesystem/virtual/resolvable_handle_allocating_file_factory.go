@@ -20,6 +20,10 @@ type resolvableHandleAllocatingFileFactory struct {
 	errorLogger     util.ErrorLogger
 }
 
+// NewResolvableHandleAllocatingFileFactory creates a decorator for
+// FileFactory that annotates all files with a resolvable handle. This
+// can be used by tools that provide read-only and direct access to all
+// files in storage, similar to bb_clientd's "cas" directory.
 func NewResolvableHandleAllocatingFileFactory(base FileFactory, handleAllocation virtual.ResolvableHandleAllocation, errorLogger util.ErrorLogger) FileFactory {
 	ff := &resolvableHandleAllocatingFileFactory{
 		FileFactory: base,

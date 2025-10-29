@@ -1975,6 +1975,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 					command.Message.FileCreationParameters = mrc.fileCreationParametersMessage
 					command.Message.WorkingDirectory = workingDirectory.GetUNIXString()
 					command.Message.StableInputRootPathUuid = repoRuleStableInputRootPathUUID
+					command.Message.NeedsWritableInputFiles = true
 				},
 			),
 			// Fields that can be stored externally if needed.

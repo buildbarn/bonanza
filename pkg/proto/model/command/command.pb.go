@@ -34,6 +34,7 @@ type Command struct {
 	OutputPathPattern           *PathPattern                            `protobuf:"bytes,5,opt,name=output_path_pattern,json=outputPathPattern,proto3" json:"output_path_pattern,omitempty"`
 	WorkingDirectory            string                                  `protobuf:"bytes,6,opt,name=working_directory,json=workingDirectory,proto3" json:"working_directory,omitempty"`
 	StableInputRootPathUuid     string                                  `protobuf:"bytes,7,opt,name=stable_input_root_path_uuid,json=stableInputRootPathUuid,proto3" json:"stable_input_root_path_uuid,omitempty"`
+	NeedsWritableInputFiles     bool                                    `protobuf:"varint,8,opt,name=needs_writable_input_files,json=needsWritableInputFiles,proto3" json:"needs_writable_input_files,omitempty"`
 	unknownFields               protoimpl.UnknownFields
 	sizeCache                   protoimpl.SizeCache
 }
@@ -115,6 +116,13 @@ func (x *Command) GetStableInputRootPathUuid() string {
 		return x.StableInputRootPathUuid
 	}
 	return ""
+}
+
+func (x *Command) GetNeedsWritableInputFiles() bool {
+	if x != nil {
+		return x.NeedsWritableInputFiles
+	}
+	return false
 }
 
 type PathPattern struct {
@@ -791,7 +799,7 @@ var File_bonanza_build_pkg_proto_model_command_command_proto protoreflect.FileDe
 
 const file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc = "" +
 	"\n" +
-	"3bonanza.build/pkg/proto/model/command/command.proto\x12\x15bonanza.model.command\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x1a\x19google/protobuf/any.proto\x1a\x17google/rpc/status.proto\"\xe7\x04\n" +
+	"3bonanza.build/pkg/proto/model/command/command.proto\x12\x15bonanza.model.command\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x1a\x19google/protobuf/any.proto\x1a\x17google/rpc/status.proto\"\xa4\x05\n" +
 	"\aCommand\x12I\n" +
 	"\targuments\x18\x01 \x03(\v2+.bonanza.model.command.ArgumentList.ElementR\targuments\x12k\n" +
 	"\x15environment_variables\x18\x02 \x03(\v26.bonanza.model.command.EnvironmentVariableList.ElementR\x14environmentVariables\x12y\n" +
@@ -799,7 +807,8 @@ const file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc = "" +
 	"\x18file_creation_parameters\x18\x04 \x01(\v20.bonanza.model.filesystem.FileCreationParametersR\x16fileCreationParameters\x12R\n" +
 	"\x13output_path_pattern\x18\x05 \x01(\v2\".bonanza.model.command.PathPatternR\x11outputPathPattern\x12+\n" +
 	"\x11working_directory\x18\x06 \x01(\tR\x10workingDirectory\x12<\n" +
-	"\x1bstable_input_root_path_uuid\x18\a \x01(\tR\x17stableInputRootPathUuid\"\xa8\x03\n" +
+	"\x1bstable_input_root_path_uuid\x18\a \x01(\tR\x17stableInputRootPathUuid\x12;\n" +
+	"\x1aneeds_writable_input_files\x18\b \x01(\bR\x17needsWritableInputFiles\"\xa8\x03\n" +
 	"\vPathPattern\x12\x87\x01\n" +
 	"\x11children_external\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB0\xea\xd7 ,\x12*bonanza.model.command.PathPattern.ChildrenH\x00R\x10childrenExternal\x12V\n" +
 	"\x0fchildren_inline\x18\x02 \x01(\v2+.bonanza.model.command.PathPattern.ChildrenH\x00R\x0echildrenInline\x1aY\n" +
