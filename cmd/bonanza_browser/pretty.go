@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"path"
 	"slices"
-	"time"
 
 	model_core "bonanza.build/pkg/model/core"
 	browser_pb "bonanza.build/pkg/proto/browser"
@@ -15,7 +14,6 @@ import (
 	"bonanza.build/pkg/storage/object"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 	g "maragu.dev/gomponents"
 	h "maragu.dev/gomponents/html"
@@ -24,38 +22,17 @@ import (
 // messagePrettyRenderer renders the decoded payload of an object
 // as a pretty-printed object intended for humans. It assumes the
 // contents are a Protobuf message that can be converted to JSON.
-type messagePrettyRenderer struct{}
+type messagePrettyRenderer struct {
+	jsonRenderer messageJSONPayloadRenderer
+}
 
 var _ payloadRenderer = messagePrettyRenderer{}
 
 func (messagePrettyRenderer) queryParameter() string { return "pretty" }
 func (messagePrettyRenderer) name() string           { return "Pretty" }
 
-func (messagePrettyRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
-	decodedObject, usedEncoderIndex, err := decodeObject(o, recentlyObservedEncoders)
-	if err != nil {
-		return renderErrorAlert(err), 0, nil
-	}
-
-	messageTypeStr := r.PathValue("message_type")
-	messageType, err := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(messageTypeStr))
-	if err != nil {
-		return renderErrorAlert(fmt.Errorf("invalid message type %#v: %w", messageTypeStr, err)), usedEncoderIndex, nil
-	}
-
-	message := messageType.New()
-	if err := proto.Unmarshal(decodedObject, message.Interface()); err != nil {
-		return renderErrorAlert(fmt.Errorf("failed to unmarshal message: %w", err)), usedEncoderIndex, nil
-	}
-	referenceFormat := o.Value.GetReferenceFormat()
-	d := messageJSONRenderer{
-		basePath:        "../..",
-		referenceFormat: &referenceFormat,
-		now:             time.Now(),
-		customRenderer:  renderMessagePretty,
-	}
-	rendered := d.renderTopLevelMessage(model_core.NewTopLevelMessage(message, o.Value))
-	return rendered, usedEncoderIndex, d.observedEncoders
+func (s messagePrettyRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
+	return s.jsonRenderer.render(r, o, recentlyObservedEncoders)
 }
 
 func renderMessagePretty(r *messageJSONRenderer, m model_core.Message[protoreflect.Message, object.LocalReference], fields map[string][]g.Node) []g.Node {

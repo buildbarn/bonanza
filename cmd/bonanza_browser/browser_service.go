@@ -984,7 +984,11 @@ func (s *BrowserService) doProtoObject(w http.ResponseWriter, r *http.Request) (
 			rawPayloadRenderer{},
 			decodedPayloadRenderer{},
 			messageJSONPayloadRenderer{},
-			messagePrettyRenderer{},
+			messagePrettyRenderer{
+				jsonRenderer: messageJSONPayloadRenderer{
+					CustomRenderer: renderMessagePretty,
+				},
+			},
 		},
 		2,
 	)
@@ -2371,14 +2375,16 @@ func (d *messageJSONRenderer) renderMessageList(list model_core.Message[[]protor
 
 // messageJSONPayloadRenderer renders the decoded payload of an object,
 // assuming it is a Protobuf message that can be converted to JSON.
-type messageJSONPayloadRenderer struct{}
+type messageJSONPayloadRenderer struct {
+	CustomRenderer JSONCustomRenderer
+}
 
 var _ payloadRenderer = messageJSONPayloadRenderer{}
 
 func (messageJSONPayloadRenderer) queryParameter() string { return "json" }
 func (messageJSONPayloadRenderer) name() string           { return "JSON" }
 
-func (messageJSONPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
+func (s messageJSONPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
 	decodedObject, usedEncoderIndex, err := decodeObject(o, recentlyObservedEncoders)
 	if err != nil {
 		return renderErrorAlert(err), 0, nil
@@ -2398,6 +2404,7 @@ func (messageJSONPayloadRenderer) render(r *http.Request, o model_core.Decodable
 	d := messageJSONRenderer{
 		basePath:        "../..",
 		referenceFormat: &referenceFormat,
+		customRenderer:  s.CustomRenderer,
 		now:             time.Now(),
 	}
 	rendered := d.renderTopLevelMessage(model_core.NewTopLevelMessage(message, o.Value))
