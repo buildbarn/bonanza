@@ -7,6 +7,7 @@ import (
 	"path"
 	"slices"
 
+	"bonanza.build/pkg/model/core"
 	model_core "bonanza.build/pkg/model/core"
 	browser_pb "bonanza.build/pkg/proto/browser"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -116,22 +117,8 @@ func renderReferenceLinkPretty(basePath string, message model_core.Message[*mode
 		}
 	}
 
-	var link string
-	switch format := objectFormat.GetFormat().(type) {
-	case *model_core_pb.ObjectFormat_Raw:
-
-		link = path.Join(basePath, rawReference, "raw")
-
-	case *model_core_pb.ObjectFormat_ProtoTypeName:
-
-		link = path.Join(basePath, rawReference, "proto", format.ProtoTypeName)
-
-	case *model_core_pb.ObjectFormat_ProtoListTypeName:
-
-		link = path.Join(basePath, rawReference, "proto_list", format.ProtoListTypeName)
-
-	default:
-
+	segments, ok := core.ObjectFormatToPath(objectFormat, rawReference)
+	if !ok {
 		return []g.Node{
 			h.Span(
 				h.Class("text-red-600"),
@@ -140,6 +127,7 @@ func renderReferenceLinkPretty(basePath string, message model_core.Message[*mode
 		}
 	}
 
+	link := path.Join(append([]string{basePath}, segments...)...)
 	return []g.Node{
 		h.A(
 			h.Class("link link-accent whitespace-nowrap"),
