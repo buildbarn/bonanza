@@ -35,6 +35,22 @@ func (s messagePrettyRenderer) render(r *http.Request, o model_core.Decodable[*o
 	return s.jsonRenderer.render(r, o, recentlyObservedEncoders)
 }
 
+// messagePrettyListRenderer renders the decoded payload of an object as a
+// pretty-printed object intended for humans. It assumes the contents are a
+// varint separated list of Protobuf messages that can be converted to JSON.
+type messageListPrettyRenderer struct {
+	jsonRenderer messageListJSONPayloadRenderer
+}
+
+var _ payloadRenderer = messageListPrettyRenderer{}
+
+func (messageListPrettyRenderer) queryParameter() string { return "pretty" }
+func (messageListPrettyRenderer) name() string           { return "Pretty" }
+
+func (s messageListPrettyRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
+	return s.jsonRenderer.render(r, o, recentlyObservedEncoders)
+}
+
 func renderMessagePretty(r *messageJSONRenderer, m model_core.Message[protoreflect.Message, object.LocalReference], fields map[string][]g.Node) []g.Node {
 	switch v := m.Message.Interface().(type) {
 	case *model_filesystem_pb.DirectoryContents:
