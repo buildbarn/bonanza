@@ -620,6 +620,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			referenceFormat.ToProto().String(),
 		),
 		referenceFormat: &referenceFormat,
+		customRenderer:  stubCustomRenderer,
 		now:             time.Now(),
 	}
 	keyJSONNodes := jsonRenderer.renderTopLevelMessage(
@@ -1452,7 +1453,8 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 		// extract the storage namespace and object format,
 		// allowing us to make the action reference clickable.
 		jsonRenderer := messageJSONRenderer{
-			now: now,
+			now:            now,
+			customRenderer: stubCustomRenderer,
 		}
 		var executeWithStorageAction model_executewithstorage_pb.Action
 		if actionMessage.UnmarshalTo(&executeWithStorageAction) == nil {
