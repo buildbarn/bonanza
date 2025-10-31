@@ -39,6 +39,7 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -1127,7 +1128,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 	}
 	rootDirectory = rootDirectoryResolver.stack.Peek()
 
-	patchedFiles, err := c.filePool.NewFile()
+	patchedFiles, err := c.filePool.NewFile(pool.ZeroHoleSource, 0)
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, err
 	}
@@ -1437,7 +1438,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetFileReader(
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeInitializePatchedFiles() error {
 	if mrc.patchedFiles == nil {
-		patchedFiles, err := mrc.computer.filePool.NewFile()
+		patchedFiles, err := mrc.computer.filePool.NewFile(pool.ZeroHoleSource, 0)
 		if err != nil {
 			return err
 		}
@@ -1974,6 +1975,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 					command.Message.FileCreationParameters = mrc.fileCreationParametersMessage
 					command.Message.WorkingDirectory = workingDirectory.GetUNIXString()
 					command.Message.StableInputRootPathUuid = repoRuleStableInputRootPathUUID
+					command.Message.NeedsWritableInputFiles = true
 				},
 			),
 			// Fields that can be stored externally if needed.

@@ -50,6 +50,17 @@ message Command {
   // unfortunately, allowed to assume that the main source tree and any
   // repositories are situated at stable locations.
   string stable_input_root_path_uuid = 7;
+
+  // When set, files stored in the input root MUST be made writable.
+  // For normal build actions this should not be necessary, however
+  // commands executed by repository rules typically need this.
+  //
+  // This option also ensures that all files in the input root get their
+  // own inode. When not set, a worker is permitted to give files with
+  // identical properties a single inode number. By giving identical
+  // files the same inode number, the kernel does not need to store the
+  // same file in the page cache twice.
+  bool needs_writable_input_files = 8;
 }
 
 message PathPattern {

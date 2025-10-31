@@ -12,6 +12,11 @@ type statelessHandleAllocatingFileFactory struct {
 	handleAllocator virtual.StatelessHandleAllocator
 }
 
+// NewStatelessHandleAllocatingFileFactory creates a decorator for
+// FileFactory that annotates all files with a stateless handle. This is
+// sufficient for cases where files are immutable, but do need to be
+// registered dynamically (e.g., as part of input roots of build
+// actions). Any identical files may be deduplicated.
 func NewStatelessHandleAllocatingFileFactory(base FileFactory, handleAllocation virtual.StatelessHandleAllocation) FileFactory {
 	return &statelessHandleAllocatingFileFactory{
 		FileFactory:     base,

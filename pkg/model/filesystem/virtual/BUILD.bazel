@@ -4,10 +4,13 @@ go_library(
     name = "virtual",
     srcs = [
         "file_factory.go",
+        "mutation_tracking_file_factory.go",
         "object_backed_directory_factory.go",
         "object_backed_file_factory.go",
         "object_backed_initial_contents_fetcher.go",
+        "object_initialized_file_factory.go",
         "resolvable_handle_allocating_file_factory.go",
+        "stateful_handle_allocating_file_factory.go",
         "stateless_handle_allocating_file_factory.go",
         "worker_top_level_directory.go",
     ],

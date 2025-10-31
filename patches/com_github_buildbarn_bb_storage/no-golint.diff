@@ -1,16 +1,15 @@
 diff --git tools/github_workflows/workflows_template.libsonnet tools/github_workflows/workflows_template.libsonnet
-index ef2bfb9..712a7d9 100644
+index 73bc06c..55abeca 100644
 --- tools/github_workflows/workflows_template.libsonnet
 +++ tools/github_workflows/workflows_template.libsonnet
-@@ -143,11 +143,6 @@
+@@ -161,10 +161,6 @@
+           name: 'Test style conformance',
            run: 'git add . && git diff --exit-code HEAD --',
-           'if': 'matrix.host.lint',
          },
 -        {
 -          name: 'Golint',
 -          run: 'bazel run @org_golang_x_lint//golint -- -set_exit_status $(pwd)/...',
--          'if': 'matrix.host.lint',
 -        },
-       ] + std.flattenArrays([
-         [{
-           name: platform.name + ": build${{ matrix.host.platform_name == '%s' && ' and test' || '' }}" % std.get(platform, 'testPlatform', platform.name),
+       ],
+     },
+   },

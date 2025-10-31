@@ -17,6 +17,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 
+	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -263,7 +264,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpArchiveContentsValue(ct
 	}
 
 	// Create a temporary file for storing copies of extracted files.
-	extractedFiles, err := c.filePool.NewFile()
+	extractedFiles, err := c.filePool.NewFile(pool.ZeroHoleSource, 0)
 	if err != nil {
 		return PatchedHttpArchiveContentsValue[TMetadata]{}, err
 	}

@@ -26,13 +26,13 @@ git_override(
 
 git_override(
     module_name = "com_github_buildbarn_bb_remote_execution",
-    commit = "4cfaff274b612482ef98dd145bac24aded73c132",
+    commit = "93cc4402745bd14f6756707820b610aa1f5f9e83",
     remote = "https://github.com/buildbarn/bb-remote-execution.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_bb_storage",
-    commit = "3ba1d39496fef8ea38e32960ec4882a3929c7263",
+    commit = "a7475d4aad524fdc6db1bdf25c1d69287854db00",
     patches = ["//:patches/com_github_buildbarn_bb_storage/no-golint.diff"],
     remote = "https://github.com/buildbarn/bb-storage.git",
 )
@@ -53,11 +53,13 @@ git_override(
     remote = "https://github.com/marcohu/rules_antlr.git",
 )
 
+single_version_override(
+    module_name = "toolchains_llvm",
+    patches = ["//:patches/toolchains_llvm/non-root.diff"],
+)
+
 protoc = use_extension("@toolchains_protoc//protoc:extensions.bzl", "protoc")
 protoc.toolchain(version = "v31.1")
-
-go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
-go_sdk.download(version = "1.24.7")
 
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
