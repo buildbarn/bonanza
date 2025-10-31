@@ -12,6 +12,7 @@ go_library(
         "message.go",
         "noop_reference_metadata.go",
         "object_capturer.go",
+        "object_format.go",
         "patched_message.go",
         "patched_message_list.go",
         "reference_message_patcher.go",
