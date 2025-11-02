@@ -15,7 +15,40 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	cdc "github.com/buildbarn/go-cdc"
+
+	"google.golang.org/protobuf/types/known/emptypb"
 )
+
+// isAllNullBytes returns true if a byte slice only contains null bytes.
+// If a file chunk only contains null bytes, it may not be stored as a
+// regular file chunk. Instead, such adjoining chunks should be encoded
+// as a hole.
+func isAllNullBytes(chunk []byte) bool {
+	for _, b := range chunk {
+		if b != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// maybeWriteHole writes hole entries if one or more previous chunks
+// only consisted of null bytes.
+func maybeWriteHole[T model_core.ReferenceMetadata](treeBuilder btree.Builder[*model_filesystem_pb.FileContents, T], holeSizeBytes uint64) error {
+	if holeSizeBytes > 0 {
+		if err := treeBuilder.PushChild(
+			model_core.NewSimplePatchedMessage[T](&model_filesystem_pb.FileContents{
+				Level: &model_filesystem_pb.FileContents_Hole{
+					Hole: &emptypb.Empty{},
+				},
+				TotalSizeBytes: holeSizeBytes,
+			}),
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // CreateFileMerkleTree creates a Merkle tree structure that corresponds
 // to the contents of a single file. If a file is small, it stores all
@@ -25,6 +58,9 @@ import (
 // Chunking of large files is performed using the MaxCDC algorithm. The
 // resulting B-tree is a Prolly tree. This ensures that minor changes to
 // a file also result in minor changes to the resulting Merkle tree.
+//
+// TODO: Change this function to support more efficient creation of
+// Merkle trees for sparse files.
 func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, parameters *FileCreationParameters, f io.Reader, capturer FileMerkleTreeCapturer[T]) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, T], error) {
 	chunker := cdc.NewMaxContentDefinedChunker(
 		f,
@@ -37,7 +73,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 			parameters.fileContentsListMinimumSizeBytes,
 			parameters.fileContentsListMaximumSizeBytes,
 			/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
-				return contents.GetFileContentsListReference() != nil
+				return contents.GetList() != nil
 			},
 		),
 		btree.NewObjectCreatingNodeMerger[*model_filesystem_pb.FileContents, T](
@@ -50,14 +86,24 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 					// Compute the total file size to store
 					// in the parent FileContents node.
 					var totalSizeBytes uint64
+					sparse := false
 					for _, childNode := range childNodes.Message {
 						totalSizeBytes += childNode.TotalSizeBytes
+						switch childLevel := childNode.Level.(type) {
+						case *model_filesystem_pb.FileContents_List_:
+							sparse = sparse || childLevel.List.Sparse
+						case *model_filesystem_pb.FileContents_Hole:
+							sparse = true
+						}
 					}
 
 					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
 						return &model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_FileContentsListReference{
-								FileContentsListReference: patcher.AddDecodableReference(createdObject),
+							Level: &model_filesystem_pb.FileContents_List_{
+								List: &model_filesystem_pb.FileContents_List{
+									Reference: patcher.AddDecodableReference(createdObject),
+									Sparse:    sparse,
+								},
 							},
 							TotalSizeBytes: totalSizeBytes,
 						}
@@ -67,6 +113,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 		),
 	)
 
+	currentHoleSizeBytes := uint64(0)
 	for {
 		// Permit cancelation.
 		if err := util.StatusFromContext(ctx); err != nil {
@@ -81,37 +128,49 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 				// Emit the final lists of FileContents
 				// messages and return the FileContents
 				// message of the file's root.
+				if err := maybeWriteHole(treeBuilder, currentHoleSizeBytes); err != nil {
+					return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
+				}
 				return treeBuilder.FinalizeSingle()
 			}
 			return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
 		}
-		encodedChunk, err := parameters.EncodeChunk(chunk)
-		if err != nil {
-			return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
-		}
-		chunkMetadata, err := capturer.CaptureChunk(ctx, encodedChunk.Value)
-		if err != nil {
-			return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
-		}
+		if isAllNullBytes(chunk) {
+			currentHoleSizeBytes += uint64(len(chunk))
+		} else {
+			if err := maybeWriteHole(treeBuilder, currentHoleSizeBytes); err != nil {
+				return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
+			}
+			currentHoleSizeBytes = 0
 
-		// Insert a FileContents message for it into the B-tree.
-		if err := treeBuilder.PushChild(
-			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
-				return &model_filesystem_pb.FileContents{
-					Level: &model_filesystem_pb.FileContents_ChunkReference{
-						ChunkReference: &model_core_pb.DecodableReference{
-							Reference: patcher.AddReference(model_core.MetadataEntry[T]{
-								LocalReference: encodedChunk.Value.GetLocalReference(),
-								Metadata:       chunkMetadata,
-							}),
-							DecodingParameters: encodedChunk.GetDecodingParameters(),
+			encodedChunk, err := parameters.EncodeChunk(chunk)
+			if err != nil {
+				return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
+			}
+			chunkMetadata, err := capturer.CaptureChunk(ctx, encodedChunk.Value)
+			if err != nil {
+				return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
+			}
+
+			// Insert a FileContents message for it into the B-tree.
+			if err := treeBuilder.PushChild(
+				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
+					return &model_filesystem_pb.FileContents{
+						Level: &model_filesystem_pb.FileContents_ChunkReference{
+							ChunkReference: &model_core_pb.DecodableReference{
+								Reference: patcher.AddReference(model_core.MetadataEntry[T]{
+									LocalReference: encodedChunk.Value.GetLocalReference(),
+									Metadata:       chunkMetadata,
+								}),
+								DecodingParameters: encodedChunk.GetDecodingParameters(),
+							},
 						},
-					},
-					TotalSizeBytes: uint64(len(chunk)),
-				}
-			}),
-		); err != nil {
-			return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
+						TotalSizeBytes: uint64(len(chunk)),
+					}
+				}),
+			); err != nil {
+				return model_core.PatchedMessage[*model_filesystem_pb.FileContents, T]{}, err
+			}
 		}
 	}
 }
@@ -143,10 +202,12 @@ func CreateChunkDiscardingFileMerkleTree(ctx context.Context, parameters *FileCr
 
 	var decodingParameters []byte
 	switch level := fileContents.Message.Level.(type) {
+	case *model_filesystem_pb.FileContents_List_:
+		decodingParameters = level.List.Reference.DecodingParameters
 	case *model_filesystem_pb.FileContents_ChunkReference:
 		decodingParameters = level.ChunkReference.DecodingParameters
-	case *model_filesystem_pb.FileContents_FileContentsListReference:
-		decodingParameters = level.FileContentsListReference.DecodingParameters
+	case *model_filesystem_pb.FileContents_Hole:
+		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](fileContents.Message), nil
 	default:
 		panic("unknown file contents level")
 	}

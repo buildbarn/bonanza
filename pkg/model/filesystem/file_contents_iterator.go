@@ -10,14 +10,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type fileContentsSpan[TReference any] struct {
+type fileContentsSpan[TReference object.BasicReference] struct {
 	startBytes uint64
 	list       FileContentsList[TReference]
 }
 
 // FileContentsIterator is a helper type for iterating over the chunks
 // of a concatenated file sequentially.
-type FileContentsIterator[TReference any] struct {
+type FileContentsIterator[TReference object.BasicReference] struct {
 	spans              []fileContentsSpan[TReference]
 	initialOffsetBytes uint64
 }
@@ -28,8 +28,8 @@ type FileContentsIterator[TReference any] struct {
 // the file.
 func NewFileContentsIterator[TReference object.BasicReference](root FileContentsEntry[TReference], initialOffsetBytes uint64) FileContentsIterator[TReference] {
 	maxHeight := 1
-	if root.EndBytes > 0 {
-		maxHeight += root.Reference.Value.GetHeight()
+	if reference := root.GetReference(); reference != nil {
+		maxHeight += reference.Value.GetHeight()
 	}
 	return FileContentsIterator[TReference]{
 		spans: append(
@@ -55,9 +55,9 @@ func NewFileContentsIterator[TReference object.BasicReference](root FileContents
 // It is the caller's responsibility to track whether iteration has
 // reached the end of the file. Once the end of the file has been
 // reached, GetCurrentPart() may no longer be called.
-func (i *FileContentsIterator[TReference]) GetCurrentPart() (reference model_core.Decodable[TReference], offsetBytes, sizeBytes uint64) {
+func (i *FileContentsIterator[TReference]) GetCurrentPart() (reference *model_core.Decodable[TReference], offsetBytes, sizeBytes uint64) {
 	lastSpan := &i.spans[len(i.spans)-1]
-	return lastSpan.list[0].Reference, i.initialOffsetBytes, lastSpan.list[0].EndBytes - lastSpan.startBytes
+	return lastSpan.list[0].GetReference(), i.initialOffsetBytes, lastSpan.list[0].GetEndBytes() - lastSpan.startBytes
 }
 
 // PushFileContentsList can be invoked after GetCurrentPart() to signal
@@ -67,18 +67,18 @@ func (i *FileContentsIterator[TReference]) GetCurrentPart() (reference model_cor
 // the provided FileContentsList.
 func (i *FileContentsIterator[TReference]) PushFileContentsList(list FileContentsList[TReference]) error {
 	lastSpan := &i.spans[len(i.spans)-1]
-	if actualSizeBytes, expectedSizeBytes := list[len(list)-1].EndBytes, lastSpan.list[0].EndBytes-lastSpan.startBytes; actualSizeBytes != expectedSizeBytes {
+	if actualSizeBytes, expectedSizeBytes := list[len(list)-1].GetEndBytes(), lastSpan.list[0].GetEndBytes()-lastSpan.startBytes; actualSizeBytes != expectedSizeBytes {
 		return status.Errorf(codes.InvalidArgument, "Parts in the file contents list have a total size of %d bytes, while %d bytes were expected", actualSizeBytes, expectedSizeBytes)
 	}
 	startBytes, toSkip := uint64(0), 0
-	if i.initialOffsetBytes >= list[0].EndBytes {
+	if i.initialOffsetBytes >= list[0].GetEndBytes() {
 		// Initial offset at which we need to start reading does
 		// not lie within the first part. Find the part that
 		// contains the requested offset.
 		n := sort.Search(len(list)-1, func(index int) bool {
-			return i.initialOffsetBytes < list[index+1].EndBytes
+			return i.initialOffsetBytes < list[index+1].GetEndBytes()
 		})
-		startBytes = list[n].EndBytes
+		startBytes = list[n].GetEndBytes()
 		toSkip = n + 1
 	}
 	i.spans = append(i.spans, fileContentsSpan[TReference]{
@@ -98,7 +98,7 @@ func (i *FileContentsIterator[TReference]) ToNextPart() {
 		i.spans = i.spans[:len(i.spans)-1]
 	}
 	lastSpan := &i.spans[len(i.spans)-1]
-	lastSpan.startBytes = lastSpan.list[0].EndBytes
+	lastSpan.startBytes = lastSpan.list[0].GetEndBytes()
 	lastSpan.list = lastSpan.list[1:]
 	i.initialOffsetBytes = 0
 }

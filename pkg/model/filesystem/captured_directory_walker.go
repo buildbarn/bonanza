@@ -73,6 +73,16 @@ func (o *capturedDirectoryWalkerOptions) gatherWalkersForLeaves(leaves model_cor
 		}
 		if contents := properties.Contents; contents != nil {
 			switch level := contents.Level.(type) {
+			case *model_filesystem_pb.FileContents_List_:
+				index, err := model_core.GetIndexFromReferenceMessage(level.List.Reference.GetReference(), len(walkers))
+				if err != nil {
+					return util.StatusWrapf(err, "Invalid file contents list reference index for file %#v", childPathTrace.GetUNIXString())
+				}
+				walkers[index] = &recomputingConcatenatedFileWalker{
+					options:   o,
+					reference: leaves.OutgoingReferences.GetOutgoingReference(index),
+					pathTrace: childPathTrace,
+				}
 			case *model_filesystem_pb.FileContents_ChunkReference:
 				index, err := model_core.GetIndexFromReferenceMessage(level.ChunkReference.Reference, len(walkers))
 				if err != nil {
@@ -84,16 +94,7 @@ func (o *capturedDirectoryWalkerOptions) gatherWalkersForLeaves(leaves model_cor
 					pathTrace: childPathTrace,
 					sizeBytes: uint32(contents.TotalSizeBytes),
 				}
-			case *model_filesystem_pb.FileContents_FileContentsListReference:
-				index, err := model_core.GetIndexFromReferenceMessage(level.FileContentsListReference.Reference, len(walkers))
-				if err != nil {
-					return util.StatusWrapf(err, "Invalid file contents list reference index for file %#v", childPathTrace.GetUNIXString())
-				}
-				walkers[index] = &recomputingConcatenatedFileWalker{
-					options:   o,
-					reference: leaves.OutgoingReferences.GetOutgoingReference(index),
-					pathTrace: childPathTrace,
-				}
+			case *model_filesystem_pb.FileContents_Hole:
 			default:
 				return status.Errorf(codes.InvalidArgument, "File %#v has an unknown file contents type", childPathTrace.GetUNIXString())
 			}
@@ -296,7 +297,7 @@ func (w *recomputingConcatenatedFileWalker) GetContents(ctx context.Context) (*o
 	wComputed := &computedConcatenatedFileWalker{
 		options:            options,
 		object:             &objects[0],
-		decodingParameters: fileContents.Message.Level.(*model_filesystem_pb.FileContents_FileContentsListReference).FileContentsListReference.DecodingParameters,
+		decodingParameters: fileContents.Message.Level.(*model_filesystem_pb.FileContents_List_).List.Reference.GetDecodingParameters(),
 	}
 	return wComputed.GetContents(ctx)
 }
@@ -350,6 +351,17 @@ func (w *computedConcatenatedFileWalker) GetContents(ctx context.Context) (*obje
 	offsetBytes := w.offsetBytes
 	for _, part := range fileContentsList {
 		switch level := part.Level.(type) {
+		case *model_filesystem_pb.FileContents_List_:
+			index, err := model_core.GetIndexFromReferenceMessage(level.List.Reference.GetReference(), len(walkers))
+			if err != nil {
+				return nil, nil, util.StatusWrapf(err, "Invalid file contents list reference index for part of file %#v at offset %d", w.options.pathTrace.GetUNIXString(), offsetBytes)
+			}
+			walkers[index] = &computedConcatenatedFileWalker{
+				options:            w.options,
+				object:             &w.object.Metadata[index],
+				decodingParameters: level.List.Reference.GetDecodingParameters(),
+				offsetBytes:        offsetBytes,
+			}
 		case *model_filesystem_pb.FileContents_ChunkReference:
 			index, err := model_core.GetIndexFromReferenceMessage(level.ChunkReference.Reference, len(walkers))
 			if err != nil {
@@ -362,17 +374,7 @@ func (w *computedConcatenatedFileWalker) GetContents(ctx context.Context) (*obje
 				offsetBytes:        offsetBytes,
 				sizeBytes:          uint32(part.TotalSizeBytes),
 			}
-		case *model_filesystem_pb.FileContents_FileContentsListReference:
-			index, err := model_core.GetIndexFromReferenceMessage(level.FileContentsListReference.Reference, len(walkers))
-			if err != nil {
-				return nil, nil, util.StatusWrapf(err, "Invalid file contents list reference index for part of file %#v at offset %d", w.options.pathTrace.GetUNIXString(), offsetBytes)
-			}
-			walkers[index] = &computedConcatenatedFileWalker{
-				options:            w.options,
-				object:             &w.object.Metadata[index],
-				decodingParameters: level.FileContentsListReference.DecodingParameters,
-				offsetBytes:        offsetBytes,
-			}
+		case *model_filesystem_pb.FileContents_Hole:
 		default:
 			return nil, nil, status.Errorf(codes.InvalidArgument, "Part of %#v at offset %d has an unknown file contents type", w.options.pathTrace.GetUNIXString(), offsetBytes)
 		}

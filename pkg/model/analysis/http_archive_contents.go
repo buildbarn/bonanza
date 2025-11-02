@@ -330,7 +330,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpArchiveContentsValue(ct
 			}
 		}
 	case model_analysis_pb.HttpArchiveContents_Key_ZIP:
-		zipReader, err := zip.NewReader(fileReader.FileOpenReadAt(ctx, httpFileContentsEntry), int64(httpFileContentsEntry.EndBytes))
+		zipReader, err := zip.NewReader(fileReader.FileOpenReadAt(ctx, httpFileContentsEntry), int64(httpFileContentsEntry.GetEndBytes()))
 		if err != nil {
 			return PatchedHttpArchiveContentsValue[TMetadata]{}, err
 		}

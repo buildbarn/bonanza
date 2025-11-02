@@ -1069,7 +1069,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	)
 }
 
-type patchToApply[TReference any] struct {
+type patchToApply[TReference object.BasicReference] struct {
 	filename          string
 	strip             int
 	fileContentsEntry model_filesystem.FileContentsEntry[TReference]

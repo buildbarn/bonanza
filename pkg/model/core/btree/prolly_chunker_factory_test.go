@@ -25,7 +25,7 @@ func TestProllyChunkerFactory(t *testing.T) {
 			/* minimumSizeBytes = */ 1024,
 			/* maximumSizeBytes = */ 4*1024,
 			/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
-				return contents.GetFileContentsListReference() != nil
+				return contents.GetList() != nil
 			},
 		)
 		chunker := chunkerFactory.NewChunker()
@@ -43,7 +43,7 @@ func TestProllyChunkerFactory(t *testing.T) {
 				/* minimumSizeBytes = */ 0,
 				/* maximumSizeBytes = */ 0,
 				/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
-					return contents.GetFileContentsListReference() != nil
+					return contents.GetList() != nil
 				},
 			)
 			chunker := chunkerFactory.NewChunker()
@@ -81,7 +81,7 @@ func TestProllyChunkerFactory(t *testing.T) {
 				/* minimumSizeBytes = */ 0,
 				/* maximumSizeBytes = */ 0,
 				/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
-					return contents.GetFileContentsListReference() != nil
+					return contents.GetList() != nil
 				},
 			)
 			chunker := chunkerFactory.NewChunker()
@@ -91,12 +91,15 @@ func TestProllyChunkerFactory(t *testing.T) {
 				node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[*MockReferenceMetadata]) *model_filesystem_pb.FileContents {
 					return &model_filesystem_pb.FileContents{
 						TotalSizeBytes: uint64(i),
-						Level: &model_filesystem_pb.FileContents_FileContentsListReference{
-							FileContentsListReference: &model_core_pb.DecodableReference{
-								Reference: patcher.AddReference(model_core.MetadataEntry[*MockReferenceMetadata]{
-									LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
-									Metadata:       NewMockReferenceMetadata(ctrl),
-								}),
+						Level: &model_filesystem_pb.FileContents_List_{
+							List: &model_filesystem_pb.FileContents_List{
+								Reference: &model_core_pb.DecodableReference{
+									Reference: patcher.AddReference(model_core.MetadataEntry[*MockReferenceMetadata]{
+										LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
+										Metadata:       NewMockReferenceMetadata(ctrl),
+									}),
+								},
+								Sparse: false,
 							},
 						},
 					}

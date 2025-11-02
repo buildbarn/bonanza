@@ -105,17 +105,20 @@ func TestCreateFileMerkleTree(t *testing.T) {
 
 		references, _ := rootFileContents.Patcher.SortAndSetReferences()
 		testutil.RequireEqualProto(t, &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_FileContentsListReference{
-				FileContentsListReference: &model_core_pb.DecodableReference{
-					Reference: &model_core_pb.Reference{
-						Index: 1,
+			Level: &model_filesystem_pb.FileContents_List_{
+				List: &model_filesystem_pb.FileContents_List{
+					Reference: &model_core_pb.DecodableReference{
+						Reference: &model_core_pb.Reference{
+							Index: 1,
+						},
 					},
+					Sparse: false,
 				},
 			},
 			TotalSizeBytes: 1 << 30,
 		}, rootFileContents.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
-			object.MustNewSHA256V1LocalReference("8212b25f2779ea08fccc7d1895e1272743736fd9a720e67d626e8ca4d8a21508", 1760, 2, 32, 15444),
+			object.MustNewSHA256V1LocalReference("de074da0ad31c5690ed2c086bee725dc858f4f85a591273d49136d1fc0614101", 1938, 2, 34, 14744),
 		}, references)
 	})
 }

@@ -37,40 +37,46 @@ func (fr *FileReader[TReference]) GetDecodingParametersSizeBytes(isFileContentsL
 }
 
 func (fr *FileReader[TReference]) FileReadAll(ctx context.Context, fileContents FileContentsEntry[TReference], maximumSizeBytes uint64) ([]byte, error) {
-	if fileContents.EndBytes > maximumSizeBytes {
-		return nil, status.Errorf(codes.InvalidArgument, "File is %d bytes in size, which exceeds the permitted maximum of %d bytes", fileContents.EndBytes, maximumSizeBytes)
+	endBytes := fileContents.GetEndBytes()
+	if endBytes > maximumSizeBytes {
+		return nil, status.Errorf(codes.InvalidArgument, "File is %d bytes in size, which exceeds the permitted maximum of %d bytes", endBytes, maximumSizeBytes)
 	}
-	p := make([]byte, fileContents.EndBytes)
+	p := make([]byte, endBytes)
 	if _, err := fr.FileReadAt(ctx, fileContents, p, 0); err != nil {
 		return nil, err
 	}
 	return p, nil
 }
 
-func (fr *FileReader[TReference]) readNextChunk(ctx context.Context, fileContentsIterator *FileContentsIterator[TReference]) ([]byte, error) {
+func (fr *FileReader[TReference]) readNextChunkOrHole(ctx context.Context, fileContentsIterator *FileContentsIterator[TReference]) ([]byte, uint64, error) {
 	for {
 		partReference, partOffsetBytes, partSizeBytes := fileContentsIterator.GetCurrentPart()
+		if partReference == nil {
+			// Reached a hole.
+			return nil, partSizeBytes - partOffsetBytes, nil
+		}
+
 		if partReference.Value.GetDegree() == 0 {
 			// Reached a chunk.
-			chunk, err := fr.fileChunkReader.ReadParsedObject(ctx, partReference)
+			chunk, err := fr.fileChunkReader.ReadParsedObject(ctx, *partReference)
 			if err != nil {
-				return nil, util.StatusWrapf(err, "Failed to read chunk with reference %s", model_core.DecodableLocalReferenceToString(partReference))
+				return nil, 0, util.StatusWrapf(err, "Failed to read chunk with reference %s", model_core.DecodableLocalReferenceToString(*partReference))
 			}
 			if uint64(len(chunk)) != partSizeBytes {
-				return nil, status.Errorf(codes.InvalidArgument, "Chunk with reference %s is %d bytes in size, while %d bytes were expected", model_core.DecodableLocalReferenceToString(partReference), len(chunk), partSizeBytes)
+				return nil, 0, status.Errorf(codes.InvalidArgument, "Chunk with reference %s is %d bytes in size, while %d bytes were expected", model_core.DecodableLocalReferenceToString(*partReference), len(chunk), partSizeBytes)
 			}
 			fileContentsIterator.ToNextPart()
-			return chunk[partOffsetBytes:], nil
+			return chunk[partOffsetBytes:], 0, nil
 		}
 
 		// We need to push one or more file contents lists onto
 		// the stack to reach a chunk.
-		fileContentsList, err := fr.fileContentsListReader.ReadParsedObject(ctx, partReference)
+		fileContentsList, err := fr.fileContentsListReader.ReadParsedObject(ctx, *partReference)
 		if err != nil {
-			return nil, util.StatusWrapf(err, "Failed to read file contents list with reference %s", model_core.DecodableLocalReferenceToString(partReference))
+			return nil, 0, util.StatusWrapf(err, "Failed to read file contents list with reference %s", model_core.DecodableLocalReferenceToString(*partReference))
 		}
 		if err := fileContentsIterator.PushFileContentsList(fileContentsList); err != nil {
-			return nil, util.StatusWrapf(err, "Invalid file contents list with reference %s", model_core.DecodableLocalReferenceToString(partReference))
+			return nil, 0, util.StatusWrapf(err, "Invalid file contents list with reference %s", model_core.DecodableLocalReferenceToString(*partReference))
 		}
 	}
 }
@@ -80,13 +86,19 @@ func (fr *FileReader[TReference]) FileReadAt(ctx context.Context, fileContents F
 	fileContentsIterator := NewFileContentsIterator(fileContents, offsetBytes)
 	nRead := 0
 	for len(p) > 0 {
-		chunk, err := fr.readNextChunk(ctx, &fileContentsIterator)
+		chunk, holeSizeBytes, err := fr.readNextChunkOrHole(ctx, &fileContentsIterator)
 		if err != nil {
 			return nRead, err
 		}
-		n := copy(p, chunk)
-		p = p[n:]
-		nRead += n
+
+		nChunk := copy(p, chunk)
+		p = p[nChunk:]
+		nRead += nChunk
+
+		nHole := int(min(holeSizeBytes, uint64(len(p))))
+		clear(p[:nHole])
+		p = p[nHole:]
+		nRead += nHole
 	}
 	return nRead, nil
 }
@@ -97,7 +109,7 @@ func (fr *FileReader[TReference]) FileOpenRead(ctx context.Context, fileContents
 		fileReader:           fr,
 		fileContentsIterator: NewFileContentsIterator(fileContents, offsetBytes),
 		offsetBytes:          offsetBytes,
-		sizeBytes:            fileContents.EndBytes,
+		sizeBytes:            fileContents.GetEndBytes(),
 	}
 }
 
@@ -114,6 +126,7 @@ type SequentialFileReader[TReference object.BasicReference] struct {
 	fileReader           *FileReader[TReference]
 	fileContentsIterator FileContentsIterator[TReference]
 	chunk                []byte
+	holeSizeBytes        uint64
 	offsetBytes          uint64
 	sizeBytes            uint64
 }
@@ -122,24 +135,34 @@ func (r *SequentialFileReader[TReference]) Read(p []byte) (int, error) {
 	nRead := 0
 	for {
 		// Copy data from a previously read chunk.
-		n := copy(p, r.chunk)
-		p = p[n:]
-		r.chunk = r.chunk[n:]
-		nRead += n
+		nChunk := copy(p, r.chunk)
+		p = p[nChunk:]
+		r.chunk = r.chunk[nChunk:]
+		nRead += nChunk
+
+		// Clear data from a previously observed hole.
+		nHole := int(min(r.holeSizeBytes, uint64(len(p))))
+		clear(p[:nHole])
+		p = p[nHole:]
+		r.holeSizeBytes -= uint64(nHole)
+		nRead += nHole
+
+		// Read the next chunk if we still have space in the
+		// buffer or are not at end of file.
 		if len(p) == 0 {
 			return nRead, nil
 		}
-
-		// Read the next chunk if we're not at end of file.
 		if r.offsetBytes >= r.sizeBytes {
 			return nRead, io.EOF
 		}
-		chunk, err := r.fileReader.readNextChunk(r.context, &r.fileContentsIterator)
+
+		chunk, holeSizeBytes, err := r.fileReader.readNextChunkOrHole(r.context, &r.fileContentsIterator)
 		if err != nil {
 			return nRead, err
 		}
 		r.chunk = chunk
-		r.offsetBytes += uint64(len(chunk))
+		r.holeSizeBytes = holeSizeBytes
+		r.offsetBytes += holeSizeBytes + uint64(len(chunk))
 	}
 }
 
@@ -159,10 +182,11 @@ type randomAccessFileReader[TReference object.BasicReference] struct {
 
 func (r *randomAccessFileReader[TReference]) ReadAt(p []byte, offsetBytes int64) (int, error) {
 	// Limit the read operation to the size of the file.
-	if uint64(offsetBytes) > r.fileContents.EndBytes {
+	endBytes := r.fileContents.GetEndBytes()
+	if uint64(offsetBytes) > endBytes {
 		return 0, io.EOF
 	}
-	remainingBytes := r.fileContents.EndBytes - uint64(offsetBytes)
+	remainingBytes := endBytes - uint64(offsetBytes)
 	if uint64(len(p)) > remainingBytes {
 		p = p[:remainingBytes]
 	}

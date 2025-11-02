@@ -4,6 +4,7 @@ package bonanza.model.filesystem;
 
 import "bonanza.build/pkg/proto/model/core/core.proto";
 import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
+import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/filesystem";
@@ -130,27 +131,43 @@ message DirectoryReference {
 }
 
 message FileContents {
-  // Reference to the data contained in the file.
-  oneof level {
-    // The reference points to an object with a height greater than
-    // zero, containing a list of FileContents messages. The file's
-    // contents can be reobtained by concatenating the parts referenced
-    // by this message.
-    bonanza.model.core.DecodableReference file_contents_list_reference = 1
+  message List {
+    // Reference to a list of FileContents messages. As the FileContents
+    // list MUST reference at least one chunk (directly or indirectly),
+    // the height of the reference MUST have a height greater than zero.
+    bonanza.model.core.DecodableReference reference = 1
         [(bonanza.model.core.object_format) = {
           proto_list_type_name:
             "bonanza.model.filesystem.FileContents";
         }];
 
-    // The reference points to an object of height zero, containing the
-    // literal contents of the file.
-    bonanza.model.core.DecodableReference chunk_reference = 2
-        [(bonanza.model.core.object_format) = { raw: {} }];
+    // If set, the FileContents list contains at least one hole, either
+    // directly or indirectly. This information can be used to
+    // efficiently implement lseek()'s SEEK_HOLE.
+    bool sparse = 2;
   }
 
-  // The total size of all chunks of data in this part of the file. The
+  oneof level {
+    // The file is large enough, that it could not be expressed as a
+    // single chunk or hole. The contents of the file may be obtained by
+    // concatenating chunks and holes.
+    List list = 1;
+
+    // A small file containing at least one non-null byte. The reference
+    // points to an object of height zero, containing the literal
+    // contents of the file.
+    bonanza.model.core.DecodableReference chunk_reference = 2
+        [(bonanza.model.core.object_format) = { raw: {} }];
+
+    // A small file consisting entirely of null bytes. Holes cannot be
+    // succeeded/preceded by other holes. In other words, adjoining
+    // holes MUST be merged.
+    google.protobuf.Empty hole = 3;
+  }
+
+  // The total size of all chunks of data and holes in this file. The
   // size has to be greater than zero.
-  uint64 total_size_bytes = 3;
+  uint64 total_size_bytes = 4;
 }
 
 message DirectoryAccessParameters {

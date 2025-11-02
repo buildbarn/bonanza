@@ -37,14 +37,15 @@ func NewObjectInitializedFileFactory(ctx context.Context, fileReader *model_file
 }
 
 func (ff *objectInitializedFileFactory) LookupFile(fileContents model_filesystem.FileContentsEntry[object.LocalReference], isExecutable bool) (virtual.LinkableLeaf, error) {
+	endBytes := fileContents.GetEndBytes()
 	return ff.fileAllocator.NewFile(
 		&objectHoleSource{
 			factory:      ff,
 			fileContents: fileContents,
-			sizeBytes:    int64(fileContents.EndBytes),
+			sizeBytes:    int64(endBytes),
 		},
 		isExecutable,
-		fileContents.EndBytes,
+		endBytes,
 		/* shareAccess = */ 0,
 	)
 }
@@ -84,6 +85,7 @@ func (hs *objectHoleSource) GetNextRegionOffset(off int64, regionType filesystem
 	if off >= hs.sizeBytes {
 		return 0, io.EOF
 	}
+	// TODO: Actually report holes contained in files.
 	switch regionType {
 	case filesystem.Data:
 		return off, nil

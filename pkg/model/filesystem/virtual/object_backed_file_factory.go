@@ -68,7 +68,7 @@ func (f *objectBackedFile) VirtualGetAttributes(ctx context.Context, requested v
 		permissions |= virtual.PermissionsExecute
 	}
 	attributes.SetPermissions(permissions)
-	attributes.SetSizeBytes(f.fileContents.EndBytes)
+	attributes.SetSizeBytes(f.fileContents.GetEndBytes())
 }
 
 func (f *objectBackedFile) VirtualOpenSelf(ctx context.Context, shareAccess virtual.ShareMask, options *virtual.OpenExistingOptions, requested virtual.AttributesMask, attributes *virtual.Attributes) virtual.Status {
@@ -80,7 +80,7 @@ func (f *objectBackedFile) VirtualOpenSelf(ctx context.Context, shareAccess virt
 }
 
 func (f *objectBackedFile) VirtualRead(buf []byte, offsetBytes uint64) (int, bool, virtual.Status) {
-	buf, eof := virtual.BoundReadToFileSize(buf, offsetBytes, f.fileContents.EndBytes)
+	buf, eof := virtual.BoundReadToFileSize(buf, offsetBytes, f.fileContents.GetEndBytes())
 	ff := f.factory
 	nRead, err := ff.fileReader.FileReadAt(ff.context, f.fileContents, buf, offsetBytes)
 	if err != nil {
@@ -95,17 +95,19 @@ func (f *objectBackedFile) VirtualReadlink(ctx context.Context) ([]byte, virtual
 }
 
 func (f *objectBackedFile) VirtualSeek(offset uint64, regionType filesystem.RegionType) (*uint64, virtual.Status) {
+	// TODO: Actually report holes contained in files.
+	endBytes := f.fileContents.GetEndBytes()
 	switch regionType {
 	case filesystem.Data:
-		if offset >= f.fileContents.EndBytes {
+		if offset >= endBytes {
 			return nil, virtual.StatusErrNXIO
 		}
 		return &offset, virtual.StatusOK
 	case filesystem.Hole:
-		if offset >= f.fileContents.EndBytes {
+		if offset >= endBytes {
 			return nil, virtual.StatusErrNXIO
 		}
-		return &f.fileContents.EndBytes, virtual.StatusOK
+		return &endBytes, virtual.StatusOK
 	default:
 		panic("requests for other seek modes should have been intercepted")
 	}
