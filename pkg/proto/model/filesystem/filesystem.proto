@@ -148,9 +148,10 @@ message FileContents {
   }
 
   oneof level {
-    // The file is large enough, that it could not be expressed as a
-    // single chunk or hole. The contents of the file may be obtained by
-    // concatenating chunks and holes.
+    // The file containing at least one non-null byte that is large
+    // enough, that it could not be expressed as a single chunk. The
+    // contents of the file may be obtained by concatenating chunks and
+    // holes.
     List list = 1;
 
     // A small file containing at least one non-null byte. The reference
@@ -159,9 +160,9 @@ message FileContents {
     bonanza.model.core.DecodableReference chunk_reference = 2
         [(bonanza.model.core.object_format) = { raw: {} }];
 
-    // A small file consisting entirely of null bytes. Holes cannot be
-    // succeeded/preceded by other holes. In other words, adjoining
-    // holes MUST be merged.
+    // A file consisting entirely of null bytes. When stored in lists,
+    // holes cannot be succeeded/preceded by other holes. In other
+    // words, adjoining holes MUST be merged.
     google.protobuf.Empty hole = 3;
   }
 
