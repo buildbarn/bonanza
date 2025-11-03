@@ -87,9 +87,7 @@ rules\_python tend to work as expected.
 
 Bonanza is currently unable to cache build results. This means that
 every invocation of `bonanza_bazel` behaves as if a clean build is
-performed. Furthermore, Bonanza's storage nodes can only store data in
-memory and are unable to evict data if needed. Work on addressing these
-limitations will start soon.
+performed. Work on addressing this limitation will start soon.
 
 ## Running Bonanza
 
