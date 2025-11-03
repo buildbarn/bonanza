@@ -26,13 +26,13 @@ git_override(
 
 git_override(
     module_name = "com_github_buildbarn_bb_remote_execution",
-    commit = "93cc4402745bd14f6756707820b610aa1f5f9e83",
+    commit = "83bbddc17a9188fe4a88c13aea56bf9909250b6c",
     remote = "https://github.com/buildbarn/bb-remote-execution.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_bb_storage",
-    commit = "a7475d4aad524fdc6db1bdf25c1d69287854db00",
+    commit = "7199df9e3c26961561ee32953216d7058f274b44",
     patches = ["//:patches/com_github_buildbarn_bb_storage/no-golint.diff"],
     remote = "https://github.com/buildbarn/bb-storage.git",
 )
@@ -117,6 +117,10 @@ go_deps_dev.module_override(
 go_deps_dev.module_override(
     patches = ["@com_github_buildbarn_bb_storage//:patches/org_golang_x_sys/o-search.diff"],
     path = "golang.org/x/sys",
+)
+go_deps_dev.module_override(
+    patches = ["@com_github_buildbarn_bb_storage//:patches/cc_mvdan_gofumpt/unused-receiver-idents.diff"],
+    path = "mvdan.cc/gofumpt",
 )
 go_deps_dev.module_override(
     patches = [
