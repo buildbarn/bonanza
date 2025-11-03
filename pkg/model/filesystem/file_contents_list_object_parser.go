@@ -17,7 +17,7 @@ func NewFileContentsListObjectParser[TReference object.BasicReference]() parser.
 	return &fileContentsListObjectParser[TReference]{}
 }
 
-func (p *fileContentsListObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (FileContentsList[TReference], int, error) {
+func (fileContentsListObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (FileContentsList[TReference], int, error) {
 	l, sizeBytes, err := model_parser.NewProtoListObjectParser[TReference, model_filesystem_pb.FileContents]().
 		ParseObject(in, decodingParameters)
 	if err != nil {
@@ -30,6 +30,6 @@ func (p *fileContentsListObjectParser[TReference]) ParseObject(in model_core.Mes
 	return fileContentsList, sizeBytes, nil
 }
 
-func (p *fileContentsListObjectParser[TReference]) GetDecodingParametersSizeBytes() int {
+func (fileContentsListObjectParser[TReference]) GetDecodingParametersSizeBytes() int {
 	return 0
 }

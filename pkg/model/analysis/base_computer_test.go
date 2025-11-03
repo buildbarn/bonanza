@@ -73,7 +73,7 @@ func newBaseComputerTester(ctrl *gomock.Controller) *baseComputerTester {
 
 // expectCaptureCreatedObject can be called by tests to indicate that
 // the analysis function may create new objects.
-func (bct *baseComputerTester) expectCaptureCreatedObject(e *MockFileRootEnvironmentForTesting) *gomock.Call {
+func (baseComputerTester) expectCaptureCreatedObject(e *MockFileRootEnvironmentForTesting) *gomock.Call {
 	return e.EXPECT().CaptureCreatedObject(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, createdObject model_core.CreatedObject[model_core.CreatedObjectTree]) (model_core.CreatedObjectTree, error) {
 			return model_core.CreatedObjectTree(createdObject), nil
@@ -82,7 +82,7 @@ func (bct *baseComputerTester) expectCaptureCreatedObject(e *MockFileRootEnviron
 
 // expectCaptureExistingObject can be called by tests to indicate that
 // the analysis function may forward objects to other functions.
-func (bct *baseComputerTester) expectCaptureExistingObject(e *MockFileRootEnvironmentForTesting) *gomock.Call {
+func (baseComputerTester) expectCaptureExistingObject(e *MockFileRootEnvironmentForTesting) *gomock.Call {
 	return e.EXPECT().CaptureExistingObject(gomock.Any()).
 		DoAndReturn(func(reference model_core.CreatedObjectTree) model_core.CreatedObjectTree {
 			return reference
@@ -92,7 +92,7 @@ func (bct *baseComputerTester) expectCaptureExistingObject(e *MockFileRootEnviro
 // expectGetDirectoryCreationParametersObjectValue can be called by
 // tests to indicate that the analysis function needs access to
 // attributes necessary for creating new directories.
-func (bct *baseComputerTester) expectGetDirectoryCreationParametersObjectValue(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
+func (baseComputerTester) expectGetDirectoryCreationParametersObjectValue(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
 	return e.EXPECT().GetDirectoryCreationParametersObjectValue(
 		testutil.EqProto(t, &model_analysis_pb.DirectoryCreationParametersObject_Key{}),
 	).Return(util.Must(model_filesystem.NewDirectoryCreationParametersFromProto(
@@ -107,7 +107,7 @@ func (bct *baseComputerTester) expectGetDirectoryCreationParametersObjectValue(t
 // expectGetFileCreationParametersObjectValue can be called by tests to
 // indicate that the analysis function needs access to attributes
 // necessary for creating new files.
-func (bct *baseComputerTester) expectGetFileCreationParametersObjectValue(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
+func (baseComputerTester) expectGetFileCreationParametersObjectValue(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
 	return e.EXPECT().GetFileCreationParametersObjectValue(
 		testutil.EqProto(t, &model_analysis_pb.FileCreationParametersObject_Key{}),
 	).Return(util.Must(model_filesystem.NewFileCreationParametersFromProto(

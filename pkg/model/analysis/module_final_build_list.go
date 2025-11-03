@@ -10,7 +10,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModuleFinalBuildListValue(ctx context.Context, key *model_analysis_pb.ModuleFinalBuildList_Key, e ModuleFinalBuildListEnvironment[TReference, TMetadata]) (PatchedModuleFinalBuildListValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeModuleFinalBuildListValue(ctx context.Context, key *model_analysis_pb.ModuleFinalBuildList_Key, e ModuleFinalBuildListEnvironment[TReference, TMetadata]) (PatchedModuleFinalBuildListValue[TMetadata], error) {
 	roughBuildListValue := e.GetModuleRoughBuildListValue(&model_analysis_pb.ModuleRoughBuildList_Key{})
 	if !roughBuildListValue.IsSet() {
 		return PatchedModuleFinalBuildListValue[TMetadata]{}, evaluation.ErrMissingDependency

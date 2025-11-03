@@ -41,7 +41,7 @@ func NewDirectoryClusterObjectParser[TReference any]() model_parser.ObjectParser
 	return &directoryClusterObjectParser[TReference]{}
 }
 
-func (p *directoryClusterObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (model_core.Message[DirectoryCluster, TReference], int, error) {
+func (directoryClusterObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (model_core.Message[DirectoryCluster, TReference], int, error) {
 	if len(decodingParameters) > 0 {
 		return model_core.Message[DirectoryCluster, TReference]{}, 0, status.Error(codes.InvalidArgument, "Unexpected decoding parameters")
 	}
@@ -66,7 +66,7 @@ func (p *directoryClusterObjectParser[TReference]) ParseObject(in model_core.Mes
 	return model_core.Nested(in, cluster), len(in.Message), nil
 }
 
-func (p *directoryClusterObjectParser[TReference]) GetDecodingParametersSizeBytes() int {
+func (directoryClusterObjectParser[TReference]) GetDecodingParametersSizeBytes() int {
 	return 0
 }
 

@@ -9,7 +9,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeActionEncodersValue(ctx context.Context, key *model_analysis_pb.ActionEncoders_Key, e ActionEncodersEnvironment[TReference, TMetadata]) (PatchedActionEncodersValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeActionEncodersValue(ctx context.Context, key *model_analysis_pb.ActionEncoders_Key, e ActionEncodersEnvironment[TReference, TMetadata]) (PatchedActionEncodersValue[TMetadata], error) {
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecification.IsSet() {
 		return PatchedActionEncodersValue[TMetadata]{}, evaluation.ErrMissingDependency

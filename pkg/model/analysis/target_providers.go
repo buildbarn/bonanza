@@ -8,7 +8,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetProvidersValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetProviders_Key, TReference], e TargetProvidersEnvironment[TReference, TMetadata]) (PatchedTargetProvidersValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeTargetProvidersValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetProviders_Key, TReference], e TargetProvidersEnvironment[TReference, TMetadata]) (PatchedTargetProvidersValue[TMetadata], error) {
 	configuredTarget := e.GetConfiguredTargetValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
 			return &model_analysis_pb.ConfiguredTarget_Key{

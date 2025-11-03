@@ -19,11 +19,11 @@ type Lease uint64
 
 type leaseMarshaler struct{}
 
-func (lm leaseMarshaler) MarshalLease(lease Lease, dst []byte) []byte {
+func (leaseMarshaler) MarshalLease(lease Lease, dst []byte) []byte {
 	return varint.AppendForward(dst, lease)
 }
 
-func (lm leaseMarshaler) UnmarshalLease(src []byte) (Lease, error) {
+func (leaseMarshaler) UnmarshalLease(src []byte) (Lease, error) {
 	v, n := varint.ConsumeForward[Lease](src)
 	if n != len(src) {
 		return 0, status.Error(codes.InvalidArgument, "Malformed lease")

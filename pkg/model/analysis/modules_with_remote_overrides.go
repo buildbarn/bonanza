@@ -94,7 +94,7 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) addOver
 	return nil
 }
 
-func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) GetRootModuleName() (label.Module, error) {
+func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) GetRootModuleName() (label.Module, error) {
 	return label.Module{}, nil
 }
 
@@ -102,11 +102,11 @@ func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(n
 	return nil
 }
 
-func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) LocalPathOverride(moduleName label.Module, path path.Parser) error {
+func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) LocalPathOverride(moduleName label.Module, path path.Parser) error {
 	return nil
 }
 
-func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, version *label.ModuleVersion, compatibilityLevel int, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, version *label.ModuleVersion, compatibilityLevel int, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	return nil
 }
 

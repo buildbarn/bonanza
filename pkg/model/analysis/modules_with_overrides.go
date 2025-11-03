@@ -9,7 +9,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(ctx context.Context, key *model_analysis_pb.ModulesWithOverrides_Key, e ModulesWithOverridesEnvironment[TReference, TMetadata]) (PatchedModulesWithOverridesValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(ctx context.Context, key *model_analysis_pb.ModulesWithOverrides_Key, e ModulesWithOverridesEnvironment[TReference, TMetadata]) (PatchedModulesWithOverridesValue[TMetadata], error) {
 	remoteOverrides := e.GetModulesWithRemoteOverridesValue(&model_analysis_pb.ModulesWithRemoteOverrides_Key{})
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !remoteOverrides.IsSet() || !buildSpecification.IsSet() {

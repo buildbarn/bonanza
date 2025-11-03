@@ -9,7 +9,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsValue(ctx context.Context, key *model_analysis_pb.ModulesWithMultipleVersions_Key, e ModulesWithMultipleVersionsEnvironment[TReference, TMetadata]) (PatchedModulesWithMultipleVersionsValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsValue(ctx context.Context, key *model_analysis_pb.ModulesWithMultipleVersions_Key, e ModulesWithMultipleVersionsEnvironment[TReference, TMetadata]) (PatchedModulesWithMultipleVersionsValue[TMetadata], error) {
 	modulesWithOverridesValue := e.GetModulesWithOverridesValue(&model_analysis_pb.ModulesWithOverrides_Key{})
 	if !modulesWithOverridesValue.IsSet() {
 		return PatchedModulesWithMultipleVersionsValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -25,7 +25,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersions
 	}), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsObjectValue(ctx context.Context, key *model_analysis_pb.ModulesWithMultipleVersionsObject_Key, e ModulesWithMultipleVersionsObjectEnvironment[TReference, TMetadata]) (map[label.Module]OverrideVersions, error) {
+func (baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsObjectValue(ctx context.Context, key *model_analysis_pb.ModulesWithMultipleVersionsObject_Key, e ModulesWithMultipleVersionsObjectEnvironment[TReference, TMetadata]) (map[label.Module]OverrideVersions, error) {
 	modulesWithMultipleVersionsValue := e.GetModulesWithMultipleVersionsValue(&model_analysis_pb.ModulesWithMultipleVersions_Key{})
 	if !modulesWithMultipleVersionsValue.IsSet() {
 		return nil, evaluation.ErrMissingDependency

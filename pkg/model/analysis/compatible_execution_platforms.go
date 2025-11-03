@@ -9,7 +9,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeCompatibleExecutionPlatformsValue(ctx context.Context, key *model_analysis_pb.CompatibleExecutionPlatforms_Key, e CompatibleExecutionPlatformsEnvironment[TReference, TMetadata]) (PatchedCompatibleExecutionPlatformsValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeCompatibleExecutionPlatformsValue(ctx context.Context, key *model_analysis_pb.CompatibleExecutionPlatforms_Key, e CompatibleExecutionPlatformsEnvironment[TReference, TMetadata]) (PatchedCompatibleExecutionPlatformsValue[TMetadata], error) {
 	registeredExecutionPlatforms := e.GetRegisteredExecutionPlatformsValue(&model_analysis_pb.RegisteredExecutionPlatforms_Key{})
 	if !registeredExecutionPlatforms.IsSet() {
 		return PatchedCompatibleExecutionPlatformsValue[TMetadata]{}, evaluation.ErrMissingDependency

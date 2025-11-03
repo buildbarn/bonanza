@@ -38,21 +38,21 @@ func NewRule[TReference object.BasicReference, TMetadata model_core.ReferenceMet
 	}
 }
 
-func (r *rule[TReference, TMetadata]) String() string {
+func (rule[TReference, TMetadata]) String() string {
 	return "<rule>"
 }
 
-func (r *rule[TReference, TMetadata]) Type() string {
+func (rule[TReference, TMetadata]) Type() string {
 	return "rule"
 }
 
-func (r *rule[TReference, TMetadata]) Freeze() {}
+func (rule[TReference, TMetadata]) Freeze() {}
 
-func (r *rule[TReference, TMetadata]) Truth() starlark.Bool {
+func (rule[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
-func (r *rule[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
+func (rule[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, errors.New("rule cannot be hashed")
 }
 
@@ -603,7 +603,7 @@ func NewProtoRuleDefinition[TReference object.BasicReference, TMetadata model_co
 	}
 }
 
-func (rd *protoRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
+func (protoRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
 	panic("rule definition was already encoded previously")
 }
 
@@ -650,7 +650,7 @@ func NewReloadingRuleDefinition[TReference object.BasicReference, TMetadata mode
 	}
 }
 
-func (rd *reloadingRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
+func (reloadingRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
 	panic("rule definition was already encoded previously")
 }
 

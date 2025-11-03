@@ -68,7 +68,7 @@ func (cw leadingEscapementCountingComponentWalker) OnDirectory(name path.Compone
 	}, nil
 }
 
-func (cw leadingEscapementCountingComponentWalker) OnTerminal(name path.Component) (*path.GotSymlink, error) {
+func (leadingEscapementCountingComponentWalker) OnTerminal(name path.Component) (*path.GotSymlink, error) {
 	return nil, nil
 }
 
@@ -88,7 +88,7 @@ func (cw subsequentEscapementCountingComponentWalker) OnDirectory(name path.Comp
 	}, nil
 }
 
-func (cw subsequentEscapementCountingComponentWalker) OnTerminal(name path.Component) (*path.GotSymlink, error) {
+func (subsequentEscapementCountingComponentWalker) OnTerminal(name path.Component) (*path.GotSymlink, error) {
 	return nil, nil
 }
 

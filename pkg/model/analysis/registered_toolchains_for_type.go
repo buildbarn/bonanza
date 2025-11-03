@@ -10,7 +10,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsForTypeValue(ctx context.Context, key *model_analysis_pb.RegisteredToolchainsForType_Key, e RegisteredToolchainsForTypeEnvironment[TReference, TMetadata]) (PatchedRegisteredToolchainsForTypeValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsForTypeValue(ctx context.Context, key *model_analysis_pb.RegisteredToolchainsForType_Key, e RegisteredToolchainsForTypeEnvironment[TReference, TMetadata]) (PatchedRegisteredToolchainsForTypeValue[TMetadata], error) {
 	registeredToolchainsValue := e.GetRegisteredToolchainsValue(&model_analysis_pb.RegisteredToolchains_Key{})
 	if !registeredToolchainsValue.IsSet() {
 		return PatchedRegisteredToolchainsForTypeValue[TMetadata]{}, evaluation.ErrMissingDependency

@@ -37,13 +37,13 @@ func (l Label[TReference, TMetadata]) String() string {
 	return l.value.String()
 }
 
-func (l Label[TReference, TMetadata]) Type() string {
+func (Label[TReference, TMetadata]) Type() string {
 	return "Label"
 }
 
-func (l Label[TReference, TMetadata]) Freeze() {}
+func (Label[TReference, TMetadata]) Freeze() {}
 
-func (l Label[TReference, TMetadata]) Truth() starlark.Bool {
+func (Label[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
@@ -130,7 +130,7 @@ var labelAttrNames = []string{
 	"workspace_root",
 }
 
-func (l Label[TReference, TMetadata]) AttrNames() []string {
+func (Label[TReference, TMetadata]) AttrNames() []string {
 	return labelAttrNames
 }
 

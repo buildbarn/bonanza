@@ -8,7 +8,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredFetchPlatformValue(ctx context.Context, key *model_analysis_pb.RegisteredFetchPlatform_Key, e RegisteredFetchPlatformEnvironment[TReference, TMetadata]) (PatchedRegisteredFetchPlatformValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeRegisteredFetchPlatformValue(ctx context.Context, key *model_analysis_pb.RegisteredFetchPlatform_Key, e RegisteredFetchPlatformEnvironment[TReference, TMetadata]) (PatchedRegisteredFetchPlatformValue[TMetadata], error) {
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecification.IsSet() {
 		return PatchedRegisteredFetchPlatformValue[TMetadata]{}, evaluation.ErrMissingDependency

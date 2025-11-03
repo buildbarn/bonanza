@@ -68,7 +68,7 @@ func NewExecutor(
 	}
 }
 
-func (e *executor) CheckReadiness(ctx context.Context) error {
+func (executor) CheckReadiness(ctx context.Context) error {
 	return nil
 }
 

@@ -1684,7 +1684,7 @@ func (or *targetOutputRegistrar[TReference, TMetadata]) Canonicalize(thread *sta
 	return v, nil
 }
 
-func (or *targetOutputRegistrar[TReference, TMetadata]) GetConcatenationOperator() syntax.Token {
+func (targetOutputRegistrar[TReference, TMetadata]) GetConcatenationOperator() syntax.Token {
 	return syntax.PLUS
 }
 
@@ -2024,11 +2024,11 @@ var ruleContextActionsAttrNames = []string{
 	"write",
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) AttrNames() []string {
+func (ruleContextActions[TReference, TMetadata]) AttrNames() []string {
 	return ruleContextActionsAttrNames
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doArgs(thread *starlark.Thread, b *starlark.Builtin, arguments starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (ruleContextActions[TReference, TMetadata]) doArgs(thread *starlark.Thread, b *starlark.Builtin, arguments starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	return &args[TReference, TMetadata]{
 		paramFileFormat: model_analysis_pb.Args_Leaf_UseParamFile_SHELL,
 	}, nil
@@ -2942,11 +2942,11 @@ func (rca *ruleContextActions[TReference, TMetadata]) doSymlink(thread *starlark
 	)
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doTransformInfoFile(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (ruleContextActions[TReference, TMetadata]) doTransformInfoFile(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	return starlark.None, nil
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doTransformVersionFile(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (ruleContextActions[TReference, TMetadata]) doTransformVersionFile(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	return starlark.None, nil
 }
 
@@ -2972,7 +2972,7 @@ func (d *singleFileDirectory[TFile, TDirectory]) ReadDir() ([]filesystem.FileInf
 	}, nil
 }
 
-func (d *singleFileDirectory[TFile, TDirectory]) Readlink(name path.Component) (path.Parser, error) {
+func (singleFileDirectory[TFile, TDirectory]) Readlink(name path.Component) (path.Parser, error) {
 	panic("directory only contains a regular file")
 }
 
@@ -3465,7 +3465,7 @@ func (a *args[TReference, TMetadata]) doAdd(thread *starlark.Thread, b *starlark
 	return a, nil
 }
 
-func (a *args[TReference, TMetadata]) doAddAllJoinedParseArgs(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple) (startWith *string, values starlark.Value, err error) {
+func (args[TReference, TMetadata]) doAddAllJoinedParseArgs(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple) (startWith *string, values starlark.Value, err error) {
 	valuesUnpackerInto := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
 		unpack.Canonicalize(unpack.List(unpack.Any)),
 		unpack.Canonicalize(unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset")),

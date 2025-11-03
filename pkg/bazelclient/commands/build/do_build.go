@@ -939,7 +939,7 @@ func (f *messageJSONFormatter) formatJSONField(fieldDescriptor protoreflect.Fiel
 	return f.formatJSONValue(v)
 }
 
-func (f *messageJSONFormatter) formatJSONValue(v any) formatted.Node {
+func (messageJSONFormatter) formatJSONValue(v any) formatted.Node {
 	jsonValue, err := json.Marshal(v)
 	if err != nil {
 		return formatted.Bold(formatted.Red(formatted.Textf("[ %s ]", err)))

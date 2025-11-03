@@ -34,7 +34,7 @@ func NewProtoListObjectParser[
 	return &protoListObjectParser[TReference, TMessage, TMessagePtr]{}
 }
 
-func (p *protoListObjectParser[TReference, TMessage, TMessagePtr]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (model_core.Message[[]TMessagePtr, TReference], int, error) {
+func (protoListObjectParser[TReference, TMessage, TMessagePtr]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (model_core.Message[[]TMessagePtr, TReference], int, error) {
 	if len(decodingParameters) > 0 {
 		return model_core.Message[[]TMessagePtr, TReference]{}, 0, status.Error(codes.InvalidArgument, "Unexpected decoding parameters")
 	}
@@ -68,6 +68,6 @@ func (p *protoListObjectParser[TReference, TMessage, TMessagePtr]) ParseObject(i
 	return model_core.NewMessage(elements, in.OutgoingReferences), len(in.Message), nil
 }
 
-func (p *protoListObjectParser[TReference, TMessage, TMessagePtr]) GetDecodingParametersSizeBytes() int {
+func (protoListObjectParser[TReference, TMessage, TMessagePtr]) GetDecodingParametersSizeBytes() int {
 	return 0
 }

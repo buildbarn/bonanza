@@ -94,7 +94,7 @@ func packageGroupContains[TReference any](e packageGroupContainsEnvironment[TRef
 	return false, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(ctx context.Context, key *model_analysis_pb.PackageGroupContains_Key, e PackageGroupContainsEnvironment[TReference, TMetadata]) (PatchedPackageGroupContainsValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(ctx context.Context, key *model_analysis_pb.PackageGroupContains_Key, e PackageGroupContainsEnvironment[TReference, TMetadata]) (PatchedPackageGroupContainsValue[TMetadata], error) {
 	fromPackage, err := label.NewCanonicalPackage(key.Package)
 	if err != nil {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, fmt.Errorf("invalid from package: %w", err)

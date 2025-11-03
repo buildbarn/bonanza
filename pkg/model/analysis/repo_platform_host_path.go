@@ -292,11 +292,11 @@ func (r *changeTrackingDirectoryNormalizingPathResolver[TReference, TMetadata]) 
 	return r, nil
 }
 
-func (r *changeTrackingDirectoryNormalizingPathResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
+func (changeTrackingDirectoryNormalizingPathResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
 	return nil, errors.New("drive letters are not supported")
 }
 
-func (r *changeTrackingDirectoryNormalizingPathResolver[TReference, TMetadata]) OnShare(server, share string) (path.ComponentWalker, error) {
+func (changeTrackingDirectoryNormalizingPathResolver[TReference, TMetadata]) OnShare(server, share string) (path.ComponentWalker, error) {
 	return nil, errors.New("shares are not supported")
 }
 

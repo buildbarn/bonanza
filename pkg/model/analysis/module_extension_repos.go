@@ -89,11 +89,11 @@ type useRepoRuleCapturingModuleDotBazelHandler[TReference object.BasicReference,
 	repos map[string]model_core.PatchedMessage[*model_starlark_pb.Repo, TMetadata]
 }
 
-func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, maxCompatibilityLevel int, repoName label.ApparentRepo, devDependency bool) error {
+func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, maxCompatibilityLevel int, repoName label.ApparentRepo, devDependency bool) error {
 	return nil
 }
 
-func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, version *label.ModuleVersion, compatibilityLevel int, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, version *label.ModuleVersion, compatibilityLevel int, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	return nil
 }
 
@@ -105,7 +105,7 @@ func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) Register
 	return nil
 }
 
-func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (pg_starlark.ModuleExtensionProxy, error) {
+func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (pg_starlark.ModuleExtensionProxy, error) {
 	return pg_starlark.NullModuleExtensionProxy, nil
 }
 

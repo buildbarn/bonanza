@@ -75,7 +75,7 @@ type parseModuleDotBazelFileEnvironment[TReference object.BasicReference] interf
 
 var bazelToolsModule = util.Must(label.NewModule("bazel_tools"))
 
-func (c *baseComputer[TReference, TMetadata]) parseModuleDotBazel(ctx context.Context, moduleContentsMsg model_core.Message[*model_filesystem_pb.FileContents, TReference], moduleInstance label.ModuleInstance, e parseModuleDotBazelFileEnvironment[TReference], handler pg_starlark.RootModuleDotBazelHandler) error {
+func (baseComputer[TReference, TMetadata]) parseModuleDotBazel(ctx context.Context, moduleContentsMsg model_core.Message[*model_filesystem_pb.FileContents, TReference], moduleInstance label.ModuleInstance, e parseModuleDotBazelFileEnvironment[TReference], handler pg_starlark.RootModuleDotBazelHandler) error {
 	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
 	if !gotFileReader {
 		return evaluation.ErrMissingDependency
@@ -216,7 +216,7 @@ func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFir
 	return finalErr
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ctx context.Context, key *model_analysis_pb.ModuleDotBazelContents_Key, e ModuleDotBazelContentsEnvironment[TReference, TMetadata]) (PatchedModuleDotBazelContentsValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ctx context.Context, key *model_analysis_pb.ModuleDotBazelContents_Key, e ModuleDotBazelContentsEnvironment[TReference, TMetadata]) (PatchedModuleDotBazelContentsValue[TMetadata], error) {
 	moduleInstance, err := label.NewModuleInstance(key.ModuleInstance)
 	if err != nil {
 		return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("invalid module instance: %w", err)

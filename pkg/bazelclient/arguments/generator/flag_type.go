@@ -16,7 +16,7 @@ type boolFlagType struct {
 	defaultValue bool
 }
 
-func (ft boolFlagType) emitStructField(longName string) {
+func (boolFlagType) emitStructField(longName string) {
 	fmt.Printf("%s bool\n", toSymbolName(longName, true))
 }
 
@@ -24,7 +24,7 @@ func (ft boolFlagType) emitDefaultInitializer(longName string) {
 	fmt.Printf("f.%s = %#v\n", toSymbolName(longName, true), ft.defaultValue)
 }
 
-func (ft boolFlagType) emitLongNameParser(flagSetName, longName string) {
+func (boolFlagType) emitLongNameParser(flagSetName, longName string) {
 	flagSetSymbolName := toSymbolName(flagSetName, true)
 	longSymbolName := toSymbolName(longName, true)
 
@@ -54,7 +54,7 @@ func (ft boolFlagType) emitLongNameParser(flagSetName, longName string) {
 	fmt.Printf("  }\n")
 }
 
-func (ft boolFlagType) emitShortNameParser(flagSetName, longName, shortName string) {
+func (boolFlagType) emitShortNameParser(flagSetName, longName, shortName string) {
 	flagSetSymbolName := toSymbolName(flagSetName, true)
 	longSymbolName := toSymbolName(longName, true)
 
@@ -73,7 +73,7 @@ func (ft boolFlagType) emitShortNameParser(flagSetName, longName, shortName stri
 	fmt.Printf("  }\n")
 }
 
-func (ft boolFlagType) emitStartupParser(longName string) {
+func (boolFlagType) emitStartupParser(longName string) {
 	longSymbolName := toSymbolName(longName, true)
 
 	fmt.Printf("case %#v:\n", "--"+longName)
@@ -90,11 +90,11 @@ func (ft boolFlagType) emitStartupParser(longName string) {
 
 type buildSettingFlagType struct{}
 
-func (ft buildSettingFlagType) emitStructField(longName string) {}
+func (buildSettingFlagType) emitStructField(longName string) {}
 
-func (ft buildSettingFlagType) emitDefaultInitializer(longName string) {}
+func (buildSettingFlagType) emitDefaultInitializer(longName string) {}
 
-func (ft buildSettingFlagType) emitLongNameParser(flagSetName, longName string) {
+func (buildSettingFlagType) emitLongNameParser(flagSetName, longName string) {
 	fmt.Printf("case %#v:\n", "--"+longName)
 	fmt.Printf("  shouldApply := false\n")
 	fmt.Printf("  if cmd.get%sFlags() != nil {\n", toSymbolName(flagSetName, true))
@@ -117,11 +117,11 @@ func (ft buildSettingFlagType) emitLongNameParser(flagSetName, longName string) 
 	fmt.Printf("  }\n")
 }
 
-func (ft buildSettingFlagType) emitShortNameParser(flagSetName, longName, shortName string) {
+func (buildSettingFlagType) emitShortNameParser(flagSetName, longName, shortName string) {
 	panic("build setting flags cannot be used with short names")
 }
 
-func (ft buildSettingFlagType) emitStartupParser(longName string) {
+func (buildSettingFlagType) emitStartupParser(longName string) {
 	panic("build setting flags cannot be used for startup flags")
 }
 
@@ -158,11 +158,11 @@ func (ft enumFlagType) emitLongNameParser(flagSetName, longName string) {
 	fmt.Printf("  }\n")
 }
 
-func (ft enumFlagType) emitShortNameParser(flagSetName, longName, shortName string) {
+func (enumFlagType) emitShortNameParser(flagSetName, longName, shortName string) {
 	panic("TODO")
 }
 
-func (ft enumFlagType) emitStartupParser(longName string) {
+func (enumFlagType) emitStartupParser(longName string) {
 	panic("TODO")
 }
 
@@ -170,9 +170,9 @@ type expansionFlagType struct {
 	expandsTo []string
 }
 
-func (ft expansionFlagType) emitStructField(longName string) {}
+func (expansionFlagType) emitStructField(longName string) {}
 
-func (ft expansionFlagType) emitDefaultInitializer(longName string) {}
+func (expansionFlagType) emitDefaultInitializer(longName string) {}
 
 func (ft expansionFlagType) emitLongNameParser(flagSetName, longName string) {
 	fmt.Printf("case %#v:\n", "--"+longName)
@@ -203,7 +203,7 @@ func (ft expansionFlagType) emitShortNameParser(flagSetName, longName, shortName
 	fmt.Printf("  }\n")
 }
 
-func (ft expansionFlagType) emitStartupParser(longName string) {
+func (expansionFlagType) emitStartupParser(longName string) {
 	panic("TODO")
 }
 
@@ -211,7 +211,7 @@ type stringFlagType struct {
 	defaultValue string
 }
 
-func (ft stringFlagType) emitStructField(longName string) {
+func (stringFlagType) emitStructField(longName string) {
 	fmt.Printf("%s string\n", toSymbolName(longName, true))
 }
 
@@ -219,7 +219,7 @@ func (ft stringFlagType) emitDefaultInitializer(longName string) {
 	fmt.Printf("f.%s = %#v\n", toSymbolName(longName, true), ft.defaultValue)
 }
 
-func (ft stringFlagType) emitLongNameParser(flagSetName, longName string) {
+func (stringFlagType) emitLongNameParser(flagSetName, longName string) {
 	fmt.Printf("case %#v:\n", "--"+longName)
 	fmt.Printf("  var out *string\n")
 	fmt.Printf("  if flags := cmd.get%sFlags(); flags != nil {\n", toSymbolName(flagSetName, true))
@@ -239,25 +239,25 @@ func (ft stringFlagType) emitLongNameParser(flagSetName, longName string) {
 	fmt.Printf("  }\n")
 }
 
-func (ft stringFlagType) emitShortNameParser(flagSetName, longName, shortName string) {
+func (stringFlagType) emitShortNameParser(flagSetName, longName, shortName string) {
 	panic("TODO")
 }
 
-func (ft stringFlagType) emitStartupParser(longName string) {
+func (stringFlagType) emitStartupParser(longName string) {
 	panic("TODO")
 }
 
 type stringListFlagType struct{}
 
-func (ft stringListFlagType) emitStructField(longName string) {
+func (stringListFlagType) emitStructField(longName string) {
 	fmt.Printf("%s []string\n", toSymbolName(longName, true))
 }
 
-func (ft stringListFlagType) emitDefaultInitializer(longName string) {
+func (stringListFlagType) emitDefaultInitializer(longName string) {
 	fmt.Printf("f.%s = nil\n", toSymbolName(longName, true))
 }
 
-func (ft stringListFlagType) emitLongNameParser(flagSetName, longName string) {
+func (stringListFlagType) emitLongNameParser(flagSetName, longName string) {
 	fmt.Printf("case %#v:\n", "--"+longName)
 	fmt.Printf("  var out *[]string\n")
 	fmt.Printf("  if flags := cmd.get%sFlags(); flags != nil {\n", toSymbolName(flagSetName, true))
@@ -277,11 +277,11 @@ func (ft stringListFlagType) emitLongNameParser(flagSetName, longName string) {
 	fmt.Printf("  }\n")
 }
 
-func (ft stringListFlagType) emitShortNameParser(flagSetName, longName, shortName string) {
+func (stringListFlagType) emitShortNameParser(flagSetName, longName, shortName string) {
 	panic("TODO")
 }
 
-func (ft stringListFlagType) emitStartupParser(longName string) {
+func (stringListFlagType) emitStartupParser(longName string) {
 	longSymbolName := toSymbolName(longName, true)
 
 	fmt.Printf("case %#v:\n", "--"+longName)

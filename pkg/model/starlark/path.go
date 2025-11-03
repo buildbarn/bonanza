@@ -140,17 +140,17 @@ func (p *path) String() string {
 	return p.bare.GetUNIXString()
 }
 
-func (*path) Type() string {
+func (path) Type() string {
 	return "path"
 }
 
-func (*path) Freeze() {}
+func (path) Freeze() {}
 
-func (*path) Truth() starlark.Bool {
+func (path) Truth() starlark.Bool {
 	return starlark.True
 }
 
-func (*path) Hash(thread *starlark.Thread) (uint32, error) {
+func (path) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, errors.New("path cannot be hashed")
 }
 
@@ -204,7 +204,7 @@ var pathAttrNames = []string{
 	"realpath",
 }
 
-func (*path) AttrNames() []string {
+func (path) AttrNames() []string {
 	return pathAttrNames
 }
 

@@ -147,7 +147,7 @@ func (ReferenceFormat) GetMaximumObjectSizeBytes() int {
 // NewContents creates a new object having the provided set of outgoing
 // references and data payload. It is assumed that outgoing references
 // are provided in sorted order.
-func (rf ReferenceFormat) NewContents(outgoingReferences []LocalReference, payload []byte) (*Contents, error) {
+func (ReferenceFormat) NewContents(outgoingReferences []LocalReference, payload []byte) (*Contents, error) {
 	sizeBytes := len(outgoingReferences)*referenceSizeBytes + len(payload)
 	if sizeBytes < minimumObjectSizeBytes || sizeBytes > maximumObjectSizeBytes {
 		return nil, status.Errorf(

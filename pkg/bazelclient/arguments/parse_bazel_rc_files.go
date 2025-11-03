@@ -45,11 +45,11 @@ func (r *bazelRCPathResolver) OnRelative() (path.ComponentWalker, error) {
 	return r, nil
 }
 
-func (r *bazelRCPathResolver) OnDriveLetter(drive rune) (path.ComponentWalker, error) {
+func (bazelRCPathResolver) OnDriveLetter(drive rune) (path.ComponentWalker, error) {
 	return nil, status.Error(codes.Unimplemented, "Drive letters not supported")
 }
 
-func (r *bazelRCPathResolver) OnShare(server, share string) (path.ComponentWalker, error) {
+func (bazelRCPathResolver) OnShare(server, share string) (path.ComponentWalker, error) {
 	return nil, status.Error(codes.Unimplemented, "Shares not supported")
 }
 

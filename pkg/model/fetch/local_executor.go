@@ -73,7 +73,7 @@ func NewLocalExecutor(
 	}
 }
 
-func (e *localExecutor) CheckReadiness(ctx context.Context) error {
+func (localExecutor) CheckReadiness(ctx context.Context) error {
 	return nil
 }
 

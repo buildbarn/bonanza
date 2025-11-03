@@ -30,21 +30,21 @@ func NewAspect[TReference any, TMetadata model_core.ReferenceMetadata](identifie
 	}
 }
 
-func (a *Aspect[TReference, TMetadata]) String() string {
+func (Aspect[TReference, TMetadata]) String() string {
 	return "<aspect>"
 }
 
-func (a *Aspect[TReference, TMetadata]) Type() string {
+func (Aspect[TReference, TMetadata]) Type() string {
 	return "Aspect"
 }
 
-func (a *Aspect[TReference, TMetadata]) Freeze() {}
+func (Aspect[TReference, TMetadata]) Freeze() {}
 
-func (a *Aspect[TReference, TMetadata]) Truth() starlark.Bool {
+func (Aspect[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
-func (a *Aspect[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
+func (Aspect[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, errors.New("aspect cannot be hashed")
 }
 

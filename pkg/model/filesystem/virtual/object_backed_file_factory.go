@@ -90,7 +90,7 @@ func (f *objectBackedFile) VirtualRead(buf []byte, offsetBytes uint64) (int, boo
 	return nRead, eof, virtual.StatusOK
 }
 
-func (f *objectBackedFile) VirtualReadlink(ctx context.Context) ([]byte, virtual.Status) {
+func (objectBackedFile) VirtualReadlink(ctx context.Context) ([]byte, virtual.Status) {
 	return nil, virtual.StatusErrInval
 }
 

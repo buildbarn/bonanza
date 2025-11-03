@@ -490,11 +490,11 @@ func (r *changeTrackingDirectoryResolver[TReference, TMetadata]) OnRelative() (p
 	return r, nil
 }
 
-func (r *changeTrackingDirectoryResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
+func (changeTrackingDirectoryResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
 	return nil, errors.New("drive letters are not supported")
 }
 
-func (r *changeTrackingDirectoryResolver[TReference, TMetadata]) OnShare(server, share string) (path.ComponentWalker, error) {
+func (changeTrackingDirectoryResolver[TReference, TMetadata]) OnShare(server, share string) (path.ComponentWalker, error) {
 	return nil, errors.New("shares are not supported")
 }
 
@@ -539,7 +539,7 @@ type capturableChangeTrackingDirectory[TReference object.BasicReference, TMetada
 	directory *changeTrackingDirectory[TReference, TMetadata]
 }
 
-func (cd *capturableChangeTrackingDirectory[TReference, TMetadata]) Close() error {
+func (capturableChangeTrackingDirectory[TReference, TMetadata]) Close() error {
 	return nil
 }
 
@@ -626,7 +626,7 @@ func (cf *capturableChangeTrackingFile[TReference, TMetadata]) CreateFileMerkleT
 	return cf.contents.createFileMerkleTree(ctx, cf.options)
 }
 
-func (cf *capturableChangeTrackingFile[TReference, TMetadata]) Discard() {}
+func (capturableChangeTrackingFile[TReference, TMetadata]) Discard() {}
 
 type strippingComponentWalker struct {
 	remainder            path.ComponentWalker
@@ -657,7 +657,7 @@ func (cw strippingComponentWalker) OnDirectory(name path.Component) (path.GotDir
 	}, nil
 }
 
-func (cw strippingComponentWalker) OnTerminal(name path.Component) (*path.GotSymlink, error) {
+func (strippingComponentWalker) OnTerminal(name path.Component) (*path.GotSymlink, error) {
 	return nil, nil
 }
 
@@ -684,11 +684,11 @@ func (r *changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]) OnR
 	return r, nil
 }
 
-func (r *changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
+func (changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
 	return nil, errors.New("drive letters are not supported")
 }
 
-func (r *changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]) OnShare(server, share string) (path.ComponentWalker, error) {
+func (changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]) OnShare(server, share string) (path.ComponentWalker, error) {
 	return nil, errors.New("shares are not supported")
 }
 
@@ -746,11 +746,11 @@ func (r *changeTrackingDirectoryNewDirectoryResolver[TReference, TMetadata]) OnR
 	return r, nil
 }
 
-func (r *changeTrackingDirectoryNewDirectoryResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
+func (changeTrackingDirectoryNewDirectoryResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
 	return nil, errors.New("drive letters are not supported")
 }
 
-func (r *changeTrackingDirectoryNewDirectoryResolver[TReference, TMetadata]) OnShare(server, share string) (path.ComponentWalker, error) {
+func (changeTrackingDirectoryNewDirectoryResolver[TReference, TMetadata]) OnShare(server, share string) (path.ComponentWalker, error) {
 	return nil, errors.New("shares are not supported")
 }
 
@@ -799,11 +799,11 @@ func (r *changeTrackingDirectoryNewFileResolver[TReference, TMetadata]) OnRelati
 	return r, nil
 }
 
-func (r *changeTrackingDirectoryNewFileResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
+func (changeTrackingDirectoryNewFileResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
 	return nil, errors.New("drive letters are not supported")
 }
 
-func (r *changeTrackingDirectoryNewFileResolver[TReference, TMetadata]) OnShare(server, share string) (path.ComponentWalker, error) {
+func (changeTrackingDirectoryNewFileResolver[TReference, TMetadata]) OnShare(server, share string) (path.ComponentWalker, error) {
 	return nil, errors.New("drive letters are not supported")
 }
 
@@ -1164,7 +1164,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 	)
 }
 
-func (c *baseComputer[TReference, TMetadata]) applyPatch(
+func (baseComputer[TReference, TMetadata]) applyPatch(
 	ctx context.Context,
 	rootDirectory *changeTrackingDirectory[TReference, TMetadata],
 	loadOptions *changeTrackingDirectoryLoadOptions[TReference],

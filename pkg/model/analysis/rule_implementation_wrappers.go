@@ -50,7 +50,7 @@ func getImplementationWrapper[TReference object.BasicReference, TMetadata model_
 	), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersValue(ctx context.Context, key *model_analysis_pb.RuleImplementationWrappers_Key, e RuleImplementationWrappersEnvironment[TReference, TMetadata]) (*RuleImplementationWrappers, error) {
+func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersValue(ctx context.Context, key *model_analysis_pb.RuleImplementationWrappers_Key, e RuleImplementationWrappersEnvironment[TReference, TMetadata]) (*RuleImplementationWrappers, error) {
 	buildSpecificationValue := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecificationValue.IsSet() {
 		return nil, evaluation.ErrMissingDependency

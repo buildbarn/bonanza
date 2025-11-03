@@ -426,7 +426,7 @@ var depsetAttrNames = []string{
 }
 
 // AttrNames returns the names of the attributes of the depset object.
-func (d *Depset[TReference, TMetadata]) AttrNames() []string {
+func (Depset[TReference, TMetadata]) AttrNames() []string {
 	return depsetAttrNames
 }
 

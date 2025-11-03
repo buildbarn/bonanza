@@ -113,17 +113,17 @@ func (v *moduleExtensionProxyValue) String() string {
 	return v.name.String()
 }
 
-func (v *moduleExtensionProxyValue) Type() string {
+func (moduleExtensionProxyValue) Type() string {
 	return "module_extension_proxy"
 }
 
-func (v *moduleExtensionProxyValue) Freeze() {}
+func (moduleExtensionProxyValue) Freeze() {}
 
-func (v *moduleExtensionProxyValue) Truth() starlark.Bool {
+func (moduleExtensionProxyValue) Truth() starlark.Bool {
 	return starlark.True
 }
 
-func (v *moduleExtensionProxyValue) Hash(thread *starlark.Thread) (uint32, error) {
+func (moduleExtensionProxyValue) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, errors.New("module_extension_proxy cannot be hashed")
 }
 
@@ -140,7 +140,7 @@ func (v *moduleExtensionProxyValue) Attr(thread *starlark.Thread, name string) (
 	}), nil
 }
 
-func (v *moduleExtensionProxyValue) AttrNames() []string {
+func (moduleExtensionProxyValue) AttrNames() []string {
 	// We don't allow iteration over attributes, because that
 	// prevents evaluation without analyzing module extensions up
 	// front.

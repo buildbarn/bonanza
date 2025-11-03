@@ -12,7 +12,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeCanonicalRepoNameValue(ctx context.Context, key *model_analysis_pb.CanonicalRepoName_Key, e CanonicalRepoNameEnvironment[TReference, TMetadata]) (PatchedCanonicalRepoNameValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeCanonicalRepoNameValue(ctx context.Context, key *model_analysis_pb.CanonicalRepoName_Key, e CanonicalRepoNameEnvironment[TReference, TMetadata]) (PatchedCanonicalRepoNameValue[TMetadata], error) {
 	fromCanonicalRepo, err := label.NewCanonicalRepo(key.FromCanonicalRepo)
 	if err != nil {
 		return PatchedCanonicalRepoNameValue[TMetadata]{}, fmt.Errorf("invalid canonical repo: %w", err)

@@ -8,7 +8,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRootModuleValue(ctx context.Context, key *model_analysis_pb.RootModule_Key, e RootModuleEnvironment[TReference, TMetadata]) (PatchedRootModuleValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeRootModuleValue(ctx context.Context, key *model_analysis_pb.RootModule_Key, e RootModuleEnvironment[TReference, TMetadata]) (PatchedRootModuleValue[TMetadata], error) {
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecification.IsSet() {
 		return PatchedRootModuleValue[TMetadata]{}, evaluation.ErrMissingDependency

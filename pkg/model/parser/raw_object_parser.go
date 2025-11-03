@@ -13,7 +13,7 @@ func NewRawObjectParser[TReference any]() ObjectParser[TReference, []byte] {
 	return &rawObjectParser[TReference]{}
 }
 
-func (p *rawObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) ([]byte, int, error) {
+func (rawObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) ([]byte, int, error) {
 	if len(decodingParameters) > 0 {
 		return nil, 0, status.Error(codes.InvalidArgument, "Unexpected decoding parameters")
 	}
@@ -24,6 +24,6 @@ func (p *rawObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, 
 	return in.Message, len(in.Message), nil
 }
 
-func (p *rawObjectParser[TReference]) GetDecodingParametersSizeBytes() int {
+func (rawObjectParser[TReference]) GetDecodingParametersSizeBytes() int {
 	return 0
 }

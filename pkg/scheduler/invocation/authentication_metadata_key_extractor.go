@@ -10,7 +10,7 @@ import (
 
 type authenticationMetadataKeyExtractor struct{}
 
-func (ke authenticationMetadataKeyExtractor) ExtractKey(ctx context.Context) (Key, error) {
+func (authenticationMetadataKeyExtractor) ExtractKey(ctx context.Context) (Key, error) {
 	authenticationMetadata, _ := auth.AuthenticationMetadataFromContext(ctx).GetPublicProto()
 	any, err := anypb.New(authenticationMetadata)
 	if err != nil {

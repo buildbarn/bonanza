@@ -22,7 +22,7 @@ type getPackageDirectoryEnvironment[TReference any] interface {
 	GetRepoValue(*model_analysis_pb.Repo_Key) model_core.Message[*model_analysis_pb.Repo_Value, TReference]
 }
 
-func (c *baseComputer[TReference, TMetadata]) getPackageDirectory(
+func (baseComputer[TReference, TMetadata]) getPackageDirectory(
 	ctx context.Context,
 	e getPackageDirectoryEnvironment[TReference],
 	directoryContentsReader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]],

@@ -413,18 +413,18 @@ func NewOutputListAttrType[TReference any, TMetadata model_core.ReferenceMetadat
 	return &outputListAttrType[TReference, TMetadata]{}
 }
 
-func (at *outputListAttrType[TReference, TMetadata]) Type() string {
+func (outputListAttrType[TReference, TMetadata]) Type() string {
 	return "output_list"
 }
 
-func (at *outputListAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (outputListAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_OutputList{
 		OutputList: &model_starlark_pb.Attr_OutputListType{},
 	}
 	return nil
 }
 
-func (at *outputListAttrType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) unpack.Canonicalizer {
+func (outputListAttrType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) unpack.Canonicalizer {
 	return unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage))
 }
 
@@ -521,7 +521,7 @@ func (stringListDictAttrType[TReference, TMetadata]) Type() string {
 	return "string_list_dict"
 }
 
-func (at *stringListDictAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (stringListDictAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_StringListDict{
 		StringListDict: &model_starlark_pb.Attr_StringListDictType{},
 	}

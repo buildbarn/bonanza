@@ -141,7 +141,7 @@ func (r *changeTrackingDirectorySymlinkFollowingResolver[TReference, TMetadata])
 	return r, nil
 }
 
-func (r *changeTrackingDirectorySymlinkFollowingResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
+func (changeTrackingDirectorySymlinkFollowingResolver[TReference, TMetadata]) OnDriveLetter(driveLetter rune) (path.ComponentWalker, error) {
 	return nil, errors.New("drive letters are not supported")
 }
 
@@ -484,7 +484,7 @@ func (s *sourceFileAndDependenciesCopierSource[TReference, TMetadata]) popDirect
 	return err
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.FileRoot_Key, TReference], e FileRootEnvironment[TReference, TMetadata]) (PatchedFileRootValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.FileRoot_Key, TReference], e FileRootEnvironment[TReference, TMetadata]) (PatchedFileRootValue[TMetadata], error) {
 	f := model_core.Nested(key, key.Message.File)
 	if f.Message == nil {
 		return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("no file provided")

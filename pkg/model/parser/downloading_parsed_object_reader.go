@@ -28,6 +28,6 @@ func (r *downloadingParsedObjectReader[TReference]) ReadParsedObject(ctx context
 	return model_core.NewMessage(contents.GetPayload(), object.OutgoingReferences[object.LocalReference](contents)), nil
 }
 
-func (r *downloadingParsedObjectReader[TReference]) GetDecodingParametersSizeBytes() int {
+func (downloadingParsedObjectReader[TReference]) GetDecodingParametersSizeBytes() int {
 	return 0
 }

@@ -168,7 +168,7 @@ func (r LocalReference) GetLocalReference() LocalReference {
 // This method is merely provided to satisfy some of the constraints of
 // some generic functions and types that can operate both on local and
 // global references.
-func (r LocalReference) WithLocalReference(localReference LocalReference) LocalReference {
+func (LocalReference) WithLocalReference(localReference LocalReference) LocalReference {
 	return localReference
 }
 

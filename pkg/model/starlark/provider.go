@@ -87,17 +87,17 @@ func NewProvider[TReference object.BasicReference, TMetadata model_core.Referenc
 	}
 }
 
-func (p *Provider[TReference, TMetadata]) String() string {
+func (Provider[TReference, TMetadata]) String() string {
 	return "<provider>"
 }
 
-func (p *Provider[TReference, TMetadata]) Type() string {
+func (Provider[TReference, TMetadata]) Type() string {
 	return "provider"
 }
 
-func (p *Provider[TReference, TMetadata]) Freeze() {}
+func (Provider[TReference, TMetadata]) Freeze() {}
 
-func (p *Provider[TReference, TMetadata]) Truth() starlark.Bool {
+func (Provider[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
@@ -116,7 +116,7 @@ func (p *Provider[TReference, TMetadata]) Cmp(other starlark.Value, depth int) (
 	return strings.Compare(p.Identifier.String(), pOther.Identifier.String()), nil
 }
 
-func (p *Provider[TReference, TMetadata]) Name() string {
+func (Provider[TReference, TMetadata]) Name() string {
 	return "provider"
 }
 

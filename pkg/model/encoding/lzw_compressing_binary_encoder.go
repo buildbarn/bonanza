@@ -19,7 +19,7 @@ func NewLZWCompressingBinaryEncoder(maximumDecodedSizeBytes uint32) BinaryEncode
 	}
 }
 
-func (be *lzwCompressingBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, error) {
+func (lzwCompressingBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, error) {
 	compressed, err := simplelzw.MaybeCompress(in)
 	return compressed, nil, err
 }
@@ -31,6 +31,6 @@ func (be *lzwCompressingBinaryEncoder) DecodeBinary(in, parameters []byte) ([]by
 	return simplelzw.Decompress(in, be.maximumDecodedSizeBytes)
 }
 
-func (be *lzwCompressingBinaryEncoder) GetDecodingParametersSizeBytes() int {
+func (lzwCompressingBinaryEncoder) GetDecodingParametersSizeBytes() int {
 	return 0
 }

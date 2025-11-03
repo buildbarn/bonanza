@@ -195,7 +195,7 @@ func (w *capturedDirectoryWalker) gatherWalkers(directory *model_filesystem_pb.D
 	return nil
 }
 
-func (w *capturedDirectoryWalker) Discard() {}
+func (capturedDirectoryWalker) Discard() {}
 
 // capturedLeaves is an ObjectContentsWalker that is backed by a
 // CreatedObjectTree corresponding to a Leaves message.
@@ -219,7 +219,7 @@ func (w *capturedLeavesWalker) GetContents(ctx context.Context) (*object.Content
 	return w.object.Contents, walkers, nil
 }
 
-func (w *capturedLeavesWalker) Discard() {}
+func (capturedLeavesWalker) Discard() {}
 
 // smallFileWalker is an ObjectContentsWalker that is backed by a file
 // that is small enough to store in a single chunk.
@@ -251,7 +251,7 @@ func (w *smallFileWalker) GetContents(ctx context.Context) (*object.Contents, []
 	return contents.Value, nil, nil
 }
 
-func (w *smallFileWalker) Discard() {}
+func (smallFileWalker) Discard() {}
 
 // recomputingConcatenatedFileWalker is an ObjectContentsWalker that is
 // backed by a file that is too large to store in a single chunk. When
@@ -323,7 +323,7 @@ func NewCapturedFileWalker(fileParameters *FileCreationParameters, r filesystem.
 	}
 }
 
-func (w *recomputingConcatenatedFileWalker) Discard() {}
+func (recomputingConcatenatedFileWalker) Discard() {}
 
 // computedConcatenatedFileObjectOptions is an ObjectContentsWalker that
 // is backed by a part of a large file for which the Merkle tree was

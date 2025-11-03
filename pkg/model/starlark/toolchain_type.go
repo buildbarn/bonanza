@@ -87,7 +87,7 @@ var toolchainTypeAttrNames = []string{
 // AttrNames returns the names of the attributes of the Starlark
 // toolchain type object. These attributes can be used to access the
 // properties that were used to construct the toolchain type object.
-func (tt *ToolchainType[TReference, TMetadata]) AttrNames() []string {
+func (ToolchainType[TReference, TMetadata]) AttrNames() []string {
 	return toolchainTypeAttrNames
 }
 

@@ -8,7 +8,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModuleRegistryUrlsValue(ctx context.Context, key *model_analysis_pb.ModuleRegistryUrls_Key, e ModuleRegistryUrlsEnvironment[TReference, TMetadata]) (PatchedModuleRegistryUrlsValue[TMetadata], error) {
+func (baseComputer[TReference, TMetadata]) ComputeModuleRegistryUrlsValue(ctx context.Context, key *model_analysis_pb.ModuleRegistryUrls_Key, e ModuleRegistryUrlsEnvironment[TReference, TMetadata]) (PatchedModuleRegistryUrlsValue[TMetadata], error) {
 	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecification.IsSet() {
 		return PatchedModuleRegistryUrlsValue[TMetadata]{}, evaluation.ErrMissingDependency

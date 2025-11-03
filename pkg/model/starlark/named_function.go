@@ -31,17 +31,17 @@ func (f NamedFunction[TReference, TMetadata]) String() string {
 	return fmt.Sprintf("<function %s>", f.Name())
 }
 
-func (f NamedFunction[TReference, TMetadata]) Type() string {
+func (NamedFunction[TReference, TMetadata]) Type() string {
 	return "function"
 }
 
-func (f NamedFunction[TReference, TMetadata]) Freeze() {}
+func (NamedFunction[TReference, TMetadata]) Freeze() {}
 
-func (f NamedFunction[TReference, TMetadata]) Truth() starlark.Bool {
+func (NamedFunction[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
-func (f NamedFunction[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
+func (NamedFunction[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, errors.New("function cannot be hashed")
 }
 

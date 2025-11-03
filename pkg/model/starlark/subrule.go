@@ -220,6 +220,6 @@ func NewProtoSubruleDefinition[TReference any, TMetadata model_core.ReferenceMet
 	return &protoSubruleDefinition[TReference, TMetadata]{}
 }
 
-func (sd *protoSubruleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata], bool, error) {
+func (protoSubruleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata], bool, error) {
 	panic("rule definition was already encoded previously")
 }

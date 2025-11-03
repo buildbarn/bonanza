@@ -33,21 +33,21 @@ func NewModuleExtension[TReference any, TMetadata model_core.ReferenceMetadata](
 	}
 }
 
-func (me *moduleExtension[TReference, TMetadata]) String() string {
+func (moduleExtension[TReference, TMetadata]) String() string {
 	return "<module_extension>"
 }
 
-func (me *moduleExtension[TReference, TMetadata]) Type() string {
+func (moduleExtension[TReference, TMetadata]) Type() string {
 	return "module_extension"
 }
 
-func (me *moduleExtension[TReference, TMetadata]) Freeze() {}
+func (moduleExtension[TReference, TMetadata]) Freeze() {}
 
-func (me *moduleExtension[TReference, TMetadata]) Truth() starlark.Bool {
+func (moduleExtension[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
-func (me *moduleExtension[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
+func (moduleExtension[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, errors.New("module_extension cannot be hashed")
 }
 

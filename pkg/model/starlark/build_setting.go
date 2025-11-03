@@ -38,9 +38,9 @@ func (bs *BuildSetting) Type() string {
 	return "config." + bs.buildSettingType.Type()
 }
 
-func (bs *BuildSetting) Freeze() {}
+func (BuildSetting) Freeze() {}
 
-func (bs *BuildSetting) Truth() starlark.Bool {
+func (BuildSetting) Truth() starlark.Bool {
 	return starlark.True
 }
 

@@ -17,10 +17,10 @@ func NewStore() tag.Store[object.Namespace, object.GlobalReference, object_flatb
 	return &store{}
 }
 
-func (s *store) ResolveTag(ctx context.Context, namespace object.Namespace, tag *anypb.Any) (reference object.LocalReference, complete bool, err error) {
+func (store) ResolveTag(ctx context.Context, namespace object.Namespace, tag *anypb.Any) (reference object.LocalReference, complete bool, err error) {
 	panic("TODO")
 }
 
-func (s *store) UpdateTag(ctx context.Context, tag *anypb.Any, reference object.GlobalReference, lease object_flatbacked.Lease, overwrite bool) error {
+func (store) UpdateTag(ctx context.Context, tag *anypb.Any, reference object.GlobalReference, lease object_flatbacked.Lease, overwrite bool) error {
 	panic("TODO")
 }

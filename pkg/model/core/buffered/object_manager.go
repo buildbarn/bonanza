@@ -151,6 +151,6 @@ func (r *parsedObjectReader) ReadParsedObject(ctx context.Context, reference Ref
 	return model_core.NewMessage(m.Message, outgoingReferences), nil
 }
 
-func (r *parsedObjectReader) GetDecodingParametersSizeBytes() int {
+func (parsedObjectReader) GetDecodingParametersSizeBytes() int {
 	return 0
 }

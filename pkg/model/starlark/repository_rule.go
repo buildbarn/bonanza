@@ -36,21 +36,21 @@ func NewRepositoryRule[TReference any, TMetadata model_core.ReferenceMetadata](i
 	}
 }
 
-func (rr *repositoryRule[TReference, TMetadata]) String() string {
+func (repositoryRule[TReference, TMetadata]) String() string {
 	return "<repository_rule>"
 }
 
-func (rr *repositoryRule[TReference, TMetadata]) Type() string {
+func (repositoryRule[TReference, TMetadata]) Type() string {
 	return "repository_rule"
 }
 
-func (rr *repositoryRule[TReference, TMetadata]) Freeze() {}
+func (repositoryRule[TReference, TMetadata]) Freeze() {}
 
-func (rr *repositoryRule[TReference, TMetadata]) Truth() starlark.Bool {
+func (repositoryRule[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
-func (rr *repositoryRule[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
+func (repositoryRule[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, errors.New("repository_rule cannot be hashed")
 }
 
@@ -265,7 +265,7 @@ func NewProtoRepositoryRuleDefinition[TReference object.BasicReference, TMetadat
 	}
 }
 
-func (rrd *protoRepositoryRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.RepositoryRule_Definition, TMetadata], bool, error) {
+func (protoRepositoryRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.RepositoryRule_Definition, TMetadata], bool, error) {
 	panic("rule definition was already encoded previously")
 }
 
