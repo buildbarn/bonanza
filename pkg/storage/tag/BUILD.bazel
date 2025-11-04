@@ -3,8 +3,10 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "tag",
     srcs = [
+        "key.go",
         "resolver.go",
         "resolver_server.go",
+        "signed_value.go",
         "store.go",
         "updater.go",
         "updater_server.go",
@@ -17,7 +19,8 @@ go_library(
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
-        "@org_golang_google_protobuf//types/known/anypb",
+        "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/known/emptypb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
 )

@@ -2,17 +2,17 @@ package tag
 
 // Store for tags, which is both accessible for reading (resolving) and
 // writing (updating).
-type Store[TNamespace any, TReference any, TLease any] interface {
+type Store[TNamespace any, TLease any] interface {
 	Resolver[TNamespace]
-	Updater[TReference, TLease]
+	Updater[TNamespace, TLease]
 }
 
 // NewStore is a helper function for creating a Store that is backed by
 // separate instances of Resolver and Updater.
-func NewStore[TNamespace, TReference, TLease any](resolver Resolver[TNamespace], updater Updater[TReference, TLease]) Store[TNamespace, TReference, TLease] {
+func NewStore[TNamespace, TLease any](resolver Resolver[TNamespace], updater Updater[TNamespace, TLease]) Store[TNamespace, TLease] {
 	return struct {
 		Resolver[TNamespace]
-		Updater[TReference, TLease]
+		Updater[TNamespace, TLease]
 	}{
 		Resolver: resolver,
 		Updater:  updater,

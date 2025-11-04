@@ -9,6 +9,5 @@ go_library(
         "//pkg/storage/object",
         "//pkg/storage/object/flatbacked",
         "//pkg/storage/tag",
-        "@org_golang_google_protobuf//types/known/anypb",
     ],
 )

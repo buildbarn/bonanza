@@ -9,6 +9,5 @@ go_library(
         "//pkg/storage/object",
         "//pkg/storage/tag",
         "@com_github_buildbarn_bb_storage//pkg/util",
-        "@org_golang_google_protobuf//types/known/anypb",
     ],
 )

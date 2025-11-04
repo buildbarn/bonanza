@@ -2,8 +2,8 @@ package mirrored
 
 import (
 	"context"
+	"time"
 
-	"bonanza.build/pkg/storage/object"
 	"bonanza.build/pkg/storage/tag"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -11,7 +11,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type resolver[TNamespace any] struct {
@@ -29,15 +28,15 @@ func NewResolver[TNamespace any](replicaA, replicaB tag.Resolver[TNamespace]) ta
 	}
 }
 
-func (r *resolver[TNamespace]) ResolveTag(ctx context.Context, namespace TNamespace, tag *anypb.Any) (object.LocalReference, bool, error) {
+func (r *resolver[TNamespace]) ResolveTag(ctx context.Context, namespace TNamespace, key tag.Key, minimumTimestamp *time.Time) (value tag.SignedValue, complete bool, err error) {
 	// Send request to both replicas.
-	var referenceA, referenceB object.LocalReference
+	var signedValueA, signedValueB tag.SignedValue
 	var completeA, completeB bool
 	var foundA, foundB bool
 	group, groupCtx := errgroup.WithContext(ctx)
 	group.Go(func() error {
 		var err error
-		referenceA, completeA, err = r.replicaA.ResolveTag(groupCtx, namespace, tag)
+		signedValueA, completeA, err = r.replicaA.ResolveTag(groupCtx, namespace, key, minimumTimestamp)
 		if err == nil {
 			foundA = true
 			return nil
@@ -48,7 +47,7 @@ func (r *resolver[TNamespace]) ResolveTag(ctx context.Context, namespace TNamesp
 	})
 	group.Go(func() error {
 		var err error
-		referenceB, completeB, err = r.replicaB.ResolveTag(groupCtx, namespace, tag)
+		signedValueB, completeB, err = r.replicaB.ResolveTag(groupCtx, namespace, key, minimumTimestamp)
 		if err == nil {
 			foundB = true
 			return nil
@@ -58,36 +57,31 @@ func (r *resolver[TNamespace]) ResolveTag(ctx context.Context, namespace TNamesp
 		return util.StatusWrap(err, "Replica B")
 	})
 	if err := group.Wait(); err != nil {
-		var badReference object.LocalReference
-		return badReference, false, err
+		var badSignedValue tag.SignedValue
+		return badSignedValue, false, err
 	}
 
 	// Combine results from both replicas.
 	//
 	// If the tag is present in only a single replica, we return it,
 	// but announce it as being incomplete. This should cause lease
-	// renewing to replicate the tag to the other replica.
-	//
-	// If the tag is present in both replicas, but resolves to a
-	// different reference, we suppress it. This should cause the
-	// caller to recreate the data and overwrite the tag in both
-	// replicas, causing the tag to be consistent once more.
+	// renewing to replicate the tag to the other replica. We do the
+	// same thing if the tag is present in both replicas, but having
+	// a different value. There we prefer returning the newest value.
 	if foundA && foundB {
-		if referenceA != referenceB {
-			var badReference object.LocalReference
-			return badReference, false, status.Errorf(
-				codes.NotFound,
-				"Replica A resolves tag to object with reference %s, while replica B resolves tag to object with reference %s",
-				referenceA,
-				referenceB,
-			)
+		if !signedValueA.Equal(signedValueB) {
+			tA, tB := signedValueA.Value.Timestamp, signedValueB.Value.Timestamp
+			if tA.After(tB) {
+				return signedValueA, false, nil
+			}
+			return signedValueB, false, nil
 		}
-		return referenceA, completeA && completeB, nil
+		return signedValueA, completeA && completeB, nil
 	} else if foundA {
-		return referenceA, false, nil
+		return signedValueA, false, nil
 	} else if foundB {
-		return referenceB, false, nil
+		return signedValueB, false, nil
 	}
-	var badReference object.LocalReference
-	return badReference, false, status.Error(codes.NotFound, "Tag not found")
+	var badSignedValue tag.SignedValue
+	return badSignedValue, false, status.Error(codes.NotFound, "Tag not found")
 }

@@ -9,8 +9,8 @@ proto_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/storage/object:object_proto",
-        "@protobuf//:any_proto",
         "@protobuf//:empty_proto",
+        "@protobuf//:timestamp_proto",
     ],
 )
 

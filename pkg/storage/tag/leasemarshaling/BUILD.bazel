@@ -10,7 +10,6 @@ go_library(
         "//pkg/storage/object/leasemarshaling",
         "//pkg/storage/tag",
         "@com_github_buildbarn_bb_storage//pkg/util",
-        "@org_golang_google_protobuf//types/known/anypb",
     ],
 )
 
@@ -23,13 +22,14 @@ go_test(
     ],
     embed = [":leasemarshaling"],
     deps = [
+        "//pkg/proto/storage/object",
         "//pkg/storage/object",
+        "//pkg/storage/tag",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
+        "@com_github_buildbarn_bb_storage//pkg/util",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
-        "@org_golang_google_protobuf//types/known/anypb",
-        "@org_golang_google_protobuf//types/known/emptypb",
         "@org_uber_go_mock//gomock",
     ],
 )

@@ -3,8 +3,9 @@ syntax = "proto3";
 package bonanza.storage.dag;
 
 import "bonanza.build/pkg/proto/storage/object/object.proto";
-import "google/protobuf/any.proto";
+import "bonanza.build/pkg/proto/storage/tag/tag.proto";
 import "google/rpc/status.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "bonanza.build/pkg/proto/storage/dag";
 
@@ -101,12 +102,23 @@ message UploadDagsRequest {
     // UploadDags(), reference index zero is used.
     bytes root_reference = 1;
 
+    message Tag {
+      // The key under which the tag should be resolvable.
+      bonanza.storage.tag.Key key = 1;
+
+      // The point in time at which the tag was created.
+      google.protobuf.Timestamp timestamp = 2;
+
+      // Cryptographic signature of the tag.
+      bytes signature = 3;
+    }
+
     // If set, assign a tag to the root of the DAG, so that it can
     // subsequently be resolved using
     // bonanza.storage.object.tag.Resolver.ResolveTag().
     // This can for example be used to cache the results of a build
     // action, allowing other clients to look them up by action.
-    google.protobuf.Any root_tag = 2;
+    Tag root_tag = 2;
   }
 
   message ProvideObjectContents {

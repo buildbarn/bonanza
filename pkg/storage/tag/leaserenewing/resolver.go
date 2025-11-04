@@ -2,13 +2,12 @@ package leaserenewing
 
 import (
 	"context"
+	"time"
 
 	"bonanza.build/pkg/storage/object"
 	"bonanza.build/pkg/storage/tag"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
-
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // Namespace in which references reside. This is used by the resolver to
@@ -18,7 +17,7 @@ type Namespace[TReference any] interface {
 }
 
 type resolver[TNamespace Namespace[TReference], TReference any, TLease any] struct {
-	tagStore       tag.Store[TNamespace, TReference, TLease]
+	tagStore       tag.Store[TNamespace, TLease]
 	objectUploader object.Uploader[TReference, TLease]
 }
 
@@ -26,21 +25,25 @@ type resolver[TNamespace Namespace[TReference], TReference any, TLease any] stru
 // reobtain leases for tags that reference objects for which the lease
 // is expired or missing. Upon success, the tag is updated to use the
 // new lease.
-func NewResolver[TNamespace Namespace[TReference], TReference, TLease any](tagStore tag.Store[TNamespace, TReference, TLease], objectUploader object.Uploader[TReference, TLease]) tag.Resolver[TNamespace] {
+func NewResolver[TNamespace Namespace[TReference], TReference, TLease any](tagStore tag.Store[TNamespace, TLease], objectUploader object.Uploader[TReference, TLease]) tag.Resolver[TNamespace] {
 	return &resolver[TNamespace, TReference, TLease]{
 		tagStore:       tagStore,
 		objectUploader: objectUploader,
 	}
 }
 
-func (r *resolver[TNamespace, TReference, TLease]) ResolveTag(ctx context.Context, namespace TNamespace, tag *anypb.Any) (object.LocalReference, bool, error) {
-	localReference, complete, err := r.tagStore.ResolveTag(ctx, namespace, tag)
-	if err != nil || complete {
-		return localReference, complete, err
+func (r *resolver[TNamespace, TReference, TLease]) ResolveTag(ctx context.Context, namespace TNamespace, key tag.Key, minimumTimestamp *time.Time) (tag.SignedValue, bool, error) {
+	// No need to renew leases if the current lease is already
+	// valid, or if the caller indicated that it doesn't care about
+	// tags above a certain age.
+	signedValue, complete, err := r.tagStore.ResolveTag(ctx, namespace, key, minimumTimestamp)
+	if err != nil || complete || (minimumTimestamp != nil && signedValue.Value.Timestamp.Before(*minimumTimestamp)) {
+		return signedValue, complete, err
 	}
 
 	// Tag has an expired lease. Attempt to obtain a new lease on
 	// the root object referenced by the tag.
+	localReference := signedValue.Value.Reference
 	globalReference := namespace.WithLocalReference(localReference)
 	result, err := r.objectUploader.UploadObject(
 		ctx,
@@ -50,8 +53,8 @@ func (r *resolver[TNamespace, TReference, TLease]) ResolveTag(ctx context.Contex
 		/* wantContentsIfIncomplete = */ false,
 	)
 	if err != nil {
-		var badReference object.LocalReference
-		return badReference, false, util.StatusWrapf(err, "Failed to obtain lease for object with reference %s", localReference)
+		var badSignedValue tag.SignedValue
+		return badSignedValue, false, util.StatusWrapf(err, "Failed to obtain lease for object with reference %s", localReference)
 	}
 
 	switch resultType := result.(type) {
@@ -61,17 +64,17 @@ func (r *resolver[TNamespace, TReference, TLease]) ResolveTag(ctx context.Contex
 		// faster.
 		if err := r.tagStore.UpdateTag(
 			ctx,
-			tag,
-			globalReference,
+			namespace,
+			key,
+			signedValue,
 			resultType.Lease,
-			/* overwrite = */ false,
 		); err != nil {
-			var badReference object.LocalReference
-			return badReference, false, util.StatusWrapf(err, "Failed to update tag with lease for object with reference %s", localReference)
+			var badSignedValue tag.SignedValue
+			return badSignedValue, false, util.StatusWrapf(err, "Failed to update tag with lease for object with reference %s", localReference)
 		}
-		return localReference, true, nil
+		return signedValue, true, nil
 	case object.UploadObjectIncomplete[TLease], object.UploadObjectMissing[TLease]:
-		return localReference, false, nil
+		return signedValue, false, nil
 	default:
 		panic("unknown upload object result type")
 	}

@@ -10,8 +10,8 @@ import (
 	object "bonanza.build/pkg/proto/storage/object"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	anypb "google.golang.org/protobuf/types/known/anypb"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -24,17 +24,234 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ResolveTagRequest struct {
+type Key struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	SignaturePublicKey []byte                 `protobuf:"bytes,1,opt,name=signature_public_key,json=signaturePublicKey,proto3" json:"signature_public_key,omitempty"`
+	Hash               []byte                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *Key) Reset() {
+	*x = Key{}
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Key) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Key) ProtoMessage() {}
+
+func (x *Key) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Key.ProtoReflect.Descriptor instead.
+func (*Key) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Key) GetSignaturePublicKey() []byte {
+	if x != nil {
+		return x.SignaturePublicKey
+	}
+	return nil
+}
+
+func (x *Key) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+type Value struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Namespace     *object.Namespace      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Tag           *anypb.Any             `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
+	Reference     []byte                 `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *Value) Reset() {
+	*x = Value{}
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Value) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Value) ProtoMessage() {}
+
+func (x *Value) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Value.ProtoReflect.Descriptor instead.
+func (*Value) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Value) GetReference() []byte {
+	if x != nil {
+		return x.Reference
+	}
+	return nil
+}
+
+func (x *Value) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+type SignedValue struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         *Value                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	Signature     []byte                 `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignedValue) Reset() {
+	*x = SignedValue{}
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignedValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignedValue) ProtoMessage() {}
+
+func (x *SignedValue) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignedValue.ProtoReflect.Descriptor instead.
+func (*SignedValue) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SignedValue) GetValue() *Value {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+func (x *SignedValue) GetSignature() []byte {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+type ValueSigningInput struct {
+	state           protoimpl.MessageState       `protogen:"open.v1"`
+	ReferenceFormat object.ReferenceFormat_Value `protobuf:"varint,1,opt,name=reference_format,json=referenceFormat,proto3,enum=bonanza.storage.object.ReferenceFormat_Value" json:"reference_format,omitempty"`
+	KeyHash         []byte                       `protobuf:"bytes,2,opt,name=key_hash,json=keyHash,proto3" json:"key_hash,omitempty"`
+	Value           *Value                       `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ValueSigningInput) Reset() {
+	*x = ValueSigningInput{}
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValueSigningInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValueSigningInput) ProtoMessage() {}
+
+func (x *ValueSigningInput) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValueSigningInput.ProtoReflect.Descriptor instead.
+func (*ValueSigningInput) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ValueSigningInput) GetReferenceFormat() object.ReferenceFormat_Value {
+	if x != nil {
+		return x.ReferenceFormat
+	}
+	return object.ReferenceFormat_Value(0)
+}
+
+func (x *ValueSigningInput) GetKeyHash() []byte {
+	if x != nil {
+		return x.KeyHash
+	}
+	return nil
+}
+
+func (x *ValueSigningInput) GetValue() *Value {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+type ResolveTagRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Namespace        *object.Namespace      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Key              *Key                   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	MinimumTimestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=minimum_timestamp,json=minimumTimestamp,proto3" json:"minimum_timestamp,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
 func (x *ResolveTagRequest) Reset() {
 	*x = ResolveTagRequest{}
-	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +263,7 @@ func (x *ResolveTagRequest) String() string {
 func (*ResolveTagRequest) ProtoMessage() {}
 
 func (x *ResolveTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[0]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +276,7 @@ func (x *ResolveTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveTagRequest.ProtoReflect.Descriptor instead.
 func (*ResolveTagRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{0}
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ResolveTagRequest) GetNamespace() *object.Namespace {
@@ -69,16 +286,23 @@ func (x *ResolveTagRequest) GetNamespace() *object.Namespace {
 	return nil
 }
 
-func (x *ResolveTagRequest) GetTag() *anypb.Any {
+func (x *ResolveTagRequest) GetKey() *Key {
 	if x != nil {
-		return x.Tag
+		return x.Key
+	}
+	return nil
+}
+
+func (x *ResolveTagRequest) GetMinimumTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.MinimumTimestamp
 	}
 	return nil
 }
 
 type ResolveTagResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Reference     []byte                 `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
+	SignedValue   *SignedValue           `protobuf:"bytes,1,opt,name=signed_value,json=signedValue,proto3" json:"signed_value,omitempty"`
 	Complete      bool                   `protobuf:"varint,2,opt,name=complete,proto3" json:"complete,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -86,7 +310,7 @@ type ResolveTagResponse struct {
 
 func (x *ResolveTagResponse) Reset() {
 	*x = ResolveTagResponse{}
-	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -98,7 +322,7 @@ func (x *ResolveTagResponse) String() string {
 func (*ResolveTagResponse) ProtoMessage() {}
 
 func (x *ResolveTagResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -111,12 +335,12 @@ func (x *ResolveTagResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveTagResponse.ProtoReflect.Descriptor instead.
 func (*ResolveTagResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *ResolveTagResponse) GetReference() []byte {
+func (x *ResolveTagResponse) GetSignedValue() *SignedValue {
 	if x != nil {
-		return x.Reference
+		return x.SignedValue
 	}
 	return nil
 }
@@ -131,17 +355,16 @@ func (x *ResolveTagResponse) GetComplete() bool {
 type UpdateTagRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Namespace     *object.Namespace      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Tag           *anypb.Any             `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
-	Reference     []byte                 `protobuf:"bytes,3,opt,name=reference,proto3" json:"reference,omitempty"`
+	Key           *Key                   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	SignedValue   *SignedValue           `protobuf:"bytes,3,opt,name=signed_value,json=signedValue,proto3" json:"signed_value,omitempty"`
 	Lease         []byte                 `protobuf:"bytes,4,opt,name=lease,proto3" json:"lease,omitempty"`
-	Overwrite     bool                   `protobuf:"varint,5,opt,name=overwrite,proto3" json:"overwrite,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateTagRequest) Reset() {
 	*x = UpdateTagRequest{}
-	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -153,7 +376,7 @@ func (x *UpdateTagRequest) String() string {
 func (*UpdateTagRequest) ProtoMessage() {}
 
 func (x *UpdateTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -166,7 +389,7 @@ func (x *UpdateTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTagRequest.ProtoReflect.Descriptor instead.
 func (*UpdateTagRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UpdateTagRequest) GetNamespace() *object.Namespace {
@@ -176,16 +399,16 @@ func (x *UpdateTagRequest) GetNamespace() *object.Namespace {
 	return nil
 }
 
-func (x *UpdateTagRequest) GetTag() *anypb.Any {
+func (x *UpdateTagRequest) GetKey() *Key {
 	if x != nil {
-		return x.Tag
+		return x.Key
 	}
 	return nil
 }
 
-func (x *UpdateTagRequest) GetReference() []byte {
+func (x *UpdateTagRequest) GetSignedValue() *SignedValue {
 	if x != nil {
-		return x.Reference
+		return x.SignedValue
 	}
 	return nil
 }
@@ -197,30 +420,36 @@ func (x *UpdateTagRequest) GetLease() []byte {
 	return nil
 }
 
-func (x *UpdateTagRequest) GetOverwrite() bool {
-	if x != nil {
-		return x.Overwrite
-	}
-	return false
-}
-
 var File_bonanza_build_pkg_proto_storage_tag_tag_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc = "" +
 	"\n" +
-	"-bonanza.build/pkg/proto/storage/tag/tag.proto\x12\x13bonanza.storage.tag\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1a\x19google/protobuf/any.proto\x1a\x1bgoogle/protobuf/empty.proto\"|\n" +
+	"-bonanza.build/pkg/proto/storage/tag/tag.proto\x12\x13bonanza.storage.tag\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"K\n" +
+	"\x03Key\x120\n" +
+	"\x14signature_public_key\x18\x01 \x01(\fR\x12signaturePublicKey\x12\x12\n" +
+	"\x04hash\x18\x02 \x01(\fR\x04hash\"_\n" +
+	"\x05Value\x12\x1c\n" +
+	"\treference\x18\x01 \x01(\fR\treference\x128\n" +
+	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"]\n" +
+	"\vSignedValue\x120\n" +
+	"\x05value\x18\x01 \x01(\v2\x1a.bonanza.storage.tag.ValueR\x05value\x12\x1c\n" +
+	"\tsignature\x18\x02 \x01(\fR\tsignature\"\xba\x01\n" +
+	"\x11ValueSigningInput\x12X\n" +
+	"\x10reference_format\x18\x01 \x01(\x0e2-.bonanza.storage.object.ReferenceFormat.ValueR\x0freferenceFormat\x12\x19\n" +
+	"\bkey_hash\x18\x02 \x01(\fR\akeyHash\x120\n" +
+	"\x05value\x18\x03 \x01(\v2\x1a.bonanza.storage.tag.ValueR\x05value\"\xc9\x01\n" +
 	"\x11ResolveTagRequest\x12?\n" +
-	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12&\n" +
-	"\x03tag\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x03tag\"N\n" +
-	"\x12ResolveTagResponse\x12\x1c\n" +
-	"\treference\x18\x01 \x01(\fR\treference\x12\x1a\n" +
-	"\bcomplete\x18\x02 \x01(\bR\bcomplete\"\xcd\x01\n" +
+	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12*\n" +
+	"\x03key\x18\x02 \x01(\v2\x18.bonanza.storage.tag.KeyR\x03key\x12G\n" +
+	"\x11minimum_timestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x10minimumTimestamp\"u\n" +
+	"\x12ResolveTagResponse\x12C\n" +
+	"\fsigned_value\x18\x01 \x01(\v2 .bonanza.storage.tag.SignedValueR\vsignedValue\x12\x1a\n" +
+	"\bcomplete\x18\x02 \x01(\bR\bcomplete\"\xda\x01\n" +
 	"\x10UpdateTagRequest\x12?\n" +
-	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12&\n" +
-	"\x03tag\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x03tag\x12\x1c\n" +
-	"\treference\x18\x03 \x01(\fR\treference\x12\x14\n" +
-	"\x05lease\x18\x04 \x01(\fR\x05lease\x12\x1c\n" +
-	"\toverwrite\x18\x05 \x01(\bR\toverwrite2i\n" +
+	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12*\n" +
+	"\x03key\x18\x02 \x01(\v2\x18.bonanza.storage.tag.KeyR\x03key\x12C\n" +
+	"\fsigned_value\x18\x03 \x01(\v2 .bonanza.storage.tag.SignedValueR\vsignedValue\x12\x14\n" +
+	"\x05lease\x18\x04 \x01(\fR\x05lease2i\n" +
 	"\bResolver\x12]\n" +
 	"\n" +
 	"ResolveTag\x12&.bonanza.storage.tag.ResolveTagRequest\x1a'.bonanza.storage.tag.ResolveTagResponse2U\n" +
@@ -239,29 +468,41 @@ func file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP() []byte {
 	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescData
 }
 
-var file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_bonanza_build_pkg_proto_storage_tag_tag_proto_goTypes = []any{
-	(*ResolveTagRequest)(nil),  // 0: bonanza.storage.tag.ResolveTagRequest
-	(*ResolveTagResponse)(nil), // 1: bonanza.storage.tag.ResolveTagResponse
-	(*UpdateTagRequest)(nil),   // 2: bonanza.storage.tag.UpdateTagRequest
-	(*object.Namespace)(nil),   // 3: bonanza.storage.object.Namespace
-	(*anypb.Any)(nil),          // 4: google.protobuf.Any
-	(*emptypb.Empty)(nil),      // 5: google.protobuf.Empty
+	(*Key)(nil),                       // 0: bonanza.storage.tag.Key
+	(*Value)(nil),                     // 1: bonanza.storage.tag.Value
+	(*SignedValue)(nil),               // 2: bonanza.storage.tag.SignedValue
+	(*ValueSigningInput)(nil),         // 3: bonanza.storage.tag.ValueSigningInput
+	(*ResolveTagRequest)(nil),         // 4: bonanza.storage.tag.ResolveTagRequest
+	(*ResolveTagResponse)(nil),        // 5: bonanza.storage.tag.ResolveTagResponse
+	(*UpdateTagRequest)(nil),          // 6: bonanza.storage.tag.UpdateTagRequest
+	(*timestamppb.Timestamp)(nil),     // 7: google.protobuf.Timestamp
+	(object.ReferenceFormat_Value)(0), // 8: bonanza.storage.object.ReferenceFormat.Value
+	(*object.Namespace)(nil),          // 9: bonanza.storage.object.Namespace
+	(*emptypb.Empty)(nil),             // 10: google.protobuf.Empty
 }
 var file_bonanza_build_pkg_proto_storage_tag_tag_proto_depIdxs = []int32{
-	3, // 0: bonanza.storage.tag.ResolveTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
-	4, // 1: bonanza.storage.tag.ResolveTagRequest.tag:type_name -> google.protobuf.Any
-	3, // 2: bonanza.storage.tag.UpdateTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
-	4, // 3: bonanza.storage.tag.UpdateTagRequest.tag:type_name -> google.protobuf.Any
-	0, // 4: bonanza.storage.tag.Resolver.ResolveTag:input_type -> bonanza.storage.tag.ResolveTagRequest
-	2, // 5: bonanza.storage.tag.Updater.UpdateTag:input_type -> bonanza.storage.tag.UpdateTagRequest
-	1, // 6: bonanza.storage.tag.Resolver.ResolveTag:output_type -> bonanza.storage.tag.ResolveTagResponse
-	5, // 7: bonanza.storage.tag.Updater.UpdateTag:output_type -> google.protobuf.Empty
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	7,  // 0: bonanza.storage.tag.Value.timestamp:type_name -> google.protobuf.Timestamp
+	1,  // 1: bonanza.storage.tag.SignedValue.value:type_name -> bonanza.storage.tag.Value
+	8,  // 2: bonanza.storage.tag.ValueSigningInput.reference_format:type_name -> bonanza.storage.object.ReferenceFormat.Value
+	1,  // 3: bonanza.storage.tag.ValueSigningInput.value:type_name -> bonanza.storage.tag.Value
+	9,  // 4: bonanza.storage.tag.ResolveTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
+	0,  // 5: bonanza.storage.tag.ResolveTagRequest.key:type_name -> bonanza.storage.tag.Key
+	7,  // 6: bonanza.storage.tag.ResolveTagRequest.minimum_timestamp:type_name -> google.protobuf.Timestamp
+	2,  // 7: bonanza.storage.tag.ResolveTagResponse.signed_value:type_name -> bonanza.storage.tag.SignedValue
+	9,  // 8: bonanza.storage.tag.UpdateTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
+	0,  // 9: bonanza.storage.tag.UpdateTagRequest.key:type_name -> bonanza.storage.tag.Key
+	2,  // 10: bonanza.storage.tag.UpdateTagRequest.signed_value:type_name -> bonanza.storage.tag.SignedValue
+	4,  // 11: bonanza.storage.tag.Resolver.ResolveTag:input_type -> bonanza.storage.tag.ResolveTagRequest
+	6,  // 12: bonanza.storage.tag.Updater.UpdateTag:input_type -> bonanza.storage.tag.UpdateTagRequest
+	5,  // 13: bonanza.storage.tag.Resolver.ResolveTag:output_type -> bonanza.storage.tag.ResolveTagResponse
+	10, // 14: bonanza.storage.tag.Updater.UpdateTag:output_type -> google.protobuf.Empty
+	13, // [13:15] is the sub-list for method output_type
+	11, // [11:13] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_storage_tag_tag_proto_init() }
@@ -275,7 +516,7 @@ func file_bonanza_build_pkg_proto_storage_tag_tag_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

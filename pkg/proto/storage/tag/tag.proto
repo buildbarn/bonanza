@@ -3,10 +3,30 @@ syntax = "proto3";
 package bonanza.storage.tag;
 
 import "bonanza.build/pkg/proto/storage/object/object.proto";
-import "google/protobuf/any.proto";
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "bonanza.build/pkg/proto/storage/tag";
+
+// Tag Store is a data store for tagging objects stored in the Object
+// Store, so that they can be looked up using arbitrary keys.
+//
+// This data store fulfils a role similar to REv2's Action Cache. It can
+// also be used to replace Buildbarn specific data stores, such as the
+// Initial Size Class Cache (ISCC) and File System Access Cache (FSAC).
+// However, as the Tag Store is only capable of storing a single
+// reference, any information associated with the key needs to be stored
+// inside a separate object residing in the Object Store.
+//
+// Tags are keyed by an elliptic-curve public key and a use case
+// specific hash. Knowing the public key is sufficient for reading
+// entries from Tag Store and validating their integrity. Knowing the
+// private key is necessary for creating new tags or updating existing
+// tags.
+//
+// Tags contain a creation timestamp. A server implementation may use
+// this timestamp to ensure clients who are only in the possession of
+// the public key are unable to overwrite keys with older values.
 
 service Resolver {
   // Resolve the reference of an object that's associated with a given
@@ -15,20 +35,79 @@ service Resolver {
 }
 
 service Updater {
+  // Store a tag, or update a tag to refer to another object.
   rpc UpdateTag(UpdateTagRequest) returns (google.protobuf.Empty);
+}
+
+message Key {
+  // Elliptic-curve public key in PKIX, ASN.1 DER form that was used to
+  // sign the tag.
+  bytes signature_public_key = 1;
+
+  // Hash of parameters that are part of the key. The method that is
+  // used to compute the hash is application specific. The storage
+  // server can place limits on the minimum and maximum size of the
+  // hash.
+  bytes hash = 2;
+}
+
+message Value {
+  // The object that is referenced by this tag.
+  bytes reference = 1;
+
+  // The point in time at which the tag was created. If an attempt is
+  // made to overwrite an existing tag, the server should prefer
+  // preserving the value with the highest timestamp.
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+message SignedValue {
+  // The value payload.
+  Value value = 1;
+
+  // Cryptographic signature of the value, which allows clients to
+  // validate the integrity of the tag, using the ValueSigningInput
+  // message as the input.
+  bytes signature = 2;
+}
+
+// Input to the cryptographic signing function, which should be used to
+// generate and validate tag signatures.
+message ValueSigningInput {
+  // The format of the object reference contained in the value.
+  //
+  // Note that the instance name is not included in the value signing
+  // inputs. This is intentional, as it permits copying of objects and
+  // tags between namespaces. If isolation between instance names is
+  // required, different signing keys should be used.
+  bonanza.storage.object.ReferenceFormat.Value reference_format = 1;
+
+  // The hash contained in the key of the tag.
+  bytes key_hash = 2;
+
+  // The value payload of the tag.
+  Value value = 3;
 }
 
 message ResolveTagRequest {
   // The namespace in which the tag resides.
   bonanza.storage.object.Namespace namespace = 1;
 
-  // The tag that should be resolved.
-  google.protobuf.Any tag = 2;
+  // The key of the tag to request.
+  Key key = 2;
+
+  // If set, indicate that completeness checking of the currently known
+  // value of the tag may be skipped if it was created before the
+  // provided timestamp.
+  //
+  // Setting this option properly prevents additional work on the server
+  // if the client is going to ignore the tag's value anyway.
+  google.protobuf.Timestamp minimum_timestamp = 3;
 }
 
 message ResolveTagResponse {
-  // The reference that was associated with the tag.
-  bytes reference = 1;
+  // The latest known value that is associated with the tag.
+  SignedValue signed_value = 1;
 
   // If set, indicates that the lease against the object corresponding
   // to the reference is valid. This implies that any transitively
@@ -40,21 +119,14 @@ message UpdateTagRequest {
   // The namespace in which to create the tag.
   bonanza.storage.object.Namespace namespace = 1;
 
-  // The tag that should be updated.
-  google.protobuf.Any tag = 2;
+  // The key of the tag that should be updated.
+  Key key = 2;
 
-  // The reference to the object to associate with the tag.
-  bytes reference = 3;
+  // The value to assign to the tag. The server may ignore the request
+  // if the timestamp contained in the value is older than the currently
+  // stored value.
+  SignedValue signed_value = 3;
 
-  // The lease of the object to associate with the tag.
+  // The lease of the object referenced by the tag.
   bytes lease = 4;
-
-  // If set, if an existing tag exists that is associated with a
-  // different reference, allow the reference to be overwritten. If not
-  // set, the update request will be ignored.
-  //
-  // If a tag is merely updated to renew its lease, this flag should not
-  // be set. This ensures that attempts to actually replace tags in
-  // parallel are not silently reverted.
-  bool overwrite = 5;
 }

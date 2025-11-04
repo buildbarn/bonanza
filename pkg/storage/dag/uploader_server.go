@@ -8,6 +8,7 @@ import (
 
 	"bonanza.build/pkg/ds"
 	"bonanza.build/pkg/proto/storage/dag"
+	tag_pb "bonanza.build/pkg/proto/storage/tag"
 	"bonanza.build/pkg/storage/object"
 	"bonanza.build/pkg/storage/tag"
 	pg_sync "bonanza.build/pkg/sync"
@@ -18,13 +19,12 @@ import (
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type uploaderServer[TLease any] struct {
 	objectUploader                 object.Uploader[object.GlobalReference, TLease]
 	objectStoreSemaphore           *semaphore.Weighted
-	tagUpdater                     tag.Updater[object.GlobalReference, TLease]
+	tagUpdater                     tag.Updater[object.Namespace, TLease]
 	maximumUnfinalizedDAGsCount    uint32
 	maximumUnfinalizedParentsLimit object.Limit
 }
@@ -35,7 +35,7 @@ type uploaderServer[TLease any] struct {
 func NewUploaderServer[TLease any](
 	objectUploader object.Uploader[object.GlobalReference, TLease],
 	objectStoreSemaphore *semaphore.Weighted,
-	tagUpdater tag.Updater[object.GlobalReference, TLease],
+	tagUpdater tag.Updater[object.Namespace, TLease],
 	maximumUnfinalizedDAGsCount uint32,
 	maximumUnfinalizedParentsLimit object.Limit,
 ) dag.UploaderServer {
@@ -182,11 +182,16 @@ func (h pendingObjectsHeap[TLease]) Less(i, j int) bool {
 	return h.Slice[i].reference.CompareByHeight(h.Slice[j].reference) < 0
 }
 
+type unfinalizedDAGRootTag struct {
+	key         tag.Key
+	signedValue tag.SignedValue
+}
+
 // unfinalizedDAGState contains all state for a single DAG that is in
 // the process of being uploaded to storage.
 type unfinalizedDAGState struct {
 	rootReferenceIndex uint64
-	rootTag            *anypb.Any
+	rootTag            *unfinalizedDAGRootTag
 }
 
 // finalizedDAGState contains all state for a single DAG that has been
@@ -327,18 +332,49 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 		switch requestType := request.Type.(type) {
 		case *dag.UploadDagsRequest_InitiateDag_:
 			initiateDAG := requestType.InitiateDag
-			globalRootReference, err := r.namespace.NewGlobalReference(initiateDAG.RootReference)
 			var rootReference object.LocalReference
-			if err == nil {
+			var rootTag *unfinalizedDAGRootTag
+			err := func() error {
+				var err error
+				rootReference, err = r.namespace.NewLocalReference(initiateDAG.RootReference)
+				if err != nil {
+					return util.StatusWrap(err, "Invalid root reference")
+				}
+
 				// Deny requests to upload DAGs that have an
 				// excessive height or size. Queueing these
 				// would be pointless, as getPendingObject()
 				// wouldn't be willing to dequeue them.
-				rootReference = globalRootReference.LocalReference
 				if !r.maximumUnfinalizedParentsLimit.CanAcquireObjectAndChildren(rootReference) {
-					err = status.Error(codes.InvalidArgument, "Height or maximum total parents size of the object exceeds the limit that was established during handshaking")
+					return status.Error(codes.InvalidArgument, "Height or maximum total parents size of the object exceeds the limit that was established during handshaking")
 				}
-			}
+
+				if rootTagMessage := initiateDAG.RootTag; rootTagMessage != nil {
+					key, err := tag.NewKeyFromProto(rootTagMessage.Key)
+					if err != nil {
+						return util.StatusWrap(err, "Invalid root tag key")
+					}
+					signedValue, err := tag.NewSignedValueFromProto(
+						&tag_pb.SignedValue{
+							Value: &tag_pb.Value{
+								Reference: rootReference.GetRawReference(),
+								Timestamp: rootTagMessage.Timestamp,
+							},
+							Signature: rootTagMessage.Signature,
+						},
+						r.namespace.ReferenceFormat,
+						key,
+					)
+					if err != nil {
+						return util.StatusWrap(err, "Invalid root tag signed value")
+					}
+					rootTag = &unfinalizedDAGRootTag{
+						key:         key,
+						signedValue: signedValue,
+					}
+				}
+				return nil
+			}()
 
 			// The client should respect the maximum number of
 			// DAGs that the server is willing to process at once.
@@ -355,7 +391,7 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 					// The provided DAG was already
 					// uploaded previously. Simply write
 					// an additional tag in TagStore.
-					r.finalizeDAGLocked(rootReference, o.lease, initiateDAG.RootTag, nextReferenceIndex, nil)
+					r.finalizeDAGLocked(rootReference, o.lease, rootTag, nextReferenceIndex, nil)
 				} else {
 					// DAG for which we don't know if it
 					// exists yet.
@@ -363,7 +399,7 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 						o.unfinalized.dags,
 						&unfinalizedDAGState{
 							rootReferenceIndex: nextReferenceIndex,
-							rootTag:            initiateDAG.RootTag,
+							rootTag:            rootTag,
 						},
 					)
 				}
@@ -375,7 +411,7 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 				r.queueRequestObjectLocked(&objectState[TLease]{
 					requestObject: r.newRequestObject(nextReferenceIndex),
 				})
-				r.queueFinalizeDAGLocked(nextReferenceIndex, util.StatusWrap(err, "Invalid root reference"))
+				r.queueFinalizeDAGLocked(nextReferenceIndex, err)
 			}
 			r.lock.Unlock()
 
@@ -645,7 +681,7 @@ func (r *dagReceiver[TLease]) finalizeObjectLocked(o *objectState[TLease], lease
 
 // finalizeDAGLocked writes tags into TagStore and sends FinalizeDag
 // messages back to the client.
-func (r *dagReceiver[TLease]) finalizeDAGLocked(rootReference object.LocalReference, rootLease TLease, rootTag *anypb.Any, rootReferenceIndex uint64, err error) {
+func (r *dagReceiver[TLease]) finalizeDAGLocked(rootReference object.LocalReference, rootLease TLease, rootTag *unfinalizedDAGRootTag, rootReferenceIndex uint64, err error) {
 	if err != nil || rootTag == nil {
 		// Fast path: Client requested uploading a DAG without
 		// storing a tag in TagStore, or uploading failed.
@@ -657,10 +693,10 @@ func (r *dagReceiver[TLease]) finalizeDAGLocked(rootReference object.LocalRefere
 		r.group.Go(func() error {
 			err := r.server.tagUpdater.UpdateTag(
 				r.context,
-				rootTag,
-				r.namespace.WithLocalReference(rootReference),
+				r.namespace,
+				rootTag.key,
+				rootTag.signedValue,
 				rootLease,
-				/* overwrite = */ true,
 			)
 
 			r.lock.Lock()

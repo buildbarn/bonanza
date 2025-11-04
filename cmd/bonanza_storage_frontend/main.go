@@ -118,14 +118,14 @@ func main() {
 	})
 }
 
-func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[string]*bonanza_storage_frontend.ApplicationConfiguration_Shard, dependenciesGroup program.Group) (object.Store[object.GlobalReference, []byte], tag.Store[object.Namespace, object.GlobalReference, []byte], error) {
+func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[string]*bonanza_storage_frontend.ApplicationConfiguration_Shard, dependenciesGroup program.Group) (object.Store[object.GlobalReference, []byte], tag.Store[object.Namespace, []byte], error) {
 	// Create object & tag stores for each shard.
 	shardNames := make([]string, 0, len(shards))
 	weightedShards := make([]object_sharded.WeightedShard, 0, len(shards))
 	objectDownloaders := make([]object.Downloader[object.GlobalReference], 0, len(shards))
 	objectUploaders := make([]object.Uploader[object.GlobalReference, []byte], 0, len(shards))
 	tagResolvers := make([]tag.Resolver[object.Namespace], 0, len(shards))
-	tagUpdaters := make([]tag.Updater[object.GlobalReference, []byte], 0, len(shards))
+	tagUpdaters := make([]tag.Updater[object.Namespace, []byte], 0, len(shards))
 	for key, shard := range shards {
 		grpcClient, err := grpcClientFactory.NewClientFromConfiguration(shard.Client, dependenciesGroup)
 		if err != nil {
@@ -143,10 +143,10 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 		objectUploaders = append(objectUploaders, object_grpc.NewGRPCUploader(
 			object_pb.NewUploaderClient(grpcClient),
 		))
-		tagResolvers = append(tagResolvers, tag_grpc.NewGRPCResolver(
+		tagResolvers = append(tagResolvers, tag_grpc.NewResolver(
 			tag_pb.NewResolverClient(grpcClient),
 		))
-		tagUpdaters = append(tagUpdaters, tag_grpc.NewGRPCUpdater(
+		tagUpdaters = append(tagUpdaters, tag_grpc.NewUpdater(
 			tag_pb.NewUpdaterClient(grpcClient),
 		))
 	}
@@ -166,8 +166,8 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 				object_sharded.NewShardedUploader[object.GlobalReference, []byte](objectUploaders, shardNames, picker),
 			),
 			tag.NewStore(
-				tag_sharded.NewShardedResolver(tagResolvers, shardNames, picker),
-				tag_sharded.NewShardedUpdater[object.GlobalReference, []byte](tagUpdaters, shardNames, picker),
+				tag_sharded.NewResolver(tagResolvers, shardNames, picker),
+				tag_sharded.NewUpdater[object.Namespace, []byte](tagUpdaters, shardNames, picker),
 			),
 			nil
 	}
