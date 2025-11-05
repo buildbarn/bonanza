@@ -3,10 +3,10 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "sharded",
     srcs = [
+        "downloader.go",
         "log2fixed64.go",
         "picker.go",
-        "sharded_downloader.go",
-        "sharded_uploader.go",
+        "uploader.go",
         "weighted_rendezvous_picker.go",
     ],
     importpath = "bonanza.build/pkg/storage/object/sharded",

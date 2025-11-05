@@ -52,7 +52,7 @@ func main() {
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create storage gRPC client")
 		}
-		objectDownloader := object_grpc.NewGRPCDownloader(
+		objectDownloader := object_grpc.NewDownloader(
 			object_pb.NewDownloaderClient(storageGRPCClient),
 		)
 		if configuration.LocalObjectStore != nil {

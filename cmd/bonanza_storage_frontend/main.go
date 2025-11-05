@@ -137,10 +137,10 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 			Key:    []byte(key),
 			Weight: shard.Weight,
 		})
-		objectDownloaders = append(objectDownloaders, object_grpc.NewGRPCDownloader(
+		objectDownloaders = append(objectDownloaders, object_grpc.NewDownloader(
 			object_pb.NewDownloaderClient(grpcClient),
 		))
-		objectUploaders = append(objectUploaders, object_grpc.NewGRPCUploader(
+		objectUploaders = append(objectUploaders, object_grpc.NewUploader(
 			object_pb.NewUploaderClient(grpcClient),
 		))
 		tagResolvers = append(tagResolvers, tag_grpc.NewResolver(
@@ -162,8 +162,8 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 	default:
 		picker := object_sharded.NewWeightedRendezvousPicker(weightedShards)
 		return object.NewStore(
-				object_sharded.NewShardedDownloader(objectDownloaders, shardNames, picker),
-				object_sharded.NewShardedUploader[object.GlobalReference, []byte](objectUploaders, shardNames, picker),
+				object_sharded.NewDownloader(objectDownloaders, shardNames, picker),
+				object_sharded.NewUploader[object.GlobalReference, []byte](objectUploaders, shardNames, picker),
 			),
 			tag.NewStore(
 				tag_sharded.NewResolver(tagResolvers, shardNames, picker),

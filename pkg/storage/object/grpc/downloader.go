@@ -11,19 +11,19 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-type grpcDownloader struct {
+type downloader struct {
 	client object_pb.DownloaderClient
 }
 
-// NewGRPCDownloader creates an object downloader that forwards all
-// requests to fetch objects to a remote server using gRPC.
-func NewGRPCDownloader(client object_pb.DownloaderClient) object.Downloader[object.GlobalReference] {
-	return &grpcDownloader{
+// NewDownloader creates an object downloader that forwards all requests
+// to fetch objects to a remote server using gRPC.
+func NewDownloader(client object_pb.DownloaderClient) object.Downloader[object.GlobalReference] {
+	return &downloader{
 		client: client,
 	}
 }
 
-func (d *grpcDownloader) DownloadObject(ctx context.Context, reference object.GlobalReference) (*object.Contents, error) {
+func (d *downloader) DownloadObject(ctx context.Context, reference object.GlobalReference) (*object.Contents, error) {
 	response, err := d.client.DownloadObject(ctx, &object_pb.DownloadObjectRequest{
 		Namespace: reference.GetNamespace().ToProto(),
 		Reference: reference.GetRawReference(),

@@ -4,8 +4,8 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "grpc",
     srcs = [
-        "grpc_downloader.go",
-        "grpc_uploader.go",
+        "downloader.go",
+        "uploader.go",
     ],
     importpath = "bonanza.build/pkg/storage/object/grpc",
     visibility = ["//visibility:public"],
@@ -21,8 +21,8 @@ go_library(
 go_test(
     name = "grpc_test",
     srcs = [
-        "grpc_uploader_test.go",
         "mocks_object_pb_test.go",
+        "uploader_test.go",
     ],
     embed = [":grpc"],
     deps = [

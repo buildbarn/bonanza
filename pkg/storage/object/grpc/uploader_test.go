@@ -17,11 +17,11 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestGRPCUploader(t *testing.T) {
+func TestUploader(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
 
 	client := NewMockUploaderClient(ctrl)
-	uploader := grpc.NewGRPCUploader(client)
+	uploader := grpc.NewUploader(client)
 
 	t.Run("ServerFailure", func(t *testing.T) {
 		// Errors returned by the server should be propagated to

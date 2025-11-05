@@ -641,7 +641,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		parsedObjectPool,
 		model_parser.NewDownloadingParsedObjectReader(
 			object_namespacemapping.NewNamespaceAddingDownloader(
-				object_grpc.NewGRPCDownloader(object_pb.NewDownloaderClient(remoteCacheClient)),
+				object_grpc.NewDownloader(object_pb.NewDownloaderClient(remoteCacheClient)),
 				instanceName,
 			),
 		),

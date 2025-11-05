@@ -12,19 +12,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type grpcUploader struct {
+type uploader struct {
 	client object_pb.UploaderClient
 }
 
-// NewGRPCUploader creates an object uploader that forwards requests to
+// NewUploader creates an object uploader that forwards requests to
 // store objects to a remote server using gRPC.
-func NewGRPCUploader(client object_pb.UploaderClient) object.Uploader[object.GlobalReference, []byte] {
-	return &grpcUploader{
+func NewUploader(client object_pb.UploaderClient) object.Uploader[object.GlobalReference, []byte] {
+	return &uploader{
 		client: client,
 	}
 }
 
-func (u *grpcUploader) UploadObject(ctx context.Context, reference object.GlobalReference, contents *object.Contents, childrenLeases [][]byte, wantContentsIfIncomplete bool) (object.UploadObjectResult[[]byte], error) {
+func (u *uploader) UploadObject(ctx context.Context, reference object.GlobalReference, contents *object.Contents, childrenLeases [][]byte, wantContentsIfIncomplete bool) (object.UploadObjectResult[[]byte], error) {
 	request := &object_pb.UploadObjectRequest{
 		Namespace: reference.GetNamespace().ToProto(),
 		Reference: reference.GetRawReference(),

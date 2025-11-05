@@ -63,7 +63,7 @@ func main() {
 			return util.StatusWrap(err, "Failed to create storage gRPC client")
 		}
 		objectDownloader := object_existenceprecondition.NewDownloader(
-			object_grpc.NewGRPCDownloader(
+			object_grpc.NewDownloader(
 				object_pb.NewDownloaderClient(storageGRPCClient),
 			),
 		)
