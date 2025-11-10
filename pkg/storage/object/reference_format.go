@@ -40,7 +40,7 @@ func (ReferenceFormat) ToProto() object.ReferenceFormat_Value {
 // GetReferenceSizeBytes returns the size in bytes of references encoded
 // in this format.
 func (ReferenceFormat) GetReferenceSizeBytes() int {
-	return referenceSizeBytes
+	return SHA256V1ReferenceSizeBytes
 }
 
 // NewLocalReference converts a local reference that is stored in binary
@@ -48,15 +48,15 @@ func (ReferenceFormat) GetReferenceSizeBytes() int {
 // fields contained in the reference are within bounds.
 func (ReferenceFormat) NewLocalReference(rawReference []byte) (r LocalReference, err error) {
 	// Construct the reference.
-	if len(rawReference) != referenceSizeBytes {
+	if len(rawReference) != SHA256V1ReferenceSizeBytes {
 		return LocalReference{}, status.Errorf(
 			codes.InvalidArgument,
 			"Reference is %d bytes in size, while SHA256_V1 references are %d bytes in size",
 			len(rawReference),
-			referenceSizeBytes,
+			SHA256V1ReferenceSizeBytes,
 		)
 	}
-	r.rawReference = *(*[referenceSizeBytes]byte)(rawReference)
+	r.rawReference = *(*[SHA256V1ReferenceSizeBytes]byte)(rawReference)
 
 	sizeBytes := r.GetSizeBytes()
 	if sizeBytes < minimumObjectSizeBytes || sizeBytes > maximumObjectSizeBytes {
@@ -70,7 +70,7 @@ func (ReferenceFormat) NewLocalReference(rawReference []byte) (r LocalReference,
 	}
 
 	// Perform validation against the reference's fields.
-	maximumDegree := sizeBytes / referenceSizeBytes
+	maximumDegree := sizeBytes / SHA256V1ReferenceSizeBytes
 	degree := r.GetDegree()
 	if degree > maximumDegree {
 		return LocalReference{}, status.Errorf(
@@ -148,7 +148,7 @@ func (ReferenceFormat) GetMaximumObjectSizeBytes() int {
 // references and data payload. It is assumed that outgoing references
 // are provided in sorted order.
 func (ReferenceFormat) NewContents(outgoingReferences []LocalReference, payload []byte) (*Contents, error) {
-	sizeBytes := len(outgoingReferences)*referenceSizeBytes + len(payload)
+	sizeBytes := len(outgoingReferences)*SHA256V1ReferenceSizeBytes + len(payload)
 	if sizeBytes < minimumObjectSizeBytes || sizeBytes > maximumObjectSizeBytes {
 		return nil, status.Errorf(
 			codes.InvalidArgument,
@@ -174,7 +174,7 @@ func (ReferenceFormat) NewContents(outgoingReferences []LocalReference, payload 
 		data = append(data, payload...)
 	}
 
-	var rawReference [referenceSizeBytes]byte
+	var rawReference [SHA256V1ReferenceSizeBytes]byte
 	*(*[32]byte)(rawReference[:]) = sha256.Sum256(data)
 	binary.LittleEndian.PutUint32(rawReference[32:], uint32(sizeBytes))
 	*(*[5]byte)(rawReference[35:]) = rcs.getStats()

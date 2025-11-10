@@ -1,7 +1,6 @@
 package tag
 
 import (
-	"bytes"
 	"crypto/ed25519"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -58,47 +56,30 @@ func (v *Value) ToProto() *tag_pb.Value {
 // of the tag has been validated.
 type SignedValue struct {
 	Value     Value
-	Signature []byte
+	Signature [ed25519.SignatureSize]byte
 }
 
 func NewSignedValueFromProto(m *tag_pb.SignedValue, referenceFormat object.ReferenceFormat, key Key) (SignedValue, error) {
 	if m == nil {
 		return SignedValue{}, status.Error(codes.InvalidArgument, "No signed value provided")
 	}
-
 	value, err := NewValueFromProto(m.Value, referenceFormat)
 	if err != nil {
 		return SignedValue{}, err
 	}
-
-	valueSigningInput, err := proto.Marshal(&tag_pb.ValueSigningInput{
-		ReferenceFormat: value.Reference.GetReferenceFormat().ToProto(),
-		KeyHash:         key.Hash,
-		Value:           value.ToProto(),
-	})
-	if err != nil {
-		return SignedValue{}, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to marshal value signing input")
-	}
 	if len(m.Signature) != ed25519.SignatureSize {
 		return SignedValue{}, status.Errorf(codes.InvalidArgument, "Signature is %d bytes in size, while %d bytes were expected", len(m.Signature), ed25519.SignatureSize)
 	}
-	if !ed25519.Verify(key.SignaturePublicKey[:], valueSigningInput, m.Signature) {
-		return SignedValue{}, status.Error(codes.InvalidArgument, "Invalid signature")
-	}
-
-	return SignedValue{
-		Value:     value,
-		Signature: m.Signature,
-	}, nil
+	return key.VerifySignature(value, (*[ed25519.SignatureSize]byte)(m.Signature))
 }
 
 func (sv *SignedValue) Equal(other SignedValue) bool {
-	return sv.Value.Equal(other.Value) && bytes.Equal(sv.Signature, other.Signature)
+	return sv.Value.Equal(other.Value) && sv.Signature == other.Signature
 }
 
 func (sv *SignedValue) ToProto() *tag_pb.SignedValue {
 	return &tag_pb.SignedValue{
 		Value:     sv.Value.ToProto(),
-		Signature: sv.Signature,
+		Signature: sv.Signature[:],
 	}
 }

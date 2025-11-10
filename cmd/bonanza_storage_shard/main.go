@@ -1,8 +1,8 @@
 package main
 
 import (
+	"cmp"
 	"context"
-	"math/rand/v2"
 	"os"
 
 	"bonanza.build/pkg/ds/lossymap"
@@ -43,10 +43,7 @@ func main() {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
 
-		// Construct a flat storage backend for objects. Put an
-		// in-memory store for leases in front of it, so that
-		// UploadDag() can reliably enforce that clients upload
-		// complete DAGs.
+		// Construct a flat storage backend for objects.
 		localObjectStore, err := object_local.NewStoreFromConfiguration(
 			dependenciesGroup,
 			configuration.LocalObjectStore,
@@ -55,53 +52,72 @@ func main() {
 			return util.StatusWrap(err, "Failed to create local object store")
 		}
 
-		leaseCompletenessDuration := configuration.LeasesMapLeaseCompletenessDuration
-		if err := leaseCompletenessDuration.CheckValid(); err != nil {
+		// Put a store for leases in front of the flat storage
+		// backend, so that UploadDag() can reliably enforce
+		// that clients upload complete DAGs.
+		leaseCompletenessDurationMessage := configuration.LeasesMapLeaseCompletenessDuration
+		if err := leaseCompletenessDurationMessage.CheckValid(); err != nil {
 			return util.StatusWrap(err, "Invalid leases map lease completeness duration")
 		}
-		leaseComparator := func(a, b *object_flatbacked.Lease) int {
-			if *a < *b {
-				return -1
-			}
-			if *a > *b {
-				return 1
-			}
-			return 0
+		leaseCompletenessDuration := leaseCompletenessDurationMessage.AsDuration()
+		leasesMap, err := lossymap.NewHashMapFromConfiguration(
+			configuration.LeasesMap,
+			"LeasesMap",
+			object_flatbacked.LeaseRecordArrayFactory,
+			/* recordKeyHasher = */ func(k *lossymap.RecordKey[object.LocalReference]) uint64 {
+				h := uint64(14695981039346656037)
+				for _, c := range k.Key.GetRawReference() {
+					h = (h ^ uint64(c)) * 1099511628211
+				}
+				return (h ^ uint64(k.Attempt)) * 1099511628211
+			},
+			/* valueComparator = */ func(a, b *object_flatbacked.Lease) int {
+				return cmp.Compare(*a, *b)
+			},
+			/* persistent = */ true,
+		)
+		if err != nil {
+			return util.StatusWrap(err, "Failed to create leases map")
 		}
-		flatBackedObjectStoreHashInitialization := rand.Uint64()
 		flatBackedObjectStore := object_flatbacked.NewStore(
 			localObjectStore,
 			clock.SystemClock,
-			leaseCompletenessDuration.AsDuration(),
-			lossymap.NewHashMap(
-				lossymap.NewSimpleRecordArray[object.LocalReference](
-					int(configuration.LeasesMapRecordsCount),
-					leaseComparator,
-				),
-				/* recordKeyHasher = */ func(k *lossymap.RecordKey[object.LocalReference]) uint64 {
-					h := flatBackedObjectStoreHashInitialization
-					for _, c := range k.Key.GetRawReference() {
-						h ^= uint64(c)
-						h *= 1099511628211
-					}
-					attempt := k.Attempt
-					for i := 0; i < 4; i++ {
-						h ^= uint64(attempt & 0xff)
-						h *= 1099511628211
-						attempt >>= 8
-					}
-					return h
-				},
-				configuration.LeasesMapRecordsCount,
-				leaseComparator,
-				uint8(configuration.LeasesMapMaximumGetAttempts),
-				int(configuration.LeasesMapMaximumPutAttempts),
-				"LeasesMap",
-			),
+			leaseCompletenessDuration,
+			leasesMap,
 		)
-		tagStore := tag_local.NewStore()
-		leaseMarshaler := object_flatbacked.LeaseMarshaler
 
+		// Create storage for tags. Tags can be used to assign
+		// arbitrary identifiers to objects.
+		tagsMap, err := lossymap.NewHashMapFromConfiguration(
+			configuration.TagsMap,
+			"TagsMap",
+			tag_local.TagRecordArrayFactory,
+			/* recordKeyHasher = */ func(k *lossymap.RecordKey[tag.Key]) uint64 {
+				h := uint64(14695981039346656037)
+				for _, c := range k.Key.SignaturePublicKey {
+					h = (h ^ uint64(c)) * 1099511628211
+				}
+				for _, c := range k.Key.Hash {
+					h = (h ^ uint64(c)) * 1099511628211
+				}
+				return (h ^ uint64(k.Attempt)) * 1099511628211
+			},
+			/* valueComparator = */ func(a, b *tag_local.ValueWithLease) int {
+				return a.SignedValue.Value.Timestamp.Compare(b.SignedValue.Value.Timestamp)
+			},
+			/* persistent = */ true,
+		)
+		if err != nil {
+			return util.StatusWrap(err, "Failed to create tags map")
+		}
+		tagStore := tag_local.NewStore(
+			tagsMap,
+			clock.SystemClock,
+			leaseCompletenessDuration,
+		)
+
+		// Expose all storage backends via gRPC.
+		leaseMarshaler := object_flatbacked.LeaseMarshaler
 		if err := bb_grpc.NewServersFromConfigurationAndServe(
 			configuration.GrpcServers,
 			func(s grpc.ServiceRegistrar) {

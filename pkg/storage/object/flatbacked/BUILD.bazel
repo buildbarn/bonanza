@@ -4,7 +4,9 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "flatbacked",
     srcs = [
+        "block_device_backed_lease_record_array.go",
         "lease.go",
+        "lease_record_array_factory.go",
         "store.go",
     ],
     importpath = "bonanza.build/pkg/storage/object/flatbacked",
@@ -12,8 +14,10 @@ go_library(
     deps = [
         "//pkg/ds/lossymap",
         "//pkg/encoding/varint",
+        "//pkg/proto/storage/object",
         "//pkg/storage/object",
         "//pkg/storage/object/leasemarshaling",
+        "@com_github_buildbarn_bb_storage//pkg/blockdevice",
         "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",

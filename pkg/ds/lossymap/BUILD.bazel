@@ -4,7 +4,9 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "lossymap",
     srcs = [
+        "configuration.go",
         "hash_map.go",
+        "lower_bound_comparing_record_array.go",
         "map.go",
         "record_array.go",
         "simple_record_array.go",
@@ -12,6 +14,9 @@ go_library(
     importpath = "bonanza.build/pkg/ds/lossymap",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/proto/configuration/ds/lossymap",
+        "@com_github_buildbarn_bb_storage//pkg/blockdevice",
+        "@com_github_buildbarn_bb_storage//pkg/util",
         "@com_github_prometheus_client_golang//prometheus",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",

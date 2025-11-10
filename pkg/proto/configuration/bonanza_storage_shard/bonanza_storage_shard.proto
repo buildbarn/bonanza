@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package bonanza.configuration.bonanza_storage_shard;
 
+import "bonanza.build/pkg/proto/configuration/ds/lossymap/lossymap.proto";
 import "bonanza.build/pkg/proto/configuration/storage/object/local/local.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
@@ -16,26 +17,20 @@ message ApplicationConfiguration {
   // gRPC servers to spawn to listen for requests from clients.
   repeated buildbarn.configuration.grpc.ServerConfiguration grpc_servers = 2;
 
-  // The size of the leases map.
-  //
-  // The leases map is an in-memory data structure that stores leases of
-  // all children of objects stored in the current shard. These leases
-  // track the completeness of graphs of objects, which is necessary for
-  // UploadDag() operations against the storage frontend to run
-  // efficiently.
-  //
-  // Each record of the leases map is less than 64 bytes in size, and
-  // records are stored contiguously. This means that it is generally
-  // safe to set this option to millions or more.
-  //
-  // The leases map needs to be large enough to not lose any records
-  // that haven't expired yet. The following Prometheus queries may be
-  // used to determine insertions into the leases map caused other
-  // records to be displaced prematurely:
-  //
-  // bonanza_lossymap_hash_map_put_iterations_count{name="LeasesMap",outcome="TooManyAttempts"}
-  // bonanza_lossymap_hash_map_put_too_many_iterations_total{name="LeasesMap"}
-  uint64 leases_map_records_count = 3;
+  // Configuration options for writing objects to disk.
+  bonanza.configuration.storage.object.local.StoreConfiguration
+      local_object_store = 3;
+
+  // Configuration for the tags map. Tags can be used to assign
+  // arbitrary identifiers to objects residing in the object store.
+  bonanza.configuration.ds.lossymap.HashMapConfiguration tags_map = 4;
+
+  // Configuration for the leases map. The leases map is a data
+  // structure that stores leases of all children of objects stored in
+  // the current shard. These leases track the completeness of graphs of
+  // objects, which is necessary for UploadDag() operations against the
+  // storage frontend to run efficiently.
+  bonanza.configuration.ds.lossymap.HashMapConfiguration leases_map = 5;
 
   // The maximum age a lease may have for a parent object using the
   // lease to be considered complete.
@@ -61,32 +56,5 @@ message ApplicationConfiguration {
   // being uploaded.
   //
   // Recommended value: 120s
-  google.protobuf.Duration leases_map_lease_completeness_duration = 4;
-
-  // The number of records a Get() call on the leases map may attempt
-  // to access.
-  //
-  // The lower the utilization rate of the leases map, the lower this
-  // value may be set. For example, if the size of the leases map is set
-  // in such a way that it is only utilized by 10% (factor 0.1), setting
-  // this field to 16 means there is only a 0.1^16 chance that inserting
-  // a record prematurely displaces another valid lease.
-  //
-  // Recommended value: 16
-  uint32 leases_map_maximum_get_attempts = 5;
-
-  // The number of mutations that a Put() on the leases map may perform.
-  //
-  // Because the leases map uses a scheme similar to Robin Hood hashing,
-  // insertions may cause other records to be displaced. Those records
-  // may then cause even more records to be displaced. Because of that,
-  // it is recommended to set this field to a small multiple of the
-  // maximum Get() attempts.
-  //
-  // Recommended value: 64
-  int64 leases_map_maximum_put_attempts = 6;
-
-  // Configuration options for writing objects to disk.
-  bonanza.configuration.storage.object.local.StoreConfiguration
-      local_object_store = 7;
+  google.protobuf.Duration leases_map_lease_completeness_duration = 6;
 }

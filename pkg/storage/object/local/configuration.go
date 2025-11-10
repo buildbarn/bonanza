@@ -1,6 +1,7 @@
 package local
 
 import (
+	"cmp"
 	"context"
 	"math/rand/v2"
 	"sync"
@@ -54,39 +55,13 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 
 	// Construct the reference-location map that stores the location
 	// at which object contents are stored.
-	var referenceLocationMapEntries uint64
-	var referenceLocationRecordArray ReferenceLocationRecordArray
-	switch backendConfiguration := configuration.ReferenceLocationMapBackend.(type) {
-	case *configuration_pb.StoreConfiguration_ReferenceLocationMapInMemory_:
-		referenceLocationMapEntries = backendConfiguration.ReferenceLocationMapInMemory.Entries
-		referenceLocationRecordArray = NewInMemoryReferenceLocationRecordArray(int(referenceLocationMapEntries))
-	case *configuration_pb.StoreConfiguration_ReferenceLocationMapOnBlockDevice:
-		blockDevice, sectorSizeBytes, sectorCount, err := blockdevice.NewBlockDeviceFromConfiguration(
-			backendConfiguration.ReferenceLocationMapOnBlockDevice,
-			/* mayZeroInitialize = */ configuration.Persistent == nil,
-		)
-		if err != nil {
-			return nil, util.StatusWrap(err, "Failed to create reference-location map block device")
-		}
-		referenceLocationMapEntries = uint64(sectorSizeBytes) * uint64(sectorCount) / BlockDeviceBackedReferenceLocationRecordSize
-		referenceLocationRecordArray = NewBlockDeviceBackedReferenceLocationRecordArray(blockDevice)
-	default:
-		return nil, status.Error(codes.InvalidArgument, "No reference-location map backend provided")
-	}
-
 	referenceLocationMapHashInitialization := initialPersistentState.ReferenceLocationMapHashInitialization
-	locationComparator := func(a, b *uint64) int {
-		if *a < *b {
-			return -1
-		}
-		if *a > *b {
-			return 1
-		}
-		return 0
-	}
-	referenceLocationMap := lossymap.NewHashMap(
-		referenceLocationRecordArray,
-		/* recordKeyHasher = */ func(k *lossymap.RecordKey[object.FlatReference]) uint64 {
+	referenceLocationMap, err := lossymap.NewHashMapFromConfiguration(
+		configuration.ReferenceLocationMap,
+		"ReferenceLocationMap",
+		LocationRecordArrayFactory,
+		/* recordKeyHasher = */
+		func(k *lossymap.RecordKey[object.FlatReference]) uint64 {
 			// Compute a FNV-1a hash of the record key.
 			h := referenceLocationMapHashInitialization
 			for _, c := range k.Key.GetRawFlatReference() {
@@ -101,12 +76,14 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 			}
 			return h
 		},
-		referenceLocationMapEntries,
-		locationComparator,
-		uint8(configuration.ReferenceLocationMapMaximumGetAttempts),
-		int(configuration.ReferenceLocationMapMaximumPutAttempts),
-		"ReferenceLocationMap",
+		/* valueComparator = */ func(a, b *uint64) int {
+			return cmp.Compare(*a, *b)
+		},
+		configuration.Persistent != nil,
 	)
+	if err != nil {
+		return nil, util.StatusWrap(err, "Failed to create reference-location map")
+	}
 
 	// Construct the location-blob map that stores the contents of
 	// the objects.

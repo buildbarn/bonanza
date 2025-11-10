@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "lossymap_proto",
+    srcs = ["lossymap.proto"],
+    import_prefix = "bonanza.build",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_buildbarn_bb_storage//pkg/proto/configuration/blockdevice:blockdevice_proto"],
+)
+
+go_proto_library(
+    name = "lossymap_go_proto",
+    importpath = "bonanza.build/pkg/proto/configuration/ds/lossymap",
+    proto = ":lossymap_proto",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_buildbarn_bb_storage//pkg/proto/configuration/blockdevice"],
+)
+
+go_library(
+    name = "lossymap",
+    embed = [":lossymap_go_proto"],
+    importpath = "bonanza.build/pkg/proto/configuration/ds/lossymap",
+    visibility = ["//visibility:public"],
+)

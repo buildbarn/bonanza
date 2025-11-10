@@ -8,6 +8,7 @@ proto_library(
     import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/proto/configuration/ds/lossymap:lossymap_proto",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/blockdevice:blockdevice_proto",
         "@protobuf//:duration_proto",
     ],
@@ -18,7 +19,10 @@ go_proto_library(
     importpath = "bonanza.build/pkg/proto/configuration/storage/object/local",
     proto = ":local_proto",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_buildbarn_bb_storage//pkg/proto/configuration/blockdevice"],
+    deps = [
+        "//pkg/proto/configuration/ds/lossymap",
+        "@com_github_buildbarn_bb_storage//pkg/proto/configuration/blockdevice",
+    ],
 )
 
 go_library(

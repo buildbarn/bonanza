@@ -2,6 +2,7 @@ package object
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -13,9 +14,9 @@ import (
 )
 
 const (
-	minimumObjectSizeBytes = 1
-	maximumObjectSizeBytes = 1 << 21
-	referenceSizeBytes     = 40
+	minimumObjectSizeBytes     = 1
+	maximumObjectSizeBytes     = 1 << 21
+	SHA256V1ReferenceSizeBytes = 40
 )
 
 type maximumTotalParentsSizeBytesBoundsEntry struct {
@@ -29,7 +30,7 @@ func init() {
 	var bounds maximumTotalParentsSizeBytesBoundsEntry
 	for i := 2; i <= math.MaxUint8; i++ {
 		var ok bool
-		bounds.minimum, ok = float16.FromUint64RoundUp(float16.ToUint64(bounds.minimum) + referenceSizeBytes)
+		bounds.minimum, ok = float16.FromUint64RoundUp(float16.ToUint64(bounds.minimum) + SHA256V1ReferenceSizeBytes)
 		if !ok {
 			panic("float16 is too small to express all possible maximum total parents sizes")
 		}
@@ -44,7 +45,7 @@ func init() {
 // LocalReference uniquely identifies an object stored within a single
 // storage namespace.
 type LocalReference struct {
-	rawReference [referenceSizeBytes]byte
+	rawReference [SHA256V1ReferenceSizeBytes]byte
 }
 
 var _ BasicReference = LocalReference{}
@@ -181,16 +182,11 @@ func (LocalReference) WithLocalReference(localReference LocalReference) LocalRef
 // This order can be used to perform bounded parallel traversal of DAGs
 // in such a way that forward progress is guaranteed.
 func (r LocalReference) CompareByHeight(other LocalReference) int {
-	if ha, hb := r.GetHeight(), other.GetHeight(); ha < hb {
-		return -1
-	} else if ha > hb {
-		return 1
+	if c := cmp.Compare(r.GetHeight(), other.GetHeight()); c != 0 {
+		return c
 	}
-
-	if sa, sb := r.GetMaximumTotalParentsSizeBytes(true), other.GetMaximumTotalParentsSizeBytes(true); sa < sb {
-		return -1
-	} else if sa > sb {
-		return 1
+	if c := cmp.Compare(r.GetMaximumTotalParentsSizeBytes(true), other.GetMaximumTotalParentsSizeBytes(true)); c != 0 {
+		return c
 	}
 
 	// Tie breaker to ensure a total order.

@@ -64,9 +64,9 @@ func MustNewContents(referenceFormatValue object.ReferenceFormat_Value, referenc
 // GetOutgoingReference returns one of the outgoing references that is
 // part of this object.
 func (c *Contents) GetOutgoingReference(i int) LocalReference {
-	outgoingReferences := c.data[:c.GetDegree()*referenceSizeBytes]
+	outgoingReferences := c.data[:c.GetDegree()*SHA256V1ReferenceSizeBytes]
 	return LocalReference{
-		rawReference: *(*[referenceSizeBytes]byte)(outgoingReferences[i*referenceSizeBytes:]),
+		rawReference: *(*[SHA256V1ReferenceSizeBytes]byte)(outgoingReferences[i*SHA256V1ReferenceSizeBytes:]),
 	}
 }
 
@@ -78,7 +78,7 @@ func (c *Contents) DetachOutgoingReferences() OutgoingReferences[LocalReference]
 	l := make(OutgoingReferencesList[LocalReference], 0, degree)
 	for i := 0; i < degree; i++ {
 		l = append(l, LocalReference{
-			rawReference: *(*[referenceSizeBytes]byte)(c.data[i*referenceSizeBytes:]),
+			rawReference: *(*[SHA256V1ReferenceSizeBytes]byte)(c.data[i*SHA256V1ReferenceSizeBytes:]),
 		})
 	}
 	return l
@@ -95,7 +95,7 @@ func (c *Contents) GetFullData() []byte {
 // GetPayload returns the payload of the object, not including the
 // outgoing references that are stored at the beginning.
 func (c *Contents) GetPayload() []byte {
-	return c.data[c.GetDegree()*referenceSizeBytes:]
+	return c.data[c.GetDegree()*SHA256V1ReferenceSizeBytes:]
 }
 
 func (c *Contents) cloneWithReference(r LocalReference) *Contents {
@@ -124,7 +124,7 @@ func (c *Contents) validateOutgoingReferences() error {
 	degree := c.GetDegree()
 	referenceFormat := c.GetReferenceFormat()
 	for i := 0; i < degree; i++ {
-		outgoingReference, err := referenceFormat.NewLocalReference(c.data[i*referenceSizeBytes : (i+1)*referenceSizeBytes])
+		outgoingReference, err := referenceFormat.NewLocalReference(c.data[i*SHA256V1ReferenceSizeBytes : (i+1)*SHA256V1ReferenceSizeBytes])
 		if err != nil {
 			return util.StatusWrapf(err, "Invalid reference at index %d", i)
 		}
@@ -171,7 +171,7 @@ func (c *Contents) Unflatten(newReference LocalReference) (*Contents, error) {
 }
 
 type referenceStatsComputer struct {
-	lastRawReference             *[referenceSizeBytes]byte
+	lastRawReference             *[SHA256V1ReferenceSizeBytes]byte
 	height                       int
 	degree                       int
 	maximumTotalParentsSizeBytes int

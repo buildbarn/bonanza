@@ -2,12 +2,23 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "local",
-    srcs = ["store.go"],
+    srcs = [
+        "block_device_backed_tag_record_array.go",
+        "store.go",
+        "tag_record_array_factory.go",
+    ],
     importpath = "bonanza.build/pkg/storage/tag/local",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/ds/lossymap",
+        "//pkg/proto/storage/object",
         "//pkg/storage/object",
         "//pkg/storage/object/flatbacked",
         "//pkg/storage/tag",
+        "@com_github_buildbarn_bb_storage//pkg/blockdevice",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
+        "@com_github_buildbarn_bb_storage//pkg/util",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
     ],
 )

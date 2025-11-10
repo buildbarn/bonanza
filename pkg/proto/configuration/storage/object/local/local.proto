@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package bonanza.configuration.storage.object.local;
 
+import "bonanza.build/pkg/proto/configuration/ds/lossymap/lossymap.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/blockdevice/blockdevice.proto";
 import "google/protobuf/duration.proto";
 
@@ -39,64 +40,11 @@ option go_package = "bonanza.build/pkg/proto/configuration/storage/object/local"
 // LRU-like. Making "old" and "current" too large is also not
 // recommended, as this would increase redundancy in the data stored.
 message StoreConfiguration {
-  message ReferenceLocationMapInMemory {
-    // The reference-location map is a hash table that is used by this
-    // storage backend to resolve references to locations where data is
-    // stored. This option determines the size of this hash table.
-    // Because entries are small (56 bytes in size), it is recommended
-    // to make this map relatively large to reduce collisions.
-    //
-    // Recommended value: between 2 and 10 times the expected number of
-    // objects stored.
-    uint64 entries = 1;
-  }
-
-  // Data store for the metadata of objects. The following Prometheus
-  // queries may be used to determine whether insertion into the
-  // reference-location map caused other entries to be displaced
-  // prematurely:
-  //
-  // bonanza_lossymap_hash_map_put_iterations_count{name="ReferenceLocationMap",outcome="TooManyAttempts"}
-  // bonanza_lossymap_hash_map_put_too_many_iterations_total{name="ReferenceLocationMap"}
-  //
-  // If this query yields values greater than zero, you may need to
-  // increase this data store's size (or reduce the size of the
-  // location-blob map).
-  //
-  // Note that restarting bonanza_storage_shard causes these metrics to
-  // be reset, meaning that you may need to run bonanza_storage_shard
-  // for a longer amount of time to get better insight in whether
-  // objects are discarded prematurely.
-  oneof reference_location_map_backend {
-    // Store the reference-location map in memory.
-    ReferenceLocationMapInMemory reference_location_map_in_memory = 1;
-
-    // Store the reference-location map on a block device. The size of
-    // the block device determines the number of entries stored.
-    buildbarn.configuration.blockdevice.Configuration
-        reference_location_map_on_block_device = 2;
-  }
-
-  // The number of indices a Get() call on the reference-location map
-  // may attempt to access. The lower the utilization rate of the
-  // reference-location map, the lower this value may be set. For
-  // example, if the size of the reference-location map is set in such a
-  // way that it is only utilized by 10% (factor 0.1), setting this
-  // field to 16 means there is only a 0.1^16 chance that inserting an
-  // entry prematurely displaces another object from storage.
-  //
-  // Recommended value: 16
-  uint32 reference_location_map_maximum_get_attempts = 3;
-
-  // The number of mutations that a Put() on the reference-location map
-  // may perform. Because the reference-location map uses a scheme
-  // similar to Robin Hood hashing, insertions may cause other entries
-  // to be displaced. Those entries may then cause even more entries to
-  // be displaced. Because of that, it is recommended to set this field
-  // to a small multiple of the maximum Get() attempts.
-  //
-  // Recommended value: 64
-  int64 reference_location_map_maximum_put_attempts = 4;
+  // Configuration for the reference-location map. The
+  // reference-location map is a hash table that is used by this storage
+  // backend to resolve references to locations where data is stored.
+  bonanza.configuration.ds.lossymap.HashMapConfiguration
+      reference_location_map = 1;
 
   message LocationBlobMapInMemory {
     // The total size of the location-blob map, in bytes.
@@ -120,30 +68,30 @@ message StoreConfiguration {
     // Store all data in memory. For larger setups, this may place a lot
     // of pressure on Go's garbage collector. It may be necessary to
     // reduce the value of GOGC to use this option reliably.
-    LocationBlobMapInMemory location_blob_map_in_memory = 5;
+    LocationBlobMapInMemory location_blob_map_in_memory = 2;
 
     // Store all data on a block device.
     buildbarn.configuration.blockdevice.Configuration
-        location_blob_map_on_block_device = 6;
+        location_blob_map_on_block_device = 3;
   }
 
   // The size of the "old" region in the location-blob map relative to
   // that of the "current" and "new" regions.
   //
   // Recommended value: 1
-  uint32 old_region_size_ratio = 7;
+  uint32 old_region_size_ratio = 4;
 
   // The size of the "current" region in the location-blob map relative
   // to that of the "old" and "new" regions.
   //
   // Recommended value: 1
-  uint32 current_region_size_ratio = 8;
+  uint32 current_region_size_ratio = 5;
 
   // The size of the "new" region in the location-blob map relative to
   // that of the "old" and "current" regions.
   //
   // Recommended value: 3
-  uint32 new_region_size_ratio = 9;
+  uint32 new_region_size_ratio = 6;
 
   message Persistent {
     // Path to a directory on disk where metadata can be stored to be
@@ -189,5 +137,5 @@ message StoreConfiguration {
   // every time the application is restarted. Existing entries in the
   // reference-location map and location-blob map will be ignored, even
   // if their contents are valid.
-  Persistent persistent = 10;
+  Persistent persistent = 7;
 }

@@ -13,6 +13,7 @@ go_library(
         "in_memory_location_blob_map.go",
         "in_memory_reference_location_record_array.go",
         "location_blob_map.go",
+        "location_record_array_factory.go",
         "periodic_syncer.go",
         "persistent_epoch_list.go",
         "persistent_state_source.go",
