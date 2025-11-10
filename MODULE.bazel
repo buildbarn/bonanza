@@ -11,7 +11,7 @@ bazel_dep(name = "gazelle", version = "0.45.0")
 bazel_dep(name = "googleapis", version = "0.0.0-20250826-a92cee39")
 bazel_dep(name = "jsonnet_go", version = "0.21.0")
 bazel_dep(name = "platforms", version = "1.0.0")
-bazel_dep(name = "toolchains_protoc", version = "0.5.0")  # must come BEFORE protobuf so the toolchain registration wins
+bazel_dep(name = "toolchains_protoc", version = "0.6.0")  # must come BEFORE protobuf so the toolchain registration wins
 bazel_dep(name = "protobuf", version = "31.1")
 bazel_dep(name = "rules_go", version = "0.57.0")
 bazel_dep(name = "rules_jsonnet", version = "0.7.2")
@@ -26,13 +26,13 @@ git_override(
 
 git_override(
     module_name = "com_github_buildbarn_bb_remote_execution",
-    commit = "83bbddc17a9188fe4a88c13aea56bf9909250b6c",
+    commit = "cb7e1a5ca58c7b4c18dcf198a0649acef8db68e6",
     remote = "https://github.com/buildbarn/bb-remote-execution.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_bb_storage",
-    commit = "7199df9e3c26961561ee32953216d7058f274b44",
+    commit = "ce5f77fb429ceffd2675b90cce088a3e1c0dde6b",
     patches = ["//:patches/com_github_buildbarn_bb_storage/no-golint.diff"],
     remote = "https://github.com/buildbarn/bb-storage.git",
 )
@@ -59,7 +59,7 @@ single_version_override(
 )
 
 protoc = use_extension("@toolchains_protoc//protoc:extensions.bzl", "protoc")
-protoc.toolchain(version = "v31.1")
+protoc.toolchain(version = "v33.0")
 
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
