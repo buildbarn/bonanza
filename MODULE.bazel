@@ -7,32 +7,33 @@ bazel_dep(name = "bazel_skylib", version = "1.8.1")
 bazel_dep(name = "com_github_buildbarn_bb_remote_execution")
 bazel_dep(name = "com_github_buildbarn_bb_storage")
 bazel_dep(name = "com_github_buildbarn_go_xdr")
-bazel_dep(name = "gazelle", version = "0.45.0")
-bazel_dep(name = "googleapis", version = "0.0.0-20250826-a92cee39")
+bazel_dep(name = "gazelle", version = "0.47.0")
+bazel_dep(name = "googleapis", version = "0.0.0-20251104-53af3b72")
 bazel_dep(name = "jsonnet_go", version = "0.21.0")
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "toolchains_protoc", version = "0.6.0")  # must come BEFORE protobuf so the toolchain registration wins
-bazel_dep(name = "protobuf", version = "31.1")
-bazel_dep(name = "rules_go", version = "0.57.0")
+bazel_dep(name = "protobuf", version = "33.0")
+bazel_dep(name = "rules_go", version = "0.59.0")
 bazel_dep(name = "rules_jsonnet", version = "0.7.2")
 bazel_dep(name = "rules_proto", version = "7.1.0")
+bazel_dep(name = "rules_shell", version = "0.6.1")
 bazel_dep(name = "toolchains_llvm", version = "1.5.0")
 
 git_override(
     module_name = "bazel_remote_apis",
-    commit = "824e1ba94b2db15f68ceff97ae6da503fbc26985",
+    commit = "3860ca2d3e559d487b7d4ad07aa2a4a08d7624da",
     remote = "https://github.com/bazelbuild/remote-apis.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_bb_remote_execution",
-    commit = "cb7e1a5ca58c7b4c18dcf198a0649acef8db68e6",
+    commit = "a750e60fa89bb5042df43039d226a51940762b28",
     remote = "https://github.com/buildbarn/bb-remote-execution.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_bb_storage",
-    commit = "ce5f77fb429ceffd2675b90cce088a3e1c0dde6b",
+    commit = "faf8fe60ecd0453a128383dee1a270ac6c161c3c",
     patches = ["//:patches/com_github_buildbarn_bb_storage/no-golint.diff"],
     remote = "https://github.com/buildbarn/bb-storage.git",
 )
