@@ -134,11 +134,11 @@ message PredeclaredPlatformQueueConfiguration {
   // There is a small probability that this implementation runs actions
   // on size classes even if it is fairly certain that they are
   // suboptimal (either too small or too large). This is necessary, as
-  // without it there is a chance that previous execution statistics
-  // stored in the ISCC remain permanently outdated. The downside of
-  // this strategy is that it may cause unnecessary delays, especially
-  // when attempted against long-running actions that are part of the
-  // critical path of a build.
+  // without it there is a chance that previous execution statistics in
+  // storage remain permanently outdated. The downside of this strategy
+  // is that it may cause unnecessary delays, especially when attempted
+  // against long-running actions that are part of the critical path of
+  // a build.
   //
   // To mitigate this, this implementation uses an alternative execution
   // strategy in case there is a >50% probability of failure on a

@@ -48,7 +48,9 @@ message Key {
   bytes signature_public_key = 1;
 
   // Hash of parameters that are part of the key. The method that is
-  // used to compute the hash is application specific.
+  // used to compute the hash is application specific. If the hash is
+  // based on a Protobuf message, it is recommended that the message is
+  // embedded in a google.protobuf.Any prior to hashing.
   //
   // This implementation currently requires the hash to be 64 bytes (256
   // bits) in size.

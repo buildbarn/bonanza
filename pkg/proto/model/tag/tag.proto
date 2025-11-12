@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package bonanza.model.tag;
+
+import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
+import "bonanza.build/pkg/proto/storage/object/object.proto";
+
+option go_package = "bonanza.build/pkg/proto/model/tag";
+
+// The set of parameters that should always be considered when computing
+// the hash of a tag key. By having these parameters included in the
+// hash, we ensure that key rotation does not lead to existing tags
+// getting misinterpreted.
+message CommonKeyHashInput {
+  // Elliptic-curve public key in PKIX, ASN.1 DER form that is used to
+  // sign the tag.
+  bytes signature_public_key = 1;
+
+  // The expected format of the reference contained in the tag.
+  bonanza.storage.object.ReferenceFormat.Value reference_format = 2;
+
+  // The expected list of encoders that was used to encode the data
+  // contained in the object referenced by the tag.
+  //
+  // As the tag store is only capable of storing a bare reference (not a
+  // decodable reference), these encoders must not yield any decoding
+  // parameters.
+  repeated bonanza.model.encoding.BinaryEncoder object_encoders = 3;
+}

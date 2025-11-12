@@ -209,8 +209,9 @@ func (*InvocationKeyExtractorConfiguration_AuthenticationMetadata) isInvocationK
 }
 
 type InitialSizeClassAnalyzerConfiguration struct {
-	state                   protoimpl.MessageState `protogen:"open.v1"`
-	MaximumExecutionTimeout *durationpb.Duration   `protobuf:"bytes,1,opt,name=maximum_execution_timeout,json=maximumExecutionTimeout,proto3" json:"maximum_execution_timeout,omitempty"`
+	state                   protoimpl.MessageState                               `protogen:"open.v1"`
+	MaximumExecutionTimeout *durationpb.Duration                                 `protobuf:"bytes,1,opt,name=maximum_execution_timeout,json=maximumExecutionTimeout,proto3" json:"maximum_execution_timeout,omitempty"`
+	FeedbackDriven          *InitialSizeClassFeedbackDrivenAnalyzerConfiguration `protobuf:"bytes,2,opt,name=feedback_driven,json=feedbackDriven,proto3" json:"feedback_driven,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -252,6 +253,141 @@ func (x *InitialSizeClassAnalyzerConfiguration) GetMaximumExecutionTimeout() *du
 	return nil
 }
 
+func (x *InitialSizeClassAnalyzerConfiguration) GetFeedbackDriven() *InitialSizeClassFeedbackDrivenAnalyzerConfiguration {
+	if x != nil {
+		return x.FeedbackDriven
+	}
+	return nil
+}
+
+type InitialSizeClassFeedbackDrivenAnalyzerConfiguration struct {
+	state                protoimpl.MessageState                                   `protogen:"open.v1"`
+	FailureCacheDuration *durationpb.Duration                                     `protobuf:"bytes,1,opt,name=failure_cache_duration,json=failureCacheDuration,proto3" json:"failure_cache_duration,omitempty"`
+	HistorySize          int32                                                    `protobuf:"varint,2,opt,name=history_size,json=historySize,proto3" json:"history_size,omitempty"`
+	PageRank             *InitialSizeClassPageRankStrategyCalculatorConfiguration `protobuf:"bytes,3,opt,name=page_rank,json=pageRank,proto3" json:"page_rank,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) Reset() {
+	*x = InitialSizeClassFeedbackDrivenAnalyzerConfiguration{}
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitialSizeClassFeedbackDrivenAnalyzerConfiguration) ProtoMessage() {}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitialSizeClassFeedbackDrivenAnalyzerConfiguration.ProtoReflect.Descriptor instead.
+func (*InitialSizeClassFeedbackDrivenAnalyzerConfiguration) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) GetFailureCacheDuration() *durationpb.Duration {
+	if x != nil {
+		return x.FailureCacheDuration
+	}
+	return nil
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) GetHistorySize() int32 {
+	if x != nil {
+		return x.HistorySize
+	}
+	return 0
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) GetPageRank() *InitialSizeClassPageRankStrategyCalculatorConfiguration {
+	if x != nil {
+		return x.PageRank
+	}
+	return nil
+}
+
+type InitialSizeClassPageRankStrategyCalculatorConfiguration struct {
+	state                                      protoimpl.MessageState `protogen:"open.v1"`
+	AcceptableExecutionTimeIncreaseExponent    float64                `protobuf:"fixed64,1,opt,name=acceptable_execution_time_increase_exponent,json=acceptableExecutionTimeIncreaseExponent,proto3" json:"acceptable_execution_time_increase_exponent,omitempty"`
+	SmallerSizeClassExecutionTimeoutMultiplier float64                `protobuf:"fixed64,2,opt,name=smaller_size_class_execution_timeout_multiplier,json=smallerSizeClassExecutionTimeoutMultiplier,proto3" json:"smaller_size_class_execution_timeout_multiplier,omitempty"`
+	MinimumExecutionTimeout                    *durationpb.Duration   `protobuf:"bytes,3,opt,name=minimum_execution_timeout,json=minimumExecutionTimeout,proto3" json:"minimum_execution_timeout,omitempty"`
+	MaximumConvergenceError                    float64                `protobuf:"fixed64,4,opt,name=maximum_convergence_error,json=maximumConvergenceError,proto3" json:"maximum_convergence_error,omitempty"`
+	unknownFields                              protoimpl.UnknownFields
+	sizeCache                                  protoimpl.SizeCache
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) Reset() {
+	*x = InitialSizeClassPageRankStrategyCalculatorConfiguration{}
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitialSizeClassPageRankStrategyCalculatorConfiguration) ProtoMessage() {}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitialSizeClassPageRankStrategyCalculatorConfiguration.ProtoReflect.Descriptor instead.
+func (*InitialSizeClassPageRankStrategyCalculatorConfiguration) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) GetAcceptableExecutionTimeIncreaseExponent() float64 {
+	if x != nil {
+		return x.AcceptableExecutionTimeIncreaseExponent
+	}
+	return 0
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) GetSmallerSizeClassExecutionTimeoutMultiplier() float64 {
+	if x != nil {
+		return x.SmallerSizeClassExecutionTimeoutMultiplier
+	}
+	return 0
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) GetMinimumExecutionTimeout() *durationpb.Duration {
+	if x != nil {
+		return x.MinimumExecutionTimeout
+	}
+	return nil
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) GetMaximumConvergenceError() float64 {
+	if x != nil {
+		return x.MaximumConvergenceError
+	}
+	return 0
+}
+
 var File_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc = "" +
@@ -265,9 +401,19 @@ const file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDe
 	"\x1binitial_size_class_analyzer\x18\x02 \x01(\v2F.bonanza.configuration.scheduler.InitialSizeClassAnalyzerConfigurationR\x18initialSizeClassAnalyzer\"\x80\x01\n" +
 	"#InvocationKeyExtractorConfiguration\x12Q\n" +
 	"\x17authentication_metadata\x18\x01 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x16authenticationMetadataB\x06\n" +
-	"\x04kind\"~\n" +
+	"\x04kind\"\xfd\x01\n" +
 	"%InitialSizeClassAnalyzerConfiguration\x12U\n" +
-	"\x19maximum_execution_timeout\x18\x01 \x01(\v2\x19.google.protobuf.DurationR\x17maximumExecutionTimeoutB1Z/bonanza.build/pkg/proto/configuration/schedulerb\x06proto3"
+	"\x19maximum_execution_timeout\x18\x01 \x01(\v2\x19.google.protobuf.DurationR\x17maximumExecutionTimeout\x12}\n" +
+	"\x0ffeedback_driven\x18\x02 \x01(\v2T.bonanza.configuration.scheduler.InitialSizeClassFeedbackDrivenAnalyzerConfigurationR\x0efeedbackDriven\"\xa0\x02\n" +
+	"3InitialSizeClassFeedbackDrivenAnalyzerConfiguration\x12O\n" +
+	"\x16failure_cache_duration\x18\x01 \x01(\v2\x19.google.protobuf.DurationR\x14failureCacheDuration\x12!\n" +
+	"\fhistory_size\x18\x02 \x01(\x05R\vhistorySize\x12u\n" +
+	"\tpage_rank\x18\x03 \x01(\v2X.bonanza.configuration.scheduler.InitialSizeClassPageRankStrategyCalculatorConfigurationR\bpageRank\"\x8f\x03\n" +
+	"7InitialSizeClassPageRankStrategyCalculatorConfiguration\x12\\\n" +
+	"+acceptable_execution_time_increase_exponent\x18\x01 \x01(\x01R'acceptableExecutionTimeIncreaseExponent\x12c\n" +
+	"/smaller_size_class_execution_timeout_multiplier\x18\x02 \x01(\x01R*smallerSizeClassExecutionTimeoutMultiplier\x12U\n" +
+	"\x19minimum_execution_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\x17minimumExecutionTimeout\x12:\n" +
+	"\x19maximum_convergence_error\x18\x04 \x01(\x01R\x17maximumConvergenceErrorB1Z/bonanza.build/pkg/proto/configuration/schedulerb\x06proto3"
 
 var (
 	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescOnce sync.Once
@@ -281,26 +427,32 @@ func file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDes
 	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescData
 }
 
-var file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_goTypes = []any{
-	(*ActionRouterConfiguration)(nil),             // 0: bonanza.configuration.scheduler.ActionRouterConfiguration
-	(*SimpleActionRouterConfiguration)(nil),       // 1: bonanza.configuration.scheduler.SimpleActionRouterConfiguration
-	(*InvocationKeyExtractorConfiguration)(nil),   // 2: bonanza.configuration.scheduler.InvocationKeyExtractorConfiguration
-	(*InitialSizeClassAnalyzerConfiguration)(nil), // 3: bonanza.configuration.scheduler.InitialSizeClassAnalyzerConfiguration
-	(*emptypb.Empty)(nil),                         // 4: google.protobuf.Empty
-	(*durationpb.Duration)(nil),                   // 5: google.protobuf.Duration
+	(*ActionRouterConfiguration)(nil),                               // 0: bonanza.configuration.scheduler.ActionRouterConfiguration
+	(*SimpleActionRouterConfiguration)(nil),                         // 1: bonanza.configuration.scheduler.SimpleActionRouterConfiguration
+	(*InvocationKeyExtractorConfiguration)(nil),                     // 2: bonanza.configuration.scheduler.InvocationKeyExtractorConfiguration
+	(*InitialSizeClassAnalyzerConfiguration)(nil),                   // 3: bonanza.configuration.scheduler.InitialSizeClassAnalyzerConfiguration
+	(*InitialSizeClassFeedbackDrivenAnalyzerConfiguration)(nil),     // 4: bonanza.configuration.scheduler.InitialSizeClassFeedbackDrivenAnalyzerConfiguration
+	(*InitialSizeClassPageRankStrategyCalculatorConfiguration)(nil), // 5: bonanza.configuration.scheduler.InitialSizeClassPageRankStrategyCalculatorConfiguration
+	(*emptypb.Empty)(nil),                                           // 6: google.protobuf.Empty
+	(*durationpb.Duration)(nil),                                     // 7: google.protobuf.Duration
 }
 var file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_depIdxs = []int32{
 	1, // 0: bonanza.configuration.scheduler.ActionRouterConfiguration.simple:type_name -> bonanza.configuration.scheduler.SimpleActionRouterConfiguration
 	2, // 1: bonanza.configuration.scheduler.SimpleActionRouterConfiguration.invocation_key_extractors:type_name -> bonanza.configuration.scheduler.InvocationKeyExtractorConfiguration
 	3, // 2: bonanza.configuration.scheduler.SimpleActionRouterConfiguration.initial_size_class_analyzer:type_name -> bonanza.configuration.scheduler.InitialSizeClassAnalyzerConfiguration
-	4, // 3: bonanza.configuration.scheduler.InvocationKeyExtractorConfiguration.authentication_metadata:type_name -> google.protobuf.Empty
-	5, // 4: bonanza.configuration.scheduler.InitialSizeClassAnalyzerConfiguration.maximum_execution_timeout:type_name -> google.protobuf.Duration
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	6, // 3: bonanza.configuration.scheduler.InvocationKeyExtractorConfiguration.authentication_metadata:type_name -> google.protobuf.Empty
+	7, // 4: bonanza.configuration.scheduler.InitialSizeClassAnalyzerConfiguration.maximum_execution_timeout:type_name -> google.protobuf.Duration
+	4, // 5: bonanza.configuration.scheduler.InitialSizeClassAnalyzerConfiguration.feedback_driven:type_name -> bonanza.configuration.scheduler.InitialSizeClassFeedbackDrivenAnalyzerConfiguration
+	7, // 6: bonanza.configuration.scheduler.InitialSizeClassFeedbackDrivenAnalyzerConfiguration.failure_cache_duration:type_name -> google.protobuf.Duration
+	5, // 7: bonanza.configuration.scheduler.InitialSizeClassFeedbackDrivenAnalyzerConfiguration.page_rank:type_name -> bonanza.configuration.scheduler.InitialSizeClassPageRankStrategyCalculatorConfiguration
+	7, // 8: bonanza.configuration.scheduler.InitialSizeClassPageRankStrategyCalculatorConfiguration.minimum_execution_timeout:type_name -> google.protobuf.Duration
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_init() }
@@ -320,7 +472,7 @@ func file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_init()
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

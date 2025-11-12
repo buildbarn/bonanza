@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"os"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	remoteexecution_pb "bonanza.build/pkg/proto/remoteexecution"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
 	"bonanza.build/pkg/scheduler"
+	"bonanza.build/pkg/scheduler/initialsizeclass"
 	"bonanza.build/pkg/scheduler/routing"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
@@ -39,10 +41,15 @@ func main() {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
 
+		// TODO: Let the scheduler talk to storage, so it can
+		// store previous execution stats.
+		var previousExecutionStatsStore initialsizeclass.PreviousExecutionStatsStore
+		var previousExecutionStatsCommonKeyHash [sha256.Size]byte
+
 		// Create an action router that is responsible for analyzing
 		// incoming execution requests and determining how they are
 		// scheduled.
-		actionRouter, err := routing.NewActionRouterFromConfiguration(configuration.ActionRouter)
+		actionRouter, err := routing.NewActionRouterFromConfiguration(configuration.ActionRouter, previousExecutionStatsStore, previousExecutionStatsCommonKeyHash)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create action router")
 		}

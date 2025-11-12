@@ -62,4 +62,151 @@ message InvocationKeyExtractorConfiguration {
 message InitialSizeClassAnalyzerConfiguration {
   // Maximum permitted execution timeout.
   google.protobuf.Duration maximum_execution_timeout = 1;
+
+  // When set, persist statistics on execution times and outcomes into
+  // storage, so that future invocations of similar actions can be
+  // scheduled more intelligently.
+  InitialSizeClassFeedbackDrivenAnalyzerConfiguration feedback_driven = 2;
+}
+
+message InitialSizeClassFeedbackDrivenAnalyzerConfiguration {
+  // Immediately schedule actions on the largest size class if they have
+  // failed at least once within the provided timeframe.
+  //
+  // Actions that fail on any size class other than the largest will
+  // always be retried on the largest size class to rule out failures
+  // caused by a lack of resources. This means that if an action is
+  // known to fail, attempting to run it on smaller size classes causes
+  // unnecessary delays in error reporting.
+  //
+  // During iterative development, it is likely that the same action
+  // action is invoked repeatedly, each time having a high probability
+  // of failure. This option controls how long these kinds of actions
+  // should receive a boost, allowing them to be run on the largest size
+  // class and fail quickly.
+  //
+  // Recommended value: 86400s (1 day)
+  google.protobuf.Duration failure_cache_duration = 1;
+
+  // The number of action outcomes to store per size class. Increasing
+  // this improves the accuracy of timing information that is captured,
+  // but has the downside that the system responds to changes in
+  // behavior of actions less quickly.
+  //
+  // To ensure that the system does not end up in a steady state where
+  // actions are always run on the same size class, there is roughly a
+  // 1.0 / history_size probability that actions are run on sizes
+  // classes other than the optimum, regardless of historical outcomes.
+  //
+  // Recommended value: 32
+  int32 history_size = 2;
+
+  // When not set, run all actions on the smallest size class for which
+  // workers exist. Upon failure, retry actions on the largest size
+  // class. This mode is not recommended for setups with more than two
+  // size classes, or workloads where build times matter.
+  //
+  // When set, run all actions on the largest size class if not seen
+  // before. Future invocations of actions with the same command line
+  // arguments and environment variables will run on all size classes,
+  // using probabilities based on how their execution times compare to
+  // those of the largest size class.
+  InitialSizeClassPageRankStrategyCalculatorConfiguration page_rank = 3;
+}
+
+message InitialSizeClassPageRankStrategyCalculatorConfiguration {
+  // An exponent to determine whether an increase in execution time when
+  // scheduling an action on a smaller size class is considere
+  // acceptable.
+  //
+  // For example, consider the case where this exponent is set to 0.7,
+  // and a given action is known to have a 60s median execution time on
+  // the largest workers, having size class 16. For the execution time
+  // to be considered being acceptable on a smaller size class, this
+  // action must complete within:
+  //
+  // - 60s*(16/1)^0.7 = 417.8s on a worker with size class 1,
+  // - 60s*(16/2)^0.7 = 257.2s on a worker with size class 2,
+  // - 60s*(16/4)^0.7 = 158.3s on a worker with size class 4,
+  // - 60s*(16/8)^0.7 =  97.7s on a worker with size class 8.
+  //
+  // Whereas if this exponent is set to 0.3, the acceptable execution
+  // times would be significantly lower:
+  //
+  // - 60s*(16/1)^0.3 = 137.8s on a worker with size class 1,
+  // - 60s*(16/2)^0.3 = 112.0s on a worker with size class 2,
+  // - 60s*(16/4)^0.3 =  90.9s on a worker with size class 4,
+  // - 60s*(16/8)^0.3 =  73.9s on a worker with size class 8.
+  //
+  // In effect, this exponent determines how much speed you are willing
+  // to sacrifice for increased worker utilization. Setting this
+  // exponent to a higher value will increase worker utilization, but
+  // may cause actions that are only somewhat parallel to run slower.
+  //
+  // Recommended value: somewhere between 0.2 and 0.8.
+  double acceptable_execution_time_increase_exponent = 1;
+
+  // Actions scheduled on smaller size classes are run with a reduced
+  // timeout value that is based on the acceptable execution time of the
+  // action for that size class (see above). This ensures that if a
+  // misprediction is made and an action is running unacceptably slow on
+  // a size class that is too small, it is terminated and quickly
+  // retried on the largest size class.
+  //
+  // This option configures a multiplier that needs to be applied when
+  // computing the action's timeout. Setting it to >1.0 gives an action
+  // a bit more time to finish its work, even if its execution time has
+  // become unacceptable. This has two advantages:
+  //
+  // - Less work is wasted, as the action may likely still complete.
+  // - If we still observe a timeout on the smaller size class, we
+  //   insert a higher quality data point.
+  //
+  // Recommended value: 1.5
+  double smaller_size_class_execution_timeout_multiplier = 2;
+
+  // The execution timeout value that is used on smaller size classes is
+  // proportional to the median execution time observed on the largest
+  // size class. This means that if the median execution time on the
+  // largest size class is in the milliseconds, so will be the execution
+  // timeout on smaller size classes.
+  //
+  // Because this tends to introduce too much flakiness, this option can
+  // be used to set an lower bound on the execution timeout.
+  //
+  // Recommended value: 10s
+  google.protobuf.Duration minimum_execution_timeout = 3;
+
+  // This implementation compares previous execution stats between every
+  // pair of size classes. The resulting scores are stored in a
+  // stochastic matrix, of which the resulting eigenvector contains the
+  // probabilities at which size classes should be chosen. This
+  // algorithm has a strong resemblance with PageRank.
+  //
+  // To compute the eigenvector, a process called "power iteration" is
+  // used, in which repeated matrix multiplications are performed. This
+  // method approximates the eigenvector, each iteration giving more
+  // accurate results. This option can be used to control how many
+  // iterations should be performed. Matrix multiplication will be
+  // terminated as soon as the maximum observed error drops below a
+  // certain value.
+  //
+  // It is generally possible to set this option to an aggressive (low)
+  // value, for a couple of reasons:
+  //
+  // - The number of size classes tends to be small (<10), meaning that
+  //   the resulting probability matrix is also not too big (<10x10).
+  // - The probability function used to populate the stochastic matrix
+  //   is total and asymmetric, meaning that every iteration strongly
+  //   contributes to convergence.
+  // - Probabilities of previous executions of the same action are
+  //   cached in storage, meaning that the algorithm often has a good
+  //   starting point.
+  //
+  // Still, it is recommended to inspect Prometheus metrics
+  // buildbarn_builder_page_rank_strategy_calculator_* in case changes
+  // are made to this option to assess the performance impact.
+  //
+  // Recommended value: 0.002
+  double maximum_convergence_error = 4;
 }

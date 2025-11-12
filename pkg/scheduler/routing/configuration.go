@@ -1,6 +1,8 @@
 package routing
 
 import (
+	"crypto/sha256"
+
 	pb "bonanza.build/pkg/proto/configuration/scheduler"
 	"bonanza.build/pkg/scheduler/initialsizeclass"
 	"bonanza.build/pkg/scheduler/invocation"
@@ -13,7 +15,7 @@ import (
 
 // NewActionRouterFromConfiguration creates an ActionRouter based on
 // options specified in a configuration file.
-func NewActionRouterFromConfiguration(configuration *pb.ActionRouterConfiguration) (ActionRouter, error) {
+func NewActionRouterFromConfiguration(configuration *pb.ActionRouterConfiguration, previousExecutionStatsStore initialsizeclass.PreviousExecutionStatsStore, previousExecutionStatsCommonKeyHash [sha256.Size]byte) (ActionRouter, error) {
 	if configuration == nil {
 		return nil, status.Error(codes.InvalidArgument, "No action router configuration provided")
 	}
@@ -27,7 +29,7 @@ func NewActionRouterFromConfiguration(configuration *pb.ActionRouterConfiguratio
 			}
 			invocationKeyExtractors = append(invocationKeyExtractors, invocationKeyExtractor)
 		}
-		initialSizeClassAnalyzer, err := initialsizeclass.NewAnalyzerFromConfiguration(kind.Simple.InitialSizeClassAnalyzer)
+		initialSizeClassAnalyzer, err := initialsizeclass.NewAnalyzerFromConfiguration(kind.Simple.InitialSizeClassAnalyzer, previousExecutionStatsStore, previousExecutionStatsCommonKeyHash)
 		if err != nil {
 			return nil, util.StatusWrap(err, "Failed to create initial size class analyzer")
 		}

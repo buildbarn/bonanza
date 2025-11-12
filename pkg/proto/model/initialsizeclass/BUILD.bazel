@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "initialsizeclass_proto",
+    srcs = ["initialsizeclass.proto"],
+    import_prefix = "bonanza.build",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@protobuf//:duration_proto",
+        "@protobuf//:empty_proto",
+        "@protobuf//:timestamp_proto",
+    ],
+)
+
+go_proto_library(
+    name = "initialsizeclass_go_proto",
+    importpath = "bonanza.build/pkg/proto/model/initialsizeclass",
+    proto = ":initialsizeclass_proto",
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "initialsizeclass",
+    embed = [":initialsizeclass_go_proto"],
+    importpath = "bonanza.build/pkg/proto/model/initialsizeclass",
+    visibility = ["//visibility:public"],
+)

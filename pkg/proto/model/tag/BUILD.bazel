@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "tag_proto",
+    srcs = ["tag.proto"],
+    import_prefix = "bonanza.build",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/proto/model/encoding:encoding_proto",
+        "//pkg/proto/storage/object:object_proto",
+    ],
+)
+
+go_proto_library(
+    name = "tag_go_proto",
+    importpath = "bonanza.build/pkg/proto/model/tag",
+    proto = ":tag_proto",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/proto/model/encoding",
+        "//pkg/proto/storage/object",
+    ],
+)
+
+go_library(
+    name = "tag",
+    embed = [":tag_go_proto"],
+    importpath = "bonanza.build/pkg/proto/model/tag",
+    visibility = ["//visibility:public"],
+)

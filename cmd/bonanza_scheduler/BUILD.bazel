@@ -12,6 +12,7 @@ go_library(
         "//pkg/proto/remoteexecution",
         "//pkg/proto/remoteworker",
         "//pkg/scheduler",
+        "//pkg/scheduler/initialsizeclass",
         "//pkg/scheduler/routing",
         "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/global",

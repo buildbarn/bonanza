@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package bonanza.model.initialsizeclass;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "bonanza.build/pkg/proto/model/initialsizeclass";
+
+// The outcome of a single action at some point in the past.
+message PreviousExecution {
+  oneof outcome {
+    // Execution failed with an error.
+    google.protobuf.Empty failed = 1;
+
+    // Execution failed due to a timeout. The timeout value is stored.
+    google.protobuf.Duration timed_out = 2;
+
+    // Execution succeeded. The virtual execution duration is stored.
+    google.protobuf.Duration succeeded = 3;
+  }
+}
+
+// Outcomes of actions for a given size class.
+message PerSizeClassStats {
+  // The most recent outcomes for this size class, where the last entry
+  // corresponds to the most recent one.
+  repeated PreviousExecution previous_executions = 1;
+
+  // An initial probability value to be used for PageRank computation.
+  // These values may correspond to outcomes of previous PageRank
+  // computations. Reloading them may make it possible to recompute
+  // future PageRank probabilities values more quickly.
+  double initial_page_rank_probability = 2;
+}
+
+// PreviousExecutionStats holds outcomes of previous executions of an
+// action. This data is then used during successive actions of the same
+// shape to pick the initial size class on which the action needs to be
+// run.
+message PreviousExecutionStats {
+  // Outcomes of previous executions of actions, per size class.
+  map<uint32, PerSizeClassStats> size_classes = 1;
+
+  // The time at which this action failed on the largest size class.
+  google.protobuf.Timestamp last_seen_failure = 2;
+}
+
+message TagKeyHashInput {
+  // SHA-256 hash of the bonanza.model.tag.CommonKeyHashInput message
+  // containing common parameters that need to be considered when
+  // computing a tag key hash.
+  bytes common_key_hash = 1;
+
+  // The elliptic-curve public key that identifies the platform that
+  // should be used to execute the action in PKIX, ASN.1 DER form.
+  bytes platform_pkix_public_key = 2;
+
+  // Fingerprint of the action that the scheduler may use to record
+  // resource usage statistics of the action. The fingerprint is
+  // expected to remain stable if minor changes are made to the action
+  // that are unlikely to affect its resource usage characteristics.
+  bytes stable_fingerprint = 3;
+}

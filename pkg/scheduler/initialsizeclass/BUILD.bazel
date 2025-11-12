@@ -1,3 +1,4 @@
+load("@rules_go//extras:gomock.bzl", "gomock")
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
@@ -7,15 +8,29 @@ go_library(
         "analyzer.go",
         "configuration.go",
         "fallback_analyzer.go",
+        "feedback_driven_analyzer.go",
+        "outcomes.go",
+        "page_rank_strategy_calculator.go",
+        "smallest_size_class_strategy_calculator.go",
+        "strategy_calculator.go",
     ],
     importpath = "bonanza.build/pkg/scheduler/initialsizeclass",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/configuration/scheduler",
         "//pkg/proto/encryptedaction",
+        "//pkg/proto/model/initialsizeclass",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
+        "@com_github_buildbarn_bb_storage//pkg/random",
         "@com_github_buildbarn_bb_storage//pkg/util",
+        "@com_github_prometheus_client_golang//prometheus",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/anypb",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/emptypb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
 )
 
@@ -24,14 +39,60 @@ go_test(
     srcs = [
         "action_timeout_extractor_test.go",
         "fallback_analyzer_test.go",
+        "feedback_driven_analyzer_test.go",
+        "mocks_clock_test.go",
+        "mocks_initialsizeclass_test.go",
+        "mocks_random_test.go",
+        "outcomes_test.go",
+        "page_rank_strategy_calculator_test.go",
     ],
+    embed = [":initialsizeclass"],
     deps = [
-        ":initialsizeclass",
         "//pkg/proto/encryptedaction",
+        "//pkg/proto/model/initialsizeclass",
+        "@com_github_buildbarn_bb_storage//pkg/clock",  # keep
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/emptypb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+        "@org_uber_go_mock//gomock",
     ],
+)
+
+gomock(
+    name = "mocks_clock",
+    out = "mocks_clock_test.go",
+    interfaces = ["Clock"],
+    library = "@com_github_buildbarn_bb_storage//pkg/clock",
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "initialsizeclass_test",
+)
+
+gomock(
+    name = "mocks_initialsizeclass",
+    out = "mocks_initialsizeclass_test.go",
+    interfaces = [
+        "Analyzer",
+        "PreviousExecutionStatsHandle",
+        "PreviousExecutionStatsStore",
+        "StrategyCalculator",
+    ],
+    library = "//pkg/scheduler/initialsizeclass",
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "initialsizeclass_test",
+)
+
+gomock(
+    name = "mocks_random",
+    out = "mocks_random_test.go",
+    interfaces = ["SingleThreadedGenerator"],
+    library = "@com_github_buildbarn_bb_storage//pkg/random",
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "initialsizeclass_test",
 )
