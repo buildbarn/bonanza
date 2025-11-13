@@ -1,7 +1,6 @@
 package starlark
 
 import (
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -24,10 +23,7 @@ type Attr[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	defaultValue starlark.Value
 }
 
-var (
-	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Attr[object.LocalReference, model_core.ReferenceMetadata])(nil)
-	_ starlark.Comparable                                                 = (*Attr[object.LocalReference, model_core.ReferenceMetadata])(nil)
-)
+var _ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Attr[object.LocalReference, model_core.ReferenceMetadata])(nil)
 
 func NewAttr[TReference any, TMetadata model_core.ReferenceMetadata](attrType AttrType[TReference, TMetadata], defaultValue starlark.Value) *Attr[TReference, TMetadata] {
 	return &Attr[TReference, TMetadata]{
@@ -91,35 +87,6 @@ func (a *Attr[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 		}, nil
 	})
 	return value, needsCode, err
-}
-
-func (a *Attr[TReference, TMetadata]) CompareSameType(thread *starlark.Thread, op syntax.Token, other starlark.Value, depth int) (bool, error) {
-	// Compare the types.
-	options := thread.Local(ValueEncodingOptionsKey).(*ValueEncodingOptions[TReference, TMetadata])
-	m1 := model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Attr{})
-	m2 := model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Attr{})
-	if err := a.attrType.Encode(map[starlark.Value]struct{}{}, options, m1); err != nil {
-		return false, err
-	}
-	a2 := other.(*Attr[TReference, TMetadata])
-	if err := a2.attrType.Encode(map[starlark.Value]struct{}{}, options, m2); err != nil {
-		return false, err
-	}
-	switch op {
-	case syntax.EQL:
-		if !model_core.PatchedMessagesEqual(m1, m2) {
-			return false, nil
-		}
-	case syntax.NEQ:
-		if !model_core.PatchedMessagesEqual(m1, m2) {
-			return true, nil
-		}
-	default:
-		return false, errors.New("attr.* can only be compared for equality")
-	}
-
-	// Compare the default values.
-	return starlark.Compare(thread, op, a.defaultValue, a2.defaultValue)
 }
 
 type AttrType[TReference any, TMetadata model_core.ReferenceMetadata] interface {
