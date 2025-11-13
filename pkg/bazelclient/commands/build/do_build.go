@@ -230,8 +230,8 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		logger.Fatal(formatted.Textf("Failed to base64 decode value of --remote_encryption_key: %s", err))
 	}
 	defaultEncoders := []*model_encoding_pb.BinaryEncoder{{
-		Encoder: &model_encoding_pb.BinaryEncoder_DeterministicEncrypting{
-			DeterministicEncrypting: &model_encoding_pb.DeterministicEncryptingBinaryEncoder{
+		Encoder: &model_encoding_pb.BinaryEncoder_Encrypting{
+			Encrypting: &model_encoding_pb.EncryptingBinaryEncoder{
 				EncryptionKey: encryptionKeyBytes,
 			},
 		},

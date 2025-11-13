@@ -47,8 +47,8 @@ func NewBinaryEncoderFromProto(configurations []*model_encoding_pb.BinaryEncoder
 				encoders,
 				NewLZWCompressingBinaryEncoder(maximumDecodedSizeBytes),
 			)
-		case *model_encoding_pb.BinaryEncoder_DeterministicEncrypting:
-			aead, err := siv.NewGCM(encoderConfiguration.DeterministicEncrypting.EncryptionKey)
+		case *model_encoding_pb.BinaryEncoder_Encrypting:
+			aead, err := siv.NewGCM(encoderConfiguration.Encrypting.EncryptionKey)
 			if err != nil {
 				return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid encryption key")
 			}
@@ -72,7 +72,7 @@ func NewBinaryEncoderFromProto(configurations []*model_encoding_pb.BinaryEncoder
 
 			encoders = append(
 				encoders,
-				NewDeterministicEncryptingBinaryEncoder(aead, additionalData[:]),
+				NewEncryptingBinaryEncoder(aead, additionalData[:]),
 			)
 		default:
 			return nil, status.Error(codes.InvalidArgument, "Unknown binary encoder type")

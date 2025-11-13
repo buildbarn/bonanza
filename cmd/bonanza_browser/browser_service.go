@@ -511,7 +511,7 @@ func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObserv
     "lzwCompressing": {}
   },
   {
-    "deterministicEncrypting": {
+    "encrypting": {
       "encryptionKey": "..."
     }
   }

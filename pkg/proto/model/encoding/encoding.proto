@@ -6,7 +6,7 @@ import "google/protobuf/empty.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/encoding";
 
-message DeterministicEncryptingBinaryEncoder {
+message EncryptingBinaryEncoder {
   // 128 or 256-bit key that is used to encrypt the data.
   bytes encryption_key = 1;
 }
@@ -31,7 +31,7 @@ message BinaryEncoder {
     // ciphertext. Instead, it is stored in the decoding parameters that
     // are used to refer to the data. To reduce information leakage,
     // input is padded using the PADMÉ algorithm.
-    DeterministicEncryptingBinaryEncoder deterministic_encrypting = 2;
+    EncryptingBinaryEncoder encrypting = 2;
   }
 }
 

@@ -22,27 +22,27 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type DeterministicEncryptingBinaryEncoder struct {
+type EncryptingBinaryEncoder struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EncryptionKey []byte                 `protobuf:"bytes,1,opt,name=encryption_key,json=encryptionKey,proto3" json:"encryption_key,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeterministicEncryptingBinaryEncoder) Reset() {
-	*x = DeterministicEncryptingBinaryEncoder{}
+func (x *EncryptingBinaryEncoder) Reset() {
+	*x = EncryptingBinaryEncoder{}
 	mi := &file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeterministicEncryptingBinaryEncoder) String() string {
+func (x *EncryptingBinaryEncoder) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeterministicEncryptingBinaryEncoder) ProtoMessage() {}
+func (*EncryptingBinaryEncoder) ProtoMessage() {}
 
-func (x *DeterministicEncryptingBinaryEncoder) ProtoReflect() protoreflect.Message {
+func (x *EncryptingBinaryEncoder) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -54,12 +54,12 @@ func (x *DeterministicEncryptingBinaryEncoder) ProtoReflect() protoreflect.Messa
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeterministicEncryptingBinaryEncoder.ProtoReflect.Descriptor instead.
-func (*DeterministicEncryptingBinaryEncoder) Descriptor() ([]byte, []int) {
+// Deprecated: Use EncryptingBinaryEncoder.ProtoReflect.Descriptor instead.
+func (*EncryptingBinaryEncoder) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *DeterministicEncryptingBinaryEncoder) GetEncryptionKey() []byte {
+func (x *EncryptingBinaryEncoder) GetEncryptionKey() []byte {
 	if x != nil {
 		return x.EncryptionKey
 	}
@@ -71,7 +71,7 @@ type BinaryEncoder struct {
 	// Types that are valid to be assigned to Encoder:
 	//
 	//	*BinaryEncoder_LzwCompressing
-	//	*BinaryEncoder_DeterministicEncrypting
+	//	*BinaryEncoder_Encrypting
 	Encoder       isBinaryEncoder_Encoder `protobuf_oneof:"encoder"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -123,10 +123,10 @@ func (x *BinaryEncoder) GetLzwCompressing() *emptypb.Empty {
 	return nil
 }
 
-func (x *BinaryEncoder) GetDeterministicEncrypting() *DeterministicEncryptingBinaryEncoder {
+func (x *BinaryEncoder) GetEncrypting() *EncryptingBinaryEncoder {
 	if x != nil {
-		if x, ok := x.Encoder.(*BinaryEncoder_DeterministicEncrypting); ok {
-			return x.DeterministicEncrypting
+		if x, ok := x.Encoder.(*BinaryEncoder_Encrypting); ok {
+			return x.Encrypting
 		}
 	}
 	return nil
@@ -140,13 +140,13 @@ type BinaryEncoder_LzwCompressing struct {
 	LzwCompressing *emptypb.Empty `protobuf:"bytes,1,opt,name=lzw_compressing,json=lzwCompressing,proto3,oneof"`
 }
 
-type BinaryEncoder_DeterministicEncrypting struct {
-	DeterministicEncrypting *DeterministicEncryptingBinaryEncoder `protobuf:"bytes,2,opt,name=deterministic_encrypting,json=deterministicEncrypting,proto3,oneof"`
+type BinaryEncoder_Encrypting struct {
+	Encrypting *EncryptingBinaryEncoder `protobuf:"bytes,2,opt,name=encrypting,proto3,oneof"`
 }
 
 func (*BinaryEncoder_LzwCompressing) isBinaryEncoder_Encoder() {}
 
-func (*BinaryEncoder_DeterministicEncrypting) isBinaryEncoder_Encoder() {}
+func (*BinaryEncoder_Encrypting) isBinaryEncoder_Encoder() {}
 
 type BinaryEncoderList struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -196,12 +196,14 @@ var File_bonanza_build_pkg_proto_model_encoding_encoding_proto protoreflect.File
 
 const file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDesc = "" +
 	"\n" +
-	"5bonanza.build/pkg/proto/model/encoding/encoding.proto\x12\x16bonanza.model.encoding\x1a\x1bgoogle/protobuf/empty.proto\"M\n" +
-	"$DeterministicEncryptingBinaryEncoder\x12%\n" +
-	"\x0eencryption_key\x18\x01 \x01(\fR\rencryptionKey\"\xd8\x01\n" +
+	"5bonanza.build/pkg/proto/model/encoding/encoding.proto\x12\x16bonanza.model.encoding\x1a\x1bgoogle/protobuf/empty.proto\"@\n" +
+	"\x17EncryptingBinaryEncoder\x12%\n" +
+	"\x0eencryption_key\x18\x01 \x01(\fR\rencryptionKey\"\xb0\x01\n" +
 	"\rBinaryEncoder\x12A\n" +
-	"\x0flzw_compressing\x18\x01 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x0elzwCompressing\x12y\n" +
-	"\x18deterministic_encrypting\x18\x02 \x01(\v2<.bonanza.model.encoding.DeterministicEncryptingBinaryEncoderH\x00R\x17deterministicEncryptingB\t\n" +
+	"\x0flzw_compressing\x18\x01 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x0elzwCompressing\x12Q\n" +
+	"\n" +
+	"encrypting\x18\x02 \x01(\v2/.bonanza.model.encoding.EncryptingBinaryEncoderH\x00R\n" +
+	"encryptingB\t\n" +
 	"\aencoder\"V\n" +
 	"\x11BinaryEncoderList\x12A\n" +
 	"\bencoders\x18\x01 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\bencodersB(Z&bonanza.build/pkg/proto/model/encodingb\x06proto3"
@@ -220,14 +222,14 @@ func file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDescGZIP() []
 
 var file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_bonanza_build_pkg_proto_model_encoding_encoding_proto_goTypes = []any{
-	(*DeterministicEncryptingBinaryEncoder)(nil), // 0: bonanza.model.encoding.DeterministicEncryptingBinaryEncoder
-	(*BinaryEncoder)(nil),                        // 1: bonanza.model.encoding.BinaryEncoder
-	(*BinaryEncoderList)(nil),                    // 2: bonanza.model.encoding.BinaryEncoderList
-	(*emptypb.Empty)(nil),                        // 3: google.protobuf.Empty
+	(*EncryptingBinaryEncoder)(nil), // 0: bonanza.model.encoding.EncryptingBinaryEncoder
+	(*BinaryEncoder)(nil),           // 1: bonanza.model.encoding.BinaryEncoder
+	(*BinaryEncoderList)(nil),       // 2: bonanza.model.encoding.BinaryEncoderList
+	(*emptypb.Empty)(nil),           // 3: google.protobuf.Empty
 }
 var file_bonanza_build_pkg_proto_model_encoding_encoding_proto_depIdxs = []int32{
 	3, // 0: bonanza.model.encoding.BinaryEncoder.lzw_compressing:type_name -> google.protobuf.Empty
-	0, // 1: bonanza.model.encoding.BinaryEncoder.deterministic_encrypting:type_name -> bonanza.model.encoding.DeterministicEncryptingBinaryEncoder
+	0, // 1: bonanza.model.encoding.BinaryEncoder.encrypting:type_name -> bonanza.model.encoding.EncryptingBinaryEncoder
 	1, // 2: bonanza.model.encoding.BinaryEncoderList.encoders:type_name -> bonanza.model.encoding.BinaryEncoder
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
@@ -243,7 +245,7 @@ func file_bonanza_build_pkg_proto_model_encoding_encoding_proto_init() {
 	}
 	file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[1].OneofWrappers = []any{
 		(*BinaryEncoder_LzwCompressing)(nil),
-		(*BinaryEncoder_DeterministicEncrypting)(nil),
+		(*BinaryEncoder_Encrypting)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

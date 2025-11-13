@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestDeterministicEncryptingBinaryEncoder(t *testing.T) {
+func TestEncryptingBinaryEncoder(t *testing.T) {
 	aead, err := siv.NewGCM([]byte{
 		0x10, 0xc2, 0xfe, 0xfd, 0x4b, 0x11, 0x43, 0x9b,
 		0x1e, 0x73, 0xda, 0x12, 0xef, 0x53, 0xd1, 0x31,
@@ -22,7 +22,7 @@ func TestDeterministicEncryptingBinaryEncoder(t *testing.T) {
 		0x90, 0x6b, 0x23, 0x3c, 0x4a, 0x32, 0xa0, 0x14,
 	})
 	require.NoError(t, err)
-	binaryEncoder := encoding.NewDeterministicEncryptingBinaryEncoder(
+	binaryEncoder := encoding.NewEncryptingBinaryEncoder(
 		aead,
 		/* additionalData = */ []byte{
 			0xfb, 0x76, 0x80, 0x6e, 0xcb, 0x9d, 0x42, 0xd7, 0xbf, 0xa0, 0x3c, 0xf6,
