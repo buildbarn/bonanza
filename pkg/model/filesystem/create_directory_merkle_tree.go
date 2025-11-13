@@ -90,7 +90,7 @@ type directoryMerkleTreeBuilder[TDirectory, TFile model_core.ReferenceMetadata] 
 	context                     context.Context
 	concurrency                 *semaphore.Weighted
 	group                       *errgroup.Group
-	directoryEncoder            model_encoding.BinaryEncoder
+	directoryEncoder            model_encoding.DeterministicBinaryEncoder
 	directoryInlinedTreeOptions inlinedtree.Options
 	capturer                    DirectoryMerkleTreeCapturer[TDirectory, TFile]
 }

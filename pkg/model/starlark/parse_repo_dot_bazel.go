@@ -27,7 +27,7 @@ func ParseRepoDotBazel[TReference object.BasicReference, TMetadata model_core.Re
 	ctx context.Context,
 	contents string,
 	filename pg_label.CanonicalLabel,
-	encoder model_encoding.BinaryEncoder,
+	encoder model_encoding.DeterministicBinaryEncoder,
 	inlinedTreeOptions *inlinedtree.Options,
 	objectCapturer model_core.ObjectCapturer[TReference, TMetadata],
 	labelResolver pg_label.Resolver,
@@ -85,7 +85,7 @@ func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata mode
 	args starlark.Tuple,
 	kwargs []starlark.Tuple,
 	previousInheritableAttrs model_core.Message[*model_starlark_pb.InheritableAttrs, TReference],
-	encoder model_encoding.BinaryEncoder,
+	encoder model_encoding.DeterministicBinaryEncoder,
 	inlinedTreeOptions *inlinedtree.Options,
 	objectCapturer model_core.ObjectCapturer[TReference, TMetadata],
 ) (model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata], error) {

@@ -55,7 +55,7 @@ gomock(
 gomock(
     name = "mocks_encoding",
     out = "mocks_encoding_test.go",
-    interfaces = ["BinaryEncoder"],
+    interfaces = ["DeterministicBinaryEncoder"],
     library = "//pkg/model/encoding",
     mockgen_model_library = "@org_uber_go_mock//mockgen/model",
     mockgen_tool = "@org_uber_go_mock//mockgen",

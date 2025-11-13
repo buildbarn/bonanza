@@ -400,7 +400,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		)
 	}
 
-	actionEncoder, err := model_encoding.NewBinaryEncoderFromProto(
+	actionEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
 		defaultEncoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)

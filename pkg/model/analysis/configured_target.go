@@ -1708,7 +1708,7 @@ type ruleContext[TReference object.BasicReference, TMetadata BaseComputerReferen
 	execGroups                  []ruleContextExecGroupState
 	tags                        *starlark.List
 	outputRegistrar             *targetOutputRegistrar[TReference, TMetadata]
-	actionEncoder               model_encoding.BinaryEncoder
+	actionEncoder               model_encoding.DeterministicBinaryEncoder
 	directoryCreationParameters *model_filesystem.DirectoryCreationParameters
 	fileCreationParameters      *model_filesystem.FileCreationParameters
 	actions                     model_core.PatchedMessageList[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]

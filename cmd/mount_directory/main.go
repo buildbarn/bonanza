@@ -62,15 +62,15 @@ func main() {
 		}
 
 		maximumObjectSizeBytes := uint32(namespace.GetMaximumObjectSizeBytes())
-		directoryEncoder, err := encoding.NewBinaryEncoderFromProto(configuration.DirectoryEncoders, maximumObjectSizeBytes)
+		directoryEncoder, err := encoding.NewDeterministicBinaryEncoderFromProto(configuration.DirectoryEncoders, maximumObjectSizeBytes)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create directory encoder")
 		}
-		smallFileEncoder, err := encoding.NewBinaryEncoderFromProto(configuration.SmallFileEncoders, maximumObjectSizeBytes)
+		smallFileEncoder, err := encoding.NewDeterministicBinaryEncoderFromProto(configuration.SmallFileEncoders, maximumObjectSizeBytes)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create small file encoder")
 		}
-		concatenatedFileEncoder, err := encoding.NewBinaryEncoderFromProto(configuration.ConcatenatedFileEncoders, maximumObjectSizeBytes)
+		concatenatedFileEncoder, err := encoding.NewDeterministicBinaryEncoderFromProto(configuration.ConcatenatedFileEncoders, maximumObjectSizeBytes)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create concatenated file encoder")
 		}

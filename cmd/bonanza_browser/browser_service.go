@@ -641,7 +641,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		), nil
 	}
 
-	binaryEncoder, err := model_encoding.NewBinaryEncoderFromProto(
+	binaryEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
 		cookie.RecentlyObservedEncoders[0].Configuration,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
@@ -1935,7 +1935,7 @@ func (rawPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object
 func decodeObject(o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]byte, int, error) {
 	for i, recentlyObservedEncoder := range recentlyObservedEncoders {
 		objectReference := o.Value.GetLocalReference()
-		binaryEncoder, err := model_encoding.NewBinaryEncoderFromProto(
+		binaryEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
 			recentlyObservedEncoder.Configuration,
 			uint32(objectReference.GetReferenceFormat().GetMaximumObjectSizeBytes()),
 		)

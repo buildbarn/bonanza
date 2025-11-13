@@ -44,7 +44,7 @@ func TestBuild(t *testing.T) {
 		// to encode than an actual reference, it must be
 		// inlined, even if the maximum output size does not
 		// permit it.
-		encoder := NewMockBinaryEncoder(ctrl)
+		encoder := NewMockDeterministicBinaryEncoder(ctrl)
 		encoder.EXPECT().GetDecodingParametersSizeBytes().Return(4)
 
 		leaves := &model_filesystem_pb.Leaves{
@@ -105,7 +105,7 @@ func TestBuild(t *testing.T) {
 		// If there is no space left and storing a reference
 		// takes up less space than inlining the data, we should
 		// emit a reference.
-		encoder := NewMockBinaryEncoder(ctrl)
+		encoder := NewMockDeterministicBinaryEncoder(ctrl)
 		encoder.EXPECT().GetDecodingParametersSizeBytes().Return(4)
 		encoder.EXPECT().EncodeBinary(gomock.Any()).
 			DoAndReturn(func(in []byte) ([]byte, []byte, error) {
@@ -182,7 +182,7 @@ func TestBuild(t *testing.T) {
 		// If the maximum message size if sufficiently large to
 		// be able to inline the candidate, it should not store
 		// the data externally.
-		encoder := NewMockBinaryEncoder(ctrl)
+		encoder := NewMockDeterministicBinaryEncoder(ctrl)
 
 		leaves := &model_filesystem_pb.Leaves{
 			Symlinks: []*model_filesystem_pb.SymlinkNode{{

@@ -19,12 +19,12 @@ func (baseComputer[TReference, TMetadata]) ComputeActionEncodersValue(ctx contex
 	}), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeActionEncoderObjectValue(ctx context.Context, key *model_analysis_pb.ActionEncoderObject_Key, e ActionEncoderObjectEnvironment[TReference, TMetadata]) (model_encoding.BinaryEncoder, error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeActionEncoderObjectValue(ctx context.Context, key *model_analysis_pb.ActionEncoderObject_Key, e ActionEncoderObjectEnvironment[TReference, TMetadata]) (model_encoding.DeterministicBinaryEncoder, error) {
 	encoders := e.GetActionEncodersValue(&model_analysis_pb.ActionEncoders_Key{})
 	if !encoders.IsSet() {
 		return nil, evaluation.ErrMissingDependency
 	}
-	return model_encoding.NewBinaryEncoderFromProto(
+	return model_encoding.NewDeterministicBinaryEncoderFromProto(
 		encoders.Message.ActionEncoders,
 		uint32(c.referenceFormat.GetMaximumObjectSizeBytes()),
 	)

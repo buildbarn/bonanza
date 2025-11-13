@@ -3,20 +3,20 @@ package encoding_test
 import (
 	"testing"
 
-	"bonanza.build/pkg/model/encoding"
+	model_encoding "bonanza.build/pkg/model/encoding"
 
 	"github.com/stretchr/testify/require"
 
 	"go.uber.org/mock/gomock"
 )
 
-func TestChainedBinaryEncoder(t *testing.T) {
+func TestChainedDeterministicBinaryEncoder(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	t.Run("Zero", func(t *testing.T) {
 		// If no encoders are provided, the resulting chained
 		// encoder should act as the identity function.
-		binaryEncoder := encoding.NewChainedBinaryEncoder(nil)
+		binaryEncoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 
 		t.Run("Encode", func(t *testing.T) {
 			encodedData, decodingParameters, err := binaryEncoder.EncodeBinary([]byte("Hello"))
@@ -33,8 +33,8 @@ func TestChainedBinaryEncoder(t *testing.T) {
 	})
 
 	t.Run("One", func(t *testing.T) {
-		binaryEncoder1 := NewMockBinaryEncoder(ctrl)
-		binaryEncoder := encoding.NewChainedBinaryEncoder([]encoding.BinaryEncoder{
+		binaryEncoder1 := NewMockDeterministicBinaryEncoder(ctrl)
+		binaryEncoder := model_encoding.NewChainedDeterministicBinaryEncoder([]model_encoding.DeterministicBinaryEncoder{
 			binaryEncoder1,
 		})
 
@@ -59,9 +59,9 @@ func TestChainedBinaryEncoder(t *testing.T) {
 	})
 
 	t.Run("Two", func(t *testing.T) {
-		binaryEncoder1 := NewMockBinaryEncoder(ctrl)
-		binaryEncoder2 := NewMockBinaryEncoder(ctrl)
-		binaryEncoder := encoding.NewChainedBinaryEncoder([]encoding.BinaryEncoder{
+		binaryEncoder1 := NewMockDeterministicBinaryEncoder(ctrl)
+		binaryEncoder2 := NewMockDeterministicBinaryEncoder(ctrl)
+		binaryEncoder := model_encoding.NewChainedDeterministicBinaryEncoder([]model_encoding.DeterministicBinaryEncoder{
 			binaryEncoder1,
 			binaryEncoder2,
 		})

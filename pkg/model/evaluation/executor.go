@@ -86,7 +86,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	instanceName := actionGlobalReference.InstanceName
 	referenceFormat := action.Reference.Value.GetReferenceFormat()
 
-	actionEncoder, err := model_encoding.NewBinaryEncoderFromProto(
+	actionEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
 		action.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
@@ -333,7 +333,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 
 		// Store all evaluation results to permit debugging of the build.
 		// TODO: Use a proper configuration.
-		evaluationTreeEncoder := model_encoding.NewChainedBinaryEncoder(nil)
+		evaluationTreeEncoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 		outcomesTreeBuilder := btree.NewHeightAwareBuilder(
 			btree.NewProllyChunkerFactory[buffered.ReferenceMetadata](
 				/* minimumSizeBytes = */ 1<<16,

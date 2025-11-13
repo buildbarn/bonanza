@@ -2,7 +2,7 @@ package filesystem
 
 import (
 	model_core "bonanza.build/pkg/model/core"
-	"bonanza.build/pkg/model/encoding"
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
@@ -18,8 +18,8 @@ import (
 // access its contents afterwards. Parameters include whether files were
 // compressed or encrypted.
 type FileAccessParameters struct {
-	chunkEncoder            encoding.BinaryEncoder
-	fileContentsListEncoder encoding.BinaryEncoder
+	chunkEncoder            model_encoding.DeterministicBinaryEncoder
+	fileContentsListEncoder model_encoding.DeterministicBinaryEncoder
 }
 
 // NewFileAccessParametersFromProto creates an instance of
@@ -32,11 +32,11 @@ func NewFileAccessParametersFromProto(m *model_filesystem_pb.FileAccessParameter
 	}
 
 	maximumObjectSizeBytes := uint32(referenceFormat.GetMaximumObjectSizeBytes())
-	chunkEncoder, err := encoding.NewBinaryEncoderFromProto(m.ChunkEncoders, maximumObjectSizeBytes)
+	chunkEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(m.ChunkEncoders, maximumObjectSizeBytes)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid chunk encoder")
 	}
-	fileContentsListEncoder, err := encoding.NewBinaryEncoderFromProto(m.FileContentsListEncoders, maximumObjectSizeBytes)
+	fileContentsListEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(m.FileContentsListEncoders, maximumObjectSizeBytes)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid file contents list encoder")
 	}
@@ -66,10 +66,10 @@ func (p *FileAccessParameters) DecodeFileContentsList(contents *object.Contents,
 	return fileContentsList.Message, nil
 }
 
-func (p *FileAccessParameters) GetChunkEncoder() encoding.BinaryEncoder {
+func (p *FileAccessParameters) GetChunkEncoder() model_encoding.DeterministicBinaryEncoder {
 	return p.chunkEncoder
 }
 
-func (p *FileAccessParameters) GetFileContentsListEncoder() encoding.BinaryEncoder {
+func (p *FileAccessParameters) GetFileContentsListEncoder() model_encoding.DeterministicBinaryEncoder {
 	return p.fileContentsListEncoder
 }

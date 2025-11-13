@@ -10,21 +10,22 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type encryptingBinaryEncoder struct {
+type encryptingDeterministicBinaryEncoder struct {
 	aead           cipher.AEAD
 	additionalData []byte
 	tagSizeBytes   int
 	nonce          []byte
 }
 
-// NewEncryptingBinaryEncoder creates a BinaryEncoder that is capable of
-// encrypting and decrypting data. The encryption process is
-// deterministic, in that encrypting the same data twice results in the
-// same encoded version of the data. It uses Authenticating Encryption
-// with Associated Data (AEAD), meaning that any objects encrypted with
-// a different key will fail validation.
-func NewEncryptingBinaryEncoder(aead cipher.AEAD, additionalData []byte) BinaryEncoder {
-	return &encryptingBinaryEncoder{
+// NewEncryptingDeterministicBinaryEncoder creates a
+// DeterministicBinaryEncoder that is capable of encrypting and
+// decrypting data. The encryption process is deterministic, in that
+// encrypting the same data twice results in the same encoded version of
+// the data. It uses Authenticating Encryption with Associated Data
+// (AEAD), meaning that any objects encrypted with a different key will
+// fail validation.
+func NewEncryptingDeterministicBinaryEncoder(aead cipher.AEAD, additionalData []byte) DeterministicBinaryEncoder {
+	return &encryptingDeterministicBinaryEncoder{
 		aead:           aead,
 		additionalData: additionalData,
 		tagSizeBytes:   aead.Overhead(),
@@ -50,7 +51,7 @@ func getPaddedSizeBytes(dataSizeBytes int) int {
 	return (dataSizeBytes>>bitsToClear + 1) << bitsToClear
 }
 
-func (be *encryptingBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, error) {
+func (be *encryptingDeterministicBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, error) {
 	if len(in) == 0 {
 		return []byte{}, make([]byte, be.tagSizeBytes), nil
 	}
@@ -68,7 +69,7 @@ func (be *encryptingBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, erro
 	return ciphertext[:paddedPlaintextSize], ciphertext[paddedPlaintextSize:], nil
 }
 
-func (be *encryptingBinaryEncoder) DecodeBinary(in, tag []byte) ([]byte, error) {
+func (be *encryptingDeterministicBinaryEncoder) DecodeBinary(in, tag []byte) ([]byte, error) {
 	if len(tag) != be.tagSizeBytes {
 		return nil, status.Errorf(
 			codes.InvalidArgument,
@@ -112,6 +113,6 @@ func (be *encryptingBinaryEncoder) DecodeBinary(in, tag []byte) ([]byte, error) 
 	return nil, status.Error(codes.InvalidArgument, "No data remains after removing padding")
 }
 
-func (be *encryptingBinaryEncoder) GetDecodingParametersSizeBytes() int {
+func (be *encryptingDeterministicBinaryEncoder) GetDecodingParametersSizeBytes() int {
 	return be.tagSizeBytes
 }

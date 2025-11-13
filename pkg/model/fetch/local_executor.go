@@ -87,7 +87,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		return badReference, 0, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
 	}
 	referenceFormat := action.Reference.Value.GetReferenceFormat()
-	actionEncoder, err := model_encoding.NewBinaryEncoderFromProto(
+	actionEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
 		action.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)

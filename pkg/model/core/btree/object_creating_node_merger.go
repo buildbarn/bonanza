@@ -22,7 +22,7 @@ type ParentNodeComputer[TNode any, TMetadata model_core.ReferenceMetadata] func(
 // NewObjectCreatingNodeMerger creates a NodeMerger that can be used in
 // combination with Builder to construct B-trees that are backed by
 // storage objects that reference each other.
-func NewObjectCreatingNodeMerger[TNode proto.Message, TMetadata model_core.ReferenceMetadata](encoder model_encoding.BinaryEncoder, referenceFormat object.ReferenceFormat, parentNodeComputer ParentNodeComputer[TNode, TMetadata]) NodeMerger[TNode, TMetadata] {
+func NewObjectCreatingNodeMerger[TNode proto.Message, TMetadata model_core.ReferenceMetadata](encoder model_encoding.DeterministicBinaryEncoder, referenceFormat object.ReferenceFormat, parentNodeComputer ParentNodeComputer[TNode, TMetadata]) NodeMerger[TNode, TMetadata] {
 	return func(list model_core.PatchedMessage[[]TNode, TMetadata]) (model_core.PatchedMessage[TNode, TMetadata], error) {
 		// Marshal each of the messages, prepending its size.
 		createdObject, err := model_core.MarshalAndEncode(model_core.ProtoListToBinaryMarshaler(list), referenceFormat, encoder)

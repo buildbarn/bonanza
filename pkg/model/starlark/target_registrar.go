@@ -20,7 +20,7 @@ import (
 type TargetRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	// Immutable fields.
 	context            context.Context
-	encoder            model_encoding.BinaryEncoder
+	encoder            model_encoding.DeterministicBinaryEncoder
 	inlinedTreeOptions *inlinedtree.Options
 	objectManager      model_core.ObjectManager[TReference, TMetadata]
 
@@ -34,7 +34,7 @@ type TargetRegistrar[TReference object.BasicReference, TMetadata model_core.Refe
 // creation contains no targets. The caller needs to provide default
 // values for attributes that are provided to calls to repo() in
 // REPO.bazel, so that they can be inherited by registered targets.
-func NewTargetRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, encoder model_encoding.BinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectManager model_core.ObjectManager[TReference, TMetadata], defaultInheritableAttrs model_core.Message[*model_starlark_pb.InheritableAttrs, TReference]) *TargetRegistrar[TReference, TMetadata] {
+func NewTargetRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectManager model_core.ObjectManager[TReference, TMetadata], defaultInheritableAttrs model_core.Message[*model_starlark_pb.InheritableAttrs, TReference]) *TargetRegistrar[TReference, TMetadata] {
 	return &TargetRegistrar[TReference, TMetadata]{
 		context:                 ctx,
 		encoder:                 encoder,

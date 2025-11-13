@@ -21,31 +21,32 @@ type BinaryDecoder interface {
 	GetDecodingParametersSizeBytes() int
 }
 
-// BinaryEncoder can be used to encode binary data. Examples of encoding
-// steps include compression and encryption. These encoding steps must
-// be reversible.
+// DeterministicBinaryEncoder can be used to encode binary data.
+// Examples of encoding steps include compression and encryption. These
+// encoding steps must be reversible. Furthermore, they must be
+// deterministic, meaning that they only depend on input data.
 //
 // Many applications give a special meaning to empty data (e.g., the
 // default value of bytes fields in a Protobuf message being). Because
-// of that, implementations of BinaryEncoder should ensure that empty
-// data should remain empty when encoded.
-type BinaryEncoder interface {
+// of that, implementations of DeterministicBinaryEncoder should ensure
+// that empty data should remain empty when encoded.
+type DeterministicBinaryEncoder interface {
 	BinaryDecoder
 
 	EncodeBinary(in []byte) ([]byte, []byte, error)
 }
 
-// NewBinaryEncoderFromProto creates a BinaryEncoder that behaves
+// NewDeterministicBinaryEncoderFromProto creates a DeterministicBinaryEncoder that behaves
 // according to the specification provided in the form of a Protobuf
 // message.
-func NewBinaryEncoderFromProto(configurations []*model_encoding_pb.BinaryEncoder, maximumDecodedSizeBytes uint32) (BinaryEncoder, error) {
-	encoders := make([]BinaryEncoder, 0, len(configurations))
+func NewDeterministicBinaryEncoderFromProto(configurations []*model_encoding_pb.BinaryEncoder, maximumDecodedSizeBytes uint32) (DeterministicBinaryEncoder, error) {
+	encoders := make([]DeterministicBinaryEncoder, 0, len(configurations))
 	for i, configuration := range configurations {
 		switch encoderConfiguration := configuration.Encoder.(type) {
 		case *model_encoding_pb.BinaryEncoder_LzwCompressing:
 			encoders = append(
 				encoders,
-				NewLZWCompressingBinaryEncoder(maximumDecodedSizeBytes),
+				NewLZWCompressingDeterministicBinaryEncoder(maximumDecodedSizeBytes),
 			)
 		case *model_encoding_pb.BinaryEncoder_Encrypting:
 			aead, err := siv.NewGCM(encoderConfiguration.Encrypting.EncryptionKey)
@@ -72,11 +73,11 @@ func NewBinaryEncoderFromProto(configurations []*model_encoding_pb.BinaryEncoder
 
 			encoders = append(
 				encoders,
-				NewEncryptingBinaryEncoder(aead, additionalData[:]),
+				NewEncryptingDeterministicBinaryEncoder(aead, additionalData[:]),
 			)
 		default:
 			return nil, status.Error(codes.InvalidArgument, "Unknown binary encoder type")
 		}
 	}
-	return NewChainedBinaryEncoder(encoders), nil
+	return NewChainedDeterministicBinaryEncoder(encoders), nil
 }

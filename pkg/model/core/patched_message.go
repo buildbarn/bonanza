@@ -161,7 +161,7 @@ func PatchedMessagesEqual[
 func MarshalAndEncode[TMetadata ReferenceMetadata](
 	m PatchedMessage[encoding.BinaryMarshaler, TMetadata],
 	referenceFormat object.ReferenceFormat,
-	encoder model_encoding.BinaryEncoder,
+	encoder model_encoding.DeterministicBinaryEncoder,
 ) (Decodable[CreatedObject[TMetadata]], error) {
 	references, metadata := m.Patcher.SortAndSetReferences()
 	data, err := m.Message.MarshalBinary()

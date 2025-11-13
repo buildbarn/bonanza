@@ -166,9 +166,9 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata BaseComputerRef
 	}
 }
 
-func (baseComputer[TReference, TMetadata]) getValueObjectEncoder() model_encoding.BinaryEncoder {
+func (baseComputer[TReference, TMetadata]) getValueObjectEncoder() model_encoding.DeterministicBinaryEncoder {
 	// TODO: Use a proper encoder!
-	return model_encoding.NewChainedBinaryEncoder(nil)
+	return model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 }
 
 func (c *baseComputer[TReference, TMetadata]) getValueEncodingOptions(ctx context.Context, objectCapturer model_core.ObjectCapturer[TReference, TMetadata], currentFilename *label.CanonicalLabel) *model_starlark.ValueEncodingOptions[TReference, TMetadata] {

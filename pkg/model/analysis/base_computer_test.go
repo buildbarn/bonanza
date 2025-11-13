@@ -42,7 +42,7 @@ type baseComputerTester struct {
 // type model_core.CreatedObjectTree, the resulting BaseComputer does
 // not depend on any storage access.
 func newBaseComputerTester(ctrl *gomock.Controller) *baseComputerTester {
-	buildSpecificationEncoder := NewMockBinaryEncoder(ctrl)
+	buildSpecificationEncoder := NewMockDeterministicBinaryEncoder(ctrl)
 	buildSpecificationEncoder.EXPECT().GetDecodingParametersSizeBytes().Return(16).AnyTimes()
 	executionClient := NewMockExecutionClientForTesting(ctrl)
 	filePool := NewMockFilePool(ctrl)
@@ -186,7 +186,7 @@ func newObject(
 		model_core.MarshalAndEncode(
 			model_core.MustBuildPatchedMessage(builder),
 			util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-			model_encoding.NewChainedBinaryEncoder(nil),
+			model_encoding.NewChainedDeterministicBinaryEncoder(nil),
 		),
 	)
 }

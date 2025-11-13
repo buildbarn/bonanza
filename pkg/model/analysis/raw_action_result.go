@@ -100,7 +100,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 func convertDictToEnvironmentVariableList[TMetadata model_core.ReferenceMetadata](
 	ctx context.Context,
 	environment map[string]string,
-	actionEncoder model_encoding.BinaryEncoder,
+	actionEncoder model_encoding.DeterministicBinaryEncoder,
 	referenceFormat object.ReferenceFormat,
 	capturer model_core.CreatedObjectCapturer[TMetadata],
 ) (model_core.PatchedMessage[[]*model_command_pb.EnvironmentVariableList_Element, TMetadata], btree.ParentNodeComputer[*model_command_pb.EnvironmentVariableList_Element, TMetadata], error) {

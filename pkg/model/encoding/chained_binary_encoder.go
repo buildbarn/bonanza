@@ -5,39 +5,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type chainedBinaryEncoder struct {
-	encoders []BinaryEncoder
+type chainedBinaryEncoder[TBinaryEncoder BinaryDecoder] struct {
+	encoders []TBinaryEncoder
 }
 
-// NewChainedBinaryEncoder creates a BinaryEncoder that is capable of
-// applying multiple encoding/decoding steps. It can be used to, for
-// example, apply both compression and encryption.
-func NewChainedBinaryEncoder(encoders []BinaryEncoder) BinaryEncoder {
-	if len(encoders) == 1 {
-		return encoders[0]
-	}
-	return &chainedBinaryEncoder{
-		encoders: encoders,
-	}
-}
-
-func (be *chainedBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, error) {
-	// Invoke encoders in forward order.
-	var parameters []byte
-	for _, encoder := range be.encoders {
-		if len(parameters) > 0 {
-			return nil, nil, status.Error(codes.InvalidArgument, "Binary encoders that yield decoding parameters must be the last in the chain")
-		}
-		var err error
-		in, parameters, err = encoder.EncodeBinary(in)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-	return in, parameters, nil
-}
-
-func (be *chainedBinaryEncoder) DecodeBinary(in, parameters []byte) ([]byte, error) {
+func (be *chainedBinaryEncoder[TBinaryEncoder]) DecodeBinary(in, parameters []byte) ([]byte, error) {
 	// Invoke decoders the other way around.
 	for i := len(be.encoders); i > 0; i-- {
 		var err error
@@ -53,9 +25,44 @@ func (be *chainedBinaryEncoder) DecodeBinary(in, parameters []byte) ([]byte, err
 	return in, nil
 }
 
-func (be *chainedBinaryEncoder) GetDecodingParametersSizeBytes() int {
+func (be *chainedBinaryEncoder[TBinaryEncoder]) GetDecodingParametersSizeBytes() int {
 	if len(be.encoders) == 0 {
 		return 0
 	}
 	return be.encoders[0].GetDecodingParametersSizeBytes()
+}
+
+type chainedDeterministicBinaryEncoder struct {
+	chainedBinaryEncoder[DeterministicBinaryEncoder]
+}
+
+// NewChainedDeterministicBinaryEncoder creates a
+// DeterministicBinaryEncoder that is capable of applying multiple
+// encoding/decoding steps. It can be used to, for example, apply both
+// compression and encryption.
+func NewChainedDeterministicBinaryEncoder(encoders []DeterministicBinaryEncoder) DeterministicBinaryEncoder {
+	if len(encoders) == 1 {
+		return encoders[0]
+	}
+	return &chainedDeterministicBinaryEncoder{
+		chainedBinaryEncoder: chainedBinaryEncoder[DeterministicBinaryEncoder]{
+			encoders: encoders,
+		},
+	}
+}
+
+func (be *chainedDeterministicBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, error) {
+	// Invoke encoders in forward order.
+	var parameters []byte
+	for _, encoder := range be.encoders {
+		if len(parameters) > 0 {
+			return nil, nil, status.Error(codes.InvalidArgument, "Binary encoders that yield decoding parameters must be the last in the chain")
+		}
+		var err error
+		in, parameters, err = encoder.EncodeBinary(in)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	return in, parameters, nil
 }

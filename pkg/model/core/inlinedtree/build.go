@@ -35,7 +35,7 @@ type Candidate[TParentMessage any, TMetadata model_core.ReferenceMetadata] struc
 	// inline it into the parent object.
 	ExternalMessage model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata]
 	// Encoder to use when storing ExternalMessage in a child object.
-	Encoder model_encoding.BinaryEncoder
+	Encoder model_encoding.DeterministicBinaryEncoder
 	// Function to invoke to either inline the message into the
 	// output, or create a reference to the child object.
 	ParentAppender ParentAppender[TParentMessage, TMetadata]

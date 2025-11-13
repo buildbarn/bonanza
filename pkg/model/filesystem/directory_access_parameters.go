@@ -1,7 +1,7 @@
 package filesystem
 
 import (
-	"bonanza.build/pkg/model/encoding"
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
@@ -17,7 +17,7 @@ import (
 // attempting to access its contents afterwards. Parameters include
 // whether files were compressed or encrypted.
 type DirectoryAccessParameters struct {
-	encoder encoding.BinaryEncoder
+	encoder model_encoding.DeterministicBinaryEncoder
 }
 
 // NewDirectoryAccessParametersFromProto creates an instance of
@@ -30,7 +30,7 @@ func NewDirectoryAccessParametersFromProto(m *model_filesystem_pb.DirectoryAcces
 	}
 
 	maximumObjectSizeBytes := uint32(referenceFormat.GetMaximumObjectSizeBytes())
-	encoder, err := encoding.NewBinaryEncoderFromProto(m.Encoders, maximumObjectSizeBytes)
+	encoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(m.Encoders, maximumObjectSizeBytes)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid encoder")
 	}
@@ -64,6 +64,6 @@ func (p *DirectoryAccessParameters) DecodeLeaves(contents *object.Contents, deco
 	return &leaves, nil
 }
 
-func (p *DirectoryAccessParameters) GetEncoder() encoding.BinaryEncoder {
+func (p *DirectoryAccessParameters) GetEncoder() model_encoding.DeterministicBinaryEncoder {
 	return p.encoder
 }

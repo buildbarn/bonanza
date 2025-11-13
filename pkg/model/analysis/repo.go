@@ -1302,7 +1302,7 @@ func newRepositoryOS[TReference object.BasicReference, TMetadata BaseComputerRef
 type moduleOrRepositoryContextEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ObjectCapturer[TReference, TMetadata]
 
-	GetActionEncoderObjectValue(*model_analysis_pb.ActionEncoderObject_Key) (model_encoding.BinaryEncoder, bool)
+	GetActionEncoderObjectValue(*model_analysis_pb.ActionEncoderObject_Key) (model_encoding.DeterministicBinaryEncoder, bool)
 	GetActionResultValue(model_core.PatchedMessage[*model_analysis_pb.ActionResult_Key, TMetadata]) model_core.Message[*model_analysis_pb.ActionResult_Value, TReference]
 	GetDirectoryCreationParametersObjectValue(*model_analysis_pb.DirectoryCreationParametersObject_Key) (*model_filesystem.DirectoryCreationParameters, bool)
 	GetDirectoryCreationParametersValue(*model_analysis_pb.DirectoryCreationParameters_Key) model_core.Message[*model_analysis_pb.DirectoryCreationParameters_Value, TReference]
@@ -1326,7 +1326,7 @@ type moduleOrRepositoryContext[TReference object.BasicReference, TMetadata BaseC
 	environment            moduleOrRepositoryContextEnvironment[TReference, TMetadata]
 	subdirectoryComponents []path.Component
 
-	actionEncoder                      model_encoding.BinaryEncoder
+	actionEncoder                      model_encoding.DeterministicBinaryEncoder
 	defaultWorkingDirectoryPath        *model_starlark.BarePath
 	directoryCreationParameters        *model_filesystem.DirectoryCreationParameters
 	directoryCreationParametersMessage *model_filesystem_pb.DirectoryCreationParameters
@@ -1810,7 +1810,7 @@ func bytesToValidString(p []byte) (string, bool) {
 	}
 }
 
-func newArgumentsBuilder[TMetadata model_core.ReferenceMetadata](ctx context.Context, actionEncoder model_encoding.BinaryEncoder, referenceFormat object.ReferenceFormat, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (btree.Builder[*model_command_pb.ArgumentList_Element, TMetadata], btree.ParentNodeComputer[*model_command_pb.ArgumentList_Element, TMetadata]) {
+func newArgumentsBuilder[TMetadata model_core.ReferenceMetadata](ctx context.Context, actionEncoder model_encoding.DeterministicBinaryEncoder, referenceFormat object.ReferenceFormat, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (btree.Builder[*model_command_pb.ArgumentList_Element, TMetadata], btree.ParentNodeComputer[*model_command_pb.ArgumentList_Element, TMetadata]) {
 	parentNodeComputer := btree.Capturing(ctx, objectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_command_pb.ArgumentList_Element, object.LocalReference]) model_core.PatchedMessage[*model_command_pb.ArgumentList_Element, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_command_pb.ArgumentList_Element {
 			return &model_command_pb.ArgumentList_Element{

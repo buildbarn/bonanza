@@ -35,7 +35,7 @@ type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata
 
 	// Options to use when storing Starlark values in separate objects.
 	Context                context.Context
-	ObjectEncoder          model_encoding.BinaryEncoder
+	ObjectEncoder          model_encoding.DeterministicBinaryEncoder
 	ObjectReferenceFormat  object.ReferenceFormat
 	ObjectCapturer         model_core.ObjectCapturer[TReference, TMetadata]
 	ObjectMinimumSizeBytes int

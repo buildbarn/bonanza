@@ -4,13 +4,13 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"bonanza.build/pkg/model/encoding"
+	model_encoding "bonanza.build/pkg/model/encoding"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestLZWCompressingBinaryEncoder(t *testing.T) {
-	binaryEncoder := encoding.NewLZWCompressingBinaryEncoder(1 << 20)
+func TestLZWCompressingDeterministicBinaryEncoder(t *testing.T) {
+	binaryEncoder := model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1 << 20)
 
 	t.Run("EncodeBinary", func(t *testing.T) {
 		t.Run("Empty", func(t *testing.T) {

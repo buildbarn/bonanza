@@ -11,19 +11,6 @@ type lzwCompressingBinaryEncoder struct {
 	maximumDecodedSizeBytes uint32
 }
 
-// NewLZWCompressingBinaryEncoder creates a BinaryEncoder that encodes
-// data by compressing data using the "simple LZW" algorithm.
-func NewLZWCompressingBinaryEncoder(maximumDecodedSizeBytes uint32) BinaryEncoder {
-	return &lzwCompressingBinaryEncoder{
-		maximumDecodedSizeBytes: maximumDecodedSizeBytes,
-	}
-}
-
-func (lzwCompressingBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, error) {
-	compressed, err := simplelzw.MaybeCompress(in)
-	return compressed, nil, err
-}
-
 func (be *lzwCompressingBinaryEncoder) DecodeBinary(in, parameters []byte) ([]byte, error) {
 	if len(parameters) > 0 {
 		return nil, status.Error(codes.InvalidArgument, "Unexpected decoding parameters")
@@ -33,4 +20,24 @@ func (be *lzwCompressingBinaryEncoder) DecodeBinary(in, parameters []byte) ([]by
 
 func (lzwCompressingBinaryEncoder) GetDecodingParametersSizeBytes() int {
 	return 0
+}
+
+type lzwCompressingDeterministicBinaryEncoder struct {
+	lzwCompressingBinaryEncoder
+}
+
+// NewLZWCompressingDeterministicBinaryEncoder creates a
+// DeterministicBinaryEncoder that encodes data by compressing data
+// using the "simple LZW" algorithm.
+func NewLZWCompressingDeterministicBinaryEncoder(maximumDecodedSizeBytes uint32) DeterministicBinaryEncoder {
+	return &lzwCompressingDeterministicBinaryEncoder{
+		lzwCompressingBinaryEncoder: lzwCompressingBinaryEncoder{
+			maximumDecodedSizeBytes: maximumDecodedSizeBytes,
+		},
+	}
+}
+
+func (lzwCompressingDeterministicBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, error) {
+	compressed, err := simplelzw.MaybeCompress(in)
+	return compressed, nil, err
 }

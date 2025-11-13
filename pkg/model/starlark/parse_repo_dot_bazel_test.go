@@ -21,7 +21,7 @@ import (
 func TestParseModuleDotBazel(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(t.Context(), t)
 
-	encoder := NewMockBinaryEncoder(ctrl)
+	encoder := NewMockDeterministicBinaryEncoder(ctrl)
 	encoder.EXPECT().GetDecodingParametersSizeBytes().Return(0).AnyTimes()
 
 	t.Run("Empty", func(t *testing.T) {

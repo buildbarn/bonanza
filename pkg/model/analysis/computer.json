@@ -8,7 +8,7 @@
             "imports": {
                "model_encoding": "bonanza.build/pkg/model/encoding"
             },
-            "type": "model_encoding.BinaryEncoder"
+            "type": "model_encoding.DeterministicBinaryEncoder"
          }
       },
       "ActionEncoders": {

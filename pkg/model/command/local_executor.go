@@ -248,7 +248,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	)
 
 	referenceFormat := action.Reference.Value.GetReferenceFormat()
-	actionEncoder, err := model_encoding.NewBinaryEncoderFromProto(
+	actionEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
 		action.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
