@@ -13,6 +13,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// BinaryDecoder can be used to decode binary data by undoing previously
+// applied encoding steps. Examples of encoding steps include
+// compression and encryption.
+type BinaryDecoder interface {
+	DecodeBinary(in, parameters []byte) ([]byte, error)
+	GetDecodingParametersSizeBytes() int
+}
+
 // BinaryEncoder can be used to encode binary data. Examples of encoding
 // steps include compression and encryption. These encoding steps must
 // be reversible.
@@ -22,9 +30,9 @@ import (
 // of that, implementations of BinaryEncoder should ensure that empty
 // data should remain empty when encoded.
 type BinaryEncoder interface {
+	BinaryDecoder
+
 	EncodeBinary(in []byte) ([]byte, []byte, error)
-	DecodeBinary(in, parameters []byte) ([]byte, error)
-	GetDecodingParametersSizeBytes() int
 }
 
 // NewBinaryEncoderFromProto creates a BinaryEncoder that behaves

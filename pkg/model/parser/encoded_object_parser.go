@@ -6,21 +6,21 @@ import (
 )
 
 type encodedObjectParser[TReference any] struct {
-	encoder model_encoding.BinaryEncoder
+	decoder model_encoding.BinaryDecoder
 }
 
 // NewEncodedObjectParser creates an ObjectParser that decodes objects.
 // Decoding operations may include decompression and decryption.
 func NewEncodedObjectParser[
 	TReference any,
-](encoder model_encoding.BinaryEncoder) ObjectParser[TReference, model_core.Message[[]byte, TReference]] {
+](decoder model_encoding.BinaryDecoder) ObjectParser[TReference, model_core.Message[[]byte, TReference]] {
 	return &encodedObjectParser[TReference]{
-		encoder: encoder,
+		decoder: decoder,
 	}
 }
 
 func (p *encodedObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (model_core.Message[[]byte, TReference], int, error) {
-	decoded, err := p.encoder.DecodeBinary(in.Message, decodingParameters)
+	decoded, err := p.decoder.DecodeBinary(in.Message, decodingParameters)
 	if err != nil {
 		return model_core.Message[[]byte, TReference]{}, 0, err
 	}
@@ -28,5 +28,5 @@ func (p *encodedObjectParser[TReference]) ParseObject(in model_core.Message[[]by
 }
 
 func (p *encodedObjectParser[TReference]) GetDecodingParametersSizeBytes() int {
-	return p.encoder.GetDecodingParametersSizeBytes()
+	return p.decoder.GetDecodingParametersSizeBytes()
 }
