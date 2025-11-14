@@ -6,9 +6,49 @@ import "google/protobuf/empty.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/encoding";
 
+enum EncodingMode {
+  // Encode objects deterministically, such that only the encoder
+  // configuration and input data affect the output of the encoding
+  // process. Upon success, the encoding process will yield encoded data
+  // and the decoding parameters. The encoded data can be stored in an
+  // object, while the decoding parameters need to embedded in the
+  // location that references the object.
+  //
+  // This mode of encoding provides excellent deduplication, but does
+  // depend on the ability to store the resulting decoding parameters
+  // securely (e.g., in the encrypted payload of a parent object, or
+  // inside an encrypted action transmitted via the scheduler).
+  //
+  // The decoding parameters need to be stored securely, so that
+  // divulging the private key does not immediately grant access to all
+  // objects that were encrypted using that private key.
+  DETERMINISTIC = 0;
+
+  // Encode objects, allowing the caller to choose the decoding
+  // parameters. The encoding process will only yield the encoded data.
+  //
+  // This mode of encoding can be used in contexts where it's not
+  // possible to store decoding parameters, such as the Tag Store which
+  // can only store an object reference.
+  //
+  // In the case of Tag Store, the decoding parmaeters should not be
+  // derivable from the key under which the object is stored. Doing this
+  // ensures that objects referenced by tags cannot immediately be
+  // encrypted, even if the encoder's private key is divulged.
+  KEYED = 1;
+}
+
 message EncryptingBinaryEncoder {
   // 128 or 256-bit key that is used to encrypt the data.
   bytes encryption_key = 1;
+}
+
+message EncryptingBinaryEncoderAdditionalDataInput {
+  // The mode that is being used to encode the current object.
+  EncodingMode encoding_mode = 1;
+
+  // Configurations of all encoders that are applied prior to encrypting.
+  repeated BinaryEncoder additional_encoders = 2;
 }
 
 message BinaryEncoder {
@@ -21,20 +61,26 @@ message BinaryEncoder {
 
     // Encrypt data using AES-GCM-SIV, using the following parameters:
     //
-    // - Plaintext: input data.
-    // - Nonce: Twelve zero bytes.
-    // - Additional data: SHA-256 sum of a marshaled BinaryEncoderList
-    //   message containing all encoder configurations that are used in
-    //   addition to encryption.
+    // - Plaintext: Input data, padded using the PADMÉ algorithm.
+    // - Additional data: SHA-256 sum of a marshaled
+    //   EncryptingBinaryEncoderAdditionalDataInput message.
     //
-    // The 16-byte authentication tag is not stored as part of the
-    // ciphertext. Instead, it is stored in the decoding parameters that
-    // are used to refer to the data. To reduce information leakage,
-    // input is padded using the PADMÉ algorithm.
+    // The values and interpretation of the nonce, decoding parameters
+    // and output depends on the encoding mode.
+    //
+    // When the encoding mode is DETERMINISTIC, they are as follows:
+    //
+    // - Nonce: twelve zero bytes.
+    // - Decoding parameters: the 16-byte authentication tag yielded by
+    //   the encryption process.
+    // - Output: ciphertext, not including the trailing 16-byte
+    // authentication tag yielded by the encryption process.
+    //
+    // When the encoding mode is KEYED, they are as follows:
+    //
+    // - Nonce: set to the decoding parameters.
+    // - Output: ciphertext, including the trailing 16-byte
+    // authentication tag yielded by the encryption process.
     EncryptingBinaryEncoder encrypting = 2;
   }
-}
-
-message BinaryEncoderList {
-  repeated BinaryEncoder encoders = 1;
 }

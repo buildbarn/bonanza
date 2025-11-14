@@ -7,6 +7,7 @@ go_library(
         "binary_encoder.go",
         "chained_binary_encoder.go",
         "encrypting_deterministic_binary_encoder.go",
+        "encrypting_keyed_binary_encoder.go",
         "lzw_compressing_binary_encoder.go",
     ],
     importpath = "bonanza.build/pkg/model/encoding",

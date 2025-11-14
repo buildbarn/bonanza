@@ -66,3 +66,34 @@ func (be *chainedDeterministicBinaryEncoder) EncodeBinary(in []byte) ([]byte, []
 	}
 	return in, parameters, nil
 }
+
+type chainedKeyedBinaryEncoder struct {
+	chainedBinaryEncoder[KeyedBinaryEncoder]
+}
+
+// NewChainedKeyedBinaryEncoder creates a KeyedBinaryEncoder that is
+// capable of applying multiple encoding/decoding steps. It can be used
+// to, for example, apply both compression and encryption.
+func NewChainedKeyedBinaryEncoder(encoders []KeyedBinaryEncoder) KeyedBinaryEncoder {
+	if len(encoders) == 1 {
+		return encoders[0]
+	}
+	return &chainedKeyedBinaryEncoder{
+		chainedBinaryEncoder: chainedBinaryEncoder[KeyedBinaryEncoder]{
+			encoders: encoders,
+		},
+	}
+}
+
+func (be *chainedKeyedBinaryEncoder) EncodeBinary(in, parameters []byte) ([]byte, error) {
+	// Invoke encoders in forward order, providing the decoding
+	// parameters to the last encoding step.
+	for _, encoder := range be.encoders[:len(be.encoders)-1] {
+		var err error
+		in, err = encoder.EncodeBinary(in, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return be.encoders[len(be.encoders)-1].EncodeBinary(in, parameters)
+}

@@ -51,22 +51,55 @@ func getPaddedSizeBytes(dataSizeBytes int) int {
 	return (dataSizeBytes>>bitsToClear + 1) << bitsToClear
 }
 
+// Pad the plaintext data according to the PADMÉ algorithm. Also ensure
+// that enough space is present after the plaintext to store any
+// overhead induced by the AEAD.
+func pad(plaintext []byte, overheadSizeBytes int) []byte {
+	paddedPlaintextSize := getPaddedSizeBytes(len(plaintext))
+	paddedPlaintext := make([]byte, paddedPlaintextSize, paddedPlaintextSize+overheadSizeBytes)
+	copy(paddedPlaintext, plaintext)
+	paddedPlaintext[len(plaintext)] = 0x80
+	return paddedPlaintext
+}
+
+// Unpad removes padding that was previously added by the pad() function.
+func unpad(paddedPlaintext []byte) ([]byte, error) {
+	plaintext := paddedPlaintext
+	for l := len(plaintext) - 1; l > 0; l-- {
+		switch plaintext[l] {
+		case 0x00:
+		case 0x80:
+			plaintext = plaintext[:l]
+			if paddedSizeBytes := getPaddedSizeBytes(len(plaintext)); len(paddedPlaintext) != paddedSizeBytes {
+				return nil, status.Errorf(
+					codes.InvalidArgument,
+					"Encoded data is %d bytes in size, while %d bytes were expected for a payload of %d bytes",
+					len(paddedPlaintext),
+					paddedSizeBytes,
+					len(plaintext),
+				)
+			}
+			return plaintext, nil
+		default:
+			return nil, status.Errorf(codes.InvalidArgument, "Padding contains invalid byte with value %d", int(plaintext[l]))
+		}
+	}
+	return nil, status.Error(codes.InvalidArgument, "No data remains after removing padding")
+}
+
 func (be *encryptingDeterministicBinaryEncoder) EncodeBinary(in []byte) ([]byte, []byte, error) {
 	if len(in) == 0 {
 		return []byte{}, make([]byte, be.tagSizeBytes), nil
 	}
 
-	// Allocate space for storing the ciphertext and the tag. Use
-	// this buffer to store the plaintext including the padding.
-	paddedPlaintextSize := getPaddedSizeBytes(len(in))
-	paddedPlaintext := make([]byte, paddedPlaintextSize, paddedPlaintextSize+be.tagSizeBytes)
-	copy(paddedPlaintext, in)
-	paddedPlaintext[len(in)] = 0x80
-
-	// Encrypt the plaintext. As AEAD.Seal() concatenates the
-	// ciphertext and the tag, split it up again.
+	paddedPlaintext := pad(in, be.tagSizeBytes)
 	ciphertext := be.aead.Seal(paddedPlaintext[:0], be.nonce, paddedPlaintext, be.additionalData)
-	return ciphertext[:paddedPlaintextSize], ciphertext[paddedPlaintextSize:], nil
+
+	// As AEAD.Seal() concatenates the ciphertext and the tag, split
+	// it up again. We want to store the tag separately, so that
+	// divulging the key does not permit immediate decryption of all
+	// objects.
+	return ciphertext[:len(paddedPlaintext)], ciphertext[len(paddedPlaintext):], nil
 }
 
 func (be *encryptingDeterministicBinaryEncoder) DecodeBinary(in, tag []byte) ([]byte, error) {
@@ -89,28 +122,7 @@ func (be *encryptingDeterministicBinaryEncoder) DecodeBinary(in, tag []byte) ([]
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Decryption failed")
 	}
-
-	// Remove trailing padding.
-	for l := len(plaintext) - 1; l > 0; l-- {
-		switch plaintext[l] {
-		case 0x00:
-		case 0x80:
-			plaintext = plaintext[:l]
-			if paddedSizeBytes := getPaddedSizeBytes(len(plaintext)); len(in) != paddedSizeBytes {
-				return nil, status.Errorf(
-					codes.InvalidArgument,
-					"Encoded data is %d bytes in size, while %d bytes were expected for a payload of %d bytes",
-					len(in),
-					paddedSizeBytes,
-					len(plaintext),
-				)
-			}
-			return plaintext, nil
-		default:
-			return nil, status.Errorf(codes.InvalidArgument, "Padding contains invalid byte with value %d", int(plaintext[l]))
-		}
-	}
-	return nil, status.Error(codes.InvalidArgument, "No data remains after removing padding")
+	return unpad(plaintext)
 }
 
 func (be *encryptingDeterministicBinaryEncoder) GetDecodingParametersSizeBytes() int {
