@@ -20,7 +20,7 @@ func Find[
 	TReference any,
 ](
 	ctx context.Context,
-	reader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]TMessagePtr, TReference]],
+	reader model_parser.MessageObjectReader[TReference, []TMessagePtr],
 	list model_core.Message[[]TMessagePtr, TReference],
 	cmp func(model_core.Message[TMessagePtr, TReference]) (int, *model_core_pb.DecodableReference),
 ) (model_core.Message[TMessagePtr, TReference], error) {

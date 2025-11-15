@@ -703,7 +703,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 
 type prepopulatedCapturableDirectoryOptions struct {
 	context                   context.Context
-	pathPatternChildrenReader model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], model_core.Message[*model_command_pb.PathPattern_Children, object.LocalReference]]
+	pathPatternChildrenReader model_parser.MessageObjectReader[object.LocalReference, *model_command_pb.PathPattern_Children]
 
 	writableFileUploadDelay <-chan struct{}
 	fileCreationParameters  *model_filesystem.FileCreationParameters

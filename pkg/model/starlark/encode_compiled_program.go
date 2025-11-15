@@ -416,8 +416,8 @@ func DecodeGlobals[TReference object.BasicReference, TMetadata model_core.Refere
 const ValueDecodingOptionsKey = "value_decoding_options"
 
 type ValueReaders[TReference any] struct {
-	Dict model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_starlark_pb.Dict_Entry, TReference]]
-	List model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_starlark_pb.List_Element, TReference]]
+	Dict model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry]
+	List model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
 }
 
 type ValueDecodingOptions[TReference any] struct {

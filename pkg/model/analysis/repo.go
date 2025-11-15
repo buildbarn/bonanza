@@ -396,8 +396,8 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) setSymlink(loadOptions 
 
 type changeTrackingDirectoryLoadOptions[TReference any] struct {
 	context                 context.Context
-	directoryContentsReader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]]
-	leavesReader            model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_filesystem_pb.Leaves, TReference]]
+	directoryContentsReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents]
+	leavesReader            model_parser.MessageObjectReader[TReference, *model_filesystem_pb.Leaves]
 }
 
 func (d *changeTrackingDirectory[TReference, TMetadata]) maybeLoadContents(options *changeTrackingDirectoryLoadOptions[TReference]) error {
@@ -526,8 +526,8 @@ func (r *changeTrackingDirectoryResolver[TReference, TMetadata]) OnUp() (path.Co
 
 type capturableChangeTrackingDirectoryOptions[TReference, TMetadata any] struct {
 	context                 context.Context
-	directoryContentsReader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]]
-	leavesReader            model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_filesystem_pb.Leaves, TReference]]
+	directoryContentsReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents]
+	leavesReader            model_parser.MessageObjectReader[TReference, *model_filesystem_pb.Leaves]
 	fileCreationParameters  *model_filesystem.FileCreationParameters
 	fileMerkleTreeCapturer  model_filesystem.FileMerkleTreeCapturer[TMetadata]
 	patchedFiles            io.ReaderAt

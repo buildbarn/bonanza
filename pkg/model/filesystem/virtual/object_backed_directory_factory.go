@@ -26,17 +26,17 @@ import (
 
 type ObjectBackedDirectoryFactory struct {
 	handleAllocator                             virtual.ResolvableHandleAllocator
-	directoryClusterReader                      model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], model_core.Message[model_filesystem.DirectoryCluster, object.LocalReference]]
+	directoryClusterReader                      model_parser.MessageObjectReader[object.LocalReference, model_filesystem.DirectoryCluster]
 	directoryClusterDecodingParametersSizeBytes int
-	leavesReader                                model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], model_core.Message[*model_filesystem_pb.Leaves, object.LocalReference]]
+	leavesReader                                model_parser.MessageObjectReader[object.LocalReference, *model_filesystem_pb.Leaves]
 	fileFactory                                 FileFactory
 	errorLogger                                 util.ErrorLogger
 }
 
 func NewObjectBackedDirectoryFactory(
 	handleAllocation virtual.ResolvableHandleAllocation,
-	directoryClusterReader model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], model_core.Message[model_filesystem.DirectoryCluster, object.LocalReference]],
-	leavesReader model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], model_core.Message[*model_filesystem_pb.Leaves, object.LocalReference]],
+	directoryClusterReader model_parser.MessageObjectReader[object.LocalReference, model_filesystem.DirectoryCluster],
+	leavesReader model_parser.MessageObjectReader[object.LocalReference, *model_filesystem_pb.Leaves],
 	fileFactory FileFactory,
 	errorLogger util.ErrorLogger,
 ) *ObjectBackedDirectoryFactory {

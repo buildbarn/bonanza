@@ -14,7 +14,7 @@ import (
 
 func AllDictLeafEntries[TReference any](
 	ctx context.Context,
-	reader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_starlark_pb.Dict_Entry, TReference]],
+	reader model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry],
 	rootDict model_core.Message[*model_starlark_pb.Dict, TReference],
 	errOut *error,
 ) iter.Seq2[model_core.Message[*model_starlark_pb.Value, TReference], model_core.Message[*model_starlark_pb.Value, TReference]] {

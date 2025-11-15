@@ -83,16 +83,16 @@ type baseComputer[TReference object.BasicReference, TMetadata BaseComputerRefere
 	// TODO: These should likely be removed and instantiated later
 	// on, so that we can encrypt all data in storage.
 	valueReaders                                 model_starlark.ValueReaders[TReference]
-	argsReader                                   model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.Args, TReference]]
-	argsAddReader                                model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.Args_Leaf_Add, TReference]]
-	buildSettingOverrideReader                   model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.BuildSettingOverride, TReference]]
-	commandOutputsReader                         model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_command_pb.Outputs, TReference]]
-	configuredTargetActionReader                 model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, TReference]]
-	configuredTargetOutputReader                 model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, TReference]]
-	filesToRunProviderReader                     model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.FilesToRunProvider, TReference]]
-	moduleExtensionReposValueRepoReader          model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TReference]]
-	packageValueTargetReader                     model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.Package_Value_Target, TReference]]
-	targetPatternExpansionValueTargetLabelReader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_analysis_pb.TargetPatternExpansion_Value_TargetLabel, TReference]]
+	argsReader                                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args]
+	argsAddReader                                model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args_Leaf_Add]
+	buildSettingOverrideReader                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.BuildSettingOverride]
+	commandOutputsReader                         model_parser.MessageObjectReader[TReference, *model_command_pb.Outputs]
+	configuredTargetActionReader                 model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Action]
+	configuredTargetOutputReader                 model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Output]
+	filesToRunProviderReader                     model_parser.MessageObjectReader[TReference, []*model_analysis_pb.FilesToRunProvider]
+	moduleExtensionReposValueRepoReader          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ModuleExtensionRepos_Value_Repo]
+	packageValueTargetReader                     model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Package_Value_Target]
+	targetPatternExpansionValueTargetLabelReader model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetPatternExpansion_Value_TargetLabel]
 }
 
 func NewBaseComputer[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata](

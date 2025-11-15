@@ -112,7 +112,7 @@ func (s *PathPatternSet[TMetadata]) ToProto(ctx context.Context, encoder model_e
 // inlined or stored externally.
 func PathPatternGetChildren[TReference any](
 	ctx context.Context,
-	reader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[*model_command_pb.PathPattern_Children, TReference]],
+	reader model_parser.MessageObjectReader[TReference, *model_command_pb.PathPattern_Children],
 	pathPattern model_core.Message[*model_command_pb.PathPattern, TReference],
 ) (model_core.Message[*model_command_pb.PathPattern_Children, TReference], error) {
 	switch children := pathPattern.Message.Children.(type) {

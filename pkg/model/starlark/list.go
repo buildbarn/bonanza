@@ -17,7 +17,7 @@ import (
 // all leaf elements contained within.
 func AllListLeafElements[TReference object.BasicReference](
 	ctx context.Context,
-	reader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_starlark_pb.List_Element, TReference]],
+	reader model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element],
 	rootList model_core.Message[[]*model_starlark_pb.List_Element, TReference],
 	errOut *error,
 ) iter.Seq[model_core.Message[*model_starlark_pb.Value, TReference]] {
@@ -55,7 +55,7 @@ func AllListLeafElements[TReference object.BasicReference](
 // elements. Only parents are deduplicated.
 func AllListLeafElementsSkippingDuplicateParents[TReference object.BasicReference](
 	ctx context.Context,
-	reader model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_starlark_pb.List_Element, TReference]],
+	reader model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element],
 	rootList model_core.Message[[]*model_starlark_pb.List_Element, TReference],
 	listsSeen map[model_core.Decodable[object.LocalReference]]struct{},
 	errOut *error,

@@ -162,7 +162,7 @@ CheckConditions:
 
 type buildSettingValueComparer[TReference object.BasicReference] struct {
 	context       context.Context
-	listReader    model_parser.ParsedObjectReader[model_core.Decodable[TReference], model_core.Message[[]*model_starlark_pb.List_Element, TReference]]
+	listReader    model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
 	labelResolver label.Resolver
 	expectedValue string
 	fromPackage   label.CanonicalPackage

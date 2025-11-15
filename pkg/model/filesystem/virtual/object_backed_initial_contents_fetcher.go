@@ -19,8 +19,8 @@ import (
 
 type objectBackedInitialContentsFetcherOptions struct {
 	context                context.Context
-	directoryClusterReader model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], model_core.Message[model_filesystem.DirectoryCluster, object.LocalReference]]
-	leavesReader           model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], model_core.Message[*model_filesystem_pb.Leaves, object.LocalReference]]
+	directoryClusterReader model_parser.MessageObjectReader[object.LocalReference, model_filesystem.DirectoryCluster]
+	leavesReader           model_parser.MessageObjectReader[object.LocalReference, *model_filesystem_pb.Leaves]
 	fileFactory            FileFactory
 	symlinkFactory         virtual.SymlinkFactory
 }
@@ -33,8 +33,8 @@ type objectBackedInitialContentsFetcher struct {
 
 func NewObjectBackedInitialContentsFetcher(
 	ctx context.Context,
-	directoryClusterReader model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], model_core.Message[model_filesystem.DirectoryCluster, object.LocalReference]],
-	leavesReader model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], model_core.Message[*model_filesystem_pb.Leaves, object.LocalReference]],
+	directoryClusterReader model_parser.MessageObjectReader[object.LocalReference, model_filesystem.DirectoryCluster],
+	leavesReader model_parser.MessageObjectReader[object.LocalReference, *model_filesystem_pb.Leaves],
 	fileFactory FileFactory,
 	symlinkFactory virtual.SymlinkFactory,
 	rootClusterReference model_core.Decodable[object.LocalReference],
