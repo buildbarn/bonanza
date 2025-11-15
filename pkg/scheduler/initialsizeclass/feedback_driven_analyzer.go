@@ -7,7 +7,7 @@ import (
 	"time"
 
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
-	model_initialsizeclass "bonanza.build/pkg/proto/model/initialsizeclass"
+	model_initialsizeclass_pb "bonanza.build/pkg/proto/model/initialsizeclass"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/random"
@@ -34,7 +34,7 @@ type PreviousExecutionStatsStore interface {
 //
 // TODO: Let this be based on a generic type.
 type PreviousExecutionStatsHandle interface {
-	GetMutableProto() *model_initialsizeclass.PreviousExecutionStats
+	GetMutableProto() *model_initialsizeclass_pb.PreviousExecutionStats
 	Release(isDirty bool)
 }
 
@@ -87,7 +87,7 @@ func (a *feedbackDrivenAnalyzer) Analyze(ctx context.Context, action *encrypteda
 	var tagKeyHashMessage anypb.Any
 	if err := anypb.MarshalFrom(
 		&tagKeyHashMessage,
-		&model_initialsizeclass.TagKeyHashInput{
+		&model_initialsizeclass_pb.TagKeyHashInput{
 			CommonKeyHash:         a.commonKeyHash[:],
 			PlatformPkixPublicKey: action.PlatformPkixPublicKey,
 			StableFingerprint:     stableFingerprint,
@@ -119,7 +119,7 @@ type feedbackDrivenSelector struct {
 	originalTimeout time.Duration
 }
 
-func getExpectedExecutionDuration(perSizeClassStatsMap map[uint32]*model_initialsizeclass.PerSizeClassStats, sizeClass uint32, timeout time.Duration) time.Duration {
+func getExpectedExecutionDuration(perSizeClassStatsMap map[uint32]*model_initialsizeclass_pb.PerSizeClassStats, sizeClass uint32, timeout time.Duration) time.Duration {
 	if perSizeClassStats, ok := perSizeClassStatsMap[sizeClass]; ok {
 		if medianExecutionTime := getOutcomesFromPreviousExecutions(perSizeClassStats.PreviousExecutions).GetMedianExecutionTime(); medianExecutionTime != nil && *medianExecutionTime < timeout {
 			return *medianExecutionTime
@@ -132,7 +132,7 @@ func (s *feedbackDrivenSelector) Select(sizeClasses []uint32) (int, time.Duratio
 	a := s.analyzer
 	stats := s.handle.GetMutableProto()
 	if stats.SizeClasses == nil {
-		stats.SizeClasses = map[uint32]*model_initialsizeclass.PerSizeClassStats{}
+		stats.SizeClasses = map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{}
 	}
 	perSizeClassStatsMap := stats.SizeClasses
 	largestSizeClass := sizeClasses[len(sizeClasses)-1]
@@ -220,12 +220,12 @@ type baseLearner struct {
 	handle   PreviousExecutionStatsHandle
 }
 
-func (l *baseLearner) addPreviousExecution(sizeClass uint32, previousExecution *model_initialsizeclass.PreviousExecution) {
+func (l *baseLearner) addPreviousExecution(sizeClass uint32, previousExecution *model_initialsizeclass_pb.PreviousExecution) {
 	perSizeClassStatsMap := l.handle.GetMutableProto().SizeClasses
 	perSizeClassStats, ok := perSizeClassStatsMap[sizeClass]
 	if !ok {
 		// Size class does not exist yet. Create it.
-		perSizeClassStats = &model_initialsizeclass.PerSizeClassStats{}
+		perSizeClassStats = &model_initialsizeclass_pb.PerSizeClassStats{}
 		perSizeClassStatsMap[sizeClass] = perSizeClassStats
 	}
 
@@ -266,8 +266,8 @@ type smallerForegroundLearner struct {
 }
 
 func (l *smallerForegroundLearner) Succeeded(duration time.Duration, sizeClasses []uint32) (int, time.Duration, time.Duration, Learner) {
-	l.addPreviousExecution(l.smallerSizeClass, &model_initialsizeclass.PreviousExecution{
-		Outcome: &model_initialsizeclass.PreviousExecution_Succeeded{
+	l.addPreviousExecution(l.smallerSizeClass, &model_initialsizeclass_pb.PreviousExecution{
+		Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{
 			Succeeded: durationpb.New(duration),
 		},
 	})
@@ -291,11 +291,11 @@ func (l *smallerForegroundLearner) Failed(timedOut bool) (time.Duration, time.Du
 		largestSizeClass: l.largestSizeClass,
 	}
 	if timedOut {
-		newL.smallerExecution.Outcome = &model_initialsizeclass.PreviousExecution_TimedOut{
+		newL.smallerExecution.Outcome = &model_initialsizeclass_pb.PreviousExecution_TimedOut{
 			TimedOut: durationpb.New(l.smallerTimeout),
 		}
 	} else {
-		newL.smallerExecution.Outcome = &model_initialsizeclass.PreviousExecution_Failed{
+		newL.smallerExecution.Outcome = &model_initialsizeclass_pb.PreviousExecution_Failed{
 			Failed: &emptypb.Empty{},
 		}
 	}
@@ -310,14 +310,14 @@ func (l *smallerForegroundLearner) Failed(timedOut bool) (time.Duration, time.Du
 type largestForegroundLearner struct {
 	cleanLearner
 	smallerSizeClass uint32
-	smallerExecution model_initialsizeclass.PreviousExecution
+	smallerExecution model_initialsizeclass_pb.PreviousExecution
 	largestSizeClass uint32
 }
 
 func (l *largestForegroundLearner) Succeeded(duration time.Duration, sizeClasses []uint32) (int, time.Duration, time.Duration, Learner) {
 	l.addPreviousExecution(l.smallerSizeClass, &l.smallerExecution)
-	l.addPreviousExecution(l.largestSizeClass, &model_initialsizeclass.PreviousExecution{
-		Outcome: &model_initialsizeclass.PreviousExecution_Succeeded{
+	l.addPreviousExecution(l.largestSizeClass, &model_initialsizeclass_pb.PreviousExecution{
+		Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{
 			Succeeded: durationpb.New(duration),
 		},
 	})
@@ -346,8 +346,8 @@ type largestBackgroundLearner struct {
 }
 
 func (l *largestBackgroundLearner) Succeeded(duration time.Duration, sizeClasses []uint32) (int, time.Duration, time.Duration, Learner) {
-	l.addPreviousExecution(l.largestSizeClass, &model_initialsizeclass.PreviousExecution{
-		Outcome: &model_initialsizeclass.PreviousExecution_Succeeded{
+	l.addPreviousExecution(l.largestSizeClass, &model_initialsizeclass_pb.PreviousExecution{
+		Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{
 			Succeeded: durationpb.New(duration),
 		},
 	})
@@ -411,14 +411,14 @@ func (l *smallerBackgroundLearner) Abandoned() {
 
 func (l *smallerBackgroundLearner) Failed(timedOut bool) (time.Duration, time.Duration, Learner) {
 	if timedOut {
-		l.addPreviousExecution(l.smallerSizeClass, &model_initialsizeclass.PreviousExecution{
-			Outcome: &model_initialsizeclass.PreviousExecution_TimedOut{
+		l.addPreviousExecution(l.smallerSizeClass, &model_initialsizeclass_pb.PreviousExecution{
+			Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{
 				TimedOut: durationpb.New(l.smallerTimeout),
 			},
 		})
 	} else {
-		l.addPreviousExecution(l.smallerSizeClass, &model_initialsizeclass.PreviousExecution{
-			Outcome: &model_initialsizeclass.PreviousExecution_Failed{
+		l.addPreviousExecution(l.smallerSizeClass, &model_initialsizeclass_pb.PreviousExecution{
+			Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{
 				Failed: &emptypb.Empty{},
 			},
 		})
@@ -429,8 +429,8 @@ func (l *smallerBackgroundLearner) Failed(timedOut bool) (time.Duration, time.Du
 }
 
 func (l *smallerBackgroundLearner) Succeeded(duration time.Duration, sizeClasses []uint32) (int, time.Duration, time.Duration, Learner) {
-	l.addPreviousExecution(l.smallerSizeClass, &model_initialsizeclass.PreviousExecution{
-		Outcome: &model_initialsizeclass.PreviousExecution_Succeeded{
+	l.addPreviousExecution(l.smallerSizeClass, &model_initialsizeclass_pb.PreviousExecution{
+		Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{
 			Succeeded: durationpb.New(duration),
 		},
 	})
@@ -450,8 +450,8 @@ type largestLearner struct {
 }
 
 func (l *largestLearner) Succeeded(duration time.Duration, sizeClasses []uint32) (int, time.Duration, time.Duration, Learner) {
-	l.addPreviousExecution(l.largestSizeClass, &model_initialsizeclass.PreviousExecution{
-		Outcome: &model_initialsizeclass.PreviousExecution_Succeeded{
+	l.addPreviousExecution(l.largestSizeClass, &model_initialsizeclass_pb.PreviousExecution{
+		Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{
 			Succeeded: durationpb.New(duration),
 		},
 	})

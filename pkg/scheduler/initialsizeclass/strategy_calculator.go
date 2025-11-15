@@ -3,7 +3,7 @@ package initialsizeclass
 import (
 	"time"
 
-	model_initialsizeclass "bonanza.build/pkg/proto/model/initialsizeclass"
+	model_initialsizeclass_pb "bonanza.build/pkg/proto/model/initialsizeclass"
 )
 
 // Strategy for running an action on a size class that is not the
@@ -42,6 +42,6 @@ type Strategy struct {
 // No strategy for the largest size class is returned, as both is
 // probability and options can be inferred.
 type StrategyCalculator interface {
-	GetStrategies(perSizeClassStatsMap map[uint32]*model_initialsizeclass.PerSizeClassStats, sizeClasses []uint32, originalTimeout time.Duration) []Strategy
-	GetBackgroundExecutionTimeout(perSizeClassStatsMap map[uint32]*model_initialsizeclass.PerSizeClassStats, sizeClasses []uint32, sizeClassIndex int, originalTimeout time.Duration) time.Duration
+	GetStrategies(perSizeClassStatsMap map[uint32]*model_initialsizeclass_pb.PerSizeClassStats, sizeClasses []uint32, originalTimeout time.Duration) []Strategy
+	GetBackgroundExecutionTimeout(perSizeClassStatsMap map[uint32]*model_initialsizeclass_pb.PerSizeClassStats, sizeClasses []uint32, sizeClassIndex int, originalTimeout time.Duration) time.Duration
 }

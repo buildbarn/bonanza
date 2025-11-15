@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	model_initialsizeclass "bonanza.build/pkg/proto/model/initialsizeclass"
+	model_initialsizeclass_pb "bonanza.build/pkg/proto/model/initialsizeclass"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -53,10 +53,10 @@ func NewPageRankStrategyCalculator(minimumExecutionTimeout time.Duration, accept
 // getOutcomesFromPreviousExecutions returns an Outcomes object that
 // stores all execution times observed on a given size class. The
 // results are not normalized with respect to other size classes.
-func getOutcomesFromPreviousExecutions(previousExecutionsOnLargest []*model_initialsizeclass.PreviousExecution) Outcomes {
+func getOutcomesFromPreviousExecutions(previousExecutionsOnLargest []*model_initialsizeclass_pb.PreviousExecution) Outcomes {
 	executionTimesOnLargest := make([]time.Duration, 0, len(previousExecutionsOnLargest))
 	for _, previousExecution := range previousExecutionsOnLargest {
-		if outcome, ok := previousExecution.Outcome.(*model_initialsizeclass.PreviousExecution_Succeeded); ok {
+		if outcome, ok := previousExecution.Outcome.(*model_initialsizeclass_pb.PreviousExecution_Succeeded); ok {
 			executionTimesOnLargest = append(executionTimesOnLargest, outcome.Succeeded.AsDuration())
 		}
 	}
@@ -93,7 +93,7 @@ func (sc *pageRankStrategyCalculator) getSmallerSizeClassExecutionParameters(sma
 	return p
 }
 
-func (sc *pageRankStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uint32]*model_initialsizeclass.PerSizeClassStats, sizeClasses []uint32, originalTimeout time.Duration) []Strategy {
+func (sc *pageRankStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uint32]*model_initialsizeclass_pb.PerSizeClassStats, sizeClasses []uint32, originalTimeout time.Duration) []Strategy {
 	// No need to compute strategies in case there is only one size
 	// class available.
 	if len(sizeClasses) <= 1 {
@@ -103,11 +103,11 @@ func (sc *pageRankStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uin
 	// Extract statistics for each of the size classes from the
 	// existing stats message. Create a new map entry for each of
 	// the size classes not seen before.
-	perSizeClassStatsList := make([]*model_initialsizeclass.PerSizeClassStats, 0, len(perSizeClassStatsMap))
+	perSizeClassStatsList := make([]*model_initialsizeclass_pb.PerSizeClassStats, 0, len(perSizeClassStatsMap))
 	for _, sizeClass := range sizeClasses {
 		perSizeClassStats, ok := perSizeClassStatsMap[sizeClass]
 		if !ok {
-			perSizeClassStats = &model_initialsizeclass.PerSizeClassStats{}
+			perSizeClassStats = &model_initialsizeclass_pb.PerSizeClassStats{}
 			perSizeClassStatsMap[sizeClass] = perSizeClassStats
 		}
 		perSizeClassStatsList = append(perSizeClassStatsList, perSizeClassStats)
@@ -151,13 +151,13 @@ func (sc *pageRankStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uin
 		failuresOrTimeouts := 0
 		for _, previousExecution := range previousExecutionsOnSmaller {
 			switch outcome := previousExecution.Outcome.(type) {
-			case *model_initialsizeclass.PreviousExecution_Failed:
+			case *model_initialsizeclass_pb.PreviousExecution_Failed:
 				failuresOrTimeouts++
-			case *model_initialsizeclass.PreviousExecution_TimedOut:
+			case *model_initialsizeclass_pb.PreviousExecution_TimedOut:
 				if duration := outcome.TimedOut.AsDuration(); duration >= p.maximumAcceptableExecutionTime {
 					failuresOrTimeouts++
 				}
-			case *model_initialsizeclass.PreviousExecution_Succeeded:
+			case *model_initialsizeclass_pb.PreviousExecution_Succeeded:
 				if duration := outcome.Succeeded.AsDuration(); duration < p.maximumAcceptableExecutionTime {
 					normalizedExecutionTimes = append(normalizedExecutionTimes, time.Duration(float64(duration)/p.acceptableExecutionTimeIncreaseFactor))
 				} else {
@@ -292,7 +292,7 @@ func (sc *pageRankStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uin
 	return strategies[:n-1]
 }
 
-func (sc *pageRankStrategyCalculator) GetBackgroundExecutionTimeout(perSizeClassStatsMap map[uint32]*model_initialsizeclass.PerSizeClassStats, sizeClasses []uint32, sizeClassIndex int, originalTimeout time.Duration) time.Duration {
+func (sc *pageRankStrategyCalculator) GetBackgroundExecutionTimeout(perSizeClassStatsMap map[uint32]*model_initialsizeclass_pb.PerSizeClassStats, sizeClasses []uint32, sizeClassIndex int, originalTimeout time.Duration) time.Duration {
 	// Trimmed down version of the algorithm above that is only
 	// capable of returning the execution timeout for a given size
 	// class. This is used to obtain the most up-to-date value of

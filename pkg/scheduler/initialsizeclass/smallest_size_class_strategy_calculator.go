@@ -3,12 +3,12 @@ package initialsizeclass
 import (
 	"time"
 
-	model_initialsizeclass "bonanza.build/pkg/proto/model/initialsizeclass"
+	model_initialsizeclass_pb "bonanza.build/pkg/proto/model/initialsizeclass"
 )
 
 type smallestSizeClassStrategyCalculator struct{}
 
-func (smallestSizeClassStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uint32]*model_initialsizeclass.PerSizeClassStats, sizeClasses []uint32, originalTimeout time.Duration) []Strategy {
+func (smallestSizeClassStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uint32]*model_initialsizeclass_pb.PerSizeClassStats, sizeClasses []uint32, originalTimeout time.Duration) []Strategy {
 	if len(sizeClasses) <= 1 {
 		return nil
 	}
@@ -20,7 +20,7 @@ func (smallestSizeClassStrategyCalculator) GetStrategies(perSizeClassStatsMap ma
 	}
 }
 
-func (smallestSizeClassStrategyCalculator) GetBackgroundExecutionTimeout(perSizeClassStatsMap map[uint32]*model_initialsizeclass.PerSizeClassStats, sizeClasses []uint32, sizeClassIndex int, originalTimeout time.Duration) time.Duration {
+func (smallestSizeClassStrategyCalculator) GetBackgroundExecutionTimeout(perSizeClassStatsMap map[uint32]*model_initialsizeclass_pb.PerSizeClassStats, sizeClasses []uint32, sizeClassIndex int, originalTimeout time.Duration) time.Duration {
 	panic("Background execution should not be performed")
 }
 
