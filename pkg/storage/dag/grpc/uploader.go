@@ -8,6 +8,7 @@ import (
 	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
+	"bonanza.build/pkg/storage/tag"
 	pg_sync "bonanza.build/pkg/sync"
 
 	"github.com/buildbarn/bb-storage/pkg/program"
@@ -16,6 +17,7 @@ import (
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type requestableObjectState struct {
@@ -30,7 +32,9 @@ type uploader struct {
 	maximumUnfinalizedParentsLimit object.Limit
 }
 
-func NewUploader(client dag_pb.UploaderClient, objectContentsWalkerSemaphore *semaphore.Weighted, maximumUnfinalizedParentsLimit object.Limit) dag.Uploader[object.GlobalReference] {
+// NewUploader creates a DAG Uploader that transmits objects via gRPC,
+// using the DAG replication protocol.
+func NewUploader(client dag_pb.UploaderClient, objectContentsWalkerSemaphore *semaphore.Weighted, maximumUnfinalizedParentsLimit object.Limit) dag.Uploader[object.InstanceName, object.GlobalReference] {
 	return &uploader{
 		client:                         client,
 		objectContentsWalkerSemaphore:  objectContentsWalkerSemaphore,
@@ -38,8 +42,7 @@ func NewUploader(client dag_pb.UploaderClient, objectContentsWalkerSemaphore *se
 	}
 }
 
-// UploadDAG uploads a single DAG of objects to a server via gRPC.
-func (u *uploader) UploadDAG(ctx context.Context, rootReference object.GlobalReference, rootObjectContentsWalker dag.ObjectContentsWalker) error {
+func (u *uploader) uploadDAG(ctx context.Context, rootReference object.GlobalReference, rootObjectContentsWalker dag.ObjectContentsWalker, rootTag *dag_pb.UploadDagsRequest_InitiateDag_Tag) error {
 	return program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
 		// State associated with all requestable objects. Ensure
 		// that all walkers that traversed are discarded upon
@@ -105,6 +108,7 @@ func (u *uploader) UploadDAG(ctx context.Context, rootReference object.GlobalRef
 			Type: &dag_pb.UploadDagsRequest_InitiateDag_{
 				InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
 					RootReference: rootReference.GetRawReference(),
+					RootTag:       rootTag,
 				},
 			},
 		}); err != nil {
@@ -286,4 +290,35 @@ func (u *uploader) UploadDAG(ctx context.Context, rootReference object.GlobalRef
 			})
 		}
 	})
+}
+
+func (u *uploader) UploadDAG(ctx context.Context, rootReference object.GlobalReference, rootObjectContentsWalker dag.ObjectContentsWalker) error {
+	return u.uploadDAG(
+		ctx,
+		rootReference,
+		rootObjectContentsWalker,
+		/* rootTag = */ nil,
+	)
+}
+
+func (u *uploader) UploadTaggedDAG(ctx context.Context, instanceName object.InstanceName, rootTagKey tag.Key, rootTagSignedValue tag.SignedValue, rootObjectContentsWalker dag.ObjectContentsWalker) error {
+	rootTagKeyMessage, err := rootTagKey.ToProto()
+	if err != nil {
+		rootObjectContentsWalker.Discard()
+		return util.StatusWrap(err, "Invalid root tag key")
+	}
+
+	return u.uploadDAG(
+		ctx,
+		object.GlobalReference{
+			InstanceName:   instanceName,
+			LocalReference: rootTagSignedValue.Value.Reference,
+		},
+		rootObjectContentsWalker,
+		&dag_pb.UploadDagsRequest_InitiateDag_Tag{
+			Key:       rootTagKeyMessage,
+			Timestamp: timestamppb.New(rootTagSignedValue.Value.Timestamp),
+			Signature: rootTagSignedValue.Signature[:],
+		},
+	)
 }

@@ -64,12 +64,12 @@ func (objectManager) ReferenceObject(capturedObject model_core.MetadataEntry[Ref
 }
 
 type objectExporter struct {
-	dagUploader  dag.Uploader[object.GlobalReference]
+	dagUploader  dag.Uploader[object.InstanceName, object.GlobalReference]
 	instanceName object.InstanceName
 }
 
 func NewObjectExporter(
-	dagUploader dag.Uploader[object.GlobalReference],
+	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
 	instanceName object.InstanceName,
 ) model_core.ObjectExporter[Reference, object.LocalReference] {
 	return &objectExporter{

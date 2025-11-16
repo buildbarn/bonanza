@@ -42,7 +42,7 @@ type executor struct {
 	computerFactory  ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
 	queuesFactory    RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
 	parsedObjectPool *model_parser.ParsedObjectPool
-	dagUploader      dag.Uploader[object.GlobalReference]
+	dagUploader      dag.Uploader[object.InstanceName, object.GlobalReference]
 	clock            clock.Clock
 }
 
@@ -51,7 +51,7 @@ func NewExecutor(
 	computerFactory ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]],
 	queuesFactory RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata],
 	parsedObjectPool *model_parser.ParsedObjectPool,
-	dagUploader dag.Uploader[object.GlobalReference],
+	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
 	clock clock.Clock,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &executor{

@@ -10,11 +10,13 @@ go_library(
         "//pkg/proto/storage/dag",
         "//pkg/storage/dag",
         "//pkg/storage/object",
+        "//pkg/storage/tag",
         "//pkg/sync",
         "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/timestamppb",
         "@org_golang_x_sync//semaphore",
     ],
 )
@@ -26,8 +28,8 @@ go_test(
         "mocks_dag_test.go",
         "uploader_test.go",
     ],
+    embed = [":grpc"],
     deps = [
-        ":grpc",
         "//pkg/proto/storage/dag",
         "//pkg/proto/storage/object",
         "//pkg/storage/dag",  # keep

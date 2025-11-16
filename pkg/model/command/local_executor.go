@@ -99,7 +99,7 @@ type TopLevelDirectory interface {
 type localExecutor struct {
 	objectDownloader                    object.Downloader[object.GlobalReference]
 	parsedObjectPool                    *model_parser.ParsedObjectPool
-	dagUploader                         dag.Uploader[object.GlobalReference]
+	dagUploader                         dag.Uploader[object.InstanceName, object.GlobalReference]
 	objectContentsWalkerSemaphore       *semaphore.Weighted
 	topLevelDirectory                   TopLevelDirectory
 	handleAllocator                     virtual.StatefulHandleAllocator
@@ -122,7 +122,7 @@ type localExecutor struct {
 func NewLocalExecutor(
 	objectDownloader object.Downloader[object.GlobalReference],
 	parsedObjectPool *model_parser.ParsedObjectPool,
-	dagUploader dag.Uploader[object.GlobalReference],
+	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
 	objectContentsWalkerSemaphore *semaphore.Weighted,
 	topLevelDirectory TopLevelDirectory,
 	handleAllocator virtual.StatefulHandleAllocator,
