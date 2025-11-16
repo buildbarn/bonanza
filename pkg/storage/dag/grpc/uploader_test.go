@@ -1,4 +1,4 @@
-package dag_test
+package grpc_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	object_pb "bonanza.build/pkg/proto/storage/object"
-	"bonanza.build/pkg/storage/dag"
+	dag_grpc "bonanza.build/pkg/storage/dag/grpc"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
@@ -21,11 +21,20 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestUploadDAG(t *testing.T) {
+func TestRemoteUploader(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
 
+	client := NewMockUploaderClient(ctrl)
+	uploader := dag_grpc.NewUploader(
+		client,
+		semaphore.NewWeighted(1),
+		object.NewLimit(&object_pb.Limit{
+			Count:     100,
+			SizeBytes: 1 << 20,
+		}),
+	)
+
 	t.Run("StreamCreationFailure", func(t *testing.T) {
-		client := NewMockUploaderClient(ctrl)
 		client.EXPECT().UploadDags(gomock.Any()).Return(nil, status.Error(codes.Unavailable, "Server offline"))
 		rootObjectContentsWalker := NewMockObjectContentsWalker(ctrl)
 		rootObjectContentsWalker.EXPECT().Discard()
@@ -33,22 +42,15 @@ func TestUploadDAG(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Unavailable, "Failed to create stream: Server offline"),
-			dag.UploadDAG(
+			uploader.UploadDAG(
 				ctx,
-				client,
 				object.MustNewSHA256V1GlobalReference("hello/world", "f0ed77a5b3d37db998ba186a6bd6b201f432343be9e2ede174f52bd1fab343cd", 85845, 7, 1, 599552),
 				rootObjectContentsWalker,
-				semaphore.NewWeighted(1),
-				object.NewLimit(&object_pb.Limit{
-					Count:     100,
-					SizeBytes: 1 << 20,
-				}),
 			),
 		)
 	})
 
 	t.Run("HandshakeSendFailure", func(t *testing.T) {
-		client := NewMockUploaderClient(ctrl)
 		stream := NewMockUploader_UploadDagsClient(ctrl)
 		var streamCtx context.Context
 		client.EXPECT().UploadDags(gomock.Any()).
@@ -79,22 +81,15 @@ func TestUploadDAG(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Unavailable, "Failed to send handshake message to server: Server offline"),
-			dag.UploadDAG(
+			uploader.UploadDAG(
 				ctx,
-				client,
 				object.MustNewSHA256V1GlobalReference("hello/world", "ca3d70c749a21a8a6bd60ef74b7fc988e149881e48fde520abe665d6a5995344", 85845, 7, 1, 599552),
 				rootObjectContentsWalker,
-				semaphore.NewWeighted(1),
-				object.NewLimit(&object_pb.Limit{
-					Count:     100,
-					SizeBytes: 1 << 20,
-				}),
 			),
 		)
 	})
 
 	t.Run("AlreadyExists", func(t *testing.T) {
-		client := NewMockUploaderClient(ctrl)
 		stream := NewMockUploader_UploadDagsClient(ctrl)
 		client.EXPECT().UploadDags(gomock.Any()).Return(stream, nil)
 		rootObjectContentsWalker := NewMockObjectContentsWalker(ctrl)
@@ -161,16 +156,10 @@ func TestUploadDAG(t *testing.T) {
 			stream.EXPECT().Recv().Return(nil, io.EOF).MinTimes(1),
 		)
 
-		require.NoError(t, dag.UploadDAG(
+		require.NoError(t, uploader.UploadDAG(
 			ctx,
-			client,
 			object.MustNewSHA256V1GlobalReference("hello/world", "ca3d70c749a21a8a6bd60ef74b7fc988e149881e48fde520abe665d6a5995344", 85845, 7, 1, 599552),
 			rootObjectContentsWalker,
-			semaphore.NewWeighted(1),
-			object.NewLimit(&object_pb.Limit{
-				Count:     100,
-				SizeBytes: 1 << 20,
-			}),
 		))
 	})
 }

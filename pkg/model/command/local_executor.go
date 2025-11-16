@@ -23,7 +23,6 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
-	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	"bonanza.build/pkg/remoteworker"
 	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
@@ -100,7 +99,7 @@ type TopLevelDirectory interface {
 type localExecutor struct {
 	objectDownloader                    object.Downloader[object.GlobalReference]
 	parsedObjectPool                    *model_parser.ParsedObjectPool
-	dagUploaderClient                   dag_pb.UploaderClient
+	dagUploader                         dag.Uploader[object.GlobalReference]
 	objectContentsWalkerSemaphore       *semaphore.Weighted
 	topLevelDirectory                   TopLevelDirectory
 	handleAllocator                     virtual.StatefulHandleAllocator
@@ -123,7 +122,7 @@ type localExecutor struct {
 func NewLocalExecutor(
 	objectDownloader object.Downloader[object.GlobalReference],
 	parsedObjectPool *model_parser.ParsedObjectPool,
-	dagUploaderClient dag_pb.UploaderClient,
+	dagUploader dag.Uploader[object.GlobalReference],
 	objectContentsWalkerSemaphore *semaphore.Weighted,
 	topLevelDirectory TopLevelDirectory,
 	handleAllocator virtual.StatefulHandleAllocator,
@@ -144,7 +143,7 @@ func NewLocalExecutor(
 	return &localExecutor{
 		objectDownloader:               objectDownloader,
 		parsedObjectPool:               parsedObjectPool,
-		dagUploaderClient:              dagUploaderClient,
+		dagUploader:                    dagUploader,
 		objectContentsWalkerSemaphore:  objectContentsWalkerSemaphore,
 		topLevelDirectory:              topLevelDirectory,
 		handleAllocator:                handleAllocator,
@@ -672,17 +671,13 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		return badReference, 0, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
 	}
 	resultReference := createdResult.Value.GetLocalReference()
-	if err := dag.UploadDAG(
+	if err := e.dagUploader.UploadDAG(
 		ctx,
-		e.dagUploaderClient,
 		action.Reference.Value.WithLocalReference(resultReference),
 		dag.NewSimpleObjectContentsWalker(
 			createdResult.Value.Contents,
 			createdResult.Value.Metadata,
 		),
-		e.objectContentsWalkerSemaphore,
-		// Assume everything we attempt to upload is memory backed.
-		object.Unlimited,
 	); err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
 		return badReference, 0, 0, util.StatusWrap(err, "Failed to upload result")

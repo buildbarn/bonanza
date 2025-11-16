@@ -1,4 +1,4 @@
-package dag
+package grpc
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	dag_pb "bonanza.build/pkg/proto/storage/dag"
+	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 	pg_sync "bonanza.build/pkg/sync"
 
@@ -17,75 +18,28 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ObjectContentsWalker is called into by UploadDAG to request the
-// contents of an object. UploadDAG may also discard them in case a
-// server responds that the object already exists, or if multiple
-// walkers for the same object exist.
-type ObjectContentsWalker interface {
-	GetContents(ctx context.Context) (*object.Contents, []ObjectContentsWalker, error)
-	Discard()
-}
-
-type simpleObjectContentsWalker struct {
-	contents *object.Contents
-	walkers  []ObjectContentsWalker
-}
-
-// NewSimpleObjectContentsWalker creates an ObjectContentsWalker that is
-// backed by a literal message and a list of ObjectContentsWalkers for
-// its children. This implementation is sufficient when uploading DAGs
-// that reside fully in memory.
-func NewSimpleObjectContentsWalker(contents *object.Contents, walkers []ObjectContentsWalker) ObjectContentsWalker {
-	return &simpleObjectContentsWalker{
-		contents: contents,
-		walkers:  walkers,
-	}
-}
-
-func (w *simpleObjectContentsWalker) GetContents(ctx context.Context) (contents *object.Contents, walkers []ObjectContentsWalker, err error) {
-	if w.contents == nil {
-		panic("attempted to get contents of an object that was already discarded")
-	}
-	contents = w.contents
-	walkers = w.walkers
-	*w = simpleObjectContentsWalker{}
-	return contents, walkers, err
-}
-
-func (w *simpleObjectContentsWalker) Discard() {
-	if w.contents == nil {
-		panic("attempted to discard contents of an object that was already discarded")
-	}
-	for _, wChild := range w.walkers {
-		wChild.Discard()
-	}
-	*w = simpleObjectContentsWalker{}
-}
-
-type existingObjectContentsWalker struct{}
-
-func (existingObjectContentsWalker) GetContents(ctx context.Context) (*object.Contents, []ObjectContentsWalker, error) {
-	return nil, nil, status.Error(codes.Internal, "Contents for this object are not available for upload, as this object was expected to already exist")
-}
-
-func (existingObjectContentsWalker) Discard() {}
-
-// ExistingObjectContentsWalker is an implementation of
-// ObjectContentsWalker that always returns an error when an attempt is
-// made to upload. It can be used in places where we expect the
-// underlying object to already be present in storage. The storage
-// server should therefore never attempt to request the object's
-// contents from the client.
-var ExistingObjectContentsWalker ObjectContentsWalker = existingObjectContentsWalker{}
-
 type requestableObjectState struct {
 	reference                  object.LocalReference
-	walker                     ObjectContentsWalker
+	walker                     dag.ObjectContentsWalker
 	additionalReferenceIndices []uint64
 }
 
+type uploader struct {
+	client                         dag_pb.UploaderClient
+	objectContentsWalkerSemaphore  *semaphore.Weighted
+	maximumUnfinalizedParentsLimit object.Limit
+}
+
+func NewUploader(client dag_pb.UploaderClient, objectContentsWalkerSemaphore *semaphore.Weighted, maximumUnfinalizedParentsLimit object.Limit) dag.Uploader[object.GlobalReference] {
+	return &uploader{
+		client:                         client,
+		objectContentsWalkerSemaphore:  objectContentsWalkerSemaphore,
+		maximumUnfinalizedParentsLimit: maximumUnfinalizedParentsLimit,
+	}
+}
+
 // UploadDAG uploads a single DAG of objects to a server via gRPC.
-func UploadDAG(ctx context.Context, client dag_pb.UploaderClient, rootReference object.GlobalReference, rootObjectContentsWalker ObjectContentsWalker, objectContentsWalkerSemaphore *semaphore.Weighted, maximumUnfinalizedParentsLimit object.Limit) error {
+func (u *uploader) UploadDAG(ctx context.Context, rootReference object.GlobalReference, rootObjectContentsWalker dag.ObjectContentsWalker) error {
 	return program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
 		// State associated with all requestable objects. Ensure
 		// that all walkers that traversed are discarded upon
@@ -110,7 +64,7 @@ func UploadDAG(ctx context.Context, client dag_pb.UploaderClient, rootReference 
 			return nil
 		})
 
-		stream, err := client.UploadDags(ctx)
+		stream, err := u.client.UploadDags(ctx)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create stream")
 		}
@@ -131,7 +85,7 @@ func UploadDAG(ctx context.Context, client dag_pb.UploaderClient, rootReference 
 			Type: &dag_pb.UploadDagsRequest_Handshake_{
 				Handshake: &dag_pb.UploadDagsRequest_Handshake{
 					Namespace:                      rootReference.GetNamespace().ToProto(),
-					MaximumUnfinalizedParentsLimit: maximumUnfinalizedParentsLimit.ToProto(),
+					MaximumUnfinalizedParentsLimit: u.maximumUnfinalizedParentsLimit.ToProto(),
 				},
 			},
 		}); err != nil {
@@ -255,14 +209,14 @@ func UploadDAG(ctx context.Context, client dag_pb.UploaderClient, rootReference 
 			}
 			objectsLock.Unlock()
 
-			if err := util.AcquireSemaphore(ctx, objectContentsWalkerSemaphore, 1); err != nil {
+			if err := util.AcquireSemaphore(ctx, u.objectContentsWalkerSemaphore, 1); err != nil {
 				if walker != nil {
 					walker.Discard()
 				}
 				return err
 			}
 			siblingsGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-				defer objectContentsWalkerSemaphore.Release(1)
+				defer u.objectContentsWalkerSemaphore.Release(1)
 
 				if requestObject.RequestContents {
 					if walker == nil {
@@ -281,7 +235,7 @@ func UploadDAG(ctx context.Context, client dag_pb.UploaderClient, rootReference 
 					// hold a lock across Send().
 					sendLock.Lock()
 					objectsLock.Lock()
-					var walkersToDiscard []ObjectContentsWalker
+					var walkersToDiscard []dag.ObjectContentsWalker
 					for i, childWalker := range childrenWalkers {
 						childReferenceIndex := nextReferenceIndex
 						nextReferenceIndex++

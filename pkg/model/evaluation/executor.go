@@ -15,8 +15,8 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
-	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	"bonanza.build/pkg/remoteworker"
+	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 	object_namespacemapping "bonanza.build/pkg/storage/object/namespacemapping"
 
@@ -24,7 +24,6 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/program"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
-	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -39,13 +38,12 @@ type ComputerFactory[TReference any, TMetadata model_core.ReferenceMetadata] int
 }
 
 type executor struct {
-	objectDownloader              object.Downloader[object.GlobalReference]
-	computerFactory               ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
-	queuesFactory                 RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
-	parsedObjectPool              *model_parser.ParsedObjectPool
-	dagUploaderClient             dag_pb.UploaderClient
-	objectContentsWalkerSemaphore *semaphore.Weighted
-	clock                         clock.Clock
+	objectDownloader object.Downloader[object.GlobalReference]
+	computerFactory  ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
+	queuesFactory    RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
+	parsedObjectPool *model_parser.ParsedObjectPool
+	dagUploader      dag.Uploader[object.GlobalReference]
+	clock            clock.Clock
 }
 
 func NewExecutor(
@@ -53,18 +51,16 @@ func NewExecutor(
 	computerFactory ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]],
 	queuesFactory RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata],
 	parsedObjectPool *model_parser.ParsedObjectPool,
-	dagUploaderClient dag_pb.UploaderClient,
-	objectContentsWalkerSemaphore *semaphore.Weighted,
+	dagUploader dag.Uploader[object.GlobalReference],
 	clock clock.Clock,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &executor{
-		objectDownloader:              objectDownloader,
-		computerFactory:               computerFactory,
-		queuesFactory:                 queuesFactory,
-		parsedObjectPool:              parsedObjectPool,
-		dagUploaderClient:             dagUploaderClient,
-		objectContentsWalkerSemaphore: objectContentsWalkerSemaphore,
-		clock:                         clock,
+		objectDownloader: objectDownloader,
+		computerFactory:  computerFactory,
+		queuesFactory:    queuesFactory,
+		parsedObjectPool: parsedObjectPool,
+		dagUploader:      dagUploader,
+		clock:            clock,
 	}
 }
 
@@ -97,9 +93,8 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 
 	objectManager := buffered.NewObjectManager()
 	objectExporter := buffered.NewObjectExporter(
-		e.dagUploaderClient,
+		e.dagUploader,
 		instanceName,
-		e.objectContentsWalkerSemaphore,
 	)
 	resultMessage := model_core.MustBuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Result {
 		var result model_evaluation_pb.Result

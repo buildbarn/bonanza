@@ -41,6 +41,7 @@ import (
 	"bonanza.build/pkg/remoteexecution"
 	pg_starlark "bonanza.build/pkg/starlark"
 	"bonanza.build/pkg/storage/dag"
+	dag_grpc "bonanza.build/pkg/storage/dag/grpc"
 	"bonanza.build/pkg/storage/object"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
 	object_namespacemapping "bonanza.build/pkg/storage/object/namespacemapping"
@@ -552,19 +553,21 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	instanceName := object.NewInstanceName(args.CommonFlags.RemoteInstanceName)
 	actionReference := createdAction.Value.GetLocalReference()
 	actionGlobalReference := instanceName.WithLocalReference(actionReference)
-	if err := dag.UploadDAG(
-		ctx,
+	dagUploader := dag_grpc.NewUploader(
 		dag_pb.NewUploaderClient(remoteCacheClient),
-		actionGlobalReference,
-		dag.NewSimpleObjectContentsWalker(
-			createdAction.Value.Contents,
-			createdAction.Value.Metadata,
-		),
 		semaphore.NewWeighted(10),
 		object.NewLimit(&object_pb.Limit{
 			Count:     1000,
 			SizeBytes: 1 << 20,
 		}),
+	)
+	if err := dagUploader.UploadDAG(
+		ctx,
+		actionGlobalReference,
+		dag.NewSimpleObjectContentsWalker(
+			createdAction.Value.Contents,
+			createdAction.Value.Metadata,
+		),
 	); err != nil {
 		logger.Fatal(formatted.Textf("Failed to upload workspace directory: %s", err))
 	}

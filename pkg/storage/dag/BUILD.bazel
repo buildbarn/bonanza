@@ -4,7 +4,8 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "dag",
     srcs = [
-        "upload_dag.go",
+        "object_contents_walker.go",
+        "uploader.go",
         "uploader_server.go",
     ],
     importpath = "bonanza.build/pkg/storage/dag",
@@ -16,7 +17,6 @@ go_library(
         "//pkg/storage/object",
         "//pkg/storage/tag",
         "//pkg/sync",
-        "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
@@ -29,10 +29,8 @@ go_test(
     name = "dag_test",
     srcs = [
         "mocks_dag_pb_test.go",
-        "mocks_dag_test.go",
         "mocks_object_test.go",
         "mocks_tag_test.go",
-        "upload_dag_test.go",
         "uploader_server_test.go",
     ],
     embed = [":dag"],
@@ -44,7 +42,6 @@ go_test(
         "//pkg/storage/tag",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",
-        "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//metadata",  # keep
         "@org_golang_google_grpc//status",
@@ -55,23 +52,9 @@ go_test(
 )
 
 gomock(
-    name = "mocks_dag",
-    out = "mocks_dag_test.go",
-    interfaces = ["ObjectContentsWalker"],
-    library = "//pkg/storage/dag",
-    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
-    mockgen_tool = "@org_uber_go_mock//mockgen",
-    package = "dag_test",
-)
-
-gomock(
     name = "mocks_dag_pb",
     out = "mocks_dag_pb_test.go",
-    interfaces = [
-        "UploaderClient",
-        "Uploader_UploadDagsClient",
-        "Uploader_UploadDagsServer",
-    ],
+    interfaces = ["Uploader_UploadDagsServer"],
     library = "//pkg/proto/storage/dag",
     mockgen_model_library = "@org_uber_go_mock//mockgen/model",
     mockgen_tool = "@org_uber_go_mock//mockgen",

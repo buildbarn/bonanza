@@ -21,6 +21,8 @@ import (
 	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/remoteworker"
+	dag_grpc "bonanza.build/pkg/storage/dag/grpc"
+	"bonanza.build/pkg/storage/object"
 	object_existenceprecondition "bonanza.build/pkg/storage/object/existenceprecondition"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
 	object_local "bonanza.build/pkg/storage/object/local"
@@ -86,8 +88,13 @@ func main() {
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create parsed object pool")
 		}
-		dagUploaderClient := dag_pb.NewUploaderClient(storageGRPCClient)
 		objectContentsWalkerSemaphore := semaphore.NewWeighted(int64(runtime.NumCPU()))
+		dagUploader := dag_grpc.NewUploader(
+			dag_pb.NewUploaderClient(storageGRPCClient),
+			objectContentsWalkerSemaphore,
+			// Assume everything we attempt to upload is memory backed.
+			object.Unlimited,
+		)
 
 		// Create connection with scheduler.
 		schedulerConnection, err := grpcClientFactory.NewClientFromConfiguration(configuration.SchedulerGrpcClient, dependenciesGroup)
@@ -200,7 +207,7 @@ func main() {
 					executor := model_command.NewLocalExecutor(
 						objectDownloader,
 						parsedObjectPool,
-						dagUploaderClient,
+						dagUploader,
 						objectContentsWalkerSemaphore,
 						rootDirectory,
 						handleAllocator,

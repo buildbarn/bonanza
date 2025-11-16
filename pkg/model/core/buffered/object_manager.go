@@ -5,11 +5,9 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	model_parser "bonanza.build/pkg/model/parser"
-	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 
-	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -66,32 +64,25 @@ func (objectManager) ReferenceObject(capturedObject model_core.MetadataEntry[Ref
 }
 
 type objectExporter struct {
-	dagUploaderClient             dag_pb.UploaderClient
-	instanceName                  object.InstanceName
-	objectContentsWalkerSemaphore *semaphore.Weighted
+	dagUploader  dag.Uploader[object.GlobalReference]
+	instanceName object.InstanceName
 }
 
 func NewObjectExporter(
-	dagUploaderClient dag_pb.UploaderClient,
+	dagUploader dag.Uploader[object.GlobalReference],
 	instanceName object.InstanceName,
-	objectContentsWalkerSemaphore *semaphore.Weighted,
 ) model_core.ObjectExporter[Reference, object.LocalReference] {
 	return &objectExporter{
-		dagUploaderClient:             dagUploaderClient,
-		instanceName:                  instanceName,
-		objectContentsWalkerSemaphore: objectContentsWalkerSemaphore,
+		dagUploader:  dagUploader,
+		instanceName: instanceName,
 	}
 }
 
 func (oe *objectExporter) ExportReference(ctx context.Context, internalReference Reference) (object.LocalReference, error) {
-	err := dag.UploadDAG(
+	err := oe.dagUploader.UploadDAG(
 		ctx,
-		oe.dagUploaderClient,
 		oe.instanceName.WithLocalReference(internalReference.LocalReference),
 		internalReference.embeddedMetadata,
-		oe.objectContentsWalkerSemaphore,
-		// Assume everything we attempt to upload is memory backed.
-		object.Unlimited,
 	)
 	if err != nil {
 		var badReference object.LocalReference

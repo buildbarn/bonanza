@@ -24,6 +24,7 @@ import (
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	remoteexecution "bonanza.build/pkg/remoteexecution"
 	"bonanza.build/pkg/remoteworker"
+	dag_grpc "bonanza.build/pkg/storage/dag/grpc"
 	"bonanza.build/pkg/storage/object"
 	object_existenceprecondition "bonanza.build/pkg/storage/object/existenceprecondition"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
@@ -150,8 +151,12 @@ func main() {
 							remote: model_evaluation.NewSimpleRecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.RemoteEvaluationConcurrency),
 						},
 						parsedObjectPool,
-						dag_pb.NewUploaderClient(storageGRPCClient),
-						semaphore.NewWeighted(int64(runtime.NumCPU())),
+						dag_grpc.NewUploader(
+							dag_pb.NewUploaderClient(storageGRPCClient),
+							semaphore.NewWeighted(int64(runtime.NumCPU())),
+							// Assume everything we attempt to upload is memory backed.
+							object.Unlimited,
+						),
 						clock.SystemClock,
 					),
 				),

@@ -21,7 +21,6 @@ go_library(
         "//pkg/proto/model/core",
         "//pkg/proto/model/filesystem",
         "//pkg/proto/remoteworker",
-        "//pkg/proto/storage/dag",
         "//pkg/remoteworker",
         "//pkg/storage/dag",
         "//pkg/storage/object",

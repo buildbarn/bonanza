@@ -33,6 +33,7 @@ go_library(
         "//pkg/remoteexecution",
         "//pkg/starlark",
         "//pkg/storage/dag",
+        "//pkg/storage/dag/grpc",
         "//pkg/storage/object",
         "//pkg/storage/object/grpc",
         "//pkg/storage/object/namespacemapping",

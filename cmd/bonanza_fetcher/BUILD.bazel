@@ -15,6 +15,8 @@ go_library(
         "//pkg/proto/storage/dag",
         "//pkg/proto/storage/object",
         "//pkg/remoteworker",
+        "//pkg/storage/dag/grpc",
+        "//pkg/storage/object",
         "//pkg/storage/object/existenceprecondition",
         "//pkg/storage/object/grpc",
         "//pkg/storage/object/local",

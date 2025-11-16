@@ -22,7 +22,6 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
-	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	"bonanza.build/pkg/remoteworker"
 	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
@@ -33,20 +32,18 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
-	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
 type localExecutor struct {
-	objectDownloader              object.Downloader[object.GlobalReference]
-	parsedObjectPool              *model_parser.ParsedObjectPool
-	dagUploaderClient             dag_pb.UploaderClient
-	objectContentsWalkerSemaphore *semaphore.Weighted
-	httpClient                    *http.Client
-	filePool                      pool.FilePool
-	cacheDirectory                filesystem.Directory
+	objectDownloader object.Downloader[object.GlobalReference]
+	parsedObjectPool *model_parser.ParsedObjectPool
+	dagUploader      dag.Uploader[object.GlobalReference]
+	httpClient       *http.Client
+	filePool         pool.FilePool
+	cacheDirectory   filesystem.Directory
 }
 
 // NewLocalExecutor creates a remote worker protocol executor that is
@@ -56,20 +53,18 @@ type localExecutor struct {
 func NewLocalExecutor(
 	objectDownloader object.Downloader[object.GlobalReference],
 	parsedObjectPool *model_parser.ParsedObjectPool,
-	dagUploaderClient dag_pb.UploaderClient,
-	objectContentsWalkerSemaphore *semaphore.Weighted,
+	dagUploader dag.Uploader[object.GlobalReference],
 	httpClient *http.Client,
 	filePool pool.FilePool,
 	cacheDirectory filesystem.Directory,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &localExecutor{
-		objectDownloader:              objectDownloader,
-		parsedObjectPool:              parsedObjectPool,
-		dagUploaderClient:             dagUploaderClient,
-		objectContentsWalkerSemaphore: objectContentsWalkerSemaphore,
-		httpClient:                    httpClient,
-		filePool:                      filePool,
-		cacheDirectory:                cacheDirectory,
+		objectDownloader: objectDownloader,
+		parsedObjectPool: parsedObjectPool,
+		dagUploader:      dagUploader,
+		httpClient:       httpClient,
+		filePool:         filePool,
+		cacheDirectory:   cacheDirectory,
 	}
 }
 
@@ -299,17 +294,13 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		return badReference, 0, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
 	}
 	resultReference := createdResult.Value.GetLocalReference()
-	if err := dag.UploadDAG(
+	if err := e.dagUploader.UploadDAG(
 		ctx,
-		e.dagUploaderClient,
 		action.Reference.Value.WithLocalReference(resultReference),
 		dag.NewSimpleObjectContentsWalker(
 			createdResult.Value.Contents,
 			createdResult.Value.Metadata,
 		),
-		e.objectContentsWalkerSemaphore,
-		// Assume everything we attempt to upload is memory backed.
-		object.Unlimited,
 	); err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
 		return badReference, 0, 0, util.StatusWrap(err, "Failed to upload result")
