@@ -10,7 +10,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 type Key struct {
@@ -51,11 +50,7 @@ func (k *Key) ToProto() (*tag_pb.Key, error) {
 }
 
 func (k Key) VerifySignature(value Value, signature *[ed25519.SignatureSize]byte) (SignedValue, error) {
-	valueSigningInput, err := proto.Marshal(&tag_pb.ValueSigningInput{
-		ReferenceFormat: value.Reference.GetReferenceFormat().ToProto(),
-		KeyHash:         k.Hash[:],
-		Value:           value.ToProto(),
-	})
+	valueSigningInput, err := value.getSigningInput(k.Hash)
 	if err != nil {
 		return SignedValue{}, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to marshal value signing input")
 	}

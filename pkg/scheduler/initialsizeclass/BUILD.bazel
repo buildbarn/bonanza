@@ -17,6 +17,7 @@ go_library(
     importpath = "bonanza.build/pkg/scheduler/initialsizeclass",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/model/tag",
         "//pkg/proto/configuration/scheduler",
         "//pkg/proto/encryptedaction",
         "//pkg/proto/model/initialsizeclass",

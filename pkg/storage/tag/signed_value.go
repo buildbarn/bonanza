@@ -2,6 +2,7 @@ package tag
 
 import (
 	"crypto/ed25519"
+	"crypto/sha256"
 	"time"
 
 	tag_pb "bonanza.build/pkg/proto/storage/tag"
@@ -11,6 +12,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -49,6 +51,29 @@ func (v *Value) ToProto() *tag_pb.Value {
 		Reference: v.Reference.GetRawReference(),
 		Timestamp: timestamppb.New(v.Timestamp),
 	}
+}
+
+func (v *Value) getSigningInput(keyHash [sha256.Size]byte) ([]byte, error) {
+	valueSigningInput, err := proto.Marshal(&tag_pb.ValueSigningInput{
+		ReferenceFormat: v.Reference.GetReferenceFormat().ToProto(),
+		KeyHash:         keyHash[:],
+		Value:           v.ToProto(),
+	})
+	if err != nil {
+		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to marshal value signing input")
+	}
+	return valueSigningInput, nil
+}
+
+func (v *Value) Sign(privateKey ed25519.PrivateKey, keyHash [sha256.Size]byte) (SignedValue, error) {
+	valueSigningInput, err := v.getSigningInput(keyHash)
+	if err != nil {
+		return SignedValue{}, err
+	}
+	return SignedValue{
+		Value:     *v,
+		Signature: *(*[ed25519.SignatureSize]byte)(ed25519.Sign(privateKey, valueSigningInput)),
+	}, nil
 }
 
 // SignedValue contains the value of a tag and its signature. Instances

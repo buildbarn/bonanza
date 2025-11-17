@@ -1,0 +1,88 @@
+load("@rules_go//extras:gomock.bzl", "gomock")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "tag",
+    srcs = [
+        "decoding_parameters.go",
+        "mutable_proto_store.go",
+        "storage_backed_mutable_proto_store.go",
+    ],
+    importpath = "bonanza.build/pkg/model/tag",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/model/core",
+        "//pkg/model/encoding",
+        "//pkg/model/parser",
+        "//pkg/proto/model/initialsizeclass",
+        "//pkg/storage/dag",
+        "//pkg/storage/object",
+        "//pkg/storage/tag",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
+        "@com_github_buildbarn_bb_storage//pkg/util",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_x_sync//errgroup",
+    ],
+)
+
+go_test(
+    name = "tag_test",
+    srcs = [
+        "mocks_clock_test.go",
+        "mocks_encoding_test.go",
+        "mocks_model_tag_test.go",
+        "storage_backed_mutable_proto_store_test.go",
+    ],
+    embed = [":tag"],
+    deps = [
+        "//pkg/model/core",
+        "//pkg/proto/model/initialsizeclass",
+        "//pkg/storage/object",
+        "//pkg/storage/tag",
+        "@com_github_buildbarn_bb_storage//pkg/clock",  # keep
+        "@com_github_buildbarn_bb_storage//pkg/testutil",
+        "@com_github_buildbarn_bb_storage//pkg/util",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+        "@org_uber_go_mock//gomock",
+    ],
+)
+
+gomock(
+    name = "mocks_clock",
+    out = "mocks_clock_test.go",
+    interfaces = ["Clock"],
+    library = "@com_github_buildbarn_bb_storage//pkg/clock",
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "tag_test",
+)
+
+gomock(
+    name = "mocks_encoding",
+    out = "mocks_encoding_test.go",
+    interfaces = ["KeyedBinaryEncoder"],
+    library = "//pkg/model/encoding",
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "tag_test",
+)
+
+gomock(
+    name = "mocks_model_tag",
+    out = "mocks_model_tag_test.go",
+    interfaces = [
+        "DAGUploaderForTesting",
+        "MessageObjectReaderForTesting",
+        "TagResolverForTesting",
+    ],
+    library = "//pkg/model/tag",
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "tag_test",
+)

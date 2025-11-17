@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"time"
 
+	model_tag "bonanza.build/pkg/model/tag"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_initialsizeclass_pb "bonanza.build/pkg/proto/model/initialsizeclass"
 
@@ -23,20 +24,11 @@ import (
 
 // PreviousExecutionStatsStore is used by FeedbackDrivenAnalyzer
 // to gain access to previous execution stats in storage.
-//
-// TODO: Let this be based on a generic type.
-type PreviousExecutionStatsStore interface {
-	Get(ctx context.Context, tagKeyHash [sha256.Size]byte) (PreviousExecutionStatsHandle, error)
-}
+type PreviousExecutionStatsStore model_tag.MutableProtoStore[*model_initialsizeclass_pb.PreviousExecutionStats]
 
 // PreviousExecutionStatsHandle refers to a single previous execution
 // stats message read from storage.
-//
-// TODO: Let this be based on a generic type.
-type PreviousExecutionStatsHandle interface {
-	GetMutableProto() *model_initialsizeclass_pb.PreviousExecutionStats
-	Release(isDirty bool)
-}
+type PreviousExecutionStatsHandle model_tag.MutableProtoHandle[*model_initialsizeclass_pb.PreviousExecutionStats]
 
 type feedbackDrivenAnalyzer struct {
 	fallback               Analyzer

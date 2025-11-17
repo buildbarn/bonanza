@@ -189,6 +189,37 @@ func MarshalAndEncodeDeterministic[TMetadata ReferenceMetadata](
 	)
 }
 
+// MarshalAndEncodeKeyed marshals a patched message, encodes it with
+// explicitly provided decoding parameters, and converts it to an object
+// that can be written to storage.
+func MarshalAndEncodeKeyed[TMetadata ReferenceMetadata](
+	m PatchedMessage[encoding.BinaryMarshaler, TMetadata],
+	referenceFormat object.ReferenceFormat,
+	encoder model_encoding.KeyedBinaryEncoder,
+	decodingParameters []byte,
+) (CreatedObject[TMetadata], error) {
+	references, metadata := m.Patcher.SortAndSetReferences()
+	data, err := m.Message.MarshalBinary()
+	if err != nil {
+		m.Discard()
+		return CreatedObject[TMetadata]{}, err
+	}
+	encodedData, err := encoder.EncodeBinary(data, decodingParameters)
+	if err != nil {
+		m.Discard()
+		return CreatedObject[TMetadata]{}, err
+	}
+	contents, err := referenceFormat.NewContents(references, encodedData)
+	if err != nil {
+		m.Discard()
+		return CreatedObject[TMetadata]{}, err
+	}
+	return CreatedObject[TMetadata]{
+		Contents: contents,
+		Metadata: metadata,
+	}, nil
+}
+
 // MarshalAny wraps a patched message into a model_core_pb.Any message.
 // References stored in the original message are kept intact.
 func MarshalAny[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMessage[TMessage, TMetadata]) (PatchedMessage[*model_core_pb.Any, TMetadata], error) {
