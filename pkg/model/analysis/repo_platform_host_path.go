@@ -63,7 +63,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	// into its input root directory, using "cp -RH".
 	// TODO: This should use inlinedtree.Build().
 	const capturedFilename = "captured"
-	createdCommand, err := model_core.MarshalAndEncode(
+	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
 			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
@@ -143,7 +143,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	if err != nil {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
 	}
-	createdAction, err := model_core.MarshalAndEncode(action, referenceFormat, actionEncoder)
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, actionEncoder)
 	if err != nil {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to encode action: %w", err)
 	}

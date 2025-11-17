@@ -2039,7 +2039,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 	if err != nil {
 		return nil, err
 	}
-	createdCommand, err := model_core.MarshalAndEncode(
+	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoToBinaryMarshaler(command),
 		referenceFormat,
 		mrc.actionEncoder,
@@ -2067,7 +2067,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 	if err != nil {
 		return nil, fmt.Errorf("failed to create action: %w", err)
 	}
-	createdAction, err := model_core.MarshalAndEncode(action, referenceFormat, mrc.actionEncoder)
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, mrc.actionEncoder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode action: %w", err)
 	}
@@ -2352,7 +2352,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 	}
 
 	// TODO: This should use inlinedtree.Build().
-	createdCommand, err := model_core.MarshalAndEncode(
+	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
 			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
@@ -2401,7 +2401,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 	if err != nil {
 		return nil, fmt.Errorf("failed to create action: %w", err)
 	}
-	createdAction, err := model_core.MarshalAndEncode(action, referenceFormat, mrc.actionEncoder)
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, mrc.actionEncoder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode action: %w", err)
 	}
@@ -2516,7 +2516,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 	}
 
 	// TODO: This should use inlinedtree.Build().
-	createdCommand, err := model_core.MarshalAndEncode(
+	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
 			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
@@ -2550,7 +2550,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 		return nil, fmt.Errorf("failed to create command: %w", err)
 	}
 
-	createdInputRoot, err := model_core.MarshalAndEncode(
+	createdInputRoot, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewSimplePatchedMessage[TMetadata](
 			model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
 				Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
@@ -2587,7 +2587,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 	if err != nil {
 		return nil, fmt.Errorf("failed to create action: %w", err)
 	}
-	createdAction, err := model_core.MarshalAndEncode(action, referenceFormat, mrc.actionEncoder)
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, mrc.actionEncoder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode action: %w", err)
 	}
@@ -2725,7 +2725,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 	}
 
 	// TODO: This should use inlinedtree.Build().
-	createdCommand, err := model_core.MarshalAndEncode(
+	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
 			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
@@ -2779,7 +2779,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 	if err != nil {
 		return false, fmt.Errorf("failed to create action: %w", err)
 	}
-	createdAction, err := model_core.MarshalAndEncode(action, referenceFormat, mrc.actionEncoder)
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, mrc.actionEncoder)
 	if err != nil {
 		return false, fmt.Errorf("failed to encode action: %w", err)
 	}
@@ -2879,7 +2879,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	}
 
 	// TODO: This should use inlinedtree.Build().
-	createdCommand, err := model_core.MarshalAndEncode(
+	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
 			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
@@ -2928,7 +2928,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	if err != nil {
 		return nil, fmt.Errorf("failed to create action: %w", err)
 	}
-	createdAction, err := model_core.MarshalAndEncode(action, referenceFormat, mrc.actionEncoder)
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, mrc.actionEncoder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode action: %w", err)
 	}
@@ -3647,7 +3647,7 @@ func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTracking
 
 	// Store the root directory itself. We don't embed it into the
 	// response, as that prevents it from being accessed separately.
-	createdRootDirectoryObject, err := model_core.MarshalAndEncode(
+	createdRootDirectoryObject, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoToBinaryMarshaler(createdRootDirectory.Message),
 		c.referenceFormat,
 		directoryCreationParameters.GetEncoder(),

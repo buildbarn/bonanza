@@ -58,7 +58,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	}
 
 	// TODO: This should use inlinedtree.Build().
-	createdCommand, err := model_core.MarshalAndEncode(
+	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
 			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{{
@@ -81,7 +81,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create command: %w", err)
 	}
 
-	createdInputRoot, err := model_core.MarshalAndEncode(
+	createdInputRoot, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewSimplePatchedMessage[TMetadata](
 			model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
 				Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
@@ -118,7 +118,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	if err != nil {
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
 	}
-	createdAction, err := model_core.MarshalAndEncode(action, referenceFormat, actionEncoder)
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, actionEncoder)
 	if err != nil {
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to encode action: %w", err)
 	}

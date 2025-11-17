@@ -183,7 +183,7 @@ func newObject(
 	builder func(childPatcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler,
 ) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
 	return util.Must(
-		model_core.MarshalAndEncode(
+		model_core.MarshalAndEncodeDeterministic(
 			model_core.MustBuildPatchedMessage(builder),
 			util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 			model_encoding.NewChainedDeterministicBinaryEncoder(nil),

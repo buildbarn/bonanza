@@ -389,7 +389,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpArchiveContentsValue(ct
 	if l := createdRootDirectory.MaximumSymlinkEscapementLevels; l == nil || l.Value != 0 {
 		return PatchedHttpArchiveContentsValue[TMetadata]{}, errors.New("archive contains one or more symbolic links that potentially escape the archive's root directory")
 	}
-	createdRootDirectoryObject, err := model_core.MarshalAndEncode(
+	createdRootDirectoryObject, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoToBinaryMarshaler(createdRootDirectory.Message),
 		c.referenceFormat,
 		directoryCreationParameters.GetEncoder(),

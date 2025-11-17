@@ -61,7 +61,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 	commandReference := model_core.Patch(e, model_core.Nested(command, command.Message.CommandReference))
 	inputRootReference := model_core.Patch(e, model_core.Nested(inputRoot, inputRoot.Message.InputRootReference))
 	referenceFormat := c.referenceFormat
-	createdAction, err := model_core.MarshalAndEncode(
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) encoding.BinaryMarshaler {
 			patcher.Merge(commandReference.Patcher)
 			patcher.Merge(inputRootReference.Patcher)

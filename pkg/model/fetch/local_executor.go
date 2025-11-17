@@ -284,7 +284,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		return &result
 	})
 
-	createdResult, err := model_core.MarshalAndEncode(
+	createdResult, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoToBinaryMarshaler(result),
 		referenceFormat,
 		actionEncoder,

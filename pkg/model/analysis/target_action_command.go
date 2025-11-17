@@ -748,7 +748,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	if err != nil {
 		return PatchedTargetActionCommandValue[TMetadata]{}, err
 	}
-	createdCommand, err := model_core.MarshalAndEncode(
+	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoToBinaryMarshaler(command),
 		referenceFormat,
 		actionEncoder,

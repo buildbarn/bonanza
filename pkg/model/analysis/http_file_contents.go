@@ -46,7 +46,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 	}
 
 	referenceFormat := c.referenceFormat
-	createdAction, err := model_core.MarshalAndEncode(
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewSimplePatchedMessage[TMetadata](
 			model_core.NewProtoBinaryMarshaler(&model_fetch_pb.Action{
 				FileCreationParameters: fileCreationParametersValue.Message.FileCreationParameters,

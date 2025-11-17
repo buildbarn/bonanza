@@ -156,9 +156,10 @@ func PatchedMessagesEqual[
 	return TopLevelMessagesEqual(tlm1, tlm2)
 }
 
-// MarshalAndEncode marshals a patched message, encodes it, and converts
-// it to an object that can be written to storage.
-func MarshalAndEncode[TMetadata ReferenceMetadata](
+// MarshalAndEncodeDeterministic marshals a patched message, encodes it
+// deterministically, and converts it to an object that can be written
+// to storage.
+func MarshalAndEncodeDeterministic[TMetadata ReferenceMetadata](
 	m PatchedMessage[encoding.BinaryMarshaler, TMetadata],
 	referenceFormat object.ReferenceFormat,
 	encoder model_encoding.DeterministicBinaryEncoder,

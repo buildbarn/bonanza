@@ -365,7 +365,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		if l := createdRootDirectory.MaximumSymlinkEscapementLevels; l == nil || l.Value != 0 {
 			logger.Fatal(formatted.Textf("Module %#v contains one or more symbolic links that potentially escape the module's root directory", moduleName.String()))
 		}
-		createdObject, err := model_core.MarshalAndEncode(
+		createdObject, err := model_core.MarshalAndEncodeDeterministic(
 			model_core.ProtoToBinaryMarshaler(createdModuleRootDirectories[i].Message),
 			referenceFormat,
 			directoryParameters.GetEncoder(),
@@ -460,7 +460,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to create overrides list message: %s", err))
 	}
-	createdOverrides, err := model_core.MarshalAndEncode(overrides, referenceFormat, actionEncoder)
+	createdOverrides, err := model_core.MarshalAndEncodeDeterministic(overrides, referenceFormat, actionEncoder)
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to create overrides list object: %s", err))
 	}
@@ -544,7 +544,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to create action message: %s", err))
 	}
-	createdAction, err := model_core.MarshalAndEncode(actionMessage, referenceFormat, actionEncoder)
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(actionMessage, referenceFormat, actionEncoder)
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to create action object: %s", err))
 	}

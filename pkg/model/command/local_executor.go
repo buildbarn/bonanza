@@ -641,7 +641,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		if proto.Size(&outputs) > 0 {
 			// Action has one or more outputs. Upload them and
 			// attach a reference to the result message.
-			if createdObject, err := model_core.MarshalAndEncode(
+			if createdObject, err := model_core.MarshalAndEncodeDeterministic(
 				model_core.NewPatchedMessage(model_core.NewProtoBinaryMarshaler(&outputs), outputsPatcher),
 				referenceFormat,
 				directoryEncoder,
@@ -661,7 +661,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		return &result
 	})
 
-	createdResult, err := model_core.MarshalAndEncode(
+	createdResult, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoToBinaryMarshaler(result),
 		referenceFormat,
 		actionEncoder,

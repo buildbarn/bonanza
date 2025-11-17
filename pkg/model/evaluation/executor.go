@@ -278,7 +278,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 					if err != nil {
 						return err
 					}
-					createdProgress, err := model_core.MarshalAndEncode(
+					createdProgress, err := model_core.MarshalAndEncodeDeterministic(
 						model_core.ProtoToBinaryMarshaler(progress),
 						referenceFormat,
 						actionEncoder,
@@ -481,7 +481,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			return &result
 		}
 		if len(outcomes.Message) > 0 {
-			createdEvaluations, err := model_core.MarshalAndEncode(
+			createdEvaluations, err := model_core.MarshalAndEncodeDeterministic(
 				model_core.ProtoListToBinaryMarshaler(outcomes),
 				referenceFormat,
 				evaluationTreeEncoder,
@@ -537,7 +537,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		return &result
 	})
 
-	createdResult, err := model_core.MarshalAndEncode(
+	createdResult, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoToBinaryMarshaler(resultMessage),
 		referenceFormat,
 		actionEncoder,

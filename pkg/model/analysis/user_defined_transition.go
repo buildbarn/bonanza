@@ -347,7 +347,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 		return model_core.NewSimplePatchedMessage[TMetadata, *model_core_pb.DecodableReference](nil), nil
 	}
 
-	createdConfiguration, err := model_core.MarshalAndEncode(
+	createdConfiguration, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoListToBinaryMarshaler(buildSettingOverrides),
 		c.referenceFormat,
 		c.getValueObjectEncoder(),
