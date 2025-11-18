@@ -178,10 +178,10 @@ message PredeclaredPlatformQueueConfiguration {
   // NOTE: The option below only has effect when feedback driven initial
   // size class analysis is enabled.
   //
-  // The REv2 execution priority that needs to be used for background
+  // The execution priority that needs to be used for background
   // learning operations.
   //
-  // bb_scheduler respects REv2 execution priorities by increasing the
+  // bonanza_scheduler respects execution priorities by increasing the
   // number of actions to run concurrently between invocations by a
   // factor 2 for every 100 decrease in priority value (i.e., lower
   // priority value means faster builds).
