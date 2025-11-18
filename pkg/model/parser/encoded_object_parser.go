@@ -19,12 +19,12 @@ func NewEncodedObjectParser[
 	}
 }
 
-func (p *encodedObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (model_core.Message[[]byte, TReference], int, error) {
+func (p *encodedObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (model_core.Message[[]byte, TReference], error) {
 	decoded, err := p.decoder.DecodeBinary(in.Message, decodingParameters)
 	if err != nil {
-		return model_core.Message[[]byte, TReference]{}, 0, err
+		return model_core.Message[[]byte, TReference]{}, err
 	}
-	return model_core.NewMessage(decoded, in.OutgoingReferences), len(decoded), nil
+	return model_core.NewMessage(decoded, in.OutgoingReferences), nil
 }
 
 func (p *encodedObjectParser[TReference]) GetDecodingParametersSizeBytes() int {

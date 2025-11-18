@@ -41,14 +41,14 @@ func NewDirectoryClusterObjectParser[TReference any]() model_parser.ObjectParser
 	return &directoryClusterObjectParser[TReference]{}
 }
 
-func (directoryClusterObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (model_core.Message[DirectoryCluster, TReference], int, error) {
+func (directoryClusterObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (model_core.Message[DirectoryCluster, TReference], error) {
 	if len(decodingParameters) > 0 {
-		return model_core.Message[DirectoryCluster, TReference]{}, 0, status.Error(codes.InvalidArgument, "Unexpected decoding parameters")
+		return model_core.Message[DirectoryCluster, TReference]{}, status.Error(codes.InvalidArgument, "Unexpected decoding parameters")
 	}
 
 	var d model_filesystem_pb.DirectoryContents
 	if err := proto.Unmarshal(in.Message, &d); err != nil {
-		return model_core.Message[DirectoryCluster, TReference]{}, 0, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to parse directory")
+		return model_core.Message[DirectoryCluster, TReference]{}, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to parse directory")
 	}
 
 	// Recursively visit all Directory messages contained in the
@@ -61,9 +61,9 @@ func (directoryClusterObjectParser[TReference]) ParseObject(in model_core.Messag
 		nil,
 	)
 	if err != nil {
-		return model_core.Message[DirectoryCluster, TReference]{}, 0, err
+		return model_core.Message[DirectoryCluster, TReference]{}, err
 	}
-	return model_core.Nested(in, cluster), len(in.Message), nil
+	return model_core.Nested(in, cluster), nil
 }
 
 func (directoryClusterObjectParser[TReference]) GetDecodingParametersSizeBytes() int {

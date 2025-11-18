@@ -17,17 +17,13 @@ func NewFileContentsListObjectParser[TReference object.BasicReference]() parser.
 	return &fileContentsListObjectParser[TReference]{}
 }
 
-func (fileContentsListObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (FileContentsList[TReference], int, error) {
-	l, sizeBytes, err := model_parser.NewProtoListObjectParser[TReference, model_filesystem_pb.FileContents]().
+func (fileContentsListObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (FileContentsList[TReference], error) {
+	l, err := model_parser.NewProtoListObjectParser[TReference, model_filesystem_pb.FileContents]().
 		ParseObject(in, decodingParameters)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	fileContentsList, err := NewFileContentsListFromProto(l)
-	if err != nil {
-		return nil, 0, err
-	}
-	return fileContentsList, sizeBytes, nil
+	return NewFileContentsListFromProto(l)
 }
 
 func (fileContentsListObjectParser[TReference]) GetDecodingParametersSizeBytes() int {

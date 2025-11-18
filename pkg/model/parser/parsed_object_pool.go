@@ -19,7 +19,6 @@ type ParsedObjectEvictionKey struct {
 
 type cachedParsedObject struct {
 	parsedObject any
-	sizeBytes    int
 }
 
 type ParsedObjectPool struct {
@@ -93,12 +92,11 @@ func (r *poolBackedParsedObjectReader[TReference, TParsedObject]) ReadParsedObje
 		return badParsedObject, err
 	}
 
-	parsedObject, parsedObjectSizeBytes, err := r.parser.ParseObject(raw, reference.GetDecodingParameters())
+	parsedObject, err := r.parser.ParseObject(raw, reference.GetDecodingParameters())
 	if err != nil {
 		var badParsedObject TParsedObject
 		return badParsedObject, err
 	}
-	sizeBytes := reference.Value.GetSizeBytes() - len(raw.Message) + parsedObjectSizeBytes
 
 	p.lock.Lock()
 	if _, ok := p.objects[insertionKey]; ok {
@@ -108,20 +106,18 @@ func (r *poolBackedParsedObjectReader[TReference, TParsedObject]) ReadParsedObje
 	} else {
 		p.objects[insertionKey] = cachedParsedObject{
 			parsedObject: parsedObject,
-			sizeBytes:    sizeBytes,
 		}
 		p.remainingCount--
-		p.remainingSizeBytes -= sizeBytes
+		p.remainingSizeBytes -= reference.Value.GetSizeBytes()
 		p.evictionSet.Insert(insertionKey)
 
 		// Evict objects if we're consuming too much space.
 		for p.remainingCount < 0 || p.remainingSizeBytes < 0 {
 			removalKey := p.evictionSet.Peek()
-			removedSizeBytes := p.objects[removalKey].sizeBytes
 			delete(p.objects, removalKey)
 
 			p.remainingCount++
-			p.remainingSizeBytes += removedSizeBytes
+			p.remainingSizeBytes += removalKey.reference.Value.GetSizeBytes()
 			p.evictionSet.Remove()
 		}
 	}

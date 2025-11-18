@@ -36,7 +36,7 @@ func TestFileContentsListObjectParser(t *testing.T) {
 	objectParser := model_filesystem.NewFileContentsListObjectParser[object.LocalReference]()
 
 	t.Run("InvalidMessage", func(t *testing.T) {
-		_, _, err := objectParser.ParseObject(
+		_, err := objectParser.ParseObject(
 			model_core.NewSimpleMessage[object.LocalReference](
 				[]byte("Not a valid Protobuf message"),
 			),
@@ -60,7 +60,7 @@ func TestFileContentsListObjectParser(t *testing.T) {
 				},
 			},
 		}})
-		_, _, err := objectParser.ParseObject(
+		_, err := objectParser.ParseObject(
 			model_core.NewMessage(
 				data,
 				object.OutgoingReferencesList[object.LocalReference]{
@@ -111,7 +111,7 @@ func TestFileContentsListObjectParser(t *testing.T) {
 				},
 			},
 		})
-		_, _, err := objectParser.ParseObject(
+		_, err := objectParser.ParseObject(
 			model_core.NewMessage(
 				data,
 				object.OutgoingReferencesList[object.LocalReference]{
@@ -158,7 +158,7 @@ func TestFileContentsListObjectParser(t *testing.T) {
 				},
 			},
 		})
-		_, _, err := objectParser.ParseObject(
+		_, err := objectParser.ParseObject(
 			model_core.NewMessage(
 				data,
 				object.OutgoingReferencesList[object.LocalReference]{
@@ -196,7 +196,7 @@ func TestFileContentsListObjectParser(t *testing.T) {
 				},
 			},
 		})
-		_, _, err := objectParser.ParseObject(
+		_, err := objectParser.ParseObject(
 			model_core.NewMessage(
 				data,
 				object.OutgoingReferencesList[object.LocalReference]{
@@ -234,7 +234,7 @@ func TestFileContentsListObjectParser(t *testing.T) {
 				},
 			},
 		})
-		fileContentsList, sizeBytes, err := objectParser.ParseObject(
+		fileContentsList, err := objectParser.ParseObject(
 			model_core.NewMessage(
 				data,
 				object.OutgoingReferencesList[object.LocalReference]{
@@ -252,6 +252,5 @@ func TestFileContentsListObjectParser(t *testing.T) {
 		require.Equal(t, uint64(500), fileContentsList[1].GetEndBytes())
 		reference1 := fileContentsList[1].GetReference()
 		require.Equal(t, util.Must(model_core.NewDecodable(object.MustNewSHA256V1LocalReference("635fef9b02b336f9254473d6b09c41f5027c38046c46bb514afc788292c1508e", 300, 0, 0, 0), []byte{1, 2, 3, 4})), *reference1)
-		require.Equal(t, 38, sizeBytes)
 	})
 }

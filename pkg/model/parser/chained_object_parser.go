@@ -23,11 +23,11 @@ func NewChainedObjectParser[TReference, TParsedObject any](parserA ObjectParser[
 	}
 }
 
-func (p *chainedObjectParser[TReference, TParsedObject]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (TParsedObject, int, error) {
-	v, _, err := p.parserA.ParseObject(in, decodingParameters)
+func (p *chainedObjectParser[TReference, TParsedObject]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (TParsedObject, error) {
+	v, err := p.parserA.ParseObject(in, decodingParameters)
 	if err != nil {
 		var bad TParsedObject
-		return bad, 0, err
+		return bad, err
 	}
 	return p.parserB.ParseObject(v, nil)
 }

@@ -17,7 +17,7 @@ func TestDirectoryClusterObjectParser(t *testing.T) {
 	objectParser := model_filesystem.NewDirectoryClusterObjectParser[object.LocalReference]()
 
 	t.Run("InvalidMessage", func(t *testing.T) {
-		_, _, err := objectParser.ParseObject(
+		_, err := objectParser.ParseObject(
 			model_core.NewSimpleMessage[object.LocalReference](
 				[]byte("Not a valid Protobuf message"),
 			),

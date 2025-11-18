@@ -53,7 +53,7 @@ func NewFileAccessParametersFromProto(m *model_filesystem_pb.FileAccessParameter
 // TODO: Maybe we should simply throw out this method? It doesn't
 // provide a lot of value.
 func (p *FileAccessParameters) DecodeFileContentsList(contents *object.Contents, decodingParameters []byte) ([]*model_filesystem_pb.FileContents, error) {
-	fileContentsList, _, err := model_parser.NewChainedObjectParser(
+	fileContentsList, err := model_parser.NewChainedObjectParser(
 		model_parser.NewEncodedObjectParser[object.LocalReference](p.fileContentsListEncoder),
 		model_parser.NewProtoListObjectParser[object.LocalReference, model_filesystem_pb.FileContents](),
 	).ParseObject(
