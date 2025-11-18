@@ -100,8 +100,8 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		var result model_evaluation_pb.Result
 		parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester[buffered.Reference](
 			e.parsedObjectPool,
-			buffered.NewParsedObjectReader(
-				model_parser.NewDownloadingParsedObjectReader(
+			buffered.NewObjectReader(
+				model_parser.NewDownloadingObjectReader(
 					object_namespacemapping.NewNamespaceAddingDownloader(e.objectDownloader, instanceName),
 				),
 			),

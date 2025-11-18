@@ -6,7 +6,7 @@ import (
 
 // MessageObjectReader can be used to read the contents of an object
 // from storage and gain access to its parsed contents. This is a high
-// level convenience type on top of ParsedObjectReader, as a couple of
+// level convenience type on top of ObjectReader, as a couple of
 // assumptions have been made:
 //
 //   - The reference of the object to be read has decoding parameters,
@@ -20,7 +20,7 @@ import (
 //   - The reference type of the object and that of its children are
 //     identical. For high level code, this tends to be a common
 //     assumption, as it's necessary for easy graph traversal.
-type MessageObjectReader[TReference, TMessage any] = ParsedObjectReader[
+type MessageObjectReader[TReference, TMessage any] = ObjectReader[
 	model_core.Decodable[TReference],
 	model_core.Message[TMessage, TReference],
 ]

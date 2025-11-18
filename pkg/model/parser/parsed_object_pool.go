@@ -40,12 +40,12 @@ func NewParsedObjectPool(evictionSet eviction.Set[ParsedObjectEvictionKey], maxi
 
 type ParsedObjectPoolIngester[TReference any] struct {
 	pool      *ParsedObjectPool
-	rawReader ParsedObjectReader[TReference, model_core.Message[[]byte, TReference]]
+	rawReader ObjectReader[TReference, model_core.Message[[]byte, TReference]]
 }
 
 func NewParsedObjectPoolIngester[TReference any](
 	pool *ParsedObjectPool,
-	rawReader ParsedObjectReader[TReference, model_core.Message[[]byte, TReference]],
+	rawReader ObjectReader[TReference, model_core.Message[[]byte, TReference]],
 ) *ParsedObjectPoolIngester[TReference] {
 	return &ParsedObjectPoolIngester[TReference]{
 		pool:      pool,
@@ -53,30 +53,29 @@ func NewParsedObjectPoolIngester[TReference any](
 	}
 }
 
-type poolBackedParsedObjectReader[TReference object.BasicReference, TParsedObject any] struct {
-	ingester                    *ParsedObjectPoolIngester[TReference]
-	parser                      ObjectParser[TReference, TParsedObject]
+type poolBackedObjectReader[TReference object.BasicReference, TParsedObject any] struct {
+	pool                        *ParsedObjectPool
+	parsedObjectReader          ObjectReader[model_core.Decodable[TReference], TParsedObject]
 	decodingParametersSizeBytes int
 }
 
 func LookupParsedObjectReader[TReference object.BasicReference, TParsedObject any](
 	ingester *ParsedObjectPoolIngester[TReference],
 	parser ObjectParser[TReference, TParsedObject],
-) ParsedObjectReader[model_core.Decodable[TReference], TParsedObject] {
-	return &poolBackedParsedObjectReader[TReference, TParsedObject]{
-		ingester:                    ingester,
-		parser:                      parser,
+) ObjectReader[model_core.Decodable[TReference], TParsedObject] {
+	return &poolBackedObjectReader[TReference, TParsedObject]{
+		pool:                        ingester.pool,
+		parsedObjectReader:          NewParsedObjectReader(ingester.rawReader, parser),
 		decodingParametersSizeBytes: parser.GetDecodingParametersSizeBytes(),
 	}
 }
 
-func (r *poolBackedParsedObjectReader[TReference, TParsedObject]) ReadParsedObject(ctx context.Context, reference model_core.Decodable[TReference]) (TParsedObject, error) {
+func (r *poolBackedObjectReader[TReference, TParsedObject]) ReadParsedObject(ctx context.Context, reference model_core.Decodable[TReference]) (TParsedObject, error) {
 	insertionKey := ParsedObjectEvictionKey{
 		reference: model_core.CopyDecodable(reference, reference.Value.GetLocalReference()),
 	}
 
-	i := r.ingester
-	p := i.pool
+	p := r.pool
 	p.lock.Lock()
 	if object, ok := p.objects[insertionKey]; ok {
 		// Return cached instance of the parsed object.
@@ -86,13 +85,7 @@ func (r *poolBackedParsedObjectReader[TReference, TParsedObject]) ReadParsedObje
 	}
 	p.lock.Unlock()
 
-	raw, err := i.rawReader.ReadParsedObject(ctx, reference.Value)
-	if err != nil {
-		var badParsedObject TParsedObject
-		return badParsedObject, err
-	}
-
-	parsedObject, err := r.parser.ParseObject(raw, reference.GetDecodingParameters())
+	parsedObject, err := r.parsedObjectReader.ReadParsedObject(ctx, reference)
 	if err != nil {
 		var badParsedObject TParsedObject
 		return badParsedObject, err
@@ -126,6 +119,6 @@ func (r *poolBackedParsedObjectReader[TReference, TParsedObject]) ReadParsedObje
 	return parsedObject, nil
 }
 
-func (r *poolBackedParsedObjectReader[TReference, TParsedObject]) GetDecodingParametersSizeBytes() int {
+func (r *poolBackedObjectReader[TReference, TParsedObject]) GetDecodingParametersSizeBytes() int {
 	return r.decodingParametersSizeBytes
 }

@@ -4,7 +4,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 )
 
-// ObjectParser is used by ParsedObjectReader to parse objects after
+// ObjectParser is used by ParsingObjectReader to parse objects after
 // they have been read from storage. Parsing steps may include decoding
 // (decompression/decryption), but also unmarshaling.
 //

@@ -15,13 +15,13 @@ import (
 )
 
 type FileReader[TReference object.BasicReference] struct {
-	fileContentsListReader model_parser.ParsedObjectReader[model_core.Decodable[TReference], FileContentsList[TReference]]
-	fileChunkReader        model_parser.ParsedObjectReader[model_core.Decodable[TReference], []byte]
+	fileContentsListReader model_parser.ObjectReader[model_core.Decodable[TReference], FileContentsList[TReference]]
+	fileChunkReader        model_parser.ObjectReader[model_core.Decodable[TReference], []byte]
 }
 
 func NewFileReader[TReference object.BasicReference](
-	fileContentsListReader model_parser.ParsedObjectReader[model_core.Decodable[TReference], FileContentsList[TReference]],
-	fileChunkReader model_parser.ParsedObjectReader[model_core.Decodable[TReference], []byte],
+	fileContentsListReader model_parser.ObjectReader[model_core.Decodable[TReference], FileContentsList[TReference]],
+	fileChunkReader model_parser.ObjectReader[model_core.Decodable[TReference], []byte],
 ) *FileReader[TReference] {
 	return &FileReader[TReference]{
 		fileContentsListReader: fileContentsListReader,
@@ -195,6 +195,6 @@ func (r *randomAccessFileReader[TReference]) ReadAt(p []byte, offsetBytes int64)
 }
 
 type (
-	FileContentsListReaderForTesting = model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], FileContentsList[object.LocalReference]]
-	FileChunkReaderForTesting        = model_parser.ParsedObjectReader[model_core.Decodable[object.LocalReference], []byte]
+	FileContentsListReaderForTesting = model_parser.ObjectReader[model_core.Decodable[object.LocalReference], FileContentsList[object.LocalReference]]
+	FileChunkReaderForTesting        = model_parser.ObjectReader[model_core.Decodable[object.LocalReference], []byte]
 )

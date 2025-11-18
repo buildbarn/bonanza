@@ -10,9 +10,9 @@ import (
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 )
 
-// ActionReaders contains ParsedObjectReaders that can be used to follow
-// references to objects that are encoded using the action encoders
-// that are part of the BuildSpecification.
+// ActionReaders contains ObjectReaders that can be used to follow
+// references to objects that are encoded using the action encoders that
+// are part of the BuildSpecification.
 type ActionReaders[TReference any] struct {
 	CommandAction              model_parser.MessageObjectReader[TReference, *model_command_pb.Action]
 	CommandPathPatternChildren model_parser.MessageObjectReader[TReference, *model_command_pb.PathPattern_Children]

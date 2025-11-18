@@ -642,7 +642,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	)
 	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester[object.LocalReference](
 		parsedObjectPool,
-		model_parser.NewDownloadingParsedObjectReader(
+		model_parser.NewDownloadingObjectReader(
 			object_namespacemapping.NewNamespaceAddingDownloader(
 				object_grpc.NewDownloader(object_pb.NewDownloaderClient(remoteCacheClient)),
 				instanceName,

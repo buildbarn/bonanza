@@ -81,7 +81,7 @@ func main() {
 		}
 		parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester(
 			parsedObjectPool,
-			model_parser.NewDownloadingParsedObjectReader(
+			model_parser.NewDownloadingObjectReader(
 				object_namespacemapping.NewNamespaceAddingDownloader(
 					object_grpc.NewDownloader(object_pb.NewDownloaderClient(grpcClient)),
 					namespace,

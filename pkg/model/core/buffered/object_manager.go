@@ -95,19 +95,19 @@ func (objectExporter) ImportReference(externalReference object.LocalReference) R
 	return Reference{LocalReference: externalReference}
 }
 
-type parsedObjectReader struct {
-	base model_parser.ParsedObjectReader[object.LocalReference, model_core.Message[[]byte, object.LocalReference]]
+type objectReader struct {
+	base model_parser.ObjectReader[object.LocalReference, model_core.Message[[]byte, object.LocalReference]]
 }
 
-func NewParsedObjectReader(
-	base model_parser.ParsedObjectReader[object.LocalReference, model_core.Message[[]byte, object.LocalReference]],
-) model_parser.ParsedObjectReader[Reference, model_core.Message[[]byte, Reference]] {
-	return &parsedObjectReader{
+func NewObjectReader(
+	base model_parser.ObjectReader[object.LocalReference, model_core.Message[[]byte, object.LocalReference]],
+) model_parser.ObjectReader[Reference, model_core.Message[[]byte, Reference]] {
+	return &objectReader{
 		base: base,
 	}
 }
 
-func (r *parsedObjectReader) ReadParsedObject(ctx context.Context, reference Reference) (model_core.Message[[]byte, Reference], error) {
+func (r *objectReader) ReadParsedObject(ctx context.Context, reference Reference) (model_core.Message[[]byte, Reference], error) {
 	if contents := reference.embeddedMetadata.contents; contents != nil {
 		// Object has not been written to storage yet.
 		// Return the copy that lives in memory.
@@ -142,6 +142,6 @@ func (r *parsedObjectReader) ReadParsedObject(ctx context.Context, reference Ref
 	return model_core.NewMessage(m.Message, outgoingReferences), nil
 }
 
-func (parsedObjectReader) GetDecodingParametersSizeBytes() int {
+func (objectReader) GetDecodingParametersSizeBytes() int {
 	return 0
 }

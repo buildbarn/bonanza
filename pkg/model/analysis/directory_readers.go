@@ -11,9 +11,9 @@ import (
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 )
 
-// DirectoryReaders contains ParsedObjectReaders that can be used to
-// follow references to objects that are encoded using the directory
-// access parameters that are part of the BuildSpecification.
+// DirectoryReaders contains ObjectReaders that can be used to follow
+// references to objects that are encoded using the directory access
+// parameters that are part of the BuildSpecification.
 type DirectoryReaders[TReference any] struct {
 	DirectoryContents model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents]
 	Leaves            model_parser.MessageObjectReader[TReference, *model_filesystem_pb.Leaves]

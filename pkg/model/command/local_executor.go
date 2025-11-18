@@ -235,7 +235,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	)
 	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester(
 		e.parsedObjectPool,
-		model_parser.NewDownloadingParsedObjectReader(
+		model_parser.NewDownloadingObjectReader(
 			object_suspending.NewDownloader(
 				object_namespacemapping.NewNamespaceAddingDownloader(
 					e.objectDownloader,

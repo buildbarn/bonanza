@@ -660,7 +660,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 
 	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester(
 		s.parsedObjectPool,
-		model_parser.NewDownloadingParsedObjectReader(
+		model_parser.NewDownloadingObjectReader(
 			object_namespacemapping.NewNamespaceAddingDownloader(s.objectDownloader, evaluationListReference.Value.InstanceName),
 		),
 	)
