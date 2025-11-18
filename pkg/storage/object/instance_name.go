@@ -27,6 +27,13 @@ func (in InstanceName) WithLocalReference(localReference LocalReference) GlobalR
 	}
 }
 
+func (in InstanceName) WithReferenceFormat(referenceFormat ReferenceFormat) Namespace {
+	return Namespace{
+		InstanceName:    in,
+		ReferenceFormat: referenceFormat,
+	}
+}
+
 func (in InstanceName) String() string {
 	return in.value
 }

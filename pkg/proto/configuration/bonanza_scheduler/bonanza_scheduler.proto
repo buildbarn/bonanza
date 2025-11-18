@@ -3,6 +3,8 @@ syntax = "proto3";
 package bonanza.configuration.bonanza_scheduler;
 
 import "bonanza.build/pkg/proto/configuration/scheduler/scheduler.proto";
+import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
+import "bonanza.build/pkg/proto/storage/object/object.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
 import "google/protobuf/duration.proto";
@@ -68,11 +70,19 @@ message ApplicationConfiguration {
   // }
   bonanza.configuration.scheduler.ActionRouterConfiguration action_router = 7;
 
+  // Optional: The Object Store and Tag Store backends where execution
+  // times of actions are read and written in the form of
+  // PreviousExecutionStats messages.
+  //
+  // This option only needs to be set if one or feedback driven
+  // analyzers are configured through 'action_router'.
+  PreviousExecutionStatsStoreConfiguration previous_execution_stats_store = 8;
+
   // Platform queues are removed when no workers have been present
   // during this time period.
   //
   // Recommended value: 900s
-  google.protobuf.Duration platform_queue_with_no_workers_timeout = 8;
+  google.protobuf.Duration platform_queue_with_no_workers_timeout = 9;
 }
 
 message PredeclaredPlatformQueueConfiguration {
@@ -181,4 +191,24 @@ message PredeclaredPlatformQueueConfiguration {
   //
   // Recommended value: 0
   int32 background_learning_operation_priority = 5;
+}
+
+message PreviousExecutionStatsStoreConfiguration {
+  // gRPC client that communicates with the storage frontend.
+  buildbarn.configuration.grpc.ClientConfiguration grpc_client = 1;
+
+  // The namespace in storage in which objects containing
+  // PreviousExecutionStats messages may be stored, and in which tags
+  // referring to these objects may be created.
+  bonanza.storage.object.Namespace namespace = 2;
+
+  // Ed25519 private key used to sign tags referring to
+  // PreviousExecutionStats objects. The key must be in PKCS #8, ASN.1
+  // DER form, stored in a PEM block of type "PRIVATE KEY".
+  bytes tag_signature_private_key = 3;
+
+  // Encoding/decoding steps to apply when uploading/downloading objects
+  // containing PreviousExecutionStats messages the Object Store, such
+  // as encryption and compression.
+  repeated bonanza.model.encoding.BinaryEncoder object_encoders = 4;
 }

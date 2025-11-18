@@ -9,6 +9,8 @@ proto_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/configuration/scheduler:scheduler_proto",
+        "//pkg/proto/model/encoding:encoding_proto",
+        "//pkg/proto/storage/object:object_proto",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/global:global_proto",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/grpc:grpc_proto",
         "@protobuf//:duration_proto",
@@ -22,6 +24,8 @@ go_proto_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/configuration/scheduler",
+        "//pkg/proto/model/encoding",
+        "//pkg/proto/storage/object",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/global",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/grpc",
     ],

@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "namespacemapping",
+    srcs = ["namespace_adding_resolver.go"],
+    importpath = "bonanza.build/pkg/storage/tag/namespacemapping",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/storage/object",
+        "//pkg/storage/tag",
+    ],
+)
