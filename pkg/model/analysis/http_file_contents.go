@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 
@@ -16,6 +17,8 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -45,12 +48,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 		return PatchedHttpFileContentsValue[TMetadata]{}, errors.New("no fetch options provided")
 	}
 
+	target := fetchOptions.Target
+	if target == nil {
+		return PatchedHttpFileContentsValue[TMetadata]{}, errors.New("no target provided")
+	}
+
 	referenceFormat := c.referenceFormat
 	createdAction, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewSimplePatchedMessage[TMetadata](
 			model_core.NewProtoBinaryMarshaler(&model_fetch_pb.Action{
 				FileCreationParameters: fileCreationParametersValue.Message.FileCreationParameters,
-				Target:                 fetchOptions.Target,
+				Target:                 target,
 			}),
 		),
 		referenceFormat,
@@ -60,6 +68,24 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 	if err != nil {
 		return PatchedHttpFileContentsValue[TMetadata]{}, err
 	}
+
+	// Compute a stable fingerprint for this action. Assume that
+	// only the URLs in the target to be fetched contribute to the
+	// amount of time it takes to fulfil the request.
+	var stableTarget anypb.Any
+	marshalOptions := proto.MarshalOptions{Deterministic: true}
+	if err := anypb.MarshalFrom(
+		&stableTarget,
+		&model_fetch_pb.Target{Urls: target.Urls},
+		marshalOptions,
+	); err != nil {
+		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("failed to marshal stable target: %w", err)
+	}
+	marshaledStableTarget, err := marshalOptions.Marshal(&stableTarget)
+	if err != nil {
+		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("failed to marshal stable target: %w", err)
+	}
+	stableFingerprint := sha256.Sum256(marshaledStableTarget)
 
 	var resultReference model_core.Decodable[TReference]
 	var errExecution error
@@ -79,7 +105,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 			},
 		},
 		&encryptedaction_pb.Action_AdditionalData{
-			ExecutionTimeout: &durationpb.Duration{Seconds: 3600},
+			StableFingerprint: stableFingerprint[:],
+			ExecutionTimeout:  &durationpb.Duration{Seconds: 3600},
 		},
 		&resultReference,
 		&errExecution,
