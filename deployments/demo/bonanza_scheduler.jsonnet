@@ -1,6 +1,15 @@
 local statePath = std.extVar('STATE_PATH');
 
 {
+  global: { diagnosticsHttpServer: {
+    httpServers: [{
+      listenAddresses: [':9985'],
+      authenticationPolicy: { allow: {} },
+    }],
+    enablePrometheus: true,
+    enablePprof: true,
+  } },
+
   clientGrpcServers: [{
     listenPaths: [statePath + '/bonanza_scheduler_clients.sock'],
     authenticationPolicy: { allow: {} },
