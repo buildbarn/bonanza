@@ -17,8 +17,26 @@ local statePath = std.extVar('STATE_PATH');
     simple: {
       initialSizeClassAnalyzer: {
         maximumExecutionTimeout: '86400s',
+        feedbackDriven: {
+          failureCacheDuration: '86400s',
+          historySize: 32,
+        },
       },
     },
+  },
+  previousExecutionStatsStore: {
+    grpcClient: {
+      address: 'unix://%s/bonanza_storage_frontend.sock' % statePath,
+    },
+    namespace: { referenceFormat: 'SHA256_V1' },
+    tagSignaturePrivateKey: |||
+      -----BEGIN PRIVATE KEY-----
+      MC4CAQAwBQYDK2VwBCIEIHrwHIyuzYLw9vemhKYfBKHwpPyivLDXJBMeS7Q+bL3x
+      -----END PRIVATE KEY-----
+    |||,
+    objectEncoders: [{ encrypting: {
+      encryptionKey: 'c3LrGufjguOjXvxrAv5mAq+mqMkAstWlN/lwBFMGItQ=',
+    } }],
   },
   platformQueueWithNoWorkersTimeout: '900s',
 }
