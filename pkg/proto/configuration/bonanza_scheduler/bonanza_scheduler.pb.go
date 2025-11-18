@@ -207,7 +207,7 @@ type PreviousExecutionStatsStoreConfiguration struct {
 	state                  protoimpl.MessageState    `protogen:"open.v1"`
 	GrpcClient             *grpc.ClientConfiguration `protobuf:"bytes,1,opt,name=grpc_client,json=grpcClient,proto3" json:"grpc_client,omitempty"`
 	Namespace              *object.Namespace         `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	TagSignaturePrivateKey []byte                    `protobuf:"bytes,3,opt,name=tag_signature_private_key,json=tagSignaturePrivateKey,proto3" json:"tag_signature_private_key,omitempty"`
+	TagSignaturePrivateKey string                    `protobuf:"bytes,3,opt,name=tag_signature_private_key,json=tagSignaturePrivateKey,proto3" json:"tag_signature_private_key,omitempty"`
 	ObjectEncoders         []*encoding.BinaryEncoder `protobuf:"bytes,4,rep,name=object_encoders,json=objectEncoders,proto3" json:"object_encoders,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
@@ -257,11 +257,11 @@ func (x *PreviousExecutionStatsStoreConfiguration) GetNamespace() *object.Namesp
 	return nil
 }
 
-func (x *PreviousExecutionStatsStoreConfiguration) GetTagSignaturePrivateKey() []byte {
+func (x *PreviousExecutionStatsStoreConfiguration) GetTagSignaturePrivateKey() string {
 	if x != nil {
 		return x.TagSignaturePrivateKey
 	}
-	return nil
+	return ""
 }
 
 func (x *PreviousExecutionStatsStoreConfiguration) GetObjectEncoders() []*encoding.BinaryEncoder {
@@ -295,7 +295,7 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_sched
 	"\vgrpc_client\x18\x01 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\n" +
 	"grpcClient\x12?\n" +
 	"\tnamespace\x18\x02 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x129\n" +
-	"\x19tag_signature_private_key\x18\x03 \x01(\fR\x16tagSignaturePrivateKey\x12N\n" +
+	"\x19tag_signature_private_key\x18\x03 \x01(\tR\x16tagSignaturePrivateKey\x12N\n" +
 	"\x0fobject_encoders\x18\x04 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eobjectEncodersB9Z7bonanza.build/pkg/proto/configuration/bonanza_schedulerb\x06proto3"
 
 var (

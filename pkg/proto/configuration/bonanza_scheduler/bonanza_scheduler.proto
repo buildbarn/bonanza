@@ -205,7 +205,7 @@ message PreviousExecutionStatsStoreConfiguration {
   // Ed25519 private key used to sign tags referring to
   // PreviousExecutionStats objects. The key must be in PKCS #8, ASN.1
   // DER form, stored in a PEM block of type "PRIVATE KEY".
-  bytes tag_signature_private_key = 3;
+  string tag_signature_private_key = 3;
 
   // Encoding/decoding steps to apply when uploading/downloading objects
   // containing PreviousExecutionStats messages the Object Store, such

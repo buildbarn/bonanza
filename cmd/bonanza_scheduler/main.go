@@ -72,7 +72,7 @@ func main() {
 				return util.StatusWrap(err, "Invalid namespace for PreviousExecutionStats store")
 			}
 
-			tagSignaturePrivateKeyBlock, _ := pem.Decode(storeConfiguration.TagSignaturePrivateKey)
+			tagSignaturePrivateKeyBlock, _ := pem.Decode([]byte(storeConfiguration.TagSignaturePrivateKey))
 			if tagSignaturePrivateKeyBlock == nil {
 				return status.Error(codes.InvalidArgument, "Tag signature private key store does not contain a PEM block")
 			}
