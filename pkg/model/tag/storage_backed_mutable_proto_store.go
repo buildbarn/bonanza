@@ -175,21 +175,18 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 			handlesToWriteIndex: -1,
 		}
 		group.Go(func() error {
-			realTagKeyHash, decodingParameters := GetDecodingParametersFromKeyHash(ps.objectEncoder, tagKeyHash)
+			decodableTagKeyHash := GetDecodableKeyHash(ps.objectEncoder, tagKeyHash)
 			if signedValue, complete, err := ps.tagResolver.ResolveTag(
 				ctxWithCancel,
 				ps.referenceFormat,
 				tag.Key{
 					SignaturePublicKey: ps.tagSignaturePublicKey,
-					Hash:               realTagKeyHash,
+					Hash:               decodableTagKeyHash.Value,
 				},
 				/* minimumTimestamp = */ nil,
 			); err == nil {
 				if complete {
-					decodableReference, err := model_core.NewDecodable(signedValue.Value.Reference, decodingParameters)
-					if err != nil {
-						return util.StatusWrapf(err, "Invalid decoding parameters")
-					}
+					decodableReference := model_core.CopyDecodable(decodableTagKeyHash, signedValue.Value.Reference)
 					if m, err := ps.messageObjectReader.ReadParsedObject(ctxWithCancel, decodableReference); err == nil {
 						proto.Merge(TProto(&handleToReturn.message), m.Message)
 					} else if status.Code(err) == codes.NotFound {
@@ -220,7 +217,7 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 		handleToWrite := handleToWriteIter
 		group.Go(func() error {
 			tagKeyHash := handleToWrite.handle.tagKeyHash
-			realTagKeyHash, decodingParameters := GetDecodingParametersFromKeyHash(ps.objectEncoder, tagKeyHash)
+			decodableTagKeyHash := GetDecodableKeyHash(ps.objectEncoder, tagKeyHash)
 			if err := func() error {
 				createdObject, err := model_core.MarshalAndEncodeKeyed(
 					model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
@@ -228,7 +225,7 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 					),
 					ps.referenceFormat,
 					ps.objectEncoder,
-					decodingParameters,
+					decodableTagKeyHash.GetDecodingParameters(),
 				)
 				if err != nil {
 					return util.StatusWrapf(err, "Failed to marshal and encode mutable Protobuf message for tag with key hash %s", hex.EncodeToString(tagKeyHash[:]))
@@ -237,7 +234,7 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 					Reference: createdObject.Contents.GetLocalReference(),
 					Timestamp: ps.clock.Now(),
 				}
-				rootTagSignedValue, err := rootTagValue.Sign(ps.tagSignaturePrivateKey, realTagKeyHash)
+				rootTagSignedValue, err := rootTagValue.Sign(ps.tagSignaturePrivateKey, decodableTagKeyHash.Value)
 				if err != nil {
 					return util.StatusWrapf(err, "Failed to sign tag with key hash %s", hex.EncodeToString(tagKeyHash[:]))
 				}
@@ -246,7 +243,7 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 					struct{}{},
 					tag.Key{
 						SignaturePublicKey: ps.tagSignaturePublicKey,
-						Hash:               realTagKeyHash,
+						Hash:               decodableTagKeyHash.Value,
 					},
 					rootTagSignedValue,
 					dag.NewSimpleObjectContentsWalker(createdObject.Contents, createdObject.Metadata),

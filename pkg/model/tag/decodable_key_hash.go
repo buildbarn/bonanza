@@ -4,13 +4,16 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 
+	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
+
+	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
-// GetDecodingParametersFromKeyHash converts a key hash of a tag to one
-// that should actually be used at the storage level, and returns
-// decoding parameters that can be used when encoding objects that
-// should be referenced by the tag.
+// GetDecodableKeyHash converts a key hash of a tag to one that should
+// actually be used at the storage level, and returns decoding
+// parameters that can be used when encoding objects to be referenced by
+// the tag.
 //
 // Normally when encrypted objects are created, the encoding process
 // yields decoding parameters that need to be stored in the encrypted
@@ -35,7 +38,12 @@ import (
 // the tag key hash at the storage level. The other half is used as the
 // decoding parameters. This means that tags can only be resolved and
 // the referenced object decoded if the original tag key hash is known.
-func GetDecodingParametersFromKeyHash(decoder model_encoding.BinaryDecoder, keyHash [sha256.Size]byte) ([sha256.Size]byte, []byte) {
+func GetDecodableKeyHash(decoder model_encoding.BinaryDecoder, keyHash [sha256.Size]byte) model_core.Decodable[[sha256.Size]byte] {
 	wrappedKeyHash := sha512.Sum512(keyHash[:])
-	return *(*[sha256.Size]byte)(wrappedKeyHash[:]), wrappedKeyHash[sha256.Size:][:decoder.GetDecodingParametersSizeBytes()]
+	return util.Must(
+		model_core.NewDecodable(
+			*(*[sha256.Size]byte)(wrappedKeyHash[:]),
+			wrappedKeyHash[sha256.Size:][:decoder.GetDecodingParametersSizeBytes()],
+		),
+	)
 }

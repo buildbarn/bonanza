@@ -4,7 +4,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "tag",
     srcs = [
-        "decoding_parameters.go",
+        "decodable_key_hash.go",
         "mutable_proto_store.go",
         "storage_backed_mutable_proto_store.go",
     ],
