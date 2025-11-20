@@ -11,7 +11,6 @@ go_library(
         "//pkg/model/executewithstorage",
         "//pkg/model/filesystem",
         "//pkg/model/parser",
-        "//pkg/proto/model/core",
         "//pkg/proto/model/fetch",
         "//pkg/proto/remoteworker",
         "//pkg/remoteworker",

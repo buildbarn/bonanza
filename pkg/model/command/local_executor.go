@@ -214,13 +214,11 @@ func captureLog(ctx context.Context, buildDirectory virtual.PrepopulatedDirector
 	return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, status.Error(codes.InvalidArgument, "File is of an incorrect type")
 }
 
+var actionObjectFormat = model_core.NewProtoObjectFormat(&model_command_pb.Action{})
+
 func (e *localExecutor) Execute(ctx context.Context, action *model_executewithstorage.Action[object.GlobalReference], executionTimeout time.Duration, executionEvents chan<- model_core.Decodable[object.LocalReference]) (model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
 	// Reject actions that this worker can't process.
-	if !proto.Equal(action.Format, &model_core_pb.ObjectFormat{
-		Format: &model_core_pb.ObjectFormat_ProtoTypeName{
-			ProtoTypeName: "bonanza.model.command.Action",
-		},
-	}) {
+	if !proto.Equal(action.Format, actionObjectFormat) {
 		var badReference model_core.Decodable[object.LocalReference]
 		return badReference, 0, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
 	}

@@ -17,9 +17,10 @@ import (
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
-	model_core_pb "bonanza.build/pkg/proto/model/core"
 	"bonanza.build/pkg/storage/object"
 )
+
+var commandActionObjectFormat = model_core.NewProtoObjectFormat(&model_command_pb.Action{})
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.RawActionResult_Key, TReference], e RawActionResultEnvironment[TReference, TMetadata]) (PatchedRawActionResultValue[TMetadata], error) {
 	actionEncodersValue := e.GetActionEncodersValue(&model_analysis_pb.ActionEncoders_Key{})
@@ -66,11 +67,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 		&model_executewithstorage.Action[TReference]{
 			Reference: actionReference,
 			Encoders:  actionEncodersValue.Message.ActionEncoders,
-			Format: &model_core_pb.ObjectFormat{
-				Format: &model_core_pb.ObjectFormat_ProtoTypeName{
-					ProtoTypeName: "bonanza.model.command.Action",
-				},
-			},
+			Format:    commandActionObjectFormat,
 		},
 		&encryptedaction_pb.Action_AdditionalData{
 			StableFingerprint: commandReferenceSHA256[:],

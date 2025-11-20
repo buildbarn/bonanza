@@ -68,12 +68,10 @@ func (executor) CheckReadiness(ctx context.Context) error {
 	return nil
 }
 
+var actionObjectFormat = model_core.NewProtoObjectFormat(&model_evaluation_pb.Action{})
+
 func (e *executor) Execute(ctx context.Context, action *model_executewithstorage.Action[object.GlobalReference], executionTimeout time.Duration, executionEvents chan<- model_core.Decodable[object.LocalReference]) (model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
-	if !proto.Equal(action.Format, &model_core_pb.ObjectFormat{
-		Format: &model_core_pb.ObjectFormat_ProtoTypeName{
-			ProtoTypeName: "bonanza.model.evaluation.Action",
-		},
-	}) {
+	if !proto.Equal(action.Format, actionObjectFormat) {
 		var badReference model_core.Decodable[object.LocalReference]
 		return badReference, 0, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
 	}

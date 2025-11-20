@@ -620,16 +620,20 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	actionReferenceStr := model_core.DecodableLocalReferenceToString(decodableActionReference)
 	actionLink := formatted.Text(actionReferenceStr)
 	browserURL := args.CommonFlags.BrowserUrl
-	actionMessageType := "bonanza.model.evaluation.Action"
+	evaluationActionObjectFormat := model_core.NewProtoObjectFormat(&model_evaluation_pb.Action{})
+	evaluationActionPathComponents, _ := model_core.ObjectFormatToPath(evaluationActionObjectFormat)
 	if browserURL != "" {
 		if actionURL, err := url.JoinPath(
 			browserURL,
-			"object",
-			url.PathEscape(instanceName.String()),
-			referenceFormat.ToProto().String(),
-			actionReferenceStr,
-			"proto",
-			actionMessageType,
+			append(
+				[]string{
+					"object",
+					url.PathEscape(instanceName.String()),
+					referenceFormat.ToProto().String(),
+					actionReferenceStr,
+				},
+				evaluationActionPathComponents...,
+			)...,
 		); err == nil {
 			actionLink = formatted.Link(actionURL, actionLink)
 		}
@@ -686,11 +690,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 				actionReference,
 			),
 			Encoders: defaultEncoders,
-			Format: &model_core_pb.ObjectFormat{
-				Format: &model_core_pb.ObjectFormat_ProtoTypeName{
-					ProtoTypeName: actionMessageType,
-				},
-			},
+			Format:   evaluationActionObjectFormat,
 		},
 		&encryptedaction_pb.Action_AdditionalData{
 			ExecutionTimeout: &durationpb.Duration{Seconds: 24 * 60 * 60},

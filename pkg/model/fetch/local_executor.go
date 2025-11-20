@@ -19,7 +19,6 @@ import (
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
-	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
 	"bonanza.build/pkg/remoteworker"
@@ -72,12 +71,10 @@ func (localExecutor) CheckReadiness(ctx context.Context) error {
 	return nil
 }
 
+var actionObjectFormat = model_core.NewProtoObjectFormat(&model_fetch_pb.Action{})
+
 func (e *localExecutor) Execute(ctx context.Context, action *model_executewithstorage.Action[object.GlobalReference], executionTimeout time.Duration, executionEvents chan<- model_core.Decodable[object.LocalReference]) (model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
-	if !proto.Equal(action.Format, &model_core_pb.ObjectFormat{
-		Format: &model_core_pb.ObjectFormat_ProtoTypeName{
-			ProtoTypeName: "bonanza.model.fetch.Action",
-		},
-	}) {
+	if !proto.Equal(action.Format, actionObjectFormat) {
 		var badReference model_core.Decodable[object.LocalReference]
 		return badReference, 0, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
 	}

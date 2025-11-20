@@ -12,7 +12,6 @@ import (
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 
 	"google.golang.org/grpc/codes"
@@ -21,6 +20,8 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
+
+var fetchActionObjectFormat = model_core.NewProtoObjectFormat(&model_fetch_pb.Action{})
 
 func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx context.Context, key *model_analysis_pb.HttpFileContents_Key, e HttpFileContentsEnvironment[TReference, TMetadata]) (PatchedHttpFileContentsValue[TMetadata], error) {
 	actionEncodersValue := e.GetActionEncodersValue(&model_analysis_pb.ActionEncoders_Key{})
@@ -98,11 +99,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 				e.ReferenceObject(capturedAction),
 			),
 			Encoders: actionEncodersValue.Message.ActionEncoders,
-			Format: &model_core_pb.ObjectFormat{
-				Format: &model_core_pb.ObjectFormat_ProtoTypeName{
-					ProtoTypeName: "bonanza.model.fetch.Action",
-				},
-			},
+			Format:   fetchActionObjectFormat,
 		},
 		&encryptedaction_pb.Action_AdditionalData{
 			StableFingerprint: stableFingerprint[:],
