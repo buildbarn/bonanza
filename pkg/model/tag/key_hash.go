@@ -8,7 +8,28 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
+
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
+
+var marshalOptions = proto.MarshalOptions{Deterministic: true}
+
+// ComputeKeyHashFromMessage computes a key hash of a tag, using a
+// Protobuf message as an input. The message is first wrapped in a
+// google.protobuf.Any to ensure there are no collisions in case
+// different message types are used.
+func ComputeKeyHashFromMessage(m proto.Message) ([sha256.Size]byte, error) {
+	var anyMessage anypb.Any
+	if err := anypb.MarshalFrom(&anyMessage, m, marshalOptions); err != nil {
+		return [sha256.Size]byte{}, err
+	}
+	input, err := marshalOptions.Marshal(&anyMessage)
+	if err != nil {
+		return [sha256.Size]byte{}, err
+	}
+	return sha256.Sum256(input), nil
+}
 
 // GetDecodableKeyHash converts a key hash of a tag to one that should
 // actually be used at the storage level, and returns decoding

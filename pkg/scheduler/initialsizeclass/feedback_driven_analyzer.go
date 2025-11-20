@@ -15,8 +15,6 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -60,8 +58,6 @@ func NewFeedbackDrivenAnalyzer(fallback Analyzer, store PreviousExecutionStatsSt
 	}
 }
 
-var marshalOptions = proto.MarshalOptions{Deterministic: true}
-
 func (a *feedbackDrivenAnalyzer) Analyze(ctx context.Context, action *encryptedaction_pb.Action) (Selector, error) {
 	// Actions that don't have a stable fingerprint cannot be
 	// processed by this analyzer. Call into the fallback analyzer
@@ -76,23 +72,16 @@ func (a *feedbackDrivenAnalyzer) Analyze(ctx context.Context, action *encrypteda
 		return nil, err
 	}
 
-	var tagKeyHashMessage anypb.Any
-	if err := anypb.MarshalFrom(
-		&tagKeyHashMessage,
+	tagKeyHash, err := model_tag.ComputeKeyHashFromMessage(
 		&model_initialsizeclass_pb.TagKeyHashInput{
 			CommonKeyHash:         a.commonKeyHash[:],
 			PlatformPkixPublicKey: action.PlatformPkixPublicKey,
 			StableFingerprint:     stableFingerprint,
 		},
-		marshalOptions,
-	); err != nil {
-		return nil, util.StatusWrapWithCode(err, codes.Internal, "Failed to create tag key hash message")
-	}
-	tagKeyHashInput, err := marshalOptions.Marshal(&tagKeyHashMessage)
+	)
 	if err != nil {
-		return nil, util.StatusWrapWithCode(err, codes.Internal, "Failed to marshal tag key hash input")
+		return nil, util.StatusWrapWithCode(err, codes.Internal, "Failed to compute tag key hash")
 	}
-	tagKeyHash := sha256.Sum256(tagKeyHashInput)
 
 	handle, err := a.store.Get(ctx, tagKeyHash)
 	if err != nil {
