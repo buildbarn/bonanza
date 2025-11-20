@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdh"
 	"crypto/x509"
-	"encoding/pem"
 	"iter"
 
 	"bonanza.build/pkg/encryptedaction"
@@ -131,17 +130,4 @@ func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecd
 			}
 		}
 	}
-}
-
-// ParseCertificateChain parses an X.509 certificate chain, so that it
-// can be provided to NewClient().
-func ParseCertificateChain(data []byte) ([][]byte, error) {
-	var clientCertificates [][]byte
-	for certificateBlock, remainder := pem.Decode(data); certificateBlock != nil; certificateBlock, remainder = pem.Decode(remainder) {
-		if certificateBlock.Type != "CERTIFICATE" {
-			return nil, status.Errorf(codes.InvalidArgument, "Client certificate PEM block at index %d is not of type CERTIFICATE", len(clientCertificates))
-		}
-		clientCertificates = append(clientCertificates, certificateBlock.Bytes)
-	}
-	return clientCertificates, nil
 }

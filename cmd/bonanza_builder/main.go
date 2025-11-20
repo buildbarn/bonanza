@@ -101,7 +101,7 @@ func main() {
 		if err != nil {
 			return util.StatusWrap(err, "Failed to parse execution client private key")
 		}
-		executionClientCertificateChain, err := remoteexecution.ParseCertificateChain([]byte(configuration.ExecutionClientCertificateChain))
+		executionClientCertificateChain, err := crypto.ParsePEMWithCertificateChain([]byte(configuration.ExecutionClientCertificateChain))
 		if err != nil {
 			return util.StatusWrap(err, "Failed to parse execution client certificate chain")
 		}

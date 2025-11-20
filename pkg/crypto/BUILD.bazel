@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "crypto",
-    srcs = ["ecdh.go"],
+    srcs = [
+        "certificate_chain.go",
+        "ecdh.go",
+    ],
     importpath = "bonanza.build/pkg/crypto",
     visibility = ["//visibility:public"],
     deps = [

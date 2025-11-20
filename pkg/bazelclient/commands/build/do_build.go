@@ -585,7 +585,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to read --remote_executor_client_certificate_chain=%#v: %s", args.CommonFlags.RemoteExecutorClientCertificateChain, err))
 	}
-	clientCertificateChain, err := remoteexecution.ParseCertificateChain(clientCertificateChainData)
+	clientCertificateChain, err := crypto.ParsePEMWithCertificateChain(clientCertificateChainData)
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to parse --remote_executor_client_certificate_chain=%#v: %s", args.CommonFlags.RemoteExecutorClientCertificateChain, err))
 	}
