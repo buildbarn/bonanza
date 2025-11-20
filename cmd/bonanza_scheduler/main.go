@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"crypto/ed25519"
 	"crypto/sha256"
-	"crypto/x509"
-	"encoding/pem"
 	"os"
 	"runtime"
 	"time"
 
+	"bonanza.build/pkg/crypto"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_tag "bonanza.build/pkg/model/tag"
@@ -72,20 +70,9 @@ func main() {
 				return util.StatusWrap(err, "Invalid namespace for PreviousExecutionStats store")
 			}
 
-			tagSignaturePrivateKeyBlock, _ := pem.Decode([]byte(storeConfiguration.TagSignaturePrivateKey))
-			if tagSignaturePrivateKeyBlock == nil {
-				return status.Error(codes.InvalidArgument, "Tag signature private key store does not contain a PEM block")
-			}
-			if tagSignaturePrivateKeyBlock.Type != "PRIVATE KEY" {
-				return status.Error(codes.InvalidArgument, "Tag signature private key PEM block is not of type PRIVATE KEY")
-			}
-			tagSignaturePrivateKey, err := x509.ParsePKCS8PrivateKey(tagSignaturePrivateKeyBlock.Bytes)
+			tagSignaturePrivateKey, err := crypto.ParsePEMWithEd25519PrivateKey([]byte(storeConfiguration.TagSignaturePrivateKey))
 			if err != nil {
-				return util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid tag signature private key")
-			}
-			tagSignatureEd25519PrivateKey, ok := tagSignaturePrivateKey.(ed25519.PrivateKey)
-			if !ok {
-				return status.Error(codes.InvalidArgument, "Tag signature private key is not of type Ed25519")
+				return util.StatusWrap(err, "Failed to create tag signature private key")
 			}
 
 			referenceFormat := namespace.ReferenceFormat
@@ -103,7 +90,7 @@ func main() {
 					tag_grpc.NewResolver(tag_pb.NewResolverClient(grpcClient)),
 					namespace.InstanceName,
 				),
-				tagSignatureEd25519PrivateKey,
+				tagSignaturePrivateKey,
 				model_parser.NewParsedObjectReader(
 					model_parser.NewDownloadingObjectReader(
 						object_namespacemapping.NewNamespaceAddingDownloader(
