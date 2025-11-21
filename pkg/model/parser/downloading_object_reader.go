@@ -20,7 +20,7 @@ func NewDownloadingObjectReader[TReference any](downloader object.Downloader[TRe
 	}
 }
 
-func (r *downloadingObjectReader[TReference]) ReadParsedObject(ctx context.Context, reference TReference) (model_core.Message[[]byte, object.LocalReference], error) {
+func (r *downloadingObjectReader[TReference]) ReadObject(ctx context.Context, reference TReference) (model_core.Message[[]byte, object.LocalReference], error) {
 	contents, err := r.downloader.DownloadObject(ctx, reference)
 	if err != nil {
 		return model_core.Message[[]byte, object.LocalReference]{}, err

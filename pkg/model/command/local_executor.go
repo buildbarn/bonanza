@@ -268,7 +268,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 				model_parser.NewProtoObjectParser[object.LocalReference, model_command_pb.Action](),
 			),
 		)
-		actionMessage, err := actionReader.ReadParsedObject(ctx, model_core.CopyDecodable(action.Reference, action.Reference.Value.GetLocalReference()))
+		actionMessage, err := actionReader.ReadObject(ctx, model_core.CopyDecodable(action.Reference, action.Reference.Value.GetLocalReference()))
 		if err != nil {
 			result.Status = status.Convert(util.StatusWrap(err, "Failed to read action")).Proto()
 			return &result

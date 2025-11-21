@@ -187,7 +187,7 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 			); err == nil {
 				if complete {
 					decodableReference := model_core.CopyDecodable(decodableTagKeyHash, signedValue.Value.Reference)
-					if m, err := ps.messageObjectReader.ReadParsedObject(ctxWithCancel, decodableReference); err == nil {
+					if m, err := ps.messageObjectReader.ReadObject(ctxWithCancel, decodableReference); err == nil {
 						proto.Merge(TProto(&handleToReturn.message), m.Message)
 					} else if status.Code(err) == codes.NotFound {
 						return status.Errorf(

@@ -111,7 +111,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				model_parser.NewProtoObjectParser[buffered.Reference, model_evaluation_pb.Action](),
 			),
 		)
-		actionMessage, err := actionReader.ReadParsedObject(
+		actionMessage, err := actionReader.ReadObject(
 			ctx,
 			model_core.CopyDecodable(
 				action.Reference,

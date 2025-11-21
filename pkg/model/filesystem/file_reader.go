@@ -58,7 +58,7 @@ func (fr *FileReader[TReference]) readNextChunkOrHole(ctx context.Context, fileC
 
 		if partReference.Value.GetDegree() == 0 {
 			// Reached a chunk.
-			chunk, err := fr.fileChunkReader.ReadParsedObject(ctx, *partReference)
+			chunk, err := fr.fileChunkReader.ReadObject(ctx, *partReference)
 			if err != nil {
 				return nil, 0, util.StatusWrapf(err, "Failed to read chunk with reference %s", model_core.DecodableLocalReferenceToString(*partReference))
 			}
@@ -71,7 +71,7 @@ func (fr *FileReader[TReference]) readNextChunkOrHole(ctx context.Context, fileC
 
 		// We need to push one or more file contents lists onto
 		// the stack to reach a chunk.
-		fileContentsList, err := fr.fileContentsListReader.ReadParsedObject(ctx, *partReference)
+		fileContentsList, err := fr.fileContentsListReader.ReadObject(ctx, *partReference)
 		if err != nil {
 			return nil, 0, util.StatusWrapf(err, "Failed to read file contents list with reference %s", model_core.DecodableLocalReferenceToString(*partReference))
 		}

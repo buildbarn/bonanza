@@ -110,7 +110,7 @@ func (df *ObjectBackedDirectoryFactory) resolveHandle(r io.ByteReader) (virtual.
 	// File handle resolves to a symbolic link contained in the directory.
 	// TODO: Should virtual.HandleResolver provide a context?
 	ctx := context.Background()
-	cluster, err := df.directoryClusterReader.ReadParsedObject(ctx, clusterReference)
+	cluster, err := df.directoryClusterReader.ReadObject(ctx, clusterReference)
 	if err != nil {
 		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch directory cluster with reference %s", clusterReference))
 		return virtual.DirectoryChild{}, virtual.StatusErrIO
@@ -206,7 +206,7 @@ func (d *objectBackedDirectory) VirtualGetAttributes(ctx context.Context, reques
 
 func (d *objectBackedDirectory) getDirectory(ctx context.Context) (model_core.Message[*model_filesystem.Directory, object.LocalReference], virtual.Status) {
 	df := d.factory
-	cluster, err := df.directoryClusterReader.ReadParsedObject(ctx, d.clusterReference)
+	cluster, err := df.directoryClusterReader.ReadObject(ctx, d.clusterReference)
 	if err != nil {
 		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch directory cluster with reference %s", d.clusterReference))
 		return model_core.Message[*model_filesystem.Directory, object.LocalReference]{}, virtual.StatusErrIO

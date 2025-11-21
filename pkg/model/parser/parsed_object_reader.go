@@ -20,8 +20,8 @@ func NewParsedObjectReader[TReference, TParsedObject any](rawReader ObjectReader
 	}
 }
 
-func (r *parsedObjectReader[TReference, TParsedObject]) ReadParsedObject(ctx context.Context, reference model_core.Decodable[TReference]) (TParsedObject, error) {
-	raw, err := r.rawReader.ReadParsedObject(ctx, reference.Value)
+func (r *parsedObjectReader[TReference, TParsedObject]) ReadObject(ctx context.Context, reference model_core.Decodable[TReference]) (TParsedObject, error) {
+	raw, err := r.rawReader.ReadObject(ctx, reference.Value)
 	if err != nil {
 		var bad TParsedObject
 		return bad, err

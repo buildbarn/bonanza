@@ -126,7 +126,7 @@ func main() {
 		}
 
 		rootDirectoryIndex := uint(0)
-		rootDirectoryCluster, err := directoryClusterReader.ReadParsedObject(ctx, rootDirectoryReference)
+		rootDirectoryCluster, err := directoryClusterReader.ReadObject(ctx, rootDirectoryReference)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to fetch contents of root directory")
 		}

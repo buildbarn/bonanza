@@ -22,7 +22,7 @@ func Dereference[
 		var bad TValue
 		return bad, err
 	}
-	value, err := reader.ReadParsedObject(ctx, reference)
+	value, err := reader.ReadObject(ctx, reference)
 	return value, err
 }
 

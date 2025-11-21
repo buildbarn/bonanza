@@ -232,7 +232,7 @@ func TestStorageBackedMutableProtoStore(t *testing.T) {
 			/* complete = */ true,
 			nil,
 		)
-		messageObjectReader.EXPECT().ReadParsedObject(
+		messageObjectReader.EXPECT().ReadObject(
 			gomock.Any(),
 			util.Must(model_core.NewDecodable(
 				object.MustNewSHA256V1LocalReference("80f8626ce2a9cc67c144e593bb9ee7a1976a1907e221f1becbfe69d67fe3df92", 100, 0, 0, 0),

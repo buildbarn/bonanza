@@ -105,7 +105,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 				model_parser.NewProtoObjectParser[object.LocalReference, model_fetch_pb.Action](),
 			),
 		)
-		action, err := actionReader.ReadParsedObject(ctx, model_core.CopyDecodable(action.Reference, action.Reference.Value.GetLocalReference()))
+		action, err := actionReader.ReadObject(ctx, model_core.CopyDecodable(action.Reference, action.Reference.Value.GetLocalReference()))
 		if err != nil {
 			result.Outcome = &model_fetch_pb.Result_Failure{
 				Failure: status.Convert(util.StatusWrap(err, "Failed to read action")).Proto(),

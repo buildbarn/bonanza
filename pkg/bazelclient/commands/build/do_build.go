@@ -698,7 +698,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		&resultReference,
 		&errBuild,
 	) {
-		progress, err := progressReader.ReadParsedObject(context.Background(), progressReference)
+		progress, err := progressReader.ReadObject(context.Background(), progressReference)
 		if err != nil {
 			logger.Fatal(formatted.Textf("Failed to read progress message: %s", err))
 		}
@@ -778,7 +778,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		),
 	)
 
-	result, err := resultReader.ReadParsedObject(
+	result, err := resultReader.ReadObject(
 		context.Background(),
 		resultReference,
 	)

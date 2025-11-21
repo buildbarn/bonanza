@@ -107,7 +107,7 @@ func NewObjectReader(
 	}
 }
 
-func (r *objectReader) ReadParsedObject(ctx context.Context, reference Reference) (model_core.Message[[]byte, Reference], error) {
+func (r *objectReader) ReadObject(ctx context.Context, reference Reference) (model_core.Message[[]byte, Reference], error) {
 	if contents := reference.embeddedMetadata.contents; contents != nil {
 		// Object has not been written to storage yet.
 		// Return the copy that lives in memory.
@@ -127,7 +127,7 @@ func (r *objectReader) ReadParsedObject(ctx context.Context, reference Reference
 	}
 
 	// Read object from storage.
-	m, err := r.base.ReadParsedObject(ctx, reference.GetLocalReference())
+	m, err := r.base.ReadObject(ctx, reference.GetLocalReference())
 	if err != nil {
 		return model_core.Message[[]byte, Reference]{}, err
 	}

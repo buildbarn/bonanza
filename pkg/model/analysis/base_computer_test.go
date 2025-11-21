@@ -211,7 +211,7 @@ func attachObject(
 // of references, as opposed to reading them from storage.
 type createdObjectReader struct{}
 
-func (createdObjectReader) ReadParsedObject(ctx context.Context, reference model_core.CreatedObjectTree) (model_core.Message[[]byte, model_core.CreatedObjectTree], error) {
+func (createdObjectReader) ReadObject(ctx context.Context, reference model_core.CreatedObjectTree) (model_core.Message[[]byte, model_core.CreatedObjectTree], error) {
 	return model_core.NewMessage(reference.GetPayload(), object.OutgoingReferencesList[model_core.CreatedObjectTree](reference.Metadata)), nil
 }
 

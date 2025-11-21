@@ -114,7 +114,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 		return PatchedHttpFileContentsValue[TMetadata]{}, errExecution
 	}
 
-	result, err := actionReaders.FetchResult.ReadParsedObject(ctx, resultReference)
+	result, err := actionReaders.FetchResult.ReadObject(ctx, resultReference)
 	if err != nil {
 		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("failed to read completion event: %w", err)
 	}

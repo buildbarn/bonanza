@@ -672,7 +672,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		),
 	)
 	ctx := r.Context()
-	evaluationList, err := evaluationListReader.ReadParsedObject(
+	evaluationList, err := evaluationListReader.ReadObject(
 		ctx,
 		model_core.CopyDecodable(evaluationListReference, evaluationListReference.Value.LocalReference),
 	)

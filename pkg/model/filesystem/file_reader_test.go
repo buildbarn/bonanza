@@ -27,7 +27,7 @@ func TestFileReader(t *testing.T) {
 	fileReader := model_filesystem.NewFileReader(fileContentsListReader, chunkReader)
 
 	t.Run("ChunkReadFailure", func(t *testing.T) {
-		chunkReader.EXPECT().ReadParsedObject(
+		chunkReader.EXPECT().ReadObject(
 			ctx,
 			util.Must(
 				model_core.NewDecodable(
@@ -68,7 +68,7 @@ func TestFileReader(t *testing.T) {
 		// needed to perform random access. We should fail if
 		// the size in the file contents message does not match
 		// reality.
-		chunkReader.EXPECT().ReadParsedObject(
+		chunkReader.EXPECT().ReadObject(
 			ctx,
 			util.Must(
 				model_core.NewDecodable(
@@ -104,7 +104,7 @@ func TestFileReader(t *testing.T) {
 	})
 
 	t.Run("ChunkSuccess", func(t *testing.T) {
-		chunkReader.EXPECT().ReadParsedObject(
+		chunkReader.EXPECT().ReadObject(
 			ctx,
 			util.Must(
 				model_core.NewDecodable(
@@ -141,7 +141,7 @@ func TestFileReader(t *testing.T) {
 	})
 
 	t.Run("FileContentsListReadFailure", func(t *testing.T) {
-		fileContentsListReader.EXPECT().ReadParsedObject(
+		fileContentsListReader.EXPECT().ReadObject(
 			ctx,
 			util.Must(
 				model_core.NewDecodable(

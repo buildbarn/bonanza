@@ -49,7 +49,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 	if err != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, fmt.Errorf("invalid action reference: %w", err)
 	}
-	action, err := actionReaders.CommandAction.ReadParsedObject(ctx, actionReference)
+	action, err := actionReaders.CommandAction.ReadObject(ctx, actionReference)
 	if err != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, fmt.Errorf("failed to read action: %w", err)
 	}

@@ -53,7 +53,7 @@ func NewObjectBackedInitialContentsFetcher(
 
 func (icf *objectBackedInitialContentsFetcher) getDirectory() (model_core.Message[*model_filesystem.Directory, object.LocalReference], error) {
 	options := icf.options
-	cluster, err := options.directoryClusterReader.ReadParsedObject(options.context, icf.clusterReference)
+	cluster, err := options.directoryClusterReader.ReadObject(options.context, icf.clusterReference)
 	if err != nil {
 		return model_core.Message[*model_filesystem.Directory, object.LocalReference]{}, util.StatusWrapf(err, "Failed to fetch directory cluster with reference %s", icf.clusterReference)
 	}

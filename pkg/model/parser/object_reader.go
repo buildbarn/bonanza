@@ -5,6 +5,6 @@ import (
 )
 
 type ObjectReader[TReference, TParsedObject any] interface {
-	ReadParsedObject(ctx context.Context, reference TReference) (TParsedObject, error)
+	ReadObject(ctx context.Context, reference TReference) (TParsedObject, error)
 	GetDecodingParametersSizeBytes() int
 }
