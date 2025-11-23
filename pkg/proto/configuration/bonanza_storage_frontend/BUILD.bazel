@@ -8,6 +8,7 @@ proto_library(
     import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/proto/configuration/storage/object/local:local_proto",
         "//pkg/proto/storage/object:object_proto",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/global:global_proto",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/grpc:grpc_proto",
@@ -20,6 +21,7 @@ go_proto_library(
     proto = ":bonanza_storage_frontend_proto",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/proto/configuration/storage/object/local",
         "//pkg/proto/storage/object",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/global",
         "@com_github_buildbarn_bb_storage//pkg/proto/configuration/grpc",

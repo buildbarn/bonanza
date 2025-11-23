@@ -12,7 +12,9 @@ import (
 	"bonanza.build/pkg/storage/object"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
 	object_leaserenewing "bonanza.build/pkg/storage/object/leaserenewing"
+	object_local "bonanza.build/pkg/storage/object/local"
 	object_mirrored "bonanza.build/pkg/storage/object/mirrored"
+	object_readcaching "bonanza.build/pkg/storage/object/readcaching"
 	object_sharded "bonanza.build/pkg/storage/object/sharded"
 	"bonanza.build/pkg/storage/tag"
 	tag_grpc "bonanza.build/pkg/storage/tag/grpc"
@@ -72,6 +74,20 @@ func main() {
 			}
 			return nil
 		})
+
+		if configuration.LocalObjectStore != nil {
+			localObjectStore, err := object_local.NewStoreFromConfiguration(
+				dependenciesGroup,
+				configuration.LocalObjectStore,
+			)
+			if err != nil {
+				return util.StatusWrap(err, "Failed to create local object store")
+			}
+			objectDownloader = object_readcaching.NewDownloader(
+				objectDownloader,
+				localObjectStore,
+			)
+		}
 
 		tagUpdater := tag_mirrored.NewUpdater(tagStoreA, tagStoreB)
 		tagResolver := tag_leaserenewing.NewResolver(

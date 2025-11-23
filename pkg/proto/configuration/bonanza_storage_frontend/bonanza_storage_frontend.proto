@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package bonanza.configuration.bonanza_storage_frontend;
 
+import "bonanza.build/pkg/proto/configuration/storage/object/local/local.proto";
 import "bonanza.build/pkg/proto/storage/object/object.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
@@ -62,4 +63,11 @@ message ApplicationConfiguration {
   // configuration. This list can be used to specify all shards
   // belonging to the second replica of the mirror.
   map<string, Shard> shards_replica_b = 7;
+
+  // Cache that resides on disk of objects read from individual shards,
+  // so that DownloadObject() calls issued by different clients can be
+  // serviced more quickly. When not set, DownloadObject() calls are
+  // always forwarded to shards.
+  bonanza.configuration.storage.object.local.StoreConfiguration
+      local_object_store = 8;
 }

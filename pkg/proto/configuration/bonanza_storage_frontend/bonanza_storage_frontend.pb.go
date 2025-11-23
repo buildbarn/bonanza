@@ -7,6 +7,7 @@
 package bonanza_storage_frontend
 
 import (
+	local "bonanza.build/pkg/proto/configuration/storage/object/local"
 	object "bonanza.build/pkg/proto/storage/object"
 	global "github.com/buildbarn/bb-storage/pkg/proto/configuration/global"
 	grpc "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc"
@@ -33,6 +34,7 @@ type ApplicationConfiguration struct {
 	MaximumUnfinalizedParentsLimit *object.Limit                              `protobuf:"bytes,5,opt,name=maximum_unfinalized_parents_limit,json=maximumUnfinalizedParentsLimit,proto3" json:"maximum_unfinalized_parents_limit,omitempty"`
 	ShardsReplicaA                 map[string]*ApplicationConfiguration_Shard `protobuf:"bytes,6,rep,name=shards_replica_a,json=shardsReplicaA,proto3" json:"shards_replica_a,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	ShardsReplicaB                 map[string]*ApplicationConfiguration_Shard `protobuf:"bytes,7,rep,name=shards_replica_b,json=shardsReplicaB,proto3" json:"shards_replica_b,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	LocalObjectStore               *local.StoreConfiguration                  `protobuf:"bytes,8,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache
 }
@@ -116,6 +118,13 @@ func (x *ApplicationConfiguration) GetShardsReplicaB() map[string]*ApplicationCo
 	return nil
 }
 
+func (x *ApplicationConfiguration) GetLocalObjectStore() *local.StoreConfiguration {
+	if x != nil {
+		return x.LocalObjectStore
+	}
+	return nil
+}
+
 type ApplicationConfiguration_Shard struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
 	Client        *grpc.ClientConfiguration `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
@@ -172,7 +181,7 @@ var File_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc = "" +
 	"\n" +
-	"]bonanza.build/pkg/proto/configuration/bonanza_storage_frontend/bonanza_storage_frontend.proto\x12.bonanza.configuration.bonanza_storage_frontend\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\"\xc6\b\n" +
+	"]bonanza.build/pkg/proto/configuration/bonanza_storage_frontend/bonanza_storage_frontend.proto\x12.bonanza.configuration.bonanza_storage_frontend\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\"\xb4\t\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12T\n" +
 	"\fgrpc_servers\x18\x02 \x03(\v21.buildbarn.configuration.grpc.ServerConfigurationR\vgrpcServers\x128\n" +
@@ -180,7 +189,8 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanz
 	"\x1emaximum_unfinalized_dags_count\x18\x04 \x01(\rR\x1bmaximumUnfinalizedDagsCount\x12h\n" +
 	"!maximum_unfinalized_parents_limit\x18\x05 \x01(\v2\x1d.bonanza.storage.object.LimitR\x1emaximumUnfinalizedParentsLimit\x12\x86\x01\n" +
 	"\x10shards_replica_a\x18\x06 \x03(\v2\\.bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardsReplicaAEntryR\x0eshardsReplicaA\x12\x86\x01\n" +
-	"\x10shards_replica_b\x18\a \x03(\v2\\.bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardsReplicaBEntryR\x0eshardsReplicaB\x1aj\n" +
+	"\x10shards_replica_b\x18\a \x03(\v2\\.bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardsReplicaBEntryR\x0eshardsReplicaB\x12l\n" +
+	"\x12local_object_store\x18\b \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x1aj\n" +
 	"\x05Shard\x12I\n" +
 	"\x06client\x18\x01 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x06client\x12\x16\n" +
 	"\x06weight\x18\x02 \x01(\rR\x06weight\x1a\x91\x01\n" +
@@ -212,7 +222,8 @@ var file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_
 	(*global.Configuration)(nil),           // 4: buildbarn.configuration.global.Configuration
 	(*grpc.ServerConfiguration)(nil),       // 5: buildbarn.configuration.grpc.ServerConfiguration
 	(*object.Limit)(nil),                   // 6: bonanza.storage.object.Limit
-	(*grpc.ClientConfiguration)(nil),       // 7: buildbarn.configuration.grpc.ClientConfiguration
+	(*local.StoreConfiguration)(nil),       // 7: bonanza.configuration.storage.object.local.StoreConfiguration
+	(*grpc.ClientConfiguration)(nil),       // 8: buildbarn.configuration.grpc.ClientConfiguration
 }
 var file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_depIdxs = []int32{
 	4, // 0: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
@@ -220,14 +231,15 @@ var file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_
 	6, // 2: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.maximum_unfinalized_parents_limit:type_name -> bonanza.storage.object.Limit
 	2, // 3: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.shards_replica_a:type_name -> bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardsReplicaAEntry
 	3, // 4: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.shards_replica_b:type_name -> bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardsReplicaBEntry
-	7, // 5: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.Shard.client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
-	1, // 6: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardsReplicaAEntry.value:type_name -> bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.Shard
-	1, // 7: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardsReplicaBEntry.value:type_name -> bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.Shard
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	7, // 5: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.local_object_store:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration
+	8, // 6: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.Shard.client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
+	1, // 7: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardsReplicaAEntry.value:type_name -> bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.Shard
+	1, // 8: bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardsReplicaBEntry.value:type_name -> bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.Shard
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() {
