@@ -155,7 +155,6 @@ go_test(
         "//pkg/proto/model/starlark",
         "//pkg/proto/storage/object",
         "//pkg/storage/object",
-        "@com_github_buildbarn_bb_storage//pkg/eviction",
         "@com_github_buildbarn_bb_storage//pkg/filesystem",  # keep
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",  # keep
         "@com_github_buildbarn_bb_storage//pkg/testutil",

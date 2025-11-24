@@ -17,7 +17,6 @@ import (
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
 
-	"github.com/buildbarn/bb-storage/pkg/eviction"
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
@@ -47,11 +46,7 @@ func newBaseComputerTester(ctrl *gomock.Controller) *baseComputerTester {
 	executionClient := NewMockExecutionClientForTesting(ctrl)
 	filePool := NewMockFilePool(ctrl)
 	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester(
-		model_parser.NewParsedObjectPool(
-			eviction.NewFIFOSet[model_parser.ParsedObjectEvictionKey](),
-			/* maximumCount = */ 0,
-			/* maximumSizeBytes = */ 0,
-		),
+		/* pool = */ nil,
 		createdObjectReader{},
 	)
 

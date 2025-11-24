@@ -63,11 +63,16 @@ func LookupParsedObjectReader[TReference object.BasicReference, TParsedObject an
 	ingester *ParsedObjectPoolIngester[TReference],
 	parser ObjectParser[TReference, TParsedObject],
 ) ObjectReader[model_core.Decodable[TReference], TParsedObject] {
-	return &poolBackedObjectReader[TReference, TParsedObject]{
-		pool:                        ingester.pool,
-		parsedObjectReader:          NewParsedObjectReader(ingester.rawReader, parser),
-		decodingParametersSizeBytes: parser.GetDecodingParametersSizeBytes(),
+	objectReader := NewParsedObjectReader(ingester.rawReader, parser)
+	if ingester.pool != nil {
+		// Perform caching of objects.
+		objectReader = &poolBackedObjectReader[TReference, TParsedObject]{
+			pool:                        ingester.pool,
+			parsedObjectReader:          objectReader,
+			decodingParametersSizeBytes: parser.GetDecodingParametersSizeBytes(),
+		}
 	}
+	return objectReader
 }
 
 func (r *poolBackedObjectReader[TReference, TParsedObject]) ReadObject(ctx context.Context, reference model_core.Decodable[TReference]) (TParsedObject, error) {

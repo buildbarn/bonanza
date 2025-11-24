@@ -64,6 +64,7 @@ message ApplicationConfiguration {
       local_object_store = 12;
 
   // Cache that resides in memory of objects read from storage that have
-  // been decoded and parsed.
+  // been decoded and parsed. When not set, each object will always be
+  // read from storage.
   bonanza.configuration.model.parser.ParsedObjectPool parsed_object_pool = 11;
 }
