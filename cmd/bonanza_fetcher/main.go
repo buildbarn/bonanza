@@ -27,8 +27,6 @@ import (
 
 	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
 	"github.com/buildbarn/bb-storage/pkg/clock"
-	"github.com/buildbarn/bb-storage/pkg/filesystem"
-	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/global"
 	http_client "github.com/buildbarn/bb-storage/pkg/http/client"
 	"github.com/buildbarn/bb-storage/pkg/program"
@@ -100,11 +98,6 @@ func main() {
 			return util.StatusWrap(err, "Failed to create file pool")
 		}
 
-		cacheDirectory, err := filesystem.NewLocalDirectory(path.LocalFormat.NewParser(configuration.CacheDirectoryPath))
-		if err != nil {
-			return util.StatusWrap(err, "Failed to create cache directory")
-		}
-
 		remoteWorkerConnection, err := grpcClientFactory.NewClientFromConfiguration(configuration.RemoteWorkerGrpcClient, dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create remote worker RPC client")
@@ -141,7 +134,6 @@ func main() {
 							dagUploader,
 							&http.Client{Transport: roundTripper},
 							filePool,
-							cacheDirectory,
 						),
 					),
 				),

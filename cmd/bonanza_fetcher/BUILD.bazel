@@ -23,8 +23,6 @@ go_library(
         "//pkg/storage/object/readcaching",
         "@com_github_buildbarn_bb_remote_execution//pkg/filesystem/pool",
         "@com_github_buildbarn_bb_storage//pkg/clock",
-        "@com_github_buildbarn_bb_storage//pkg/filesystem",
-        "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
         "@com_github_buildbarn_bb_storage//pkg/global",
         "@com_github_buildbarn_bb_storage//pkg/http/client",
         "@com_github_buildbarn_bb_storage//pkg/program",

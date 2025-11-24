@@ -6,10 +6,8 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
-	"errors"
 	"hash"
 	"io"
-	"io/fs"
 	"math"
 	"net/http"
 	"time"
@@ -27,8 +25,6 @@ import (
 	object_namespacemapping "bonanza.build/pkg/storage/object/namespacemapping"
 
 	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
-	"github.com/buildbarn/bb-storage/pkg/filesystem"
-	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/grpc/codes"
@@ -42,7 +38,6 @@ type localExecutor struct {
 	dagUploader      dag.Uploader[object.InstanceName, object.GlobalReference]
 	httpClient       *http.Client
 	filePool         pool.FilePool
-	cacheDirectory   filesystem.Directory
 }
 
 // NewLocalExecutor creates a remote worker protocol executor that is
@@ -55,7 +50,6 @@ func NewLocalExecutor(
 	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
 	httpClient *http.Client,
 	filePool pool.FilePool,
-	cacheDirectory filesystem.Directory,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &localExecutor{
 		objectDownloader: objectDownloader,
@@ -63,7 +57,6 @@ func NewLocalExecutor(
 		dagUploader:      dagUploader,
 		httpClient:       httpClient,
 		filePool:         filePool,
-		cacheDirectory:   cacheDirectory,
 	}
 }
 
@@ -132,77 +125,60 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		var downloadErrors []error
 	ProcessURLs:
 		for _, url := range target.Urls {
-			// Store copies of the file in a local cache directory.
-			// TODO: Remove this feature once our storage is robust enough.
-			urlHash := sha256.Sum256([]byte(url))
-			filename := path.MustNewComponent(hex.EncodeToString(urlHash[:]))
-			downloadedFile, err := e.cacheDirectory.OpenReadWrite(filename, filesystem.DontCreate)
+			downloadedFile, err := e.filePool.NewFile(pool.ZeroHoleSource, 0)
 			if err != nil {
-				if !errors.Is(err, fs.ErrNotExist) {
-					result.Outcome = &model_fetch_pb.Result_Failure{
-						Failure: status.Convert(util.StatusWrapWithCode(err, codes.Internal, "Failed to open file in cache directory")).Proto(),
-					}
-					return &result
+				result.Outcome = &model_fetch_pb.Result_Failure{
+					Failure: status.Convert(util.StatusWrapWithCode(err, codes.Internal, "Failed to create temporary file for download")).Proto(),
 				}
-				downloadedFile, err = e.cacheDirectory.OpenReadWrite(filename, filesystem.CreateExcl(0o666))
-				if err != nil {
-					result.Outcome = &model_fetch_pb.Result_Failure{
-						Failure: status.Convert(util.StatusWrapWithCode(err, codes.Internal, "Failed to create file in cache directory")).Proto(),
-					}
-					return &result
+				return &result
+			}
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+			if err != nil {
+				downloadedFile.Close()
+				result.Outcome = &model_fetch_pb.Result_Failure{
+					Failure: status.Convert(util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to create HTTP request")).Proto(),
 				}
+				return &result
+			}
+			for _, entry := range target.Headers {
+				req.Header.Set(entry.Name, entry.Value)
+			}
 
-				req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-				if err != nil {
-					downloadedFile.Close()
-					result.Outcome = &model_fetch_pb.Result_Failure{
-						Failure: status.Convert(util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to create HTTP request")).Proto(),
-					}
-					return &result
+			resp, err := e.httpClient.Do(req)
+			if err != nil {
+				downloadedFile.Close()
+				result.Outcome = &model_fetch_pb.Result_Failure{
+					Failure: status.Convert(util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to perform HTTP request")).Proto(),
 				}
-				for _, entry := range target.Headers {
-					req.Header.Set(entry.Name, entry.Value)
-				}
+				downloadErrors = append(
+					downloadErrors,
+					util.StatusWrapfWithCode(err, codes.Internal, "Failed to download file %#v", url),
+				)
+				continue ProcessURLs
+			}
+			defer resp.Body.Close()
 
-				resp, err := e.httpClient.Do(req)
-				if err != nil {
+			switch resp.StatusCode {
+			case http.StatusOK:
+				// Download the file to the local system.
+				if _, err := io.Copy(model_filesystem.NewSectionWriter(downloadedFile), resp.Body); err != nil {
 					downloadedFile.Close()
-					result.Outcome = &model_fetch_pb.Result_Failure{
-						Failure: status.Convert(util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to perform HTTP request")).Proto(),
-					}
 					downloadErrors = append(
 						downloadErrors,
-						util.StatusWrapfWithCode(err, codes.Internal, "Failed to download file file %#v", url),
+						util.StatusWrapfWithCode(err, codes.Internal, "Failed to download file %#v", url),
 					)
 					continue ProcessURLs
 				}
-				defer resp.Body.Close()
-
-				switch resp.StatusCode {
-				case http.StatusOK:
-					// Download the file to the local system.
-					if _, err := io.Copy(model_filesystem.NewSectionWriter(downloadedFile), resp.Body); err != nil {
-						downloadedFile.Close()
-						e.cacheDirectory.Remove(filename)
-						downloadErrors = append(
-							downloadErrors,
-							util.StatusWrapfWithCode(err, codes.Internal, "Failed to download file %#v", url),
-						)
-						continue ProcessURLs
-					}
-				case http.StatusNotFound:
-					downloadedFile.Close()
-					e.cacheDirectory.Remove(filename)
-					continue ProcessURLs
-				default:
-					downloadedFile.Close()
-					e.cacheDirectory.Remove(filename)
-					downloadErrors = append(
-						downloadErrors,
-						status.Errorf(codes.Internal, "Received unexpected HTTP response %#v when downloading file %#v", resp.Status, url),
-					)
-					continue ProcessURLs
-				}
+			case http.StatusNotFound:
+				downloadedFile.Close()
+				continue ProcessURLs
+			default:
+				downloadedFile.Close()
+				downloadErrors = append(
+					downloadErrors,
+					status.Errorf(codes.Internal, "Received unexpected HTTP response %#v when downloading file %#v", resp.Status, url),
+				)
+				continue ProcessURLs
 			}
 
 			var hasher hash.Hash
@@ -218,7 +194,6 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 					hasher = sha512.New()
 				default:
 					downloadedFile.Close()
-					e.cacheDirectory.Remove(filename)
 					result.Outcome = &model_fetch_pb.Result_Failure{
 						Failure: status.New(codes.Internal, "Unknown subresource integrity hash algorithm").Proto(),
 					}
@@ -227,7 +202,6 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			}
 			if _, err := io.Copy(hasher, io.NewSectionReader(downloadedFile, 0, math.MaxInt64)); err != nil {
 				downloadedFile.Close()
-				e.cacheDirectory.Remove(filename)
 				result.Outcome = &model_fetch_pb.Result_Failure{
 					Failure: status.Convert(util.StatusWrapWithCode(err, codes.Internal, "Failed to hash file")).Proto(),
 				}
@@ -240,7 +214,6 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 				sha256 = hash
 			} else if !bytes.Equal(hash, integrity.Hash) {
 				downloadedFile.Close()
-				e.cacheDirectory.Remove(filename)
 				result.Outcome = &model_fetch_pb.Result_Failure{
 					Failure: status.Newf(codes.InvalidArgument, "File has hash %s, while %s was expected", hex.EncodeToString(hash), hex.EncodeToString(integrity.Hash)).Proto(),
 				}

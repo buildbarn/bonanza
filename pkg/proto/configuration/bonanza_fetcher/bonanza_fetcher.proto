@@ -25,11 +25,6 @@ message ApplicationConfiguration {
   // Storage space for temporary files (e.g., files downloaded via HTTP).
   buildbarn.configuration.filesystem.FilePoolConfiguration file_pool = 4;
 
-  // Directory where files may be stored for caching purposes.
-  // TODO: This option should be removed once we can properly store tags
-  // in the build cache.
-  string cache_directory_path = 5;
-
   // gRPC client that communicates with the remoteworker service of the
   // scheduler to accept incoming fetch requests.
   buildbarn.configuration.grpc.ClientConfiguration remote_worker_grpc_client =

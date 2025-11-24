@@ -13,7 +13,6 @@ local statePath = std.extVar('STATE_PATH');
   storageGrpcClient: {
     address: 'unix://%s/bonanza_storage_frontend.sock' % statePath,
   },
-  cacheDirectoryPath: statePath + '/bonanza_fetcher_cache',
 
   parsedObjectPool: {
     cacheReplacementPolicy: 'LEAST_RECENTLY_USED',

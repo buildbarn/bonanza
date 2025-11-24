@@ -15,7 +15,6 @@ source "${RUNFILES_DIR:-/dev/null}/$f" 2>/dev/null || \
 set -eu
 
 export STATE_PATH="${HOME}/bonanza_demo"
-mkdir -p "${STATE_PATH}/bonanza_fetcher_cache"
 rm -rf "${STATE_PATH}/bonanza_builder_filepool" "${STATE_PATH}/bonanza_worker_filepool"
 umount "${STATE_PATH}/bonanza_worker_mount" || true
 mkdir -p "${STATE_PATH}/bonanza_worker_mount" || true

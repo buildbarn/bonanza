@@ -34,7 +34,6 @@ type ApplicationConfiguration struct {
 	StorageGrpcClient         *grpc.ClientConfiguration                    `protobuf:"bytes,2,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
 	HttpClient                *client.Configuration                        `protobuf:"bytes,3,opt,name=http_client,json=httpClient,proto3" json:"http_client,omitempty"`
 	FilePool                  *filesystem.FilePoolConfiguration            `protobuf:"bytes,4,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
-	CacheDirectoryPath        string                                       `protobuf:"bytes,5,opt,name=cache_directory_path,json=cacheDirectoryPath,proto3" json:"cache_directory_path,omitempty"`
 	RemoteWorkerGrpcClient    *grpc.ClientConfiguration                    `protobuf:"bytes,6,opt,name=remote_worker_grpc_client,json=remoteWorkerGrpcClient,proto3" json:"remote_worker_grpc_client,omitempty"`
 	PlatformPrivateKeys       []string                                     `protobuf:"bytes,7,rep,name=platform_private_keys,json=platformPrivateKeys,proto3" json:"platform_private_keys,omitempty"`
 	ClientCertificateVerifier *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,8,opt,name=client_certificate_verifier,json=clientCertificateVerifier,proto3" json:"client_certificate_verifier,omitempty"`
@@ -104,13 +103,6 @@ func (x *ApplicationConfiguration) GetFilePool() *filesystem.FilePoolConfigurati
 	return nil
 }
 
-func (x *ApplicationConfiguration) GetCacheDirectoryPath() string {
-	if x != nil {
-		return x.CacheDirectoryPath
-	}
-	return ""
-}
-
 func (x *ApplicationConfiguration) GetRemoteWorkerGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
 		return x.RemoteWorkerGrpcClient
@@ -164,14 +156,13 @@ var File_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_p
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc = "" +
 	"\n" +
-	"Kbonanza.build/pkg/proto/configuration/bonanza_fetcher/bonanza_fetcher.proto\x12%bonanza.configuration.bonanza_fetcher\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aPgithub.com/buildbarn/bb-storage/pkg/proto/configuration/http/client/client.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\xe9\b\n" +
+	"Kbonanza.build/pkg/proto/configuration/bonanza_fetcher/bonanza_fetcher.proto\x12%bonanza.configuration.bonanza_fetcher\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aPgithub.com/buildbarn/bb-storage/pkg/proto/configuration/http/client/client.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\xb7\b\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x02 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12S\n" +
 	"\vhttp_client\x18\x03 \x01(\v22.buildbarn.configuration.http.client.ConfigurationR\n" +
 	"httpClient\x12V\n" +
-	"\tfile_pool\x18\x04 \x01(\v29.buildbarn.configuration.filesystem.FilePoolConfigurationR\bfilePool\x120\n" +
-	"\x14cache_directory_path\x18\x05 \x01(\tR\x12cacheDirectoryPath\x12l\n" +
+	"\tfile_pool\x18\x04 \x01(\v29.buildbarn.configuration.filesystem.FilePoolConfigurationR\bfilePool\x12l\n" +
 	"\x19remote_worker_grpc_client\x18\x06 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x16remoteWorkerGrpcClient\x122\n" +
 	"\x15platform_private_keys\x18\a \x03(\tR\x13platformPrivateKeys\x12\x84\x01\n" +
 	"\x1bclient_certificate_verifier\x18\b \x01(\v2D.buildbarn.configuration.x509.ClientCertificateVerifierConfigurationR\x19clientCertificateVerifier\x12j\n" +
