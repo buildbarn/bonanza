@@ -192,7 +192,7 @@ func captureLog(ctx context.Context, buildDirectory virtual.PrepopulatedDirector
 	stdoutFile, err := buildDirectory.LookupChild(name)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, nil
+			return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker]((*model_filesystem_pb.FileContents)(nil)), nil
 		}
 		return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, util.StatusWrap(err, "Failed to look up file")
 	}
@@ -575,19 +575,13 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		outputsPatcher := model_core.NewReferenceMessagePatcher[dag.ObjectContentsWalker]()
 
 		if stdoutContents, err := captureLog(ctx, buildDirectory, stdoutComponent, writableFileUploadDelayChan, fileCreationParameters); err == nil {
-			if stdoutContents.IsSet() {
-				outputs.Stdout = stdoutContents.Message
-				outputsPatcher.Merge(stdoutContents.Patcher)
-			}
+			outputs.Stdout = stdoutContents.Merge(outputsPatcher)
 		} else {
 			setError(util.StatusWrap(err, "Failed to capture standard output"))
 		}
 
 		if stderrContents, err := captureLog(ctx, buildDirectory, stderrComponent, writableFileUploadDelayChan, fileCreationParameters); err == nil {
-			if stderrContents.IsSet() {
-				outputs.Stderr = stderrContents.Message
-				outputsPatcher.Merge(stderrContents.Patcher)
-			}
+			outputs.Stderr = stderrContents.Merge(outputsPatcher)
 		} else {
 			setError(util.StatusWrap(err, "Failed to capture standard error"))
 		}

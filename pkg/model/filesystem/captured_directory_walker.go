@@ -279,7 +279,7 @@ func (w *recomputingConcatenatedFileWalker) GetContents(ctx context.Context) (*o
 		return nil, nil, err
 	}
 
-	if !fileContents.IsSet() {
+	if fileContents.Message == nil {
 		return nil, nil, status.Errorf(codes.InvalidArgument, "File %#v no longer has any contents", w.pathTrace.GetUNIXString())
 	}
 	references, objects := fileContents.Patcher.SortAndSetReferences()

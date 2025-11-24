@@ -24,7 +24,8 @@ func TestHeightAwareBuilder(t *testing.T) {
 
 		rootNode, err := builder.FinalizeSingle()
 		require.NoError(t, err)
-		require.False(t, rootNode.IsSet())
+		require.True(t, rootNode.IsSet())
+		require.Nil(t, rootNode.Message)
 	})
 
 	t.Run("SingleNodeTree", func(t *testing.T) {

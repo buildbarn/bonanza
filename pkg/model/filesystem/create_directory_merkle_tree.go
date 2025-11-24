@@ -199,12 +199,9 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) walkDirectory(
 					return util.StatusWrapf(err, "Failed to create Merkle tree for file %#v", directoryPath.Append(name).GetUNIXString())
 				}
 
-				if fileContents.IsSet() {
-					fileNode.Properties.Contents = fileContents.Message
-					ud.leavesPatcherLock.Lock()
-					ud.leaves.Patcher.Merge(fileContents.Patcher)
-					ud.leavesPatcherLock.Unlock()
-				}
+				ud.leavesPatcherLock.Lock()
+				fileNode.Properties.Contents = fileContents.Merge(ud.leaves.Patcher)
+				ud.leavesPatcherLock.Unlock()
 				return b.maybeFinalizeDirectory(&ud, 1)
 			})
 		case filesystem.FileTypeSymlink:

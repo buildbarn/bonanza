@@ -169,7 +169,8 @@ func (b *heightAwareBuilder[TNode, TMetadata]) FinalizeSingle() (model_core.Patc
 	}
 	switch len(rootChildren.Message) {
 	case 0:
-		return model_core.PatchedMessage[TNode, TMetadata]{}, nil
+		var noMessage TNode
+		return model_core.NewSimplePatchedMessage[TMetadata](noMessage), nil
 	case 1:
 		return model_core.FlattenPatchedSingletonList(rootChildren.Move()), nil
 	default:

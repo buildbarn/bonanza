@@ -193,11 +193,11 @@ func CreateChunkDiscardingFileMerkleTree(ctx context.Context, parameters *FileCr
 		return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, err
 	}
 
-	if !fileContents.IsSet() {
+	if fileContents.Message == nil {
 		// File is empty. Close the file immediately, so that it
 		// doesn't leak.
 		f.Close()
-		return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, nil
+		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker]((*model_filesystem_pb.FileContents)(nil)), nil
 	}
 
 	var decodingParameters []byte

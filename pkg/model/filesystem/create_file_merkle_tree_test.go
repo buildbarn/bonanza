@@ -38,7 +38,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 
 	t.Run("EmptyFile", func(t *testing.T) {
 		// Empty files should be represented by leaving the
-		// resulting FileContents message unset. There shouldn't
+		// resulting FileContents set to nil. There shouldn't
 		// be any objects that need to be written to storage.
 		capturer := NewMockFileMerkleTreeCapturerForTesting(ctrl)
 
@@ -49,7 +49,8 @@ func TestCreateFileMerkleTree(t *testing.T) {
 			capturer,
 		)
 		require.NoError(t, err)
-		require.False(t, rootFileContents.IsSet())
+		require.True(t, rootFileContents.IsSet())
+		require.Nil(t, rootFileContents.Message)
 	})
 
 	t.Run("Hello", func(t *testing.T) {
