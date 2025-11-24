@@ -9,7 +9,6 @@ import (
 	"hash"
 	"io"
 	"math"
-	"net/http"
 	"time"
 
 	model_core "bonanza.build/pkg/model/core"
@@ -36,7 +35,7 @@ type localExecutor struct {
 	objectDownloader object.Downloader[object.GlobalReference]
 	parsedObjectPool *model_parser.ParsedObjectPool
 	dagUploader      dag.Uploader[object.InstanceName, object.GlobalReference]
-	httpClient       *http.Client
+	fetcher          Fetcher
 	filePool         pool.FilePool
 }
 
@@ -48,14 +47,14 @@ func NewLocalExecutor(
 	objectDownloader object.Downloader[object.GlobalReference],
 	parsedObjectPool *model_parser.ParsedObjectPool,
 	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
-	httpClient *http.Client,
+	fetcher Fetcher,
 	filePool pool.FilePool,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &localExecutor{
 		objectDownloader: objectDownloader,
 		parsedObjectPool: parsedObjectPool,
 		dagUploader:      dagUploader,
-		httpClient:       httpClient,
+		fetcher:          fetcher,
 		filePool:         filePool,
 	}
 }
@@ -132,51 +131,24 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 				}
 				return &result
 			}
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+			body, err := e.fetcher.Fetch(ctx, url, target.Headers)
 			if err != nil {
 				downloadedFile.Close()
-				result.Outcome = &model_fetch_pb.Result_Failure{
-					Failure: status.Convert(util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to create HTTP request")).Proto(),
-				}
-				return &result
-			}
-			for _, entry := range target.Headers {
-				req.Header.Set(entry.Name, entry.Value)
-			}
-
-			resp, err := e.httpClient.Do(req)
-			if err != nil {
-				downloadedFile.Close()
-				result.Outcome = &model_fetch_pb.Result_Failure{
-					Failure: status.Convert(util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to perform HTTP request")).Proto(),
-				}
-				downloadErrors = append(
-					downloadErrors,
-					util.StatusWrapfWithCode(err, codes.Internal, "Failed to download file %#v", url),
-				)
-				continue ProcessURLs
-			}
-			defer resp.Body.Close()
-
-			switch resp.StatusCode {
-			case http.StatusOK:
-				// Download the file to the local system.
-				if _, err := io.Copy(model_filesystem.NewSectionWriter(downloadedFile), resp.Body); err != nil {
-					downloadedFile.Close()
+				if status.Code(err) != codes.NotFound {
 					downloadErrors = append(
 						downloadErrors,
 						util.StatusWrapfWithCode(err, codes.Internal, "Failed to download file %#v", url),
 					)
-					continue ProcessURLs
 				}
-			case http.StatusNotFound:
-				downloadedFile.Close()
 				continue ProcessURLs
-			default:
+			}
+			_, err = io.Copy(model_filesystem.NewSectionWriter(downloadedFile), body)
+			body.Close()
+			if err != nil {
 				downloadedFile.Close()
 				downloadErrors = append(
 					downloadErrors,
-					status.Errorf(codes.Internal, "Received unexpected HTTP response %#v when downloading file %#v", resp.Status, url),
+					util.StatusWrapfWithCode(err, codes.Internal, "Failed to download file %#v", url),
 				)
 				continue ProcessURLs
 			}

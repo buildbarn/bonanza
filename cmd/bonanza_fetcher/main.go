@@ -132,7 +132,9 @@ func main() {
 							objectDownloader,
 							parsedObjectPool,
 							dagUploader,
-							&http.Client{Transport: roundTripper},
+							model_fetch.NewHTTPFetcher(
+								&http.Client{Transport: roundTripper},
+							),
 							filePool,
 						),
 					),

@@ -2,7 +2,11 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "fetch",
-    srcs = ["local_executor.go"],
+    srcs = [
+        "fetcher.go",
+        "http_fetcher.go",
+        "local_executor.go",
+    ],
     importpath = "bonanza.build/pkg/model/fetch",
     visibility = ["//visibility:public"],
     deps = [
