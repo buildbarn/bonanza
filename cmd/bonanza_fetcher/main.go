@@ -88,11 +88,6 @@ func main() {
 			object.Unlimited,
 		)
 
-		roundTripper, err := http_client.NewRoundTripperFromConfiguration(configuration.HttpClient)
-		if err != nil {
-			return util.StatusWrap(err, "Failed to create HTTP client")
-		}
-
 		filePool, err := pool.NewFilePoolFromConfiguration(configuration.FilePool)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create file pool")
@@ -110,6 +105,19 @@ func main() {
 		clientCertificateVerifier, err := x509.NewClientCertificateVerifierFromConfiguration(configuration.ClientCertificateVerifier, dependenciesGroup)
 		if err != nil {
 			return err
+		}
+
+		// Create fetchers for individual protocol schemes
+		// supported by this implementation.
+		fetchersByScheme := map[string]model_fetch.Fetcher{}
+		if configuration.HttpClient != nil {
+			roundTripper, err := http_client.NewRoundTripperFromConfiguration(configuration.HttpClient)
+			if err != nil {
+				return util.StatusWrap(err, "Failed to create HTTP client")
+			}
+			httpFetcher := model_fetch.NewHTTPFetcher(&http.Client{Transport: roundTripper})
+			fetchersByScheme["http"] = httpFetcher
+			fetchersByScheme["https"] = httpFetcher
 		}
 
 		concurrencyLength := len(strconv.FormatUint(configuration.Concurrency-1, 10))
@@ -132,9 +140,7 @@ func main() {
 							objectDownloader,
 							parsedObjectPool,
 							dagUploader,
-							model_fetch.NewHTTPFetcher(
-								&http.Client{Transport: roundTripper},
-							),
+							model_fetch.NewSchemeDemultiplexingFetcher(fetchersByScheme),
 							filePool,
 						),
 					),

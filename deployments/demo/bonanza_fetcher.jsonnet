@@ -51,4 +51,5 @@ local statePath = std.extVar('STATE_PATH');
   },
   concurrency: 10,
   workerId: { host: std.extVar('HOSTNAME') },
+  httpClient: {},
 }

@@ -17,6 +17,8 @@ type httpFetcher struct {
 	client *http.Client
 }
 
+// NewHTTPFetcher creates a Fetcher that is capable of fetching files
+// via HTTP and HTTPS.
 func NewHTTPFetcher(client *http.Client) Fetcher {
 	return &httpFetcher{
 		client: client,

@@ -6,6 +6,7 @@ go_library(
         "fetcher.go",
         "http_fetcher.go",
         "local_executor.go",
+        "scheme_demultiplexing_fetcher.go",
     ],
     importpath = "bonanza.build/pkg/model/fetch",
     visibility = ["//visibility:public"],

@@ -19,7 +19,8 @@ message ApplicationConfiguration {
   // gRPC client that communicates with the storage frontend.
   buildbarn.configuration.grpc.ClientConfiguration storage_grpc_client = 2;
 
-  // HTTP client that is used when fetching files.
+  // HTTP client that is used when fetching files. If not set, the
+  // fetcher will not be capable of fetching files via HTTP or HTTPS.
   buildbarn.configuration.http.client.Configuration http_client = 3;
 
   // Storage space for temporary files (e.g., files downloaded via HTTP).
