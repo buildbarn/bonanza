@@ -3,7 +3,7 @@ package encryptedaction
 import (
 	"crypto/cipher"
 
-	"github.com/secure-io/siv-go"
+	"github.com/ericlagergren/siv"
 )
 
 const (

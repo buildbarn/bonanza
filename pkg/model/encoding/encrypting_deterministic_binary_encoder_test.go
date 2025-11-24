@@ -7,7 +7,7 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
-	"github.com/secure-io/siv-go"
+	"github.com/ericlagergren/siv"
 	"github.com/stretchr/testify/require"
 
 	"google.golang.org/grpc/codes"

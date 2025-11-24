@@ -16,7 +16,7 @@ go_library(
         "//pkg/compress/simplelzw",
         "//pkg/proto/model/encoding",
         "@com_github_buildbarn_bb_storage//pkg/util",
-        "@com_github_secure_io_siv_go//:siv-go",
+        "@com_github_ericlagergren_siv//:siv",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
@@ -34,7 +34,7 @@ go_test(
     embed = [":encoding"],
     deps = [
         "@com_github_buildbarn_bb_storage//pkg/testutil",
-        "@com_github_secure_io_siv_go//:siv-go",
+        "@com_github_ericlagergren_siv//:siv",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",

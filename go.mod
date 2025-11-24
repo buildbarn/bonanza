@@ -24,10 +24,10 @@ require (
 	github.com/buildbarn/bb-remote-execution v0.0.0-20251111123721-a750e60fa89b
 	github.com/buildbarn/bb-storage v0.0.0-20251111104208-faf8fe60ecd0
 	github.com/buildbarn/go-cdc v0.0.0-20240326143813-ab4a540e41c6
+	github.com/ericlagergren/siv v0.0.0-20220507050439-0b757b3aa5f1
 	github.com/google/uuid v1.6.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/prometheus/client_golang v1.23.2
-	github.com/secure-io/siv-go v0.0.0-20180922214919-5ff40651e2c4
 	github.com/stretchr/testify v1.11.1
 	github.com/ulikunitz/xz v0.5.15
 	go.starlark.net v0.0.0-20210223155950-e043a3d3c984
@@ -57,7 +57,6 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.54.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.54.0 // indirect
-	github.com/aead/cmac v0.0.0-20160719120800-7af84192f0b1 // indirect
 	github.com/aegistudio/go-winfsp v1.0.1 // indirect
 	github.com/aohorodnyk/mimeheader v0.0.6 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.39.6 // indirect
@@ -87,6 +86,8 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
+	github.com/ericlagergren/polyval v0.0.0-20220411101811-e25bc10ba391 // indirect
+	github.com/ericlagergren/subtle v0.0.0-20220507045147-890d697da010 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect

@@ -12,7 +12,7 @@ go_library(
     deps = [
         "//pkg/proto/encryptedaction",
         "@com_github_buildbarn_bb_storage//pkg/util",
-        "@com_github_secure_io_siv_go//:siv-go",
+        "@com_github_ericlagergren_siv//:siv",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
