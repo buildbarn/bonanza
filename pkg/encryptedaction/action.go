@@ -10,6 +10,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+var marshalOptions = proto.MarshalOptions{Deterministic: true}
+
 // ActionGetPlaintext decryptes the ciphertext that is embedded in an
 // action, returning it in plaintext form.
 func ActionGetPlaintext(action *encryptedaction_pb.Action, sharedSecret []byte) ([]byte, error) {
@@ -25,7 +27,7 @@ func ActionGetPlaintext(action *encryptedaction_pb.Action, sharedSecret []byte) 
 	if additionalData == nil {
 		return nil, status.Error(codes.InvalidArgument, "Action does not contain additional data")
 	}
-	marshaledAdditionalData, err := proto.Marshal(additionalData)
+	marshaledAdditionalData, err := marshalOptions.Marshal(additionalData)
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to marshal additional data")
 	}
@@ -39,7 +41,7 @@ func ActionSetCiphertext(action *encryptedaction_pb.Action, sharedSecret, plaint
 	if err != nil {
 		return util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to create AEAD")
 	}
-	marshaledActionAdditionalData, err := proto.Marshal(action.AdditionalData)
+	marshaledActionAdditionalData, err := marshalOptions.Marshal(action.AdditionalData)
 	if err != nil {
 		return util.StatusWrapWithCode(err, codes.Internal, "Failed to marshal action additional data")
 	}
