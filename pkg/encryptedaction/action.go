@@ -17,6 +17,10 @@ func ActionGetPlaintext(action *encryptedaction_pb.Action, sharedSecret []byte) 
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to create AEAD")
 	}
+	nonce := action.Nonce
+	if actualNonceSize, expectedNonceSize := len(nonce), actionAEAD.NonceSize(); actualNonceSize != expectedNonceSize {
+		return nil, status.Errorf(codes.InvalidArgument, "Nonce was %d bytes in size, while %d bytes were expected", actualNonceSize, expectedNonceSize)
+	}
 	additionalData := action.AdditionalData
 	if additionalData == nil {
 		return nil, status.Error(codes.InvalidArgument, "Action does not contain additional data")
@@ -25,7 +29,7 @@ func ActionGetPlaintext(action *encryptedaction_pb.Action, sharedSecret []byte) 
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to marshal additional data")
 	}
-	return actionAEAD.Open(nil, action.Nonce, action.Ciphertext, marshaledAdditionalData)
+	return actionAEAD.Open(nil, nonce, action.Ciphertext, marshaledAdditionalData)
 }
 
 // ActionSetCiphertext sets the ciphertext and nonce fields that are

@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "encryptedaction",
@@ -16,5 +16,18 @@ go_library(
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "encryptedaction_test",
+    srcs = ["action_test.go"],
+    deps = [
+        ":encryptedaction",
+        "//pkg/proto/encryptedaction",
+        "@com_github_buildbarn_bb_storage//pkg/testutil",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/durationpb",
     ],
 )
