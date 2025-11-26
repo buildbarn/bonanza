@@ -28,7 +28,7 @@ func TestFileReader(t *testing.T) {
 
 	t.Run("ChunkReadFailure", func(t *testing.T) {
 		chunkReader.EXPECT().ReadObject(
-			ctx,
+			gomock.Any(),
 			util.Must(
 				model_core.NewDecodable(
 					object.MustNewSHA256V1LocalReference("629db2c2c2a8ae9445ffed22cbf2f3b5a89d7062a7eb4cbdf369217b10e99838", 1337, 0, 0, 0),
@@ -69,7 +69,7 @@ func TestFileReader(t *testing.T) {
 		// the size in the file contents message does not match
 		// reality.
 		chunkReader.EXPECT().ReadObject(
-			ctx,
+			gomock.Any(),
 			util.Must(
 				model_core.NewDecodable(
 					object.MustNewSHA256V1LocalReference("2b6082b00a6f0bfc5f766b1a94dcb7f1597d0e101ac45ad4500f1e7afa8c2b2c", 100, 0, 0, 0),
@@ -105,7 +105,7 @@ func TestFileReader(t *testing.T) {
 
 	t.Run("ChunkSuccess", func(t *testing.T) {
 		chunkReader.EXPECT().ReadObject(
-			ctx,
+			gomock.Any(),
 			util.Must(
 				model_core.NewDecodable(
 					object.MustNewSHA256V1LocalReference("820a668d28c9d9180aee73b05cdc29241aa7693da205826186fd9c6f01de9c4c", 20, 0, 0, 0),
@@ -142,7 +142,7 @@ func TestFileReader(t *testing.T) {
 
 	t.Run("FileContentsListReadFailure", func(t *testing.T) {
 		fileContentsListReader.EXPECT().ReadObject(
-			ctx,
+			gomock.Any(),
 			util.Must(
 				model_core.NewDecodable(
 					object.MustNewSHA256V1LocalReference("c7b9eaba808f3583711c385e0cf959b11e78a6e076bbe3b292e4e118aca4c2e0", 2000, 1, 2, 0),
