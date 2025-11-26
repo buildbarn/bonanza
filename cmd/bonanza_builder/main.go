@@ -145,6 +145,7 @@ func main() {
 							),
 							bzlFileBuiltins,
 							buildFileBuiltins,
+							semaphore.NewWeighted(configuration.ObjectStoreConcurrency),
 						),
 						&queuesFactory[buffered.Reference, buffered.ReferenceMetadata]{
 							local:  model_evaluation.NewSimpleRecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.LocalEvaluationConcurrency),

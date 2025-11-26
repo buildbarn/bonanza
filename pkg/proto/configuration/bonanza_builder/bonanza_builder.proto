@@ -92,4 +92,8 @@ message ApplicationConfiguration {
   // This option should be set to a value that is proportional to the
   // maximum number of workers a single build may utilize.
   uint32 remote_evaluation_concurrency = 16;
+
+  // The maximum number of concurrent read operations this process
+  // should issue against object storage.
+  int64 object_store_concurrency = 18;
 }

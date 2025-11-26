@@ -34,4 +34,6 @@ message ApplicationConfiguration {
   repeated bonanza.model.encoding.BinaryEncoder small_file_encoders = 8;
 
   repeated bonanza.model.encoding.BinaryEncoder concatenated_file_encoders = 9;
+
+  int64 object_store_concurrency = 10;
 }

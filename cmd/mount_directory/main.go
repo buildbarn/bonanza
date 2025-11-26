@@ -21,6 +21,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/program"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
+	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -137,6 +138,7 @@ func main() {
 				model_filesystem.NewFileReader(
 					fileContentsListReader,
 					fileChunkReader,
+					semaphore.NewWeighted(configuration.ObjectStoreConcurrency),
 				),
 				util.DefaultErrorLogger,
 			),

@@ -20,6 +20,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
+	"golang.org/x/sync/semaphore"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
@@ -60,6 +61,7 @@ func newBaseComputerTester(ctrl *gomock.Controller) *baseComputerTester {
 			executionClient,
 			bzlFileBuiltins,
 			buildFileBuiltins,
+			semaphore.NewWeighted(1),
 		),
 		parsedObjectPoolIngester: parsedObjectPoolIngester,
 		filePool:                 filePool,
@@ -132,6 +134,7 @@ func (bct *baseComputerTester) expectGetFileReaderValue(t *testing.T, e *MockFil
 			bct.parsedObjectPoolIngester,
 			model_parser.NewRawObjectParser[model_core.CreatedObjectTree](),
 		),
+		semaphore.NewWeighted(1),
 	), true)
 }
 

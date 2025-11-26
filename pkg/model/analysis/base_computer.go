@@ -23,6 +23,8 @@ import (
 	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
+	"golang.org/x/sync/semaphore"
+
 	"go.starlark.net/starlark"
 )
 
@@ -31,10 +33,11 @@ type BaseComputerReferenceMetadata interface {
 }
 
 type baseComputerFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	filePool          pool.FilePool
-	executionClient   remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]]
-	bzlFileBuiltins   starlark.StringDict
-	buildFileBuiltins starlark.StringDict
+	filePool             pool.FilePool
+	executionClient      remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]]
+	bzlFileBuiltins      starlark.StringDict
+	buildFileBuiltins    starlark.StringDict
+	objectStoreSemaphore *semaphore.Weighted
 }
 
 func NewBaseComputerFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
@@ -42,12 +45,14 @@ func NewBaseComputerFactory[TReference object.BasicReference, TMetadata model_co
 	executionClient remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]],
 	bzlFileBuiltins starlark.StringDict,
 	buildFileBuiltins starlark.StringDict,
+	objectStoreSemaphore *semaphore.Weighted,
 ) evaluation.ComputerFactory[TReference, TMetadata] {
 	return &baseComputerFactory[TReference, TMetadata]{
-		filePool:          filePool,
-		executionClient:   executionClient,
-		bzlFileBuiltins:   bzlFileBuiltins,
-		buildFileBuiltins: buildFileBuiltins,
+		filePool:             filePool,
+		executionClient:      executionClient,
+		bzlFileBuiltins:      bzlFileBuiltins,
+		buildFileBuiltins:    buildFileBuiltins,
+		objectStoreSemaphore: objectStoreSemaphore,
 	}
 }
 
@@ -66,6 +71,7 @@ func (cf *baseComputerFactory[TReference, TMetadata]) NewComputer(namespace obje
 			),
 			cf.bzlFileBuiltins,
 			cf.buildFileBuiltins,
+			cf.objectStoreSemaphore,
 		),
 	)
 }
@@ -78,6 +84,7 @@ type baseComputer[TReference object.BasicReference, TMetadata BaseComputerRefere
 	bzlFileBuiltins          starlark.StringDict
 	buildFileBuiltins        starlark.StringDict
 	discardingObjectCapturer model_core.ObjectCapturer[TReference, model_core.NoopReferenceMetadata]
+	objectStoreSemaphore     *semaphore.Weighted
 
 	// Readers for various message types.
 	// TODO: These should likely be removed and instantiated later
@@ -102,6 +109,7 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata BaseComputerRef
 	executionClient remoteexecution.Client[*model_executewithstorage.Action[TReference], model_core.Decodable[TReference], model_core.Decodable[TReference]],
 	bzlFileBuiltins starlark.StringDict,
 	buildFileBuiltins starlark.StringDict,
+	objectStoreSemaphore *semaphore.Weighted,
 ) Computer[TReference, TMetadata] {
 	return &baseComputer[TReference, TMetadata]{
 		parsedObjectPoolIngester: parsedObjectPoolIngester,
@@ -111,6 +119,7 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata BaseComputerRef
 		bzlFileBuiltins:          bzlFileBuiltins,
 		buildFileBuiltins:        buildFileBuiltins,
 		discardingObjectCapturer: model_core.NewDiscardingObjectCapturer[TReference](),
+		objectStoreSemaphore:     objectStoreSemaphore,
 
 		// TODO: Set up encoding!
 		valueReaders: model_starlark.ValueReaders[TReference]{

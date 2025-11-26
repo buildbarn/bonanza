@@ -111,6 +111,7 @@ func main() {
 			return util.StatusWrap(err, "Failed to create file pool")
 		}
 
+		objectStoreSemaphore := semaphore.NewWeighted(configuration.ObjectStoreConcurrency)
 		for _, buildDirectoryConfiguration := range configuration.BuildDirectories {
 			mount, handleAllocator, err := virtual_configuration.NewMountFromConfiguration(
 				buildDirectoryConfiguration.Mount,
@@ -206,6 +207,7 @@ func main() {
 
 					executor := model_command.NewLocalExecutor(
 						objectDownloader,
+						objectStoreSemaphore,
 						parsedObjectPool,
 						dagUploader,
 						objectContentsWalkerSemaphore,

@@ -10,22 +10,27 @@ import (
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type FileReader[TReference object.BasicReference] struct {
-	fileContentsListReader model_parser.ObjectReader[model_core.Decodable[TReference], FileContentsList[TReference]]
-	fileChunkReader        model_parser.ObjectReader[model_core.Decodable[TReference], []byte]
+	fileContentsListReader     model_parser.ObjectReader[model_core.Decodable[TReference], FileContentsList[TReference]]
+	fileChunkReader            model_parser.ObjectReader[model_core.Decodable[TReference], []byte]
+	fileChunkReaderConcurrency *semaphore.Weighted
 }
 
 func NewFileReader[TReference object.BasicReference](
 	fileContentsListReader model_parser.ObjectReader[model_core.Decodable[TReference], FileContentsList[TReference]],
 	fileChunkReader model_parser.ObjectReader[model_core.Decodable[TReference], []byte],
+	fileChunkReaderConcurrency *semaphore.Weighted,
 ) *FileReader[TReference] {
 	return &FileReader[TReference]{
-		fileContentsListReader: fileContentsListReader,
-		fileChunkReader:        fileChunkReader,
+		fileContentsListReader:     fileContentsListReader,
+		fileChunkReader:            fileChunkReader,
+		fileChunkReaderConcurrency: fileChunkReaderConcurrency,
 	}
 }
 
@@ -36,71 +41,142 @@ func (fr *FileReader[TReference]) GetDecodingParametersSizeBytes(isFileContentsL
 	return fr.fileChunkReader.GetDecodingParametersSizeBytes()
 }
 
-func (fr *FileReader[TReference]) FileReadAll(ctx context.Context, fileContents FileContentsEntry[TReference], maximumSizeBytes uint64) ([]byte, error) {
-	endBytes := fileContents.GetEndBytes()
-	if endBytes > maximumSizeBytes {
-		return nil, status.Errorf(codes.InvalidArgument, "File is %d bytes in size, which exceeds the permitted maximum of %d bytes", endBytes, maximumSizeBytes)
-	}
-	p := make([]byte, endBytes)
-	if _, err := fr.FileReadAt(ctx, fileContents, p, 0); err != nil {
-		return nil, err
-	}
-	return p, nil
-}
-
-func (fr *FileReader[TReference]) readNextChunkOrHole(ctx context.Context, fileContentsIterator *FileContentsIterator[TReference]) ([]byte, uint64, error) {
+func (fr *FileReader[TReference]) getNextChunkOrHole(ctx context.Context, fileContentsIterator *FileContentsIterator[TReference]) (*model_core.Decodable[TReference], uint64, uint64, error) {
 	for {
 		partReference, partOffsetBytes, partSizeBytes := fileContentsIterator.GetCurrentPart()
-		if partReference == nil {
-			// Reached a hole.
-			return nil, partSizeBytes - partOffsetBytes, nil
-		}
-
-		if partReference.Value.GetDegree() == 0 {
-			// Reached a chunk.
-			chunk, err := fr.fileChunkReader.ReadObject(ctx, *partReference)
-			if err != nil {
-				return nil, 0, util.StatusWrapf(err, "Failed to read chunk with reference %s", model_core.DecodableLocalReferenceToString(*partReference))
-			}
-			if uint64(len(chunk)) != partSizeBytes {
-				return nil, 0, status.Errorf(codes.InvalidArgument, "Chunk with reference %s is %d bytes in size, while %d bytes were expected", model_core.DecodableLocalReferenceToString(*partReference), len(chunk), partSizeBytes)
-			}
+		if partReference == nil || partReference.Value.GetDegree() == 0 {
+			// Reached a hole or chunk.
 			fileContentsIterator.ToNextPart()
-			return chunk[partOffsetBytes:], 0, nil
+			return partReference, partOffsetBytes, partSizeBytes, nil
 		}
 
 		// We need to push one or more file contents lists onto
 		// the stack to reach a chunk.
 		fileContentsList, err := fr.fileContentsListReader.ReadObject(ctx, *partReference)
 		if err != nil {
-			return nil, 0, util.StatusWrapf(err, "Failed to read file contents list with reference %s", model_core.DecodableLocalReferenceToString(*partReference))
+			return nil, 0, 0, util.StatusWrapf(err, "Failed to read file contents list with reference %s", model_core.DecodableLocalReferenceToString(*partReference))
 		}
 		if err := fileContentsIterator.PushFileContentsList(fileContentsList); err != nil {
-			return nil, 0, util.StatusWrapf(err, "Invalid file contents list with reference %s", model_core.DecodableLocalReferenceToString(*partReference))
+			return nil, 0, 0, util.StatusWrapf(err, "Invalid file contents list with reference %s", model_core.DecodableLocalReferenceToString(*partReference))
 		}
 	}
 }
 
-func (fr *FileReader[TReference]) FileReadAt(ctx context.Context, fileContents FileContentsEntry[TReference], p []byte, offsetBytes uint64) (int, error) {
-	// TODO: Any chance we can use parallelism here to read multiple chunks?
-	fileContentsIterator := NewFileContentsIterator(fileContents, offsetBytes)
-	nRead := 0
-	for len(p) > 0 {
-		chunk, holeSizeBytes, err := fr.readNextChunkOrHole(ctx, &fileContentsIterator)
-		if err != nil {
-			return nRead, err
-		}
-
-		nChunk := copy(p, chunk)
-		p = p[nChunk:]
-		nRead += nChunk
-
-		nHole := int(min(holeSizeBytes, uint64(len(p))))
-		clear(p[:nHole])
-		p = p[nHole:]
-		nRead += nHole
+func (fr *FileReader[TReference]) readChunk(ctx context.Context, partReference model_core.Decodable[TReference], partOffsetBytes, partSizeBytes uint64) ([]byte, error) {
+	chunk, err := fr.fileChunkReader.ReadObject(ctx, partReference)
+	if err != nil {
+		return nil, util.StatusWrapf(err, "Failed to read chunk with reference %s", model_core.DecodableLocalReferenceToString(partReference))
 	}
-	return nRead, nil
+	if uint64(len(chunk)) != partSizeBytes {
+		return nil, status.Errorf(codes.InvalidArgument, "Chunk with reference %s is %d bytes in size, while %d bytes were expected", model_core.DecodableLocalReferenceToString(partReference), len(chunk), partSizeBytes)
+	}
+	return chunk[partOffsetBytes:], nil
+}
+
+// chunkAndHoleWriter is used by FileReader.walkChunksAndHoles() to
+// report chunks and holes contained in a file. Due to contents of
+// chunks being loaded in parallel, these methods can be called in
+// random order.
+type chunkAndHoleWriter interface {
+	WriteChunk(offsetBytes uint64, data []byte) error
+	WriteHole(offsetBytes, sizeBytes uint64) error
+}
+
+func (fr *FileReader[TReference]) walkChunksAndHoles(
+	ctx context.Context,
+	fileContentsIterator *FileContentsIterator[TReference],
+	outputSizeBytes uint64,
+	writer chunkAndHoleWriter,
+) error {
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.Go(func() error {
+		outputOffsetBytes := uint64(0)
+		for outputOffsetBytes < outputSizeBytes {
+			partReference, partOffsetBytes, partSizeBytes, err := fr.getNextChunkOrHole(ctx, fileContentsIterator)
+			if err != nil {
+				return err
+			}
+
+			readSizeBytes := min(outputSizeBytes-outputOffsetBytes, partSizeBytes-partOffsetBytes)
+			if partReference == nil {
+				// Reached a hole.
+				if err := writer.WriteHole(outputOffsetBytes, readSizeBytes); err != nil {
+					return err
+				}
+			} else {
+				// Reached a chunk.
+				currentOutputOffsetBytes := outputOffsetBytes
+				if err := util.AcquireSemaphore(groupCtx, fr.fileChunkReaderConcurrency, 1); err != nil {
+					return err
+				}
+				group.Go(func() error {
+					defer fr.fileChunkReaderConcurrency.Release(1)
+
+					chunk, err := fr.readChunk(groupCtx, *partReference, partOffsetBytes, partSizeBytes)
+					if err != nil {
+						return err
+					}
+					return writer.WriteChunk(currentOutputOffsetBytes, chunk[:readSizeBytes])
+				})
+			}
+			outputOffsetBytes += readSizeBytes
+		}
+		return nil
+	})
+	return group.Wait()
+}
+
+// byteSliceChunkAndHoleWriter is an implementation of
+// chunkAndHoleWriter that writes the contents of chunks and holes into
+// a byte slice. It can be used to implement things like io.ReaderAt and
+// io.ReadAll().
+type byteSliceChunkAndHoleWriter struct {
+	output []byte
+}
+
+func (w byteSliceChunkAndHoleWriter) WriteChunk(offsetBytes uint64, data []byte) error {
+	copy(w.output[offsetBytes:], data)
+	return nil
+}
+
+func (w byteSliceChunkAndHoleWriter) WriteHole(offsetBytes, sizeBytes uint64) error {
+	clear(w.output[offsetBytes:][:sizeBytes])
+	return nil
+}
+
+func (fr *FileReader[TReference]) FileReadAll(ctx context.Context, fileContents FileContentsEntry[TReference], maximumSizeBytes uint64) ([]byte, error) {
+	endBytes := fileContents.GetEndBytes()
+	if endBytes > maximumSizeBytes {
+		return nil, status.Errorf(codes.InvalidArgument, "File is %d bytes in size, which exceeds the permitted maximum of %d bytes", endBytes, maximumSizeBytes)
+	}
+	p := make([]byte, endBytes)
+	fileContentsIterator := NewFileContentsIterator(fileContents, 0)
+	if err := fr.walkChunksAndHoles(
+		ctx,
+		&fileContentsIterator,
+		endBytes,
+		byteSliceChunkAndHoleWriter{
+			output: p,
+		},
+	); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (fr *FileReader[TReference]) FileReadAt(ctx context.Context, fileContents FileContentsEntry[TReference], p []byte, offsetBytes uint64) (int, error) {
+	fileContentsIterator := NewFileContentsIterator(fileContents, offsetBytes)
+	if err := fr.walkChunksAndHoles(
+		ctx,
+		&fileContentsIterator,
+		uint64(len(p)),
+		byteSliceChunkAndHoleWriter{
+			output: p,
+		},
+	); err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
 
 func (fr *FileReader[TReference]) FileOpenRead(ctx context.Context, fileContents FileContentsEntry[TReference], offsetBytes uint64) *SequentialFileReader[TReference] {
@@ -119,6 +195,34 @@ func (fr *FileReader[TReference]) FileOpenReadAt(ctx context.Context, fileConten
 		fileReader:   fr,
 		fileContents: fileContents,
 	}
+}
+
+type fileChunkAndHoleWriter struct {
+	file io.WriterAt
+}
+
+func (w fileChunkAndHoleWriter) WriteChunk(offsetBytes uint64, data []byte) error {
+	_, err := w.file.WriteAt(data, int64(offsetBytes))
+	return err
+}
+
+func (fileChunkAndHoleWriter) WriteHole(offsetBytes, sizeBytes uint64) error {
+	return nil
+}
+
+// FileWriteTo writes the contents of a file residing in the Object
+// Store to a local file. It is assumed that the file already has the
+// desired size and consists of a single hole.
+func (fr *FileReader[TReference]) FileWriteTo(ctx context.Context, fileContents FileContentsEntry[TReference], file io.WriterAt) error {
+	fileContentsIterator := NewFileContentsIterator(fileContents, 0)
+	return fr.walkChunksAndHoles(
+		ctx,
+		&fileContentsIterator,
+		fileContents.GetEndBytes(),
+		fileChunkAndHoleWriter{
+			file: file,
+		},
+	)
 }
 
 type SequentialFileReader[TReference object.BasicReference] struct {
@@ -156,13 +260,21 @@ func (r *SequentialFileReader[TReference]) Read(p []byte) (int, error) {
 			return nRead, io.EOF
 		}
 
-		chunk, holeSizeBytes, err := r.fileReader.readNextChunkOrHole(r.context, &r.fileContentsIterator)
+		partReference, partOffsetBytes, partSizeBytes, err := r.fileReader.getNextChunkOrHole(r.context, &r.fileContentsIterator)
 		if err != nil {
 			return nRead, err
 		}
-		r.chunk = chunk
-		r.holeSizeBytes = holeSizeBytes
-		r.offsetBytes += holeSizeBytes + uint64(len(chunk))
+		if partReference == nil {
+			r.holeSizeBytes = partSizeBytes - partOffsetBytes
+			r.offsetBytes += r.holeSizeBytes
+		} else {
+			chunk, err := r.fileReader.readChunk(r.context, *partReference, partOffsetBytes, partSizeBytes)
+			if err != nil {
+				return nRead, err
+			}
+			r.chunk = chunk
+			r.offsetBytes += uint64(len(chunk))
+		}
 	}
 }
 

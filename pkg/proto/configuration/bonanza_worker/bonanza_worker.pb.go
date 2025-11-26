@@ -30,16 +30,17 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state               protoimpl.MessageState            `protogen:"open.v1"`
-	Global              *global.Configuration             `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	StorageGrpcClient   *grpc.ClientConfiguration         `protobuf:"bytes,2,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
-	SchedulerGrpcClient *grpc.ClientConfiguration         `protobuf:"bytes,3,opt,name=scheduler_grpc_client,json=schedulerGrpcClient,proto3" json:"scheduler_grpc_client,omitempty"`
-	BuildDirectories    []*BuildDirectoryConfiguration    `protobuf:"bytes,4,rep,name=build_directories,json=buildDirectories,proto3" json:"build_directories,omitempty"`
-	FilePool            *filesystem.FilePoolConfiguration `protobuf:"bytes,5,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
-	LocalObjectStore    *local.StoreConfiguration         `protobuf:"bytes,7,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
-	ParsedObjectPool    *parser.ParsedObjectPool          `protobuf:"bytes,6,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                  protoimpl.MessageState            `protogen:"open.v1"`
+	Global                 *global.Configuration             `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
+	StorageGrpcClient      *grpc.ClientConfiguration         `protobuf:"bytes,2,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
+	SchedulerGrpcClient    *grpc.ClientConfiguration         `protobuf:"bytes,3,opt,name=scheduler_grpc_client,json=schedulerGrpcClient,proto3" json:"scheduler_grpc_client,omitempty"`
+	BuildDirectories       []*BuildDirectoryConfiguration    `protobuf:"bytes,4,rep,name=build_directories,json=buildDirectories,proto3" json:"build_directories,omitempty"`
+	FilePool               *filesystem.FilePoolConfiguration `protobuf:"bytes,5,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
+	LocalObjectStore       *local.StoreConfiguration         `protobuf:"bytes,7,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
+	ParsedObjectPool       *parser.ParsedObjectPool          `protobuf:"bytes,6,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
+	ObjectStoreConcurrency int64                             `protobuf:"varint,8,opt,name=object_store_concurrency,json=objectStoreConcurrency,proto3" json:"object_store_concurrency,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -119,6 +120,13 @@ func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPoo
 		return x.ParsedObjectPool
 	}
 	return nil
+}
+
+func (x *ApplicationConfiguration) GetObjectStoreConcurrency() int64 {
+	if x != nil {
+		return x.ObjectStoreConcurrency
+	}
+	return 0
 }
 
 type BuildDirectoryConfiguration struct {
@@ -341,7 +349,7 @@ var File_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_pro
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc = "" +
 	"\n" +
-	"Ibonanza.build/pkg/proto/configuration/bonanza_worker/bonanza_worker.proto\x12$bonanza.configuration.bonanza_worker\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aagithub.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/virtual/virtual.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\x1a\x1egoogle/protobuf/duration.proto\"\xc5\x05\n" +
+	"Ibonanza.build/pkg/proto/configuration/bonanza_worker/bonanza_worker.proto\x12$bonanza.configuration.bonanza_worker\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aagithub.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/virtual/virtual.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\x1a\x1egoogle/protobuf/duration.proto\"\xff\x05\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x02 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12e\n" +
@@ -349,7 +357,8 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_p
 	"\x11build_directories\x18\x04 \x03(\v2A.bonanza.configuration.bonanza_worker.BuildDirectoryConfigurationR\x10buildDirectories\x12V\n" +
 	"\tfile_pool\x18\x05 \x01(\v29.buildbarn.configuration.filesystem.FilePoolConfigurationR\bfilePool\x12l\n" +
 	"\x12local_object_store\x18\a \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x12b\n" +
-	"\x12parsed_object_pool\x18\x06 \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\"\xc8\x01\n" +
+	"\x12parsed_object_pool\x18\x06 \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\x128\n" +
+	"\x18object_store_concurrency\x18\b \x01(\x03R\x16objectStoreConcurrency\"\xc8\x01\n" +
 	"\x1bBuildDirectoryConfiguration\x12S\n" +
 	"\arunners\x18\x01 \x03(\v29.bonanza.configuration.bonanza_worker.RunnerConfigurationR\arunners\x12T\n" +
 	"\x05mount\x18\x02 \x01(\v2>.buildbarn.configuration.filesystem.virtual.MountConfigurationR\x05mount\"\xd7\n" +

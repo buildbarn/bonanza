@@ -72,4 +72,5 @@ local statePath = std.extVar('STATE_PATH');
   workerId: { host: std.extVar('HOSTNAME') },
   localEvaluationConcurrency: std.extVar('NCPU'),
   remoteEvaluationConcurrency: 100,
+  objectStoreConcurrency: std.extVar('NCPU'),
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
+	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -24,7 +25,11 @@ func TestFileReader(t *testing.T) {
 
 	fileContentsListReader := NewMockFileContentsListReaderForTesting(ctrl)
 	chunkReader := NewMockFileChunkReaderForTesting(ctrl)
-	fileReader := model_filesystem.NewFileReader(fileContentsListReader, chunkReader)
+	fileReader := model_filesystem.NewFileReader(
+		fileContentsListReader,
+		chunkReader,
+		semaphore.NewWeighted(1),
+	)
 
 	t.Run("ChunkReadFailure", func(t *testing.T) {
 		chunkReader.EXPECT().ReadObject(

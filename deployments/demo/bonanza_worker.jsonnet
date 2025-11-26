@@ -30,6 +30,7 @@ local ncpu = std.parseInt(std.extVar('NCPU'));
     path: statePath + '/bonanza_worker_filepool',
     sizeBytes: 1e9 * ncpu,
   } } },
+  objectStoreConcurrency: std.extVar('NCPU'),
   buildDirectories: [{
     runners: [{
       endpoint: {

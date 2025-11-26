@@ -36,5 +36,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileReaderValue(ctx context
 			model_parser.NewRawObjectParser[TReference](),
 		),
 	)
-	return model_filesystem.NewFileReader(fileContentsListReader, fileChunkReader), nil
+	return model_filesystem.NewFileReader(
+		fileContentsListReader,
+		fileChunkReader,
+		c.objectStoreSemaphore,
+	), nil
 }

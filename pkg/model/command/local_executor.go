@@ -98,6 +98,7 @@ type TopLevelDirectory interface {
 
 type localExecutor struct {
 	objectDownloader                    object.Downloader[object.GlobalReference]
+	objectStoreSemaphore                *semaphore.Weighted
 	parsedObjectPool                    *model_parser.ParsedObjectPool
 	dagUploader                         dag.Uploader[object.InstanceName, object.GlobalReference]
 	objectContentsWalkerSemaphore       *semaphore.Weighted
@@ -121,6 +122,7 @@ type localExecutor struct {
 
 func NewLocalExecutor(
 	objectDownloader object.Downloader[object.GlobalReference],
+	objectStoreSemaphore *semaphore.Weighted,
 	parsedObjectPool *model_parser.ParsedObjectPool,
 	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
 	objectContentsWalkerSemaphore *semaphore.Weighted,
@@ -142,6 +144,7 @@ func NewLocalExecutor(
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &localExecutor{
 		objectDownloader:               objectDownloader,
+		objectStoreSemaphore:           objectStoreSemaphore,
 		parsedObjectPool:               parsedObjectPool,
 		dagUploader:                    dagUploader,
 		objectContentsWalkerSemaphore:  objectContentsWalkerSemaphore,
@@ -432,6 +435,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 					model_parser.NewRawObjectParser[object.LocalReference](),
 				),
 			),
+			e.objectStoreSemaphore,
 		)
 		var inputFileFactory model_filesystem_virtual.FileFactory
 		if command.Message.NeedsWritableInputFiles {
