@@ -7,6 +7,9 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
+// NewParsedObjectPoolFromConfiguration creates a ParsedObjectPool whose
+// size and eviction policy correspond to parameters provided in a
+// configuration file.
 func NewParsedObjectPoolFromConfiguration(configuration *model_parser_cfg_pb.ParsedObjectPool) (*ParsedObjectPool, error) {
 	if configuration == nil {
 		// Don't perform any caching of objects.

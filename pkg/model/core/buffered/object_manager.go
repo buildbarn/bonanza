@@ -12,32 +12,33 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Reference of an object whose contents may be buffered in memory.
 type Reference struct {
 	object.LocalReference
 	embeddedMetadata ReferenceMetadata
 }
 
+// ReferenceMetadata of an object whose contents may or may not have
+// been written to storage yet.
 type ReferenceMetadata struct {
 	contents *object.Contents
 	children []ReferenceMetadata
 }
 
+// Discard the contents of an object which may or may not have been
+// written to storage yet.
 func (ReferenceMetadata) Discard() {}
-
-func (m ReferenceMetadata) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
-	if m.contents == nil {
-		return nil, nil, status.Error(codes.Internal, "Contents for this object are not available for upload, as this object was expected to already exist")
-	}
-
-	walkers := make([]dag.ObjectContentsWalker, 0, len(m.children))
-	for _, child := range m.children {
-		walkers = append(walkers, child)
-	}
-	return m.contents, walkers, nil
-}
 
 type objectManager struct{}
 
+// NewObjectManager creates an object manager that is capable of
+// capturing and referencing objects, potentially buffering their
+// contents in memory before flushing them to storage. This permits code
+// that creates objects to continue running, flushing objects
+// asynchronously.
+//
+// TODO: The current implementation is just a placeholder that does not
+// actually flush objects asynchronously.
 func NewObjectManager() model_core.ObjectManager[Reference, ReferenceMetadata] {
 	return objectManager{}
 }
@@ -63,10 +64,39 @@ func (objectManager) ReferenceObject(capturedObject model_core.MetadataEntry[Ref
 	}
 }
 
+type objectContentsWalker struct {
+	embeddedMetadata ReferenceMetadata
+}
+
+func (w objectContentsWalker) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
+	m := &w.embeddedMetadata
+	if m.contents == nil {
+		return nil, nil, status.Error(codes.Internal, "Contents for this object are not available for upload, as this object was expected to already exist")
+	}
+
+	walkers := make([]dag.ObjectContentsWalker, 0, len(m.children))
+	for _, child := range m.children {
+		walkers = append(walkers, objectContentsWalker{
+			embeddedMetadata: child,
+		})
+	}
+	return m.contents, walkers, nil
+}
+
+func (objectContentsWalker) Discard() {}
+
 type objectExporter struct {
 	dagUploader dag.Uploader[struct{}, object.LocalReference]
 }
 
+// NewObjectExporter creates an object exporter that accepts references
+// of created objects that may or may not have been flushed to storage
+// yet. As objects are flushed to storage asynchronously regardless of
+// ExportReference() being called, this implementation merely waits for
+// the flushing to complete.
+//
+// TODO: The current implementation is just a placeholder that does not
+// actually flush objects asynchronously.
 func NewObjectExporter(dagUploader dag.Uploader[struct{}, object.LocalReference]) model_core.ObjectExporter[Reference, object.LocalReference] {
 	return &objectExporter{
 		dagUploader: dagUploader,
@@ -77,7 +107,9 @@ func (oe *objectExporter) ExportReference(ctx context.Context, internalReference
 	err := oe.dagUploader.UploadDAG(
 		ctx,
 		internalReference.LocalReference,
-		internalReference.embeddedMetadata,
+		objectContentsWalker{
+			embeddedMetadata: internalReference.embeddedMetadata,
+		},
 	)
 	if err != nil {
 		var badReference object.LocalReference
