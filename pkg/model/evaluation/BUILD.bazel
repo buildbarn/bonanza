@@ -25,6 +25,7 @@ go_library(
         "//pkg/proto/remoteworker",
         "//pkg/remoteworker",
         "//pkg/storage/dag",
+        "//pkg/storage/dag/namespacemapping",
         "//pkg/storage/object",
         "//pkg/storage/object/namespacemapping",
         "@com_github_buildbarn_bb_storage//pkg/clock",

@@ -64,24 +64,19 @@ func (objectManager) ReferenceObject(capturedObject model_core.MetadataEntry[Ref
 }
 
 type objectExporter struct {
-	dagUploader  dag.Uploader[object.InstanceName, object.GlobalReference]
-	instanceName object.InstanceName
+	dagUploader dag.Uploader[struct{}, object.LocalReference]
 }
 
-func NewObjectExporter(
-	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
-	instanceName object.InstanceName,
-) model_core.ObjectExporter[Reference, object.LocalReference] {
+func NewObjectExporter(dagUploader dag.Uploader[struct{}, object.LocalReference]) model_core.ObjectExporter[Reference, object.LocalReference] {
 	return &objectExporter{
-		dagUploader:  dagUploader,
-		instanceName: instanceName,
+		dagUploader: dagUploader,
 	}
 }
 
 func (oe *objectExporter) ExportReference(ctx context.Context, internalReference Reference) (object.LocalReference, error) {
 	err := oe.dagUploader.UploadDAG(
 		ctx,
-		oe.instanceName.WithLocalReference(internalReference.LocalReference),
+		internalReference.LocalReference,
 		internalReference.embeddedMetadata,
 	)
 	if err != nil {

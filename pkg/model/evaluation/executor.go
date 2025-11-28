@@ -17,6 +17,7 @@ import (
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
 	"bonanza.build/pkg/remoteworker"
 	"bonanza.build/pkg/storage/dag"
+	dag_namespacemapping "bonanza.build/pkg/storage/dag/namespacemapping"
 	"bonanza.build/pkg/storage/object"
 	object_namespacemapping "bonanza.build/pkg/storage/object/namespacemapping"
 
@@ -91,8 +92,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 
 	objectManager := buffered.NewObjectManager()
 	objectExporter := buffered.NewObjectExporter(
-		e.dagUploader,
-		instanceName,
+		dag_namespacemapping.NewNamespaceAddingUploader(e.dagUploader, instanceName),
 	)
 	resultMessage := model_core.MustBuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Result {
 		var result model_evaluation_pb.Result
