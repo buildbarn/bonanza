@@ -21,6 +21,8 @@ type store struct {
 	tagsMap lossymap.Map[tag.Key, ValueWithLease, struct{}]
 }
 
+// ValueWithLease contains all of the properties of a tag that are
+// tracked by the local storage backend.
 type ValueWithLease struct {
 	SignedValue tag.SignedValue
 	Lease       object_flatbacked.Lease

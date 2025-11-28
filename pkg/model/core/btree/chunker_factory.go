@@ -18,20 +18,20 @@ type ChunkerFactory[TNode proto.Message, TMetadata model_core.ReferenceMetadata]
 type PopThreshold int
 
 const (
-	// Only pop chunks of nodes if it is certain that no future
-	// pushes will affect the chunking process up to that point.
-	// This can be used to flush definitive parts of a B-tree to
-	// storage, so that memory usage remains bounded.
+	// PopDefinitive only pops chunks of nodes if it is certain that
+	// no future pushes will affect the chunking process up to that
+	// point. This can be used to flush definitive parts of a B-tree
+	// to storage, so that memory usage remains bounded.
 	PopDefinitive PopThreshold = iota
-	// Only pop chunks of nodes if it is certain that the current
-	// level of the B-tree is not going to be the root.
+	// PopChild only pops chunks of nodes if it is certain that the
+	// current level of the B-tree is not going to be the root.
 	PopChild
-	// Only pop chunks of nodes if they are at least as large as the
-	// desired minimum size.
+	// PopLargeEnough only pops chunks of nodes if they are at least as
+	// large as the desired minimum size.
 	PopLargeEnough
-	// Pop chunks containing all nodes that were pushed, even if it
-	// leads to chunks that are smaller than the desired minimum
-	// size. This can be used to finalize a B-tree.
+	// PopAll pop chunks containing all nodes that were pushed, even
+	// if it leads to chunks that are smaller than the desired
+	// minimum size. This can be used to finalize a B-tree.
 	PopAll
 )
 

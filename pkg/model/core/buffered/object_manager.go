@@ -99,6 +99,10 @@ type objectReader struct {
 	base model_parser.ObjectReader[object.LocalReference, model_core.Message[[]byte, object.LocalReference]]
 }
 
+// NewObjectReader creates a decorator for ObjectReader that makes it
+// accept buffered references. If the object to be read is already
+// present in memory, the contents are returned directly, as opposed to
+// actually issuing a read from storage.
 func NewObjectReader(
 	base model_parser.ObjectReader[object.LocalReference, model_core.Message[[]byte, object.LocalReference]],
 ) model_parser.ObjectReader[Reference, model_core.Message[[]byte, Reference]] {

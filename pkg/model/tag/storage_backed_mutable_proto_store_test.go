@@ -27,7 +27,7 @@ import (
 func TestStorageBackedMutableProtoStore(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
 
-	tagResolver := NewMockTagResolverForTesting(ctrl)
+	tagResolver := NewMockResolverForTesting(ctrl)
 	messageObjectReader := NewMockMessageObjectReaderForTesting(ctrl)
 	objectEncoder := NewMockKeyedBinaryEncoder(ctrl)
 	dagUploader := NewMockDAGUploaderForTesting(ctrl)

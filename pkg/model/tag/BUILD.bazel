@@ -81,7 +81,7 @@ gomock(
     interfaces = [
         "DAGUploaderForTesting",
         "MessageObjectReaderForTesting",
-        "TagResolverForTesting",
+        "ResolverForTesting",
     ],
     library = "//pkg/model/tag",
     mockgen_model_library = "@org_uber_go_mock//mockgen/model",

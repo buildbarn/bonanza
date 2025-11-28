@@ -11,6 +11,9 @@ import (
 
 type leaseRecordArrayFactory struct{}
 
+// LeaseRecordArrayFactory can be used to create backing stores for the
+// leases map that the flat backed storage backend uses. The leases map
+// can either be stored in memory or on disk.
 var LeaseRecordArrayFactory lossymap.RecordArrayFactory[object.LocalReference, Lease, Lease] = leaseRecordArrayFactory{}
 
 func (leaseRecordArrayFactory) GetBlockDeviceBackedRecordSize() int {

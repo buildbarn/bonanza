@@ -375,7 +375,13 @@ func (ph *storageBackedMutableProtoHandle[T, TProto]) Release(isDirty bool) {
 }
 
 type (
-	DAGUploaderForTesting         dag.Uploader[struct{}, object.LocalReference]
+	// DAGUploaderForTesting is used to generate mocks used by tests
+	// belonging to this package.
+	DAGUploaderForTesting dag.Uploader[struct{}, object.LocalReference]
+	// MessageObjectReaderForTesting is used to generate mocks used
+	// by tests belonging to this package.
 	MessageObjectReaderForTesting model_parser.MessageObjectReader[object.LocalReference, *model_initialsizeclass_pb.PreviousExecutionStats]
-	TagResolverForTesting         tag.Resolver[object.ReferenceFormat]
+	// ResolverForTesting is used to generate mocks used by tests
+	// belonging to this package.
+	ResolverForTesting tag.Resolver[object.ReferenceFormat]
 )

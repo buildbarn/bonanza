@@ -263,6 +263,9 @@ func MarshalAny[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMe
 	), nil
 }
 
+// ProtoToBinaryMarshaler is a convenience function for converting a
+// PatchedMessage containing a Protobuf message to one that is
+// marshalable.
 func ProtoToBinaryMarshaler[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMessage[TMessage, TMetadata]) PatchedMessage[encoding.BinaryMarshaler, TMetadata] {
 	return NewPatchedMessage(
 		NewProtoBinaryMarshaler(m.Message),
@@ -270,6 +273,9 @@ func ProtoToBinaryMarshaler[TMessage proto.Message, TMetadata ReferenceMetadata]
 	)
 }
 
+// ProtoListToBinaryMarshaler is a convenience function for converting a
+// PatchedMessage containing a list of Protobuf messages to one that is
+// marshalable.
 func ProtoListToBinaryMarshaler[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMessage[[]TMessage, TMetadata]) PatchedMessage[encoding.BinaryMarshaler, TMetadata] {
 	return NewPatchedMessage(
 		NewProtoListBinaryMarshaler(m.Message),

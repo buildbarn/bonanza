@@ -133,6 +133,11 @@ func PatchList[
 	})
 }
 
+// ObjectReferencer is the inverse of ObjectCapturer, allowing metadata
+// to be converted back to references. This can be of use in
+// environments where objects also need to be accessible for reading
+// right after they have been constructed, without explicitly waiting
+// for them to be written to storage.
 type ObjectReferencer[TReference, TMetadata any] interface {
 	ReferenceObject(MetadataEntry[TMetadata]) TReference
 }
@@ -159,11 +164,8 @@ func Unpatch[TMessage, TReference any, TMetadata ReferenceMetadata](
 	return NewTopLevelMessage(m.Message, outgoingReferences)
 }
 
-// ObjectManager is an extension to ObjectCapturer, allowing metadata to
-// be converted back to references. This can be of use in environments
-// where objects also need to be accessible for reading right after they
-// have been constructed, without explicitly waiting for them to be
-// written to storage.
+// ObjectManager represents an environment in which references and
+// metadata can be interchanged freely.
 type ObjectManager[TReference, TMetadata any] interface {
 	ObjectCapturer[TReference, TMetadata]
 	ObjectReferencer[TReference, TMetadata]

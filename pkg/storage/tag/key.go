@@ -12,11 +12,26 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Key of tags stored in Tag Store.
+//
+// Keys contain a hash. The method for computing the hash is specific to
+// the use case. Even though the protocol does not place restrictions on
+// the size of the hash, this implementation only supports hashes that
+// are 256 bits in size (e.g., SHA-256).
+//
+// In order to prevent collisions between different use cases, keys also
+// contain an signature public key. The value of the tag needs to be
+// signed using the corresponding private key. This permits consumers of
+// tags to verify the tag's value. Even though the protocol does not
+// place restrictions on which algorithm is used, this implementation
+// requires keys to be of type Ed25519.
 type Key struct {
 	SignaturePublicKey [ed25519.PublicKeySize]byte
 	Hash               [sha256.Size]byte
 }
 
+// NewKeyFromProto creates a tag key based on its equivalent Protobuf
+// message.
 func NewKeyFromProto(m *tag_pb.Key) (Key, error) {
 	if m == nil {
 		return Key{}, status.Error(codes.InvalidArgument, "No key provided")
@@ -38,6 +53,7 @@ func NewKeyFromProto(m *tag_pb.Key) (Key, error) {
 	}, nil
 }
 
+// ToProto converts a tag key to an equivalent Protobuf message.
 func (k *Key) ToProto() (*tag_pb.Key, error) {
 	signaturePublicKey, err := x509.MarshalPKIXPublicKey(ed25519.PublicKey(k.SignaturePublicKey[:]))
 	if err != nil {
@@ -49,6 +65,9 @@ func (k *Key) ToProto() (*tag_pb.Key, error) {
 	}, nil
 }
 
+// VerifySignature verifies that a signature corresponds to a given tag
+// key and value. Upon success, it upgrades the provided value to a
+// signed value.
 func (k Key) VerifySignature(value Value, signature *[ed25519.SignatureSize]byte) (SignedValue, error) {
 	valueSigningInput, err := value.getSigningInput(k.Hash)
 	if err != nil {

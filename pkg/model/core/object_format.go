@@ -32,7 +32,7 @@ func NewProtoObjectFormat(m proto.Message) *model_core_pb.ObjectFormat {
 	}
 }
 
-// NewProtoObjectFormat creates a new ObjectFormat message that
+// NewProtoListObjectFormat creates a new ObjectFormat message that
 // corresponds to a list of the type of the provided Protobuf message.
 func NewProtoListObjectFormat(m proto.Message) *model_core_pb.ObjectFormat {
 	return &model_core_pb.ObjectFormat{

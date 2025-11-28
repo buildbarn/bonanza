@@ -27,6 +27,9 @@ func (in InstanceName) WithLocalReference(localReference LocalReference) GlobalR
 	}
 }
 
+// WithReferenceFormat associates the instance name with a reference
+// format, thereby turning it into a namespace in which objects are
+// stored.
 func (in InstanceName) WithReferenceFormat(referenceFormat ReferenceFormat) Namespace {
 	return Namespace{
 		InstanceName:    in,

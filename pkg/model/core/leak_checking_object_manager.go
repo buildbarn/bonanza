@@ -44,6 +44,8 @@ func (rm *LeakCheckingReferenceMetadata[TMetadata]) removeFromList() {
 	e.next = nil
 }
 
+// Discard the reference metadata, releasing any resources associated
+// with it.
 func (rm *LeakCheckingReferenceMetadata[TMetadata]) Discard() {
 	rm.removeFromList()
 	rm.base.Discard()
@@ -81,6 +83,8 @@ func NewLeakCheckingObjectManager[TReference any, TMetadata ReferenceMetadata](b
 
 var _ ObjectManager[object.LocalReference, *LeakCheckingReferenceMetadata[ReferenceMetadata]] = (*LeakCheckingObjectManager[object.LocalReference, ReferenceMetadata])(nil)
 
+// CaptureCreatedObject captures the contents of an object that was just
+// created, returning reference metadata that tracks any leaks.
 func (om *LeakCheckingObjectManager[TReference, TMetadata]) CaptureCreatedObject(ctx context.Context, createdObject CreatedObject[*LeakCheckingReferenceMetadata[TMetadata]]) (*LeakCheckingReferenceMetadata[TMetadata], error) {
 	unwrappedMetadata := make([]TMetadata, 0, len(createdObject.Metadata))
 	for _, metadata := range createdObject.Metadata {
@@ -119,10 +123,16 @@ func (om *LeakCheckingObjectManager[TReference, TMetadata]) wrap(base TMetadata)
 	return rm
 }
 
+// CaptureExistingObject creates reference metadata for an object that
+// already exists in storage. The reference metadata that is returned
+// performs tracking of leaks.
 func (om *LeakCheckingObjectManager[TReference, TMetadata]) CaptureExistingObject(reference TReference) *LeakCheckingReferenceMetadata[TMetadata] {
 	return om.wrap(om.base.CaptureExistingObject(reference))
 }
 
+// ReferenceObject converts the reference metadata back to a reference.
+// As references don't have explicit lifetimes, this means that no leak
+// tracking is performed from this point on.
 func (om *LeakCheckingObjectManager[TReference, TMetadata]) ReferenceObject(entry MetadataEntry[*LeakCheckingReferenceMetadata[TMetadata]]) TReference {
 	return om.base.ReferenceObject(
 		MetadataEntry[TMetadata]{

@@ -14,8 +14,14 @@ import (
 )
 
 const (
-	minimumObjectSizeBytes     = 1
-	maximumObjectSizeBytes     = 1 << 21
+	minimumObjectSizeBytes = 1
+	maximumObjectSizeBytes = 1 << 21
+
+	// SHA256V1ReferenceSizeBytes is equal to the size of a local
+	// reference using reference format SHA256_V1. High level code
+	// should generally not use this constant. For low level code
+	// it's worth knowing this value, in case references need to be
+	// stored in fixed sized records.
 	SHA256V1ReferenceSizeBytes = 40
 )
 
