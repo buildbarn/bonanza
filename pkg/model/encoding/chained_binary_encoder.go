@@ -1,6 +1,8 @@
 package encoding
 
 import (
+	"unique"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -23,6 +25,13 @@ func (be *chainedBinaryEncoder[TBinaryEncoder]) DecodeBinary(in, parameters []by
 		return nil, status.Error(codes.InvalidArgument, "Unexpected decoding parameters")
 	}
 	return in, nil
+}
+
+func (be *chainedBinaryEncoder[TBinaryEncoder]) AppendUniqueDecodingKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	for i := len(be.encoders); i > 0; i-- {
+		keys = be.encoders[i-1].AppendUniqueDecodingKeys(keys)
+	}
+	return keys
 }
 
 func (be *chainedBinaryEncoder[TBinaryEncoder]) GetDecodingParametersSizeBytes() int {

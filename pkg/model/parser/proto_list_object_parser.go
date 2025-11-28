@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"unique"
+
 	"bonanza.build/pkg/encoding/varint"
 	model_core "bonanza.build/pkg/model/core"
 
@@ -9,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type protoListObjectParser[
@@ -66,6 +69,18 @@ func (protoListObjectParser[TReference, TMessage, TMessagePtr]) ParseObject(in m
 	}
 
 	return model_core.NewMessage(elements, in.OutgoingReferences), nil
+}
+
+type protoListObjectParserKey struct {
+	descriptor protoreflect.MessageDescriptor
+}
+
+func (protoListObjectParser[TReference, TMessage, TMessagePtr]) AppendUniqueKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	return append(keys, unique.Make[any](
+		protoListObjectParserKey{
+			descriptor: (TMessagePtr)(nil).ProtoReflect().Descriptor(),
+		},
+	))
 }
 
 func (protoListObjectParser[TReference, TMessage, TMessagePtr]) GetDecodingParametersSizeBytes() int {

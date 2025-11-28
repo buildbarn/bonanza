@@ -2,8 +2,10 @@ package encoding
 
 import (
 	"crypto/cipher"
+	"unique"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
+	"github.com/ericlagergren/siv"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,6 +16,12 @@ type encryptingKeyedBinaryEncoder struct {
 	additionalData    []byte
 	nonceSizeBytes    int
 	overheadSizeBytes int
+	uniqueDecodingKey unique.Handle[any]
+}
+
+type encryptingKeyedBinaryEncoderKey struct {
+	key            string
+	additionalData string
 }
 
 // NewEncryptingKeyedBinaryEncoder creates a KeyedBinaryEncoder that is
@@ -26,13 +34,23 @@ type encryptingKeyedBinaryEncoder struct {
 //
 // This implementation should only be used in case there is no way to
 // explicitly store decoding parameters, such as the Tag Store.
-func NewEncryptingKeyedBinaryEncoder(aead cipher.AEAD, additionalData []byte) KeyedBinaryEncoder {
+func NewEncryptingKeyedBinaryEncoder(key, additionalData []byte) (KeyedBinaryEncoder, error) {
+	aead, err := siv.NewGCM(key)
+	if err != nil {
+		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid encryption key")
+	}
 	return &encryptingKeyedBinaryEncoder{
 		aead:              aead,
 		additionalData:    additionalData,
 		nonceSizeBytes:    aead.NonceSize(),
 		overheadSizeBytes: aead.Overhead(),
-	}
+		uniqueDecodingKey: unique.Make[any](
+			encryptingKeyedBinaryEncoderKey{
+				key:            string(key),
+				additionalData: string(additionalData),
+			},
+		),
+	}, nil
 }
 
 func (be *encryptingKeyedBinaryEncoder) validateNonce(nonce []byte) error {
@@ -72,6 +90,10 @@ func (be *encryptingKeyedBinaryEncoder) DecodeBinary(in, nonce []byte) ([]byte, 
 		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Decryption failed")
 	}
 	return unpad(plaintext)
+}
+
+func (be *encryptingKeyedBinaryEncoder) AppendUniqueDecodingKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	return append(keys, be.uniqueDecodingKey)
 }
 
 func (be *encryptingKeyedBinaryEncoder) GetDecodingParametersSizeBytes() int {

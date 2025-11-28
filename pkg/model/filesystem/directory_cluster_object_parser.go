@@ -1,6 +1,8 @@
 package filesystem
 
 import (
+	"unique"
+
 	model_core "bonanza.build/pkg/model/core"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
@@ -64,6 +66,14 @@ func (directoryClusterObjectParser[TReference]) ParseObject(in model_core.Messag
 		return model_core.Message[DirectoryCluster, TReference]{}, err
 	}
 	return model_core.Nested(in, cluster), nil
+}
+
+type directoryClusterObjectParserKey struct{}
+
+var directoryClusterObjectParserKeyHandle = unique.Make[any](directoryClusterObjectParserKey{})
+
+func (directoryClusterObjectParser[TReference]) AppendUniqueKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	return append(keys, directoryClusterObjectParserKeyHandle)
 }
 
 func (directoryClusterObjectParser[TReference]) GetDecodingParametersSizeBytes() int {

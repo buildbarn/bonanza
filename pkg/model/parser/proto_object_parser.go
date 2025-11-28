@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"unique"
+
 	model_core "bonanza.build/pkg/model/core"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -8,6 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type protoObjectParser[
@@ -42,6 +45,18 @@ func (protoObjectParser[TReference, TMessage, TMessagePtr]) ParseObject(in model
 		return model_core.Message[TMessagePtr, TReference]{}, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to unmarshal message")
 	}
 	return model_core.NewMessage(TMessagePtr(&message), in.OutgoingReferences), nil
+}
+
+type protoObjectParserKey struct {
+	descriptor protoreflect.MessageDescriptor
+}
+
+func (protoObjectParser[TReference, TMessage, TMessagePtr]) AppendUniqueKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	return append(keys, unique.Make[any](
+		protoObjectParserKey{
+			descriptor: (TMessagePtr)(nil).ProtoReflect().Descriptor(),
+		},
+	))
 }
 
 func (protoObjectParser[TReference, TMessage, TMessagePtr]) GetDecodingParametersSizeBytes() int {

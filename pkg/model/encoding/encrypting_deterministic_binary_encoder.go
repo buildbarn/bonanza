@@ -3,18 +3,26 @@ package encoding
 import (
 	"crypto/cipher"
 	"math/bits"
+	"unique"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
+	"github.com/ericlagergren/siv"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type encryptingDeterministicBinaryEncoder struct {
-	aead           cipher.AEAD
-	additionalData []byte
-	tagSizeBytes   int
-	nonce          []byte
+	aead              cipher.AEAD
+	additionalData    []byte
+	tagSizeBytes      int
+	nonce             []byte
+	uniqueDecodingKey unique.Handle[any]
+}
+
+type encryptingDeterministicBinaryEncoderKey struct {
+	key            string
+	additionalData string
 }
 
 // NewEncryptingDeterministicBinaryEncoder creates a
@@ -24,13 +32,23 @@ type encryptingDeterministicBinaryEncoder struct {
 // the data. It uses Authenticating Encryption with Associated Data
 // (AEAD), meaning that any objects encrypted with a different key will
 // fail validation.
-func NewEncryptingDeterministicBinaryEncoder(aead cipher.AEAD, additionalData []byte) DeterministicBinaryEncoder {
+func NewEncryptingDeterministicBinaryEncoder(key, additionalData []byte) (DeterministicBinaryEncoder, error) {
+	aead, err := siv.NewGCM(key)
+	if err != nil {
+		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid encryption key")
+	}
 	return &encryptingDeterministicBinaryEncoder{
 		aead:           aead,
 		additionalData: additionalData,
 		tagSizeBytes:   aead.Overhead(),
 		nonce:          make([]byte, aead.NonceSize()),
-	}
+		uniqueDecodingKey: unique.Make[any](
+			encryptingDeterministicBinaryEncoderKey{
+				key:            string(key),
+				additionalData: string(additionalData),
+			},
+		),
+	}, nil
 }
 
 // getPaddedSizeBytes computes the size of the encrypted output, with
@@ -123,6 +141,10 @@ func (be *encryptingDeterministicBinaryEncoder) DecodeBinary(in, tag []byte) ([]
 		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Decryption failed")
 	}
 	return unpad(plaintext)
+}
+
+func (be *encryptingDeterministicBinaryEncoder) AppendUniqueDecodingKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	return append(keys, be.uniqueDecodingKey)
 }
 
 func (be *encryptingDeterministicBinaryEncoder) GetDecodingParametersSizeBytes() int {

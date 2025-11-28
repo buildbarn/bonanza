@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"unique"
+
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 )
@@ -25,6 +27,10 @@ func (p *encodedObjectParser[TReference]) ParseObject(in model_core.Message[[]by
 		return model_core.Message[[]byte, TReference]{}, err
 	}
 	return model_core.NewMessage(decoded, in.OutgoingReferences), nil
+}
+
+func (p *encodedObjectParser[TReference]) AppendUniqueKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	return p.decoder.AppendUniqueDecodingKeys(keys)
 }
 
 func (p *encodedObjectParser[TReference]) GetDecodingParametersSizeBytes() int {

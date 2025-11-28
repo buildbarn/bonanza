@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"unique"
+
 	model_core "bonanza.build/pkg/model/core"
 )
 
@@ -13,7 +15,13 @@ import (
 // and create an index, so that subsequent access is faster. This might
 // result in multiple ObjectParser implementations, each of which is
 // used in different circumstances.
+//
+// Types like ParsedObjectPool require being able to uniquely identify
+// instances of ObjectParser, so that the key used to identify objects
+// in storage does not collide. The AppendUniqueKeys() method returns a
+// sequence of unique handles.
 type ObjectParser[TReference, TParsedObject any] interface {
 	ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (TParsedObject, error)
+	AppendUniqueKeys(keys []unique.Handle[any]) []unique.Handle[any]
 	GetDecodingParametersSizeBytes() int
 }

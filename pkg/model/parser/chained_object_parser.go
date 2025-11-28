@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"unique"
+
 	model_core "bonanza.build/pkg/model/core"
 )
 
@@ -30,6 +32,11 @@ func (p *chainedObjectParser[TReference, TParsedObject]) ParseObject(in model_co
 		return bad, err
 	}
 	return p.parserB.ParseObject(v, nil)
+}
+
+func (p *chainedObjectParser[TReference, TParsedObject]) AppendUniqueKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	keys = p.parserA.AppendUniqueKeys(keys)
+	return p.parserB.AppendUniqueKeys(keys)
 }
 
 func (p *chainedObjectParser[TReference, TParsedObject]) GetDecodingParametersSizeBytes() int {

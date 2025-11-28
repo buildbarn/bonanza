@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"unique"
+
 	model_core "bonanza.build/pkg/model/core"
 
 	"google.golang.org/grpc/codes"
@@ -25,6 +27,14 @@ func (rawObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TRe
 		return nil, status.Errorf(codes.InvalidArgument, "Object has a degree of %d, while zero was expected", degree)
 	}
 	return in.Message, nil
+}
+
+type rawObjectParserKey struct{}
+
+var rawObjectParserKeyHandle = unique.Make[any](rawObjectParserKey{})
+
+func (rawObjectParser[TReference]) AppendUniqueKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	return append(keys, rawObjectParserKeyHandle)
 }
 
 func (rawObjectParser[TReference]) GetDecodingParametersSizeBytes() int {

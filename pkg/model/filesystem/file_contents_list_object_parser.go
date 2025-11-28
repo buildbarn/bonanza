@@ -1,6 +1,8 @@
 package filesystem
 
 import (
+	"unique"
+
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/parser"
 	model_parser "bonanza.build/pkg/model/parser"
@@ -24,6 +26,14 @@ func (fileContentsListObjectParser[TReference]) ParseObject(in model_core.Messag
 		return nil, err
 	}
 	return NewFileContentsListFromProto(l)
+}
+
+type fileContentsListObjectParserKey struct{}
+
+var fileContentsListObjectParserKeyHandle = unique.Make[any](fileContentsListObjectParserKey{})
+
+func (fileContentsListObjectParser[TReference]) AppendUniqueKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	return append(keys, fileContentsListObjectParserKeyHandle)
 }
 
 func (fileContentsListObjectParser[TReference]) GetDecodingParametersSizeBytes() int {

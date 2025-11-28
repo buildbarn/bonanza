@@ -34,7 +34,7 @@ go_test(
     embed = [":encoding"],
     deps = [
         "@com_github_buildbarn_bb_storage//pkg/testutil",
-        "@com_github_ericlagergren_siv//:siv",
+        "@com_github_buildbarn_bb_storage//pkg/util",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",

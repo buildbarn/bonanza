@@ -1,13 +1,12 @@
 package encoding
 
 import (
-	"crypto/cipher"
 	"crypto/sha256"
+	"unique"
 
 	model_encoding_pb "bonanza.build/pkg/proto/model/encoding"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
-	"github.com/ericlagergren/siv"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,8 +16,15 @@ import (
 // BinaryDecoder can be used to decode binary data by undoing previously
 // applied encoding steps. Examples of encoding steps include
 // compression and encryption.
+//
+// For every BinaryDecoder, it is possible to get a list of unique keys
+// that describe the decoding steps that are performed. This is used by
+// model_parser.ParsedObjectPool, as it needs to uniquely identify
+// model_parser.ObjectParsers, so that parsed objects are cached
+// correctly.
 type BinaryDecoder interface {
 	DecodeBinary(in, parameters []byte) ([]byte, error)
+	AppendUniqueDecodingKeys(keys []unique.Handle[any]) []unique.Handle[any]
 	GetDecodingParametersSizeBytes() int
 }
 
@@ -27,7 +33,7 @@ func newBinaryEncoderFromProto[T any](
 	maximumDecodedSizeBytes uint32,
 	encodingMode model_encoding_pb.EncodingMode,
 	newLZWCompressingBinaryEncoder func(maximumDecodedSizeBytes uint32) T,
-	newEncryptingBinaryEncoder func(aead cipher.AEAD, additionalData []byte) T,
+	newEncryptingBinaryEncoder func(key, additionalData []byte) (T, error),
 	newChainedBinaryEncoder func([]T) T,
 ) (T, error) {
 	encoders := make([]T, 0, len(configurations))
@@ -39,12 +45,6 @@ func newBinaryEncoderFromProto[T any](
 				newLZWCompressingBinaryEncoder(maximumDecodedSizeBytes),
 			)
 		case *model_encoding_pb.BinaryEncoder_Encrypting:
-			aead, err := siv.NewGCM(encoderConfiguration.Encrypting.EncryptionKey)
-			if err != nil {
-				var badBinaryEncoder T
-				return badBinaryEncoder, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid encryption key")
-			}
-
 			// Compute a hash of the configuration of the
 			// encoders that are used in addition to
 			// encryption. This has the advantage that
@@ -64,10 +64,12 @@ func newBinaryEncoderFromProto[T any](
 			}
 			additionalData := sha256.Sum256(additionalDataInput)
 
-			encoders = append(
-				encoders,
-				newEncryptingBinaryEncoder(aead, additionalData[:]),
-			)
+			encoder, err := newEncryptingBinaryEncoder(encoderConfiguration.Encrypting.EncryptionKey, additionalData[:])
+			if err != nil {
+				var badBinaryEncoder T
+				return badBinaryEncoder, err
+			}
+			encoders = append(encoders, encoder)
 		default:
 			var badBinaryEncoder T
 			return badBinaryEncoder, status.Error(codes.InvalidArgument, "Unknown binary encoder type")

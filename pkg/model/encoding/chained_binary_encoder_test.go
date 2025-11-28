@@ -2,6 +2,7 @@ package encoding_test
 
 import (
 	"testing"
+	"unique"
 
 	model_encoding "bonanza.build/pkg/model/encoding"
 
@@ -30,6 +31,10 @@ func TestChainedDeterministicBinaryEncoder(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, []byte("Hello"), decodedData)
 		})
+
+		t.Run("AppendUniqueDecodingKeys", func(t *testing.T) {
+			require.Empty(t, binaryEncoder.AppendUniqueDecodingKeys(nil))
+		})
 	})
 
 	t.Run("One", func(t *testing.T) {
@@ -55,6 +60,21 @@ func TestChainedDeterministicBinaryEncoder(t *testing.T) {
 			decodedData, err := binaryEncoder.DecodeBinary([]byte("World"), []byte("Parameters"))
 			require.NoError(t, err)
 			require.Equal(t, []byte("Hello"), decodedData)
+		})
+
+		t.Run("AppendUniqueDecodingKeys", func(t *testing.T) {
+			binaryEncoder1.EXPECT().AppendUniqueDecodingKeys(gomock.Any()).
+				DoAndReturn(func(keys []unique.Handle[any]) []unique.Handle[any] {
+					return append(keys, unique.Make[any](1))
+				})
+
+			require.Equal(
+				t,
+				[]unique.Handle[any]{
+					unique.Make[any](1),
+				},
+				binaryEncoder.AppendUniqueDecodingKeys(nil),
+			)
 		})
 	})
 
@@ -97,6 +117,26 @@ func TestChainedDeterministicBinaryEncoder(t *testing.T) {
 			decodedData, err := binaryEncoder.DecodeBinary([]byte("Baz"), []byte("Parameters"))
 			require.NoError(t, err)
 			require.Equal(t, []byte("Foo"), decodedData)
+		})
+
+		t.Run("AppendUniqueDecodingKeys", func(t *testing.T) {
+			binaryEncoder1.EXPECT().AppendUniqueDecodingKeys(gomock.Any()).
+				DoAndReturn(func(keys []unique.Handle[any]) []unique.Handle[any] {
+					return append(keys, unique.Make[any](1))
+				})
+			binaryEncoder2.EXPECT().AppendUniqueDecodingKeys(gomock.Any()).
+				DoAndReturn(func(keys []unique.Handle[any]) []unique.Handle[any] {
+					return append(keys, unique.Make[any](2))
+				})
+
+			require.Equal(
+				t,
+				[]unique.Handle[any]{
+					unique.Make[any](2),
+					unique.Make[any](1),
+				},
+				binaryEncoder.AppendUniqueDecodingKeys(nil),
+			)
 		})
 	})
 }

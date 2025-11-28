@@ -1,6 +1,8 @@
 package encoding
 
 import (
+	"unique"
+
 	"bonanza.build/pkg/compress/simplelzw"
 
 	"google.golang.org/grpc/codes"
@@ -16,6 +18,16 @@ func (be *lzwCompressingBinaryEncoder) DecodeBinary(in, parameters []byte) ([]by
 		return nil, status.Error(codes.InvalidArgument, "Unexpected decoding parameters")
 	}
 	return simplelzw.Decompress(in, be.maximumDecodedSizeBytes)
+}
+
+type lzwCompressingBinaryEncoderKey struct {
+	maximumDecodedSizeBytes uint32
+}
+
+func (be *lzwCompressingBinaryEncoder) AppendUniqueDecodingKeys(keys []unique.Handle[any]) []unique.Handle[any] {
+	return append(keys, unique.Make[any](lzwCompressingBinaryEncoderKey{
+		maximumDecodedSizeBytes: be.maximumDecodedSizeBytes,
+	}))
 }
 
 func (lzwCompressingBinaryEncoder) GetDecodingParametersSizeBytes() int {

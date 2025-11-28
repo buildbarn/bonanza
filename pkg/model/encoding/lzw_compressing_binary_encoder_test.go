@@ -45,4 +45,42 @@ func TestLZWCompressingDeterministicBinaryEncoder(t *testing.T) {
 			require.Equal(t, original[:length], decoded)
 		}
 	})
+
+	t.Run("AppendUniqueDecodingKeys", func(t *testing.T) {
+		// AppendUniqueDecodingKeys returns a list of keys that
+		// should only be equal to each other if the options
+		// provided to the decoder are the same.
+		t.Run("Equal", func(t *testing.T) {
+			require.Equal(
+				t,
+				model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1<<20).
+					AppendUniqueDecodingKeys(nil),
+				model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1<<20).
+					AppendUniqueDecodingKeys(nil),
+			)
+		})
+
+		t.Run("NotEqual", func(t *testing.T) {
+			require.NotEqual(
+				t,
+				model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1<<19).
+					AppendUniqueDecodingKeys(nil),
+				model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1<<20).
+					AppendUniqueDecodingKeys(nil),
+			)
+		})
+
+		t.Run("DeterministicAndKeyed", func(t *testing.T) {
+			// With respect to LZW compression, there is no
+			// difference between deterministic and keyed
+			// encoding.
+			require.Equal(
+				t,
+				model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1<<20).
+					AppendUniqueDecodingKeys(nil),
+				model_encoding.NewLZWCompressingKeyedBinaryEncoder(1<<20).
+					AppendUniqueDecodingKeys(nil),
+			)
+		})
+	})
 }
