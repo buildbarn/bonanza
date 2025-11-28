@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "chained_object_parser.go",
         "configuration.go",
+        "decoding_object_reader.go",
         "dereference.go",
         "downloading_object_reader.go",
         "encoded_object_parser.go",

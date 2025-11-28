@@ -13,7 +13,7 @@ type parsedObjectReader[TReference, TParsedObject any] struct {
 
 // NewParsedObjectReader creates a decorator for ObjectReader that
 // parses objects after they have been downloaded.
-func NewParsedObjectReader[TReference, TParsedObject any](rawReader ObjectReader[TReference, model_core.Message[[]byte, TReference]], parser ObjectParser[TReference, TParsedObject]) ObjectReader[model_core.Decodable[TReference], TParsedObject] {
+func NewParsedObjectReader[TReference, TParsedObject any](rawReader ObjectReader[TReference, model_core.Message[[]byte, TReference]], parser ObjectParser[TReference, TParsedObject]) DecodingObjectReader[TReference, TParsedObject] {
 	return &parsedObjectReader[TReference, TParsedObject]{
 		rawReader: rawReader,
 		parser:    parser,

@@ -20,7 +20,7 @@ import (
 //   - The reference type of the object and that of its children are
 //     identical. For high level code, this tends to be a common
 //     assumption, as it's necessary for easy graph traversal.
-type MessageObjectReader[TReference, TMessage any] = ObjectReader[
-	model_core.Decodable[TReference],
+type MessageObjectReader[TReference, TMessage any] = DecodingObjectReader[
+	TReference,
 	model_core.Message[TMessage, TReference],
 ]

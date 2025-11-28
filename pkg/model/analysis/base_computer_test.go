@@ -213,10 +213,6 @@ func (createdObjectReader) ReadObject(ctx context.Context, reference model_core.
 	return model_core.NewMessage(reference.GetPayload(), object.OutgoingReferencesList[model_core.CreatedObjectTree](reference.Metadata)), nil
 }
 
-func (createdObjectReader) GetDecodingParametersSizeBytes() int {
-	return 0
-}
-
 type patchedMessageMatcher[TMessage proto.Message] struct {
 	want model_core.PatchedMessage[TMessage, model_core.CreatedObjectTree]
 }

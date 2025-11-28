@@ -55,14 +55,14 @@ func NewParsedObjectPoolIngester[TReference any](
 
 type poolBackedObjectReader[TReference object.BasicReference, TParsedObject any] struct {
 	pool                        *ParsedObjectPool
-	parsedObjectReader          ObjectReader[model_core.Decodable[TReference], TParsedObject]
+	parsedObjectReader          DecodingObjectReader[TReference, TParsedObject]
 	decodingParametersSizeBytes int
 }
 
 func LookupParsedObjectReader[TReference object.BasicReference, TParsedObject any](
 	ingester *ParsedObjectPoolIngester[TReference],
 	parser ObjectParser[TReference, TParsedObject],
-) ObjectReader[model_core.Decodable[TReference], TParsedObject] {
+) DecodingObjectReader[TReference, TParsedObject] {
 	objectReader := NewParsedObjectReader(ingester.rawReader, parser)
 	if ingester.pool != nil {
 		// Perform caching of objects.

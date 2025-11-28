@@ -172,7 +172,3 @@ func (r *objectReader) ReadObject(ctx context.Context, reference Reference) (mod
 	}
 	return model_core.NewMessage(m.Message, outgoingReferences), nil
 }
-
-func (objectReader) GetDecodingParametersSizeBytes() int {
-	return 0
-}
