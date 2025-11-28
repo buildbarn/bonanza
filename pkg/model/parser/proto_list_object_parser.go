@@ -20,9 +20,9 @@ type protoListObjectParser[
 	},
 ] struct{}
 
-// NewProtoListObjectParser is capable of unmarshaling objects
-// containing a list of Protobuf messages. Messages are prefixed with
-// their size, encoded as a variable length integer.
+// NewProtoListObjectParser creates an ObjectParser that is capable of
+// unmarshaling objects containing lists of Protobuf messages. Messages
+// are prefixed with their size, encoded as a variable length integer.
 func NewProtoListObjectParser[
 	TReference any,
 	TMessage any,

@@ -9,6 +9,9 @@ import (
 
 type rawObjectParser[TReference any] struct{}
 
+// NewRawObjectParser creates an ObjectParser that assumes that the
+// object is a leaf that contains binary data, such as a chunk of a
+// file.
 func NewRawObjectParser[TReference any]() ObjectParser[TReference, []byte] {
 	return &rawObjectParser[TReference]{}
 }

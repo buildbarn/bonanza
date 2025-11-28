@@ -19,6 +19,8 @@ type protoObjectParser[
 	},
 ] struct{}
 
+// NewProtoObjectParser creates an ObjectParser that is capable of
+// unmarshaling objects containing Protobuf messages.
 func NewProtoObjectParser[
 	TReference any,
 	TMessage any,
