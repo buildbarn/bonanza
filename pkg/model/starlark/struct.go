@@ -132,6 +132,8 @@ func (Struct[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
+// Hash a Starlark struct value, so that it can be used as a map key or
+// added to a set.
 func (s *Struct[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
 	if s.hash == 0 {
 		// The same math as performed by starlarkstruct.

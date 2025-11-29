@@ -18,12 +18,23 @@ import (
 	"go.starlark.net/syntax"
 )
 
+// ConfiguredTargetReference contains the properties of a Starlark Target
+// object of a configured target.
+//
+// As an extension, Bonanza supports creating target references that are
+// not configured. This means that properties like the resolved label
+// and set of provider values are not always available. This is why they
+// are stored in a separate struct, which is only set if targets are
+// configured.
 type ConfiguredTargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	label            pg_label.CanonicalLabel
 	encodedProviders model_core.Message[[]*model_starlark_pb.Struct, TReference]
 	decodedProviders []atomic.Pointer[Struct[TReference, TMetadata]]
 }
 
+// NewConfiguredTargetReference creates a ConfiguredTargetReference
+// object, which contains the properties of a Starlark Target object of
+// a configured target.
 func NewConfiguredTargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](label pg_label.CanonicalLabel, providers model_core.Message[[]*model_starlark_pb.Struct, TReference]) *ConfiguredTargetReference[TReference, TMetadata] {
 	return &ConfiguredTargetReference[TReference, TMetadata]{
 		label:            label,

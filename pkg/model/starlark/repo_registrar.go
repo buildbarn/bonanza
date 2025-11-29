@@ -7,16 +7,22 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )
 
+// RepoRegistrar is used to track invocations of repository rules during
+// the evaluation of module extensions.
 type RepoRegistrar[TMetadata model_core.ReferenceMetadata] struct {
 	repos map[string]model_core.PatchedMessage[*model_starlark_pb.Repo, TMetadata]
 }
 
+// NewRepoRegistrar creates a new RepoRegistrar that is in the initial
+// state (i.e., having no registered repositories).
 func NewRepoRegistrar[TMetadata model_core.ReferenceMetadata]() *RepoRegistrar[TMetadata] {
 	return &RepoRegistrar[TMetadata]{
 		repos: map[string]model_core.PatchedMessage[*model_starlark_pb.Repo, TMetadata]{},
 	}
 }
 
+// GetRepos returns the set of repositories that have been registered by a
+// previously evaluated module extension.
 func (rr *RepoRegistrar[TMetadata]) GetRepos() map[string]model_core.PatchedMessage[*model_starlark_pb.Repo, TMetadata] {
 	return rr.repos
 }

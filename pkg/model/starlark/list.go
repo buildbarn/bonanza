@@ -13,8 +13,8 @@ import (
 	"bonanza.build/pkg/storage/object"
 )
 
-// AllListLeafElementsDeduplicatingParents walks over a list and returns
-// all leaf elements contained within.
+// AllListLeafElements walks over a list and returns all leaf elements
+// contained within.
 func AllListLeafElements[TReference object.BasicReference](
 	ctx context.Context,
 	reader model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element],
@@ -43,9 +43,9 @@ func AllListLeafElements[TReference object.BasicReference](
 	}
 }
 
-// AllListLeafElementsDeduplicatingParents walks over a list and returns
-// all leaf elements contained within. In the process, it records which
-// parent elements are encountered and skips duplicates.
+// AllListLeafElementsSkippingDuplicateParents walks over a list and
+// returns all leaf elements contained within. In the process, it
+// records which parent elements are encountered and skips duplicates.
 //
 // This function can be used to efficiently iterate lists that should be
 // interpreted as sets. As depsets are backed by lists internally, this

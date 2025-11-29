@@ -27,6 +27,8 @@ var (
 	_ NamedGlobal                                                         = (*repositoryRule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
+// NewRepositoryRule creates a Starlark repository_rule object. The
+// resulting object can be called to register a repository.
 func NewRepositoryRule[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition RepositoryRuleDefinition[TReference, TMetadata]) starlark.Value {
 	return &repositoryRule[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
@@ -61,6 +63,11 @@ func (rr *repositoryRule[TReference, TMetadata]) Name() string {
 	return rr.Identifier.GetStarlarkIdentifier().String()
 }
 
+// RepoRegistrarKey is a Starlark thread local variable key that is used
+// by repository rule objects to obtain the RepoRegistrar object
+// belonging to the module extension that is currently being evaluated.
+// If this thread local variable is not set, it is not possible to
+// register repositories from within the current context.
 const RepoRegistrarKey = "repo_registrar"
 
 func (rr *repositoryRule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -213,6 +220,9 @@ func (rr *repositoryRule[TReference, TMetadata]) EncodeValue(path map[starlark.V
 	), needsCode, nil
 }
 
+// RepositoryRuleDefinition can be used to access the properties that
+// were provided to the repository rule's constructor function, such as
+// its attributes.
 type RepositoryRuleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.RepositoryRule_Definition, TMetadata], bool, error)
 	GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
@@ -223,6 +233,10 @@ type starlarkRepositoryRuleDefinition[TReference any, TMetadata model_core.Refer
 	attrs          map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]
 }
 
+// NewStarlarkRepositoryRuleDefinition creates a
+// RepositoryRuleDefinition object that is backed by Starlark values.
+// This is called when a repository rule object is created from within
+// Starlark code.
 func NewStarlarkRepositoryRuleDefinition[TReference any, TMetadata model_core.ReferenceMetadata](implementation NamedFunction[TReference, TMetadata], attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]) RepositoryRuleDefinition[TReference, TMetadata] {
 	return &starlarkRepositoryRuleDefinition[TReference, TMetadata]{
 		implementation: implementation,
@@ -259,6 +273,10 @@ type protoRepositoryRuleDefinition[TReference object.BasicReference, TMetadata m
 	protoAttrsCache protoAttrsCache[TReference, TMetadata]
 }
 
+// NewProtoRepositoryRuleDefinition creates a RepositoryRuleDefinition
+// object that is backed by a repository rule definition in the form of
+// a Protobuf message. This is called when a repository rule object is
+// reloaded from storage.
 func NewProtoRepositoryRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](message model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]) RepositoryRuleDefinition[TReference, TMetadata] {
 	return &protoRepositoryRuleDefinition[TReference, TMetadata]{
 		message: message,
