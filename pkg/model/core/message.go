@@ -181,3 +181,39 @@ func MessagesEqual[
 	tlm2, _ := Patch(NewDiscardingObjectCapturer[TReference2](), m2).SortAndSetReferences()
 	return TopLevelMessagesEqual(tlm1, tlm2)
 }
+
+// MessagesEqualList returns true if two messages contain the same list
+// of Protobuf message.
+//
+// Nested messages belonging to different objects may contain the same
+// data, but use different reference numbers. This function therefore
+// needs to convert each of the provided pairs of elements to top-level
+// messages, which is expensive. We therefore compare the message size
+// first.
+func MessagesEqualList[
+	TMessage proto.Message,
+	TReference1, TReference2 object.BasicReference,
+](m1 Message[[]TMessage, TReference1], m2 Message[[]TMessage, TReference2]) bool {
+	if len(m1.Message) != len(m2.Message) {
+		return false
+	}
+	for i := 0; i < len(m1.Message); i++ {
+		if marshalOptions.Size(m1.Message[i]) != marshalOptions.Size(m2.Message[i]) {
+			return false
+		}
+	}
+	for i := 0; i < len(m1.Message); i++ {
+		tlm1, _ := Patch(
+			NewDiscardingObjectCapturer[TReference1](),
+			Nested(m1, m1.Message[i]),
+		).SortAndSetReferences()
+		tlm2, _ := Patch(
+			NewDiscardingObjectCapturer[TReference2](),
+			Nested(m2, m2.Message[i]),
+		).SortAndSetReferences()
+		if !TopLevelMessagesEqual(tlm1, tlm2) {
+			return false
+		}
+	}
+	return true
+}

@@ -133,10 +133,9 @@ func (tr *TargetReference[TReference, TMetadata]) equal(thread *starlark.Thread,
 			if tr.configured.label != other.configured.label {
 				return false, nil
 			}
-			if len(tr.configured.encodedProviders.Message) != len(other.configured.encodedProviders.Message) {
+			if !model_core.MessagesEqualList(tr.configured.encodedProviders, other.configured.encodedProviders) {
 				return false, nil
 			}
-			return false, errors.New("TODO: Compare encoded providers!")
 		}
 	}
 	return true, nil
