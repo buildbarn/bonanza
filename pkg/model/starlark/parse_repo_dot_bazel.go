@@ -15,6 +15,10 @@ import (
 	"go.starlark.net/starlark"
 )
 
+// DefaultInheritableAttrs contains the default values of the
+// inheritable attributes of rule targets. These are used when no
+// REPO.bazel file is present, and a BUILD file contains no call to
+// package().
 var DefaultInheritableAttrs = model_starlark_pb.InheritableAttrs{
 	Visibility: &model_starlark_pb.PackageGroup{
 		Tree: &model_starlark_pb.PackageGroup_Subpackages{},

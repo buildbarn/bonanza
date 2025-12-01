@@ -14,6 +14,9 @@ import (
 // value.
 type ReferenceEqualIdentifierGenerator func() []byte
 
+// ReferenceEqualIdentifierGeneratorKey is the key under which an
+// instance of ReferenceEqualIdentifierGenerator is stored in the thread
+// local variables of a Starlark thread.
 const ReferenceEqualIdentifierGeneratorKey = "reference_equal_identifier_generator"
 
 // referenceEqual can be embedded into Starlark value types that only

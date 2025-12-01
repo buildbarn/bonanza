@@ -202,4 +202,6 @@ func NewPackageGroupFromVisibility[TMetadata model_core.ReferenceMetadata](ctx c
 	), nil
 }
 
+// ObjectManagerForTesting is used to generate mocks for
+// NewPackageGroupFromVisibility()'s unit tests.
 type ObjectManagerForTesting = model_core.ObjectManager[object.LocalReference, model_core.CreatedObjectTree]

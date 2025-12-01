@@ -29,6 +29,7 @@ var (
 	_ NamedGlobal                                                         = (*rule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
+// NewRule creates a Starlark rule object.
 func NewRule[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition RuleDefinition[TReference, TMetadata]) starlark.Value {
 	return &rule[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
@@ -63,6 +64,10 @@ func (r *rule[TReference, TMetadata]) Name() string {
 	return r.Identifier.GetStarlarkIdentifier().String()
 }
 
+// TargetRegistrarKey is a key for looking up an instance of
+// TargetRegistrar that is part of the thread local variables of a
+// Starlark thread. The TargetRegistrar is used by rule objects to
+// register targets when a rule is invoked as part of a BUILD file.
 const TargetRegistrarKey = "target_registrar"
 
 func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -466,6 +471,9 @@ func (r *rule[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 	), needsCode, nil
 }
 
+// RuleDefinition is used by Starlark rule objects to access the
+// parameters that are part of the rule's definition, such as its
+// attributes.
 type RuleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error)
 	GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
@@ -486,6 +494,9 @@ type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_co
 	subrules       []*Subrule[TReference, TMetadata]
 }
 
+// NewStarlarkRuleDefinition creates a RuleDefinition object that is
+// backed by Starlark values. This is called when rule() is invoked in a
+// .bzl file.
 func NewStarlarkRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata],
 	buildSetting *BuildSetting,
@@ -597,6 +608,11 @@ type protoRuleDefinition[TReference object.BasicReference, TMetadata model_core.
 	protoAttrsCache protoAttrsCache[TReference, TMetadata]
 }
 
+// NewProtoRuleDefinition creates a RuleDefinition object that loads all
+// of the parameters that were used to construct the rule from a
+// Protobuf message that was previously written to storage. This happens
+// when a BUILD file contains a load() directive for a rule declared in
+// a .bzl file.
 func NewProtoRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](message model_core.Message[*model_starlark_pb.Rule_Definition, TReference]) RuleDefinition[TReference, TMetadata] {
 	return &protoRuleDefinition[TReference, TMetadata]{
 		message: message,
@@ -635,8 +651,16 @@ func (rd *protoRuleDefinition[TReference, TMetadata]) GetTest(thread *starlark.T
 	return rd.message.Message.Test, nil
 }
 
+// GlobalResolver is called into by RuleDefinitions created using
+// NewReloadingRuleDefinition() to obtain the actual definition of a
+// rule in case such a rule is being invoked.
 type GlobalResolver[TReference any] = func(identifier pg_label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, TReference], error)
 
+// GlobalResolverKey is the key under which an instance of
+// GlobalResolver is stored in the thread local variables of a Starlark
+// thread. This allows RuleDefinitions created using
+// NewReloadingRuleDefinition() to obtain the actual definition of a
+// rule in case such a rule is being invoked.
 const GlobalResolverKey = "global_resolver"
 
 type reloadingRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -644,6 +668,12 @@ type reloadingRuleDefinition[TReference object.BasicReference, TMetadata model_c
 	base       atomic.Pointer[RuleDefinition[TReference, TMetadata]]
 }
 
+// NewReloadingRuleDefinition creates a RuleDefinition object for a rule
+// for which only a canonical identifier is known, and the actual
+// definition needs to be loaded lazily. This can occur when a BUILD
+// file contains a load() directive for an identifier that is an alias
+// for another rule (e.g., referring to an actual rule implementation
+// inside a "private/" directory.
 func NewReloadingRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](identifier pg_label.CanonicalStarlarkIdentifier) RuleDefinition[TReference, TMetadata] {
 	return &reloadingRuleDefinition[TReference, TMetadata]{
 		identifier: identifier,
@@ -655,6 +685,8 @@ func (reloadingRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.V
 }
 
 func (rd *reloadingRuleDefinition[TReference, TMetadata]) getBase(thread *starlark.Thread) (RuleDefinition[TReference, TMetadata], error) {
+	// TODO: Get rid of this caching. It has the downside that
+	// dependencies are unstable.
 	if base := rd.base.Load(); base != nil {
 		return *base, nil
 	}

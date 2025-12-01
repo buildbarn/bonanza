@@ -22,8 +22,10 @@ type BarePath struct {
 	component bb_path.Component
 }
 
-var _ bb_path.Parser = &BarePath{}
+var _ bb_path.Parser = (*BarePath)(nil)
 
+// Append a pathname component to a BarePath. The existing path remains
+// unmodified, and a new BarePath is returned.
 func (bp *BarePath) Append(component bb_path.Component) *BarePath {
 	return &BarePath{
 		parent:    bp,
@@ -31,6 +33,10 @@ func (bp *BarePath) Append(component bb_path.Component) *BarePath {
 	}
 }
 
+// ParseScope starts a forward traversal of the components of a
+// BarePath. This method is provided to allow passing instances of
+// BarePath to functions like path.Resolve(), so that path traversal can
+// take place.
 func (bp *BarePath) ParseScope(scopeWalker bb_path.ScopeWalker) (bb_path.ComponentWalker, bb_path.RelativeParser, error) {
 	next, err := scopeWalker.OnAbsolute()
 	if err != nil {
@@ -103,6 +109,8 @@ func (bp *BarePath) GetRelativeTo(other *BarePath) []bb_path.Component {
 	return trailingComponents
 }
 
+// GetUNIXString returns a BarePath in the form of a UNIX-style pathname
+// string.
 func (bp *BarePath) GetUNIXString() string {
 	if bp == nil {
 		return "/"
@@ -112,6 +120,8 @@ func (bp *BarePath) GetUNIXString() string {
 	return sb.String()
 }
 
+// Filesystem is called into by path objects when properties are
+// accessed that depend on the current state of the file system.
 type Filesystem interface {
 	Exists(*BarePath) (bool, error)
 	IsDir(*BarePath) (bool, error)
@@ -129,6 +139,9 @@ var (
 	_ starlark.HasAttrs = (*path)(nil)
 )
 
+// NewPath creates a Starlark path object. These objects consist of a
+// bare path that represents an absolute path, and a filesystem in which
+// operations performed against these paths should take place.
 func NewPath(bp *BarePath, filesystem Filesystem) starlark.Value {
 	return &path{
 		bare:       bp,
@@ -279,34 +292,47 @@ func (pcp pathComponentParser) ParseFirstComponent(componentWalker bb_path.Compo
 	return r, nil, nil
 }
 
+// PathResolver can be used in conjunction with path.Resolve() to
+// convert pathname strings to BarePath objects, or to resolve a path
+// relative to an existing BarePath.
 type PathResolver struct {
 	CurrentPath *BarePath
 }
 
 var (
-	_ bb_path.ScopeWalker     = &PathResolver{}
-	_ bb_path.ComponentWalker = &PathResolver{}
+	_ bb_path.ScopeWalker     = (*PathResolver)(nil)
+	_ bb_path.ComponentWalker = (*PathResolver)(nil)
 )
 
+// OnAbsolute is invoked when a leading slash is encountered during
+// pathname resolution.
 func (r *PathResolver) OnAbsolute() (bb_path.ComponentWalker, error) {
 	r.CurrentPath = nil
 	return r, nil
 }
 
+// OnRelative is invoked when pathname resolution is performed against a
+// relative path.
 func (r *PathResolver) OnRelative() (bb_path.ComponentWalker, error) {
 	return r, nil
 }
 
+// OnDriveLetter is invoked when a Windows drive letter is encountered
+// during pathname resolution.
 func (r *PathResolver) OnDriveLetter(drive rune) (bb_path.ComponentWalker, error) {
 	r.CurrentPath = nil
 	return r, nil
 }
 
+// OnShare is invoked when a Windows network share prefix is encountered
+// during pathname resolution.
 func (r *PathResolver) OnShare(server, share string) (bb_path.ComponentWalker, error) {
 	r.CurrentPath = nil
 	return r, nil
 }
 
+// OnDirectory is invoked when leading pathname components are
+// encountered during path resolution.
 func (r *PathResolver) OnDirectory(name bb_path.Component) (bb_path.GotDirectoryOrSymlink, error) {
 	r.CurrentPath = r.CurrentPath.Append(name)
 	return bb_path.GotDirectory{
@@ -315,11 +341,16 @@ func (r *PathResolver) OnDirectory(name bb_path.Component) (bb_path.GotDirectory
 	}, nil
 }
 
+// OnTerminal is invoked when the final pathname component is
+// encountered during path resolution.
 func (r *PathResolver) OnTerminal(name bb_path.Component) (*bb_path.GotSymlink, error) {
 	r.CurrentPath = r.CurrentPath.Append(name)
 	return nil, nil
 }
 
+// OnUp is invoked when a ".." pathname component is encountered during
+// path resolution. Bazel aggressively prunes ".." components from
+// paths, even if it leads to incorrect results when symlinks are used.
 func (r *PathResolver) OnUp() (bb_path.ComponentWalker, error) {
 	if r.CurrentPath != nil {
 		r.CurrentPath = r.CurrentPath.parent
@@ -327,6 +358,10 @@ func (r *PathResolver) OnUp() (bb_path.ComponentWalker, error) {
 	return r, nil
 }
 
+// RepoPathResolver is called into by unpackers created using
+// NewPathOrLabelOrStringUnpackerInto to obtain the absolute path at
+// which a repo is stored on the file system. This is needed to obtain
+// the absolute path of a file when a Label is provided.
 type RepoPathResolver func(canonicalRepo pg_label.CanonicalRepo) (*BarePath, error)
 
 type pathOrLabelOrStringUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct {
@@ -334,6 +369,11 @@ type pathOrLabelOrStringUnpackerInto[TReference any, TMetadata model_core.Refere
 	workingDirectory *BarePath
 }
 
+// NewPathOrLabelOrStringUnpackerInto creates an unpacker for Starlark
+// function arguments that either accepts a path object, a Label, or a
+// pathname string. This is typically used by the methods of module_ctx
+// and repository_ctx, which accepts pathname strings in various
+// formats. All values are converted to absolute paths.
 func NewPathOrLabelOrStringUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata](repoPathResolver RepoPathResolver, workingDirectory *BarePath) unpack.UnpackerInto[*BarePath] {
 	return &pathOrLabelOrStringUnpackerInto[TReference, TMetadata]{
 		repoPathResolver: repoPathResolver,
