@@ -18,6 +18,10 @@ import (
 	"go.starlark.net/syntax"
 )
 
+// Attr represents a Starlark rule attribute object. These are typically
+// created by calling one of the attr.*() functions. They specify the
+// type and behavior of a single attribute provided to a rule or
+// repository rule.
 type Attr[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	attrType     AttrType[TReference, TMetadata]
 	defaultValue starlark.Value
@@ -25,6 +29,10 @@ type Attr[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 
 var _ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Attr[object.LocalReference, model_core.ReferenceMetadata])(nil)
 
+// NewAttr creates a new Starlark rule attribute object. Each rule
+// attribute has a certain type, and an optional default value that is
+// used when the rule is called without specifying the attribute. If no
+// default value is given, the attribute is mandatory.
 func NewAttr[TReference any, TMetadata model_core.ReferenceMetadata](attrType AttrType[TReference, TMetadata], defaultValue starlark.Value) *Attr[TReference, TMetadata] {
 	return &Attr[TReference, TMetadata]{
 		attrType:     attrType,
@@ -36,20 +44,32 @@ func (a *Attr[TReference, TMetadata]) String() string {
 	return fmt.Sprintf("<attr.%s>", a.attrType.Type())
 }
 
+// Type returns the type name of a Starlark rule attribute object in
+// string form.
 func (a *Attr[TReference, TMetadata]) Type() string {
 	return "attr." + a.attrType.Type()
 }
 
+// Freeze a Starlark rule attribute object, so that it can no longer be
+// mutated. This has no effect, as Starlark rule attribute objects have
+// no mutable properties.
 func (Attr[TReference, TMetadata]) Freeze() {}
 
+// Truth returns whether a Starlark rule attribute object is a "truthy"
+// or a "falsy". Starlark rule attribute objects are always "truthy".
 func (Attr[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
+// Hash a Starlark rule attribute object, so that it can be placed in a
+// set or used as a key in a dict. However, Starlark rule attribute
+// objects do not permit this.
 func (a *Attr[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, fmt.Errorf("attr.%s cannot be hashed", a.attrType.Type())
 }
 
+// Encode a Starlark rule attribute object, so that it can be written to
+// storage.
 func (a *Attr[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata], bool, error) {
 	needsCode := false
 	attr, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_starlark_pb.Attr, error) {
@@ -71,6 +91,9 @@ func (a *Attr[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, o
 	return attr, needsCode, err
 }
 
+// EncodeValue encodes a Starlark rule attribute object to a generic
+// Starlark value Protobuf message, so that it can be written to
+// storage.
 func (a *Attr[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
 	needsCode := false
 	value, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_starlark_pb.Value, error) {
@@ -89,6 +112,8 @@ func (a *Attr[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 	return value, needsCode, err
 }
 
+// AttrType contains the properties of a rule attribute that are
+// specific to the rule attribute's type.
 type AttrType[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Type() string
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error
@@ -131,6 +156,8 @@ func (sloppyBoolUnpackerInto) GetConcatenationOperator() syntax.Token {
 
 type boolAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
+// NewBoolAttrType creates a Boolean attribute type. These are normally
+// constructed by calling config.bool().
 func NewBoolAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return boolAttrType[TReference, TMetadata]{}
 }
@@ -158,6 +185,8 @@ type intAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct 
 	values []int32
 }
 
+// NewIntAttrType creates an integer attribute type. These are normally
+// constructed by calling config.int().
 func NewIntAttrType[TReference any, TMetadata model_core.ReferenceMetadata](values []int32) AttrType[TReference, TMetadata] {
 	return &intAttrType[TReference, TMetadata]{
 		values: values,
@@ -187,6 +216,9 @@ func (intAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 
 type intListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
+// NewIntListAttrType creates a list attribute type, where elements are
+// integers. These are normally constructed by calling
+// config.int_list().
 func NewIntListAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return intListAttrType[TReference, TMetadata]{}
 }
@@ -218,6 +250,8 @@ type labelAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struc
 	valueCfg        TransitionDefinition[TReference, TMetadata]
 }
 
+// NewLabelAttrType creates a label attribute type. These are normally
+// constructed by calling config.label().
 func NewLabelAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowNone, allowSingleFile, executable bool, valueAllowFiles []byte, valueCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelAttrType[TReference, TMetadata]{
 		allowNone:       allowNone,
@@ -251,9 +285,9 @@ func (at *labelAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]s
 	return nil
 }
 
-func (ui *labelAttrType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) unpack.Canonicalizer {
+func (at *labelAttrType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) unpack.Canonicalizer {
 	canonicalizer := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
-	if ui.allowNone {
+	if at.allowNone {
 		canonicalizer = unpack.IfNotNone(canonicalizer)
 	}
 	return canonicalizer
@@ -268,6 +302,9 @@ type labelKeyedStringDictAttrType[TReference any, TMetadata model_core.Reference
 	dictKeyCfg        TransitionDefinition[TReference, TMetadata]
 }
 
+// NewLabelKeyedStringDictAttrType creates a dictionary attribute type,
+// where keys are labels and values are strings. These are normally
+// constructed by calling config.string_keyed_label_dict().
 func NewLabelKeyedStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](dictKeyAllowFiles []byte, dictKeyCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelKeyedStringDictAttrType[TReference, TMetadata]{
 		dictKeyAllowFiles: dictKeyAllowFiles,
@@ -308,6 +345,9 @@ type labelListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] s
 	listValueCfg        TransitionDefinition[TReference, TMetadata]
 }
 
+// NewLabelListAttrType creates a list attribute type, where elements
+// are labels. These are normally constructed by calling
+// config.label_list().
 func NewLabelListAttrType[TReference any, TMetadata model_core.ReferenceMetadata](listValueAllowFiles []byte, listValueCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelListAttrType[TReference, TMetadata]{
 		listValueAllowFiles: listValueAllowFiles,
@@ -347,6 +387,8 @@ type outputAttrType[TReference any, TMetadata model_core.ReferenceMetadata] stru
 	filenameTemplate string
 }
 
+// NewOutputAttrType creates an output file attribute type. These are
+// normally constructed by calling config.output().
 func NewOutputAttrType[TReference any, TMetadata model_core.ReferenceMetadata](filenameTemplate string) AttrType[TReference, TMetadata] {
 	return &outputAttrType[TReference, TMetadata]{
 		filenameTemplate: filenameTemplate,
@@ -376,6 +418,9 @@ func (at *outputAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 
 type outputListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
+// NewOutputListAttrType creates a list attribute type, where elements
+// are output files. These are normally constructed by calling
+// config.output_list().
 func NewOutputListAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return &outputListAttrType[TReference, TMetadata]{}
 }
@@ -403,6 +448,8 @@ type stringAttrType[TReference any, TMetadata model_core.ReferenceMetadata] stru
 	values []string
 }
 
+// NewStringAttrType creates a string attribute type. These are normally
+// constructed by calling config.string().
 func NewStringAttrType[TReference any, TMetadata model_core.ReferenceMetadata](values []string) AttrType[TReference, TMetadata] {
 	return &stringAttrType[TReference, TMetadata]{
 		values: values,
@@ -430,6 +477,9 @@ func (stringAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 
 type stringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
+// NewStringDictAttrType creates a dictionary attribute type, where keys
+// and values are strings. These are normally constructed by calling
+// config.string_dict().
 func NewStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return &stringDictAttrType[TReference, TMetadata]{}
 }
@@ -455,6 +505,9 @@ func (stringDictAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 
 type stringListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
+// NewStringListAttrType creates a list attribute type, where elements
+// are strings. These are normally constructed by calling
+// config.string_list().
 func NewStringListAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return &stringListAttrType[TReference, TMetadata]{}
 }
@@ -480,6 +533,9 @@ func (stringListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 
 type stringListDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
+// NewStringListDictAttrType creates a dictionary attribute type, where
+// keys are strings and values are lists of strings. These are normally
+// constructed by calling config.string_list_dict().
 func NewStringListDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return &stringListDictAttrType[TReference, TMetadata]{}
 }

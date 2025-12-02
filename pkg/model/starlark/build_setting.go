@@ -16,6 +16,9 @@ import (
 	"go.starlark.net/starlark"
 )
 
+// BuildSetting is a Starlark build setting object that may be provided
+// to rule(build_setting=...) to indicate that targets of the rule
+// behave as user-defined build settings.
 type BuildSetting struct {
 	buildSettingType BuildSettingType
 	flag             bool
@@ -23,6 +26,10 @@ type BuildSetting struct {
 
 var _ starlark.Value = (*BuildSetting)(nil)
 
+// NewBuildSetting creates a new Starlark build setting object.
+//
+// When the flag argument is set, it will be possible to override the
+// build setting value of targets of the rule on the command line.
 func NewBuildSetting(buildSettingType BuildSettingType, flag bool) *BuildSetting {
 	return &BuildSetting{
 		buildSettingType: buildSettingType,
@@ -34,20 +41,32 @@ func (bs *BuildSetting) String() string {
 	return fmt.Sprintf("<config.%s>", bs.buildSettingType.Type())
 }
 
+// Type returns the type name of a Starlark build setting object in
+// string form.
 func (bs *BuildSetting) Type() string {
 	return "config." + bs.buildSettingType.Type()
 }
 
+// Freeze a Starlark build setting object, so that it can no longer be
+// mutated. Starlark build setting objects do not have any mutable
+// behavior, meaning that calling this method has no effect.
 func (BuildSetting) Freeze() {}
 
+// Truth returns whether a Starlark build setting object is a "truthy"
+// or a "falsy". Starlark build setting objects are always "truthy".
 func (BuildSetting) Truth() starlark.Bool {
 	return starlark.True
 }
 
+// Hash a Starlark build setting object, so that it can be placed in a
+// set or used as a key in a dict. Starlark build setting objects cannot
+// be hashed.
 func (bs *BuildSetting) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, fmt.Errorf("config.%s cannot be hashed", bs.buildSettingType.Type())
 }
 
+// Encode a Starlark build setting object to a Protobuf message, so that
+// it can be written to storage.
 func (bs *BuildSetting) Encode() *model_starlark_pb.BuildSetting {
 	buildSetting := model_starlark_pb.BuildSetting{
 		Flag: bs.flag,
@@ -56,6 +75,9 @@ func (bs *BuildSetting) Encode() *model_starlark_pb.BuildSetting {
 	return &buildSetting
 }
 
+// BuildSettingType represents the type of a build setting that is
+// created by calling one of the functions in config.*(), such as
+// config.bool() or config.string().
 type BuildSettingType interface {
 	Type() string
 	Encode(out *model_starlark_pb.BuildSetting)
@@ -77,6 +99,8 @@ type BuildSettingCanonicalizer interface {
 
 type boolBuildSettingType struct{}
 
+// BoolBuildSettingType is a Boolean build setting type. These are
+// normally constructed by calling config.bool().
 var BoolBuildSettingType BuildSettingType = boolBuildSettingType{}
 
 func (boolBuildSettingType) Type() string {
@@ -99,6 +123,11 @@ type boolBuildSettingCanonicalizer struct {
 	unpack.Canonicalizer
 }
 
+// ParseBoolBuildSettingString converts a string value that can be
+// assigned to a Boolean-type build setting to its actual Boolean value.
+// This conversion needs to be performed when overrides for build
+// settings are specified on the command line, or if matching of flag
+// values is performed in config_setting().
 func ParseBoolBuildSettingString(s string) (bool, error) {
 	switch s {
 	case "0", "false", "False":
@@ -120,6 +149,8 @@ func (boolBuildSettingCanonicalizer) CanonicalizeStringList(values []string, lab
 
 type intBuildSettingType struct{}
 
+// IntBuildSettingType is an integer build setting type. These are
+// normally constructed by calling config.int().
 var IntBuildSettingType BuildSettingType = intBuildSettingType{}
 
 func (intBuildSettingType) Type() string {
@@ -207,6 +238,9 @@ type labelListBuildSettingType[TReference any, TMetadata model_core.ReferenceMet
 	repeatable bool
 }
 
+// NewLabelListBuildSettingType creates a label list build setting type.
+// This is a Bonanza specific extension that's provided so that flags
+// like --extra_execution_platforms can be declared in Starlark.
 func NewLabelListBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata](repeatable bool) BuildSettingType {
 	return labelListBuildSettingType[TReference, TMetadata]{
 		repeatable: repeatable,
@@ -246,6 +280,8 @@ func (labelListBuildSettingCanonicalizer[TReference, TMetadata]) CanonicalizeStr
 
 type stringBuildSettingType struct{}
 
+// StringBuildSettingType is a string build setting type. These are
+// normally constructed by calling config.string().
 var StringBuildSettingType BuildSettingType = stringBuildSettingType{}
 
 func (stringBuildSettingType) Type() string {
@@ -276,6 +312,8 @@ type stringListBuildSettingType struct {
 	repeatable bool
 }
 
+// NewStringListBuildSettingType creates a string list build setting
+// type. These are normally constructed by calling config.string_list().
 func NewStringListBuildSettingType(repeatable bool) BuildSettingType {
 	return stringListBuildSettingType{
 		repeatable: repeatable,
