@@ -26,17 +26,15 @@ func (fd functionDefinition) getKeyType(functionName string, isPatched bool) str
 		return fmt.Sprintf("*pb.%s_Key", functionName)
 	} else if isPatched {
 		return fmt.Sprintf("model_core.PatchedMessage[*pb.%s_Key, TMetadata]", functionName)
-	} else {
-		return fmt.Sprintf("model_core.Message[*pb.%s_Key, TReference]", functionName)
 	}
+	return fmt.Sprintf("model_core.Message[*pb.%s_Key, TReference]", functionName)
 }
 
 func (fd functionDefinition) keyToPatchedMessage() string {
 	if fd.KeyContainsReferences {
 		return "model_core.NewPatchedMessage[proto.Message](key.Message, key.Patcher)"
-	} else {
-		return "model_core.NewSimplePatchedMessage[TMetadata](proto.Message(key))"
 	}
+	return "model_core.NewSimplePatchedMessage[TMetadata](proto.Message(key))"
 }
 
 func (fd functionDefinition) typedKeyToArgument(functionName string) string {

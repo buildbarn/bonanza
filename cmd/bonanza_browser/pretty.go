@@ -186,13 +186,12 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 		if firstPrefix {
 			firstPrefix = false
 			return []g.Node{g.Text(path)}
-		} else {
-			return []g.Node{
-				h.Span(
-					h.Class("text-gray-500"),
-					g.Text(path),
-				),
-			}
+		}
+		return []g.Node{
+			h.Span(
+				h.Class("text-gray-500"),
+				g.Text(path),
+			),
 		}
 	}
 

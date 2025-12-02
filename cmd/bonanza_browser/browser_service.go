@@ -2028,8 +2028,9 @@ type messageJSONRenderer struct {
 	observedEncoders []*browser_pb.RecentlyObservedEncoder
 }
 
-// A function that can provide custom rendering for a particular message. If it
-// is set and returns a nonempty slice, the returned rendering is used.
+// JSONCustomRenderer is a function that can provide custom rendering
+// for a particular message. If it is set and returns a nonempty slice,
+// the returned rendering is used.
 type JSONCustomRenderer func(d *messageJSONRenderer, m model_core.Message[protoreflect.Message, object.LocalReference], fields map[string][]g.Node) []g.Node
 
 func stubCustomRenderer(d *messageJSONRenderer, m model_core.Message[protoreflect.Message, object.LocalReference], fields map[string][]g.Node) []g.Node {

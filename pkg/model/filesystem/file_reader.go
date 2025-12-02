@@ -16,12 +16,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// FileReader is a helper type for reading the contents of files that
+// have been written to storage, using traditional interfaces like
+// io.Reader, io.ReaderAt, io.Writer, etc.
 type FileReader[TReference object.BasicReference] struct {
 	fileContentsListReader     model_parser.DecodingObjectReader[TReference, FileContentsList[TReference]]
 	fileChunkReader            model_parser.DecodingObjectReader[TReference, []byte]
 	fileChunkReaderConcurrency *semaphore.Weighted
 }
 
+// NewFileReader creates a FileReader that uses the specified object
+// readers for chunks and file contents lists.
 func NewFileReader[TReference object.BasicReference](
 	fileContentsListReader model_parser.DecodingObjectReader[TReference, FileContentsList[TReference]],
 	fileChunkReader model_parser.DecodingObjectReader[TReference, []byte],
@@ -34,6 +39,9 @@ func NewFileReader[TReference object.BasicReference](
 	}
 }
 
+// GetDecodingParametersSizeBytes returns the expected size of the
+// decoding parameters that a reference to a file contents list or
+// chunks should have.
 func (fr *FileReader[TReference]) GetDecodingParametersSizeBytes(isFileContentsList bool) int {
 	if isFileContentsList {
 		return fr.fileContentsListReader.GetDecodingParametersSizeBytes()
@@ -144,6 +152,8 @@ func (w byteSliceChunkAndHoleWriter) WriteHole(offsetBytes, sizeBytes uint64) er
 	return nil
 }
 
+// FileReadAll reads the entire contents of a file that has been written
+// to storage, returning the contents as a byte slice.
 func (fr *FileReader[TReference]) FileReadAll(ctx context.Context, fileContents FileContentsEntry[TReference], maximumSizeBytes uint64) ([]byte, error) {
 	endBytes := fileContents.GetEndBytes()
 	if endBytes > maximumSizeBytes {
@@ -164,6 +174,9 @@ func (fr *FileReader[TReference]) FileReadAll(ctx context.Context, fileContents 
 	return p, nil
 }
 
+// FileReadAt performs a single read of a portion of a file that has
+// been written to storage. The provided offset and output array MUST
+// reside within the boundaries of the file.
 func (fr *FileReader[TReference]) FileReadAt(ctx context.Context, fileContents FileContentsEntry[TReference], p []byte, offsetBytes uint64) (int, error) {
 	fileContentsIterator := NewFileContentsIterator(fileContents, offsetBytes)
 	if err := fr.walkChunksAndHoles(
@@ -179,6 +192,8 @@ func (fr *FileReader[TReference]) FileReadAt(ctx context.Context, fileContents F
 	return len(p), nil
 }
 
+// FileOpenRead opens a file that has been written to storage, returning
+// a handle that allows the file to be read sequentially.
 func (fr *FileReader[TReference]) FileOpenRead(ctx context.Context, fileContents FileContentsEntry[TReference], offsetBytes uint64) *SequentialFileReader[TReference] {
 	return &SequentialFileReader[TReference]{
 		context:              ctx,
@@ -189,6 +204,8 @@ func (fr *FileReader[TReference]) FileOpenRead(ctx context.Context, fileContents
 	}
 }
 
+// FileOpenReadAt opens a file that has been written to storage,
+// returning an io.ReaderAt so that the file can be read at random.
 func (fr *FileReader[TReference]) FileOpenReadAt(ctx context.Context, fileContents FileContentsEntry[TReference]) io.ReaderAt {
 	return &randomAccessFileReader[TReference]{
 		context:      ctx,
@@ -225,6 +242,10 @@ func (fr *FileReader[TReference]) FileWriteTo(ctx context.Context, fileContents 
 	)
 }
 
+// SequentialFileReader can be used to sequentially read data from a
+// file that has been written to storage. SequentialFileReader buffers
+// the last read chunk of data, meaning that small reads will not
+// trigger redundant reads against the underlying storage backend.
 type SequentialFileReader[TReference object.BasicReference] struct {
 	context              context.Context
 	fileReader           *FileReader[TReference]
@@ -235,6 +256,12 @@ type SequentialFileReader[TReference object.BasicReference] struct {
 	sizeBytes            uint64
 }
 
+var (
+	_ io.Reader     = (*SequentialFileReader[object.LocalReference])(nil)
+	_ io.ByteReader = (*SequentialFileReader[object.LocalReference])(nil)
+)
+
+// Read data from a file that has been written to the Object Store.
 func (r *SequentialFileReader[TReference]) Read(p []byte) (int, error) {
 	nRead := 0
 	for {
@@ -278,6 +305,8 @@ func (r *SequentialFileReader[TReference]) Read(p []byte) (int, error) {
 	}
 }
 
+// ReadByte reads a single byte of data from a file that has been
+// written to the Object Store.
 func (r *SequentialFileReader[TReference]) ReadByte() (byte, error) {
 	var b [1]byte
 	if n, err := r.Read(b[:]); n == 0 {
@@ -307,6 +336,10 @@ func (r *randomAccessFileReader[TReference]) ReadAt(p []byte, offsetBytes int64)
 }
 
 type (
+	// FileContentsListReaderForTesting is used for generating mocks
+	// that are used by FileReader's unit tests.
 	FileContentsListReaderForTesting = model_parser.DecodingObjectReader[object.LocalReference, FileContentsList[object.LocalReference]]
-	FileChunkReaderForTesting        = model_parser.DecodingObjectReader[object.LocalReference, []byte]
+	// FileChunkReaderForTesting is used for generating mocks that
+	// are used by FileReader's unit tests.
+	FileChunkReaderForTesting = model_parser.DecodingObjectReader[object.LocalReference, []byte]
 )
