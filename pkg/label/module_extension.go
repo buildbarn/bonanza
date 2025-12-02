@@ -41,8 +41,8 @@ func (me ModuleExtension) GetModuleInstance() ModuleInstance {
 	return ModuleInstance{value: me.value[:strings.LastIndexByte(me.value, '+')]}
 }
 
-// GetModuleInstance returns the trailing extension name that was used
-// to construct the name of this module extension.
+// GetExtensionName returns the trailing extension name that was used to
+// construct the name of this module extension.
 func (me ModuleExtension) GetExtensionName() StarlarkIdentifier {
 	return StarlarkIdentifier{value: me.value[strings.LastIndexByte(me.value, '+')+1:]}
 }

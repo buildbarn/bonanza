@@ -8,6 +8,9 @@ type noWrap struct {
 	base Node
 }
 
+// NoWrap disables line wrapping, causing any trailing characters that
+// do not fit on the line to be discarded, as opposed to being printed
+// on the next line.
 func NoWrap(base Node) Node {
 	return &noWrap{
 		base: base,

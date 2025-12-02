@@ -28,8 +28,17 @@ import (
 	"go.starlark.net/syntax"
 )
 
+// ValueEncodingOptionsKey is the key under which ValueEncodingOptions
+// can be stored in the thread local variables of a Starlark thread.
+//
+// Calling into rules or repository rules causes new targets and
+// repositories to be registered. These are immediately converted to
+// Protobuf messages, which is why in those contexts the
+// ValueEncodingOptions must be available.
 const ValueEncodingOptionsKey = "value_encoding_options"
 
+// ValueEncodingOptions contains parameters that always need to be
+// passed along when recursively encoding Starlark value objects.
 type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	CurrentFilename *pg_label.CanonicalLabel
 
@@ -42,6 +51,9 @@ type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata
 	ObjectMaximumSizeBytes int
 }
 
+// ComputeListParentNode generates a parent node of a Starlark list that
+// is stored in a B-tree. Parent nodes are created when a Starlark list
+// is too large to store in a single object.
 func ComputeListParentNode[TMetadata model_core.ReferenceMetadata](createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_starlark_pb.List_Element, object.LocalReference]) model_core.PatchedMessage[*model_starlark_pb.List_Element, TMetadata] {
 	// Compute the total number of elements
 	// contained in the new list.
@@ -99,6 +111,8 @@ func newBTreeBuilder[TReference any, TMessage proto.Message, TMetadata model_cor
 	)
 }
 
+// NewListBuilder creates a B-tree builder for writing Starlark lists to
+// storage.
 func NewListBuilder[TReference any, TMetadata model_core.ReferenceMetadata](options *ValueEncodingOptions[TReference, TMetadata]) btree.Builder[*model_starlark_pb.List_Element, TMetadata] {
 	return newBTreeBuilder(
 		options,
@@ -109,10 +123,14 @@ func NewListBuilder[TReference any, TMetadata model_core.ReferenceMetadata](opti
 	)
 }
 
+// EncodableValue is implemented by Starlark value types in this package
+// that can be converted to a Protobuf message.
 type EncodableValue[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error)
 }
 
+// EncodeCompiledProgram converts a Starlark program to a Protobuf
+// message, so that it can be written to storage.
 func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadata](program *starlark.Program, globals starlark.StringDict, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata], error) {
 	needsCode := false
 	var globalsKeys []string
@@ -172,6 +190,8 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadat
 	), nil
 }
 
+// EncodeValue converts a Starlark value object to a Protobuf message,
+// so that it can be written to storage.
 func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](value starlark.Value, path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
 	if value == starlark.None {
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Value{
@@ -386,6 +406,8 @@ func encodeListElements[TReference any, TMetadata model_core.ReferenceMetadata](
 	return elements, needsCode, err
 }
 
+// DecodeGlobals decodes all of the globals declared in a .bzl file that
+// was previously compiled and written to storage.
 func DecodeGlobals[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](encodedGlobals model_core.Message[*model_starlark_pb.Struct_Fields, TReference], currentFilename pg_label.CanonicalLabel, options *ValueDecodingOptions[TReference]) (starlark.StringDict, error) {
 	globals := map[string]starlark.Value{}
 	var errIter error
@@ -413,13 +435,30 @@ func DecodeGlobals[TReference object.BasicReference, TMetadata model_core.Refere
 	return globals, nil
 }
 
+// ValueDecodingOptionsKey is the key under which an instance of
+// ValueDecodingOptions can be stored in the thread local variables of a
+// Starlark thread.
+//
+// Certain composite types like depsets, structs and target references
+// only decode nested values when they are accessed. This means that
+// they don't just need to access the ValueDecodingOptions when
+// DecodeValue() is called, but also when operations like indexing and
+// attribute lookups are performed.
+//
+// Storing the ValueDecodingOptions in the Starlark value objects is
+// undesirable, as it would increase the size of these objects and make
+// it hard to share values between analysis threads.
 const ValueDecodingOptionsKey = "value_decoding_options"
 
+// ValueReaders contains all of the message object readers that are
+// needed to decode any type of Starlark value object.
 type ValueReaders[TReference any] struct {
 	Dict model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry]
 	List model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
 }
 
+// ValueDecodingOptions contains parameters that always need to be
+// passed along when recursively decoding Starlark value objects.
 type ValueDecodingOptions[TReference any] struct {
 	Context         context.Context
 	Readers         *ValueReaders[TReference]
@@ -436,6 +475,8 @@ func (o *ValueDecodingOptions[TReference]) getThread() *starlark.Thread {
 	return thread
 }
 
+// DecodeValue converts a Protobuf message of a value to a native
+// Starlark object.
 func DecodeValue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](encodedValue model_core.Message[*model_starlark_pb.Value, TReference], currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueDecodingOptions[TReference]) (starlark.Value, error) {
 	switch typedValue := encodedValue.Message.GetKind().(type) {
 	case *model_starlark_pb.Value_Aspect:
@@ -553,7 +594,7 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 		return DecodeProvider[TReference, TMetadata](model_core.Nested(encodedValue, typedValue.Provider))
 	case *model_starlark_pb.Value_List:
 		list := starlark.NewList(nil)
-		if err := decodeList_Elements[TReference, TMetadata](
+		if err := decodeListElements[TReference, TMetadata](
 			model_core.Nested(encodedValue, typedValue.List),
 			&listElementsDecodingOptions[TReference]{
 				valueDecodingOptions: options,
@@ -747,6 +788,8 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 	}
 }
 
+// DecodeAttrType extracts the type of a rule attribute from a rule
+// attribute's Protobuf message.
 func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](attr model_core.Message[*model_starlark_pb.Attr, TReference]) (AttrType[TReference, TMetadata], error) {
 	switch attrTypeInfo := attr.Message.Type.(type) {
 	case *model_starlark_pb.Attr_Bool:
@@ -805,6 +848,8 @@ func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.Refer
 	}
 }
 
+// DecodeBuildSettingType extracts the type of a build setting from a
+// build setting's Protobuf message.
 func DecodeBuildSettingType[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](buildSetting *model_starlark_pb.BuildSetting) (BuildSettingType, error) {
 	switch buildSettingTypeInfo := buildSetting.Type.(type) {
 	case *model_starlark_pb.BuildSetting_Bool:
@@ -845,6 +890,8 @@ func decodeDepset[TReference object.BasicReference, TMetadata model_core.Referen
 	)
 }
 
+// DecodeProvider converts a Protobuf message of a provider to a native
+// Starlark provider object.
 func DecodeProvider[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](m model_core.Message[*model_starlark_pb.Provider, TReference]) (*Provider[TReference, TMetadata], error) {
 	instanceProperties := m.Message.InstanceProperties
 	if instanceProperties == nil {
@@ -894,6 +941,8 @@ func decodeToolchainType[TReference any, TMetadata model_core.ReferenceMetadata]
 	return NewToolchainType[TReference, TMetadata](toolchainTypeLabel, toolchainType.Mandatory), nil
 }
 
+// DecodeStruct converts a Protobuf message of a struct to a native
+// Starlark struct object.
 func DecodeStruct[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](m model_core.Message[*model_starlark_pb.Struct, TReference], options *ValueDecodingOptions[TReference]) (*Struct[TReference, TMetadata], error) {
 	var providerInstanceProperties *ProviderInstanceProperties[TReference, TMetadata]
 	if pip := m.Message.ProviderInstanceProperties; pip != nil {
@@ -965,7 +1014,7 @@ type listElementsDecodingOptions[TReference any] struct {
 	out                  *starlark.List
 }
 
-func decodeList_Elements[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](in model_core.Message[*model_starlark_pb.List, TReference], options *listElementsDecodingOptions[TReference]) error {
+func decodeListElements[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](in model_core.Message[*model_starlark_pb.List, TReference], options *listElementsDecodingOptions[TReference]) error {
 	var errIter error
 	for element := range AllListLeafElements(
 		options.valueDecodingOptions.Context,
