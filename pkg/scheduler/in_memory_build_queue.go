@@ -333,6 +333,9 @@ func (bq *InMemoryBuildQueue) RegisterPredeclaredPlatformQueue(pkixPublicKeys []
 	if !slices.IsSorted(sizeClasses) {
 		return status.Error(codes.InvalidArgument, "Size classes must be provided in sorted order")
 	}
+	if len(sizeClasses) > 1 && sizeClasses[0] == 0 {
+		return status.Error(codes.InvalidArgument, "If multiple size classes are provided, all size classes must be positive")
+	}
 
 	bq.enter(bq.clock.Now())
 	defer bq.leave()
