@@ -12,6 +12,8 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )
 
+// AllDictLeafEntries iterates over a dict that is backed by storage,
+// returning both the key and value of every entry contained within.
 func AllDictLeafEntries[TReference any](
 	ctx context.Context,
 	reader model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry],

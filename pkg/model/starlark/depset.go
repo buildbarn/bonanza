@@ -583,6 +583,11 @@ type listToDepsetUnpackerInto[TReference object.BasicReference, TMetadata model_
 	base unpack.UnpackerInto[[]starlark.Value]
 }
 
+// NewListToDepsetUnpackerInto creates a Starlark function argument
+// unpacker that accepts Starlark list objects, but that returns the
+// list in the form of a Starlark depset object. This is used to process
+// calls to ctx.actions.run() where the "inputs" argument is a list
+// instead of a depset of files.
 func NewListToDepsetUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](base unpack.Canonicalizer) unpack.UnpackerInto[*Depset[TReference, TMetadata]] {
 	return &listToDepsetUnpackerInto[TReference, TMetadata]{
 		base: unpack.List(unpack.Canonicalize(base)),

@@ -58,11 +58,28 @@ func (allowFilesUnpackerInto) GetConcatenationOperator() syntax.Token {
 }
 
 const (
+	// CanonicalPackageKey is the key under which the name of the
+	// package that is currently being processed is placed in the
+	// thread local variables of a Starlark thread. During
+	// evaluation of module extensions it should be set to the root
+	// package of the module declaring the extension.
 	CanonicalPackageKey = "canonical_package"
-	CurrentCtxKey       = "current_ctx"
-	GlobExpanderKey     = "glob_expander"
+	// CurrentCtxKey is the key under which the rule context is
+	// stored in the thread local variables of a Starlark thread
+	// that is evaluating a rule. This is used to implement
+	// native.current_ctx(), which is a Bonanza specific extension
+	// that is needed to support some poorly written rules.
+	CurrentCtxKey = "current_ctx"
+	// GlobExpanderKey is the key under which an instance of
+	// GlobExpander is stored in the thread local variables of a
+	// Starlark thread that is evaluating a BUILD file. It is
+	// invoked when glob() directives are encountered.
+	GlobExpanderKey = "glob_expander"
 )
 
+// GlobExpander is invoked when a glob directive is encountered in a
+// BUILD file. It is responsible for performing the glob expansion and
+// returning relative pathnames that were matched.
 type GlobExpander = func(include, exclude []string, includeDirectories bool) ([]string, error)
 
 func labelSetting[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple, flag bool) (starlark.Value, error) {
@@ -166,6 +183,8 @@ func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_co
 	return nil
 }
 
+// GetBuiltins returns the set of Starlark builtins that should be
+// available when evaluating .bzl and BUILD files.
 func GetBuiltins[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() (starlark.StringDict, starlark.StringDict) {
 	providersListUnpackerInto := unpack.Or([]unpack.UnpackerInto[[][]*Provider[TReference, TMetadata]]{
 		unpack.Singleton(unpack.List(unpack.Type[*Provider[TReference, TMetadata]]("provider"))),

@@ -32,6 +32,8 @@ var (
 	ComponentExternal = bb_path.MustNewComponent(ComponentStrExternal)
 )
 
+// File in the form of a Starlark object, either referring to a source
+// input file or a target output file.
 type File[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	definition       model_core.Message[*model_starlark_pb.File, TReference]
 	treeRelativePath *bb_path.Trace
@@ -43,6 +45,8 @@ var (
 	_ starlark.HasAttrs                                                   = (*File[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
+// NewFile creates a Starlark file object using a Protobuf message as a
+// definition.
 func NewFile[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](definition model_core.Message[*model_starlark_pb.File, TReference]) *File[TReference, TMetadata] {
 	return &File[TReference, TMetadata]{
 		definition: definition,
@@ -66,17 +70,23 @@ func (f *File[TReference, TMetadata]) String() string {
 	return "<File>"
 }
 
+// Type returns the type name of a Starlark file object in string form.
 func (File[TReference, TMetadata]) Type() string {
 	return "File"
 }
 
-func (File[TReference, TMetadata]) Freeze() {
-}
+// Freeze a Starlark file object, so that it cannot be mutated. This has
+// no effect on Starlark file objects, as those are already immutable.
+func (File[TReference, TMetadata]) Freeze() {}
 
+// Truth returns whether a Starlark file object is "truthy" or "falsy".
+// Starlark file objects are always "truthy".
 func (File[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
+// Hash a Starlark file object, so that it can be placed in a set or be
+// used as a key in a dict.
 func (f *File[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
 	d := f.definition.Message
 	h := fnv.New32a()
@@ -88,6 +98,9 @@ func (f *File[TReference, TMetadata]) equals(other *File[TReference, TMetadata])
 	return f == other || model_core.MessagesEqual(f.definition, other.definition)
 }
 
+// CompareSameType returns true if both Starlark file objects represent
+// the same underlying file (i.e., having the same path, owner, and
+// configuration).
 func (f *File[TReference, TMetadata]) CompareSameType(thread *starlark.Thread, op syntax.Token, other starlark.Value, depth int) (bool, error) {
 	switch op {
 	case syntax.EQL:
@@ -134,6 +147,8 @@ func (f *File[TReference, TMetadata]) getPathEnd() (string, error) {
 	return canonicalLabel.GetTargetName().String(), nil
 }
 
+// Attr computes the value of an attribute of a Starlark file object
+// when it is requested.
 func (f *File[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
 	d := f.definition.Message
 	switch name {
@@ -255,10 +270,14 @@ var fileAttrNames = []string{
 	"tree_relative_path",
 }
 
+// AttrNames returns the names of the set of attributes of a Starlark
+// file object.
 func (File[TReference, TMetadata]) AttrNames() []string {
 	return fileAttrNames
 }
 
+// EncodeValue returns the properties of a Starlark file object in the
+// form of a Protobuf message which may be written to storage.
 func (f *File[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
 	if f.treeRelativePath != nil {
 		panic("files with tree relative paths should not be encoded, as they only exist during target action command computation")
@@ -274,10 +293,17 @@ func (f *File[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 	), false, nil
 }
 
+// GetDefinition returns the properties of a Starlark file object in the
+// form of a Protobuf message which is already backed by storage.
 func (f *File[TReference, TMetadata]) GetDefinition() model_core.Message[*model_starlark_pb.File, TReference] {
 	return f.definition
 }
 
+// GetTreeRelativePath returns the tree relative path of a file. The
+// Starlark API does not permit manual construction of Starlark file
+// objects. However, files containing tree relative paths may be
+// encountered when directory expansion is performed using
+// Args.add_*(expand_directories=True).
 func (f *File[TReference, TMetadata]) GetTreeRelativePath() *bb_path.Trace {
 	return f.treeRelativePath
 }
