@@ -24,10 +24,10 @@ type objectInitializedFileFactory struct {
 // used to create mutable files whose initial contents correspond to a
 // file in storage.
 //
-// For regular build we want input files to be read-only. However, for
-// repository rules we need input files to be writable as well. For
-// example, commands executed by repository rules may append data to
-// BUILD files that were produced by previous steps.
+// For regular build actions we want input files to be read-only.
+// However, for repository rules we need input files to be writable as
+// well. For example, commands executed by repository rules may append
+// data to BUILD files that were produced by previous steps.
 func NewObjectInitializedFileFactory(ctx context.Context, fileReader *model_filesystem.FileReader[object.LocalReference], fileAllocator virtual.FileAllocator) FileFactory {
 	return &objectInitializedFileFactory{
 		context:       ctx,

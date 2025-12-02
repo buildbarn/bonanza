@@ -17,6 +17,13 @@ type objectBackedFileFactory struct {
 	errorLogger util.ErrorLogger
 }
 
+// NewObjectBackedFileFactory creates a FileFactory that can be used to
+// create read-only files whose initial contents correspond to a file in
+// storage.
+//
+// This is sufficient for regular build actions, as those are generally
+// designed to only write to output locations and not modify any of
+// their inputs.
 func NewObjectBackedFileFactory(ctx context.Context, fileReader *model_filesystem.FileReader[object.LocalReference], errorLogger util.ErrorLogger) FileFactory {
 	return &objectBackedFileFactory{
 		context:     ctx,

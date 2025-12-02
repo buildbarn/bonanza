@@ -31,6 +31,10 @@ type objectBackedInitialContentsFetcher struct {
 	directoryIndex   int
 }
 
+// NewObjectBackedInitialContentsFetcher creates a
+// InitialContentsFetcher that can be used to populate an
+// InMemoryPrepopulatedDirectory with the contents of a directory
+// structure that has been written to the Object Store.
 func NewObjectBackedInitialContentsFetcher(
 	ctx context.Context,
 	directoryClusterReader model_parser.MessageObjectReader[object.LocalReference, model_filesystem.DirectoryCluster],
