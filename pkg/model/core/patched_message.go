@@ -49,14 +49,14 @@ func NewPatchedMessageFromExisting[
 			return existing.Message
 		}
 
-		clonedMessage := proto.Clone(existing.Message)
+		clonedMessage := proto.CloneOf(existing.Message)
 		a := referenceMessageAdder[TMetadata, TReference]{
 			patcher:            patcher,
 			outgoingReferences: existing.OutgoingReferences,
 			createMetadata:     createMetadata,
 		}
 		a.addReferenceMessagesRecursively(clonedMessage.ProtoReflect())
-		return clonedMessage.(TMessage)
+		return clonedMessage
 	})
 }
 

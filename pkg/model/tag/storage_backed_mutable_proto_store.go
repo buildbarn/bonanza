@@ -125,7 +125,7 @@ type handleToWrite[T any, TProto interface {
 	proto.Message
 }] struct {
 	handle         *storageBackedMutableProtoHandle[T, TProto]
-	message        proto.Message
+	message        TProto
 	writingVersion int
 }
 
@@ -157,7 +157,7 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 		handle.handlesToWriteIndex = -1
 		handlesToWrite = append(handlesToWrite, handleToWrite[T, TProto]{
 			handle:         handle,
-			message:        proto.Clone(TProto(&handle.message)),
+			message:        proto.CloneOf(TProto(&handle.message)),
 			writingVersion: handle.currentVersion,
 		})
 	}

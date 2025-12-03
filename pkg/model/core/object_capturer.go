@@ -125,9 +125,9 @@ func PatchList[
 
 		newList := make([]*TMessage, 0, len(existingList.Message))
 		for _, element := range existingList.Message {
-			clonedElement := proto.Clone(TMessagePtr(element))
+			clonedElement := proto.CloneOf(TMessagePtr(element))
 			a.addReferenceMessagesRecursively(clonedElement.ProtoReflect())
-			newList = append(newList, clonedElement.(TMessagePtr))
+			newList = append(newList, clonedElement)
 		}
 		return newList
 	})
