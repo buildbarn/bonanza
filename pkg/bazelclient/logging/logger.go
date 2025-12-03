@@ -9,6 +9,7 @@ import (
 	"golang.org/x/term"
 )
 
+// Logger of formatted messages.
 type Logger interface {
 	Error(message formatted.Node)
 	Fatal(message formatted.Node)
@@ -16,6 +17,9 @@ type Logger interface {
 	RemovePreviousLines(int)
 }
 
+// NewLoggerFromFlags creates a Logger, respecting arguments that were
+// provided on the command line that affect the way text printed by this
+// tool is formatted.
 func NewLoggerFromFlags(commonFlags *arguments.CommonFlags) Logger {
 	w := os.Stderr
 	var writeFormatted FormattedNodeWriter

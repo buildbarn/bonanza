@@ -56,6 +56,9 @@ type simpleCapturableFile[TFile model_core.ReferenceMetadata] struct {
 	fileContents model_core.PatchedMessage[*model_filesystem_pb.FileContents, TFile]
 }
 
+// NewSimpleCapturableFile creates a CapturableFile that returns a
+// FileContents message that was computed previously. This can be used
+// to place already existing files in directory Merkle trees.
 func NewSimpleCapturableFile[TFile model_core.ReferenceMetadata](fileContents model_core.PatchedMessage[*model_filesystem_pb.FileContents, TFile]) CapturableFile[TFile] {
 	return &simpleCapturableFile[TFile]{
 		fileContents: fileContents,

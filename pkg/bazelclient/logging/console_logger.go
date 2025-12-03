@@ -8,6 +8,10 @@ import (
 	"bonanza.build/pkg/bazelclient/formatted"
 )
 
+// FormattedNodeWriter is called into by the console logger to format
+// messages before writing them. For example, if the console supports
+// VT100 escape sequences, the FormattedNodeWriter may format the
+// message using Set Graphic Rendition (SGR) escape sequences.
 type FormattedNodeWriter func(message formatted.Node, w io.StringWriter) (int, error)
 
 type consoleLogger struct {
@@ -15,6 +19,9 @@ type consoleLogger struct {
 	writeFormatted FormattedNodeWriter
 }
 
+// NewConsoleLogger creates a Logger that writes log messages to a
+// textual console, like a terminal or a simple log file. Messages are
+// prefixed with their severity.
 func NewConsoleLogger(w io.Writer, writeFormatted FormattedNodeWriter) Logger {
 	return &consoleLogger{
 		w:              w,

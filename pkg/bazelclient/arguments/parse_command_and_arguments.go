@@ -1,10 +1,15 @@
 package arguments
 
+// BuildSettingOverride contains the label of a user-defined build
+// setting for which an override was provided on the command line or in
+// a bazelrc file, and the value that is assigned to it.
 type BuildSettingOverride struct {
 	Label string
 	Value string
 }
 
+// Command denotes a specific subcommand of the Bazel command line tool
+// for which arguments have been parsed.
 type Command interface {
 	Reset()
 }
@@ -14,6 +19,9 @@ type commandAncestor struct {
 	mustApply bool
 }
 
+// ParseCommandAndArguments parses the name of a command like "build" or
+// "test", and any of the arguments that follow that are specific to
+// that command.
 func ParseCommandAndArguments(configurationDirectives ConfigurationDirectives, args []string) (Command, error) {
 	var cmd assignableCommand
 	var ancestors []commandAncestor

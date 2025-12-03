@@ -269,15 +269,15 @@
             "FilesInPackage"
          ]
       },
-      "HttpArchiveContents": {
+      "HTTPArchiveContents": {
          "dependsOn": [
             "DirectoryCreationParametersObject",
             "FileReader",
             "FileCreationParametersObject",
-            "HttpFileContents"
+            "HTTPFileContents"
          ]
       },
-      "HttpFileContents": {
+      "HTTPFileContents": {
          "dependsOn": [
             "ActionEncoderObject",
             "ActionEncoders",
@@ -289,7 +289,7 @@
       "ModuleDotBazelContents": {
          "dependsOn": [
             "FileProperties",
-            "HttpFileContents",
+            "HTTPFileContents",
             "ModuleFinalBuildList",
             "ModulesWithOverrides"
          ]
@@ -319,8 +319,8 @@
             "FileCreationParameters",
             "FileCreationParametersObject",
             "FileReader",
-            "HttpArchiveContents",
-            "HttpFileContents",
+            "HTTPArchiveContents",
+            "HTTPFileContents",
             "ModuleDotBazelContents",
             "RegisteredRepoPlatform",
             "Repo",
@@ -352,7 +352,7 @@
       "ModuleRoughBuildList": {
          "dependsOn": [
             "FileReader",
-            "HttpFileContents",
+            "HTTPFileContents",
             "ModuleDotBazelContents",
             "ModuleRegistryUrls",
             "ModulesWithOverrides",
@@ -481,8 +481,8 @@
             "FileCreationParametersObject",
             "FileProperties",
             "FileReader",
-            "HttpArchiveContents",
-            "HttpFileContents",
+            "HTTPArchiveContents",
+            "HTTPFileContents",
             "ModuleExtensionRepo",
             "ModuleFinalBuildList",
             "ModulesWithRemoteOverrides",

@@ -15,6 +15,10 @@ import (
 	"go.starlark.net/starlark"
 )
 
+// RuleImplementationWrappers contains the Starlark functions that need
+// to be invoked prior to running rules and subrules in order to wrap
+// ctx and subrule_ctx objects. This can be used to add support for
+// legacy features and improve compatibility with Bazel.
 type RuleImplementationWrappers struct {
 	Rule    starlark.Value
 	Subrule starlark.Value

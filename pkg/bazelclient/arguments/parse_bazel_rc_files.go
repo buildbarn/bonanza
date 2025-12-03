@@ -189,8 +189,12 @@ func (p *bazelRCFileParser) parseRecursively(bazelRCPath path.Parser, required b
 	}
 }
 
+// ConfigurationDirectives contains the set of directives that were
+// extracted from bazelrc files by ParseBazelRCFiles().
 type ConfigurationDirectives map[string][][]string
 
+// ParseBazelRCFiles parses a list of bazelrc files, and returns the set
+// of directives contained within.
 func ParseBazelRCFiles(bazelRCPaths []BazelRCPath, rootDirectory filesystem.Directory, pathFormat path.Format, workspacePath, workingDirectoryPath path.Parser) (ConfigurationDirectives, error) {
 	if len(bazelRCPaths) == 0 {
 		return ConfigurationDirectives{}, nil

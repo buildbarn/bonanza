@@ -242,31 +242,31 @@ func (af *capturableArchiveFile[TFile]) CreateFileMerkleTree(ctx context.Context
 
 func (capturableArchiveFile[TFile]) Discard() {}
 
-func (c *baseComputer[TReference, TMetadata]) ComputeHttpArchiveContentsValue(ctx context.Context, key *model_analysis_pb.HttpArchiveContents_Key, e HttpArchiveContentsEnvironment[TReference, TMetadata]) (PatchedHttpArchiveContentsValue[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx context.Context, key *model_analysis_pb.HttpArchiveContents_Key, e HTTPArchiveContentsEnvironment[TReference, TMetadata]) (PatchedHTTPArchiveContentsValue[TMetadata], error) {
 	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
 	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObjectValue(&model_analysis_pb.FileCreationParametersObject_Key{})
-	httpFileContentsValue := e.GetHttpFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
+	httpFileContentsValue := e.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
 		FetchOptions: key.FetchOptions,
 	})
 	if !gotFileReader || !gotDirectoryCreationParameters || !gotFileCreationParameters || !httpFileContentsValue.IsSet() {
-		return PatchedHttpArchiveContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
+		return PatchedHTTPArchiveContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if httpFileContentsValue.Message.Exists == nil {
-		return PatchedHttpArchiveContentsValue[TMetadata]{}, errors.New("file does not exist")
+		return PatchedHTTPArchiveContentsValue[TMetadata]{}, errors.New("file does not exist")
 	}
 
 	httpFileContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
 		model_core.Nested(httpFileContentsValue, httpFileContentsValue.Message.Exists.Contents),
 	)
 	if err != nil {
-		return PatchedHttpArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid file contents: %w", err)
+		return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid file contents: %w", err)
 	}
 
 	// Create a temporary file for storing copies of extracted files.
 	extractedFiles, err := c.filePool.NewFile(pool.ZeroHoleSource, 0)
 	if err != nil {
-		return PatchedHttpArchiveContentsValue[TMetadata]{}, err
+		return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 	}
 	defer extractedFiles.Close()
 	extractedFilesWriter := model_filesystem.NewSectionWriter(extractedFiles)
@@ -281,12 +281,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpArchiveContentsValue(ct
 		case model_analysis_pb.HttpArchiveContents_Key_TAR_GZ:
 			decompressedReader, err = gzip.NewReader(compressedReader)
 			if err != nil {
-				return PatchedHttpArchiveContentsValue[TMetadata]{}, err
+				return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 			}
 		case model_analysis_pb.HttpArchiveContents_Key_TAR_XZ:
 			decompressedReader, err = xz.NewReader(compressedReader)
 			if err != nil {
-				return PatchedHttpArchiveContentsValue[TMetadata]{}, err
+				return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 			}
 		default:
 			panic("unhandled compression format")
@@ -298,26 +298,26 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpArchiveContentsValue(ct
 				if err == io.EOF {
 					break
 				}
-				return PatchedHttpArchiveContentsValue[TMetadata]{}, err
+				return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 			}
 
 			switch header.Typeflag {
 			case tar.TypeDir:
 				if err := rootDirectory.resolveNewDirectory(header.Name); err != nil {
-					return PatchedHttpArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid path %#v: %w", header.Name, err)
+					return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid path %#v: %w", header.Name, err)
 				}
 			case tar.TypeLink:
 				panic("TODO")
 			case tar.TypeReg, tar.TypeSymlink:
 				d, name, err := rootDirectory.resolveNewFile(header.Name)
 				if err != nil {
-					return PatchedHttpArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid path %#v: %w", header.Name, err)
+					return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid path %#v: %w", header.Name, err)
 				}
 
 				switch header.Typeflag {
 				case tar.TypeReg:
 					if err := d.addFile(name, extractedFilesWriter, tarReader, header.Mode&0o111 != 0); err != nil {
-						return PatchedHttpArchiveContentsValue[TMetadata]{}, err
+						return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 					}
 				case tar.TypeSymlink:
 					if d.symlinks == nil {
@@ -332,32 +332,32 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpArchiveContentsValue(ct
 	case model_analysis_pb.HttpArchiveContents_Key_ZIP:
 		zipReader, err := zip.NewReader(fileReader.FileOpenReadAt(ctx, httpFileContentsEntry), int64(httpFileContentsEntry.GetEndBytes()))
 		if err != nil {
-			return PatchedHttpArchiveContentsValue[TMetadata]{}, err
+			return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 		}
 		for _, file := range zipReader.File {
 			if strings.HasSuffix(file.Name, "/") {
 				if err := rootDirectory.resolveNewDirectory(file.Name); err != nil {
-					return PatchedHttpArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid path %#v: %w", file.Name, err)
+					return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid path %#v: %w", file.Name, err)
 				}
 			} else {
 				d, name, err := rootDirectory.resolveNewFile(file.Name)
 				if err != nil {
-					return PatchedHttpArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid path %#v: %w", file.Name, err)
+					return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid path %#v: %w", file.Name, err)
 				}
 
 				f, err := file.Open()
 				if err != nil {
-					return PatchedHttpArchiveContentsValue[TMetadata]{}, err
+					return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 				}
 				errAdd := d.addFile(name, extractedFilesWriter, f, true)
 				f.Close()
 				if errAdd != nil {
-					return PatchedHttpArchiveContentsValue[TMetadata]{}, errAdd
+					return PatchedHTTPArchiveContentsValue[TMetadata]{}, errAdd
 				}
 			}
 		}
 	default:
-		return PatchedHttpArchiveContentsValue[TMetadata]{}, errors.New("unknown archive format")
+		return PatchedHTTPArchiveContentsValue[TMetadata]{}, errors.New("unknown archive format")
 	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
@@ -381,13 +381,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpArchiveContentsValue(ct
 		)
 	})
 	if err := group.Wait(); err != nil {
-		return PatchedHttpArchiveContentsValue[TMetadata]{}, err
+		return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 	}
 
 	// Store the root directory itself. We don't embed it into the
 	// response, as that prevents it from being accessed separately.
 	if l := createdRootDirectory.MaximumSymlinkEscapementLevels; l == nil || l.Value != 0 {
-		return PatchedHttpArchiveContentsValue[TMetadata]{}, errors.New("archive contains one or more symbolic links that potentially escape the archive's root directory")
+		return PatchedHTTPArchiveContentsValue[TMetadata]{}, errors.New("archive contains one or more symbolic links that potentially escape the archive's root directory")
 	}
 	createdRootDirectoryObject, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoToBinaryMarshaler(createdRootDirectory.Message),
@@ -395,7 +395,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpArchiveContentsValue(ct
 		directoryCreationParameters.GetEncoder(),
 	)
 	if err != nil {
-		return PatchedHttpArchiveContentsValue[TMetadata]{}, err
+		return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 	}
 
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.HttpArchiveContents_Value, error) {

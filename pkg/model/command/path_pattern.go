@@ -16,6 +16,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// GetPathPatternWithChildren returns a PathPattern message that either
+// has its children inlined into it, or referenced as an external
+// object.
 func GetPathPatternWithChildren[TMetadata model_core.ReferenceMetadata](
 	children model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],
 	externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
@@ -38,7 +41,17 @@ func GetPathPatternWithChildren[TMetadata model_core.ReferenceMetadata](
 	}
 }
 
-func GetPathPatternInlineCandidate[TMetadata model_core.ReferenceMetadata](ctx context.Context, name string, grandChildren model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], encoder model_encoding.DeterministicBinaryEncoder, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) inlinedtree.Candidate[*model_command_pb.PathPattern_Children, TMetadata] {
+// GetPathPatternInlineCandidate creates a candidate for either inlining
+// a path pattern child, or storing it externally. This candidate can be
+// provided to inlinedtree.Build() to construct a PathPattern, which may
+// get spread out across multiple objects if it gets too big.
+func GetPathPatternInlineCandidate[TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
+	name string,
+	grandChildren model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],
+	encoder model_encoding.DeterministicBinaryEncoder,
+	objectCapturer model_core.CreatedObjectCapturer[TMetadata],
+) inlinedtree.Candidate[*model_command_pb.PathPattern_Children, TMetadata] {
 	return inlinedtree.Candidate[*model_command_pb.PathPattern_Children, TMetadata]{
 		ExternalMessage: model_core.ProtoToBinaryMarshaler(grandChildren),
 		Encoder:         encoder,
@@ -54,7 +67,20 @@ func GetPathPatternInlineCandidate[TMetadata model_core.ReferenceMetadata](ctx c
 	}
 }
 
-func PrependDirectoryToPathPatternChildren[TMetadata model_core.ReferenceMetadata](ctx context.Context, name string, grandChildren model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], error) {
+// PrependDirectoryToPathPatternChildren prepends a single pathname
+// component to a PathPattern.
+//
+// One use case for this is when a target action's comand is computed. A
+// PathPattern will already be present, but it does not yet have the
+// "bazel-out/${configuration}/bin" path prefix.
+func PrependDirectoryToPathPatternChildren[TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
+	name string,
+	grandChildren model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],
+	encoder model_encoding.DeterministicBinaryEncoder,
+	inlinedTreeOptions *inlinedtree.Options,
+	objectCapturer model_core.CreatedObjectCapturer[TMetadata],
+) (model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], error) {
 	return inlinedtree.Build(
 		inlinedtree.CandidateList[*model_command_pb.PathPattern_Children, TMetadata]{
 			GetPathPatternInlineCandidate(ctx, name, grandChildren, encoder, objectCapturer),
@@ -70,6 +96,7 @@ type PathPatternSet[TMetadata model_core.ReferenceMetadata] struct {
 	included bool
 }
 
+// Add a relative pathname string to the set.
 func (s *PathPatternSet[TMetadata]) Add(path iter.Seq[string]) {
 	for component := range path {
 		sChild, ok := s.children[component]
@@ -88,7 +115,12 @@ func (s *PathPatternSet[TMetadata]) Add(path iter.Seq[string]) {
 // ToProto converts the set of relative pathname strings contained in
 // the set to a PathPattern message that can be embedded in a Command
 // message, which is to be processed by a remote worker.
-func (s *PathPatternSet[TMetadata]) ToProto(ctx context.Context, encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], error) {
+func (s *PathPatternSet[TMetadata]) ToProto(
+	ctx context.Context,
+	encoder model_encoding.DeterministicBinaryEncoder,
+	inlinedTreeOptions *inlinedtree.Options,
+	objectCapturer model_core.CreatedObjectCapturer[TMetadata],
+) (model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], error) {
 	if s.included {
 		return model_core.NewSimplePatchedMessage[TMetadata]((*model_command_pb.PathPattern_Children)(nil)), nil
 	}

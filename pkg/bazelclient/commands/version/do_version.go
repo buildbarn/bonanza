@@ -6,6 +6,8 @@ import (
 	"bonanza.build/pkg/bazelclient/arguments"
 )
 
+// DoVersion implements the "bazel version" command, which prints the
+// tool's version number.
 func DoVersion(args *arguments.VersionCommand) {
 	// As we currently don't try to be compatible with an explicit
 	// version of Bazel, mimic the output of a version of Bazel that

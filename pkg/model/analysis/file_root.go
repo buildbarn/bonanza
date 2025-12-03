@@ -1142,4 +1142,6 @@ func (cw *symlinkRecordingComponentWalker[TReference, TMetadata]) OnUp() (path.C
 	return cw, nil
 }
 
+// FileRootEnvironmentForTesting is used to generate mocks for unit
+// testing BaseComputer.
 type FileRootEnvironmentForTesting FileRootEnvironment[model_core.CreatedObjectTree, model_core.CreatedObjectTree]

@@ -115,7 +115,7 @@ type capturedDirectoryWalker struct {
 }
 
 // NewCapturedDirectoryWalker returns an implementation of
-// ObjectContentsWalker that is capable of walking over a hierarchy over
+// ObjectContentsWalker that is capable of walking over a hierarchy of
 // Directory and Leaves objects that were created using
 // CreateDirectoryMerkleTree and captured using
 // FileDiscardingDirectoryMerkleTreeCapturer. This makes it possible to
@@ -310,6 +310,18 @@ func (w *recomputingConcatenatedFileWalker) GetContents(ctx context.Context) (*o
 	return wComputed.GetContents(ctx)
 }
 
+// NewCapturedFileWalker returns an implementation of
+// ObjectContentsWalker that is capable of walking over a hierarchy of
+// file contents list and chunk objects that were created using
+// CreateFileMerkleTree and captured using
+// ChunkDiscardingFileMerkleTreeCapturer. This makes it possible to
+// upload such files to a storage server.
+//
+// These Merkle trees only contain file contents lists and no chunks,
+// but it is permitted for the storage server to request chunks. If that
+// happens, we must reobtain them from the underlying file system. This
+// is why the caller must provide a handle to the file on which the
+// provided Merkle tree is based.
 func NewCapturedFileWalker(fileParameters *FileCreationParameters, r filesystem.FileReader, fileReference object.LocalReference, fileSizeBytes uint64, fileObject *model_core.CreatedObjectTree, decodingParameters []byte) dag.ObjectContentsWalker {
 	options := newComputedConcatenatedFileObjectOptions(fileParameters, nil, r)
 	if fileReference.GetHeight() == 0 {

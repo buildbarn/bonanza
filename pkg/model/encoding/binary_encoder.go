@@ -128,6 +128,9 @@ type KeyedBinaryEncoder interface {
 	EncodeBinary(in, parameters []byte) ([]byte, error)
 }
 
+// NewKeyedBinaryEncoderFromProto creates a KeyedBinaryEncoder that
+// behaves according to the specification provided in the form of a
+// Protobuf message.
 func NewKeyedBinaryEncoderFromProto(configurations []*model_encoding_pb.BinaryEncoder, maximumDecodedSizeBytes uint32) (KeyedBinaryEncoder, error) {
 	return newBinaryEncoderFromProto(
 		configurations,

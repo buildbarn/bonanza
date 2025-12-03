@@ -109,6 +109,8 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 	return rc
 }
 
+// ProcessNextQueuedKey blocks until one or more keys are queued for
+// execution. After that it will attempt to evaluate it.
 func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx context.Context, rcq *RecursiveComputerQueue[TReference, TMetadata]) bool {
 	for {
 		rc.lock.Lock()
@@ -275,6 +277,8 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(ke
 	return ks
 }
 
+// GetOrCreateKeyState looks up the key state for a given key. If the
+// key state does not yet exist, it is created.
 func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key model_core.TopLevelMessage[proto.Message, TReference]) (*KeyState[TReference, TMetadata], error) {
 	keyHash, err := getKeyHash(key)
 	if err != nil {
@@ -287,6 +291,9 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key mode
 	return ks, nil
 }
 
+// InjectKeyState overrides the value for a given key. This prevents the
+// key from getting evaluated, and causes evaluation of keys that depend
+// on it to receive the injected value.
 func (rc *RecursiveComputer[TReference, TMetadata]) InjectKeyState(key model_core.TopLevelMessage[proto.Message, TReference], value model_core.Message[proto.Message, TReference]) error {
 	keyHash, err := getKeyHash(key)
 	if err != nil {
@@ -307,6 +314,9 @@ func (rc *RecursiveComputer[TReference, TMetadata]) InjectKeyState(key model_cor
 	return nil
 }
 
+// WaitForMessageValue blocks until the evaluation of a given key has
+// completed. Upon completion, the value belonging to the key is
+// returned.
 func (rc *RecursiveComputer[TReference, TMetadata]) WaitForMessageValue(ctx context.Context, ks *KeyState[TReference, TMetadata]) (model_core.Message[proto.Message, TReference], error) {
 	rc.lock.Lock()
 	if ks.err == (errKeyNotEvaluated{}) {
@@ -333,6 +343,11 @@ func (rc *RecursiveComputer[TReference, TMetadata]) WaitForMessageValue(ctx cont
 	return ks.value.(*messageValueState[TReference, TMetadata]).value, nil
 }
 
+// GetProgress returns a Protobuf message containing counters on the
+// number of keys that have been evaluated, are currently queued, or are
+// currently blocked on other keys. In addition to that, it returns the
+// list of keys that are currently being evaluated. This message can be
+// returned to clients to display progress.
 func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress() (model_core.PatchedMessage[*model_evaluation_pb.Progress, TMetadata], error) {
 	rc.lock.Lock()
 	defer rc.lock.Unlock()
@@ -373,12 +388,16 @@ func (rc *RecursiveComputer[TReference, TMetadata]) enqueue(ks *KeyState[TRefere
 	}
 }
 
+// Evaluation outcome for a given key.
 type Evaluation[TReference any] struct {
 	Key          model_core.TopLevelMessage[proto.Message, TReference]
 	Value        model_core.Message[proto.Message, TReference]
 	Dependencies []model_core.TopLevelMessage[proto.Message, TReference]
 }
 
+// GetAllEvaluations returns an iterator that can be used to access the
+// keys and values of all keys that have been evaluated up to this
+// point.
 func (rc *RecursiveComputer[TReference, TMetadata]) GetAllEvaluations() iter.Seq[Evaluation[TReference]] {
 	return func(yield func(Evaluation[TReference]) bool) {
 		rc.lock.Lock()
@@ -626,4 +645,6 @@ func (e NestedError[TReference]) Error() string {
 	return e.Err.Error()
 }
 
+// ObjectManagerForTesting is used to generate mocks that are used by
+// RecursiveComputer's unit tests.
 type ObjectManagerForTesting = model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata]

@@ -23,7 +23,7 @@ import (
 
 var fetchActionObjectFormat = model_core.NewProtoObjectFormat(&model_fetch_pb.Action{})
 
-func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx context.Context, key *model_analysis_pb.HttpFileContents_Key, e HttpFileContentsEnvironment[TReference, TMetadata]) (PatchedHttpFileContentsValue[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx context.Context, key *model_analysis_pb.HttpFileContents_Key, e HTTPFileContentsEnvironment[TReference, TMetadata]) (PatchedHTTPFileContentsValue[TMetadata], error) {
 	actionEncodersValue := e.GetActionEncodersValue(&model_analysis_pb.ActionEncoders_Key{})
 	actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
 	actionReaders, gotActionReaders := e.GetActionReadersValue(&model_analysis_pb.ActionReaders_Key{})
@@ -36,22 +36,22 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 		!fetchPlatform.IsSet() ||
 		!fileCreationParametersValue.IsSet() ||
 		!registeredFetchPlatformValue.IsSet() {
-		return PatchedHttpFileContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
+		return PatchedHTTPFileContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	fetchPlatformECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(registeredFetchPlatformValue.Message.FetchPlatformPkixPublicKey)
 	if err != nil {
-		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("invalid fetch platform PKIX public key: %w", err)
+		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("invalid fetch platform PKIX public key: %w", err)
 	}
 
 	fetchOptions := key.FetchOptions
 	if fetchOptions == nil {
-		return PatchedHttpFileContentsValue[TMetadata]{}, errors.New("no fetch options provided")
+		return PatchedHTTPFileContentsValue[TMetadata]{}, errors.New("no fetch options provided")
 	}
 
 	target := fetchOptions.Target
 	if target == nil {
-		return PatchedHttpFileContentsValue[TMetadata]{}, errors.New("no target provided")
+		return PatchedHTTPFileContentsValue[TMetadata]{}, errors.New("no target provided")
 	}
 
 	referenceFormat := c.referenceFormat
@@ -67,7 +67,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 	)
 	capturedAction, err := createdAction.Value.Capture(ctx, e)
 	if err != nil {
-		return PatchedHttpFileContentsValue[TMetadata]{}, err
+		return PatchedHTTPFileContentsValue[TMetadata]{}, err
 	}
 
 	// Compute a stable fingerprint for this action. Assume that
@@ -80,11 +80,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 		&model_fetch_pb.Target{Urls: target.Urls},
 		marshalOptions,
 	); err != nil {
-		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("failed to marshal stable target: %w", err)
+		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to marshal stable target: %w", err)
 	}
 	marshaledStableTarget, err := marshalOptions.Marshal(&stableTarget)
 	if err != nil {
-		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("failed to marshal stable target: %w", err)
+		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to marshal stable target: %w", err)
 	}
 	stableFingerprint := sha256.Sum256(marshaledStableTarget)
 
@@ -111,12 +111,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 		// TODO: Capture and propagate execution events?
 	}
 	if errExecution != nil {
-		return PatchedHttpFileContentsValue[TMetadata]{}, errExecution
+		return PatchedHTTPFileContentsValue[TMetadata]{}, errExecution
 	}
 
 	result, err := actionReaders.FetchResult.ReadObject(ctx, resultReference)
 	if err != nil {
-		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("failed to read completion event: %w", err)
+		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to read completion event: %w", err)
 	}
 
 	switch outcome := result.Message.Outcome.(type) {
@@ -135,8 +135,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHttpFileContentsValue(ctx c
 				&model_analysis_pb.HttpFileContents_Value{},
 			), nil
 		}
-		return PatchedHttpFileContentsValue[TMetadata]{}, fmt.Errorf("failed to fetch file: %w", err)
+		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to fetch file: %w", err)
 	default:
-		return PatchedHttpFileContentsValue[TMetadata]{}, errors.New("unkown fetch result type")
+		return PatchedHTTPFileContentsValue[TMetadata]{}, errors.New("unkown fetch result type")
 	}
 }

@@ -120,6 +120,10 @@ type localExecutor struct {
 	workerID                            map[string]string
 }
 
+// NewLocalExecutor creates an executor of command actions, running them
+// on the local system. The input root of the action is exposed via the
+// virtual file system, and execution of the action is requested by
+// calling into a bb_runner process.
 func NewLocalExecutor(
 	objectDownloader object.Downloader[object.GlobalReference],
 	objectStoreSemaphore *semaphore.Weighted,

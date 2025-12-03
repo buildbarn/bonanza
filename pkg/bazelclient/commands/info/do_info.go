@@ -13,6 +13,10 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 )
 
+// DoInfo implements the "bazel info" command, which prints the
+// currently effective values of certain configuration options. Most of
+// these pertain to paths on the local system where data is read or
+// written.
 func DoInfo(args *arguments.InfoCommand, workspacePath path.Parser) {
 	logger := logging.NewLoggerFromFlags(&args.CommonFlags)
 	commands.ValidateInsideWorkspace(logger, "info", workspacePath)

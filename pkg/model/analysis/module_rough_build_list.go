@@ -93,8 +93,13 @@ func (l roughBuildList) Less(i, j int) bool {
 	return ei.Version < ej.Version
 }
 
+// OverrideVersions is a list of module versions that was provided to
+// multiple_version_override().
 type OverrideVersions []label.ModuleVersion
 
+// LookupNearestVersion returns the first version in OverrideVersions
+// that does not exceed the specified value. This is used to select the
+// correct module version in case multiple_version_override() is used.
 func (ov OverrideVersions) LookupNearestVersion(version *label.ModuleVersion) (label.ModuleVersion, error) {
 	var badVersion label.ModuleVersion
 	if version == nil {
@@ -204,7 +209,7 @@ ProcessModule:
 				if err != nil {
 					return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", module.name, module.version, registryURL, err)
 				}
-				httpFileContents := e.GetHttpFileContentsValue(
+				httpFileContents := e.GetHTTPFileContentsValue(
 					&model_analysis_pb.HttpFileContents_Key{
 						FetchOptions: &model_analysis_pb.HttpFetchOptions{
 							Target: &model_fetch_pb.Target{

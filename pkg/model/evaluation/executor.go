@@ -30,6 +30,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// ComputerFactory is called into by the executor to obtain an instance
+// of Computer whenever an evaluation request is received.
 type ComputerFactory[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	NewComputer(
 		namespace object.Namespace,
@@ -47,6 +49,8 @@ type executor struct {
 	clock            clock.Clock
 }
 
+// NewExecutor creates a remote worker that is capable of executing
+// remote evaluation requests.
 func NewExecutor(
 	objectDownloader object.Downloader[object.GlobalReference],
 	computerFactory ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]],

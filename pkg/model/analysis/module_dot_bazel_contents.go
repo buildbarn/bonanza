@@ -297,7 +297,7 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 				return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %s", foundModule.Name, foundModule.Version, foundModule.RegistryUrl)
 			}
 
-			fileContentsValue := e.GetHttpFileContentsValue(
+			fileContentsValue := e.GetHTTPFileContentsValue(
 				&model_analysis_pb.HttpFileContents_Key{
 					FetchOptions: &model_analysis_pb.HttpFetchOptions{
 						Target: &model_fetch_pb.Target{

@@ -161,6 +161,8 @@ func (f *localCapturableFile[TFile]) Discard() {
 	f.file = nil
 }
 
+// DoBuild implements the "bazel build" command, which builds a
+// specified set of targets in the current workspace.
 func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	logger := logging.NewLoggerFromFlags(&args.CommonFlags)
 	commands.ValidateInsideWorkspace(logger, "build", workspacePath)

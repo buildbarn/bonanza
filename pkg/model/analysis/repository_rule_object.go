@@ -16,6 +16,9 @@ import (
 	"go.starlark.net/starlark"
 )
 
+// RepositoryRule contains information on a certain type of repository
+// rule, such as its implementation function and the attributes it
+// accepts.
 type RepositoryRule[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	Implementation starlark.Callable
 	Attrs          AttrsDict[TReference, TMetadata]
@@ -70,12 +73,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepositoryRuleObjectValue(c
 	}
 }
 
+// PublicAttr contains information on a public attribute accepted by a
+// repository rule.
 type PublicAttr[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	Name     string
 	Default  starlark.Value
 	AttrType model_starlark.AttrType[TReference, TMetadata]
 }
 
+// AttrsDict contains the set of attributes a repository rule accepts,
+// split up by ones that are public and private.
 type AttrsDict[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	Public  []PublicAttr[TReference, TMetadata]
 	Private starlark.StringDict

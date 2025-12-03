@@ -438,38 +438,38 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 					missingDependencies = true
 					return starlark.None, nil
 				}
-				if resolvedLabelStr := resolvedLabelValue.Message.Label; resolvedLabelStr != "" {
-					resolvedLabel, err := label.NewCanonicalLabel(resolvedLabelStr)
-					if err != nil {
-						return nil, fmt.Errorf("invalid label %#v: %w", resolvedLabelStr, err)
-					}
-
-					// Obtain the providers of the target.
-					patchedConfigurationReference2 := model_core.Patch(e, configurationReference)
-					targetProviders := e.GetTargetProvidersValue(
-						model_core.NewPatchedMessage(
-							&model_analysis_pb.TargetProviders_Key{
-								Label:                  resolvedLabelStr,
-								ConfigurationReference: patchedConfigurationReference2.Message,
-							},
-							patchedConfigurationReference2.Patcher,
-						),
-					)
-					if !targetProviders.IsSet() {
-						missingDependencies = true
-						return starlark.None, nil
-					}
-
-					return model_starlark.NewTargetReference(
-						originalLabel,
-						model_starlark.NewConfiguredTargetReference[TReference, TMetadata](
-							resolvedLabel,
-							model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances),
-						),
-					), nil
-				} else {
+				resolvedLabelStr := resolvedLabelValue.Message.Label
+				if resolvedLabelStr == "" {
 					return starlark.None, nil
 				}
+				resolvedLabel, err := label.NewCanonicalLabel(resolvedLabelStr)
+				if err != nil {
+					return nil, fmt.Errorf("invalid label %#v: %w", resolvedLabelStr, err)
+				}
+
+				// Obtain the providers of the target.
+				patchedConfigurationReference2 := model_core.Patch(e, configurationReference)
+				targetProviders := e.GetTargetProvidersValue(
+					model_core.NewPatchedMessage(
+						&model_analysis_pb.TargetProviders_Key{
+							Label:                  resolvedLabelStr,
+							ConfigurationReference: patchedConfigurationReference2.Message,
+						},
+						patchedConfigurationReference2.Patcher,
+					),
+				)
+				if !targetProviders.IsSet() {
+					missingDependencies = true
+					return starlark.None, nil
+				}
+
+				return model_starlark.NewTargetReference(
+					originalLabel,
+					model_starlark.NewConfiguredTargetReference[TReference, TMetadata](
+						resolvedLabel,
+						model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances),
+					),
+				), nil
 			})
 			for _, valuePart := range valueParts.Message {
 				decodedPart, err := model_starlark.DecodeValue[TReference, TMetadata](
@@ -1057,110 +1057,110 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 							missingDependencies = true
 							return starlark.None, nil
 						}
-						if resolvedLabelStr := resolvedLabelValue.Message.Label; resolvedLabelStr != "" {
-							canonicalResolvedLabel, err := label.NewCanonicalLabel(resolvedLabelStr)
-							if err != nil {
-								return nil, fmt.Errorf("invalid label %#v: %w", resolvedLabelStr, err)
-							}
+						resolvedLabelStr := resolvedLabelValue.Message.Label
+						if resolvedLabelStr == "" {
+							return starlark.None, nil
+						}
+						canonicalResolvedLabel, err := label.NewCanonicalLabel(resolvedLabelStr)
+						if err != nil {
+							return nil, fmt.Errorf("invalid label %#v: %w", resolvedLabelStr, err)
+						}
 
-							// Obtain the providers of the target.
-							patchedConfigurationReference2 := model_core.Patch(e, outputConfigurationReference)
-							targetProviders := e.GetTargetProvidersValue(
-								model_core.NewPatchedMessage(
-									&model_analysis_pb.TargetProviders_Key{
-										Label:                  resolvedLabelStr,
-										ConfigurationReference: patchedConfigurationReference2.Message,
-									},
-									patchedConfigurationReference2.Patcher,
-								),
-							)
-							if !targetProviders.IsSet() {
-								missingDependencies = true
-								return starlark.None, nil
-							}
-							providerInstances := model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances)
-
-							defaultInfoProviderIdentifierStr := defaultInfoProviderIdentifier.String()
-							defaultInfoIndex, ok := sort.Find(
-								len(providerInstances.Message),
-								func(i int) int {
-									return strings.Compare(defaultInfoProviderIdentifierStr, providerInstances.Message[i].ProviderInstanceProperties.GetProviderIdentifier())
+						// Obtain the providers of the target.
+						patchedConfigurationReference2 := model_core.Patch(e, outputConfigurationReference)
+						targetProviders := e.GetTargetProvidersValue(
+							model_core.NewPatchedMessage(
+								&model_analysis_pb.TargetProviders_Key{
+									Label:                  resolvedLabelStr,
+									ConfigurationReference: patchedConfigurationReference2.Message,
 								},
-							)
-							if !ok {
-								return nil, fmt.Errorf("target with label %#v did not yield provider %#v", resolvedLabelStr, defaultInfoProviderIdentifierStr)
-							}
+								patchedConfigurationReference2.Patcher,
+							),
+						)
+						if !targetProviders.IsSet() {
+							missingDependencies = true
+							return starlark.None, nil
+						}
+						providerInstances := model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances)
 
-							files, err := model_starlark.GetStructFieldValue(
+						defaultInfoProviderIdentifierStr := defaultInfoProviderIdentifier.String()
+						defaultInfoIndex, ok := sort.Find(
+							len(providerInstances.Message),
+							func(i int) int {
+								return strings.Compare(defaultInfoProviderIdentifierStr, providerInstances.Message[i].ProviderInstanceProperties.GetProviderIdentifier())
+							},
+						)
+						if !ok {
+							return nil, fmt.Errorf("target with label %#v did not yield provider %#v", resolvedLabelStr, defaultInfoProviderIdentifierStr)
+						}
+
+						files, err := model_starlark.GetStructFieldValue(
+							ctx,
+							c.valueReaders.List,
+							model_core.Nested(providerInstances, providerInstances.Message[defaultInfoIndex].Fields),
+							"files",
+						)
+						if err != nil {
+							return nil, fmt.Errorf("failed to obtain field \"files\" of DefaultInfo provider of target with label %#v: %w", resolvedLabelStr, err)
+						}
+						valueDepset, ok := files.Message.Kind.(*model_starlark_pb.Value_Depset)
+						if !ok {
+							return nil, fmt.Errorf("field \"files\" of DefaultInfo provider of target with label %#v is not a depset", resolvedLabelStr)
+						}
+						for _, element := range valueDepset.Depset.Elements {
+							// TODO: Validate extensions.
+							filesDepsetElements = append(filesDepsetElements, model_core.Nested(files, element))
+						}
+
+						if executable {
+							filesToRun, err := model_starlark.GetStructFieldValue(
 								ctx,
 								c.valueReaders.List,
 								model_core.Nested(providerInstances, providerInstances.Message[defaultInfoIndex].Fields),
-								"files",
+								"files_to_run",
 							)
 							if err != nil {
 								return nil, fmt.Errorf("failed to obtain field \"files\" of DefaultInfo provider of target with label %#v: %w", resolvedLabelStr, err)
 							}
-							valueDepset, ok := files.Message.Kind.(*model_starlark_pb.Value_Depset)
+							filesToRunStructValue, ok := filesToRun.Message.Kind.(*model_starlark_pb.Value_Struct)
 							if !ok {
-								return nil, fmt.Errorf("field \"files\" of DefaultInfo provider of target with label %#v is not a depset", resolvedLabelStr)
+								return nil, fmt.Errorf("field \"files_to_run\" of DefaultInfo provider of target with label %#v is not a struct", resolvedLabelStr)
 							}
-							for _, element := range valueDepset.Depset.Elements {
-								// TODO: Validate extensions.
-								filesDepsetElements = append(filesDepsetElements, model_core.Nested(files, element))
+							filesToRunStruct := model_core.Nested(filesToRun, filesToRunStructValue.Struct)
+							executableField, err := model_starlark.GetStructFieldValue(
+								ctx,
+								c.valueReaders.List,
+								model_core.Nested(filesToRunStruct, filesToRunStruct.Message.Fields),
+								"executable",
+							)
+							if err != nil {
+								return nil, fmt.Errorf("failed to obtain field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v: %w", resolvedLabelStr, err)
 							}
-
-							if executable {
-								filesToRun, err := model_starlark.GetStructFieldValue(
-									ctx,
-									c.valueReaders.List,
-									model_core.Nested(providerInstances, providerInstances.Message[defaultInfoIndex].Fields),
-									"files_to_run",
-								)
-								if err != nil {
-									return nil, fmt.Errorf("failed to obtain field \"files\" of DefaultInfo provider of target with label %#v: %w", resolvedLabelStr, err)
-								}
-								filesToRunStructValue, ok := filesToRun.Message.Kind.(*model_starlark_pb.Value_Struct)
-								if !ok {
-									return nil, fmt.Errorf("field \"files_to_run\" of DefaultInfo provider of target with label %#v is not a struct", resolvedLabelStr)
-								}
-								filesToRunStruct := model_core.Nested(filesToRun, filesToRunStructValue.Struct)
-								executableField, err := model_starlark.GetStructFieldValue(
-									ctx,
-									c.valueReaders.List,
-									model_core.Nested(filesToRunStruct, filesToRunStruct.Message.Fields),
-									"executable",
-								)
-								if err != nil {
-									return nil, fmt.Errorf("failed to obtain field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v: %w", resolvedLabelStr, err)
-								}
-								decodedExecutable, err := model_starlark.DecodeValue[TReference, TMetadata](
-									executableField,
-									/* currentIdentifier = */ nil,
-									c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
-										return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
-									}),
-								)
-								if err != nil {
-									return nil, fmt.Errorf("decode field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v: %w", resolvedLabelStr, err)
-								}
-								typedExecutable, ok := decodedExecutable.(*model_starlark.File[TReference, TMetadata])
-								if !ok {
-									return nil, fmt.Errorf("field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v is not a File", resolvedLabelStr)
-								}
-								executableValues[namedAttr.Name] = typedExecutable
-								executableFileToFilesToRun[typedExecutable] = filesToRunStruct
+							decodedExecutable, err := model_starlark.DecodeValue[TReference, TMetadata](
+								executableField,
+								/* currentIdentifier = */ nil,
+								c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
+									return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
+								}),
+							)
+							if err != nil {
+								return nil, fmt.Errorf("decode field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v: %w", resolvedLabelStr, err)
 							}
-
-							return model_starlark.NewTargetReference(
-								originalLabel,
-								model_starlark.NewConfiguredTargetReference[TReference, TMetadata](
-									canonicalResolvedLabel,
-									providerInstances,
-								),
-							), nil
-						} else {
-							return starlark.None, nil
+							typedExecutable, ok := decodedExecutable.(*model_starlark.File[TReference, TMetadata])
+							if !ok {
+								return nil, fmt.Errorf("field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v is not a File", resolvedLabelStr)
+							}
+							executableValues[namedAttr.Name] = typedExecutable
+							executableFileToFilesToRun[typedExecutable] = filesToRunStruct
 						}
+
+						return model_starlark.NewTargetReference(
+							originalLabel,
+							model_starlark.NewConfiguredTargetReference[TReference, TMetadata](
+								canonicalResolvedLabel,
+								providerInstances,
+							),
+						), nil
 					})
 					for i, valuePart := range valueParts.Message {
 						decodedPart, err := model_starlark.DecodeValue[TReference, TMetadata](

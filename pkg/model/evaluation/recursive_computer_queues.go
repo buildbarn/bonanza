@@ -35,9 +35,9 @@ type simpleRecursiveComputerQueuesFactory[TReference object.BasicReference, TMet
 	concurrency uint32
 }
 
-// RecursiveComputerQueues creates a RecursiveComputerQueuesFactory that
-// always returns RecursiveComputerQueues instances backed by a single
-// queue.
+// NewSimpleRecursiveComputerQueuesFactory creates a
+// RecursiveComputerQueuesFactory that always returns
+// RecursiveComputerQueues instances backed by a single queue.
 //
 // This implementation may be sufficient for testing, or can be used as
 // a base type for more advanced implementations that create multiple

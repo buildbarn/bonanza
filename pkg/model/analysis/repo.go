@@ -910,7 +910,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", module.Name, module.Version, module.RegistryUrl, err)
 	}
 
-	sourceJSONContentsValue := e.GetHttpFileContentsValue(
+	sourceJSONContentsValue := e.GetHTTPFileContentsValue(
 		&model_analysis_pb.HttpFileContents_Key{
 			FetchOptions: &model_analysis_pb.HttpFetchOptions{
 				Target: &model_fetch_pb.Target{
@@ -955,7 +955,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	// applied. Return all the errors at once - this way, anything
 	// that needs downloading is done.
 	missingDependencies := false
-	archiveContentsValue := e.GetHttpArchiveContentsValue(&model_analysis_pb.HttpArchiveContents_Key{
+	archiveContentsValue := e.GetHTTPArchiveContentsValue(&model_analysis_pb.HttpArchiveContents_Key{
 		FetchOptions: &model_analysis_pb.HttpFetchOptions{
 			Target: &model_fetch_pb.Target{
 				Urls:      []string{sourceJSON.URL},
@@ -988,7 +988,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid subresource integrity %#v for patch %#v: %w", patchEntry.value, patchURL, err)
 		}
 
-		patchContentsValue := e.GetHttpFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
+		patchContentsValue := e.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
 			FetchOptions: &model_analysis_pb.HttpFetchOptions{
 				Target: &model_fetch_pb.Target{
 					Urls:      []string{patchURL},
@@ -1310,8 +1310,8 @@ type moduleOrRepositoryContextEnvironment[TReference object.BasicReference, TMet
 	GetFileCreationParametersObjectValue(*model_analysis_pb.FileCreationParametersObject_Key) (*model_filesystem.FileCreationParameters, bool)
 	GetFileCreationParametersValue(*model_analysis_pb.FileCreationParameters_Key) model_core.Message[*model_analysis_pb.FileCreationParameters_Value, TReference]
 	GetFileReaderValue(*model_analysis_pb.FileReader_Key) (*model_filesystem.FileReader[TReference], bool)
-	GetHttpArchiveContentsValue(*model_analysis_pb.HttpArchiveContents_Key) model_core.Message[*model_analysis_pb.HttpArchiveContents_Value, TReference]
-	GetHttpFileContentsValue(*model_analysis_pb.HttpFileContents_Key) model_core.Message[*model_analysis_pb.HttpFileContents_Value, TReference]
+	GetHTTPArchiveContentsValue(*model_analysis_pb.HttpArchiveContents_Key) model_core.Message[*model_analysis_pb.HttpArchiveContents_Value, TReference]
+	GetHTTPFileContentsValue(*model_analysis_pb.HttpFileContents_Key) model_core.Message[*model_analysis_pb.HttpFileContents_Value, TReference]
 	GetRegisteredRepoPlatformValue(*model_analysis_pb.RegisteredRepoPlatform_Key) model_core.Message[*model_analysis_pb.RegisteredRepoPlatform_Value, TReference]
 	GetRepoPlatformHostPathValue(*model_analysis_pb.RepoPlatformHostPath_Key) model_core.Message[*model_analysis_pb.RepoPlatformHostPath_Value, TReference]
 	GetRepoValue(*model_analysis_pb.Repo_Key) model_core.Message[*model_analysis_pb.Repo_Value, TReference]
@@ -1606,7 +1606,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownload(thread *
 		})
 	}
 
-	fileContentsValue := mrc.environment.GetHttpFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
+	fileContentsValue := mrc.environment.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
 		FetchOptions: &model_analysis_pb.HttpFetchOptions{
 			Target: &model_fetch_pb.Target{
 				Urls:      urls,
@@ -1735,7 +1735,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtrac
 		return nil, fmt.Errorf("cannot derive archive format from file extension of %#v", typeToMatch)
 	}
 
-	archiveContentsValue := mrc.environment.GetHttpArchiveContentsValue(&model_analysis_pb.HttpArchiveContents_Key{
+	archiveContentsValue := mrc.environment.GetHTTPArchiveContentsValue(&model_analysis_pb.HttpArchiveContents_Key{
 		FetchOptions: &model_analysis_pb.HttpFetchOptions{
 			Target: &model_fetch_pb.Target{
 				Integrity: integrityMessage,
@@ -2614,40 +2614,40 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 		return nil, evaluation.ErrMissingDependency
 	}
 
-	if actionResult.Message.ExitCode == 0 {
-		// Capture the standard output of "command -v" and trim the
-		// trailing newline character that it adds.
-		outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
-		if err != nil {
-			return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
-		}
-
-		stdoutEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-			model_core.Nested(outputs, outputs.Message.GetStdout()),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("invalid standard output entry: %w", err)
-		}
-		stdout, err := mrc.fileReader.FileReadAll(mrc.context, stdoutEntry, 1<<20)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read standard output: %w", err)
-		}
-		stdoutStr := strings.TrimSuffix(string(stdout), "\n")
-		var resolver model_starlark.PathResolver
-		if err := path.Resolve(
-			path.UNIXFormat.NewParser(stdoutStr),
-			path.NewAbsoluteScopeWalker(&resolver),
-		); err != nil {
-			return nil, fmt.Errorf("failed to resolve path %#v: %w", stdoutStr, err)
-		}
-		return model_starlark.NewPath(resolver.CurrentPath, mrc), nil
-	} else {
+	if actionResult.Message.ExitCode != 0 {
 		// A non-zero exit code indicates that the utility could
 		// not be found.
 		//
 		// https://pubs.opengroup.org/onlinepubs/9799919799/utilities/command.html
 		return starlark.None, nil
 	}
+
+	// Capture the standard output of "command -v" and trim the
+	// trailing newline character that it adds.
+	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
+	if err != nil {
+		return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
+	}
+
+	stdoutEntry, err := model_filesystem.NewFileContentsEntryFromProto(
+		model_core.Nested(outputs, outputs.Message.GetStdout()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("invalid standard output entry: %w", err)
+	}
+	stdout, err := mrc.fileReader.FileReadAll(mrc.context, stdoutEntry, 1<<20)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read standard output: %w", err)
+	}
+	stdoutStr := strings.TrimSuffix(string(stdout), "\n")
+	var resolver model_starlark.PathResolver
+	if err := path.Resolve(
+		path.UNIXFormat.NewParser(stdoutStr),
+		path.NewAbsoluteScopeWalker(&resolver),
+	); err != nil {
+		return nil, fmt.Errorf("failed to resolve path %#v: %w", stdoutStr, err)
+	}
+	return model_starlark.NewPath(resolver.CurrentPath, mrc), nil
 }
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_starlark.BarePath) (bool, error) {
@@ -3694,93 +3694,93 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 
 	if _, _, ok := canonicalRepo.GetModuleExtension(); ok {
 		return c.fetchModuleExtensionRepo(ctx, canonicalRepo, canonicalRepo.GetModuleInstance().GetModule().ToApparentRepo(), e)
-	} else {
-		moduleInstance := canonicalRepo.GetModuleInstance()
-		if _, ok := moduleInstance.GetModuleVersion(); !ok {
-			// See if this is one of the modules for which sources
-			// are provided. If so, return a repo value immediately.
-			// This allows any files contained within to be accessed
-			// without processing MODULE.bazel. This prevents cyclic
-			// dependencies.
-			buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
-			if !buildSpecification.IsSet() {
-				return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
-			}
+	}
 
-			// Check to see if the client overrode this module manually.
-			moduleName := moduleInstance.GetModule().String()
-			modules := buildSpecification.Message.Modules
-			if i, ok := sort.Find(
-				len(modules),
-				func(i int) int { return strings.Compare(moduleName, modules[i].Name) },
-			); ok {
-				// Found matching module.
-				rootDirectoryReference := model_core.Patch(e, model_core.Nested(buildSpecification, modules[i].RootDirectoryReference))
-				return model_core.NewPatchedMessage(
-					&model_analysis_pb.Repo_Value{
-						RootDirectoryReference: rootDirectoryReference.Message,
-					},
-					rootDirectoryReference.Patcher,
-				), nil
-			}
+	moduleInstance := canonicalRepo.GetModuleInstance()
+	if _, ok := moduleInstance.GetModuleVersion(); !ok {
+		// See if this is one of the modules for which sources
+		// are provided. If so, return a repo value immediately.
+		// This allows any files contained within to be accessed
+		// without processing MODULE.bazel. This prevents cyclic
+		// dependencies.
+		buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
+		if !buildSpecification.IsSet() {
+			return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
+		}
 
-			// Check to see if there is a MODULE.bazel override for this module.
-			var singleVersionOverridePatchLabels, singleVersionOverridePatchCommands []string
-			var singleVersionOverridePatchStrip int
-			remoteOverridesValue := e.GetModulesWithRemoteOverridesValue(&model_analysis_pb.ModulesWithRemoteOverrides_Key{})
-			if !remoteOverridesValue.IsSet() {
-				return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
-			}
-			remoteOverrides := remoteOverridesValue.Message.ModuleOverrides
-			if i := sort.Search(
-				len(remoteOverrides),
-				func(i int) bool { return remoteOverrides[i].Name >= moduleName },
-			); i < len(remoteOverrides) && remoteOverrides[i].Name == moduleName {
-				// Found the remote override
-				remoteOverride := remoteOverrides[i]
-				switch override := remoteOverride.Kind.(type) {
-				case *model_analysis_pb.ModuleOverride_RepositoryRule:
-					return c.fetchRepo(
-						ctx,
-						canonicalRepo,
-						canonicalRepo.GetModuleInstance().GetModule().ToApparentRepo(),
-						model_core.Nested(remoteOverridesValue, override.RepositoryRule),
-						e,
-					)
-				case *model_analysis_pb.ModuleOverride_SingleVersion_:
-					if override.SingleVersion.Version != "" {
-						return PatchedRepoValue[TMetadata]{}, fmt.Errorf("TODO: single version override with exact version should skip Minimal Version Selection!")
-					}
-					singleVersionOverridePatchLabels = override.SingleVersion.PatchLabels
-					singleVersionOverridePatchCommands = override.SingleVersion.PatchCommands
-					singleVersionOverridePatchStrip = int(override.SingleVersion.PatchStrip)
-				default:
-					// TODO: Implement Archive, SingleVersion, MultipleVersions
-					return PatchedRepoValue[TMetadata]{}, fmt.Errorf("remote override type for %q: %w", remoteOverride.Name, errors.ErrUnsupported)
-				}
-			}
+		// Check to see if the client overrode this module manually.
+		moduleName := moduleInstance.GetModule().String()
+		modules := buildSpecification.Message.Modules
+		if i, ok := sort.Find(
+			len(modules),
+			func(i int) int { return strings.Compare(moduleName, modules[i].Name) },
+		); ok {
+			// Found matching module.
+			rootDirectoryReference := model_core.Patch(e, model_core.Nested(buildSpecification, modules[i].RootDirectoryReference))
+			return model_core.NewPatchedMessage(
+				&model_analysis_pb.Repo_Value{
+					RootDirectoryReference: rootDirectoryReference.Message,
+				},
+				rootDirectoryReference.Patcher,
+			), nil
+		}
 
-			// If a version of the module is selected as
-			// part of the final build list, we can download
-			// that exact version.
-			buildListValue := e.GetModuleFinalBuildListValue(&model_analysis_pb.ModuleFinalBuildList_Key{})
-			if !buildListValue.IsSet() {
-				return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
-			}
-			buildList := buildListValue.Message.BuildList
-			if i, ok := sort.Find(
-				len(buildList),
-				func(i int) int { return strings.Compare(moduleName, buildList[i].Name) },
-			); ok {
-				return c.fetchModuleFromRegistry(
+		// Check to see if there is a MODULE.bazel override for this module.
+		var singleVersionOverridePatchLabels, singleVersionOverridePatchCommands []string
+		var singleVersionOverridePatchStrip int
+		remoteOverridesValue := e.GetModulesWithRemoteOverridesValue(&model_analysis_pb.ModulesWithRemoteOverrides_Key{})
+		if !remoteOverridesValue.IsSet() {
+			return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
+		}
+		remoteOverrides := remoteOverridesValue.Message.ModuleOverrides
+		if i := sort.Search(
+			len(remoteOverrides),
+			func(i int) bool { return remoteOverrides[i].Name >= moduleName },
+		); i < len(remoteOverrides) && remoteOverrides[i].Name == moduleName {
+			// Found the remote override
+			remoteOverride := remoteOverrides[i]
+			switch override := remoteOverride.Kind.(type) {
+			case *model_analysis_pb.ModuleOverride_RepositoryRule:
+				return c.fetchRepo(
 					ctx,
-					buildList[i],
+					canonicalRepo,
+					canonicalRepo.GetModuleInstance().GetModule().ToApparentRepo(),
+					model_core.Nested(remoteOverridesValue, override.RepositoryRule),
 					e,
-					singleVersionOverridePatchLabels,
-					singleVersionOverridePatchCommands,
-					singleVersionOverridePatchStrip,
 				)
+			case *model_analysis_pb.ModuleOverride_SingleVersion_:
+				if override.SingleVersion.Version != "" {
+					return PatchedRepoValue[TMetadata]{}, fmt.Errorf("TODO: single version override with exact version should skip Minimal Version Selection!")
+				}
+				singleVersionOverridePatchLabels = override.SingleVersion.PatchLabels
+				singleVersionOverridePatchCommands = override.SingleVersion.PatchCommands
+				singleVersionOverridePatchStrip = int(override.SingleVersion.PatchStrip)
+			default:
+				// TODO: Implement Archive, SingleVersion, MultipleVersions
+				return PatchedRepoValue[TMetadata]{}, fmt.Errorf("remote override type for %q: %w", remoteOverride.Name, errors.ErrUnsupported)
 			}
+		}
+
+		// If a version of the module is selected as
+		// part of the final build list, we can download
+		// that exact version.
+		buildListValue := e.GetModuleFinalBuildListValue(&model_analysis_pb.ModuleFinalBuildList_Key{})
+		if !buildListValue.IsSet() {
+			return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
+		}
+		buildList := buildListValue.Message.BuildList
+		if i, ok := sort.Find(
+			len(buildList),
+			func(i int) int { return strings.Compare(moduleName, buildList[i].Name) },
+		); ok {
+			return c.fetchModuleFromRegistry(
+				ctx,
+				buildList[i],
+				e,
+				singleVersionOverridePatchLabels,
+				singleVersionOverridePatchCommands,
+				singleVersionOverridePatchStrip,
+			)
 		}
 	}
 
