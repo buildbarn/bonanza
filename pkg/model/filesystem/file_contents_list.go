@@ -16,9 +16,12 @@ import (
 
 // FileContentsList contains the properties of parts of a concatenated
 // file. Parts are stored in the order in which they should be
-// concatenated, with EndBytes increasing.
+// concatenated, with any counters contained within being cumulative to
+// permit binary searching.
 type FileContentsList[TReference object.BasicReference] []FileContentsEntry[TReference]
 
+// NewFileContentsListFromProto converts a list of FileContents messages
+// that were previously written to storage to its native counterpart.
 func NewFileContentsListFromProto[TReference object.BasicReference](l model_core.Message[[]*model_filesystem_pb.FileContents, TReference]) (FileContentsList[TReference], error) {
 	if len(l.Message) < 2 {
 		return nil, status.Error(codes.InvalidArgument, "File contents list contains fewer than two parts")

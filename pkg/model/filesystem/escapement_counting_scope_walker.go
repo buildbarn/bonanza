@@ -34,22 +34,30 @@ func (sw *EscapementCountingScopeWalker) GetLevels() *wrapperspb.UInt32Value {
 	return sw.levels
 }
 
+// OnAbsolute is called when the path for which the number of escapement
+// levels is computed starts with a slash.
 func (sw *EscapementCountingScopeWalker) OnAbsolute() (path.ComponentWalker, error) {
 	sw.levels = nil
 	return path.VoidComponentWalker, nil
 }
 
+// OnRelative is called when the path for which the number of escapement
+// levels is computed is relative.
 func (sw *EscapementCountingScopeWalker) OnRelative() (path.ComponentWalker, error) {
 	return leadingEscapementCountingComponentWalker{
 		scopeWalker: sw,
 	}, nil
 }
 
+// OnDriveLetter is called when the path for which the number of
+// escapement levels is computed starts with a Windows drive letter.
 func (sw *EscapementCountingScopeWalker) OnDriveLetter(drive rune) (path.ComponentWalker, error) {
 	sw.levels = nil
 	return path.VoidComponentWalker, nil
 }
 
+// OnShare is called when the path for which the number of escapement
+// levels is computed starts with a Windows network share.
 func (sw *EscapementCountingScopeWalker) OnShare(server, share string) (path.ComponentWalker, error) {
 	sw.levels = nil
 	return path.VoidComponentWalker, nil

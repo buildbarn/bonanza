@@ -64,6 +64,8 @@ func (p *DirectoryAccessParameters) DecodeLeaves(contents *object.Contents, deco
 	return &leaves, nil
 }
 
+// GetEncoder returns the encoder that should be used to encode or
+// decode directory contents and leaves objects.
 func (p *DirectoryAccessParameters) GetEncoder() model_encoding.DeterministicBinaryEncoder {
 	return p.encoder
 }

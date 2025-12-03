@@ -9,6 +9,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// FileCreationParameters contains parameters such as encoders, and
+// minimum/maximum object sizes that need to be considered when creating
+// Merkle trees of files.
 type FileCreationParameters struct {
 	*FileAccessParameters
 	referenceFormat                  object.ReferenceFormat
@@ -18,6 +21,9 @@ type FileCreationParameters struct {
 	fileContentsListMaximumSizeBytes int
 }
 
+// NewFileCreationParametersFromProto converts the file creation
+// parameters that are stored in a Protobuf message to its native
+// counterpart. It also validates that the provided sizes are in bounds.
 func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParameters, referenceFormat object.ReferenceFormat) (*FileCreationParameters, error) {
 	if m == nil {
 		return nil, status.Error(codes.InvalidArgument, "No file creation parameters provided")
@@ -63,6 +69,8 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 	}, nil
 }
 
+// EncodeChunk encodes the data of a small file, or a region of a large
+// file into an object that can be written to storage.
 func (p *FileCreationParameters) EncodeChunk(data []byte) (model_core.Decodable[*object.Contents], error) {
 	encodedChunk, decodingParameters, err := p.chunkEncoder.EncodeBinary(data)
 	if err != nil {

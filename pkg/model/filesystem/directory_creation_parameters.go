@@ -8,12 +8,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// DirectoryCreationParameters contains parameters such as encoders, and
+// maximum object sizes that need to be considered when creating Merkle
+// trees of directories.
 type DirectoryCreationParameters struct {
 	*DirectoryAccessParameters
 	referenceFormat           object.ReferenceFormat
 	directoryMaximumSizeBytes int
 }
 
+// NewDirectoryCreationParametersFromProto converts the directory
+// creation parameters that are stored in a Protobuf message to its
+// native counterpart. It also validates that the provided sizes are in
+// bounds.
 func NewDirectoryCreationParametersFromProto(m *model_filesystem_pb.DirectoryCreationParameters, referenceFormat object.ReferenceFormat) (*DirectoryCreationParameters, error) {
 	if m == nil {
 		return nil, status.Error(codes.InvalidArgument, "No directory creation parameters provided")

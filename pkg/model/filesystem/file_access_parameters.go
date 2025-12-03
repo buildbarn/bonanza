@@ -66,10 +66,15 @@ func (p *FileAccessParameters) DecodeFileContentsList(contents *object.Contents,
 	return fileContentsList.Message, nil
 }
 
+// GetChunkEncoder returns the encoder that was used to create chunks of
+// a file. This can be used to subsequently decode the chunks.
 func (p *FileAccessParameters) GetChunkEncoder() model_encoding.DeterministicBinaryEncoder {
 	return p.chunkEncoder
 }
 
+// GetFileContentsListEncoder returns the encoder that was used to
+// create file contents lists of large files. This can be used to
+// subsequently decode these lists.
 func (p *FileAccessParameters) GetFileContentsListEncoder() model_encoding.DeterministicBinaryEncoder {
 	return p.fileContentsListEncoder
 }

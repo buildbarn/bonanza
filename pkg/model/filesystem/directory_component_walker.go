@@ -16,6 +16,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// DirectoryComponentWalker can be used to resolve the properties of a
+// file contained in a directory that has been written to storage.
 type DirectoryComponentWalker[TReference object.BasicReference] struct {
 	// Constant fields.
 	context                 context.Context
@@ -31,6 +33,8 @@ type DirectoryComponentWalker[TReference object.BasicReference] struct {
 
 var _ path.ComponentWalker = (*DirectoryComponentWalker[object.BasicReference])(nil)
 
+// NewDirectoryComponentWalker creates a new DirectoryComponentWalker
+// that starts resolution within the provided directories.
 func NewDirectoryComponentWalker[TReference object.BasicReference](
 	ctx context.Context,
 	directoryContentsReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents],
@@ -62,6 +66,8 @@ func (cw *DirectoryComponentWalker[TReference]) dereferenceCurrentDirectory() er
 	return nil
 }
 
+// OnDirectory is called when the path to be resolved has a leading
+// directory pathname components.
 func (cw *DirectoryComponentWalker[TReference]) OnDirectory(name path.Component) (path.GotDirectoryOrSymlink, error) {
 	if err := cw.dereferenceCurrentDirectory(); err != nil {
 		return nil, err
@@ -108,6 +114,8 @@ func (cw *DirectoryComponentWalker[TReference]) OnDirectory(name path.Component)
 	return nil, status.Error(codes.NotFound, "Path does not exist")
 }
 
+// OnTerminal is called when the path to be resolved has a trailing
+// pathname component.
 func (cw *DirectoryComponentWalker[TReference]) OnTerminal(name path.Component) (*path.GotSymlink, error) {
 	if err := cw.dereferenceCurrentDirectory(); err != nil {
 		return nil, err
@@ -156,6 +164,8 @@ func (cw *DirectoryComponentWalker[TReference]) OnTerminal(name path.Component) 
 	return nil, status.Error(codes.NotFound, "Path does not exist")
 }
 
+// OnUp is called when the path to be resolved contains a ".."
+// component.
 func (cw *DirectoryComponentWalker[TReference]) OnUp() (path.ComponentWalker, error) {
 	if cw.currentDirectory.IsSet() {
 		cw.currentDirectory.Clear()
@@ -194,6 +204,9 @@ func (cw *DirectoryComponentWalker[TReference]) GetCurrentDirectory() model_core
 	)
 }
 
+// GetCurrentFileProperties returns the properties of the file
+// corresponding to the path that was performed. If the path resolved to
+// a directory, the file properties will not be set.
 func (cw *DirectoryComponentWalker[TReference]) GetCurrentFileProperties() model_core.Message[*model_filesystem_pb.FileProperties, TReference] {
 	return cw.fileProperties
 }

@@ -6,6 +6,15 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 )
 
+// DirectoryMerkleTreeCapturer is called into by
+// CreateDirectoryMerkleTree() to capture Merkle tree objects.
+//
+// If CreateDirectoryMerkleTree() is only invoked to compute the hash of
+// a directory, a simple implementation may be provided that discards
+// all objects. If the directory is small enough, an implementation may
+// be used to that stores all data in memory. For large directories it
+// is suggested to discard file nodes and only keep directory objects in
+// memory, as Merkle trees for files can always be recomputed if needed.
 type DirectoryMerkleTreeCapturer[TDirectory, TFile any] interface {
 	CaptureFileNode(TFile) TDirectory
 	CaptureDirectory(ctx context.Context, createdObject model_core.CreatedObject[TDirectory]) (TDirectory, error)

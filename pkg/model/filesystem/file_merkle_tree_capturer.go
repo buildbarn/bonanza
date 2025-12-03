@@ -66,4 +66,6 @@ func (c simpleFileMerkleTreeCapturer[TMetadata]) CaptureFileContentsList(ctx con
 	return c.capturer.CaptureCreatedObject(ctx, createdObject)
 }
 
+// FileMerkleTreeCapturerForTesting is used to generate mocks for unit
+// testing CreateFileMerkleTree().
 type FileMerkleTreeCapturerForTesting FileMerkleTreeCapturer[model_core.ReferenceMetadata]

@@ -168,10 +168,15 @@ func NewFileContentsEntryFromBinary(r io.ByteReader, getDecodingParametersSizeBy
 	}, nil
 }
 
+// GetEndBytes returns the byte offset at which the current entry ends,
+// with respect to the file contents list in which the entry is placed.
 func (fce *FileContentsEntry[TReference]) GetEndBytes() uint64 {
 	return fce.endBytes
 }
 
+// GetReference returns the reference of the chunk or file contents list
+// stored in this entry. If the current entry is a hole, this function
+// returns nil.
 func (fce *FileContentsEntry[TReference]) GetReference() *model_core.Decodable[TReference] {
 	if fce.contiguousCount < 0 {
 		return nil
