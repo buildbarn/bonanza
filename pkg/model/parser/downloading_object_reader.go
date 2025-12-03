@@ -25,5 +25,5 @@ func (r *downloadingObjectReader[TReference]) ReadObject(ctx context.Context, re
 	if err != nil {
 		return model_core.Message[[]byte, object.LocalReference]{}, err
 	}
-	return model_core.NewMessage(contents.GetPayload(), object.OutgoingReferences[object.LocalReference](contents)), nil
+	return model_core.NewMessage(contents.GetPayload(), contents), nil
 }
