@@ -1285,7 +1285,7 @@ func (baseComputer[TReference, TMetadata]) applyPatch(
 
 // newRepositoryOS creates a repository_os object that can be embedded
 // into module_ctx and repository_ctx objects.
-func newRepositoryOS[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata](thread *starlark.Thread, repoPlatform *model_analysis_pb.RegisteredRepoPlatform_Value) starlark.Value {
+func newRepositoryOS[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *starlark.Thread, repoPlatform *model_analysis_pb.RegisteredRepoPlatform_Value) starlark.Value {
 	environ := starlark.NewDict(len(repoPlatform.RepositoryOsEnviron))
 	for _, entry := range repoPlatform.RepositoryOsEnviron {
 		environ.SetKey(thread, starlark.String(entry.Name), starlark.String(entry.Value))
@@ -1320,7 +1320,7 @@ type moduleOrRepositoryContextEnvironment[TReference object.BasicReference, TMet
 	GetSuccessfulActionResultValue(model_core.PatchedMessage[*model_analysis_pb.SuccessfulActionResult_Key, TMetadata]) model_core.Message[*model_analysis_pb.SuccessfulActionResult_Value, TReference]
 }
 
-type moduleOrRepositoryContext[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type moduleOrRepositoryContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	computer               *baseComputer[TReference, TMetadata]
 	context                context.Context
 	environment            moduleOrRepositoryContextEnvironment[TReference, TMetadata]
@@ -2997,7 +2997,7 @@ func (moduleOrRepositoryContext[TReference, TMetadata]) Realpath(p *model_starla
 // refer to ones belonging to external repositories. If they do, it
 // ensures that the repo belonging to that path is added to the input
 // root.
-type externalRepoAddingPathUnpackerInto[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type externalRepoAddingPathUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	context *moduleOrRepositoryContext[TReference, TMetadata]
 	base    unpack.UnpackerInto[*model_starlark.BarePath]
 }

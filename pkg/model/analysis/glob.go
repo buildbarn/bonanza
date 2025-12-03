@@ -22,7 +22,7 @@ import (
 // globPathResolver is an implementation of path.ComponentWalker that
 // resolves paths within a given package, for the purpose of expanding
 // symbolic links encountered during glob() expansion.
-type globPathResolver[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type globPathResolver[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	walker  *globDirectoryWalker[TReference, TMetadata]
 	stack   util.NonEmptyStack[model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]]
 	gotFile bool
@@ -136,7 +136,7 @@ func (r *globPathResolver[TReference, TMetadata]) OnUp() (path.ComponentWalker, 
 	return r, nil
 }
 
-type globDirectoryWalker[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type globDirectoryWalker[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	context            context.Context
 	computer           *baseComputer[TReference, TMetadata]
 	directoryReaders   *DirectoryReaders[TReference]

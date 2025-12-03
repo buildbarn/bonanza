@@ -23,7 +23,7 @@ type getTargetPlatformInfoProviderEnvironment[TReference any, TMetadata model_co
 	getProviderFromVisibleConfiguredTargetEnvironment[TReference, TMetadata]
 }
 
-func getTargetPlatformInfoProvider[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata](
+func getTargetPlatformInfoProvider[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	e getTargetPlatformInfoProviderEnvironment[TReference, TMetadata],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
 ) (model_core.Message[*model_starlark_pb.Struct_Fields, TReference], error) {

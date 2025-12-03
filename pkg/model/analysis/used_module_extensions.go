@@ -27,12 +27,12 @@ type moduleExtensionUser struct {
 	tagClasses map[string]*model_analysis_pb.ModuleExtension_TagClass
 }
 
-type usedModuleExtensionOptions[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type usedModuleExtensionOptions[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	labelResolver label.Resolver
 	patcher       *model_core.ReferenceMessagePatcher[TMetadata]
 }
 
-type usedModuleExtensionProxy[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type usedModuleExtensionProxy[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	handler       *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]
 	user          *moduleExtensionUser
 	devDependency bool
@@ -70,7 +70,7 @@ func (usedModuleExtensionProxy[TReference, TMetadata]) UseRepo(repos map[label.A
 	return nil
 }
 
-type usedModuleExtensionExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type usedModuleExtensionExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	options               *usedModuleExtensionOptions[TReference, TMetadata]
 	moduleInstance        label.ModuleInstance
 	isRoot                bool

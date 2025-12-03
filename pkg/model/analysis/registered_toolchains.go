@@ -27,7 +27,7 @@ var declaredToolchainInfoProviderIdentifier = util.Must(label.NewCanonicalStarla
 
 const toolchainRuleIdentifier = "@@builtins_core+//:exports.bzl%toolchain"
 
-type registeredToolchainExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type registeredToolchainExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	context                    context.Context
 	computer                   *baseComputer[TReference, TMetadata]
 	environment                RegisteredToolchainsEnvironment[TReference, TMetadata]

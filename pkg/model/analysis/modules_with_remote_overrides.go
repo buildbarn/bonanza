@@ -61,7 +61,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesV
 // and multi_version_override() directives of a MODULE.bazel file. These paths
 // are needed by server to determine which remote modules to download perform
 // the build.
-type overrideExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type overrideExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	overrideModules      *[]*model_analysis_pb.ModuleOverride // Keep them in order for duplication checks and caching.
 	valueEncodingOptions *model_starlark.ValueEncodingOptions[TReference, TMetadata]
 	patcher              *model_core.ReferenceMessagePatcher[TMetadata]

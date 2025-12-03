@@ -28,10 +28,6 @@ import (
 	"go.starlark.net/starlark"
 )
 
-type BaseComputerReferenceMetadata interface {
-	model_core.ReferenceMetadata
-}
-
 type baseComputerFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	filePool             pool.FilePool
 	executionClient      remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]]
@@ -76,7 +72,7 @@ func (cf *baseComputerFactory[TReference, TMetadata]) NewComputer(namespace obje
 	)
 }
 
-type baseComputer[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type baseComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference]
 	referenceFormat          object.ReferenceFormat
 	filePool                 pool.FilePool
@@ -102,7 +98,7 @@ type baseComputer[TReference object.BasicReference, TMetadata BaseComputerRefere
 	targetPatternExpansionValueTargetLabelReader model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetPatternExpansion_Value_TargetLabel]
 }
 
-func NewBaseComputer[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata](
+func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference],
 	referenceFormat object.ReferenceFormat,
 	filePool pool.FilePool,

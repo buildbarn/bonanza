@@ -1688,7 +1688,7 @@ func (targetOutputRegistrar[TReference, TMetadata]) GetConcatenationOperator() s
 	return syntax.PLUS
 }
 
-type ruleContext[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type ruleContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	computer                    *baseComputer[TReference, TMetadata]
 	context                     context.Context
 	environment                 ConfiguredTargetEnvironment[TReference, TMetadata]
@@ -1714,7 +1714,7 @@ type ruleContext[TReference object.BasicReference, TMetadata BaseComputerReferen
 	actions                     model_core.PatchedMessageList[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]
 }
 
-var _ starlark.HasAttrs = (*ruleContext[object.GlobalReference, BaseComputerReferenceMetadata])(nil)
+var _ starlark.HasAttrs = (*ruleContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
 func (rc *ruleContext[TReference, TMetadata]) String() string {
 	return fmt.Sprintf("<ctx for %s>", rc.targetLabel.String())
@@ -1872,7 +1872,7 @@ func (rc *ruleContext[TReference, TMetadata]) AttrNames() []string {
 	return attrNames
 }
 
-func toSymlinkEntryDepset[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata](v any, identifierGenerator model_starlark.ReferenceEqualIdentifierGenerator) *model_starlark.Depset[TReference, TMetadata] {
+func toSymlinkEntryDepset[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](v any, identifierGenerator model_starlark.ReferenceEqualIdentifierGenerator) *model_starlark.Depset[TReference, TMetadata] {
 	var entries []any
 	switch typedV := v.(type) {
 	case *model_starlark.Depset[TReference, TMetadata]:
@@ -1959,11 +1959,11 @@ func (rc *ruleContext[TReference, TMetadata]) getFileOrFilesToRunProvider(thread
 	}
 }
 
-type ruleContextActions[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type ruleContextActions[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	ruleContext *ruleContext[TReference, TMetadata]
 }
 
-var _ starlark.HasAttrs = (*ruleContextActions[object.GlobalReference, BaseComputerReferenceMetadata])(nil)
+var _ starlark.HasAttrs = (*ruleContextActions[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
 func (ruleContextActions[TReference, TMetadata]) String() string {
 	return "<ctx.actions>"
@@ -3027,11 +3027,11 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *starlark.T
 	)
 }
 
-type ruleContextExecGroups[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type ruleContextExecGroups[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	ruleContext *ruleContext[TReference, TMetadata]
 }
 
-var _ starlark.Mapping = (*ruleContextExecGroups[object.GlobalReference, BaseComputerReferenceMetadata])(nil)
+var _ starlark.Mapping = (*ruleContextExecGroups[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
 func (ruleContextExecGroups[TReference, TMetadata]) String() string {
 	return "<ctx.exec_groups>"
@@ -3075,12 +3075,12 @@ func (rca *ruleContextExecGroups[TReference, TMetadata]) Get(thread *starlark.Th
 	}), true, nil
 }
 
-type toolchainContext[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type toolchainContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	ruleContext    *ruleContext[TReference, TMetadata]
 	execGroupIndex int
 }
 
-var _ starlark.Mapping = (*toolchainContext[object.GlobalReference, BaseComputerReferenceMetadata])(nil)
+var _ starlark.Mapping = (*toolchainContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
 func (toolchainContext[TReference, TMetadata]) String() string {
 	return "<toolchain context>"
@@ -3651,11 +3651,11 @@ func (a *args[TReference, TMetadata]) doUseParamFile(thread *starlark.Thread, b 
 	return a, nil
 }
 
-type subruleContext[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type subruleContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	ruleContext *ruleContext[TReference, TMetadata]
 }
 
-var _ starlark.HasAttrs = (*subruleContext[object.GlobalReference, BaseComputerReferenceMetadata])(nil)
+var _ starlark.HasAttrs = (*subruleContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
 func (sc *subruleContext[TReference, TMetadata]) String() string {
 	rc := sc.ruleContext

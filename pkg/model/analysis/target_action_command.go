@@ -82,7 +82,7 @@ func splitArgsTemplate(template string) (string, string, error) {
 // filesUnderDirectoryReporter is used by expandFileIfDirectory to
 // recursively traverse a directory hierarchy and report all files
 // contained within as a File object having a tree relative path.
-type filesUnderDirectoryReporter[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type filesUnderDirectoryReporter[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	// Immutable fields.
 	context          context.Context
 	directoryReaders *DirectoryReaders[TReference]
@@ -183,7 +183,7 @@ type expandFileIfDirectoryEnvironment[TReference any, TMetadata model_core.Refer
 // expandFileIfDirectory checks whether a File provided to Args.add*()
 // corresponds to a directory. If so, it expands it to a sequence of
 // File objects corresponding to its children.
-func expandFileIfDirectory[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata](
+func expandFileIfDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	ctx context.Context,
 	e expandFileIfDirectoryEnvironment[TReference, TMetadata],
 	directoryReaders *DirectoryReaders[TReference],
@@ -768,13 +768,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 // directoryExpander implements the DirectoryExpander type that is
 // provided to the "map_each" callback used by Args.add_*(). It provides
 // the ability to expand directories to a list of files.
-type directoryExpander[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type directoryExpander[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	context          context.Context
 	environment      expandFileIfDirectoryEnvironment[TReference, TMetadata]
 	directoryReaders *DirectoryReaders[TReference]
 }
 
-var _ starlark.HasAttrs = (*directoryExpander[object.LocalReference, BaseComputerReferenceMetadata])(nil)
+var _ starlark.HasAttrs = (*directoryExpander[object.LocalReference, model_core.ReferenceMetadata])(nil)
 
 func (directoryExpander[TReference, TMetadata]) String() string {
 	return "<DirectoryExpander>"

@@ -982,7 +982,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 	)
 }
 
-func createFileRootFromChangeTrackingDirectory[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata](
+func createFileRootFromChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	ctx context.Context,
 	e FileRootEnvironment[TReference, TMetadata],
 	directoryContentsReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents],

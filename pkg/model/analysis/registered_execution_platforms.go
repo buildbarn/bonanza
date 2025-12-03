@@ -24,7 +24,7 @@ import (
 
 var platformInfoProviderIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%PlatformInfo"))
 
-type registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata BaseComputerReferenceMetadata] struct {
+type registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	computer              *baseComputer[TReference, TMetadata]
 	context               context.Context
 	environment           RegisteredExecutionPlatformsEnvironment[TReference, TMetadata]
