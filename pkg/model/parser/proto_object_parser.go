@@ -31,7 +31,7 @@ func NewProtoObjectParser[
 		*TMessage
 		proto.Message
 	},
-]() ObjectParser[TReference, model_core.Message[TMessagePtr, TReference]] {
+]() MessageObjectParser[TReference, TMessagePtr] {
 	return &protoObjectParser[TReference, TMessage, TMessagePtr]{}
 }
 

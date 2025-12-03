@@ -7,7 +7,7 @@ import (
 )
 
 type chainedObjectParser[TReference, TParsedObject any] struct {
-	parserA ObjectParser[TReference, model_core.Message[[]byte, TReference]]
+	parserA MessageObjectParser[TReference, []byte]
 	parserB ObjectParser[TReference, TParsedObject]
 }
 
@@ -18,7 +18,7 @@ type chainedObjectParser[TReference, TParsedObject any] struct {
 // An example use case for this is to parse objects containing
 // compressed/encrypted Protobuf messages. Such objects first need to be
 // decompressed/decrypted before getting unmarshaled.
-func NewChainedObjectParser[TReference, TParsedObject any](parserA ObjectParser[TReference, model_core.Message[[]byte, TReference]], parserB ObjectParser[TReference, TParsedObject]) ObjectParser[TReference, TParsedObject] {
+func NewChainedObjectParser[TReference, TParsedObject any](parserA MessageObjectParser[TReference, []byte], parserB ObjectParser[TReference, TParsedObject]) ObjectParser[TReference, TParsedObject] {
 	return &chainedObjectParser[TReference, TParsedObject]{
 		parserA: parserA,
 		parserB: parserB,

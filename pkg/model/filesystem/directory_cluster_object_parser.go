@@ -39,7 +39,7 @@ type directoryClusterObjectParser[TReference any] struct{}
 // NewDirectoryClusterObjectParser creates an ObjectParser that is
 // capable of parsing directory objects, and exposing them in the form
 // of a DirectoryCluster.
-func NewDirectoryClusterObjectParser[TReference any]() model_parser.ObjectParser[TReference, model_core.Message[DirectoryCluster, TReference]] {
+func NewDirectoryClusterObjectParser[TReference any]() model_parser.MessageObjectParser[TReference, DirectoryCluster] {
 	return &directoryClusterObjectParser[TReference]{}
 }
 

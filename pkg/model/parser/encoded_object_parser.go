@@ -15,7 +15,7 @@ type encodedObjectParser[TReference any] struct {
 // Decoding operations may include decompression and decryption.
 func NewEncodedObjectParser[
 	TReference any,
-](decoder model_encoding.BinaryDecoder) ObjectParser[TReference, model_core.Message[[]byte, TReference]] {
+](decoder model_encoding.BinaryDecoder) MessageObjectParser[TReference, []byte] {
 	return &encodedObjectParser[TReference]{
 		decoder: decoder,
 	}

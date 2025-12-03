@@ -9,6 +9,7 @@ go_library(
         "dereference.go",
         "downloading_object_reader.go",
         "encoded_object_parser.go",
+        "message_object_parser.go",
         "message_object_reader.go",
         "object_parser.go",
         "object_reader.go",
