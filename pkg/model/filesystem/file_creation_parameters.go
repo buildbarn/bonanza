@@ -39,7 +39,7 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 	if m.ChunkMaximumSizeBytes > maximumObjectSizeBytes {
 		return nil, status.Errorf(codes.InvalidArgument, "Maximum size of chunks is above maximum object size of %d bytes", maximumObjectSizeBytes)
 	}
-	if m.ChunkMaximumSizeBytes < 2*m.ChunkMinimumSizeBytes {
+	if uint64(m.ChunkMaximumSizeBytes) < 2*uint64(m.ChunkMinimumSizeBytes) {
 		return nil, status.Error(codes.InvalidArgument, "Maximum size of chunks must be at least twice as large as the minimum")
 	}
 
