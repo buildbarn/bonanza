@@ -24,7 +24,7 @@ func NewFileContentsListFromProto[TReference object.BasicReference](l model_core
 		return nil, status.Error(codes.InvalidArgument, "File contents list contains fewer than two parts")
 	}
 
-	var endBytes uint64
+	var cumulativeEndBytes uint64
 	fileContentsList := make(FileContentsList[TReference], 0, len(l.Message))
 	for i, part := range l.Message {
 		entry, err := NewFileContentsEntryFromProto(model_core.Nested(l, part))
@@ -35,11 +35,11 @@ func NewFileContentsListFromProto[TReference object.BasicReference](l model_core
 		// Convert 'total_size_bytes' to a cumulative value, to
 		// allow FileContentsIterator to perform binary searching.
 		var carryOut uint64
-		endBytes, carryOut = bits.Add64(endBytes, entry.endBytes, 0)
+		cumulativeEndBytes, carryOut = bits.Add64(cumulativeEndBytes, entry.endBytes, 0)
 		if carryOut > 0 {
 			return nil, status.Errorf(codes.InvalidArgument, "Combined size of all parts exceeds maximum file size of %d bytes", uint64(math.MaxUint64))
 		}
-		entry.endBytes = endBytes
+		entry.endBytes = cumulativeEndBytes
 
 		fileContentsList = append(fileContentsList, entry)
 	}
