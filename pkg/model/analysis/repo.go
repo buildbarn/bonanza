@@ -2993,7 +2993,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 
 func (moduleOrRepositoryContext[TReference, TMetadata]) Realpath(p *model_starlark.BarePath) (*model_starlark.BarePath, error) {
 	// TODO: Implement.
-	return nil, errors.New("path.realpath(%#v) has not been implemented yet", p.GetUNIXString())
+	return nil, fmt.Errorf("path.realpath(%#v) has not been implemented yet", p.GetUNIXString())
 }
 
 // externalRepoAddingPathUnpackerInto is a decorator for
