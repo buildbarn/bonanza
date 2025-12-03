@@ -32,7 +32,8 @@ func packageGroupContains[TReference any](e packageGroupContainsEnvironment[TRef
 		case *model_starlark_pb.PackageGroup_Subpackages_OverridesInline:
 			overrides = model_core.Nested(subpackages, o.OverridesInline)
 		case *model_starlark_pb.PackageGroup_Subpackages_OverridesExternal:
-			return false, errors.New("TODO: Download external overrides!")
+			// TODO: Implement!
+			return false, errors.New("loading external overrides from an external object has not been implemented yet")
 		case nil:
 			// No overrides present.
 		default:

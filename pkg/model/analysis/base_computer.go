@@ -36,6 +36,9 @@ type baseComputerFactory[TReference object.BasicReference, TMetadata model_core.
 	objectStoreSemaphore *semaphore.Weighted
 }
 
+// NewBaseComputerFactory creates a factory that can be provided
+// evaluation.Executor to obtain computers capable of performing builds
+// of Bazel projects.
 func NewBaseComputerFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	filePool pool.FilePool,
 	executionClient remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]],
@@ -98,6 +101,8 @@ type baseComputer[TReference object.BasicReference, TMetadata model_core.Referen
 	targetPatternExpansionValueTargetLabelReader model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetPatternExpansion_Value_TargetLabel]
 }
 
+// NewBaseComputer constructs a computer that is capable of performing
+// builds of Bazel projects.
 func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference],
 	referenceFormat object.ReferenceFormat,
@@ -469,4 +474,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 	})
 }
 
+// ExecutionClientForTesting is used to generate mocks for unit testing
+// BaseComputer.
 type ExecutionClientForTesting remoteexecution.Client[*model_executewithstorage.Action[model_core.CreatedObjectTree], model_core.Decodable[model_core.CreatedObjectTree], model_core.Decodable[model_core.CreatedObjectTree]]

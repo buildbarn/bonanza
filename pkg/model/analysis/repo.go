@@ -2160,7 +2160,8 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 }
 
 func (moduleOrRepositoryContext[TReference, TMetadata]) doExtract(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	return nil, errors.New("TODO: Implement!")
+	// TODO: Implement.
+	return nil, errors.New("repository_ctx.extract() has not been implemented yet")
 }
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doFile(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -2809,7 +2810,8 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 }
 
 func (moduleOrRepositoryContext[TReference, TMetadata]) IsDir(p *model_starlark.BarePath) (bool, error) {
-	return false, fmt.Errorf("TODO: Implement path.is_dir(%#v)!", p.GetUNIXString())
+	// TODO: Implement.
+	return false, fmt.Errorf("path.is_dir(%#v) has not been implemented yet", p.GetUNIXString())
 }
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_starlark.BarePath) ([]path.Component, error) {
@@ -2832,7 +2834,8 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 		return nil, fmt.Errorf("cannot resolve %#v: %w", p.GetUNIXString(), err)
 	}
 	if r.gotScope {
-		return nil, fmt.Errorf("TODO: Implement path.readdir(%#v) for paths in the input root!", p.GetUNIXString())
+		// TODO: Implement.
+		return nil, fmt.Errorf("path.readdir(%#v) for paths in the input root has not been implemented yet", p.GetUNIXString())
 	}
 
 	// Path resolves to a location that is not part of the input
@@ -2989,7 +2992,8 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 }
 
 func (moduleOrRepositoryContext[TReference, TMetadata]) Realpath(p *model_starlark.BarePath) (*model_starlark.BarePath, error) {
-	return nil, fmt.Errorf("TODO: Implement path.realpath(%#v)!", p.GetUNIXString())
+	// TODO: Implement.
+	return nil, errors.New("path.realpath(%#v) has not been implemented yet", p.GetUNIXString())
 }
 
 // externalRepoAddingPathUnpackerInto is a decorator for
@@ -3697,7 +3701,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 	}
 
 	moduleInstance := canonicalRepo.GetModuleInstance()
-	if _, ok := moduleInstance.GetModuleVersion(); !ok {
+	if _, ok := moduleInstance.GetModuleVersion(); ok {
+		// TODO: Check for multiple version overrides.
+	} else {
 		// See if this is one of the modules for which sources
 		// are provided. If so, return a repo value immediately.
 		// This allows any files contained within to be accessed
@@ -3750,14 +3756,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 				)
 			case *model_analysis_pb.ModuleOverride_SingleVersion_:
 				if override.SingleVersion.Version != "" {
-					return PatchedRepoValue[TMetadata]{}, fmt.Errorf("TODO: single version override with exact version should skip Minimal Version Selection!")
+					// TODO: Implement!
+					return PatchedRepoValue[TMetadata]{}, errors.New("single version override with exact version should skip Minimal Version Selection")
 				}
 				singleVersionOverridePatchLabels = override.SingleVersion.PatchLabels
 				singleVersionOverridePatchCommands = override.SingleVersion.PatchCommands
 				singleVersionOverridePatchStrip = int(override.SingleVersion.PatchStrip)
+			case *model_analysis_pb.ModuleOverride_MultipleVersions_:
+				return PatchedRepoValue[TMetadata]{}, errors.New("module has a multiple version override, meaning that the module instance must contain a version number")
 			default:
-				// TODO: Implement Archive, SingleVersion, MultipleVersions
-				return PatchedRepoValue[TMetadata]{}, fmt.Errorf("remote override type for %q: %w", remoteOverride.Name, errors.ErrUnsupported)
+				return PatchedRepoValue[TMetadata]{}, errors.New("unknown module override type")
 			}
 		}
 
