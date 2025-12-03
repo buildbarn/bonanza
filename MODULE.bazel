@@ -34,7 +34,6 @@ git_override(
 git_override(
     module_name = "com_github_buildbarn_bb_storage",
     commit = "faf8fe60ecd0453a128383dee1a270ac6c161c3c",
-    patches = ["//:patches/com_github_buildbarn_bb_storage/no-golint.diff"],
     remote = "https://github.com/buildbarn/bb-storage.git",
 )
 

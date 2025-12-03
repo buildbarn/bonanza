@@ -1039,6 +1039,10 @@
             {
                "name": "Test style conformance",
                "run": "git add . && git diff --exit-code HEAD --"
+            },
+            {
+               "name": "Golint",
+               "run": "bazel run @org_golang_x_lint//golint -- -set_exit_status $(pwd)/..."
             }
          ]
       }
