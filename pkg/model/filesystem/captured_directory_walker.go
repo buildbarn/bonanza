@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_parser "bonanza.build/pkg/model/parser"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
@@ -31,9 +32,10 @@ type CapturedDirectory interface {
 // all the transitively created instances of ObjectContentsWalker that
 // are returned by NewCapturedDirectoryWalker().
 type capturedDirectoryWalkerOptions struct {
-	directoryParameters *DirectoryAccessParameters
-	fileParameters      *FileCreationParameters
-	rootDirectory       CapturedDirectory
+	directoryContentsParser model_parser.MessageObjectParser[object.LocalReference, *model_filesystem_pb.DirectoryContents]
+	leavesParser            model_parser.MessageObjectParser[object.LocalReference, *model_filesystem_pb.Leaves]
+	fileParameters          *FileCreationParameters
+	rootDirectory           CapturedDirectory
 }
 
 // openFile opens a file underneath the root directory for reading. This
@@ -125,11 +127,21 @@ type capturedDirectoryWalker struct {
 // caller must provide a handle to the root directory on which the
 // provided Merkle tree is based.
 func NewCapturedDirectoryWalker(directoryParameters *DirectoryAccessParameters, fileParameters *FileCreationParameters, rootDirectory CapturedDirectory, rootObject *model_core.CreatedObjectTree, decodingParameters []byte) dag.ObjectContentsWalker {
+	directoryEncodedObjectParser := model_parser.NewEncodedObjectParser[object.LocalReference](
+		directoryParameters.GetEncoder(),
+	)
 	return &capturedDirectoryWalker{
 		options: &capturedDirectoryWalkerOptions{
-			directoryParameters: directoryParameters,
-			fileParameters:      fileParameters,
-			rootDirectory:       rootDirectory,
+			directoryContentsParser: model_parser.NewChainedObjectParser(
+				directoryEncodedObjectParser,
+				model_parser.NewProtoObjectParser[object.LocalReference, model_filesystem_pb.DirectoryContents](),
+			),
+			leavesParser: model_parser.NewChainedObjectParser(
+				directoryEncodedObjectParser,
+				model_parser.NewProtoObjectParser[object.LocalReference, model_filesystem_pb.Leaves](),
+			),
+			fileParameters: fileParameters,
+			rootDirectory:  rootDirectory,
 		},
 		object:             rootObject,
 		decodingParameters: decodingParameters,
@@ -137,13 +149,13 @@ func NewCapturedDirectoryWalker(directoryParameters *DirectoryAccessParameters, 
 }
 
 func (w *capturedDirectoryWalker) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
-	directory, err := w.options.directoryParameters.DecodeDirectory(w.object.Contents, w.decodingParameters)
+	directory, err := w.options.directoryContentsParser.ParseObject(model_core.NewRawMessage(w.object.Contents), w.decodingParameters)
 	if err != nil {
 		return nil, nil, util.StatusWrapf(err, "Failed to decode directory %#v", w.pathTrace.GetUNIXString())
 	}
 
 	walkers := make([]dag.ObjectContentsWalker, w.object.GetDegree())
-	if err := w.gatherWalkers(directory, w.pathTrace, walkers); err != nil {
+	if err := w.gatherWalkers(directory.Message, w.pathTrace, walkers); err != nil {
 		return nil, nil, err
 	}
 	return w.object.Contents, walkers, nil
@@ -207,13 +219,13 @@ type capturedLeavesWalker struct {
 }
 
 func (w *capturedLeavesWalker) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
-	leaves, err := w.options.directoryParameters.DecodeLeaves(w.object.Contents, w.decodingParameters)
+	leaves, err := w.options.leavesParser.ParseObject(model_core.NewRawMessage(w.object.Contents), w.decodingParameters)
 	if err != nil {
 		return nil, nil, util.StatusWrapf(err, "Failed to decode leaves of directory %#v", w.pathTrace.GetUNIXString())
 	}
 
 	walkers := make([]dag.ObjectContentsWalker, w.object.GetDegree())
-	if err := w.options.gatherWalkersForLeaves(model_core.NewMessage(leaves, w.object.Contents), w.pathTrace, walkers); err != nil {
+	if err := w.options.gatherWalkersForLeaves(model_core.NewMessage(leaves.Message, w.object.Contents), w.pathTrace, walkers); err != nil {
 		return nil, nil, err
 	}
 	return w.object.Contents, walkers, nil
@@ -288,11 +300,7 @@ func (w *recomputingConcatenatedFileWalker) GetContents(ctx context.Context) (*o
 		return nil, nil, status.Errorf(codes.InvalidArgument, "File %#v has reference %s, while %s was expected", w.pathTrace.GetUNIXString(), references[0], w.reference)
 	}
 
-	options := &computedConcatenatedFileObjectOptions{
-		fileParameters: w.options.fileParameters,
-		pathTrace:      w.pathTrace,
-		file:           r,
-	}
+	options := newComputedConcatenatedFileObjectOptions(w.options.fileParameters, w.pathTrace, r)
 	options.referenceCount.Store(1)
 	wComputed := &computedConcatenatedFileWalker{
 		options:            options,
@@ -303,11 +311,7 @@ func (w *recomputingConcatenatedFileWalker) GetContents(ctx context.Context) (*o
 }
 
 func NewCapturedFileWalker(fileParameters *FileCreationParameters, r filesystem.FileReader, fileReference object.LocalReference, fileSizeBytes uint64, fileObject *model_core.CreatedObjectTree, decodingParameters []byte) dag.ObjectContentsWalker {
-	options := &computedConcatenatedFileObjectOptions{
-		fileParameters: fileParameters,
-		file:           r,
-	}
-	options.referenceCount.Store(1)
+	options := newComputedConcatenatedFileObjectOptions(fileParameters, nil, r)
 	if fileReference.GetHeight() == 0 {
 		return &concatenatedFileChunkWalker{
 			options:            options,
@@ -329,10 +333,27 @@ func (recomputingConcatenatedFileWalker) Discard() {}
 // is backed by a part of a large file for which the Merkle tree was
 // recomputed.
 type computedConcatenatedFileObjectOptions struct {
-	fileParameters *FileCreationParameters
-	pathTrace      *path.Trace
-	referenceCount atomic.Uint64
-	file           filesystem.FileReader
+	fileParameters         *FileCreationParameters
+	fileContentsListParser model_parser.MessageObjectParser[object.LocalReference, []*model_filesystem_pb.FileContents]
+	pathTrace              *path.Trace
+	referenceCount         atomic.Uint64
+	file                   filesystem.FileReader
+}
+
+func newComputedConcatenatedFileObjectOptions(fileParameters *FileCreationParameters, pathTrace *path.Trace, file filesystem.FileReader) *computedConcatenatedFileObjectOptions {
+	options := &computedConcatenatedFileObjectOptions{
+		fileParameters: fileParameters,
+		fileContentsListParser: model_parser.NewChainedObjectParser(
+			model_parser.NewEncodedObjectParser[object.LocalReference](
+				fileParameters.GetFileContentsListEncoder(),
+			),
+			model_parser.NewProtoListObjectParser[object.LocalReference, model_filesystem_pb.FileContents](),
+		),
+		pathTrace: pathTrace,
+		file:      file,
+	}
+	options.referenceCount.Store(1)
+	return options
 }
 
 type computedConcatenatedFileWalker struct {
@@ -343,13 +364,13 @@ type computedConcatenatedFileWalker struct {
 }
 
 func (w *computedConcatenatedFileWalker) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
-	fileContentsList, err := w.options.fileParameters.DecodeFileContentsList(w.object.Contents, w.decodingParameters)
+	fileContentsList, err := w.options.fileContentsListParser.ParseObject(model_core.NewRawMessage(w.object.Contents), w.decodingParameters)
 	if err != nil {
 		return nil, nil, util.StatusWrapf(err, "Failed to decode file contents list for file %#v at offset %d", w.options.pathTrace.GetUNIXString(), w.offsetBytes)
 	}
 	walkers := make([]dag.ObjectContentsWalker, w.object.GetDegree())
 	offsetBytes := w.offsetBytes
-	for _, part := range fileContentsList {
+	for _, part := range fileContentsList.Message {
 		switch level := part.Level.(type) {
 		case *model_filesystem_pb.FileContents_List_:
 			index, err := model_core.GetIndexFromReferenceMessage(level.List.Reference.GetReference(), len(walkers))

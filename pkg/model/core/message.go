@@ -28,6 +28,17 @@ func NewMessage[TMessage, TReference any](
 	}
 }
 
+// NewRawMessage creates a Message whose contents correspond to the
+// payload of an object in storage. Typically additional processing
+// needs to be performed to consume this data, such as decoding and
+// parsing.
+func NewRawMessage(contents *object.Contents) Message[[]byte, object.LocalReference] {
+	return Message[[]byte, object.LocalReference]{
+		Message:            contents.GetPayload(),
+		OutgoingReferences: contents,
+	}
+}
+
 // NewSimpleMessage is a helper function for creating instances of
 // Message for messages that don't contain any references.
 func NewSimpleMessage[TReference, TMessage any](m TMessage) Message[TMessage, TReference] {

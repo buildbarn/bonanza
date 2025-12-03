@@ -1,9 +1,7 @@
 package filesystem
 
 import (
-	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
-	model_parser "bonanza.build/pkg/model/parser"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
@@ -45,25 +43,6 @@ func NewFileAccessParametersFromProto(m *model_filesystem_pb.FileAccessParameter
 		chunkEncoder:            chunkEncoder,
 		fileContentsListEncoder: fileContentsListEncoder,
 	}, nil
-}
-
-// DecodeFileContentsList extracts the FileContents list that is stored
-// in an object backed by storage.
-//
-// TODO: Maybe we should simply throw out this method? It doesn't
-// provide a lot of value.
-func (p *FileAccessParameters) DecodeFileContentsList(contents *object.Contents, decodingParameters []byte) ([]*model_filesystem_pb.FileContents, error) {
-	fileContentsList, err := model_parser.NewChainedObjectParser(
-		model_parser.NewEncodedObjectParser[object.LocalReference](p.fileContentsListEncoder),
-		model_parser.NewProtoListObjectParser[object.LocalReference, model_filesystem_pb.FileContents](),
-	).ParseObject(
-		model_core.NewMessage(contents.GetPayload(), object.OutgoingReferences[object.LocalReference](contents)),
-		decodingParameters,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return fileContentsList.Message, nil
 }
 
 // GetChunkEncoder returns the encoder that was used to create chunks of
