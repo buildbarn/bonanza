@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "expecteddependencies_proto",
+    srcs = ["expecteddependencies.proto"],
+    import_prefix = "bonanza.build",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/proto/model/core:core_proto",
+        "@protobuf//:timestamp_proto",
+    ],
+)
+
+go_proto_library(
+    name = "expecteddependencies_go_proto",
+    importpath = "bonanza.build/pkg/proto/model/evaluation/expecteddependencies",
+    proto = ":expecteddependencies_proto",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/proto/model/core"],
+)
+
+go_library(
+    name = "expecteddependencies",
+    embed = [":expecteddependencies_go_proto"],
+    importpath = "bonanza.build/pkg/proto/model/evaluation/expecteddependencies",
+    visibility = ["//visibility:public"],
+)
