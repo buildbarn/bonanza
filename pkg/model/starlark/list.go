@@ -13,25 +13,12 @@ import (
 	"bonanza.build/pkg/storage/object"
 )
 
-// AllListLeafElements walks over a list and returns all leaf elements
-// contained within.
-func AllListLeafElements[TReference object.BasicReference](
-	ctx context.Context,
-	reader model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element],
-	rootList model_core.Message[[]*model_starlark_pb.List_Element, TReference],
+func mapListElementsToValues[TReference any](
+	base iter.Seq[model_core.Message[*model_starlark_pb.List_Element, TReference]],
 	errOut *error,
 ) iter.Seq[model_core.Message[*model_starlark_pb.Value, TReference]] {
-	allLeaves := btree.AllLeaves(
-		ctx,
-		reader,
-		rootList,
-		func(element model_core.Message[*model_starlark_pb.List_Element, TReference]) (*model_core_pb.DecodableReference, error) {
-			return element.Message.GetParent().GetReference(), nil
-		},
-		errOut,
-	)
 	return func(yield func(model_core.Message[*model_starlark_pb.Value, TReference]) bool) {
-		allLeaves(func(entry model_core.Message[*model_starlark_pb.List_Element, TReference]) bool {
+		base(func(entry model_core.Message[*model_starlark_pb.List_Element, TReference]) bool {
 			switch level := entry.Message.Level.(type) {
 			case *model_starlark_pb.List_Element_Leaf:
 				return yield(model_core.Nested(entry, level.Leaf))
@@ -41,6 +28,30 @@ func AllListLeafElements[TReference object.BasicReference](
 			}
 		})
 	}
+}
+
+func listElementGetParentReference[TReference any](element model_core.Message[*model_starlark_pb.List_Element, TReference]) (*model_core_pb.DecodableReference, error) {
+	return element.Message.GetParent().GetReference(), nil
+}
+
+// AllListLeafElements walks over a list and returns all leaf elements
+// contained within.
+func AllListLeafElements[TReference object.BasicReference](
+	ctx context.Context,
+	reader model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element],
+	rootList model_core.Message[[]*model_starlark_pb.List_Element, TReference],
+	errOut *error,
+) iter.Seq[model_core.Message[*model_starlark_pb.Value, TReference]] {
+	return mapListElementsToValues(
+		btree.AllLeaves(
+			ctx,
+			reader,
+			rootList,
+			listElementGetParentReference,
+			errOut,
+		),
+		errOut,
+	)
 }
 
 // AllListLeafElementsSkippingDuplicateParents walks over a list and
@@ -60,45 +71,15 @@ func AllListLeafElementsSkippingDuplicateParents[TReference object.BasicReferenc
 	listsSeen map[model_core.Decodable[object.LocalReference]]struct{},
 	errOut *error,
 ) iter.Seq[model_core.Message[*model_starlark_pb.Value, TReference]] {
-	allLeaves := btree.AllLeaves(
-		ctx,
-		reader,
-		rootList,
-		func(element model_core.Message[*model_starlark_pb.List_Element, TReference]) (*model_core_pb.DecodableReference, error) {
-			if level, ok := element.Message.Level.(*model_starlark_pb.List_Element_Parent_); ok {
-				listReferenceMessage := level.Parent.Reference
-				listReference, err := model_core.FlattenDecodableReference(model_core.Nested(element, level.Parent.Reference))
-				if err != nil {
-					return nil, err
-				}
-				key := model_core.CopyDecodable(listReference, listReference.Value.GetLocalReference())
-				if _, ok := listsSeen[key]; ok {
-					// Parent was already seen before.
-					// Skip it.
-					return nil, nil
-				}
-
-				// Parent was not seen before. Enter it.
-				listsSeen[key] = struct{}{}
-				return listReferenceMessage, nil
-			}
-			return nil, nil
-		},
+	return mapListElementsToValues(
+		btree.AllLeavesSkippingDuplicateParents(
+			ctx,
+			reader,
+			rootList,
+			listElementGetParentReference,
+			listsSeen,
+			errOut,
+		),
 		errOut,
 	)
-	return func(yield func(model_core.Message[*model_starlark_pb.Value, TReference]) bool) {
-		allLeaves(func(entry model_core.Message[*model_starlark_pb.List_Element, TReference]) bool {
-			switch level := entry.Message.Level.(type) {
-			case *model_starlark_pb.List_Element_Leaf:
-				return yield(model_core.Nested(entry, level.Leaf))
-			case *model_starlark_pb.List_Element_Parent_:
-				// Parent that was traversed previously,
-				// which needs to be skipped.
-				return true
-			default:
-				*errOut = errors.New("not a valid leaf entry")
-				return false
-			}
-		})
-	}
 }
