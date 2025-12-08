@@ -6,6 +6,8 @@ import (
 
 	"bonanza.build/pkg/storage/object"
 
+	"github.com/buildbarn/bb-storage/pkg/random"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -16,7 +18,10 @@ type store struct {
 	locationBlobMap      LocationBlobMap
 	epochList            EpochList
 
-	writeLocks [1 << 8]sync.Mutex
+	randomNumberGenerator random.SingleThreadedGenerator
+	oldRegionSize         uint64
+	currentRegionSize     uint64
+	writeLocks            [1 << 8]sync.Mutex
 }
 
 // NewStore creates an object store that uses locally connected disks as
@@ -26,12 +31,19 @@ func NewStore(
 	referenceLocationMap ReferenceLocationMap,
 	locationBlobMap LocationBlobMap,
 	epochList EpochList,
+	randomNumberGenerator random.SingleThreadedGenerator,
+	oldRegionSize uint64,
+	currentRegionSize uint64,
 ) object.Store[object.FlatReference, struct{}] {
 	return &store{
 		lock:                 lock,
 		referenceLocationMap: referenceLocationMap,
 		locationBlobMap:      locationBlobMap,
 		epochList:            epochList,
+
+		randomNumberGenerator: randomNumberGenerator,
+		oldRegionSize:         oldRegionSize,
+		currentRegionSize:     currentRegionSize,
 	}
 }
 
@@ -40,8 +52,29 @@ func (s *store) getObjectLocation(reference object.FlatReference) (uint64, bool,
 	defer s.lock.RUnlock()
 
 	location, err := s.referenceLocationMap.Get(reference, s.epochList)
-	// TODO: Determine whether object needs to be refreshed.
-	return location, false, err
+	if err != nil {
+		return 0, false, err
+	}
+
+	// Determine whether the object needs to be refreshed based on
+	// which region of the ring buffer it resides in:
+	// - "old" region: always refresh
+	// - "current" region: refresh with linear probability
+	// - "new" region: never refresh
+	epochState, _ := s.epochList.GetCurrentEpochState()
+	distanceFromMinimum := location - epochState.MinimumLocation
+	var needsRefresh bool
+	if distanceFromMinimum < s.oldRegionSize {
+		// Object is in the "old" region. Always refresh.
+		needsRefresh = true
+	} else if distanceFromMinimum < s.oldRegionSize+s.currentRegionSize {
+		// Object is in the "current" region. Refresh with a
+		// linear probability that increases as the object
+		// approaches the "old" region.
+		distanceFromOld := distanceFromMinimum - s.oldRegionSize
+		needsRefresh = s.randomNumberGenerator.Uint64()%s.currentRegionSize >= distanceFromOld
+	}
+	return location, needsRefresh, nil
 }
 
 func (s *store) readObjectAtLocation(reference object.FlatReference, location uint64) (*object.Contents, error) {

@@ -173,10 +173,35 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		)
 	}
 
+	// Compute the sizes of the "old" and "current" regions based on
+	// the configured ratios. Objects in the "old" region are always
+	// refreshed (copied to the end of the ring buffer). Objects in
+	// the "current" region are refreshed with a linear probability
+	// that increases the closer the object gets to the "old" region.
+	// Objects in the "new" region are not refreshed.
+	oldRegionSizeRatio := configuration.OldRegionSizeRatio
+	if oldRegionSizeRatio == 0 {
+		oldRegionSizeRatio = 1
+	}
+	currentRegionSizeRatio := configuration.CurrentRegionSizeRatio
+	if currentRegionSizeRatio == 0 {
+		currentRegionSizeRatio = 1
+	}
+	newRegionSizeRatio := configuration.NewRegionSizeRatio
+	if newRegionSizeRatio == 0 {
+		newRegionSizeRatio = 3
+	}
+	totalRatio := uint64(oldRegionSizeRatio + currentRegionSizeRatio + newRegionSizeRatio)
+	oldRegionSize := maximumLocationSpan * uint64(oldRegionSizeRatio) / totalRatio
+	currentRegionSize := maximumLocationSpan * uint64(currentRegionSizeRatio) / totalRatio
+
 	return NewStore(
 		&globalLock,
 		referenceLocationMap,
 		locationBlobMap,
 		epochList,
+		random.NewFastSingleThreadedGenerator(),
+		oldRegionSize,
+		currentRegionSize,
 	), nil
 }
