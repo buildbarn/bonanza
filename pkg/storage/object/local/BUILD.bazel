@@ -55,13 +55,18 @@ go_test(
         "mocks_local_test.go",
         "mocks_util_test.go",
         "periodic_syncer_test.go",
+        "store_test.go",
     ],
     embed = [":local"],
     deps = [
+        "//pkg/ds/lossymap",
+        "//pkg/proto/storage/object",
         "//pkg/proto/storage/object/local",
+        "//pkg/storage/object",
         "@com_github_buildbarn_bb_storage//pkg/clock",  # keep
         "@com_github_buildbarn_bb_storage//pkg/filesystem",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
+        "@com_github_buildbarn_bb_storage//pkg/random",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//codes",
