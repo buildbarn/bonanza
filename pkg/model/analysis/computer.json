@@ -14,7 +14,8 @@
       "ActionEncoders": {
          "dependsOn": [
             "BuildSpecification"
-         ]
+         ],
+         "isLookup": true
       },
       "ActionReaders": {
          "dependsOn": [
@@ -50,7 +51,8 @@
       "BuiltinsModuleNames": {
          "dependsOn": [
             "BuildSpecification"
-         ]
+         ],
+         "isLookup": true
       },
       "CanonicalRepoName": {
          "dependsOn": [
@@ -144,12 +146,14 @@
       "DirectoryAccessParameters": {
          "dependsOn": [
             "BuildSpecification"
-         ]
+         ],
+         "isLookup": true
       },
       "DirectoryCreationParameters": {
          "dependsOn": [
             "BuildSpecification"
-         ]
+         ],
+         "isLookup": true
       },
       "DirectoryCreationParametersObject": {
          "dependsOn": [
@@ -197,12 +201,14 @@
       "FileAccessParameters": {
          "dependsOn": [
             "FileCreationParameters"
-         ]
+         ],
+         "isLookup": true
       },
       "FileCreationParameters": {
          "dependsOn": [
             "BuildSpecification"
-         ]
+         ],
+         "isLookup": true
       },
       "FileCreationParametersObject": {
          "dependsOn": [
@@ -284,7 +290,8 @@
             "ActionReaders",
             "FileCreationParameters",
             "RegisteredFetchPlatform"
-         ]
+         ],
+         "isLookup": false
       },
       "ModuleDotBazelContents": {
          "dependsOn": [
@@ -339,7 +346,8 @@
       "ModuleRegistryUrls": {
          "dependsOn": [
             "BuildSpecification"
-         ]
+         ],
+         "isLookup": true
       },
       "ModuleRepoMapping": {
          "dependsOn": [
@@ -420,6 +428,7 @@
             "ActionEncoders",
             "ActionReaders"
          ],
+         "isLookup": false,
          "keyContainsReferences": true
       },
       "RegisteredExecutionPlatforms": {
@@ -436,7 +445,8 @@
       "RegisteredFetchPlatform": {
          "dependsOn": [
             "BuildSpecification"
-         ]
+         ],
+         "isLookup": true
       },
       "RegisteredRepoPlatform": {
          "dependsOn": [
@@ -535,7 +545,8 @@
       "RootModule": {
          "dependsOn": [
             "BuildSpecification"
-         ]
+         ],
+         "isLookup": true
       },
       "RuleImplementationWrappers": {
          "dependsOn": [

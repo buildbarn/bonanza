@@ -20,6 +20,7 @@ type functionDefinition struct {
 	KeyContainsReferences bool
 	DependsOn             []string `json:"dependsOn"`
 	NativeValueType       *nativeValueTypeDefinition
+	IsLookup              *bool `json:"isLookup"`
 }
 
 func getMessageName(s string) string {
@@ -62,6 +63,49 @@ func main() {
 	var computerDefinition computerDefinition
 	if err := json.Unmarshal(computerDefinitionData, &computerDefinition); err != nil {
 		log.Fatal("Failed to unmarshal computer definition: ", err)
+	}
+
+	// Functions that only have acyclic dependencies are close to
+	// the root of the build graph. For these functions we require
+	// that it's specified whether the function is computationally
+	// expensive, or whether it merely performs a lookup within the
+	// values returned by its dependencies.
+	//
+	// For functions that just perform lookups, it generally doesn't
+	// make sense to cache results. The values returned by the
+	// functions below likely have a very high amount of churn.
+	//
+	// TODO: Maybe the right thing to do is to eliminate the
+	// existence of such lookup functions entirely? Get rid of
+	// BuildSpecification, and require that clients set
+	// DirectoryAccessParameters, etc. manually. This has the
+	// downside that it becomes more complex to invoke a build, and
+	// reduces flexibility on the analysis side.
+	worstCaseHeights := map[string]int{}
+	for i := 0; i < len(computerDefinition.Functions); i++ {
+		for functionName, functionDefinition := range computerDefinition.Functions {
+			for _, dependencyName := range functionDefinition.DependsOn {
+				newHeight := len(computerDefinition.Functions)
+				if dependencyDefinition := computerDefinition.Functions[dependencyName]; dependencyDefinition.IsLookup == nil || *dependencyDefinition.IsLookup {
+					newHeight = worstCaseHeights[dependencyName] + 1
+				}
+				if worstCaseHeights[functionName] < newHeight {
+					worstCaseHeights[functionName] = newHeight
+				}
+			}
+		}
+	}
+	for functionName, functionDefinition := range computerDefinition.Functions {
+		worstCaseHeight := worstCaseHeights[functionName]
+		if len(functionDefinition.DependsOn) == 0 || functionDefinition.NativeValueType != nil {
+			if functionDefinition.IsLookup != nil {
+				log.Fatalf("Function %s specifies whether it is a lookup, which can only be done for functions with dependencies, returning a message", functionName)
+			}
+		} else {
+			if (functionDefinition.IsLookup == nil) == (worstCaseHeight < len(computerDefinition.Functions)) {
+				log.Fatalf("Functions that only have acyclic dependencies must specify whether they are lookups, which function %s violates", functionName)
+			}
+		}
 	}
 
 	fmt.Printf("package %s\n", computerDefinition.GoPackage)
