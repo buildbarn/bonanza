@@ -12,14 +12,15 @@ import (
 )
 
 type store struct {
+	oldRegionSizeBytes     uint64
+	currentRegionSizeBytes uint64
+
 	lock                 *sync.RWMutex
 	referenceLocationMap ReferenceLocationMap
 	locationBlobMap      LocationBlobMap
 	epochList            EpochList
 
-	oldRegionSizeBytes     uint64
-	currentRegionSizeBytes uint64
-	writeLocks             [1 << 8]sync.Mutex
+	writeLocks [1 << 8]sync.Mutex
 }
 
 // NewStore creates an object store that uses locally connected disks as
@@ -63,7 +64,10 @@ func (s *store) getObjectLocation(reference object.FlatReference) (uint64, bool,
 	// Compute a deterministic threshold for this object within the
 	// current region. Objects whose distance from minimum falls
 	// below (oldRegion + threshold) need to be refreshed.
-	threshold := binary.LittleEndian.Uint64(reference.GetRawFlatReference()) % s.currentRegionSizeBytes
+	// XOR with location ensures the threshold changes each time the
+	// object is relocated, preventing the same objects from always
+	// being refreshed earlier than others.
+	threshold := (location ^ binary.LittleEndian.Uint64(reference.GetRawFlatReference())) % s.currentRegionSizeBytes
 	needsRefresh := distanceFromMinimum < s.oldRegionSizeBytes+threshold
 	return location, needsRefresh, nil
 }
