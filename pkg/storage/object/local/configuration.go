@@ -173,35 +173,30 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		)
 	}
 
-	// Compute the sizes of the "old" and "current" regions based on
-	// the configured ratios. Objects in the "old" region are always
-	// refreshed (copied to the end of the ring buffer). Objects in
-	// the "current" region are refreshed with a linear probability
-	// that increases the closer the object gets to the "old" region.
-	// Objects in the "new" region are not refreshed.
+	// Validate and compute the sizes of the "old" and "current"
+	// regions based on the configured ratios.
 	oldRegionSizeRatio := configuration.OldRegionSizeRatio
-	if oldRegionSizeRatio == 0 {
-		oldRegionSizeRatio = 1
+	if oldRegionSizeRatio < 1 {
+		return nil, status.Error(codes.InvalidArgument, "Old region size ratio must be positive")
 	}
 	currentRegionSizeRatio := configuration.CurrentRegionSizeRatio
-	if currentRegionSizeRatio == 0 {
-		currentRegionSizeRatio = 1
+	if currentRegionSizeRatio < 1 {
+		return nil, status.Error(codes.InvalidArgument, "Current region size ratio must be positive")
 	}
 	newRegionSizeRatio := configuration.NewRegionSizeRatio
-	if newRegionSizeRatio == 0 {
-		newRegionSizeRatio = 3
+	if newRegionSizeRatio < 1 {
+		return nil, status.Error(codes.InvalidArgument, "New region size ratio must be positive")
 	}
 	totalRatio := uint64(oldRegionSizeRatio + currentRegionSizeRatio + newRegionSizeRatio)
-	oldRegionSize := maximumLocationSpan * uint64(oldRegionSizeRatio) / totalRatio
-	currentRegionSize := maximumLocationSpan * uint64(currentRegionSizeRatio) / totalRatio
+	oldRegionSizeBytes := maximumLocationSpan * uint64(oldRegionSizeRatio) / totalRatio
+	currentRegionSizeBytes := maximumLocationSpan * uint64(currentRegionSizeRatio) / totalRatio
 
 	return NewStore(
 		&globalLock,
 		referenceLocationMap,
 		locationBlobMap,
 		epochList,
-		random.NewFastSingleThreadedGenerator(),
-		oldRegionSize,
-		currentRegionSize,
+		oldRegionSizeBytes,
+		currentRegionSizeBytes,
 	), nil
 }

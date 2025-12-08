@@ -2,11 +2,10 @@ package local
 
 import (
 	"context"
+	"encoding/binary"
 	"sync"
 
 	"bonanza.build/pkg/storage/object"
-
-	"github.com/buildbarn/bb-storage/pkg/random"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,10 +17,9 @@ type store struct {
 	locationBlobMap      LocationBlobMap
 	epochList            EpochList
 
-	randomNumberGenerator random.SingleThreadedGenerator
-	oldRegionSize         uint64
-	currentRegionSize     uint64
-	writeLocks            [1 << 8]sync.Mutex
+	oldRegionSizeBytes     uint64
+	currentRegionSizeBytes uint64
+	writeLocks             [1 << 8]sync.Mutex
 }
 
 // NewStore creates an object store that uses locally connected disks as
@@ -31,9 +29,8 @@ func NewStore(
 	referenceLocationMap ReferenceLocationMap,
 	locationBlobMap LocationBlobMap,
 	epochList EpochList,
-	randomNumberGenerator random.SingleThreadedGenerator,
-	oldRegionSize uint64,
-	currentRegionSize uint64,
+	oldRegionSizeBytes uint64,
+	currentRegionSizeBytes uint64,
 ) object.Store[object.FlatReference, struct{}] {
 	return &store{
 		lock:                 lock,
@@ -41,9 +38,8 @@ func NewStore(
 		locationBlobMap:      locationBlobMap,
 		epochList:            epochList,
 
-		randomNumberGenerator: randomNumberGenerator,
-		oldRegionSize:         oldRegionSize,
-		currentRegionSize:     currentRegionSize,
+		oldRegionSizeBytes:     oldRegionSizeBytes,
+		currentRegionSizeBytes: currentRegionSizeBytes,
 	}
 }
 
@@ -57,23 +53,18 @@ func (s *store) getObjectLocation(reference object.FlatReference) (uint64, bool,
 	}
 
 	// Determine whether the object needs to be refreshed based on
-	// which region of the ring buffer it resides in:
-	// - "old" region: always refresh
-	// - "current" region: refresh with linear probability
-	// - "new" region: never refresh
+	// its position within the ring buffer. Each object has a
+	// deterministic refresh threshold within the current region,
+	// derived from the object's reference. This spreads refresh
+	// operations evenly across all objects.
 	epochState, _ := s.epochList.GetCurrentEpochState()
 	distanceFromMinimum := location - epochState.MinimumLocation
-	var needsRefresh bool
-	if distanceFromMinimum < s.oldRegionSize {
-		// Object is in the "old" region. Always refresh.
-		needsRefresh = true
-	} else if distanceFromMinimum < s.oldRegionSize+s.currentRegionSize {
-		// Object is in the "current" region. Refresh with a
-		// linear probability that increases as the object
-		// approaches the "old" region.
-		distanceFromOld := distanceFromMinimum - s.oldRegionSize
-		needsRefresh = s.randomNumberGenerator.Uint64()%s.currentRegionSize >= distanceFromOld
-	}
+
+	// Compute a deterministic threshold for this object within the
+	// current region. Objects whose distance from minimum falls
+	// below (oldRegion + threshold) need to be refreshed.
+	threshold := binary.LittleEndian.Uint64(reference.GetRawFlatReference()) % s.currentRegionSizeBytes
+	needsRefresh := distanceFromMinimum < s.oldRegionSizeBytes+threshold
 	return location, needsRefresh, nil
 }
 

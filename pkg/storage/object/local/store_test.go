@@ -47,7 +47,6 @@ func newTestStore(t *testing.T, bufferSize, oldRegionSize, currentRegionSize uin
 		referenceLocationMap,
 		locationBlobMap,
 		epochList,
-		randomNumberGenerator,
 		oldRegionSize,
 		currentRegionSize,
 	)
