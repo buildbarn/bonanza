@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package bonanza.model.evaluation.cache;
+
+import "bonanza.build/pkg/proto/model/core/core.proto";
+import "bonanza.build/pkg/proto/model/evaluation/evaluation.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "bonanza.build/pkg/proto/model/evaluation/cache";
+
+message ActionTagKeyHashInput {
+  // SHA-256 hash of the bonanza.model.tag.CommonKeyHashInput message
+  // containing common parameters that need to be considered when
+  // computing a tag key hash.
+  bytes common_tag_key_hash = 1;
+
+  // XOR of SHA-256 hashes of the keys for which overrides were
+  // specified in the bonanza.model.evaluation.Action message.
+  bytes keys_with_overrides_hashes_xor = 2;
+}
+
+message KeyTagKeyHashInput {
+  // SHA-256 hash of the ActionTagKeyHashInput message containing
+  // parameters shared across all tag key hashes belonging to a single
+  // bonanza.model.evaluation.Action.
+  bytes action_tag_key_hash = 1;
+
+  // SHA-256 hash of the evaluation key for which a cache lookup is
+  // being performed.
+  bytes evaluation_key_hash = 2;
+}
+
+message LookupTagKeyHashInput {
+  // SHA-256 hash of the KeyTagKeyHashInput message containing
+  // parameters shared across all tag key hashes belonging to a single
+  // evaluation key.
+  bytes key_tag_key_hash = 1;
+
+  message SubsequentLookup {
+    uint32 selected_granularity_level = 1;
+
+    // XOR of SHA-256 hashes of the keys and values of all dependencies
+    // of the key that have been gathered up to this point.
+    bytes dependencies_hashes_xor = 2;
+  }
+
+  // If set, this is not the initial lookup that is being performed for
+  // this key, as a previous lookup yielded 'missing_dependencies'.
+  SubsequentLookup subsequent_lookup = 2;
+}
+
+message GranularityLevel {
+  // Set of keys of additional dependencies that should be considered
+  // when performing cache lookups.
+  bonanza.model.evaluation.Keys additional_dependency_keys = 1;
+
+  // XOR of SHA-256 hashes of the keys and values of all dependencies of
+  // the key for which LookupResult.single_cached_value is the
+  // corresponding value.
+  //
+  // This field is only set when LookupResult.single_cached_value is
+  // set, and if this is a subsequent lookup, for the selected
+  // granularity level.
+  bytes single_cached_value_dependencies_hashes_xor = 2;
+}
+
+message LookupResult {
+  // Properties for continuing the lookup, depending at the level of
+  // granularity at which the evaluation graph is traversed, going from
+  // coarse to fine-grained. The final level typically captures all of
+  // the direct dependencies of the evaluation key.
+  repeated GranularityLevel granularity_levels = 1;
+
+  // When set, only a single cached value is known for this evaluation
+  // key, using both dependencies that have been provided up to this
+  // point and ones included in the granularity levels. The granularity
+  // level contains an updated 'dependencies_hashes_xor', which must be
+  // validated prior to using this value.
+  //
+  // When not set, multiple cached values are known. In order to obtain
+  // the correct cached value, a subsequent lookup needs to be
+  // performed, including the dependencies in the granularity levels.
+  bonanza.model.core.Any single_cached_value = 2;
+
+  // If set, there is a probability that subsequent lookups will require
+  // specifying even more dependencies. This field denotes the time at
+  // which this started to occur.
+  //
+  // If a sufficient amount of time has passed, it may be desirable to
+  // overwrite the existing lookup results with a single entry that
+  // contains no indirection. This ensures that the amount of
+  // indirection does not continue to grow over time.
+  google.protobuf.Timestamp contains_indirection_since = 3;
+}

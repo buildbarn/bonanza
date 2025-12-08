@@ -3,27 +3,31 @@ load("@rules_go//proto:def.bzl", "go_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
 proto_library(
-    name = "expecteddependencies_proto",
-    srcs = ["expecteddependencies.proto"],
+    name = "cache_proto",
+    srcs = ["cache.proto"],
     import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/model/core:core_proto",
+        "//pkg/proto/model/evaluation:evaluation_proto",
         "@protobuf//:timestamp_proto",
     ],
 )
 
 go_proto_library(
-    name = "expecteddependencies_go_proto",
-    importpath = "bonanza.build/pkg/proto/model/evaluation/expecteddependencies",
-    proto = ":expecteddependencies_proto",
+    name = "cache_go_proto",
+    importpath = "bonanza.build/pkg/proto/model/evaluation/cache",
+    proto = ":cache_proto",
     visibility = ["//visibility:public"],
-    deps = ["//pkg/proto/model/core"],
+    deps = [
+        "//pkg/proto/model/core",
+        "//pkg/proto/model/evaluation",
+    ],
 )
 
 go_library(
-    name = "expecteddependencies",
-    embed = [":expecteddependencies_go_proto"],
-    importpath = "bonanza.build/pkg/proto/model/evaluation/expecteddependencies",
+    name = "cache",
+    embed = [":cache_go_proto"],
+    importpath = "bonanza.build/pkg/proto/model/evaluation/cache",
     visibility = ["//visibility:public"],
 )
