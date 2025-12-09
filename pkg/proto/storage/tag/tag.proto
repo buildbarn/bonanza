@@ -52,7 +52,7 @@ message Key {
   // based on a Protobuf message, it is recommended that the message is
   // embedded in a google.protobuf.Any prior to hashing.
   //
-  // This implementation currently requires the hash to be 64 bytes (256
+  // This implementation currently requires the hash to be 32 bytes (256
   // bits) in size.
   bytes hash = 2;
 }
