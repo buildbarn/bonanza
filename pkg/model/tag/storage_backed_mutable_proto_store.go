@@ -176,8 +176,9 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 		}
 		group.Go(func() error {
 			decodableTagKeyHash := GetDecodableKeyHash(ps.objectEncoder, tagKeyHash)
-			if signedValue, complete, err := ps.tagResolver.ResolveTag(
+			if signedValue, err := tag.ResolveCompleteTag(
 				ctxWithCancel,
+				ps.tagResolver,
 				ps.referenceFormat,
 				tag.Key{
 					SignaturePublicKey: ps.tagSignaturePublicKey,
@@ -185,25 +186,23 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 				},
 				/* minimumTimestamp = */ nil,
 			); err == nil {
-				if complete {
-					decodableReference := model_core.CopyDecodable(decodableTagKeyHash, signedValue.Value.Reference)
-					if m, err := ps.messageObjectReader.ReadObject(ctxWithCancel, decodableReference); err == nil {
-						proto.Merge(TProto(&handleToReturn.message), m.Message)
-					} else if status.Code(err) == codes.NotFound {
-						return status.Errorf(
-							codes.Internal,
-							"Tag with key hash %s resolved to object with reference %s, which cannot be found, even though the tag was complete",
-							hex.EncodeToString(tagKeyHash[:]),
-							model_core.DecodableLocalReferenceToString(decodableReference),
-						)
-					} else {
-						return util.StatusWrapf(
-							err,
-							"Failed to read object with reference %s used by tag with key hash %s",
-							model_core.DecodableLocalReferenceToString(decodableReference),
-							hex.EncodeToString(tagKeyHash[:]),
-						)
-					}
+				decodableReference := model_core.CopyDecodable(decodableTagKeyHash, signedValue.Value.Reference)
+				if m, err := ps.messageObjectReader.ReadObject(ctxWithCancel, decodableReference); err == nil {
+					proto.Merge(TProto(&handleToReturn.message), m.Message)
+				} else if status.Code(err) == codes.NotFound {
+					return status.Errorf(
+						codes.Internal,
+						"Tag with key hash %s resolved to object with reference %s, which cannot be found, even though the tag was complete",
+						hex.EncodeToString(tagKeyHash[:]),
+						model_core.DecodableLocalReferenceToString(decodableReference),
+					)
+				} else {
+					return util.StatusWrapf(
+						err,
+						"Failed to read object with reference %s used by tag with key hash %s",
+						model_core.DecodableLocalReferenceToString(decodableReference),
+						hex.EncodeToString(tagKeyHash[:]),
+					)
 				}
 			} else if status.Code(err) != codes.NotFound {
 				return util.StatusWrapf(err, "Failed to resolve tag with key hash %s", hex.EncodeToString(tagKeyHash[:]))
