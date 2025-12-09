@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 
 	model_core "bonanza.build/pkg/model/core"
-	model_encoding "bonanza.build/pkg/model/encoding"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 
@@ -59,12 +58,12 @@ func ComputeKeyHashFromMessage(m proto.Message) ([sha256.Size]byte, error) {
 // the tag key hash at the storage level. The other half is used as the
 // decoding parameters. This means that tags can only be resolved and
 // the referenced object decoded if the original tag key hash is known.
-func GetDecodableKeyHash(decoder model_encoding.BinaryDecoder, keyHash [sha256.Size]byte) model_core.Decodable[[sha256.Size]byte] {
+func GetDecodableKeyHash(keyHash [sha256.Size]byte, decodingParametersSizeBytes int) model_core.Decodable[[sha256.Size]byte] {
 	wrappedKeyHash := sha512.Sum512(keyHash[:])
 	return util.Must(
 		model_core.NewDecodable(
 			*(*[sha256.Size]byte)(wrappedKeyHash[:]),
-			wrappedKeyHash[sha256.Size:][:decoder.GetDecodingParametersSizeBytes()],
+			wrappedKeyHash[sha256.Size:][:decodingParametersSizeBytes],
 		),
 	)
 }

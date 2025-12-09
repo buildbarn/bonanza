@@ -175,7 +175,7 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 			handlesToWriteIndex: -1,
 		}
 		group.Go(func() error {
-			decodableTagKeyHash := GetDecodableKeyHash(ps.objectEncoder, tagKeyHash)
+			decodableTagKeyHash := GetDecodableKeyHash(tagKeyHash, ps.objectEncoder.GetDecodingParametersSizeBytes())
 			if signedValue, err := tag.ResolveCompleteTag(
 				ctxWithCancel,
 				ps.tagResolver,
@@ -216,7 +216,7 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 		handleToWrite := handleToWriteIter
 		group.Go(func() error {
 			tagKeyHash := handleToWrite.handle.tagKeyHash
-			decodableTagKeyHash := GetDecodableKeyHash(ps.objectEncoder, tagKeyHash)
+			decodableTagKeyHash := GetDecodableKeyHash(tagKeyHash, ps.objectEncoder.GetDecodingParametersSizeBytes())
 			if err := func() error {
 				createdObject, err := model_core.MarshalAndEncodeKeyed(
 					model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
