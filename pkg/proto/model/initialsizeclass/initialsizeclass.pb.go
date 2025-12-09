@@ -7,6 +7,7 @@
 package initialsizeclass
 
 import (
+	core "bonanza.build/pkg/proto/model/core"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
@@ -226,29 +227,29 @@ func (x *PreviousExecutionStats) GetLastSeenFailure() *timestamppb.Timestamp {
 	return nil
 }
 
-type TagKeyHashInput struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	CommonKeyHash         []byte                 `protobuf:"bytes,1,opt,name=common_key_hash,json=commonKeyHash,proto3" json:"common_key_hash,omitempty"`
-	PlatformPkixPublicKey []byte                 `protobuf:"bytes,2,opt,name=platform_pkix_public_key,json=platformPkixPublicKey,proto3" json:"platform_pkix_public_key,omitempty"`
-	StableFingerprint     []byte                 `protobuf:"bytes,3,opt,name=stable_fingerprint,json=stableFingerprint,proto3" json:"stable_fingerprint,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+type TagKeyData struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	CommonKeyDataReference *core.Reference        `protobuf:"bytes,1,opt,name=common_key_data_reference,json=commonKeyDataReference,proto3" json:"common_key_data_reference,omitempty"`
+	PlatformPkixPublicKey  []byte                 `protobuf:"bytes,2,opt,name=platform_pkix_public_key,json=platformPkixPublicKey,proto3" json:"platform_pkix_public_key,omitempty"`
+	StableFingerprint      []byte                 `protobuf:"bytes,3,opt,name=stable_fingerprint,json=stableFingerprint,proto3" json:"stable_fingerprint,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
-func (x *TagKeyHashInput) Reset() {
-	*x = TagKeyHashInput{}
+func (x *TagKeyData) Reset() {
+	*x = TagKeyData{}
 	mi := &file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *TagKeyHashInput) String() string {
+func (x *TagKeyData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*TagKeyHashInput) ProtoMessage() {}
+func (*TagKeyData) ProtoMessage() {}
 
-func (x *TagKeyHashInput) ProtoReflect() protoreflect.Message {
+func (x *TagKeyData) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -260,26 +261,26 @@ func (x *TagKeyHashInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TagKeyHashInput.ProtoReflect.Descriptor instead.
-func (*TagKeyHashInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use TagKeyData.ProtoReflect.Descriptor instead.
+func (*TagKeyData) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *TagKeyHashInput) GetCommonKeyHash() []byte {
+func (x *TagKeyData) GetCommonKeyDataReference() *core.Reference {
 	if x != nil {
-		return x.CommonKeyHash
+		return x.CommonKeyDataReference
 	}
 	return nil
 }
 
-func (x *TagKeyHashInput) GetPlatformPkixPublicKey() []byte {
+func (x *TagKeyData) GetPlatformPkixPublicKey() []byte {
 	if x != nil {
 		return x.PlatformPkixPublicKey
 	}
 	return nil
 }
 
-func (x *TagKeyHashInput) GetStableFingerprint() []byte {
+func (x *TagKeyData) GetStableFingerprint() []byte {
 	if x != nil {
 		return x.StableFingerprint
 	}
@@ -290,7 +291,7 @@ var File_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto p
 
 const file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDesc = "" +
 	"\n" +
-	"Ebonanza.build/pkg/proto/model/initialsizeclass/initialsizeclass.proto\x12\x1ebonanza.model.initialsizeclass\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc5\x01\n" +
+	"Ebonanza.build/pkg/proto/model/initialsizeclass/initialsizeclass.proto\x12\x1ebonanza.model.initialsizeclass\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc5\x01\n" +
 	"\x11PreviousExecution\x120\n" +
 	"\x06failed\x18\x01 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x06failed\x128\n" +
 	"\ttimed_out\x18\x02 \x01(\v2\x19.google.protobuf.DurationH\x00R\btimedOut\x129\n" +
@@ -304,9 +305,10 @@ const file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto
 	"\x11last_seen_failure\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x0flastSeenFailure\x1aq\n" +
 	"\x10SizeClassesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\rR\x03key\x12G\n" +
-	"\x05value\x18\x02 \x01(\v21.bonanza.model.initialsizeclass.PerSizeClassStatsR\x05value:\x028\x01\"\xa1\x01\n" +
-	"\x0fTagKeyHashInput\x12&\n" +
-	"\x0fcommon_key_hash\x18\x01 \x01(\fR\rcommonKeyHash\x127\n" +
+	"\x05value\x18\x02 \x01(\v21.bonanza.model.initialsizeclass.PerSizeClassStatsR\x05value:\x028\x01\"\xce\x01\n" +
+	"\n" +
+	"TagKeyData\x12X\n" +
+	"\x19common_key_data_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x16commonKeyDataReference\x127\n" +
 	"\x18platform_pkix_public_key\x18\x02 \x01(\fR\x15platformPkixPublicKey\x12-\n" +
 	"\x12stable_fingerprint\x18\x03 \x01(\fR\x11stableFingerprintB0Z.bonanza.build/pkg/proto/model/initialsizeclassb\x06proto3"
 
@@ -327,11 +329,12 @@ var file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_g
 	(*PreviousExecution)(nil),      // 0: bonanza.model.initialsizeclass.PreviousExecution
 	(*PerSizeClassStats)(nil),      // 1: bonanza.model.initialsizeclass.PerSizeClassStats
 	(*PreviousExecutionStats)(nil), // 2: bonanza.model.initialsizeclass.PreviousExecutionStats
-	(*TagKeyHashInput)(nil),        // 3: bonanza.model.initialsizeclass.TagKeyHashInput
+	(*TagKeyData)(nil),             // 3: bonanza.model.initialsizeclass.TagKeyData
 	nil,                            // 4: bonanza.model.initialsizeclass.PreviousExecutionStats.SizeClassesEntry
 	(*emptypb.Empty)(nil),          // 5: google.protobuf.Empty
 	(*durationpb.Duration)(nil),    // 6: google.protobuf.Duration
 	(*timestamppb.Timestamp)(nil),  // 7: google.protobuf.Timestamp
+	(*core.Reference)(nil),         // 8: bonanza.model.core.Reference
 }
 var file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_depIdxs = []int32{
 	5, // 0: bonanza.model.initialsizeclass.PreviousExecution.failed:type_name -> google.protobuf.Empty
@@ -340,12 +343,13 @@ var file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_d
 	0, // 3: bonanza.model.initialsizeclass.PerSizeClassStats.previous_executions:type_name -> bonanza.model.initialsizeclass.PreviousExecution
 	4, // 4: bonanza.model.initialsizeclass.PreviousExecutionStats.size_classes:type_name -> bonanza.model.initialsizeclass.PreviousExecutionStats.SizeClassesEntry
 	7, // 5: bonanza.model.initialsizeclass.PreviousExecutionStats.last_seen_failure:type_name -> google.protobuf.Timestamp
-	1, // 6: bonanza.model.initialsizeclass.PreviousExecutionStats.SizeClassesEntry.value:type_name -> bonanza.model.initialsizeclass.PerSizeClassStats
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	8, // 6: bonanza.model.initialsizeclass.TagKeyData.common_key_data_reference:type_name -> bonanza.model.core.Reference
+	1, // 7: bonanza.model.initialsizeclass.PreviousExecutionStats.SizeClassesEntry.value:type_name -> bonanza.model.initialsizeclass.PerSizeClassStats
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_init() }

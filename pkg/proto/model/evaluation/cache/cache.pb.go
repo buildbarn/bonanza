@@ -24,28 +24,28 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ActionTagKeyHashInput struct {
+type ActionTagKeyData struct {
 	state                      protoimpl.MessageState `protogen:"open.v1"`
-	CommonTagKeyHash           []byte                 `protobuf:"bytes,1,opt,name=common_tag_key_hash,json=commonTagKeyHash,proto3" json:"common_tag_key_hash,omitempty"`
+	CommonTagKeyReference      *core.Reference        `protobuf:"bytes,1,opt,name=common_tag_key_reference,json=commonTagKeyReference,proto3" json:"common_tag_key_reference,omitempty"`
 	KeysWithOverridesHashesXor []byte                 `protobuf:"bytes,2,opt,name=keys_with_overrides_hashes_xor,json=keysWithOverridesHashesXor,proto3" json:"keys_with_overrides_hashes_xor,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
 
-func (x *ActionTagKeyHashInput) Reset() {
-	*x = ActionTagKeyHashInput{}
+func (x *ActionTagKeyData) Reset() {
+	*x = ActionTagKeyData{}
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ActionTagKeyHashInput) String() string {
+func (x *ActionTagKeyData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ActionTagKeyHashInput) ProtoMessage() {}
+func (*ActionTagKeyData) ProtoMessage() {}
 
-func (x *ActionTagKeyHashInput) ProtoReflect() protoreflect.Message {
+func (x *ActionTagKeyData) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -57,47 +57,47 @@ func (x *ActionTagKeyHashInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ActionTagKeyHashInput.ProtoReflect.Descriptor instead.
-func (*ActionTagKeyHashInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use ActionTagKeyData.ProtoReflect.Descriptor instead.
+func (*ActionTagKeyData) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ActionTagKeyHashInput) GetCommonTagKeyHash() []byte {
+func (x *ActionTagKeyData) GetCommonTagKeyReference() *core.Reference {
 	if x != nil {
-		return x.CommonTagKeyHash
+		return x.CommonTagKeyReference
 	}
 	return nil
 }
 
-func (x *ActionTagKeyHashInput) GetKeysWithOverridesHashesXor() []byte {
+func (x *ActionTagKeyData) GetKeysWithOverridesHashesXor() []byte {
 	if x != nil {
 		return x.KeysWithOverridesHashesXor
 	}
 	return nil
 }
 
-type KeyTagKeyHashInput struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	ActionTagKeyHash  []byte                 `protobuf:"bytes,1,opt,name=action_tag_key_hash,json=actionTagKeyHash,proto3" json:"action_tag_key_hash,omitempty"`
-	EvaluationKeyHash []byte                 `protobuf:"bytes,2,opt,name=evaluation_key_hash,json=evaluationKeyHash,proto3" json:"evaluation_key_hash,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+type KeyTagKeyData struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	ActionTagKeyReference *core.Reference        `protobuf:"bytes,1,opt,name=action_tag_key_reference,json=actionTagKeyReference,proto3" json:"action_tag_key_reference,omitempty"`
+	EvaluationKeyHash     *core.Reference        `protobuf:"bytes,2,opt,name=evaluation_key_hash,json=evaluationKeyHash,proto3" json:"evaluation_key_hash,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
-func (x *KeyTagKeyHashInput) Reset() {
-	*x = KeyTagKeyHashInput{}
+func (x *KeyTagKeyData) Reset() {
+	*x = KeyTagKeyData{}
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *KeyTagKeyHashInput) String() string {
+func (x *KeyTagKeyData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*KeyTagKeyHashInput) ProtoMessage() {}
+func (*KeyTagKeyData) ProtoMessage() {}
 
-func (x *KeyTagKeyHashInput) ProtoReflect() protoreflect.Message {
+func (x *KeyTagKeyData) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -109,47 +109,47 @@ func (x *KeyTagKeyHashInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use KeyTagKeyHashInput.ProtoReflect.Descriptor instead.
-func (*KeyTagKeyHashInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use KeyTagKeyData.ProtoReflect.Descriptor instead.
+func (*KeyTagKeyData) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *KeyTagKeyHashInput) GetActionTagKeyHash() []byte {
+func (x *KeyTagKeyData) GetActionTagKeyReference() *core.Reference {
 	if x != nil {
-		return x.ActionTagKeyHash
+		return x.ActionTagKeyReference
 	}
 	return nil
 }
 
-func (x *KeyTagKeyHashInput) GetEvaluationKeyHash() []byte {
+func (x *KeyTagKeyData) GetEvaluationKeyHash() *core.Reference {
 	if x != nil {
 		return x.EvaluationKeyHash
 	}
 	return nil
 }
 
-type LookupTagKeyHashInput struct {
-	state            protoimpl.MessageState                  `protogen:"open.v1"`
-	KeyTagKeyHash    []byte                                  `protobuf:"bytes,1,opt,name=key_tag_key_hash,json=keyTagKeyHash,proto3" json:"key_tag_key_hash,omitempty"`
-	SubsequentLookup *LookupTagKeyHashInput_SubsequentLookup `protobuf:"bytes,2,opt,name=subsequent_lookup,json=subsequentLookup,proto3" json:"subsequent_lookup,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+type LookupTagKeyData struct {
+	state              protoimpl.MessageState             `protogen:"open.v1"`
+	KeyTagKeyReference *core.Reference                    `protobuf:"bytes,1,opt,name=key_tag_key_reference,json=keyTagKeyReference,proto3" json:"key_tag_key_reference,omitempty"`
+	SubsequentLookup   *LookupTagKeyData_SubsequentLookup `protobuf:"bytes,2,opt,name=subsequent_lookup,json=subsequentLookup,proto3" json:"subsequent_lookup,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
-func (x *LookupTagKeyHashInput) Reset() {
-	*x = LookupTagKeyHashInput{}
+func (x *LookupTagKeyData) Reset() {
+	*x = LookupTagKeyData{}
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LookupTagKeyHashInput) String() string {
+func (x *LookupTagKeyData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LookupTagKeyHashInput) ProtoMessage() {}
+func (*LookupTagKeyData) ProtoMessage() {}
 
-func (x *LookupTagKeyHashInput) ProtoReflect() protoreflect.Message {
+func (x *LookupTagKeyData) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -161,19 +161,19 @@ func (x *LookupTagKeyHashInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LookupTagKeyHashInput.ProtoReflect.Descriptor instead.
-func (*LookupTagKeyHashInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use LookupTagKeyData.ProtoReflect.Descriptor instead.
+func (*LookupTagKeyData) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *LookupTagKeyHashInput) GetKeyTagKeyHash() []byte {
+func (x *LookupTagKeyData) GetKeyTagKeyReference() *core.Reference {
 	if x != nil {
-		return x.KeyTagKeyHash
+		return x.KeyTagKeyReference
 	}
 	return nil
 }
 
-func (x *LookupTagKeyHashInput) GetSubsequentLookup() *LookupTagKeyHashInput_SubsequentLookup {
+func (x *LookupTagKeyData) GetSubsequentLookup() *LookupTagKeyData_SubsequentLookup {
 	if x != nil {
 		return x.SubsequentLookup
 	}
@@ -292,7 +292,7 @@ func (x *LookupResult) GetContainsIndirectionSince() *timestamppb.Timestamp {
 	return nil
 }
 
-type LookupTagKeyHashInput_SubsequentLookup struct {
+type LookupTagKeyData_SubsequentLookup struct {
 	state                    protoimpl.MessageState `protogen:"open.v1"`
 	SelectedGranularityLevel uint32                 `protobuf:"varint,1,opt,name=selected_granularity_level,json=selectedGranularityLevel,proto3" json:"selected_granularity_level,omitempty"`
 	DependenciesHashesXor    []byte                 `protobuf:"bytes,2,opt,name=dependencies_hashes_xor,json=dependenciesHashesXor,proto3" json:"dependencies_hashes_xor,omitempty"`
@@ -300,20 +300,20 @@ type LookupTagKeyHashInput_SubsequentLookup struct {
 	sizeCache                protoimpl.SizeCache
 }
 
-func (x *LookupTagKeyHashInput_SubsequentLookup) Reset() {
-	*x = LookupTagKeyHashInput_SubsequentLookup{}
+func (x *LookupTagKeyData_SubsequentLookup) Reset() {
+	*x = LookupTagKeyData_SubsequentLookup{}
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LookupTagKeyHashInput_SubsequentLookup) String() string {
+func (x *LookupTagKeyData_SubsequentLookup) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LookupTagKeyHashInput_SubsequentLookup) ProtoMessage() {}
+func (*LookupTagKeyData_SubsequentLookup) ProtoMessage() {}
 
-func (x *LookupTagKeyHashInput_SubsequentLookup) ProtoReflect() protoreflect.Message {
+func (x *LookupTagKeyData_SubsequentLookup) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -325,19 +325,19 @@ func (x *LookupTagKeyHashInput_SubsequentLookup) ProtoReflect() protoreflect.Mes
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LookupTagKeyHashInput_SubsequentLookup.ProtoReflect.Descriptor instead.
-func (*LookupTagKeyHashInput_SubsequentLookup) Descriptor() ([]byte, []int) {
+// Deprecated: Use LookupTagKeyData_SubsequentLookup.ProtoReflect.Descriptor instead.
+func (*LookupTagKeyData_SubsequentLookup) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2, 0}
 }
 
-func (x *LookupTagKeyHashInput_SubsequentLookup) GetSelectedGranularityLevel() uint32 {
+func (x *LookupTagKeyData_SubsequentLookup) GetSelectedGranularityLevel() uint32 {
 	if x != nil {
 		return x.SelectedGranularityLevel
 	}
 	return 0
 }
 
-func (x *LookupTagKeyHashInput_SubsequentLookup) GetDependenciesHashesXor() []byte {
+func (x *LookupTagKeyData_SubsequentLookup) GetDependenciesHashesXor() []byte {
 	if x != nil {
 		return x.DependenciesHashesXor
 	}
@@ -348,16 +348,16 @@ var File_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto protoreflect
 
 const file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc = "" +
 	"\n" +
-	":bonanza.build/pkg/proto/model/evaluation/cache/cache.proto\x12\x1ebonanza.model.evaluation.cache\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8a\x01\n" +
-	"\x15ActionTagKeyHashInput\x12-\n" +
-	"\x13common_tag_key_hash\x18\x01 \x01(\fR\x10commonTagKeyHash\x12B\n" +
-	"\x1ekeys_with_overrides_hashes_xor\x18\x02 \x01(\fR\x1akeysWithOverridesHashesXor\"s\n" +
-	"\x12KeyTagKeyHashInput\x12-\n" +
-	"\x13action_tag_key_hash\x18\x01 \x01(\fR\x10actionTagKeyHash\x12.\n" +
-	"\x13evaluation_key_hash\x18\x02 \x01(\fR\x11evaluationKeyHash\"\xc0\x02\n" +
-	"\x15LookupTagKeyHashInput\x12'\n" +
-	"\x10key_tag_key_hash\x18\x01 \x01(\fR\rkeyTagKeyHash\x12s\n" +
-	"\x11subsequent_lookup\x18\x02 \x01(\v2F.bonanza.model.evaluation.cache.LookupTagKeyHashInput.SubsequentLookupR\x10subsequentLookup\x1a\x88\x01\n" +
+	":bonanza.build/pkg/proto/model/evaluation/cache/cache.proto\x12\x1ebonanza.model.evaluation.cache\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xae\x01\n" +
+	"\x10ActionTagKeyData\x12V\n" +
+	"\x18common_tag_key_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x15commonTagKeyReference\x12B\n" +
+	"\x1ekeys_with_overrides_hashes_xor\x18\x02 \x01(\fR\x1akeysWithOverridesHashesXor\"\xb6\x01\n" +
+	"\rKeyTagKeyData\x12V\n" +
+	"\x18action_tag_key_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x15actionTagKeyReference\x12M\n" +
+	"\x13evaluation_key_hash\x18\x02 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x11evaluationKeyHash\"\xdf\x02\n" +
+	"\x10LookupTagKeyData\x12P\n" +
+	"\x15key_tag_key_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x12keyTagKeyReference\x12n\n" +
+	"\x11subsequent_lookup\x18\x02 \x01(\v2A.bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookupR\x10subsequentLookup\x1a\x88\x01\n" +
 	"\x10SubsequentLookup\x12<\n" +
 	"\x1aselected_granularity_level\x18\x01 \x01(\rR\x18selectedGranularityLevel\x126\n" +
 	"\x17dependencies_hashes_xor\x18\x02 \x01(\fR\x15dependenciesHashesXor\"\xcd\x01\n" +
@@ -383,27 +383,32 @@ func file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP
 
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_goTypes = []any{
-	(*ActionTagKeyHashInput)(nil),                  // 0: bonanza.model.evaluation.cache.ActionTagKeyHashInput
-	(*KeyTagKeyHashInput)(nil),                     // 1: bonanza.model.evaluation.cache.KeyTagKeyHashInput
-	(*LookupTagKeyHashInput)(nil),                  // 2: bonanza.model.evaluation.cache.LookupTagKeyHashInput
-	(*GranularityLevel)(nil),                       // 3: bonanza.model.evaluation.cache.GranularityLevel
-	(*LookupResult)(nil),                           // 4: bonanza.model.evaluation.cache.LookupResult
-	(*LookupTagKeyHashInput_SubsequentLookup)(nil), // 5: bonanza.model.evaluation.cache.LookupTagKeyHashInput.SubsequentLookup
-	(*evaluation.Keys)(nil),                        // 6: bonanza.model.evaluation.Keys
-	(*core.Any)(nil),                               // 7: bonanza.model.core.Any
-	(*timestamppb.Timestamp)(nil),                  // 8: google.protobuf.Timestamp
+	(*ActionTagKeyData)(nil),                  // 0: bonanza.model.evaluation.cache.ActionTagKeyData
+	(*KeyTagKeyData)(nil),                     // 1: bonanza.model.evaluation.cache.KeyTagKeyData
+	(*LookupTagKeyData)(nil),                  // 2: bonanza.model.evaluation.cache.LookupTagKeyData
+	(*GranularityLevel)(nil),                  // 3: bonanza.model.evaluation.cache.GranularityLevel
+	(*LookupResult)(nil),                      // 4: bonanza.model.evaluation.cache.LookupResult
+	(*LookupTagKeyData_SubsequentLookup)(nil), // 5: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
+	(*core.Reference)(nil),                    // 6: bonanza.model.core.Reference
+	(*evaluation.Keys)(nil),                   // 7: bonanza.model.evaluation.Keys
+	(*core.Any)(nil),                          // 8: bonanza.model.core.Any
+	(*timestamppb.Timestamp)(nil),             // 9: google.protobuf.Timestamp
 }
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_depIdxs = []int32{
-	5, // 0: bonanza.model.evaluation.cache.LookupTagKeyHashInput.subsequent_lookup:type_name -> bonanza.model.evaluation.cache.LookupTagKeyHashInput.SubsequentLookup
-	6, // 1: bonanza.model.evaluation.cache.GranularityLevel.additional_dependency_keys:type_name -> bonanza.model.evaluation.Keys
-	3, // 2: bonanza.model.evaluation.cache.LookupResult.granularity_levels:type_name -> bonanza.model.evaluation.cache.GranularityLevel
-	7, // 3: bonanza.model.evaluation.cache.LookupResult.single_cached_value:type_name -> bonanza.model.core.Any
-	8, // 4: bonanza.model.evaluation.cache.LookupResult.contains_indirection_since:type_name -> google.protobuf.Timestamp
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	6, // 0: bonanza.model.evaluation.cache.ActionTagKeyData.common_tag_key_reference:type_name -> bonanza.model.core.Reference
+	6, // 1: bonanza.model.evaluation.cache.KeyTagKeyData.action_tag_key_reference:type_name -> bonanza.model.core.Reference
+	6, // 2: bonanza.model.evaluation.cache.KeyTagKeyData.evaluation_key_hash:type_name -> bonanza.model.core.Reference
+	6, // 3: bonanza.model.evaluation.cache.LookupTagKeyData.key_tag_key_reference:type_name -> bonanza.model.core.Reference
+	5, // 4: bonanza.model.evaluation.cache.LookupTagKeyData.subsequent_lookup:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
+	7, // 5: bonanza.model.evaluation.cache.GranularityLevel.additional_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	3, // 6: bonanza.model.evaluation.cache.LookupResult.granularity_levels:type_name -> bonanza.model.evaluation.cache.GranularityLevel
+	8, // 7: bonanza.model.evaluation.cache.LookupResult.single_cached_value:type_name -> bonanza.model.core.Any
+	9, // 8: bonanza.model.evaluation.cache.LookupResult.contains_indirection_since:type_name -> google.protobuf.Timestamp
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_init() }

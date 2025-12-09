@@ -1,11 +1,10 @@
 package routing
 
 import (
-	"crypto/sha256"
-
 	pb "bonanza.build/pkg/proto/configuration/scheduler"
 	"bonanza.build/pkg/scheduler/initialsizeclass"
 	"bonanza.build/pkg/scheduler/invocation"
+	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 
@@ -15,7 +14,12 @@ import (
 
 // NewActionRouterFromConfiguration creates an ActionRouter based on
 // options specified in a configuration file.
-func NewActionRouterFromConfiguration(configuration *pb.ActionRouterConfiguration, previousExecutionStatsStore initialsizeclass.PreviousExecutionStatsStore, previousExecutionStatsCommonKeyHash [sha256.Size]byte) (ActionRouter, error) {
+func NewActionRouterFromConfiguration(
+	configuration *pb.ActionRouterConfiguration,
+	previousExecutionStatsStore initialsizeclass.PreviousExecutionStatsStore,
+	previousExecutionStatsCommonKeyDataReference object.LocalReference,
+	previousExecutionStatsDecodingParametersSizeBytes int,
+) (ActionRouter, error) {
 	if configuration == nil {
 		return nil, status.Error(codes.InvalidArgument, "No action router configuration provided")
 	}
@@ -29,7 +33,12 @@ func NewActionRouterFromConfiguration(configuration *pb.ActionRouterConfiguratio
 			}
 			invocationKeyExtractors = append(invocationKeyExtractors, invocationKeyExtractor)
 		}
-		initialSizeClassAnalyzer, err := initialsizeclass.NewAnalyzerFromConfiguration(kind.Simple.InitialSizeClassAnalyzer, previousExecutionStatsStore, previousExecutionStatsCommonKeyHash)
+		initialSizeClassAnalyzer, err := initialsizeclass.NewAnalyzerFromConfiguration(
+			kind.Simple.InitialSizeClassAnalyzer,
+			previousExecutionStatsStore,
+			previousExecutionStatsCommonKeyDataReference,
+			previousExecutionStatsDecodingParametersSizeBytes,
+		)
 		if err != nil {
 			return nil, util.StatusWrap(err, "Failed to create initial size class analyzer")
 		}

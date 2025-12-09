@@ -2,18 +2,20 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/x509"
 	"os"
 	"runtime"
 	"time"
 
 	"bonanza.build/pkg/crypto"
+	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_tag "bonanza.build/pkg/model/tag"
 	buildqueuestate_pb "bonanza.build/pkg/proto/buildqueuestate"
 	"bonanza.build/pkg/proto/configuration/bonanza_scheduler"
 	model_initialsizeclass_pb "bonanza.build/pkg/proto/model/initialsizeclass"
+	model_tag_pb "bonanza.build/pkg/proto/model/tag"
 	remoteexecution_pb "bonanza.build/pkg/proto/remoteexecution"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
 	dag_pb "bonanza.build/pkg/proto/storage/dag"
@@ -59,7 +61,8 @@ func main() {
 		}
 
 		var previousExecutionStatsStore initialsizeclass.PreviousExecutionStatsStore
-		var previousExecutionStatsCommonKeyHash [sha256.Size]byte
+		var previousExecutionStatsCommonKeyDataReference object.LocalReference
+		var previousExecutionStatsDecodingParametersSizeBytes int
 		if storeConfiguration := configuration.PreviousExecutionStatsStore; storeConfiguration != nil {
 			grpcClient, err := grpcClientFactory.NewClientFromConfiguration(storeConfiguration.GrpcClient, dependenciesGroup)
 			if err != nil {
@@ -83,6 +86,27 @@ func main() {
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create object encoder for PreviousExecutionStats store")
 			}
+
+			tagSignaturePublicKey, err := x509.MarshalPKIXPublicKey(tagSignaturePrivateKey.Public())
+			if err != nil {
+				return util.StatusWrap(err, "Failed to create tag signature public key")
+			}
+			previousExecutionStatsCommonKeyData, err := model_core.MarshalUnencoded(
+				model_core.NewSimplePatchedMessage[model_core.NoopReferenceMetadata](
+					model_core.NewProtoBinaryMarshaler(
+						&model_tag_pb.CommonKeyData{
+							SignaturePublicKey: tagSignaturePublicKey,
+							ReferenceFormat:    referenceFormat.ToProto(),
+							ObjectEncoders:     storeConfiguration.ObjectEncoders,
+						},
+					),
+				),
+				referenceFormat,
+			)
+			if err != nil {
+				return util.StatusWrap(err, "Failed to create common key data for PreviousExecutionStats")
+			}
+			previousExecutionStatsCommonKeyDataReference = previousExecutionStatsCommonKeyData.GetLocalReference()
 
 			previousExecutionStatsStore = model_tag.NewStorageBackedMutableProtoStore(
 				referenceFormat,
@@ -115,12 +139,18 @@ func main() {
 				),
 				clock.SystemClock,
 			)
+			previousExecutionStatsDecodingParametersSizeBytes = objectEncoder.GetDecodingParametersSizeBytes()
 		}
 
 		// Create an action router that is responsible for analyzing
 		// incoming execution requests and determining how they are
 		// scheduled.
-		actionRouter, err := routing.NewActionRouterFromConfiguration(configuration.ActionRouter, previousExecutionStatsStore, previousExecutionStatsCommonKeyHash)
+		actionRouter, err := routing.NewActionRouterFromConfiguration(
+			configuration.ActionRouter,
+			previousExecutionStatsStore,
+			previousExecutionStatsCommonKeyDataReference,
+			previousExecutionStatsDecodingParametersSizeBytes,
+		)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create action router")
 		}

@@ -4,7 +4,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "tag",
     srcs = [
-        "key_hash.go",
+        "decodable_key_hash.go",
         "mutable_proto_store.go",
         "storage_backed_mutable_proto_store.go",
     ],
@@ -24,7 +24,6 @@ go_library(
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
-        "@org_golang_google_protobuf//types/known/anypb",
         "@org_golang_x_sync//errgroup",
     ],
 )

@@ -5,9 +5,11 @@ import (
 	"testing"
 	"time"
 
+	model_core "bonanza.build/pkg/model/core"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_initialsizeclass_pb "bonanza.build/pkg/proto/model/initialsizeclass"
 	"bonanza.build/pkg/scheduler/initialsizeclass"
+	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
@@ -33,12 +35,8 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 	analyzer := initialsizeclass.NewFeedbackDrivenAnalyzer(
 		baseAnalyzer,
 		store,
-		/* commonKeyHash = */ [...]byte{
-			0x44, 0x66, 0x42, 0x31, 0x3c, 0x0e, 0x1d, 0xc9,
-			0x1d, 0x5b, 0xa4, 0xd0, 0x85, 0x2a, 0x72, 0x8c,
-			0x57, 0xef, 0x8a, 0x4a, 0x7b, 0x88, 0xa9, 0x9a,
-			0x94, 0xdb, 0x19, 0x0f, 0x7c, 0x21, 0xb1, 0xbc,
-		},
+		/* commonKeyDataReference = */ object.MustNewSHA256V1LocalReference("16444aacdf49a3800efa7518f12968656fad66b8d68c558e54e942786bdc74ab", 2938, 0, 0, 0),
+		/* decodingParametersSizeBytes = */ 12,
 		randomNumberGenerator,
 		clock,
 		actionTimeoutExtractor,
@@ -66,12 +64,19 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 			ExecutionTimeout: &durationpb.Duration{Seconds: 30 * 60},
 		},
 	}
-	exampleTagKeyHash := [...]byte{
-		0x41, 0x90, 0x34, 0x65, 0x46, 0x4c, 0x9b, 0xd3,
-		0xbd, 0x26, 0x88, 0x94, 0xa0, 0x52, 0x72, 0x4b,
-		0xdc, 0xcb, 0x27, 0xd8, 0x86, 0x54, 0x12, 0xf9,
-		0x46, 0x98, 0x67, 0x4a, 0x53, 0xac, 0x35, 0x91,
-	}
+	exampleTagKeyHash, err := model_core.NewDecodable(
+		/* tagKeyHash = */ [...]byte{
+			0x17, 0x1a, 0x21, 0xb7, 0xfc, 0xa9, 0x93, 0x83,
+			0x31, 0xe0, 0xab, 0x2c, 0x79, 0x65, 0xc3, 0xc1,
+			0x0d, 0x95, 0x4d, 0x52, 0x59, 0xab, 0xcb, 0x39,
+			0x49, 0x6c, 0xe9, 0x79, 0x4b, 0x8d, 0x56, 0xc4,
+		},
+		/* decodingParameters = */ []byte{
+			0xde, 0x73, 0x4a, 0xfa, 0x95, 0x95, 0x58, 0x47,
+			0xde, 0x6f, 0xb8, 0x80,
+		},
+	)
+	require.NoError(t, err)
 
 	t.Run("StorageFailure", func(t *testing.T) {
 		// Failures reading existing entries from storage should
@@ -80,7 +85,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 			Return(nil, status.Error(codes.Internal, "Network error"))
 
 		_, err := analyzer.Analyze(ctx, exampleAction)
-		testutil.RequireEqualStatus(t, status.Error(codes.Internal, "Failed to read previous execution stats for key with hash 41903465464c9bd3bd268894a052724bdccb27d8865412f94698674a53ac3591: Network error"), err)
+		testutil.RequireEqualStatus(t, status.Error(codes.Internal, "Failed to read previous execution stats for tag with key hash Fxoht_ypk4Mx4KsseWXDwQ2VTVJZq8s5SWzpeUuNVsQ.3nNK-pWVWEfeb7iA: Network error"), err)
 	})
 
 	t.Run("InitialAbandoned", func(t *testing.T) {

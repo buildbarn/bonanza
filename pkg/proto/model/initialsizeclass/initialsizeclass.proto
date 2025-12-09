@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package bonanza.model.initialsizeclass;
 
+import "bonanza.build/pkg/proto/model/core/core.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
@@ -47,11 +48,11 @@ message PreviousExecutionStats {
   google.protobuf.Timestamp last_seen_failure = 2;
 }
 
-message TagKeyHashInput {
-  // SHA-256 hash of the bonanza.model.tag.CommonKeyHashInput message
+message TagKeyData {
+  // Reference to the bonanza.model.tag.CommonKeyData message
   // containing common parameters that need to be considered when
   // computing a tag key hash.
-  bytes common_key_hash = 1;
+  bonanza.model.core.Reference common_key_data_reference = 1;
 
   // The elliptic-curve public key that identifies the platform that
   // should be used to execute the action in PKIX, ASN.1 DER form.

@@ -2,7 +2,6 @@ package tag
 
 import (
 	"context"
-	"crypto/sha256"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -18,7 +17,7 @@ import (
 // a global lock. The Protobuf message embedded in the handle gets
 // invalidated after locks are dropped.
 type MutableProtoStore[T proto.Message] interface {
-	Get(ctx context.Context, tagKeyHash [sha256.Size]byte) (MutableProtoHandle[T], error)
+	Get(ctx context.Context, tagKeyHash DecodableKeyHash) (MutableProtoHandle[T], error)
 }
 
 // MutableProtoHandle is a handle that is returned by MutableProtoStore.

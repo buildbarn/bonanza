@@ -1,9 +1,8 @@
 package initialsizeclass
 
 import (
-	"crypto/sha256"
-
 	pb "bonanza.build/pkg/proto/configuration/scheduler"
+	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/random"
@@ -15,7 +14,12 @@ import (
 
 // NewAnalyzerFromConfiguration creates a new initial size class
 // analyzer based on options provided in a configuration file.
-func NewAnalyzerFromConfiguration(configuration *pb.InitialSizeClassAnalyzerConfiguration, previousExecutionStatsStore PreviousExecutionStatsStore, previousExecutionStatsCommonKeyHash [sha256.Size]byte) (Analyzer, error) {
+func NewAnalyzerFromConfiguration(
+	configuration *pb.InitialSizeClassAnalyzerConfiguration,
+	previousExecutionStatsStore PreviousExecutionStatsStore,
+	previousExecutionStatsCommonKeyDataReference object.LocalReference,
+	previousExecutionStatsDecodingParametersSizeBytes int,
+) (Analyzer, error) {
 	if configuration == nil {
 		return nil, status.Error(codes.InvalidArgument, "No initial size class analyzer configuration provided")
 	}
@@ -52,7 +56,8 @@ func NewAnalyzerFromConfiguration(configuration *pb.InitialSizeClassAnalyzerConf
 		analyzer = NewFeedbackDrivenAnalyzer(
 			analyzer,
 			previousExecutionStatsStore,
-			previousExecutionStatsCommonKeyHash,
+			previousExecutionStatsCommonKeyDataReference,
+			previousExecutionStatsDecodingParametersSizeBytes,
 			random.NewFastSingleThreadedGenerator(),
 			clock.SystemClock,
 			actionTimeoutExtractor,

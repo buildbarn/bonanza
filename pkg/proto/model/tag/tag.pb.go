@@ -23,7 +23,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type CommonKeyHashInput struct {
+type CommonKeyData struct {
 	state              protoimpl.MessageState       `protogen:"open.v1"`
 	SignaturePublicKey []byte                       `protobuf:"bytes,1,opt,name=signature_public_key,json=signaturePublicKey,proto3" json:"signature_public_key,omitempty"`
 	ReferenceFormat    object.ReferenceFormat_Value `protobuf:"varint,2,opt,name=reference_format,json=referenceFormat,proto3,enum=bonanza.storage.object.ReferenceFormat_Value" json:"reference_format,omitempty"`
@@ -32,20 +32,20 @@ type CommonKeyHashInput struct {
 	sizeCache          protoimpl.SizeCache
 }
 
-func (x *CommonKeyHashInput) Reset() {
-	*x = CommonKeyHashInput{}
+func (x *CommonKeyData) Reset() {
+	*x = CommonKeyData{}
 	mi := &file_bonanza_build_pkg_proto_model_tag_tag_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CommonKeyHashInput) String() string {
+func (x *CommonKeyData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CommonKeyHashInput) ProtoMessage() {}
+func (*CommonKeyData) ProtoMessage() {}
 
-func (x *CommonKeyHashInput) ProtoReflect() protoreflect.Message {
+func (x *CommonKeyData) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_model_tag_tag_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -57,26 +57,26 @@ func (x *CommonKeyHashInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CommonKeyHashInput.ProtoReflect.Descriptor instead.
-func (*CommonKeyHashInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use CommonKeyData.ProtoReflect.Descriptor instead.
+func (*CommonKeyData) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CommonKeyHashInput) GetSignaturePublicKey() []byte {
+func (x *CommonKeyData) GetSignaturePublicKey() []byte {
 	if x != nil {
 		return x.SignaturePublicKey
 	}
 	return nil
 }
 
-func (x *CommonKeyHashInput) GetReferenceFormat() object.ReferenceFormat_Value {
+func (x *CommonKeyData) GetReferenceFormat() object.ReferenceFormat_Value {
 	if x != nil {
 		return x.ReferenceFormat
 	}
 	return object.ReferenceFormat_Value(0)
 }
 
-func (x *CommonKeyHashInput) GetObjectEncoders() []*encoding.BinaryEncoder {
+func (x *CommonKeyData) GetObjectEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
 		return x.ObjectEncoders
 	}
@@ -87,8 +87,8 @@ var File_bonanza_build_pkg_proto_model_tag_tag_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDesc = "" +
 	"\n" +
-	"+bonanza.build/pkg/proto/model/tag/tag.proto\x12\x11bonanza.model.tag\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\"\xf0\x01\n" +
-	"\x12CommonKeyHashInput\x120\n" +
+	"+bonanza.build/pkg/proto/model/tag/tag.proto\x12\x11bonanza.model.tag\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\"\xeb\x01\n" +
+	"\rCommonKeyData\x120\n" +
 	"\x14signature_public_key\x18\x01 \x01(\fR\x12signaturePublicKey\x12X\n" +
 	"\x10reference_format\x18\x02 \x01(\x0e2-.bonanza.storage.object.ReferenceFormat.ValueR\x0freferenceFormat\x12N\n" +
 	"\x0fobject_encoders\x18\x03 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eobjectEncodersB#Z!bonanza.build/pkg/proto/model/tagb\x06proto3"
@@ -107,13 +107,13 @@ func file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDescGZIP() []byte {
 
 var file_bonanza_build_pkg_proto_model_tag_tag_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_bonanza_build_pkg_proto_model_tag_tag_proto_goTypes = []any{
-	(*CommonKeyHashInput)(nil),        // 0: bonanza.model.tag.CommonKeyHashInput
+	(*CommonKeyData)(nil),             // 0: bonanza.model.tag.CommonKeyData
 	(object.ReferenceFormat_Value)(0), // 1: bonanza.storage.object.ReferenceFormat.Value
 	(*encoding.BinaryEncoder)(nil),    // 2: bonanza.model.encoding.BinaryEncoder
 }
 var file_bonanza_build_pkg_proto_model_tag_tag_proto_depIdxs = []int32{
-	1, // 0: bonanza.model.tag.CommonKeyHashInput.reference_format:type_name -> bonanza.storage.object.ReferenceFormat.Value
-	2, // 1: bonanza.model.tag.CommonKeyHashInput.object_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	1, // 0: bonanza.model.tag.CommonKeyData.reference_format:type_name -> bonanza.storage.object.ReferenceFormat.Value
+	2, // 1: bonanza.model.tag.CommonKeyData.object_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name

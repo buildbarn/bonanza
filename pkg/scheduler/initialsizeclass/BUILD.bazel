@@ -17,10 +17,12 @@ go_library(
     importpath = "bonanza.build/pkg/scheduler/initialsizeclass",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/model/core",
         "//pkg/model/tag",
         "//pkg/proto/configuration/scheduler",
         "//pkg/proto/encryptedaction",
         "//pkg/proto/model/initialsizeclass",
+        "//pkg/storage/object",
         "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/random",
         "@com_github_buildbarn_bb_storage//pkg/util",
@@ -47,8 +49,10 @@ go_test(
     ],
     embed = [":initialsizeclass"],
     deps = [
+        "//pkg/model/core",
         "//pkg/proto/encryptedaction",
         "//pkg/proto/model/initialsizeclass",
+        "//pkg/storage/object",
         "@com_github_buildbarn_bb_storage//pkg/clock",  # keep
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",

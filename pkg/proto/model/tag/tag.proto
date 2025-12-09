@@ -11,7 +11,7 @@ option go_package = "bonanza.build/pkg/proto/model/tag";
 // the hash of a tag key. By having these parameters included in the
 // hash, we ensure that key rotation does not lead to existing tags
 // getting misinterpreted.
-message CommonKeyHashInput {
+message CommonKeyData {
   // Elliptic-curve public key in PKIX, ASN.1 DER form that is used to
   // sign the tag.
   bytes signature_public_key = 1;

@@ -2,13 +2,13 @@ package initialsizeclass
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"time"
 
+	model_core "bonanza.build/pkg/model/core"
 	model_tag "bonanza.build/pkg/model/tag"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_initialsizeclass_pb "bonanza.build/pkg/proto/model/initialsizeclass"
+	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/random"
@@ -29,32 +29,34 @@ type PreviousExecutionStatsStore model_tag.MutableProtoStore[*model_initialsizec
 type PreviousExecutionStatsHandle model_tag.MutableProtoHandle[*model_initialsizeclass_pb.PreviousExecutionStats]
 
 type feedbackDrivenAnalyzer struct {
-	fallback               Analyzer
-	store                  PreviousExecutionStatsStore
-	commonKeyHash          [sha256.Size]byte
-	randomNumberGenerator  random.SingleThreadedGenerator
-	clock                  clock.Clock
-	actionTimeoutExtractor *ActionTimeoutExtractor
-	failureCacheDuration   time.Duration
-	strategyCalculator     StrategyCalculator
-	historySize            int
+	fallback                    Analyzer
+	store                       PreviousExecutionStatsStore
+	commonKeyDataReference      object.LocalReference
+	decodingParametersSizeBytes int
+	randomNumberGenerator       random.SingleThreadedGenerator
+	clock                       clock.Clock
+	actionTimeoutExtractor      *ActionTimeoutExtractor
+	failureCacheDuration        time.Duration
+	strategyCalculator          StrategyCalculator
+	historySize                 int
 }
 
 // NewFeedbackDrivenAnalyzer creates an Analyzer that selects the
 // initial size class on which actions are run by reading previous
 // execution stats from storage and analyzing these results. Upon
 // completion, stats in storage are updated.
-func NewFeedbackDrivenAnalyzer(fallback Analyzer, store PreviousExecutionStatsStore, commonKeyHash [sha256.Size]byte, randomNumberGenerator random.SingleThreadedGenerator, clock clock.Clock, actionTimeoutExtractor *ActionTimeoutExtractor, failureCacheDuration time.Duration, strategyCalculator StrategyCalculator, historySize int) Analyzer {
+func NewFeedbackDrivenAnalyzer(fallback Analyzer, store PreviousExecutionStatsStore, commonKeyDataReference object.LocalReference, decodingParametersSizeBytes int, randomNumberGenerator random.SingleThreadedGenerator, clock clock.Clock, actionTimeoutExtractor *ActionTimeoutExtractor, failureCacheDuration time.Duration, strategyCalculator StrategyCalculator, historySize int) Analyzer {
 	return &feedbackDrivenAnalyzer{
-		fallback:               fallback,
-		store:                  store,
-		commonKeyHash:          commonKeyHash,
-		randomNumberGenerator:  randomNumberGenerator,
-		clock:                  clock,
-		actionTimeoutExtractor: actionTimeoutExtractor,
-		failureCacheDuration:   failureCacheDuration,
-		strategyCalculator:     strategyCalculator,
-		historySize:            historySize,
+		fallback:                    fallback,
+		store:                       store,
+		commonKeyDataReference:      commonKeyDataReference,
+		decodingParametersSizeBytes: decodingParametersSizeBytes,
+		randomNumberGenerator:       randomNumberGenerator,
+		clock:                       clock,
+		actionTimeoutExtractor:      actionTimeoutExtractor,
+		failureCacheDuration:        failureCacheDuration,
+		strategyCalculator:          strategyCalculator,
+		historySize:                 historySize,
 	}
 }
 
@@ -72,20 +74,23 @@ func (a *feedbackDrivenAnalyzer) Analyze(ctx context.Context, action *encrypteda
 		return nil, err
 	}
 
-	tagKeyHash, err := model_tag.ComputeKeyHashFromMessage(
-		&model_initialsizeclass_pb.TagKeyHashInput{
-			CommonKeyHash:         a.commonKeyHash[:],
+	tagKeyData, _ := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_initialsizeclass_pb.TagKeyData {
+		return &model_initialsizeclass_pb.TagKeyData{
+			CommonKeyDataReference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
+				LocalReference: a.commonKeyDataReference,
+			}),
 			PlatformPkixPublicKey: action.PlatformPkixPublicKey,
 			StableFingerprint:     stableFingerprint,
-		},
-	)
+		}
+	}).SortAndSetReferences()
+	tagKeyHash, err := model_tag.NewDecodableKeyHashFromMessage(tagKeyData, a.decodingParametersSizeBytes)
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.Internal, "Failed to compute tag key hash")
 	}
 
 	handle, err := a.store.Get(ctx, tagKeyHash)
 	if err != nil {
-		return nil, util.StatusWrapf(err, "Failed to read previous execution stats for key with hash %s", hex.EncodeToString(tagKeyHash[:]))
+		return nil, util.StatusWrapf(err, "Failed to read previous execution stats for tag with key hash %s", model_tag.DecodableKeyHashToString(tagKeyHash))
 	}
 	return &feedbackDrivenSelector{
 		analyzer:        a,

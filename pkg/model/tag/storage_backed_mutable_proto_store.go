@@ -3,8 +3,6 @@ package tag
 import (
 	"context"
 	"crypto/ed25519"
-	"crypto/sha256"
-	"encoding/hex"
 	"sync"
 
 	model_core "bonanza.build/pkg/model/core"
@@ -73,7 +71,7 @@ type storageBackedMutableProtoStore[T any, TProto interface {
 	clock                  clock.Clock
 
 	lock           sync.Mutex
-	handles        map[[sha256.Size]byte]*storageBackedMutableProtoHandle[T, TProto]
+	handles        map[DecodableKeyHash]*storageBackedMutableProtoHandle[T, TProto]
 	handlesToWrite []*storageBackedMutableProtoHandle[T, TProto]
 }
 
@@ -116,7 +114,7 @@ func NewStorageBackedMutableProtoStore[T any, TProto interface {
 		dagUploader:            dagUploader,
 		clock:                  clock,
 
-		handles: map[[sha256.Size]byte]*storageBackedMutableProtoHandle[T, TProto]{},
+		handles: map[DecodableKeyHash]*storageBackedMutableProtoHandle[T, TProto]{},
 	}
 }
 
@@ -129,7 +127,7 @@ type handleToWrite[T any, TProto interface {
 	writingVersion int
 }
 
-func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, tagKeyHash [sha256.Size]byte) (MutableProtoHandle[TProto], error) {
+func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, tagKeyHash DecodableKeyHash) (MutableProtoHandle[TProto], error) {
 	const writesPerRead = 3
 	handlesToWrite := make([]handleToWrite[T, TProto], 0, writesPerRead)
 
@@ -175,25 +173,24 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 			handlesToWriteIndex: -1,
 		}
 		group.Go(func() error {
-			decodableTagKeyHash := GetDecodableKeyHash(tagKeyHash, ps.objectEncoder.GetDecodingParametersSizeBytes())
 			if signedValue, err := tag.ResolveCompleteTag(
 				ctxWithCancel,
 				ps.tagResolver,
 				ps.referenceFormat,
 				tag.Key{
 					SignaturePublicKey: ps.tagSignaturePublicKey,
-					Hash:               decodableTagKeyHash.Value,
+					Hash:               tagKeyHash.Value,
 				},
 				/* minimumTimestamp = */ nil,
 			); err == nil {
-				decodableReference := model_core.CopyDecodable(decodableTagKeyHash, signedValue.Value.Reference)
+				decodableReference := model_core.CopyDecodable(tagKeyHash, signedValue.Value.Reference)
 				if m, err := ps.messageObjectReader.ReadObject(ctxWithCancel, decodableReference); err == nil {
 					proto.Merge(TProto(&handleToReturn.message), m.Message)
 				} else if status.Code(err) == codes.NotFound {
 					return status.Errorf(
 						codes.Internal,
 						"Tag with key hash %s resolved to object with reference %s, which cannot be found, even though the tag was complete",
-						hex.EncodeToString(tagKeyHash[:]),
+						DecodableKeyHashToString(tagKeyHash),
 						model_core.DecodableLocalReferenceToString(decodableReference),
 					)
 				} else {
@@ -201,11 +198,11 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 						err,
 						"Failed to read object with reference %s used by tag with key hash %s",
 						model_core.DecodableLocalReferenceToString(decodableReference),
-						hex.EncodeToString(tagKeyHash[:]),
+						DecodableKeyHashToString(tagKeyHash),
 					)
 				}
 			} else if status.Code(err) != codes.NotFound {
-				return util.StatusWrapf(err, "Failed to resolve tag with key hash %s", hex.EncodeToString(tagKeyHash[:]))
+				return util.StatusWrapf(err, "Failed to resolve tag with key hash %s", DecodableKeyHashToString(tagKeyHash))
 			}
 			return nil
 		})
@@ -216,7 +213,6 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 		handleToWrite := handleToWriteIter
 		group.Go(func() error {
 			tagKeyHash := handleToWrite.handle.tagKeyHash
-			decodableTagKeyHash := GetDecodableKeyHash(tagKeyHash, ps.objectEncoder.GetDecodingParametersSizeBytes())
 			if err := func() error {
 				createdObject, err := model_core.MarshalAndEncodeKeyed(
 					model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
@@ -224,30 +220,30 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 					),
 					ps.referenceFormat,
 					ps.objectEncoder,
-					decodableTagKeyHash.GetDecodingParameters(),
+					tagKeyHash.GetDecodingParameters(),
 				)
 				if err != nil {
-					return util.StatusWrapf(err, "Failed to marshal and encode mutable Protobuf message for tag with key hash %s", hex.EncodeToString(tagKeyHash[:]))
+					return util.StatusWrapf(err, "Failed to marshal and encode mutable Protobuf message for tag with key hash %s", DecodableKeyHashToString(tagKeyHash))
 				}
 				rootTagValue := tag.Value{
 					Reference: createdObject.Contents.GetLocalReference(),
 					Timestamp: ps.clock.Now(),
 				}
-				rootTagSignedValue, err := rootTagValue.Sign(ps.tagSignaturePrivateKey, decodableTagKeyHash.Value)
+				rootTagSignedValue, err := rootTagValue.Sign(ps.tagSignaturePrivateKey, tagKeyHash.Value)
 				if err != nil {
-					return util.StatusWrapf(err, "Failed to sign tag with key hash %s", hex.EncodeToString(tagKeyHash[:]))
+					return util.StatusWrapf(err, "Failed to sign tag with key hash %s", DecodableKeyHashToString(tagKeyHash))
 				}
 				if err := ps.dagUploader.UploadTaggedDAG(
 					ctxWithCancel,
 					struct{}{},
 					tag.Key{
 						SignaturePublicKey: ps.tagSignaturePublicKey,
-						Hash:               decodableTagKeyHash.Value,
+						Hash:               tagKeyHash.Value,
 					},
 					rootTagSignedValue,
 					dag.NewSimpleObjectContentsWalker(createdObject.Contents, createdObject.Metadata),
 				); err != nil {
-					return util.StatusWrapf(err, "Failed to upload tag with key hash %s", hex.EncodeToString(tagKeyHash[:]))
+					return util.StatusWrapf(err, "Failed to upload tag with key hash %s", DecodableKeyHashToString(tagKeyHash))
 				}
 				return nil
 			}(); err != nil {
@@ -296,7 +292,7 @@ type storageBackedMutableProtoHandle[T any, TProto interface {
 	proto.Message
 }] struct {
 	store      *storageBackedMutableProtoStore[T, TProto]
-	tagKeyHash [sha256.Size]byte
+	tagKeyHash DecodableKeyHash
 
 	// The number of times we still expect Release() to be called on
 	// the handle.

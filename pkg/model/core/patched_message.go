@@ -156,6 +156,33 @@ func PatchedMessagesEqual[
 	return TopLevelMessagesEqual(tlm1, tlm2)
 }
 
+// MarshalUnencoded marshals a patched message and converts it to an
+// object that can be written to storage. No encoding is performed,
+// meaning that data is not encrypted.
+//
+// TODO: We currently only provide this function for constructing tag
+// keys. Maybe we can come up with a better interface?
+func MarshalUnencoded[TMetadata ReferenceMetadata](
+	m PatchedMessage[encoding.BinaryMarshaler, TMetadata],
+	referenceFormat object.ReferenceFormat,
+) (CreatedObject[TMetadata], error) {
+	references, metadata := m.Patcher.SortAndSetReferences()
+	data, err := m.Message.MarshalBinary()
+	if err != nil {
+		m.Discard()
+		return CreatedObject[TMetadata]{}, err
+	}
+	contents, err := referenceFormat.NewContents(references, data)
+	if err != nil {
+		m.Discard()
+		return CreatedObject[TMetadata]{}, err
+	}
+	return CreatedObject[TMetadata]{
+		Contents: contents,
+		Metadata: metadata,
+	}, nil
+}
+
 // MarshalAndEncodeDeterministic marshals a patched message, encodes it
 // deterministically, and converts it to an object that can be written
 // to storage.
