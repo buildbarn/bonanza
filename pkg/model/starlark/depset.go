@@ -190,7 +190,7 @@ type depsetChildrenEncoder[TReference object.BasicReference, TMetadata model_cor
 	options      *ValueEncodingOptions[TReference, TMetadata]
 	treeBuilder  btree.Builder[*model_starlark_pb.List_Element, TMetadata]
 	needsCode    bool
-	elementsSeen map[string]struct{}
+	elementsSeen map[object.LocalReference]struct{}
 	depsetsSeen  map[*any]struct{}
 }
 
@@ -206,14 +206,13 @@ func (e *depsetChildrenEncoder[TReference, TMetadata]) pushUniqueElement(element
 	defer element.Discard()
 
 	topLevelElement, _ := element.SortAndSetReferences()
-	marshaledElement, err := model_core.MarshalTopLevelMessage(topLevelElement)
+	elementReference, err := model_core.ComputeTopLevelMessageReference(topLevelElement, e.options.ObjectReferenceFormat)
 	if err != nil {
 		return err
 	}
 
-	key := string(marshaledElement)
-	if _, ok := e.elementsSeen[key]; !ok {
-		e.elementsSeen[key] = struct{}{}
+	if _, ok := e.elementsSeen[elementReference]; !ok {
+		e.elementsSeen[elementReference] = struct{}{}
 		if err := e.treeBuilder.PushChild(element.Move()); err != nil {
 			return err
 		}
@@ -272,7 +271,7 @@ func (dc *DepsetContents[TReference, TMetadata]) EncodeList(path map[starlark.Va
 		path:         path,
 		options:      options,
 		treeBuilder:  NewListBuilder(options),
-		elementsSeen: map[string]struct{}{},
+		elementsSeen: map[object.LocalReference]struct{}{},
 		depsetsSeen:  map[*any]struct{}{},
 	}
 	defer e.treeBuilder.Discard()

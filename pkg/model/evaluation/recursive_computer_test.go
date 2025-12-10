@@ -63,7 +63,7 @@ func TestRecursiveComputer(t *testing.T) {
 
 		queuesFactory := model_evaluation.NewSimpleRecursiveComputerQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
 		queues := queuesFactory.NewQueues()
-		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, objectManager, clock.SystemClock)
+		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, object.SHA256V1ReferenceFormat, objectManager, clock.SystemClock)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 				&wrapperspb.UInt32Value{
@@ -104,7 +104,7 @@ func TestRecursiveComputer(t *testing.T) {
 
 		queuesFactory := model_evaluation.NewSimpleRecursiveComputerQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
 		queues := queuesFactory.NewQueues()
-		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, objectManager, clock.SystemClock)
+		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, object.SHA256V1ReferenceFormat, objectManager, clock.SystemClock)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 				&wrapperspb.UInt32Value{
@@ -160,7 +160,7 @@ func TestRecursiveComputer(t *testing.T) {
 
 		queuesFactory := model_evaluation.NewSimpleRecursiveComputerQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
 		queues := queuesFactory.NewQueues()
-		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, objectManager, clock.SystemClock)
+		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, object.SHA256V1ReferenceFormat, objectManager, clock.SystemClock)
 
 		keyState2, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](

@@ -3,7 +3,6 @@ package evaluation
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"iter"
 	"maps"
@@ -59,15 +58,16 @@ type RecursiveComputerQueuePicker[TReference object.BasicReference, TMetadata mo
 // available, computation of the original key is restarted. This process
 // repeates itself until all requested keys are exhausted.
 type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	base          Computer[TReference, TMetadata]
-	queuePicker   RecursiveComputerQueuePicker[TReference, TMetadata]
-	objectManager model_core.ObjectManager[TReference, TMetadata]
-	clock         clock.Clock
+	base            Computer[TReference, TMetadata]
+	queuePicker     RecursiveComputerQueuePicker[TReference, TMetadata]
+	referenceFormat object.ReferenceFormat
+	objectManager   model_core.ObjectManager[TReference, TMetadata]
+	clock           clock.Clock
 
 	lock sync.Mutex
 
 	// Map of all keys that have been requested.
-	keys map[[sha256.Size]byte]*KeyState[TReference, TMetadata]
+	keys map[object.LocalReference]*KeyState[TReference, TMetadata]
 
 	// Keys on which currently one or more other keys are blocked.
 	blockingKeys map[*KeyState[TReference, TMetadata]]struct{}
@@ -91,16 +91,18 @@ type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.Re
 func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	base Computer[TReference, TMetadata],
 	queuePicker RecursiveComputerQueuePicker[TReference, TMetadata],
+	referenceFormat object.ReferenceFormat,
 	objectManager model_core.ObjectManager[TReference, TMetadata],
 	clock clock.Clock,
 ) *RecursiveComputer[TReference, TMetadata] {
 	rc := &RecursiveComputer[TReference, TMetadata]{
-		base:          base,
-		queuePicker:   queuePicker,
-		objectManager: objectManager,
-		clock:         clock,
+		base:            base,
+		queuePicker:     queuePicker,
+		referenceFormat: referenceFormat,
+		objectManager:   objectManager,
+		clock:           clock,
 
-		keys:         map[[sha256.Size]byte]*KeyState[TReference, TMetadata]{},
+		keys:         map[object.LocalReference]*KeyState[TReference, TMetadata]{},
 		blockingKeys: map[*KeyState[TReference, TMetadata]]struct{}{},
 	}
 	rc.blockedKeys.init()
@@ -221,16 +223,13 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 	return true
 }
 
-func getKeyHash[TReference object.BasicReference](key model_core.TopLevelMessage[proto.Message, TReference]) ([sha256.Size]byte, error) {
+func (rc *RecursiveComputer[TReference, TMetadata]) getKeyReference(key model_core.TopLevelMessage[proto.Message, TReference]) (object.LocalReference, error) {
 	anyKey, err := model_core.MarshalTopLevelAny(key)
 	if err != nil {
-		return [sha256.Size]byte{}, err
+		var badReference object.LocalReference
+		return badReference, err
 	}
-	marshaledKey, err := model_core.MarshalTopLevelMessage(anyKey)
-	if err != nil {
-		return [sha256.Size]byte{}, err
-	}
-	return sha256.Sum256(marshaledKey), nil
+	return model_core.ComputeTopLevelMessageReference(anyKey, rc.referenceFormat)
 }
 
 func (rc *RecursiveComputer[TReference, TMetadata]) propagateFailure(ks *KeyState[TReference, TMetadata], err error) {
@@ -262,16 +261,16 @@ func (rc *RecursiveComputer[TReference, TMetadata]) completeKeyState(ks *KeyStat
 	rc.completedKeys.pushLast(ks)
 }
 
-func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(key model_core.TopLevelMessage[proto.Message, TReference], keyHash [sha256.Size]byte, initialValueState valueState[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
-	ks, ok := rc.keys[keyHash]
+func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(key model_core.TopLevelMessage[proto.Message, TReference], keyReference object.LocalReference, initialValueState valueState[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
+	ks, ok := rc.keys[keyReference]
 	if !ok {
 		ks = &KeyState[TReference, TMetadata]{
-			key:     key,
-			keyHash: keyHash,
-			value:   initialValueState,
-			err:     errKeyNotEvaluated{},
+			key:          key,
+			keyReference: keyReference,
+			value:        initialValueState,
+			err:          errKeyNotEvaluated{},
 		}
-		rc.keys[keyHash] = ks
+		rc.keys[keyReference] = ks
 		rc.enqueue(ks)
 	}
 	return ks
@@ -280,13 +279,13 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(ke
 // GetOrCreateKeyState looks up the key state for a given key. If the
 // key state does not yet exist, it is created.
 func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key model_core.TopLevelMessage[proto.Message, TReference]) (*KeyState[TReference, TMetadata], error) {
-	keyHash, err := getKeyHash(key)
+	keyReference, err := rc.getKeyReference(key)
 	if err != nil {
 		return nil, err
 	}
 
 	rc.lock.Lock()
-	ks := rc.getOrCreateKeyStateLocked(key, keyHash, &messageValueState[TReference, TMetadata]{})
+	ks := rc.getOrCreateKeyStateLocked(key, keyReference, &messageValueState[TReference, TMetadata]{})
 	rc.lock.Unlock()
 	return ks, nil
 }
@@ -295,16 +294,16 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key mode
 // key from getting evaluated, and causes evaluation of keys that depend
 // on it to receive the injected value.
 func (rc *RecursiveComputer[TReference, TMetadata]) InjectKeyState(key model_core.TopLevelMessage[proto.Message, TReference], value model_core.Message[proto.Message, TReference]) error {
-	keyHash, err := getKeyHash(key)
+	keyReference, err := rc.getKeyReference(key)
 	if err != nil {
 		return err
 	}
 
 	rc.lock.Lock()
-	if _, ok := rc.keys[keyHash]; !ok {
-		rc.keys[keyHash] = &KeyState[TReference, TMetadata]{
-			key:     key,
-			keyHash: keyHash,
+	if _, ok := rc.keys[keyReference]; !ok {
+		rc.keys[keyReference] = &KeyState[TReference, TMetadata]{
+			key:          key,
+			keyReference: keyReference,
 			value: &messageValueState[TReference, TMetadata]{
 				value: value,
 			},
@@ -405,8 +404,8 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetAllEvaluations() iter.Seq
 
 		for _, key := range slices.SortedFunc(
 			maps.Keys(rc.keys),
-			func(a, b [sha256.Size]byte) int {
-				return bytes.Compare(a[:], b[:])
+			func(a, b object.LocalReference) int {
+				return bytes.Compare(a.GetRawReference(), b.GetRawReference())
 			},
 		) {
 			ks := rc.keys[key]
@@ -416,7 +415,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetAllEvaluations() iter.Seq
 			slices.SortFunc(
 				ks.dependencies,
 				func(a, b *KeyState[TReference, TMetadata]) int {
-					return bytes.Compare(a.keyHash[:], b.keyHash[:])
+					return bytes.Compare(a.keyReference.GetRawReference(), b.keyReference.GetRawReference())
 				},
 			)
 			for _, ksDep := range ks.dependencies {
@@ -464,15 +463,15 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) ReferenceObject
 func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(patchedKey model_core.PatchedMessage[proto.Message, TMetadata], initialValueState valueState[TReference, TMetadata]) valueState[TReference, TMetadata] {
 	rc := e.computer
 	key := model_core.Unpatch(rc.objectManager, patchedKey)
-	keyHash, err := getKeyHash(key)
+	keyReference, err := rc.getKeyReference(key)
 	if err != nil {
-		panic("TODO: Mark current key as broken")
+		panic(err)
 	}
 
 	rc.lock.Lock()
 	defer rc.lock.Unlock()
 
-	ks := rc.getOrCreateKeyStateLocked(key, keyHash, initialValueState)
+	ks := rc.getOrCreateKeyStateLocked(key, keyReference, initialValueState)
 	e.dependencies[ks] = struct{}{}
 	if ks.err != nil {
 		return nil
@@ -555,8 +554,8 @@ func (ksl *keyStateList[TReference, TMetadata]) remove(ks *KeyState[TReference, 
 // associated with the key or any error that occurred computing it.
 type KeyState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	// Constant fields.
-	key     model_core.TopLevelMessage[proto.Message, TReference]
-	keyHash [sha256.Size]byte
+	key          model_core.TopLevelMessage[proto.Message, TReference]
+	keyReference object.LocalReference
 
 	// Pointers to siblings in the keyStateList.
 	previousKey *KeyState[TReference, TMetadata]

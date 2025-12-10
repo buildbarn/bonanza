@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/ecdh"
-	"crypto/sha256"
 	"crypto/x509"
 	_ "embed"
 	"encoding/base64"
@@ -607,8 +606,11 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	if err != nil {
 		return nil, err
 	}
-	keySHA256 := sha256.Sum256(keyBytes)
 	keyAny, err := model_core.UnmarshalTopLevelMessage[anypb.Any](referenceFormat, keyBytes)
+	if err != nil {
+		return nil, err
+	}
+	keyReference, err := model_core.ComputeTopLevelMessageReference(keyAny, referenceFormat)
 	if err != nil {
 		return nil, err
 	}
@@ -700,14 +702,13 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				if err != nil {
 					return -1, nil
 				}
-				marshaledKey, err := model_core.MarshalTopLevelMessage(flattenedKey)
+				leafKeyReference, err := model_core.ComputeTopLevelMessageReference(flattenedKey, referenceFormat)
 				if err != nil {
 					return -1, nil
 				}
-				marshaledKeySHA256 := sha256.Sum256(marshaledKey)
-				return bytes.Compare(keySHA256[:], marshaledKeySHA256[:]), nil
+				return bytes.Compare(keyReference.GetRawReference(), leafKeyReference.GetRawReference()), nil
 			case *model_evaluation_pb.Evaluation_Parent_:
-				return bytes.Compare(keySHA256[:], level.Parent.FirstKeySha256), level.Parent.Reference
+				return bytes.Compare(keyReference.GetRawReference(), level.Parent.FirstKeyReference), level.Parent.Reference
 			default:
 				return 0, nil
 			}

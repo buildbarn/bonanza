@@ -2,7 +2,6 @@ package evaluation
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
 	"time"
 
@@ -139,6 +138,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				),
 			),
 			queues,
+			referenceFormat,
 			objectManager,
 			e.clock,
 		)
@@ -343,23 +343,23 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				evaluationTreeEncoder,
 				referenceFormat,
 				/* parentNodeComputer = */ btree.Capturing(ctx, objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Evaluation, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Evaluation, buffered.ReferenceMetadata] {
-					var firstKeySHA256 []byte
+					var firstKeyReference []byte
 					switch firstEntry := childNodes.Message[0].Level.(type) {
 					case *model_evaluation_pb.Evaluation_Leaf_:
 						if flattenedAny, err := model_core.FlattenAny(model_core.Nested(childNodes, firstEntry.Leaf.Key)); err == nil {
-							firstKey, _ := model_core.MarshalTopLevelMessage(flattenedAny)
-							firstKeySHA256Array := sha256.Sum256(firstKey)
-							firstKeySHA256 = firstKeySHA256Array[:]
+							if r, err := model_core.ComputeTopLevelMessageReference(flattenedAny, referenceFormat); err == nil {
+								firstKeyReference = r.GetRawReference()
+							}
 						}
 					case *model_evaluation_pb.Evaluation_Parent_:
-						firstKeySHA256 = firstEntry.Parent.FirstKeySha256
+						firstKeyReference = firstEntry.Parent.FirstKeyReference
 					}
 					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Evaluation {
 						return &model_evaluation_pb.Evaluation{
 							Level: &model_evaluation_pb.Evaluation_Parent_{
 								Parent: &model_evaluation_pb.Evaluation_Parent{
-									Reference:      patcher.AddDecodableReference(createdObject),
-									FirstKeySha256: firstKeySHA256,
+									Reference:         patcher.AddDecodableReference(createdObject),
+									FirstKeyReference: firstKeyReference,
 								},
 							},
 						}

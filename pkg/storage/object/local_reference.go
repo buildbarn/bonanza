@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"cmp"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -55,6 +56,41 @@ type LocalReference struct {
 }
 
 var _ BasicReference = LocalReference{}
+
+// NewLocalReferenceFromData computes the local reference corresponding
+// to an object with the given set of outgoing references and payload.
+// This function is functionally equivalent to
+// ReferenceFormat.NewContents(...).GetLocalReference(), except that it
+// skips creating the intermediate object.
+//
+// This function is purely provided to simplify the process of creating
+// tag key hashes. In those cases it may be necessary to create
+// references to fictive objects and embed those into messages that are
+// used as tag keys.
+func NewLocalReferenceFromData[TReference BasicReference](referenceFormat ReferenceFormat, outgoingReferences OutgoingReferences[TReference], payload []byte) (LocalReference, error) {
+	degree := outgoingReferences.GetDegree()
+	sizeBytes := degree*SHA256V1ReferenceSizeBytes + len(payload)
+	if err := validateObjectSizeBytes(sizeBytes); err != nil {
+		return LocalReference{}, err
+	}
+
+	hasher := sha256.New()
+	var rcs referenceStatsComputer
+	for i := 0; i < degree; i++ {
+		outgoingReference := outgoingReferences.GetOutgoingReference(i)
+		if err := rcs.addChildReference(outgoingReference.GetLocalReference()); err != nil {
+			return LocalReference{}, err
+		}
+		hasher.Write(outgoingReference.GetRawReference())
+	}
+	hasher.Write(payload)
+
+	var rawReference [SHA256V1ReferenceSizeBytes]byte
+	hasher.Sum(rawReference[:0])
+	binary.LittleEndian.PutUint32(rawReference[32:], uint32(sizeBytes))
+	*(*[5]byte)(rawReference[35:]) = rcs.getStats()
+	return LocalReference{rawReference: rawReference}, nil
+}
 
 // MustNewSHA256V1LocalReference creates a local reference that uses
 // reference format SHA256_V1. This function can be used as part of

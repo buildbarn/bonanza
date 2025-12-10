@@ -413,11 +413,11 @@ func (x *Keys_Parent) GetReference() *core.DecodableReference {
 }
 
 type Evaluation_Parent struct {
-	state          protoimpl.MessageState   `protogen:"open.v1"`
-	Reference      *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	FirstKeySha256 []byte                   `protobuf:"bytes,2,opt,name=first_key_sha256,json=firstKeySha256,proto3" json:"first_key_sha256,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state             protoimpl.MessageState   `protogen:"open.v1"`
+	Reference         *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
+	FirstKeyReference []byte                   `protobuf:"bytes,2,opt,name=first_key_reference,json=firstKeyReference,proto3" json:"first_key_reference,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Evaluation_Parent) Reset() {
@@ -457,9 +457,9 @@ func (x *Evaluation_Parent) GetReference() *core.DecodableReference {
 	return nil
 }
 
-func (x *Evaluation_Parent) GetFirstKeySha256() []byte {
+func (x *Evaluation_Parent) GetFirstKeyReference() []byte {
 	if x != nil {
-		return x.FirstKeySha256
+		return x.FirstKeyReference
 	}
 	return nil
 }
@@ -654,14 +654,14 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	"\x06parent\x18\x02 \x01(\v2%.bonanza.model.evaluation.Keys.ParentH\x00R\x06parent\x1as\n" +
 	"\x06Parent\x12i\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x1a\x1dbonanza.model.evaluation.KeysR\treferenceB\a\n" +
-	"\x05level\"\xea\x03\n" +
+	"\x05level\"\xf0\x03\n" +
 	"\n" +
 	"Evaluation\x12?\n" +
 	"\x04leaf\x18\x01 \x01(\v2).bonanza.model.evaluation.Evaluation.LeafH\x00R\x04leaf\x12E\n" +
-	"\x06parent\x18\x02 \x01(\v2+.bonanza.model.evaluation.Evaluation.ParentH\x00R\x06parent\x1a\xa3\x01\n" +
+	"\x06parent\x18\x02 \x01(\v2+.bonanza.model.evaluation.Evaluation.ParentH\x00R\x06parent\x1a\xa9\x01\n" +
 	"\x06Parent\x12o\n" +
-	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\treference\x12(\n" +
-	"\x10first_key_sha256\x18\x02 \x01(\fR\x0efirstKeySha256\x1a\xa4\x01\n" +
+	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\treference\x12.\n" +
+	"\x13first_key_reference\x18\x02 \x01(\fR\x11firstKeyReference\x1a\xa4\x01\n" +
 	"\x04Leaf\x12)\n" +
 	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12-\n" +
 	"\x05value\x18\x02 \x01(\v2\x17.bonanza.model.core.AnyR\x05value\x12B\n" +

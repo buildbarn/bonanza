@@ -3,7 +3,6 @@ package analysis
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"strings"
@@ -36,14 +35,13 @@ func (c *baseComputer[TReference, TMetadata]) getReferenceEqualIdentifierGenerat
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal key for creating an identifier generator for reference equal values: %w", err)
 	}
-	marshaledKey, err := model_core.MarshalTopLevelMessage(anyKey)
+	keyReference, err := model_core.ComputeTopLevelMessageReference(anyKey, c.referenceFormat)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal key for creating an identifier generator for reference equal values: %w", err)
 	}
-	hashedKey := sha256.Sum256(marshaledKey)
 
 	var nextIdentifier [16]byte
-	copy(nextIdentifier[:], hashedKey[:])
+	copy(nextIdentifier[:], keyReference.GetRawReference())
 
 	return func() []byte {
 		identifier := append([]byte(nil), nextIdentifier[:]...)

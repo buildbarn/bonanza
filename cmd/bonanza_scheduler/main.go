@@ -91,22 +91,17 @@ func main() {
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create tag signature public key")
 			}
-			previousExecutionStatsCommonKeyData, err := model_core.MarshalUnencoded(
-				model_core.NewSimplePatchedMessage[model_core.NoopReferenceMetadata](
-					model_core.NewProtoBinaryMarshaler(
-						&model_tag_pb.CommonKeyData{
-							SignaturePublicKey: tagSignaturePublicKey,
-							ReferenceFormat:    referenceFormat.ToProto(),
-							ObjectEncoders:     storeConfiguration.ObjectEncoders,
-						},
-					),
-				),
-				referenceFormat,
-			)
+			previousExecutionStatsCommonKeyData, _ := model_core.NewSimplePatchedMessage[model_core.NoopReferenceMetadata](
+				&model_tag_pb.CommonKeyData{
+					SignaturePublicKey: tagSignaturePublicKey,
+					ReferenceFormat:    referenceFormat.ToProto(),
+					ObjectEncoders:     storeConfiguration.ObjectEncoders,
+				},
+			).SortAndSetReferences()
+			previousExecutionStatsCommonKeyDataReference, err = model_core.ComputeTopLevelMessageReference(previousExecutionStatsCommonKeyData, referenceFormat)
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create common key data for PreviousExecutionStats")
 			}
-			previousExecutionStatsCommonKeyDataReference = previousExecutionStatsCommonKeyData.GetLocalReference()
 
 			previousExecutionStatsStore = model_tag.NewStorageBackedMutableProtoStore(
 				referenceFormat,

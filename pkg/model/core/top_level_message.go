@@ -151,3 +151,23 @@ func UnmarshalTopLevelAnyNew[TReference any](m TopLevelMessage[*anypb.Any, TRefe
 	}
 	return NewTopLevelMessage(message, m.OutgoingReferences), nil
 }
+
+// ComputeTopLevelMessageReference computes the local reference of an
+// object whose contents are equal to that of a provided top-level
+// message after it has been referenced, without any encoding applied.
+//
+// This function should typically only be used to compute tag key
+// hashes, as it only produces references of fictive objects. In
+// practice you almost always want to encode objects prior to storing
+// them in an object.
+func ComputeTopLevelMessageReference[TMessage proto.Message, TReference object.BasicReference](
+	m TopLevelMessage[TMessage, TReference],
+	referenceFormat object.ReferenceFormat,
+) (object.LocalReference, error) {
+	data, err := NewProtoBinaryMarshaler(m.Message).MarshalBinary()
+	if err != nil {
+		var badReference object.LocalReference
+		return badReference, err
+	}
+	return object.NewLocalReferenceFromData(referenceFormat, m.OutgoingReferences, data)
+}

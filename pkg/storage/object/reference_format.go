@@ -59,14 +59,8 @@ func (ReferenceFormat) NewLocalReference(rawReference []byte) (r LocalReference,
 	r.rawReference = *(*[SHA256V1ReferenceSizeBytes]byte)(rawReference)
 
 	sizeBytes := r.GetSizeBytes()
-	if sizeBytes < minimumObjectSizeBytes || sizeBytes > maximumObjectSizeBytes {
-		return LocalReference{}, status.Errorf(
-			codes.InvalidArgument,
-			"Size is %d bytes, which lies outside the permitted range of [%d, %d] bytes",
-			sizeBytes,
-			minimumObjectSizeBytes,
-			maximumObjectSizeBytes,
-		)
+	if err := validateObjectSizeBytes(sizeBytes); err != nil {
+		return LocalReference{}, err
 	}
 
 	// Perform validation against the reference's fields.
@@ -106,6 +100,19 @@ func (ReferenceFormat) NewLocalReference(rawReference []byte) (r LocalReference,
 	return r, err
 }
 
+func validateObjectSizeBytes(sizeBytes int) error {
+	if sizeBytes < minimumObjectSizeBytes || sizeBytes > maximumObjectSizeBytes {
+		return status.Errorf(
+			codes.InvalidArgument,
+			"Size is %d bytes, which lies outside the permitted range of [%d, %d] bytes",
+			sizeBytes,
+			minimumObjectSizeBytes,
+			maximumObjectSizeBytes,
+		)
+	}
+	return nil
+}
+
 // NewFlatReference converts a flat reference that is stored in binary
 // format to an in-memory representation. It also validates that all
 // fields contained in the reference are within bounds.
@@ -121,18 +128,10 @@ func (ReferenceFormat) NewFlatReference(rawReference []byte) (r FlatReference, e
 	}
 	r.rawReference = *(*[SHA256V1FlatReferenceSizeBytes]byte)(rawReference)
 
-	sizeBytes := r.GetSizeBytes()
-	if sizeBytes < minimumObjectSizeBytes || sizeBytes > maximumObjectSizeBytes {
-		return FlatReference{}, status.Errorf(
-			codes.InvalidArgument,
-			"Size is %d bytes, which lies outside the permitted range of [%d, %d] bytes",
-			sizeBytes,
-			minimumObjectSizeBytes,
-			maximumObjectSizeBytes,
-		)
+	if err := validateObjectSizeBytes(r.GetSizeBytes()); err != nil {
+		return FlatReference{}, err
 	}
-
-	return r, err
+	return r, nil
 }
 
 // GetMaximumObjectSizeBytes returns the maximum size of objects encoded
@@ -149,14 +148,8 @@ func (ReferenceFormat) GetMaximumObjectSizeBytes() int {
 // are provided in sorted order.
 func (ReferenceFormat) NewContents(outgoingReferences []LocalReference, payload []byte) (*Contents, error) {
 	sizeBytes := len(outgoingReferences)*SHA256V1ReferenceSizeBytes + len(payload)
-	if sizeBytes < minimumObjectSizeBytes || sizeBytes > maximumObjectSizeBytes {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"Size is %d bytes, which lies outside the permitted range of [%d, %d] bytes",
-			sizeBytes,
-			minimumObjectSizeBytes,
-			maximumObjectSizeBytes,
-		)
+	if err := validateObjectSizeBytes(sizeBytes); err != nil {
+		return nil, err
 	}
 
 	var data []byte
