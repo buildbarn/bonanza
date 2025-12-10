@@ -12,8 +12,8 @@ import (
 )
 
 type store struct {
-	oldRegionSizeBytes     uint64
 	currentRegionSizeBytes uint64
+	newRegionSizeBytes     uint64
 
 	lock                 *sync.RWMutex
 	referenceLocationMap ReferenceLocationMap
@@ -30,8 +30,8 @@ func NewStore(
 	referenceLocationMap ReferenceLocationMap,
 	locationBlobMap LocationBlobMap,
 	epochList EpochList,
-	oldRegionSizeBytes uint64,
 	currentRegionSizeBytes uint64,
+	newRegionSizeBytes uint64,
 ) object.Store[object.FlatReference, struct{}] {
 	return &store{
 		lock:                 lock,
@@ -39,16 +39,15 @@ func NewStore(
 		locationBlobMap:      locationBlobMap,
 		epochList:            epochList,
 
-		oldRegionSizeBytes:     oldRegionSizeBytes,
 		currentRegionSizeBytes: currentRegionSizeBytes,
+		newRegionSizeBytes:     newRegionSizeBytes,
 	}
 }
 
 func (s *store) getObjectLocation(reference object.FlatReference) (uint64, bool, error) {
 	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	location, err := s.referenceLocationMap.Get(reference, s.epochList)
+	s.lock.RUnlock()
 	if err != nil {
 		return 0, false, err
 	}
@@ -58,17 +57,16 @@ func (s *store) getObjectLocation(reference object.FlatReference) (uint64, bool,
 	// deterministic refresh threshold within the current region,
 	// derived from the object's reference. This spreads refresh
 	// operations evenly across all objects.
-	epochState, _ := s.epochList.GetCurrentEpochState()
-	distanceFromMinimum := location - epochState.MinimumLocation
+	distanceFromMaximum := int64(s.locationBlobMap.GetNextPutLocation() - location)
 
 	// Compute a deterministic threshold for this object within the
-	// current region. Objects whose distance from minimum falls
-	// below (oldRegion + threshold) need to be refreshed.
+	// current region. Objects whose distance from minimum goes
+	// above (newRegionSizeBytes + threshold) need to be refreshed.
 	// XOR with location ensures the threshold changes each time the
 	// object is relocated, preventing the same objects from always
 	// being refreshed earlier than others.
 	threshold := (location ^ binary.LittleEndian.Uint64(reference.GetRawFlatReference())) % s.currentRegionSizeBytes
-	needsRefresh := distanceFromMinimum < s.oldRegionSizeBytes+threshold
+	needsRefresh := distanceFromMaximum > int64(s.newRegionSizeBytes+threshold)
 	return location, needsRefresh, nil
 }
 

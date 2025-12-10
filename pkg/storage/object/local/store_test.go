@@ -16,7 +16,7 @@ import (
 )
 
 // newTestStore creates a store with real in-memory implementations for testing.
-func newTestStore(t *testing.T, bufferSize, oldRegionSize, currentRegionSize uint64) (object.Store[object.FlatReference, struct{}], object_local.EpochList) {
+func newTestStore(t *testing.T, bufferSize, currentRegionSizeBytes, newRegionSizeBytes uint64) (object.Store[object.FlatReference, struct{}], object_local.EpochList) {
 	var lock sync.RWMutex
 	randomNumberGenerator := random.NewFastSingleThreadedGenerator()
 	epochList := object_local.NewVolatileEpochList(bufferSize, randomNumberGenerator)
@@ -47,8 +47,8 @@ func newTestStore(t *testing.T, bufferSize, oldRegionSize, currentRegionSize uin
 		referenceLocationMap,
 		locationBlobMap,
 		epochList,
-		oldRegionSize,
-		currentRegionSize,
+		currentRegionSizeBytes,
+		newRegionSizeBytes,
 	)
 
 	return store, epochList
@@ -58,12 +58,12 @@ func TestStoreRefreshObjectInOldRegion(t *testing.T) {
 	// This test verifies that objects in the "old" region get refreshed
 	// (copied to the end of the buffer) when accessed, preventing them
 	// from being overwritten by the write cursor.
-
-	const bufferSize = 1000
-	const oldRegionSize = 200
-	const currentRegionSize = 300
-
-	store, epochList := newTestStore(t, bufferSize, oldRegionSize, currentRegionSize)
+	store, epochList := newTestStore(
+		t,
+		/* bufferSizeBytes = */ 1000,
+		/* currentRegionSize = */ 300,
+		/* newRegionSizeBytes = */ 200,
+	)
 	ctx := context.Background()
 
 	// SHA256("Hello") = 185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969

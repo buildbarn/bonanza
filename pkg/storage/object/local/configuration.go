@@ -188,15 +188,15 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		return nil, status.Error(codes.InvalidArgument, "New region size ratio must be positive")
 	}
 	totalRatio := uint64(oldRegionSizeRatio + currentRegionSizeRatio + newRegionSizeRatio)
-	oldRegionSizeBytes := maximumLocationSpan * uint64(oldRegionSizeRatio) / totalRatio
 	currentRegionSizeBytes := maximumLocationSpan * uint64(currentRegionSizeRatio) / totalRatio
+	newRegionSizeBytes := maximumLocationSpan * uint64(newRegionSizeRatio) / totalRatio
 
 	return NewStore(
 		&globalLock,
 		referenceLocationMap,
 		locationBlobMap,
 		epochList,
-		oldRegionSizeBytes,
 		currentRegionSizeBytes,
+		newRegionSizeBytes,
 	), nil
 }

@@ -11,7 +11,7 @@ type blockDeviceBackedLocationBlobMap struct {
 	sectorSizeBytes int
 	sectorCount     int64
 
-	lock         sync.Mutex
+	lock         sync.RWMutex
 	nextLocation uint64
 	sharedSector *sharedSector
 }
@@ -154,6 +154,12 @@ func (lbm *blockDeviceBackedLocationBlobMap) Put(data []byte) (uint64, error) {
 		}
 	}
 	return location, nil
+}
+
+func (lbm *blockDeviceBackedLocationBlobMap) GetNextPutLocation() uint64 {
+	lbm.lock.RLock()
+	defer lbm.lock.RUnlock()
+	return lbm.nextLocation
 }
 
 // sharedSector contains the bookkeeping of a single sector of storage

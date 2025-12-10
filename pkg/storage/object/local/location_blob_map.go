@@ -13,6 +13,7 @@ import (
 type LocationBlobMap interface {
 	Get(location uint64, sizeBytes int) ([]byte, error)
 	Put([]byte) (uint64, error)
+	GetNextPutLocation() uint64
 }
 
 // allocateLocation is a helper function for allocating a location for

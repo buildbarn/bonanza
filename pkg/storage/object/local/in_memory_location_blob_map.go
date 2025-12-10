@@ -62,3 +62,7 @@ func (lbm *inMemoryLocationBlobMap) Put(data []byte) (uint64, error) {
 	}
 	return location, nil
 }
+
+func (lbm *inMemoryLocationBlobMap) GetNextPutLocation() uint64 {
+	return lbm.nextLocation.Load()
+}
