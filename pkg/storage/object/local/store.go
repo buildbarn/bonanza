@@ -60,7 +60,7 @@ func (s *store) getObjectLocation(reference object.FlatReference) (uint64, bool,
 	distanceFromMaximum := int64(s.locationBlobMap.GetNextPutLocation() - location)
 
 	// Compute a deterministic threshold for this object within the
-	// current region. Objects whose distance from minimum goes
+	// current region. Objects whose distance from maximum goes
 	// above (newRegionSizeBytes + threshold) need to be refreshed.
 	// XOR with location ensures the threshold changes each time the
 	// object is relocated, preventing the same objects from always
