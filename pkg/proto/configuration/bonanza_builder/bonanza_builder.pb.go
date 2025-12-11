@@ -44,6 +44,7 @@ type ApplicationConfiguration struct {
 	LocalEvaluationConcurrency      uint32                                       `protobuf:"varint,15,opt,name=local_evaluation_concurrency,json=localEvaluationConcurrency,proto3" json:"local_evaluation_concurrency,omitempty"`
 	RemoteEvaluationConcurrency     uint32                                       `protobuf:"varint,16,opt,name=remote_evaluation_concurrency,json=remoteEvaluationConcurrency,proto3" json:"remote_evaluation_concurrency,omitempty"`
 	ObjectStoreConcurrency          int64                                        `protobuf:"varint,18,opt,name=object_store_concurrency,json=objectStoreConcurrency,proto3" json:"object_store_concurrency,omitempty"`
+	CacheTagSignaturePrivateKey     string                                       `protobuf:"bytes,19,opt,name=cache_tag_signature_private_key,json=cacheTagSignaturePrivateKey,proto3" json:"cache_tag_signature_private_key,omitempty"`
 	unknownFields                   protoimpl.UnknownFields
 	sizeCache                       protoimpl.SizeCache
 }
@@ -183,12 +184,18 @@ func (x *ApplicationConfiguration) GetObjectStoreConcurrency() int64 {
 	return 0
 }
 
+func (x *ApplicationConfiguration) GetCacheTagSignaturePrivateKey() string {
+	if x != nil {
+		return x.CacheTagSignaturePrivateKey
+	}
+	return ""
+}
+
 var File_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDesc = "" +
 	"\n" +
-	"Kbonanza.build/pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\xf5\n" +
-	"\n" +
+	"Kbonanza.build/pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\xbb\v\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x03 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12V\n" +
@@ -205,7 +212,8 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder
 	"\x12parsed_object_pool\x18\x0e \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\x12@\n" +
 	"\x1clocal_evaluation_concurrency\x18\x0f \x01(\rR\x1alocalEvaluationConcurrency\x12B\n" +
 	"\x1dremote_evaluation_concurrency\x18\x10 \x01(\rR\x1bremoteEvaluationConcurrency\x128\n" +
-	"\x18object_store_concurrency\x18\x12 \x01(\x03R\x16objectStoreConcurrency\x1a;\n" +
+	"\x18object_store_concurrency\x18\x12 \x01(\x03R\x16objectStoreConcurrency\x12D\n" +
+	"\x1fcache_tag_signature_private_key\x18\x13 \x01(\tR\x1bcacheTagSignaturePrivateKey\x1a;\n" +
 	"\rWorkerIdEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B7Z5bonanza.build/pkg/proto/configuration/bonanza_builderb\x06proto3"

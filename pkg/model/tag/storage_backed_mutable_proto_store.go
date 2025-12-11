@@ -62,7 +62,7 @@ type storageBackedMutableProtoStore[T any, TProto interface {
 	proto.Message
 }] struct {
 	referenceFormat        object.ReferenceFormat
-	tagResolver            tag.Resolver[object.ReferenceFormat]
+	tagResolver            tag.Resolver[struct{}]
 	tagSignaturePrivateKey ed25519.PrivateKey
 	tagSignaturePublicKey  [ed25519.PublicKeySize]byte
 	messageObjectReader    model_parser.MessageObjectReader[object.LocalReference, TProto]
@@ -90,7 +90,7 @@ func NewStorageBackedMutableProtoStore[T any, TProto interface {
 	proto.Message
 }](
 	referenceFormat object.ReferenceFormat,
-	tagResolver tag.Resolver[object.ReferenceFormat],
+	tagResolver tag.Resolver[struct{}],
 	tagSignaturePrivateKey ed25519.PrivateKey,
 	messageObjectReader model_parser.MessageObjectReader[object.LocalReference, TProto],
 	objectEncoder model_encoding.KeyedBinaryEncoder,
@@ -176,7 +176,7 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 			if signedValue, err := tag.ResolveCompleteTag(
 				ctxWithCancel,
 				ps.tagResolver,
-				ps.referenceFormat,
+				struct{}{},
 				tag.Key{
 					SignaturePublicKey: ps.tagSignaturePublicKey,
 					Hash:               tagKeyHash.Value,
@@ -378,5 +378,5 @@ type (
 	MessageObjectReaderForTesting model_parser.MessageObjectReader[object.LocalReference, *model_initialsizeclass_pb.PreviousExecutionStats]
 	// ResolverForTesting is used to generate mocks used by tests
 	// belonging to this package.
-	ResolverForTesting tag.Resolver[object.ReferenceFormat]
+	ResolverForTesting tag.Resolver[struct{}]
 )

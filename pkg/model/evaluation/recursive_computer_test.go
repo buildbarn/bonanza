@@ -60,10 +60,21 @@ func TestRecursiveComputer(t *testing.T) {
 			}).
 			AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
+		tagResolver := NewMockTagResolverForTesting(ctrl)
 
 		queuesFactory := model_evaluation.NewSimpleRecursiveComputerQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
 		queues := queuesFactory.NewQueues()
-		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, object.SHA256V1ReferenceFormat, objectManager, clock.SystemClock)
+		recursiveComputer := model_evaluation.NewRecursiveComputer(
+			computer,
+			queues,
+			object.SHA256V1ReferenceFormat,
+			objectManager,
+			tagResolver,
+			actionTagKeyReference,
+			cacheTagSignaturePrivateKey,
+			cacheObjectReader,
+			clock.SystemClock,
+		)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 				&wrapperspb.UInt32Value{
@@ -101,10 +112,21 @@ func TestRecursiveComputer(t *testing.T) {
 				return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 			})
 		objectManager := NewMockObjectManagerForTesting(ctrl)
+		tagResolver := NewMockTagResolverForTesting(ctrl)
 
 		queuesFactory := model_evaluation.NewSimpleRecursiveComputerQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
 		queues := queuesFactory.NewQueues()
-		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, object.SHA256V1ReferenceFormat, objectManager, clock.SystemClock)
+		recursiveComputer := model_evaluation.NewRecursiveComputer(
+			computer,
+			queues,
+			object.SHA256V1ReferenceFormat,
+			objectManager,
+			tagResolver,
+			actionTagKeyReference,
+			cacheTagSignaturePrivateKey,
+			cacheObjectReader,
+			clock.SystemClock,
+		)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
 				&wrapperspb.UInt32Value{
@@ -157,10 +179,21 @@ func TestRecursiveComputer(t *testing.T) {
 			}).
 			Times(4)
 		objectManager := NewMockObjectManagerForTesting(ctrl)
+		tagResolver := NewMockTagResolverForTesting(ctrl)
 
 		queuesFactory := model_evaluation.NewSimpleRecursiveComputerQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
 		queues := queuesFactory.NewQueues()
-		recursiveComputer := model_evaluation.NewRecursiveComputer(computer, queues, object.SHA256V1ReferenceFormat, objectManager, clock.SystemClock)
+		recursiveComputer := model_evaluation.NewRecursiveComputer(
+			computer,
+			queues,
+			object.SHA256V1ReferenceFormat,
+			objectManager,
+			tagResolver,
+			actionTagKeyReference,
+			cacheTagSignaturePrivateKey,
+			cacheObjectReader,
+			clock.SystemClock,
+		)
 
 		keyState2, err := recursiveComputer.GetOrCreateKeyState(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](

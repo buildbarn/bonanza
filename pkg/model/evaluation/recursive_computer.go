@@ -3,6 +3,7 @@ package evaluation
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"errors"
 	"iter"
 	"maps"
@@ -11,12 +12,18 @@ import (
 	"time"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_parser "bonanza.build/pkg/model/parser"
+	model_tag "bonanza.build/pkg/model/tag"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
+	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
 	"bonanza.build/pkg/storage/object"
+	"bonanza.build/pkg/storage/tag"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -58,11 +65,15 @@ type RecursiveComputerQueuePicker[TReference object.BasicReference, TMetadata mo
 // available, computation of the original key is restarted. This process
 // repeates itself until all requested keys are exhausted.
 type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	base            Computer[TReference, TMetadata]
-	queuePicker     RecursiveComputerQueuePicker[TReference, TMetadata]
-	referenceFormat object.ReferenceFormat
-	objectManager   model_core.ObjectManager[TReference, TMetadata]
-	clock           clock.Clock
+	base                       Computer[TReference, TMetadata]
+	queuePicker                RecursiveComputerQueuePicker[TReference, TMetadata]
+	referenceFormat            object.ReferenceFormat
+	objectManager              model_core.ObjectManager[TReference, TMetadata]
+	tagResolver                tag.Resolver[struct{}]
+	actionTagKeyReference      object.LocalReference
+	cacheTagSignaturePublicKey [ed25519.PublicKeySize]byte
+	cacheObjectReader          model_parser.MessageObjectReader[TReference, *model_evaluation_cache_pb.LookupResult]
+	clock                      clock.Clock
 
 	lock sync.Mutex
 
@@ -93,14 +104,22 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 	queuePicker RecursiveComputerQueuePicker[TReference, TMetadata],
 	referenceFormat object.ReferenceFormat,
 	objectManager model_core.ObjectManager[TReference, TMetadata],
+	tagResolver tag.Resolver[struct{}],
+	actionTagKeyReference object.LocalReference,
+	cacheTagSignaturePrivateKey ed25519.PrivateKey,
+	cacheObjectReader model_parser.MessageObjectReader[TReference, *model_evaluation_cache_pb.LookupResult],
 	clock clock.Clock,
 ) *RecursiveComputer[TReference, TMetadata] {
 	rc := &RecursiveComputer[TReference, TMetadata]{
-		base:            base,
-		queuePicker:     queuePicker,
-		referenceFormat: referenceFormat,
-		objectManager:   objectManager,
-		clock:           clock,
+		base:                       base,
+		queuePicker:                queuePicker,
+		referenceFormat:            referenceFormat,
+		objectManager:              objectManager,
+		tagResolver:                tagResolver,
+		actionTagKeyReference:      actionTagKeyReference,
+		cacheTagSignaturePublicKey: *(*[ed25519.PublicKeySize]byte)(cacheTagSignaturePrivateKey.Public().(ed25519.PublicKey)),
+		cacheObjectReader:          cacheObjectReader,
+		clock:                      clock,
 
 		keys:         map[object.LocalReference]*KeyState[TReference, TMetadata]{},
 		blockingKeys: map[*KeyState[TReference, TMetadata]]struct{}{},
@@ -154,13 +173,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 	}
 	rc.lock.Unlock()
 
-	e := recursivelyComputingEnvironment[TReference, TMetadata]{
-		computer:     rc,
-		keyState:     ks,
-		dependencies: map[*KeyState[TReference, TMetadata]]struct{}{},
-	}
-	err := ks.value.compute(ctx, &e)
-	dependencies := slices.Collect(maps.Keys(e.dependencies))
+	dependencies, err := ks.value.compute(ctx, rc, ks)
 
 	rc.lock.Lock()
 	rc.evaluatingKeys.remove(ks)
@@ -274,6 +287,14 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(ke
 		rc.enqueue(ks)
 	}
 	return ks
+}
+
+func (rc *RecursiveComputer[TReference, TMetadata]) newEnvironment(ks *KeyState[TReference, TMetadata]) *recursivelyComputingEnvironment[TReference, TMetadata] {
+	return &recursivelyComputingEnvironment[TReference, TMetadata]{
+		computer:     rc,
+		keyState:     ks,
+		dependencies: map[*KeyState[TReference, TMetadata]]struct{}{},
+	}
 }
 
 // GetOrCreateKeyState looks up the key state for a given key. If the
@@ -448,6 +469,10 @@ type recursivelyComputingEnvironment[TReference object.BasicReference, TMetadata
 	dependencies map[*KeyState[TReference, TMetadata]]struct{}
 }
 
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getDependencies() []*KeyState[TReference, TMetadata] {
+	return slices.Collect(maps.Keys(e.dependencies))
+}
+
 func (e *recursivelyComputingEnvironment[TReference, TMetadata]) CaptureCreatedObject(ctx context.Context, createdObject model_core.CreatedObject[TMetadata]) (TMetadata, error) {
 	return e.computer.objectManager.CaptureCreatedObject(ctx, createdObject)
 }
@@ -585,21 +610,65 @@ type KeyState[TReference object.BasicReference, TMetadata model_core.ReferenceMe
 }
 
 type valueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
-	compute(ctx context.Context, e *recursivelyComputingEnvironment[TReference, TMetadata]) error
+	compute(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) ([]*KeyState[TReference, TMetadata], error)
 	getMessageValue() model_core.Message[proto.Message, TReference]
 }
 
 type messageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	triedCacheLookup bool
+
 	value model_core.Message[proto.Message, TReference]
 }
 
-func (vs *messageValueState[TReference, TMetadata]) compute(ctx context.Context, e *recursivelyComputingEnvironment[TReference, TMetadata]) error {
-	value, err := e.computer.base.ComputeMessageValue(ctx, e.keyState.key.Decay(), e)
-	if err != nil {
-		return err
+func (vs *messageValueState[TReference, TMetadata]) compute(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) ([]*KeyState[TReference, TMetadata], error) {
+	if !vs.triedCacheLookup {
+		tagKeyData, _ := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.LookupTagKeyData {
+			result := &model_evaluation_cache_pb.LookupTagKeyData{
+				ActionTagKeyReference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
+					LocalReference: rc.actionTagKeyReference,
+				}),
+				EvaluationKeyReference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
+					LocalReference: ks.keyReference,
+				}),
+			}
+			if false {
+				result.SubsequentLookup = &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
+					SelectedGranularityLevel: 67,
+					DependenciesHash:         []byte("TODO"),
+				}
+			}
+			return result
+		}).SortAndSetReferences()
+		tagKeyHash, err := model_tag.NewDecodableKeyHashFromMessage(tagKeyData, rc.cacheObjectReader.GetDecodingParametersSizeBytes())
+		if err != nil {
+			return nil, err
+		}
+		_, err = tag.ResolveCompleteTag(
+			ctx,
+			rc.tagResolver,
+			struct{}{},
+			tag.Key{
+				SignaturePublicKey: rc.cacheTagSignaturePublicKey,
+				Hash:               tagKeyHash.Value,
+			},
+			/* minimumTimestamp = */ nil,
+		)
+		if err == nil {
+			// TODO: Actually inspect the cache result.
+			return nil, errors.New("got a cache hit")
+		} else if status.Code(err) != codes.NotFound {
+			return nil, err
+		}
+		vs.triedCacheLookup = true
 	}
-	vs.value = model_core.Unpatch(e.computer.objectManager, value).Decay()
-	return nil
+
+	e := rc.newEnvironment(ks)
+	value, err := rc.base.ComputeMessageValue(ctx, ks.key.Decay(), e)
+	if err != nil {
+		return e.getDependencies(), err
+	}
+	vs.value = model_core.Unpatch(rc.objectManager, value).Decay()
+	return e.getDependencies(), nil
 }
 
 func (vs *messageValueState[TReference, TMetadata]) getMessageValue() model_core.Message[proto.Message, TReference] {
@@ -610,13 +679,14 @@ type nativeValueState[TReference object.BasicReference, TMetadata model_core.Ref
 	value any
 }
 
-func (vs *nativeValueState[TReference, TMetadata]) compute(ctx context.Context, e *recursivelyComputingEnvironment[TReference, TMetadata]) error {
-	value, err := e.computer.base.ComputeNativeValue(ctx, e.keyState.key.Decay(), e)
+func (vs *nativeValueState[TReference, TMetadata]) compute(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) ([]*KeyState[TReference, TMetadata], error) {
+	e := rc.newEnvironment(ks)
+	value, err := rc.base.ComputeNativeValue(ctx, ks.key.Decay(), e)
 	if err != nil {
-		return err
+		return e.getDependencies(), err
 	}
 	vs.value = value
-	return nil
+	return e.getDependencies(), nil
 }
 
 func (nativeValueState[TReference, TMetadata]) getMessageValue() model_core.Message[proto.Message, TReference] {
@@ -644,6 +714,11 @@ func (e NestedError[TReference]) Error() string {
 	return e.Err.Error()
 }
 
-// ObjectManagerForTesting is used to generate mocks that are used by
-// RecursiveComputer's unit tests.
-type ObjectManagerForTesting = model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata]
+type (
+	// ObjectManagerForTesting is used to generate mocks that are
+	// used by RecursiveComputer's unit tests.
+	ObjectManagerForTesting = model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata]
+	// TagResolverForTesting is used to generate mocks that are used
+	// by RecursiveComputer's unit tests.
+	TagResolverForTesting = tag.Resolver[struct{}]
+)

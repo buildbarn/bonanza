@@ -107,7 +107,7 @@ func main() {
 				referenceFormat,
 				tag_namespacemapping.NewNamespaceAddingResolver(
 					tag_grpc.NewResolver(tag_pb.NewResolverClient(grpcClient)),
-					namespace.InstanceName,
+					namespace,
 				),
 				tagSignaturePrivateKey,
 				model_parser.NewParsedObjectReader(

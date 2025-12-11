@@ -96,4 +96,9 @@ message ApplicationConfiguration {
   // The maximum number of concurrent read operations this process
   // should issue against object storage.
   int64 object_store_concurrency = 18;
+
+  // Ed25519 private key used to sign tags referring to cached
+  // evaluations. The key must be in PKCS #8, ASN.1 DER form, stored in
+  // a PEM block of type "PRIVATE KEY".
+  string cache_tag_signature_private_key = 19;
 }

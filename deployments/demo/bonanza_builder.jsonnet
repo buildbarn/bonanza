@@ -73,4 +73,9 @@ local statePath = std.extVar('STATE_PATH');
   localEvaluationConcurrency: std.extVar('NCPU'),
   remoteEvaluationConcurrency: 100,
   objectStoreConcurrency: std.extVar('NCPU'),
+  cacheTagSignaturePrivateKey: |||
+    -----BEGIN PRIVATE KEY-----
+    MC4CAQAwBQYDK2VwBCIEIB02dlibU4cQ7kQaoTg3f4VeXtrM0aM5q6VYslB+1UNE
+    -----END PRIVATE KEY-----
+  |||,
 }

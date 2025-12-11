@@ -22,6 +22,7 @@ import (
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
 	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	object_pb "bonanza.build/pkg/proto/storage/object"
+	tag_pb "bonanza.build/pkg/proto/storage/tag"
 	remoteexecution "bonanza.build/pkg/remoteexecution"
 	"bonanza.build/pkg/remoteworker"
 	dag_grpc "bonanza.build/pkg/storage/dag/grpc"
@@ -30,6 +31,7 @@ import (
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
 	object_local "bonanza.build/pkg/storage/object/local"
 	object_readcaching "bonanza.build/pkg/storage/object/readcaching"
+	tag_grpc "bonanza.build/pkg/storage/tag/grpc"
 
 	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
 	"github.com/buildbarn/bb-storage/pkg/clock"
@@ -125,6 +127,11 @@ func main() {
 			return util.StatusWrap(err, "Failed to marshal worker ID")
 		}
 
+		cacheTagSignaturePrivateKey, err := crypto.ParsePEMWithEd25519PrivateKey([]byte(configuration.CacheTagSignaturePrivateKey))
+		if err != nil {
+			return util.StatusWrap(err, "Failed to create cache tag signature private key")
+		}
+
 		bzlFileBuiltins, buildFileBuiltins := model_starlark.GetBuiltins[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]()
 		client, err := remoteworker.NewClient(
 			remoteWorkerClient,
@@ -158,6 +165,10 @@ func main() {
 							// Assume everything we attempt to upload is memory backed.
 							object.Unlimited,
 						),
+						tag_grpc.NewResolver(
+							tag_pb.NewResolverClient(storageGRPCClient),
+						),
+						cacheTagSignaturePrivateKey,
 						clock.SystemClock,
 					),
 				),

@@ -4,18 +4,11 @@ import (
 	"context"
 	"time"
 
-	"bonanza.build/pkg/storage/object"
 	"bonanza.build/pkg/storage/tag"
 )
 
-// NamespaceAddingNamespace is a constraint for tag store namespaces
-// accepted by NewNamespaceAddingResolver().
-type NamespaceAddingNamespace[T any] interface {
-	WithReferenceFormat(referenceFormat object.ReferenceFormat) T
-}
-
-type namespaceAddingResolver[TNamespace NamespaceAddingNamespace[TReference], TReference any] struct {
-	base      tag.Resolver[TReference]
+type namespaceAddingResolver[TNamespace any] struct {
+	base      tag.Resolver[TNamespace]
 	namespace TNamespace
 }
 
@@ -24,13 +17,13 @@ type namespaceAddingResolver[TNamespace NamespaceAddingNamespace[TReference], TR
 // namespaces. This is useful if the client is oblivious of namespaces,
 // but the storage backend requires them (e.g., a networked multi-tenant
 // storage server).
-func NewNamespaceAddingResolver[TNamespace NamespaceAddingNamespace[TReference], TReference any](base tag.Resolver[TReference], namespace TNamespace) tag.Resolver[object.ReferenceFormat] {
-	return &namespaceAddingResolver[TNamespace, TReference]{
+func NewNamespaceAddingResolver[TNamespace any](base tag.Resolver[TNamespace], namespace TNamespace) tag.Resolver[struct{}] {
+	return &namespaceAddingResolver[TNamespace]{
 		base:      base,
 		namespace: namespace,
 	}
 }
 
-func (d *namespaceAddingResolver[TNamespace, TReference]) ResolveTag(ctx context.Context, referenceFormat object.ReferenceFormat, key tag.Key, minimumTimestamp *time.Time) (tag.SignedValue, bool, error) {
-	return d.base.ResolveTag(ctx, d.namespace.WithReferenceFormat(referenceFormat), key, minimumTimestamp)
+func (d *namespaceAddingResolver[TNamespace]) ResolveTag(ctx context.Context, namespace struct{}, key tag.Key, minimumTimestamp *time.Time) (tag.SignedValue, bool, error) {
+	return d.base.ResolveTag(ctx, d.namespace, key, minimumTimestamp)
 }

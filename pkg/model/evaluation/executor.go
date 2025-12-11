@@ -2,9 +2,12 @@ package evaluation
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/x509"
 	"errors"
 	"time"
 
+	"bonanza.build/pkg/crypto/lthash"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/core/buffered"
@@ -12,13 +15,18 @@ import (
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
+	model_encoding_pb "bonanza.build/pkg/proto/model/encoding"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
+	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
+	model_tag_pb "bonanza.build/pkg/proto/model/tag"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
 	"bonanza.build/pkg/remoteworker"
 	"bonanza.build/pkg/storage/dag"
 	dag_namespacemapping "bonanza.build/pkg/storage/dag/namespacemapping"
 	"bonanza.build/pkg/storage/object"
 	object_namespacemapping "bonanza.build/pkg/storage/object/namespacemapping"
+	"bonanza.build/pkg/storage/tag"
+	tag_namespacemapping "bonanza.build/pkg/storage/tag/namespacemapping"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/program"
@@ -40,12 +48,14 @@ type ComputerFactory[TReference any, TMetadata model_core.ReferenceMetadata] int
 }
 
 type executor struct {
-	objectDownloader object.Downloader[object.GlobalReference]
-	computerFactory  ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
-	queuesFactory    RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
-	parsedObjectPool *model_parser.ParsedObjectPool
-	dagUploader      dag.Uploader[object.InstanceName, object.GlobalReference]
-	clock            clock.Clock
+	objectDownloader            object.Downloader[object.GlobalReference]
+	computerFactory             ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
+	queuesFactory               RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
+	parsedObjectPool            *model_parser.ParsedObjectPool
+	dagUploader                 dag.Uploader[object.InstanceName, object.GlobalReference]
+	tagResolver                 tag.Resolver[object.Namespace]
+	cacheTagSignaturePrivateKey ed25519.PrivateKey
+	clock                       clock.Clock
 }
 
 // NewExecutor creates a remote worker that is capable of executing
@@ -56,15 +66,19 @@ func NewExecutor(
 	queuesFactory RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata],
 	parsedObjectPool *model_parser.ParsedObjectPool,
 	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
+	tagResolver tag.Resolver[object.Namespace],
+	cacheTagSignaturePrivateKey ed25519.PrivateKey,
 	clock clock.Clock,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &executor{
-		objectDownloader: objectDownloader,
-		computerFactory:  computerFactory,
-		queuesFactory:    queuesFactory,
-		parsedObjectPool: parsedObjectPool,
-		dagUploader:      dagUploader,
-		clock:            clock,
+		objectDownloader:            objectDownloader,
+		computerFactory:             computerFactory,
+		queuesFactory:               queuesFactory,
+		parsedObjectPool:            parsedObjectPool,
+		dagUploader:                 dagUploader,
+		tagResolver:                 tagResolver,
+		cacheTagSignaturePrivateKey: cacheTagSignaturePrivateKey,
+		clock:                       clock,
 	}
 }
 
@@ -128,22 +142,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			return &result
 		}
 
-		queues := e.queuesFactory.NewQueues()
-		recursiveComputer := NewRecursiveComputer(
-			NewLeakCheckingComputer(
-				e.computerFactory.NewComputer(
-					action.Reference.Value.GetNamespace(),
-					parsedObjectPoolIngester,
-					objectExporter,
-				),
-			),
-			queues,
-			referenceFormat,
-			objectManager,
-			e.clock,
-		)
-
-		// Set keys for which we have overrides in place.
+		// Keys for which we have overrides in place.
 		evaluationReader := model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
@@ -162,7 +161,13 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			}
 			return &result
 		}
-		var errIterOverrides error
+
+		// Compute a hash of all the keys for which overrides
+		// are present, as this determines the shape of the
+		// build graph. This hash needs to be included in the
+		// hashes of cache tags.
+		var errIterOverrideKeys error
+		keysWithOverridesHasher := lthash.NewHasher()
 		for override := range btree.AllLeaves(
 			ctx,
 			evaluationReader,
@@ -170,7 +175,105 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			/* traverser = */ func(evaluation model_core.Message[*model_evaluation_pb.Evaluation, buffered.Reference]) (*model_core_pb.DecodableReference, error) {
 				return evaluation.Message.GetParent().GetReference(), nil
 			},
-			&errIterOverrides,
+			&errIterOverrideKeys,
+		) {
+			overrideLeaf, ok := override.Message.Level.(*model_evaluation_pb.Evaluation_Leaf_)
+			if !ok {
+				result.Failure = &model_evaluation_pb.Result_Failure{
+					Status: status.New(codes.InvalidArgument, "Override is not a valid leaf").Proto(),
+				}
+				return &result
+			}
+			key, err := model_core.FlattenAny(model_core.Nested(override, overrideLeaf.Leaf.Key))
+			if err != nil {
+				result.Failure = &model_evaluation_pb.Result_Failure{
+					Status: status.Convert(err).Proto(),
+				}
+				return &result
+			}
+			marshaledKey, err := model_core.MarshalTopLevelMessage(key)
+			if err != nil {
+				result.Failure = &model_evaluation_pb.Result_Failure{
+					Status: status.Convert(err).Proto(),
+				}
+				return &result
+			}
+			keysWithOverridesHasher.Add(marshaledKey)
+		}
+		if errIterOverrideKeys != nil {
+			result.Failure = &model_evaluation_pb.Result_Failure{
+				Status: status.Convert(errIterOverrideKeys).Proto(),
+			}
+			return &result
+		}
+
+		cacheTagSignaturePublicKey, err := x509.MarshalPKIXPublicKey(e.cacheTagSignaturePrivateKey.Public())
+		if err != nil {
+			result.Failure = &model_evaluation_pb.Result_Failure{
+				Status: status.Convert(err).Proto(),
+			}
+			return &result
+		}
+
+		// TODO: Set proper encoders!
+		var cacheObjectEncoders []*model_encoding_pb.BinaryEncoder
+		actionTagKeyData, _ := model_core.MustBuildPatchedMessage(
+			func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.ActionTagKeyData {
+				keysWithOverridesHash := keysWithOverridesHasher.Sum(nil)
+				return &model_evaluation_cache_pb.ActionTagKeyData{
+					CommonTagKeyData: &model_tag_pb.CommonKeyData{
+						SignaturePublicKey: cacheTagSignaturePublicKey,
+						ReferenceFormat:    referenceFormat.ToProto(),
+						ObjectEncoders:     cacheObjectEncoders,
+					},
+					KeysWithOverridesHash: keysWithOverridesHash[:],
+				}
+			},
+		).SortAndSetReferences()
+		actionTagKeyReference, err := model_core.ComputeTopLevelMessageReference(
+			actionTagKeyData,
+			referenceFormat,
+		)
+
+		queues := e.queuesFactory.NewQueues()
+		recursiveComputer := NewRecursiveComputer(
+			NewLeakCheckingComputer(
+				e.computerFactory.NewComputer(
+					action.Reference.Value.GetNamespace(),
+					parsedObjectPoolIngester,
+					objectExporter,
+				),
+			),
+			queues,
+			referenceFormat,
+			objectManager,
+			tag_namespacemapping.NewNamespaceAddingResolver(
+				e.tagResolver,
+				object.Namespace{
+					InstanceName:    instanceName,
+					ReferenceFormat: referenceFormat,
+				},
+			),
+			actionTagKeyReference,
+			e.cacheTagSignaturePrivateKey,
+			model_parser.LookupParsedObjectReader(
+				parsedObjectPoolIngester,
+				// TODO: Encode objects.
+				model_parser.NewProtoObjectParser[buffered.Reference, model_evaluation_cache_pb.LookupResult](),
+			),
+			e.clock,
+		)
+
+		// Create KeyState for keys for which overrides are present.
+		var errIterRegisterOverrides error
+		for override := range btree.AllLeaves(
+			ctx,
+			evaluationReader,
+			overrides,
+			/* traverser = */ func(evaluation model_core.Message[*model_evaluation_pb.Evaluation, buffered.Reference]) (*model_core_pb.DecodableReference, error) {
+				return evaluation.Message.GetParent().GetReference(), nil
+			},
+			&errIterRegisterOverrides,
 		) {
 			overrideLeaf, ok := override.Message.Level.(*model_evaluation_pb.Evaluation_Leaf_)
 			if !ok {
@@ -200,9 +303,9 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				return &result
 			}
 		}
-		if errIterOverrides != nil {
+		if errIterRegisterOverrides != nil {
 			result.Failure = &model_evaluation_pb.Result_Failure{
-				Status: status.Convert(errIterOverrides).Proto(),
+				Status: status.Convert(errIterRegisterOverrides).Proto(),
 			}
 			return &result
 		}
