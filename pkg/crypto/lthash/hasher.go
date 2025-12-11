@@ -61,6 +61,6 @@ func (h *Hasher) Add(element []byte) {
 }
 
 // Sum returns a 256-bit hash for the elements contained in the set.
-func (h *Hasher) Sum(b []byte) [32]byte {
+func (h *Hasher) Sum() [32]byte {
 	return sha3.Sum256(h.currentSum[:])
 }

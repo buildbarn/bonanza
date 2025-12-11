@@ -1,8 +1,17 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "lthash",
     srcs = ["hasher.go"],
     importpath = "bonanza.build/pkg/crypto/lthash",
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "lthash_test",
+    srcs = ["hasher_test.go"],
+    deps = [
+        ":lthash",
+        "@com_github_stretchr_testify//assert",
+    ],
 )

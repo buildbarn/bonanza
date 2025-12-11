@@ -219,7 +219,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		var cacheObjectEncoders []*model_encoding_pb.BinaryEncoder
 		actionTagKeyData, _ := model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.ActionTagKeyData {
-				keysWithOverridesHash := keysWithOverridesHasher.Sum(nil)
+				keysWithOverridesHash := keysWithOverridesHasher.Sum()
 				return &model_evaluation_cache_pb.ActionTagKeyData{
 					CommonTagKeyData: &model_tag_pb.CommonKeyData{
 						SignaturePublicKey: cacheTagSignaturePublicKey,
