@@ -28,32 +28,33 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// RecursiveComputerQueue represents a queue of evaluation keys that are
-// currently not blocked and are ready to be evaluated.
+// RecursiveComputerEvaluationQueue represents a queue of evaluation
+// keys that are currently not blocked and are ready to be evaluated.
 //
-// Instances of RecursiveComputer can make use of multiple queues. This
-// can be used to enforce that different types of keys are evaluated
-// with different amounts of concurrency. For example, keys that are CPU
-// intensive to evaluate can be executed with a concurrency proportional
-// to the number of locally available CPU cores, while keys that perform
-// long-running network requests can use a higher amount of concurrency.
-type RecursiveComputerQueue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+// Instances of RecursiveComputer can make use of multiple evaluation
+// queues. This can be used to enforce that different types of keys are
+// evaluated with different amounts of concurrency. For example, keys
+// that are CPU intensive to evaluate can be executed with a concurrency
+// proportional to the number of locally available CPU cores, while keys
+// that perform long-running network requests can use a higher amount of
+// concurrency.
+type RecursiveComputerEvaluationQueue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	queuedKeys     keyStateList[TReference, TMetadata]
 	queuedKeysWait chan struct{}
 }
 
-// NewRecursiveComputerQueue creates a new RecursiveComputerQueue that
-// does not have any queues keys.
-func NewRecursiveComputerQueue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() *RecursiveComputerQueue[TReference, TMetadata] {
-	var rcq RecursiveComputerQueue[TReference, TMetadata]
-	rcq.queuedKeys.init()
-	return &rcq
+// NewRecursiveComputerEvaluationQueue creates a new
+// RecursiveComputerEvaluationQueue that does not have any queues keys.
+func NewRecursiveComputerEvaluationQueue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() *RecursiveComputerEvaluationQueue[TReference, TMetadata] {
+	var rceq RecursiveComputerEvaluationQueue[TReference, TMetadata]
+	rceq.queuedKeys.init()
+	return &rceq
 }
 
-// RecursiveComputerQueuePicker is used by RecursiveComputer to pick a
-// RecursiveComputerQueue to which a given key should be assigned.
-type RecursiveComputerQueuePicker[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
-	PickQueue(model_core.Message[proto.Message, TReference]) *RecursiveComputerQueue[TReference, TMetadata]
+// RecursiveComputerEvaluationQueuePicker is used by RecursiveComputer to pick a
+// RecursiveComputerEvaluationQueue to which a given key should be assigned.
+type RecursiveComputerEvaluationQueuePicker[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
+	PickQueue(model_core.Message[proto.Message, TReference]) *RecursiveComputerEvaluationQueue[TReference, TMetadata]
 }
 
 // RecursiveComputer can be used to compute values, taking dependencies
@@ -66,7 +67,7 @@ type RecursiveComputerQueuePicker[TReference object.BasicReference, TMetadata mo
 // repeates itself until all requested keys are exhausted.
 type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	base                       Computer[TReference, TMetadata]
-	queuePicker                RecursiveComputerQueuePicker[TReference, TMetadata]
+	evaluationQueuePicker      RecursiveComputerEvaluationQueuePicker[TReference, TMetadata]
 	referenceFormat            object.ReferenceFormat
 	objectManager              model_core.ObjectManager[TReference, TMetadata]
 	tagResolver                tag.Resolver[struct{}]
@@ -88,12 +89,14 @@ type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.Re
 
 	// Keys that are currently being evaluated, which is at most
 	// equal to the number of goroutines calling
-	// ProcessNextQueuedKey().
+	// ProcessNextEvaluatableKey().
 	evaluatingKeys keyStateList[TReference, TMetadata]
 
 	// Total number of keys for which evaluation should be attempted.
-	totalQueuedKeysCount uint64
+	evaluatableKeysCount uint64
 
+	evaluatedKeys keyStateList[TReference, TMetadata]
+	uploadingKeys keyStateList[TReference, TMetadata]
 	completedKeys keyStateList[TReference, TMetadata]
 }
 
@@ -101,7 +104,7 @@ type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.Re
 // initial state (i.e., having no queued or evaluated keys).
 func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	base Computer[TReference, TMetadata],
-	queuePicker RecursiveComputerQueuePicker[TReference, TMetadata],
+	evaluationQueuePicker RecursiveComputerEvaluationQueuePicker[TReference, TMetadata],
 	referenceFormat object.ReferenceFormat,
 	objectManager model_core.ObjectManager[TReference, TMetadata],
 	tagResolver tag.Resolver[struct{}],
@@ -112,7 +115,7 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 ) *RecursiveComputer[TReference, TMetadata] {
 	rc := &RecursiveComputer[TReference, TMetadata]{
 		base:                       base,
-		queuePicker:                queuePicker,
+		evaluationQueuePicker:      evaluationQueuePicker,
 		referenceFormat:            referenceFormat,
 		objectManager:              objectManager,
 		tagResolver:                tagResolver,
@@ -126,21 +129,23 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 	}
 	rc.blockedKeys.init()
 	rc.evaluatingKeys.init()
+	rc.evaluatedKeys.init()
+	rc.uploadingKeys.init()
 	rc.completedKeys.init()
 	return rc
 }
 
-// ProcessNextQueuedKey blocks until one or more keys are queued for
-// execution. After that it will attempt to evaluate it.
-func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx context.Context, rcq *RecursiveComputerQueue[TReference, TMetadata]) bool {
+// ProcessNextEvaluatableKey blocks until one or more keys are queued for
+// evaluation. After that it will attempt to evaluate it.
+func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextEvaluatableKey(ctx context.Context, rceq *RecursiveComputerEvaluationQueue[TReference, TMetadata]) bool {
 	for {
 		rc.lock.Lock()
-		if !rcq.queuedKeys.empty() {
+		if !rceq.queuedKeys.empty() {
 			// One or more keys are available for evaluation.
 			break
 		}
 
-		if rc.totalQueuedKeysCount == 0 && rc.evaluatingKeys.empty() {
+		if rc.evaluatableKeysCount == 0 && rc.evaluatingKeys.empty() {
 			// If there are no keys queued for evaluation,
 			// we are currently evaluating none of them, but
 			// there are keys blocking others, it means we
@@ -150,10 +155,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 			}
 		}
 
-		if rcq.queuedKeysWait == nil {
-			rcq.queuedKeysWait = make(chan struct{})
+		if rceq.queuedKeysWait == nil {
+			rceq.queuedKeysWait = make(chan struct{})
 		}
-		queuedKeysWait := rcq.queuedKeysWait
+		queuedKeysWait := rceq.queuedKeysWait
 		rc.lock.Unlock()
 
 		select {
@@ -164,8 +169,8 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 	}
 
 	// Extract the first queued key.
-	ks := rcq.queuedKeys.popFirst()
-	rc.totalQueuedKeysCount--
+	ks := rceq.queuedKeys.popFirst()
+	rc.evaluatableKeysCount--
 	rc.evaluatingKeys.pushLast(ks)
 	ks.currentEvaluationStart = rc.clock.Now()
 	if ks.restarts == 0 {
@@ -185,11 +190,11 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 					ksBlocked.blockedCount--
 					if ksBlocked.blockedCount == 0 {
 						rc.blockedKeys.remove(ksBlocked)
-						rc.enqueue(ksBlocked)
+						rc.enqueueForEvaluation(ksBlocked)
 					}
 				}
 			}
-			rc.completeKeyState(ks)
+			rc.evaluatedKeyState(ks)
 		} else if errors.Is(err, ErrMissingDependency) {
 			if len(dependencies) == 0 {
 				panic("no dependencies")
@@ -225,7 +230,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextQueuedKey(ctx con
 				}
 			}
 			if restartImmediately {
-				rc.enqueue(ks)
+				rc.enqueueForEvaluation(ks)
 			}
 		} else {
 			rc.failKeyState(ks, err)
@@ -261,17 +266,17 @@ func (rc *RecursiveComputer[TReference, TMetadata]) propagateFailure(ks *KeyStat
 func (rc *RecursiveComputer[TReference, TMetadata]) failKeyState(ks *KeyState[TReference, TMetadata], err error) {
 	ks.err = err
 	rc.propagateFailure(ks, err)
-	rc.completeKeyState(ks)
+	rc.evaluatedKeyState(ks)
 }
 
-func (rc *RecursiveComputer[TReference, TMetadata]) completeKeyState(ks *KeyState[TReference, TMetadata]) {
+func (rc *RecursiveComputer[TReference, TMetadata]) evaluatedKeyState(ks *KeyState[TReference, TMetadata]) {
 	ks.blocking = nil
 	delete(rc.blockingKeys, ks)
-	if ks.completionWait != nil {
-		close(ks.completionWait)
-		ks.completionWait = nil
+	if ks.evaluatedWait != nil {
+		close(ks.evaluatedWait)
+		ks.evaluatedWait = nil
 	}
-	rc.completedKeys.pushLast(ks)
+	rc.evaluatedKeys.pushLast(ks)
 }
 
 func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(key model_core.TopLevelMessage[proto.Message, TReference], keyReference object.LocalReference, initialValueState valueState[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
@@ -284,7 +289,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(ke
 			err:          errKeyNotEvaluated{},
 		}
 		rc.keys[keyReference] = ks
-		rc.enqueue(ks)
+		rc.enqueueForEvaluation(ks)
 	}
 	return ks
 }
@@ -334,22 +339,21 @@ func (rc *RecursiveComputer[TReference, TMetadata]) InjectKeyState(key model_cor
 	return nil
 }
 
-// WaitForMessageValue blocks until the evaluation of a given key has
-// completed. Upon completion, the value belonging to the key is
-// returned.
+// WaitForMessageValue blocks until a given key has evaluated. Once
+// evaluated, the value belonging to the key is returned.
 func (rc *RecursiveComputer[TReference, TMetadata]) WaitForMessageValue(ctx context.Context, ks *KeyState[TReference, TMetadata]) (model_core.Message[proto.Message, TReference], error) {
 	rc.lock.Lock()
 	if ks.err == (errKeyNotEvaluated{}) {
-		// Key has not finished evaluating. Wait for its
-		// completion. As we only tend to wait on a very small
+		// Key has not finished evaluating. Wait for it to
+		// finish. As we only tend to wait on a very small
 		// number of keys, a channel is not created by default.
-		if ks.completionWait == nil {
-			ks.completionWait = make(chan struct{})
+		if ks.evaluatedWait == nil {
+			ks.evaluatedWait = make(chan struct{})
 		}
-		completionWait := ks.completionWait
+		evaluatedWait := ks.evaluatedWait
 		rc.lock.Unlock()
 		select {
-		case <-completionWait:
+		case <-evaluatedWait:
 		case <-ctx.Done():
 			return model_core.Message[proto.Message, TReference]{}, util.StatusFromContext(ctx)
 		}
@@ -389,22 +393,24 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress() (model_core.Pa
 			})
 		}
 		return &model_evaluation_pb.Progress{
-			CompletedKeysCount:   rc.completedKeys.count,
-			OldestEvaluatingKeys: evaluatingKeys,
-			QueuedKeysCount:      rc.totalQueuedKeysCount,
 			BlockedKeysCount:     rc.blockedKeys.count,
+			EvaluatableKeysCount: rc.evaluatableKeysCount,
+			OldestEvaluatingKeys: evaluatingKeys,
+			EvaluatedKeysCount:   rc.evaluatedKeys.count,
+			UploadingKeysCount:   rc.uploadingKeys.count,
+			CompletedKeysCount:   rc.completedKeys.count,
 		}, nil
 	})
 }
 
-func (rc *RecursiveComputer[TReference, TMetadata]) enqueue(ks *KeyState[TReference, TMetadata]) {
-	rcq := rc.queuePicker.PickQueue(ks.key.Decay())
-	rcq.queuedKeys.pushLast(ks)
-	rc.totalQueuedKeysCount++
+func (rc *RecursiveComputer[TReference, TMetadata]) enqueueForEvaluation(ks *KeyState[TReference, TMetadata]) {
+	rceq := rc.evaluationQueuePicker.PickQueue(ks.key.Decay())
+	rceq.queuedKeys.pushLast(ks)
+	rc.evaluatableKeysCount++
 	// TODO: This wakes up all threads.
-	if rcq.queuedKeysWait != nil {
-		close(rcq.queuedKeysWait)
-		rcq.queuedKeysWait = nil
+	if rceq.queuedKeysWait != nil {
+		close(rceq.queuedKeysWait)
+		rceq.queuedKeysWait = nil
 	}
 }
 
@@ -573,10 +579,10 @@ func (ksl *keyStateList[TReference, TMetadata]) remove(ks *KeyState[TReference, 
 }
 
 // KeyState contains all of the evaluation state of RecursiveComputer
-// for a given key. If evaluation has not yet completed, it stores the
-// list of keys that are currently blocked on its completion (i.e., its
-// reverse dependencies). Upon completion, it stores the value
-// associated with the key or any error that occurred computing it.
+// for a given key. If evaluation has not yet finished, it stores the
+// list of keys that are currently blocked on it (i.e., its reverse
+// dependencies). When evaluated, it stores the value associated with
+// the key or any error that occurred computing it.
 type KeyState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	// Constant fields.
 	key          model_core.TopLevelMessage[proto.Message, TReference]
@@ -600,9 +606,9 @@ type KeyState[TReference object.BasicReference, TMetadata model_core.ReferenceMe
 	// last evaluation of this key.
 	dependencies []*KeyState[TReference, TMetadata]
 
-	completionWait chan struct{}
-	value          valueState[TReference, TMetadata]
-	err            error
+	evaluatedWait chan struct{}
+	value         valueState[TReference, TMetadata]
+	err           error
 
 	firstEvaluationStart   time.Time
 	currentEvaluationStart time.Time
@@ -694,8 +700,8 @@ func (nativeValueState[TReference, TMetadata]) getMessageValue() model_core.Mess
 }
 
 // errKeyNotEvaluated is a placeholder value that is assigned to
-// KeyState.err to indicate that evaluation of a given key has not yet
-// been completed.
+// KeyState.err to indicate that evaluation of a given key is not yet
+// finished.
 type errKeyNotEvaluated struct{}
 
 func (errKeyNotEvaluated) Error() string {

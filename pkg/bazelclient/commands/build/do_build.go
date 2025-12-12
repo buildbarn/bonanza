@@ -708,11 +708,13 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		progressLinesWritten = 0
 
 		logger.Info(formatted.Textf(
-			"🏁 %d   🚗💨 %d   🚦 %d   🚧 %d",
-			progress.Message.CompletedKeysCount,
-			uint64(len(progress.Message.OldestEvaluatingKeys))+progress.Message.AdditionalEvaluatingKeysCount,
-			progress.Message.QueuedKeysCount,
+			"🚧 %d   🚦 %d   🚗💨 %d   🏁 %d   📤 %d   🌍 %d",
 			progress.Message.BlockedKeysCount,
+			progress.Message.EvaluatableKeysCount,
+			uint64(len(progress.Message.OldestEvaluatingKeys))+progress.Message.AdditionalEvaluatingKeysCount,
+			progress.Message.EvaluatedKeysCount,
+			progress.Message.UploadingKeysCount,
+			progress.Message.CompletedKeysCount,
 		))
 		progressLinesWritten++
 

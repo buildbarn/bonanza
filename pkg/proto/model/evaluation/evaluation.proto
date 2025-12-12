@@ -98,6 +98,14 @@ message Action {
 }
 
 message Progress {
+  // The number of keys which still need to be evaluated, but have not
+  // been queued because one of their dependencies has not been
+  // evaluated yet.
+  uint64 blocked_keys_count = 1;
+
+  // The number of keys which are currently queued for evaluation.
+  uint64 evaluatable_keys_count = 2;
+
   message EvaluatingKey {
     // The input message that is provided to the evaluation function.
     bonanza.model.core.Any key = 1;
@@ -115,25 +123,26 @@ message Progress {
     uint32 restarts = 4;
   }
 
-  // The number of keys for which evaluation has completed.
-  uint64 completed_keys_count = 1;
-
   // Keys for which the evaluation function is currently being executed,
   // sorted from oldest to newest. This list may be truncated if the
   // number of keys being processed is very large.
-  repeated EvaluatingKey oldest_evaluating_keys = 2;
+  repeated EvaluatingKey oldest_evaluating_keys = 3;
 
   // The number of keys for which the evaluation function is currently
   // being executed, which could not be stored in the list above.
-  uint64 additional_evaluating_keys_count = 5;
+  uint64 additional_evaluating_keys_count = 4;
 
-  // The number of keys which are currently queued for execution.
-  uint64 queued_keys_count = 3;
+  // The number of keys for which evaluation finished, and are currently
+  // queued for upload.
+  uint64 evaluated_keys_count = 5;
 
-  // The number of keys which still need to be evaluated, but have not
-  // been queued because one of their dependencies has not been
-  // evaluated yet.
-  uint64 blocked_keys_count = 4;
+  // The number of keys for which results are currently being uploaded
+  // to storage, so that subsequent builds can reuse them.
+  uint64 uploading_keys_count = 6;
+
+  // The number of keys for which evaluation and uploading has
+  // completed.
+  uint64 completed_keys_count = 7;
 }
 
 message Result {

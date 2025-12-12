@@ -242,11 +242,13 @@ func (x *Action) GetRequestedKeys() []*Keys {
 
 type Progress struct {
 	state                         protoimpl.MessageState    `protogen:"open.v1"`
-	CompletedKeysCount            uint64                    `protobuf:"varint,1,opt,name=completed_keys_count,json=completedKeysCount,proto3" json:"completed_keys_count,omitempty"`
-	OldestEvaluatingKeys          []*Progress_EvaluatingKey `protobuf:"bytes,2,rep,name=oldest_evaluating_keys,json=oldestEvaluatingKeys,proto3" json:"oldest_evaluating_keys,omitempty"`
-	AdditionalEvaluatingKeysCount uint64                    `protobuf:"varint,5,opt,name=additional_evaluating_keys_count,json=additionalEvaluatingKeysCount,proto3" json:"additional_evaluating_keys_count,omitempty"`
-	QueuedKeysCount               uint64                    `protobuf:"varint,3,opt,name=queued_keys_count,json=queuedKeysCount,proto3" json:"queued_keys_count,omitempty"`
-	BlockedKeysCount              uint64                    `protobuf:"varint,4,opt,name=blocked_keys_count,json=blockedKeysCount,proto3" json:"blocked_keys_count,omitempty"`
+	BlockedKeysCount              uint64                    `protobuf:"varint,1,opt,name=blocked_keys_count,json=blockedKeysCount,proto3" json:"blocked_keys_count,omitempty"`
+	EvaluationQueuedKeysCount     uint64                    `protobuf:"varint,2,opt,name=evaluation_queued_keys_count,json=evaluationQueuedKeysCount,proto3" json:"evaluation_queued_keys_count,omitempty"`
+	OldestEvaluatingKeys          []*Progress_EvaluatingKey `protobuf:"bytes,3,rep,name=oldest_evaluating_keys,json=oldestEvaluatingKeys,proto3" json:"oldest_evaluating_keys,omitempty"`
+	AdditionalEvaluatingKeysCount uint64                    `protobuf:"varint,4,opt,name=additional_evaluating_keys_count,json=additionalEvaluatingKeysCount,proto3" json:"additional_evaluating_keys_count,omitempty"`
+	UploadQueuedKeysCount         uint64                    `protobuf:"varint,5,opt,name=upload_queued_keys_count,json=uploadQueuedKeysCount,proto3" json:"upload_queued_keys_count,omitempty"`
+	UploadingKeysCount            uint64                    `protobuf:"varint,6,opt,name=uploading_keys_count,json=uploadingKeysCount,proto3" json:"uploading_keys_count,omitempty"`
+	CompletedKeysCount            uint64                    `protobuf:"varint,7,opt,name=completed_keys_count,json=completedKeysCount,proto3" json:"completed_keys_count,omitempty"`
 	unknownFields                 protoimpl.UnknownFields
 	sizeCache                     protoimpl.SizeCache
 }
@@ -281,9 +283,16 @@ func (*Progress) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *Progress) GetCompletedKeysCount() uint64 {
+func (x *Progress) GetBlockedKeysCount() uint64 {
 	if x != nil {
-		return x.CompletedKeysCount
+		return x.BlockedKeysCount
+	}
+	return 0
+}
+
+func (x *Progress) GetEvaluationQueuedKeysCount() uint64 {
+	if x != nil {
+		return x.EvaluationQueuedKeysCount
 	}
 	return 0
 }
@@ -302,16 +311,23 @@ func (x *Progress) GetAdditionalEvaluatingKeysCount() uint64 {
 	return 0
 }
 
-func (x *Progress) GetQueuedKeysCount() uint64 {
+func (x *Progress) GetUploadQueuedKeysCount() uint64 {
 	if x != nil {
-		return x.QueuedKeysCount
+		return x.UploadQueuedKeysCount
 	}
 	return 0
 }
 
-func (x *Progress) GetBlockedKeysCount() uint64 {
+func (x *Progress) GetUploadingKeysCount() uint64 {
 	if x != nil {
-		return x.BlockedKeysCount
+		return x.UploadingKeysCount
+	}
+	return 0
+}
+
+func (x *Progress) GetCompletedKeysCount() uint64 {
+	if x != nil {
+		return x.CompletedKeysCount
 	}
 	return 0
 }
@@ -669,13 +685,15 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	"\x05level\"\xd4\x01\n" +
 	"\x06Action\x12\x82\x01\n" +
 	"\x13overrides_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x12overridesReference\x12E\n" +
-	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\"\xc8\x04\n" +
-	"\bProgress\x120\n" +
-	"\x14completed_keys_count\x18\x01 \x01(\x04R\x12completedKeysCount\x12f\n" +
-	"\x16oldest_evaluating_keys\x18\x02 \x03(\v20.bonanza.model.evaluation.Progress.EvaluatingKeyR\x14oldestEvaluatingKeys\x12G\n" +
-	" additional_evaluating_keys_count\x18\x05 \x01(\x04R\x1dadditionalEvaluatingKeysCount\x12*\n" +
-	"\x11queued_keys_count\x18\x03 \x01(\x04R\x0fqueuedKeysCount\x12,\n" +
-	"\x12blocked_keys_count\x18\x04 \x01(\x04R\x10blockedKeysCount\x1a\xfe\x01\n" +
+	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\"\xc8\x05\n" +
+	"\bProgress\x12,\n" +
+	"\x12blocked_keys_count\x18\x01 \x01(\x04R\x10blockedKeysCount\x12?\n" +
+	"\x1cevaluation_queued_keys_count\x18\x02 \x01(\x04R\x19evaluationQueuedKeysCount\x12f\n" +
+	"\x16oldest_evaluating_keys\x18\x03 \x03(\v20.bonanza.model.evaluation.Progress.EvaluatingKeyR\x14oldestEvaluatingKeys\x12G\n" +
+	" additional_evaluating_keys_count\x18\x04 \x01(\x04R\x1dadditionalEvaluatingKeysCount\x127\n" +
+	"\x18upload_queued_keys_count\x18\x05 \x01(\x04R\x15uploadQueuedKeysCount\x120\n" +
+	"\x14uploading_keys_count\x18\x06 \x01(\x04R\x12uploadingKeysCount\x120\n" +
+	"\x14completed_keys_count\x18\a \x01(\x04R\x12completedKeysCount\x1a\xfe\x01\n" +
 	"\rEvaluatingKey\x12)\n" +
 	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12P\n" +
 	"\x16first_evaluation_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x14firstEvaluationStart\x12T\n" +

@@ -50,7 +50,7 @@ type ComputerFactory[TReference any, TMetadata model_core.ReferenceMetadata] int
 type executor struct {
 	objectDownloader            object.Downloader[object.GlobalReference]
 	computerFactory             ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
-	queuesFactory               RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
+	evaluationQueuesFactory     RecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
 	parsedObjectPool            *model_parser.ParsedObjectPool
 	dagUploader                 dag.Uploader[object.InstanceName, object.GlobalReference]
 	tagResolver                 tag.Resolver[object.Namespace]
@@ -63,7 +63,7 @@ type executor struct {
 func NewExecutor(
 	objectDownloader object.Downloader[object.GlobalReference],
 	computerFactory ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]],
-	queuesFactory RecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata],
+	evaluationQueuesFactory RecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata],
 	parsedObjectPool *model_parser.ParsedObjectPool,
 	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
 	tagResolver tag.Resolver[object.Namespace],
@@ -73,7 +73,7 @@ func NewExecutor(
 	return &executor{
 		objectDownloader:            objectDownloader,
 		computerFactory:             computerFactory,
-		queuesFactory:               queuesFactory,
+		evaluationQueuesFactory:     evaluationQueuesFactory,
 		parsedObjectPool:            parsedObjectPool,
 		dagUploader:                 dagUploader,
 		tagResolver:                 tagResolver,
@@ -235,7 +235,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			referenceFormat,
 		)
 
-		queues := e.queuesFactory.NewQueues()
+		queues := e.evaluationQueuesFactory.NewQueues()
 		recursiveComputer := NewRecursiveComputer(
 			NewLeakCheckingComputer(
 				e.computerFactory.NewComputer(

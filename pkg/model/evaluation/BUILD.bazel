@@ -9,7 +9,7 @@ go_library(
         "executor.go",
         "leak_checking_computer.go",
         "recursive_computer.go",
-        "recursive_computer_queues.go",
+        "recursive_computer_evaluation_queues.go",
     ],
     importpath = "bonanza.build/pkg/model/evaluation",
     visibility = ["//visibility:public"],

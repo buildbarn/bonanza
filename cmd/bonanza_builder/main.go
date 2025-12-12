@@ -155,8 +155,8 @@ func main() {
 							semaphore.NewWeighted(configuration.ObjectStoreConcurrency),
 						),
 						&queuesFactory[buffered.Reference, buffered.ReferenceMetadata]{
-							local:  model_evaluation.NewSimpleRecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.LocalEvaluationConcurrency),
-							remote: model_evaluation.NewSimpleRecursiveComputerQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.RemoteEvaluationConcurrency),
+							local:  model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.LocalEvaluationConcurrency),
+							remote: model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.RemoteEvaluationConcurrency),
 						},
 						parsedObjectPool,
 						dag_grpc.NewUploader(
@@ -197,11 +197,11 @@ func main() {
 // concurrency) and one for running remote evaluation steps (having a
 // higher concurrency).
 type queuesFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	local  model_evaluation.RecursiveComputerQueuesFactory[TReference, TMetadata]
-	remote model_evaluation.RecursiveComputerQueuesFactory[TReference, TMetadata]
+	local  model_evaluation.RecursiveComputerEvaluationQueuesFactory[TReference, TMetadata]
+	remote model_evaluation.RecursiveComputerEvaluationQueuesFactory[TReference, TMetadata]
 }
 
-func (qf *queuesFactory[TReference, TMetadata]) NewQueues() model_evaluation.RecursiveComputerQueues[TReference, TMetadata] {
+func (qf *queuesFactory[TReference, TMetadata]) NewQueues() model_evaluation.RecursiveComputerEvaluationQueues[TReference, TMetadata] {
 	return &queues[TReference, TMetadata]{
 		local:  qf.local.NewQueues(),
 		remote: qf.remote.NewQueues(),
@@ -209,11 +209,11 @@ func (qf *queuesFactory[TReference, TMetadata]) NewQueues() model_evaluation.Rec
 }
 
 type queues[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	local  model_evaluation.RecursiveComputerQueues[TReference, TMetadata]
-	remote model_evaluation.RecursiveComputerQueues[TReference, TMetadata]
+	local  model_evaluation.RecursiveComputerEvaluationQueues[TReference, TMetadata]
+	remote model_evaluation.RecursiveComputerEvaluationQueues[TReference, TMetadata]
 }
 
-func (q *queues[TReference, TMetadata]) PickQueue(key model_core.Message[proto.Message, TReference]) *model_evaluation.RecursiveComputerQueue[TReference, TMetadata] {
+func (q *queues[TReference, TMetadata]) PickQueue(key model_core.Message[proto.Message, TReference]) *model_evaluation.RecursiveComputerEvaluationQueue[TReference, TMetadata] {
 	switch key.Message.(type) {
 	case *model_analysis_pb.HttpFileContents_Key:
 	case *model_analysis_pb.RawActionResult_Key:

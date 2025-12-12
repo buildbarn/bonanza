@@ -62,7 +62,7 @@ func TestRecursiveComputer(t *testing.T) {
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagResolver := NewMockTagResolverForTesting(ctrl)
 
-		queuesFactory := model_evaluation.NewSimpleRecursiveComputerQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
+		queuesFactory := model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
 		queues := queuesFactory.NewQueues()
 		recursiveComputer := model_evaluation.NewRecursiveComputer(
 			computer,
