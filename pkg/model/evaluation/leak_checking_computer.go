@@ -10,7 +10,7 @@ import (
 )
 
 type leakCheckingComputer[TReference any, TMetadata model_core.ReferenceMetadata] struct {
-	base Computer[TReference, *model_core.LeakCheckingReferenceMetadata[TMetadata]]
+	Computer[TReference, *model_core.LeakCheckingReferenceMetadata[TMetadata]]
 }
 
 // NewLeakCheckingComputer creates a decorator for Computer that keeps
@@ -19,13 +19,13 @@ type leakCheckingComputer[TReference any, TMetadata model_core.ReferenceMetadata
 // leak, an error is reported.
 func NewLeakCheckingComputer[TReference any, TMetadata model_core.ReferenceMetadata](base Computer[TReference, *model_core.LeakCheckingReferenceMetadata[TMetadata]]) Computer[TReference, TMetadata] {
 	return &leakCheckingComputer[TReference, TMetadata]{
-		base: base,
+		Computer: base,
 	}
 }
 
 func (c *leakCheckingComputer[TReference, TMetadata]) ComputeMessageValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error) {
 	objectManager := model_core.NewLeakCheckingObjectManager(e)
-	value, err := c.base.ComputeMessageValue(
+	value, err := c.Computer.ComputeMessageValue(
 		ctx,
 		key,
 		&leakCheckingEnvironment[TReference, TMetadata]{
@@ -58,7 +58,7 @@ func (c *leakCheckingComputer[TReference, TMetadata]) ComputeMessageValue(ctx co
 
 func (c *leakCheckingComputer[TReference, TMetadata]) ComputeNativeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (any, error) {
 	objectManager := model_core.NewLeakCheckingObjectManager(e)
-	value, err := c.base.ComputeNativeValue(
+	value, err := c.Computer.ComputeNativeValue(
 		ctx,
 		key,
 		&leakCheckingEnvironment[TReference, TMetadata]{

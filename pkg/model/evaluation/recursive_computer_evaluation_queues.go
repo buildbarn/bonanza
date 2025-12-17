@@ -29,7 +29,7 @@ type RecursiveComputerEvaluationQueuesFactory[TReference object.BasicReference, 
 type RecursiveComputerEvaluationQueues[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
 	RecursiveComputerEvaluationQueuePicker[TReference, TMetadata]
 
-	ProcessAllQueuedKeys(group program.Group, computer *RecursiveComputer[TReference, TMetadata])
+	ProcessAllEvaluatableKeys(group program.Group, computer *RecursiveComputer[TReference, TMetadata])
 }
 
 type simpleRecursiveComputerEvaluationQueuesFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -65,10 +65,10 @@ func (q *simpleRecursiveComputerEvaluationQueues[TReference, TMetadata]) PickQue
 	return q.queue
 }
 
-func (q *simpleRecursiveComputerEvaluationQueues[TReference, TMetadata]) ProcessAllQueuedKeys(group program.Group, computer *RecursiveComputer[TReference, TMetadata]) {
+func (q *simpleRecursiveComputerEvaluationQueues[TReference, TMetadata]) ProcessAllEvaluatableKeys(group program.Group, computer *RecursiveComputer[TReference, TMetadata]) {
 	for i := uint32(0); i < q.concurrency; i++ {
 		group.Go(func(ctx context.Context, siblingsGroup, group program.Group) error {
-			for computer.ProcessNextQueuedKey(ctx, q.queue) {
+			for computer.ProcessNextEvaluatableKey(ctx, q.queue) {
 			}
 			return nil
 		})

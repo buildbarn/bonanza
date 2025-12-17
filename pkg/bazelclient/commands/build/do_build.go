@@ -434,11 +434,15 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	*/
 
 	overrides, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) (encoding.BinaryMarshaler, error) {
-		buildSpecificationKey, err := model_core.MarshalAny(
-			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+		buildSpecificationKey, err := model_core.MarshalTopLevelAny(
+			model_core.NewSimpleTopLevelMessage[object.LocalReference](
 				&model_analysis_pb.BuildSpecification_Key{},
 			),
 		)
+		if err != nil {
+			return nil, err
+		}
+		buildSpecificationKeyReference, err := model_core.ComputeTopLevelMessageReference(buildSpecificationKey, referenceFormat)
 		if err != nil {
 			return nil, err
 		}
@@ -450,11 +454,13 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			return nil, err
 		}
 
-		return model_core.NewProtoListBinaryMarshaler([]*model_evaluation_pb.Evaluation{{
-			Level: &model_evaluation_pb.Evaluation_Leaf_{
-				Leaf: &model_evaluation_pb.Evaluation_Leaf{
-					Key:   buildSpecificationKey.Merge(patcher),
-					Value: buildSpecificationValue.Merge(patcher),
+		return model_core.NewProtoListBinaryMarshaler([]*model_evaluation_pb.Evaluations{{
+			Level: &model_evaluation_pb.Evaluations_Leaf_{
+				Leaf: &model_evaluation_pb.Evaluations_Leaf{
+					KeyReference: buildSpecificationKeyReference.GetRawReference(),
+					Graphlet: &model_evaluation_pb.Graphlet{
+						Value: buildSpecificationValue.Merge(patcher),
+					},
 				},
 			},
 		}}), nil

@@ -14,9 +14,9 @@ message ActionTagKeyData {
   // key hash.
   bonanza.model.tag.CommonKeyData common_tag_key_data = 1;
 
-  // Homomorphic hash of the keys for which overrides were specified in
-  // the bonanza.model.evaluation.Action message.
-  bytes keys_with_overrides_hash = 2;
+  // Homomorphic hash of the references of keys for which overrides were
+  // specified in the bonanza.model.evaluation.Action message.
+  bytes key_references_with_overrides_hash = 2;
 }
 
 message LookupTagKeyData {
@@ -30,7 +30,21 @@ message LookupTagKeyData {
   bonanza.model.core.Reference evaluation_key_reference = 2;
 
   message SubsequentLookup {
-    uint32 selected_granularity_level = 1;
+    enum Scope {
+      INVALID = 0;
+
+      // The 'dependencies_hash' field was computed respecting the
+      // 'graphlet_dependency_keys'.
+      GRAPHLET = 1;
+
+      // The 'dependencies_hash' field was computed respecting the
+      // 'value_dependency_keys'.
+      VALUE = 2;
+    }
+
+    // Whether a cache lookup at the graphlet or key level is being
+    // performed.
+    Scope scope = 1;
 
     // Homomorphic hash of the keys and values of all dependencies of
     // the key that have been gathered up to this point.
@@ -42,46 +56,54 @@ message LookupTagKeyData {
   SubsequentLookup subsequent_lookup = 3;
 }
 
-message GranularityLevel {
-  // Set of keys of additional dependencies that should be considered
-  // when performing cache lookups.
-  bonanza.model.evaluation.Keys additional_dependency_keys = 1;
-
-  // Homomorphic hash of the keys and values of all dependencies of the
-  // key for which LookupResult.single_cached_value is the corresponding
-  // value.
-  //
-  // This field is only set when LookupResult.single_cached_value is
-  // set, and if this is a subsequent lookup, for the selected
-  // granularity level.
-  bytes single_cached_value_dependencies_hash = 2;
-}
-
 message LookupResult {
-  // Properties for continuing the lookup, depending at the level of
-  // granularity at which the evaluation graph is traversed, going from
-  // coarse to fine-grained. The final level typically captures all of
-  // the direct dependencies of the evaluation key.
-  repeated GranularityLevel granularity_levels = 1;
+  message Initial {
+    // The expected set of dependencies of the graphlet rooted at the
+    // current key.
+    repeated bonanza.model.evaluation.Keys graphlet_dependency_keys = 1;
 
-  // When set, only a single cached value is known for this evaluation
-  // key, using both dependencies that have been provided up to this
-  // point and ones included in the granularity levels. The granularity
-  // level contains an updated 'dependencies_hash', which must be
-  // validated prior to using this value.
-  //
-  // When not set, multiple cached values are known. In order to obtain
-  // the correct cached value, a subsequent lookup needs to be
-  // performed, including the dependencies in the granularity levels.
-  bonanza.model.core.Any single_cached_value = 2;
+    // The expected set of direct dependencies of the current key.
+    repeated bonanza.model.evaluation.Keys value_dependency_keys = 2;
 
-  // If set, there is a probability that subsequent lookups will require
-  // specifying even more dependencies. This field denotes the time at
-  // which this started to occur.
-  //
-  // If a sufficient amount of time has passed, it may be desirable to
-  // overwrite the existing lookup results with a single entry that
-  // contains no indirection. This ensures that the amount of
-  // indirection does not continue to grow over time.
-  google.protobuf.Timestamp contains_indirection_since = 3;
+    // If set, there is a probability that subsequent lookups will require
+    // specifying even more dependencies. This field denotes the time at
+    // which this started to occur.
+    //
+    // If a sufficient amount of time has passed, it may be desirable to
+    // overwrite the existing lookup results with a single entry that
+    // contains no indirection. This ensures that the amount of
+    // indirection does not continue to grow over time.
+    google.protobuf.Timestamp contains_indirection_since = 3;
+  }
+
+  message MissingDepoendencies {
+    // Set of additional dependencies for which values needs to be
+    // computed, so that another lookup can be attempted.
+    repeated bonanza.model.evaluation.Keys additional_dependency_keys = 1;
+  }
+
+  oneof result {
+    // The entry that is returned when an initial lookup is performed.
+    // It stores the expected set of dependencies of both the key and
+    // the graphlet rooted at the current key.
+    Initial initial = 1;
+
+    // The set of dependencies returned by the previous lookup(s) were
+    // incomplete. This can happen if the set of dependencies of the key
+    // is not always the same. The previous lookup(s) only returned the
+    // keys that are shared by all evaluations. Now an additional lookup
+    // needs to be performed, incorporating the values of even more
+    // dependencies.
+    MissingDepoendencies missing_dependencies = 2;
+
+    // All provided dependencies of the graphlet rooted at the current
+    // key match previously observed values, meaning that a previously
+    // computed graphlet can be used.
+    bonanza.model.evaluation.Graphlet hit_graphlet = 3;
+
+    // All provided dependencies of the current key match previously
+    // observed values, meaning that a previously computed value can be
+    // used.
+    bonanza.model.core.Any hit_value = 4;
+  }
 }

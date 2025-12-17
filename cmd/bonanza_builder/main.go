@@ -169,6 +169,7 @@ func main() {
 							tag_pb.NewResolverClient(storageGRPCClient),
 						),
 						cacheTagSignaturePrivateKey,
+						configuration.UploadConcurrency,
 						clock.SystemClock,
 					),
 				),
@@ -227,7 +228,7 @@ func (q *queues[TReference, TMetadata]) PickQueue(key model_core.Message[proto.M
 	return q.local.PickQueue(key)
 }
 
-func (q *queues[TReference, TMetadata]) ProcessAllQueuedKeys(group program.Group, computer *model_evaluation.RecursiveComputer[TReference, TMetadata]) {
-	q.local.ProcessAllQueuedKeys(group, computer)
-	q.remote.ProcessAllQueuedKeys(group, computer)
+func (q *queues[TReference, TMetadata]) ProcessAllEvaluatableKeys(group program.Group, computer *model_evaluation.RecursiveComputer[TReference, TMetadata]) {
+	q.local.ProcessAllEvaluatableKeys(group, computer)
+	q.remote.ProcessAllEvaluatableKeys(group, computer)
 }

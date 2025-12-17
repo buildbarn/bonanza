@@ -666,15 +666,22 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			object_namespacemapping.NewNamespaceAddingDownloader(s.objectDownloader, evaluationListReference.Value.InstanceName),
 		),
 	)
-	evaluationListReader := model_parser.LookupParsedObjectReader(
+	evaluationsReader := model_parser.LookupParsedObjectReader(
 		parsedObjectPoolIngester,
 		model_parser.NewChainedObjectParser(
 			model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
-			model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Evaluation](),
+			model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Evaluations](),
+		),
+	)
+	keysReader := model_parser.LookupParsedObjectReader(
+		parsedObjectPoolIngester,
+		model_parser.NewChainedObjectParser(
+			model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
+			model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Keys](),
 		),
 	)
 	ctx := r.Context()
-	evaluationList, err := evaluationListReader.ReadObject(
+	evaluationList, err := evaluationsReader.ReadObject(
 		ctx,
 		model_core.CopyDecodable(evaluationListReference, evaluationListReference.Value.LocalReference),
 	)
@@ -691,23 +698,16 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		), nil
 	}
 
+	// TODO: This is oblivious of graphlets.
 	evaluation, err := btree.Find(
 		ctx,
-		evaluationListReader,
+		evaluationsReader,
 		evaluationList,
-		func(entry model_core.Message[*model_evaluation_pb.Evaluation, object.LocalReference]) (int, *model_core_pb.DecodableReference) {
+		func(entry model_core.Message[*model_evaluation_pb.Evaluations, object.LocalReference]) (int, *model_core_pb.DecodableReference) {
 			switch level := entry.Message.Level.(type) {
-			case *model_evaluation_pb.Evaluation_Leaf_:
-				flattenedKey, err := model_core.FlattenAny(model_core.Nested(entry, level.Leaf.Key))
-				if err != nil {
-					return -1, nil
-				}
-				leafKeyReference, err := model_core.ComputeTopLevelMessageReference(flattenedKey, referenceFormat)
-				if err != nil {
-					return -1, nil
-				}
-				return bytes.Compare(keyReference.GetRawReference(), leafKeyReference.GetRawReference()), nil
-			case *model_evaluation_pb.Evaluation_Parent_:
+			case *model_evaluation_pb.Evaluations_Leaf_:
+				return bytes.Compare(keyReference.GetRawReference(), level.Leaf.KeyReference), nil
+			case *model_evaluation_pb.Evaluations_Parent_:
 				return bytes.Compare(keyReference.GetRawReference(), level.Parent.FirstKeyReference), level.Parent.Reference
 			default:
 				return 0, nil
@@ -730,7 +730,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	valueNodes := renderWarningAlert("This key yields a native value that cannot be represented as JSON, or evaluation failed to yield a value.")
 	dependenciesNodes := renderWarningAlert("This key has no dependencies, or evaluation failed to yield a list of dependencies.")
 	if evaluation.IsSet() {
-		evaluationLeaf, ok := evaluation.Message.Level.(*model_evaluation_pb.Evaluation_Leaf_)
+		evaluationLeaf, ok := evaluation.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
 		if !ok {
 			errNodes := renderErrorAlert(errors.New("evaluation list entry is not a valid leaf"))
 			return renderEvaluationPage(
@@ -744,7 +744,21 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			), nil
 		}
 
-		if v := evaluationLeaf.Leaf.Value; v != nil {
+		graphlet := evaluationLeaf.Leaf.Graphlet
+		if graphlet == nil {
+			errNodes := renderErrorAlert(errors.New("evaluation leaf does not have a graphlet"))
+			return renderEvaluationPage(
+				w,
+				evaluationListReference,
+				keyJSONNodes,
+				errNodes,
+				errNodes,
+				currentEncoderConfigurationStr,
+				cookie,
+			), nil
+		}
+
+		if v := graphlet.Value; v != nil {
 			valueNodes = []g.Node{
 				h.Div(
 					append(
@@ -757,52 +771,43 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			}
 		}
 
-		if dependencies := evaluationLeaf.Leaf.Dependencies; len(dependencies) > 0 {
-			dependencyListReader := model_parser.LookupParsedObjectReader(
-				parsedObjectPoolIngester,
-				model_parser.NewChainedObjectParser(
-					model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
-					model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Keys](),
-				),
-			)
-			var errIter error
-			var nodes []g.Node
-			for dependency := range btree.AllLeaves(
-				ctx,
-				dependencyListReader,
-				model_core.Nested(evaluation, dependencies),
-				func(element model_core.Message[*model_evaluation_pb.Keys, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
-					return element.Message.GetParent().GetReference(), nil
-				},
-				&errIter,
-			) {
-				if dependencyLeaf, ok := dependency.Message.Level.(*model_evaluation_pb.Keys_Leaf); ok {
-					cardNodes := []g.Node{
-						h.Class("block card my-2 p-4 bg-neutral text-neutral-content font-mono h-auto! overflow-x-auto"),
-					}
-					if dependencyKey, err := model_core.FlattenAny(model_core.Nested(dependency, dependencyLeaf.Leaf)); err == nil {
-						if marshaledDependencyKey, err := model_core.MarshalTopLevelMessage(dependencyKey); err == nil {
-							cardNodes = append(cardNodes, h.Form(
-								h.Action(base64.RawURLEncoding.EncodeToString(marshaledDependencyKey)),
-								h.Button(
-									h.Class("btn btn-primary btn-square float-right inline-block"),
-									g.Text("↗"),
-								),
-							))
-						}
-					}
-					cardNodes = append(
-						cardNodes,
-						jsonRenderer.renderMessage(model_core.Nested(dependency, dependencyLeaf.Leaf.ProtoReflect()))...,
-					)
-					nodes = append(nodes, h.Div(cardNodes...))
+		var errIter error
+		var nodes []g.Node
+		for dependency := range btree.AllLeaves(
+			ctx,
+			keysReader,
+			model_core.Nested(evaluation, graphlet.DirectDependencyKeys),
+			func(element model_core.Message[*model_evaluation_pb.Keys, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
+				return element.Message.GetParent().GetReference(), nil
+			},
+			&errIter,
+		) {
+			if dependencyLeaf, ok := dependency.Message.Level.(*model_evaluation_pb.Keys_Leaf); ok {
+				cardNodes := []g.Node{
+					h.Class("block card my-2 p-4 bg-neutral text-neutral-content font-mono h-auto! overflow-x-auto"),
 				}
+				if dependencyKey, err := model_core.FlattenAny(model_core.Nested(dependency, dependencyLeaf.Leaf)); err == nil {
+					if marshaledDependencyKey, err := model_core.MarshalTopLevelMessage(dependencyKey); err == nil {
+						cardNodes = append(cardNodes, h.Form(
+							h.Action(base64.RawURLEncoding.EncodeToString(marshaledDependencyKey)),
+							h.Button(
+								h.Class("btn btn-primary btn-square float-right inline-block"),
+								g.Text("↗"),
+							),
+						))
+					}
+				}
+				cardNodes = append(
+					cardNodes,
+					jsonRenderer.renderMessage(model_core.Nested(dependency, dependencyLeaf.Leaf.ProtoReflect()))...,
+				)
+				nodes = append(nodes, h.Div(cardNodes...))
 			}
-			if errIter == nil {
-				dependenciesNodes = nodes
-			} else {
-				dependenciesNodes = renderErrorAlert(errIter)
-			}
+		}
+		if errIter == nil {
+			dependenciesNodes = nodes
+		} else {
+			dependenciesNodes = renderErrorAlert(errIter)
 		}
 	}
 

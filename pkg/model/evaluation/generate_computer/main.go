@@ -270,4 +270,18 @@ func main() {
 	fmt.Printf("\t\tpanic(\"unrecognized key type\")\n")
 	fmt.Printf("\t}\n")
 	fmt.Printf("}\n")
+
+	fmt.Printf("func (typedComputer[TReference, TMetadata]) IsLookup(key proto.Message) bool {\n")
+	fmt.Printf("\tswitch key.(type) {\n")
+	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
+		functionDefinition := computerDefinition.Functions[functionName]
+		if len(functionDefinition.DependsOn) == 0 || (functionDefinition.IsLookup != nil && *functionDefinition.IsLookup) {
+			fmt.Printf("\tcase *pb.%s_Key:\n", getMessageName(functionName))
+			fmt.Printf("\t\treturn true\n")
+		}
+	}
+	fmt.Printf("\tdefault:\n")
+	fmt.Printf("\t\treturn false\n")
+	fmt.Printf("\t}\n")
+	fmt.Printf("}\n")
 }

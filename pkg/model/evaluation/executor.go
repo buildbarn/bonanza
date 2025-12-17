@@ -15,7 +15,6 @@ import (
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
-	model_encoding_pb "bonanza.build/pkg/proto/model/encoding"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
 	model_tag_pb "bonanza.build/pkg/proto/model/tag"
@@ -55,6 +54,7 @@ type executor struct {
 	dagUploader                 dag.Uploader[object.InstanceName, object.GlobalReference]
 	tagResolver                 tag.Resolver[object.Namespace]
 	cacheTagSignaturePrivateKey ed25519.PrivateKey
+	uploadConcurrency           uint32
 	clock                       clock.Clock
 }
 
@@ -68,6 +68,7 @@ func NewExecutor(
 	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
 	tagResolver tag.Resolver[object.Namespace],
 	cacheTagSignaturePrivateKey ed25519.PrivateKey,
+	uploadConcurrency uint32,
 	clock clock.Clock,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &executor{
@@ -78,6 +79,7 @@ func NewExecutor(
 		dagUploader:                 dagUploader,
 		tagResolver:                 tagResolver,
 		cacheTagSignaturePrivateKey: cacheTagSignaturePrivateKey,
+		uploadConcurrency:           uploadConcurrency,
 		clock:                       clock,
 	}
 }
@@ -98,13 +100,21 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	instanceName := actionGlobalReference.InstanceName
 	referenceFormat := action.Reference.Value.GetReferenceFormat()
 
-	actionEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
+	deterministicActionEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
 		action.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrap(err, "Failed to create action encoder")
+		return badReference, 0, 0, util.StatusWrap(err, "Failed to create deterministic action encoder")
+	}
+	keyedActionEncoder, err := model_encoding.NewKeyedBinaryEncoderFromProto(
+		action.Encoders,
+		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
+	)
+	if err != nil {
+		var badReference model_core.Decodable[object.LocalReference]
+		return badReference, 0, 0, util.StatusWrap(err, "Failed to create keyed action encoder")
 	}
 
 	objectManager := buffered.NewObjectManager()
@@ -124,7 +134,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		actionReader := model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[buffered.Reference](actionEncoder),
+				model_parser.NewEncodedObjectParser[buffered.Reference](deterministicActionEncoder),
 				model_parser.NewProtoObjectParser[buffered.Reference, model_evaluation_pb.Action](),
 			),
 		)
@@ -146,8 +156,8 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		evaluationReader := model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[buffered.Reference](actionEncoder),
-				model_parser.NewProtoListObjectParser[buffered.Reference, model_evaluation_pb.Evaluation](),
+				model_parser.NewEncodedObjectParser[buffered.Reference](deterministicActionEncoder),
+				model_parser.NewProtoListObjectParser[buffered.Reference, model_evaluation_pb.Evaluations](),
 			),
 		)
 		overrides, err := model_parser.MaybeDereference(
@@ -167,38 +177,31 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		// build graph. This hash needs to be included in the
 		// hashes of cache tags.
 		var errIterOverrideKeys error
-		keysWithOverridesHasher := lthash.NewHasher()
+		keyReferencesWithOverridesHasher := lthash.NewHasher()
 		for override := range btree.AllLeaves(
 			ctx,
 			evaluationReader,
 			overrides,
-			/* traverser = */ func(evaluation model_core.Message[*model_evaluation_pb.Evaluation, buffered.Reference]) (*model_core_pb.DecodableReference, error) {
+			/* traverser = */ func(evaluation model_core.Message[*model_evaluation_pb.Evaluations, buffered.Reference]) (*model_core_pb.DecodableReference, error) {
 				return evaluation.Message.GetParent().GetReference(), nil
 			},
 			&errIterOverrideKeys,
 		) {
-			overrideLeaf, ok := override.Message.Level.(*model_evaluation_pb.Evaluation_Leaf_)
+			overrideLeaf, ok := override.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
 			if !ok {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.New(codes.InvalidArgument, "Override is not a valid leaf").Proto(),
 				}
 				return &result
 			}
-			key, err := model_core.FlattenAny(model_core.Nested(override, overrideLeaf.Leaf.Key))
+			keyReference, err := referenceFormat.NewLocalReference(overrideLeaf.Leaf.KeyReference)
 			if err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.Convert(err).Proto(),
 				}
 				return &result
 			}
-			marshaledKey, err := model_core.MarshalTopLevelMessage(key)
-			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
-					Status: status.Convert(err).Proto(),
-				}
-				return &result
-			}
-			keysWithOverridesHasher.Add(marshaledKey)
+			keyReferencesWithOverridesHasher.Add(keyReference.GetRawReference())
 		}
 		if errIterOverrideKeys != nil {
 			result.Failure = &model_evaluation_pb.Result_Failure{
@@ -215,18 +218,16 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			return &result
 		}
 
-		// TODO: Set proper encoders!
-		var cacheObjectEncoders []*model_encoding_pb.BinaryEncoder
 		actionTagKeyData, _ := model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.ActionTagKeyData {
-				keysWithOverridesHash := keysWithOverridesHasher.Sum()
+				keyReferencesWithOverridesHash := keyReferencesWithOverridesHasher.Sum()
 				return &model_evaluation_cache_pb.ActionTagKeyData{
 					CommonTagKeyData: &model_tag_pb.CommonKeyData{
 						SignaturePublicKey: cacheTagSignaturePublicKey,
 						ReferenceFormat:    referenceFormat.ToProto(),
-						ObjectEncoders:     cacheObjectEncoders,
+						ObjectEncoders:     action.Encoders,
 					},
-					KeysWithOverridesHash: keysWithOverridesHash[:],
+					KeyReferencesWithOverridesHash: keyReferencesWithOverridesHash[:],
 				}
 			},
 		).SortAndSetReferences()
@@ -261,6 +262,8 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				// TODO: Encode objects.
 				model_parser.NewProtoObjectParser[buffered.Reference, model_evaluation_cache_pb.LookupResult](),
 			),
+			deterministicActionEncoder,
+			keyedActionEncoder,
 			e.clock,
 		)
 
@@ -270,33 +273,40 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			ctx,
 			evaluationReader,
 			overrides,
-			/* traverser = */ func(evaluation model_core.Message[*model_evaluation_pb.Evaluation, buffered.Reference]) (*model_core_pb.DecodableReference, error) {
+			/* traverser = */ func(evaluation model_core.Message[*model_evaluation_pb.Evaluations, buffered.Reference]) (*model_core_pb.DecodableReference, error) {
 				return evaluation.Message.GetParent().GetReference(), nil
 			},
 			&errIterRegisterOverrides,
 		) {
-			overrideLeaf, ok := override.Message.Level.(*model_evaluation_pb.Evaluation_Leaf_)
+			overrideLeaf, ok := override.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
 			if !ok {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.New(codes.InvalidArgument, "Override is not a valid leaf").Proto(),
 				}
 				return &result
 			}
-			key, err := model_core.UnmarshalAnyNew(model_core.Nested(override, overrideLeaf.Leaf.Key))
+			keyReference, err := referenceFormat.NewLocalReference(overrideLeaf.Leaf.KeyReference)
 			if err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.Convert(err).Proto(),
 				}
 				return &result
 			}
-			value, err := model_core.UnmarshalAnyNew(model_core.Nested(override, overrideLeaf.Leaf.Value))
+			graphlet := overrideLeaf.Leaf.Graphlet
+			if graphlet == nil {
+				result.Failure = &model_evaluation_pb.Result_Failure{
+					Status: status.New(codes.InvalidArgument, "Override does not contain a graphlet").Proto(),
+				}
+				return &result
+			}
+			value, err := model_core.UnmarshalAnyNew(model_core.Nested(override, graphlet.Value))
 			if err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.Convert(err).Proto(),
 				}
 				return &result
 			}
-			if err := recursiveComputer.InjectKeyState(key, value.Decay()); err != nil {
+			if err := recursiveComputer.InjectKeyState(keyReference, value.Decay()); err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.Convert(err).Proto(),
 				}
@@ -315,7 +325,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		keysReader := model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[buffered.Reference](actionEncoder),
+				model_parser.NewEncodedObjectParser[buffered.Reference](deterministicActionEncoder),
 				model_parser.NewProtoListObjectParser[buffered.Reference, model_evaluation_pb.Keys](),
 			),
 		)
@@ -366,8 +376,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		}
 
 		// Perform the build.
-		var value model_core.Message[proto.Message, buffered.Reference]
-		errCompute := program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+		errComputeAndUpload := program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
 			// Launch a goroutine for reporting progress.
 			dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
 				for {
@@ -386,7 +395,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 					createdProgress, err := model_core.MarshalAndEncodeDeterministic(
 						model_core.ProtoToBinaryMarshaler(progress),
 						referenceFormat,
-						actionEncoder,
+						deterministicActionEncoder,
 					)
 					if err != nil {
 						return err
@@ -413,205 +422,62 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				}
 			})
 
-			// Launch goroutines for performing evaluation.
-			queues.ProcessAllQueuedKeys(dependenciesGroup, recursiveComputer)
-
-			// Launch goroutines for waiting for build completion.
-			for i, requestedKeyState := range requestedKeyStates {
-				siblingsGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-					if _, err := recursiveComputer.WaitForMessageValue(ctx, requestedKeyState); err != nil {
-						return NestedError[buffered.Reference]{
-							Key: requestedKeys[i],
-							Err: err,
+			// Launch goroutines for uploading evaluation
+			// results, so that subsequent builds can skip
+			// evaluation.
+			for i := uint32(0); i < e.uploadConcurrency; i++ {
+				siblingsGroup.Go(func(ctx context.Context, siblingsGroup, group program.Group) error {
+					for {
+						if shouldContinue, err := recursiveComputer.ProcessNextUploadableKey(ctx); err != nil {
+							return util.StatusWrap(err, "Failed to upload evaluation results")
+						} else if !shouldContinue {
+							return nil
 						}
 					}
-					return nil
 				})
 			}
-			return nil
+
+			return program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+				// Launch goroutines for performing evaluation.
+				queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
+
+				// Launch goroutines for waiting for build completion.
+				for i, requestedKeyState := range requestedKeyStates {
+					siblingsGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+						if _, err := recursiveComputer.WaitForMessageValue(ctx, requestedKeyState); err != nil {
+							return NestedError[buffered.Reference]{
+								Key: requestedKeys[i],
+								Err: err,
+							}
+						}
+						return nil
+					})
+				}
+
+				// Once we've gathered all of the values we
+				// are waiting for, we may also stop
+				// uploading evaluation results.
+				//
+				// TODO: This nesting of program.RunLocal()
+				// feels and calling this method against
+				// recursiveComputer feels a bit convoluted.
+				// Is there a way to simplify?
+				dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+					<-ctx.Done()
+					recursiveComputer.GracefullyStopUploading()
+					return nil
+				})
+				return nil
+			})
 		})
 
-		// Store all evaluation results to permit debugging of the build.
-		// TODO: Use a proper configuration.
-		evaluationTreeEncoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
-		outcomesTreeBuilder := btree.NewHeightAwareBuilder(
-			btree.NewProllyChunkerFactory[buffered.ReferenceMetadata](
-				/* minimumSizeBytes = */ 1<<16,
-				/* maximumSizeBytes = */ 1<<18,
-				/* isParent = */ func(evaluation *model_evaluation_pb.Evaluation) bool {
-					return evaluation.GetParent() != nil
-				},
-			),
-			btree.NewObjectCreatingNodeMerger(
-				evaluationTreeEncoder,
-				referenceFormat,
-				/* parentNodeComputer = */ btree.Capturing(ctx, objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Evaluation, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Evaluation, buffered.ReferenceMetadata] {
-					var firstKeyReference []byte
-					switch firstEntry := childNodes.Message[0].Level.(type) {
-					case *model_evaluation_pb.Evaluation_Leaf_:
-						if flattenedAny, err := model_core.FlattenAny(model_core.Nested(childNodes, firstEntry.Leaf.Key)); err == nil {
-							if r, err := model_core.ComputeTopLevelMessageReference(flattenedAny, referenceFormat); err == nil {
-								firstKeyReference = r.GetRawReference()
-							}
-						}
-					case *model_evaluation_pb.Evaluation_Parent_:
-						firstKeyReference = firstEntry.Parent.FirstKeyReference
-					}
-					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Evaluation {
-						return &model_evaluation_pb.Evaluation{
-							Level: &model_evaluation_pb.Evaluation_Parent_{
-								Parent: &model_evaluation_pb.Evaluation_Parent{
-									Reference:         patcher.AddDecodableReference(createdObject),
-									FirstKeyReference: firstKeyReference,
-								},
-							},
-						}
-					})
-				}),
-			),
-		)
-		defer outcomesTreeBuilder.Discard()
+		// TODO: Attach all graphlets to the result.
 
-		for evaluation := range recursiveComputer.GetAllEvaluations() {
-			key, err := model_core.MarshalAny(
-				model_core.Patch(objectManager, evaluation.Key.Decay()),
-			)
-			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
-					Status: status.Convert(err).Proto(),
-				}
-				return &result
-			}
-			patcher := key.Patcher
-
-			var value model_core.PatchedMessage[*model_core_pb.Any, buffered.ReferenceMetadata]
-			if evaluation.Value.IsSet() {
-				value, err = model_core.MarshalAny(
-					model_core.Patch(objectManager, evaluation.Value),
-				)
-				if err != nil {
-					result.Failure = &model_evaluation_pb.Result_Failure{
-						Status: status.Convert(err).Proto(),
-					}
-					return &result
-				}
-				patcher.Merge(value.Patcher)
-			}
-
-			dependencyTreeBuilder := btree.NewHeightAwareBuilder(
-				btree.NewProllyChunkerFactory[buffered.ReferenceMetadata](
-					/* minimumSizeBytes = */ 1<<16,
-					/* minimumSizeBytes = */ 1<<18,
-					/* isParent = */ func(keys *model_evaluation_pb.Keys) bool {
-						return keys.GetParent() != nil
-					},
-				),
-				btree.NewObjectCreatingNodeMerger(
-					evaluationTreeEncoder,
-					referenceFormat,
-					/* parentNodeComputer = */ btree.Capturing(ctx, objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[buffered.ReferenceMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Keys, buffered.ReferenceMetadata] {
-						return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Keys {
-							return &model_evaluation_pb.Keys{
-								Level: &model_evaluation_pb.Keys_Parent_{
-									Parent: &model_evaluation_pb.Keys_Parent{
-										Reference: patcher.AddDecodableReference(createdObject),
-									},
-								},
-							}
-						})
-					}),
-				),
-			)
-			for _, dependency := range evaluation.Dependencies {
-				dependencyAny, err := model_core.MarshalAny(
-					model_core.Patch(objectManager, dependency.Decay()),
-				)
-				if err != nil {
-					result.Failure = &model_evaluation_pb.Result_Failure{
-						Status: status.Convert(err).Proto(),
-					}
-					return &result
-				}
-				if err := dependencyTreeBuilder.PushChild(
-					model_core.NewPatchedMessage(
-						&model_evaluation_pb.Keys{
-							Level: &model_evaluation_pb.Keys_Leaf{
-								Leaf: dependencyAny.Message,
-							},
-						},
-						dependencyAny.Patcher,
-					),
-				); err != nil {
-					result.Failure = &model_evaluation_pb.Result_Failure{
-						Status: status.Convert(err).Proto(),
-					}
-					return &result
-				}
-			}
-			dependencies, err := dependencyTreeBuilder.FinalizeList()
-			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
-					Status: status.Convert(err).Proto(),
-				}
-				return &result
-			}
-			patcher.Merge(dependencies.Patcher)
-
-			if err := outcomesTreeBuilder.PushChild(
-				model_core.NewPatchedMessage(
-					&model_evaluation_pb.Evaluation{
-						Level: &model_evaluation_pb.Evaluation_Leaf_{
-							Leaf: &model_evaluation_pb.Evaluation_Leaf{
-								Key:          key.Message,
-								Value:        value.Message,
-								Dependencies: dependencies.Message,
-							},
-						},
-					},
-					patcher,
-				),
-			); err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
-					Status: status.Convert(err).Proto(),
-				}
-				return &result
-			}
-		}
-
-		outcomes, err := outcomesTreeBuilder.FinalizeList()
-		if err != nil {
-			result.Failure = &model_evaluation_pb.Result_Failure{
-				Status: status.Convert(err).Proto(),
-			}
-			return &result
-		}
-		if len(outcomes.Message) > 0 {
-			createdEvaluations, err := model_core.MarshalAndEncodeDeterministic(
-				model_core.ProtoListToBinaryMarshaler(outcomes),
-				referenceFormat,
-				evaluationTreeEncoder,
-			)
-			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
-					Status: status.Convert(err).Proto(),
-				}
-				return &result
-			}
-			outcomesReference, err := resultPatcher.CaptureAndAddDecodableReference(ctx, createdEvaluations, objectManager)
-			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
-					Status: status.Convert(err).Proto(),
-				}
-				return &result
-			}
-			result.OutcomesReference = outcomesReference
-		}
-
-		if errCompute != nil {
+		if errComputeAndUpload != nil {
 			var patchedStackTraceKeys []*model_core_pb.Any
 			for {
 				var nestedErr NestedError[buffered.Reference]
-				if !errors.As(errCompute, &nestedErr) {
+				if !errors.As(errComputeAndUpload, &nestedErr) {
 					break
 				}
 
@@ -626,18 +492,14 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				patchedStackTraceKeys = append(patchedStackTraceKeys, marshaledKey.Message)
 				resultPatcher.Merge(marshaledKey.Patcher)
 
-				errCompute = nestedErr.Err
+				errComputeAndUpload = nestedErr.Err
 			}
 
 			result.Failure = &model_evaluation_pb.Result_Failure{
 				StackTraceKeys: patchedStackTraceKeys,
-				Status:         status.Convert(errCompute).Proto(),
+				Status:         status.Convert(errComputeAndUpload).Proto(),
 			}
 			return &result
-		}
-
-		result.Failure = &model_evaluation_pb.Result_Failure{
-			Status: status.Newf(codes.Internal, "TODO: %s", value).Proto(),
 		}
 		return &result
 	})
@@ -645,7 +507,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	createdResult, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoToBinaryMarshaler(resultMessage),
 		referenceFormat,
-		actionEncoder,
+		deterministicActionEncoder,
 	)
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]

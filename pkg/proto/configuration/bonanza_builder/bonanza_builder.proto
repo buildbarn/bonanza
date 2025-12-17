@@ -93,6 +93,12 @@ message ApplicationConfiguration {
   // maximum number of workers a single build may utilize.
   uint32 remote_evaluation_concurrency = 16;
 
+  // The number of goroutines to spawn that are responsible for
+  // uploading values yielded by the evaluation function to Object Store
+  // and creating tags in Tag Store, so that subsequent builds can
+  // perform cache lookups against them.
+  uint32 upload_concurrency = 20;
+
   // The maximum number of concurrent read operations this process
   // should issue against object storage.
   int64 object_store_concurrency = 18;

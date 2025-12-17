@@ -72,6 +72,7 @@ local statePath = std.extVar('STATE_PATH');
   workerId: { host: std.extVar('HOSTNAME') },
   localEvaluationConcurrency: std.extVar('NCPU'),
   remoteEvaluationConcurrency: 100,
+  uploadConcurrency: std.extVar('NCPU'),
   objectStoreConcurrency: std.extVar('NCPU'),
   cacheTagSignaturePrivateKey: |||
     -----BEGIN PRIVATE KEY-----

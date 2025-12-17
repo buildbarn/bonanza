@@ -106,31 +106,29 @@ func (*Keys_Leaf) isKeys_Level() {}
 
 func (*Keys_Parent_) isKeys_Level() {}
 
-type Evaluation struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*Evaluation_Leaf_
-	//	*Evaluation_Parent_
-	Level         isEvaluation_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+type Graphlet struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Value                 *core.Any              `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	DirectDependencyKeys  []*Keys                `protobuf:"bytes,2,rep,name=direct_dependency_keys,json=directDependencyKeys,proto3" json:"direct_dependency_keys,omitempty"`
+	DependencyEvaluations []*Evaluations         `protobuf:"bytes,3,rep,name=dependency_evaluations,json=dependencyEvaluations,proto3" json:"dependency_evaluations,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
-func (x *Evaluation) Reset() {
-	*x = Evaluation{}
+func (x *Graphlet) Reset() {
+	*x = Graphlet{}
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Evaluation) String() string {
+func (x *Graphlet) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Evaluation) ProtoMessage() {}
+func (*Graphlet) ProtoMessage() {}
 
-func (x *Evaluation) ProtoReflect() protoreflect.Message {
+func (x *Graphlet) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -142,51 +140,113 @@ func (x *Evaluation) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Evaluation.ProtoReflect.Descriptor instead.
-func (*Evaluation) Descriptor() ([]byte, []int) {
+// Deprecated: Use Graphlet.ProtoReflect.Descriptor instead.
+func (*Graphlet) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Evaluation) GetLevel() isEvaluation_Level {
+func (x *Graphlet) GetValue() *core.Any {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+func (x *Graphlet) GetDirectDependencyKeys() []*Keys {
+	if x != nil {
+		return x.DirectDependencyKeys
+	}
+	return nil
+}
+
+func (x *Graphlet) GetDependencyEvaluations() []*Evaluations {
+	if x != nil {
+		return x.DependencyEvaluations
+	}
+	return nil
+}
+
+type Evaluations struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Level:
+	//
+	//	*Evaluations_Leaf_
+	//	*Evaluations_Parent_
+	Level         isEvaluations_Level `protobuf_oneof:"level"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Evaluations) Reset() {
+	*x = Evaluations{}
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Evaluations) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Evaluations) ProtoMessage() {}
+
+func (x *Evaluations) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Evaluations.ProtoReflect.Descriptor instead.
+func (*Evaluations) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Evaluations) GetLevel() isEvaluations_Level {
 	if x != nil {
 		return x.Level
 	}
 	return nil
 }
 
-func (x *Evaluation) GetLeaf() *Evaluation_Leaf {
+func (x *Evaluations) GetLeaf() *Evaluations_Leaf {
 	if x != nil {
-		if x, ok := x.Level.(*Evaluation_Leaf_); ok {
+		if x, ok := x.Level.(*Evaluations_Leaf_); ok {
 			return x.Leaf
 		}
 	}
 	return nil
 }
 
-func (x *Evaluation) GetParent() *Evaluation_Parent {
+func (x *Evaluations) GetParent() *Evaluations_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*Evaluation_Parent_); ok {
+		if x, ok := x.Level.(*Evaluations_Parent_); ok {
 			return x.Parent
 		}
 	}
 	return nil
 }
 
-type isEvaluation_Level interface {
-	isEvaluation_Level()
+type isEvaluations_Level interface {
+	isEvaluations_Level()
 }
 
-type Evaluation_Leaf_ struct {
-	Leaf *Evaluation_Leaf `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
+type Evaluations_Leaf_ struct {
+	Leaf *Evaluations_Leaf `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
 }
 
-type Evaluation_Parent_ struct {
-	Parent *Evaluation_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
+type Evaluations_Parent_ struct {
+	Parent *Evaluations_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
 }
 
-func (*Evaluation_Leaf_) isEvaluation_Level() {}
+func (*Evaluations_Leaf_) isEvaluations_Level() {}
 
-func (*Evaluation_Parent_) isEvaluation_Level() {}
+func (*Evaluations_Parent_) isEvaluations_Level() {}
 
 type Action struct {
 	state              protoimpl.MessageState   `protogen:"open.v1"`
@@ -198,7 +258,7 @@ type Action struct {
 
 func (x *Action) Reset() {
 	*x = Action{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -210,7 +270,7 @@ func (x *Action) String() string {
 func (*Action) ProtoMessage() {}
 
 func (x *Action) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -223,7 +283,7 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Action.ProtoReflect.Descriptor instead.
 func (*Action) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Action) GetOverridesReference() *core.DecodableReference {
@@ -243,10 +303,10 @@ func (x *Action) GetRequestedKeys() []*Keys {
 type Progress struct {
 	state                         protoimpl.MessageState    `protogen:"open.v1"`
 	BlockedKeysCount              uint64                    `protobuf:"varint,1,opt,name=blocked_keys_count,json=blockedKeysCount,proto3" json:"blocked_keys_count,omitempty"`
-	EvaluationQueuedKeysCount     uint64                    `protobuf:"varint,2,opt,name=evaluation_queued_keys_count,json=evaluationQueuedKeysCount,proto3" json:"evaluation_queued_keys_count,omitempty"`
+	EvaluatableKeysCount          uint64                    `protobuf:"varint,2,opt,name=evaluatable_keys_count,json=evaluatableKeysCount,proto3" json:"evaluatable_keys_count,omitempty"`
 	OldestEvaluatingKeys          []*Progress_EvaluatingKey `protobuf:"bytes,3,rep,name=oldest_evaluating_keys,json=oldestEvaluatingKeys,proto3" json:"oldest_evaluating_keys,omitempty"`
 	AdditionalEvaluatingKeysCount uint64                    `protobuf:"varint,4,opt,name=additional_evaluating_keys_count,json=additionalEvaluatingKeysCount,proto3" json:"additional_evaluating_keys_count,omitempty"`
-	UploadQueuedKeysCount         uint64                    `protobuf:"varint,5,opt,name=upload_queued_keys_count,json=uploadQueuedKeysCount,proto3" json:"upload_queued_keys_count,omitempty"`
+	EvaluatedKeysCount            uint64                    `protobuf:"varint,5,opt,name=evaluated_keys_count,json=evaluatedKeysCount,proto3" json:"evaluated_keys_count,omitempty"`
 	UploadingKeysCount            uint64                    `protobuf:"varint,6,opt,name=uploading_keys_count,json=uploadingKeysCount,proto3" json:"uploading_keys_count,omitempty"`
 	CompletedKeysCount            uint64                    `protobuf:"varint,7,opt,name=completed_keys_count,json=completedKeysCount,proto3" json:"completed_keys_count,omitempty"`
 	unknownFields                 protoimpl.UnknownFields
@@ -255,7 +315,7 @@ type Progress struct {
 
 func (x *Progress) Reset() {
 	*x = Progress{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -267,7 +327,7 @@ func (x *Progress) String() string {
 func (*Progress) ProtoMessage() {}
 
 func (x *Progress) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +340,7 @@ func (x *Progress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Progress.ProtoReflect.Descriptor instead.
 func (*Progress) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Progress) GetBlockedKeysCount() uint64 {
@@ -290,9 +350,9 @@ func (x *Progress) GetBlockedKeysCount() uint64 {
 	return 0
 }
 
-func (x *Progress) GetEvaluationQueuedKeysCount() uint64 {
+func (x *Progress) GetEvaluatableKeysCount() uint64 {
 	if x != nil {
-		return x.EvaluationQueuedKeysCount
+		return x.EvaluatableKeysCount
 	}
 	return 0
 }
@@ -311,9 +371,9 @@ func (x *Progress) GetAdditionalEvaluatingKeysCount() uint64 {
 	return 0
 }
 
-func (x *Progress) GetUploadQueuedKeysCount() uint64 {
+func (x *Progress) GetEvaluatedKeysCount() uint64 {
 	if x != nil {
-		return x.UploadQueuedKeysCount
+		return x.EvaluatedKeysCount
 	}
 	return 0
 }
@@ -342,7 +402,7 @@ type Result struct {
 
 func (x *Result) Reset() {
 	*x = Result{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -354,7 +414,7 @@ func (x *Result) String() string {
 func (*Result) ProtoMessage() {}
 
 func (x *Result) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -367,7 +427,7 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result.ProtoReflect.Descriptor instead.
 func (*Result) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Result) GetFailure() *Result_Failure {
@@ -393,7 +453,7 @@ type Keys_Parent struct {
 
 func (x *Keys_Parent) Reset() {
 	*x = Keys_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -405,7 +465,7 @@ func (x *Keys_Parent) String() string {
 func (*Keys_Parent) ProtoMessage() {}
 
 func (x *Keys_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -428,7 +488,7 @@ func (x *Keys_Parent) GetReference() *core.DecodableReference {
 	return nil
 }
 
-type Evaluation_Parent struct {
+type Evaluations_Parent struct {
 	state             protoimpl.MessageState   `protogen:"open.v1"`
 	Reference         *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
 	FirstKeyReference []byte                   `protobuf:"bytes,2,opt,name=first_key_reference,json=firstKeyReference,proto3" json:"first_key_reference,omitempty"`
@@ -436,21 +496,21 @@ type Evaluation_Parent struct {
 	sizeCache         protoimpl.SizeCache
 }
 
-func (x *Evaluation_Parent) Reset() {
-	*x = Evaluation_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[6]
+func (x *Evaluations_Parent) Reset() {
+	*x = Evaluations_Parent{}
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Evaluation_Parent) String() string {
+func (x *Evaluations_Parent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Evaluation_Parent) ProtoMessage() {}
+func (*Evaluations_Parent) ProtoMessage() {}
 
-func (x *Evaluation_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[6]
+func (x *Evaluations_Parent) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -461,49 +521,48 @@ func (x *Evaluation_Parent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Evaluation_Parent.ProtoReflect.Descriptor instead.
-func (*Evaluation_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1, 0}
+// Deprecated: Use Evaluations_Parent.ProtoReflect.Descriptor instead.
+func (*Evaluations_Parent) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{2, 0}
 }
 
-func (x *Evaluation_Parent) GetReference() *core.DecodableReference {
+func (x *Evaluations_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
 		return x.Reference
 	}
 	return nil
 }
 
-func (x *Evaluation_Parent) GetFirstKeyReference() []byte {
+func (x *Evaluations_Parent) GetFirstKeyReference() []byte {
 	if x != nil {
 		return x.FirstKeyReference
 	}
 	return nil
 }
 
-type Evaluation_Leaf struct {
+type Evaluations_Leaf struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           *core.Any              `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *core.Any              `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	Dependencies  []*Keys                `protobuf:"bytes,3,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	KeyReference  []byte                 `protobuf:"bytes,1,opt,name=key_reference,json=keyReference,proto3" json:"key_reference,omitempty"`
+	Graphlet      *Graphlet              `protobuf:"bytes,2,opt,name=graphlet,proto3" json:"graphlet,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Evaluation_Leaf) Reset() {
-	*x = Evaluation_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[7]
+func (x *Evaluations_Leaf) Reset() {
+	*x = Evaluations_Leaf{}
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Evaluation_Leaf) String() string {
+func (x *Evaluations_Leaf) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Evaluation_Leaf) ProtoMessage() {}
+func (*Evaluations_Leaf) ProtoMessage() {}
 
-func (x *Evaluation_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[7]
+func (x *Evaluations_Leaf) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -514,28 +573,21 @@ func (x *Evaluation_Leaf) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Evaluation_Leaf.ProtoReflect.Descriptor instead.
-func (*Evaluation_Leaf) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1, 1}
+// Deprecated: Use Evaluations_Leaf.ProtoReflect.Descriptor instead.
+func (*Evaluations_Leaf) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{2, 1}
 }
 
-func (x *Evaluation_Leaf) GetKey() *core.Any {
+func (x *Evaluations_Leaf) GetKeyReference() []byte {
 	if x != nil {
-		return x.Key
+		return x.KeyReference
 	}
 	return nil
 }
 
-func (x *Evaluation_Leaf) GetValue() *core.Any {
+func (x *Evaluations_Leaf) GetGraphlet() *Graphlet {
 	if x != nil {
-		return x.Value
-	}
-	return nil
-}
-
-func (x *Evaluation_Leaf) GetDependencies() []*Keys {
-	if x != nil {
-		return x.Dependencies
+		return x.Graphlet
 	}
 	return nil
 }
@@ -552,7 +604,7 @@ type Progress_EvaluatingKey struct {
 
 func (x *Progress_EvaluatingKey) Reset() {
 	*x = Progress_EvaluatingKey{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -564,7 +616,7 @@ func (x *Progress_EvaluatingKey) String() string {
 func (*Progress_EvaluatingKey) ProtoMessage() {}
 
 func (x *Progress_EvaluatingKey) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -577,7 +629,7 @@ func (x *Progress_EvaluatingKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Progress_EvaluatingKey.ProtoReflect.Descriptor instead.
 func (*Progress_EvaluatingKey) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3, 0}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4, 0}
 }
 
 func (x *Progress_EvaluatingKey) GetKey() *core.Any {
@@ -618,7 +670,7 @@ type Result_Failure struct {
 
 func (x *Result_Failure) Reset() {
 	*x = Result_Failure{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -630,7 +682,7 @@ func (x *Result_Failure) String() string {
 func (*Result_Failure) ProtoMessage() {}
 
 func (x *Result_Failure) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -643,7 +695,7 @@ func (x *Result_Failure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result_Failure.ProtoReflect.Descriptor instead.
 func (*Result_Failure) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4, 0}
+	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{5, 0}
 }
 
 func (x *Result_Failure) GetStackTraceKeys() []*core.Any {
@@ -670,28 +722,30 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	"\x06parent\x18\x02 \x01(\v2%.bonanza.model.evaluation.Keys.ParentH\x00R\x06parent\x1as\n" +
 	"\x06Parent\x12i\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x1a\x1dbonanza.model.evaluation.KeysR\treferenceB\a\n" +
-	"\x05level\"\xf0\x03\n" +
-	"\n" +
-	"Evaluation\x12?\n" +
-	"\x04leaf\x18\x01 \x01(\v2).bonanza.model.evaluation.Evaluation.LeafH\x00R\x04leaf\x12E\n" +
-	"\x06parent\x18\x02 \x01(\v2+.bonanza.model.evaluation.Evaluation.ParentH\x00R\x06parent\x1a\xa9\x01\n" +
-	"\x06Parent\x12o\n" +
-	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\treference\x12.\n" +
-	"\x13first_key_reference\x18\x02 \x01(\fR\x11firstKeyReference\x1a\xa4\x01\n" +
-	"\x04Leaf\x12)\n" +
-	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12-\n" +
-	"\x05value\x18\x02 \x01(\v2\x17.bonanza.model.core.AnyR\x05value\x12B\n" +
-	"\fdependencies\x18\x03 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\fdependenciesB\a\n" +
-	"\x05level\"\xd4\x01\n" +
-	"\x06Action\x12\x82\x01\n" +
-	"\x13overrides_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x12overridesReference\x12E\n" +
-	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\"\xc8\x05\n" +
+	"\x05level\"\xed\x01\n" +
+	"\bGraphlet\x12-\n" +
+	"\x05value\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x05value\x12T\n" +
+	"\x16direct_dependency_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x14directDependencyKeys\x12\\\n" +
+	"\x16dependency_evaluations\x18\x03 \x03(\v2%.bonanza.model.evaluation.EvaluationsR\x15dependencyEvaluations\"\xba\x03\n" +
+	"\vEvaluations\x12@\n" +
+	"\x04leaf\x18\x01 \x01(\v2*.bonanza.model.evaluation.Evaluations.LeafH\x00R\x04leaf\x12F\n" +
+	"\x06parent\x18\x02 \x01(\v2,.bonanza.model.evaluation.Evaluations.ParentH\x00R\x06parent\x1a\xaa\x01\n" +
+	"\x06Parent\x12p\n" +
+	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB*\xea\xd7 &\x1a$bonanza.model.evaluation.EvaluationsR\treference\x12.\n" +
+	"\x13first_key_reference\x18\x02 \x01(\fR\x11firstKeyReference\x1ak\n" +
+	"\x04Leaf\x12#\n" +
+	"\rkey_reference\x18\x01 \x01(\fR\fkeyReference\x12>\n" +
+	"\bgraphlet\x18\x02 \x01(\v2\".bonanza.model.evaluation.GraphletR\bgraphletB\a\n" +
+	"\x05level\"\xd5\x01\n" +
+	"\x06Action\x12\x83\x01\n" +
+	"\x13overrides_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB*\xea\xd7 &\x1a$bonanza.model.evaluation.EvaluationsR\x12overridesReference\x12E\n" +
+	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\"\xb6\x05\n" +
 	"\bProgress\x12,\n" +
-	"\x12blocked_keys_count\x18\x01 \x01(\x04R\x10blockedKeysCount\x12?\n" +
-	"\x1cevaluation_queued_keys_count\x18\x02 \x01(\x04R\x19evaluationQueuedKeysCount\x12f\n" +
+	"\x12blocked_keys_count\x18\x01 \x01(\x04R\x10blockedKeysCount\x124\n" +
+	"\x16evaluatable_keys_count\x18\x02 \x01(\x04R\x14evaluatableKeysCount\x12f\n" +
 	"\x16oldest_evaluating_keys\x18\x03 \x03(\v20.bonanza.model.evaluation.Progress.EvaluatingKeyR\x14oldestEvaluatingKeys\x12G\n" +
-	" additional_evaluating_keys_count\x18\x04 \x01(\x04R\x1dadditionalEvaluatingKeysCount\x127\n" +
-	"\x18upload_queued_keys_count\x18\x05 \x01(\x04R\x15uploadQueuedKeysCount\x120\n" +
+	" additional_evaluating_keys_count\x18\x04 \x01(\x04R\x1dadditionalEvaluatingKeysCount\x120\n" +
+	"\x14evaluated_keys_count\x18\x05 \x01(\x04R\x12evaluatedKeysCount\x120\n" +
 	"\x14uploading_keys_count\x18\x06 \x01(\x04R\x12uploadingKeysCount\x120\n" +
 	"\x14completed_keys_count\x18\a \x01(\x04R\x12completedKeysCount\x1a\xfe\x01\n" +
 	"\rEvaluatingKey\x12)\n" +
@@ -718,48 +772,50 @@ func file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(
 	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescData
 }
 
-var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_goTypes = []any{
 	(*Keys)(nil),                    // 0: bonanza.model.evaluation.Keys
-	(*Evaluation)(nil),              // 1: bonanza.model.evaluation.Evaluation
-	(*Action)(nil),                  // 2: bonanza.model.evaluation.Action
-	(*Progress)(nil),                // 3: bonanza.model.evaluation.Progress
-	(*Result)(nil),                  // 4: bonanza.model.evaluation.Result
-	(*Keys_Parent)(nil),             // 5: bonanza.model.evaluation.Keys.Parent
-	(*Evaluation_Parent)(nil),       // 6: bonanza.model.evaluation.Evaluation.Parent
-	(*Evaluation_Leaf)(nil),         // 7: bonanza.model.evaluation.Evaluation.Leaf
-	(*Progress_EvaluatingKey)(nil),  // 8: bonanza.model.evaluation.Progress.EvaluatingKey
-	(*Result_Failure)(nil),          // 9: bonanza.model.evaluation.Result.Failure
-	(*core.Any)(nil),                // 10: bonanza.model.core.Any
-	(*core.DecodableReference)(nil), // 11: bonanza.model.core.DecodableReference
-	(*timestamppb.Timestamp)(nil),   // 12: google.protobuf.Timestamp
-	(*status.Status)(nil),           // 13: google.rpc.Status
+	(*Graphlet)(nil),                // 1: bonanza.model.evaluation.Graphlet
+	(*Evaluations)(nil),             // 2: bonanza.model.evaluation.Evaluations
+	(*Action)(nil),                  // 3: bonanza.model.evaluation.Action
+	(*Progress)(nil),                // 4: bonanza.model.evaluation.Progress
+	(*Result)(nil),                  // 5: bonanza.model.evaluation.Result
+	(*Keys_Parent)(nil),             // 6: bonanza.model.evaluation.Keys.Parent
+	(*Evaluations_Parent)(nil),      // 7: bonanza.model.evaluation.Evaluations.Parent
+	(*Evaluations_Leaf)(nil),        // 8: bonanza.model.evaluation.Evaluations.Leaf
+	(*Progress_EvaluatingKey)(nil),  // 9: bonanza.model.evaluation.Progress.EvaluatingKey
+	(*Result_Failure)(nil),          // 10: bonanza.model.evaluation.Result.Failure
+	(*core.Any)(nil),                // 11: bonanza.model.core.Any
+	(*core.DecodableReference)(nil), // 12: bonanza.model.core.DecodableReference
+	(*timestamppb.Timestamp)(nil),   // 13: google.protobuf.Timestamp
+	(*status.Status)(nil),           // 14: google.rpc.Status
 }
 var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
-	10, // 0: bonanza.model.evaluation.Keys.leaf:type_name -> bonanza.model.core.Any
-	5,  // 1: bonanza.model.evaluation.Keys.parent:type_name -> bonanza.model.evaluation.Keys.Parent
-	7,  // 2: bonanza.model.evaluation.Evaluation.leaf:type_name -> bonanza.model.evaluation.Evaluation.Leaf
-	6,  // 3: bonanza.model.evaluation.Evaluation.parent:type_name -> bonanza.model.evaluation.Evaluation.Parent
-	11, // 4: bonanza.model.evaluation.Action.overrides_reference:type_name -> bonanza.model.core.DecodableReference
-	0,  // 5: bonanza.model.evaluation.Action.requested_keys:type_name -> bonanza.model.evaluation.Keys
-	8,  // 6: bonanza.model.evaluation.Progress.oldest_evaluating_keys:type_name -> bonanza.model.evaluation.Progress.EvaluatingKey
-	9,  // 7: bonanza.model.evaluation.Result.failure:type_name -> bonanza.model.evaluation.Result.Failure
-	11, // 8: bonanza.model.evaluation.Result.outcomes_reference:type_name -> bonanza.model.core.DecodableReference
-	11, // 9: bonanza.model.evaluation.Keys.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	11, // 10: bonanza.model.evaluation.Evaluation.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	10, // 11: bonanza.model.evaluation.Evaluation.Leaf.key:type_name -> bonanza.model.core.Any
-	10, // 12: bonanza.model.evaluation.Evaluation.Leaf.value:type_name -> bonanza.model.core.Any
-	0,  // 13: bonanza.model.evaluation.Evaluation.Leaf.dependencies:type_name -> bonanza.model.evaluation.Keys
-	10, // 14: bonanza.model.evaluation.Progress.EvaluatingKey.key:type_name -> bonanza.model.core.Any
-	12, // 15: bonanza.model.evaluation.Progress.EvaluatingKey.first_evaluation_start:type_name -> google.protobuf.Timestamp
-	12, // 16: bonanza.model.evaluation.Progress.EvaluatingKey.current_evaluation_start:type_name -> google.protobuf.Timestamp
-	10, // 17: bonanza.model.evaluation.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
-	13, // 18: bonanza.model.evaluation.Result.Failure.status:type_name -> google.rpc.Status
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	11, // 0: bonanza.model.evaluation.Keys.leaf:type_name -> bonanza.model.core.Any
+	6,  // 1: bonanza.model.evaluation.Keys.parent:type_name -> bonanza.model.evaluation.Keys.Parent
+	11, // 2: bonanza.model.evaluation.Graphlet.value:type_name -> bonanza.model.core.Any
+	0,  // 3: bonanza.model.evaluation.Graphlet.direct_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	2,  // 4: bonanza.model.evaluation.Graphlet.dependency_evaluations:type_name -> bonanza.model.evaluation.Evaluations
+	8,  // 5: bonanza.model.evaluation.Evaluations.leaf:type_name -> bonanza.model.evaluation.Evaluations.Leaf
+	7,  // 6: bonanza.model.evaluation.Evaluations.parent:type_name -> bonanza.model.evaluation.Evaluations.Parent
+	12, // 7: bonanza.model.evaluation.Action.overrides_reference:type_name -> bonanza.model.core.DecodableReference
+	0,  // 8: bonanza.model.evaluation.Action.requested_keys:type_name -> bonanza.model.evaluation.Keys
+	9,  // 9: bonanza.model.evaluation.Progress.oldest_evaluating_keys:type_name -> bonanza.model.evaluation.Progress.EvaluatingKey
+	10, // 10: bonanza.model.evaluation.Result.failure:type_name -> bonanza.model.evaluation.Result.Failure
+	12, // 11: bonanza.model.evaluation.Result.outcomes_reference:type_name -> bonanza.model.core.DecodableReference
+	12, // 12: bonanza.model.evaluation.Keys.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	12, // 13: bonanza.model.evaluation.Evaluations.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	1,  // 14: bonanza.model.evaluation.Evaluations.Leaf.graphlet:type_name -> bonanza.model.evaluation.Graphlet
+	11, // 15: bonanza.model.evaluation.Progress.EvaluatingKey.key:type_name -> bonanza.model.core.Any
+	13, // 16: bonanza.model.evaluation.Progress.EvaluatingKey.first_evaluation_start:type_name -> google.protobuf.Timestamp
+	13, // 17: bonanza.model.evaluation.Progress.EvaluatingKey.current_evaluation_start:type_name -> google.protobuf.Timestamp
+	11, // 18: bonanza.model.evaluation.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
+	14, // 19: bonanza.model.evaluation.Result.Failure.status:type_name -> google.rpc.Status
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_init() }
@@ -771,9 +827,9 @@ func file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_init() {
 		(*Keys_Leaf)(nil),
 		(*Keys_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[1].OneofWrappers = []any{
-		(*Evaluation_Leaf_)(nil),
-		(*Evaluation_Parent_)(nil),
+	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2].OneofWrappers = []any{
+		(*Evaluations_Leaf_)(nil),
+		(*Evaluations_Parent_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -781,7 +837,7 @@ func file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -25,6 +25,9 @@ option go_package = "bonanza.build/pkg/proto/model/evaluation";
 // interpreting BUILD and .bzl files) should be implemented as a layer
 // on top of this.
 
+// Keys is a list of evaluation keys. It can, for example, be used to
+// describe the set of dependencies of an evaluation key, or to specify
+// which keys need to be evaluated.
 message Keys {
   message Parent {
     bonanza.model.core.DecodableReference reference = 1
@@ -43,17 +46,40 @@ message Keys {
   }
 }
 
-message Evaluation {
+// Graphlet contains the value of a key for which evaluation was
+// performed, and a list of dependencies that were requested during
+// evaluation. Depending on server-side heuristics, the values of
+// dependencies are included as well.
+message Graphlet {
+  // The value that was emitted by the computer for the given key.
+  //
+  // This field may be left unset if the computer yielded a native
+  // (non-message) value.
+  bonanza.model.core.Any value = 1;
+
+  // Keys of dependencies that were accessed by the computer while
+  // processing the current key.
+  repeated Keys direct_dependency_keys = 2;
+
+  // Evaluations of direct or transitive dependencies of the current
+  // key. Whether an evaluation is stored in this specific graphlet or
+  // in one of the parent graphlets is based on server-side heuristics.
+  repeated Evaluations dependency_evaluations = 3;
+}
+
+// Evaluations is a list of keys for which evaluation has been
+// attempted, and for which values and dependencies are provided.
+message Evaluations {
   message Parent {
-    // Reference of the object containing additional Evaluation objects.
+    // Reference of the object containing additional Evaluations objects.
     bonanza.model.core.DecodableReference reference = 1
         [(bonanza.model.core.object_format) = {
           proto_list_type_name:
-            "bonanza.model.evaluation.Evaluation";
+            "bonanza.model.evaluation.Evaluations";
         }];
 
-    // Reference of the key of the first leaf Evaluation object
-    // contained in this tree to aid lookups. All Evaluation objects are
+    // Reference of the key of the first leaf Evaluations object
+    // contained in this tree to aid lookups. All Evaluations objects are
     // sorted by a fictive reference of the key, which can be obtained
     // by calling model_core.ComputeTopLevelMessageReference() against
     // the anypb.Any message.
@@ -61,25 +87,21 @@ message Evaluation {
   }
 
   message Leaf {
-    // The key that was provided to the computer.
-    bonanza.model.core.Any key = 1;
+    // Reference of the key that was provided to the computer, obtained
+    // by calling model_core.ComputeTopLevelMessageReference() against
+    // the anypb.Any message.
+    bytes key_reference = 1;
 
-    // The value that was emitted by the computer for the given key.
-    //
-    // This field may be left unset if the computer yielded a native
-    // (non-message) value.
-    bonanza.model.core.Any value = 2;
-
-    // Keys of dependencies that were accessed by the computer while
-    // processing the current key.
-    repeated Keys dependencies = 3;
+    // The value that was yielded by the evaluation function, and the
+    // set of dependencies the evaluation function accessed.
+    Graphlet graphlet = 2;
   }
 
   oneof level {
-    // A single Evaluation object.
+    // A single evaluated key.
     Leaf leaf = 1;
 
-    // B-tree node containing additional Evaluation objects.
+    // B-tree node containing additional Evaluations objects.
     Parent parent = 2;
   }
 }
@@ -87,10 +109,13 @@ message Evaluation {
 message Action {
   // If set, keys for which the evaluation function should not be
   // invoked. Instead, literal values are provided.
+  //
+  // Note that overrides are only installed for keys that are provided
+  // directly in this list. Evaluations of dependencies are ignored.
   bonanza.model.core.DecodableReference overrides_reference = 1
       [(bonanza.model.core.object_format) = {
         proto_list_type_name:
-          "bonanza.model.evaluation.Evaluation";
+          "bonanza.model.evaluation.Evaluations";
       }];
 
   // Keys for which evaluation function should be invoked.

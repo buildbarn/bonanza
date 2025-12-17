@@ -7,6 +7,7 @@ go_library(
         "computer.go",
         "environment.go",
         "executor.go",
+        "keys.go",
         "leak_checking_computer.go",
         "recursive_computer.go",
         "recursive_computer_evaluation_queues.go",
@@ -23,7 +24,6 @@ go_library(
         "//pkg/model/parser",
         "//pkg/model/tag",
         "//pkg/proto/model/core",
-        "//pkg/proto/model/encoding",
         "//pkg/proto/model/evaluation",
         "//pkg/proto/model/evaluation/cache",
         "//pkg/proto/model/tag",
@@ -35,6 +35,7 @@ go_library(
         "//pkg/storage/object/namespacemapping",
         "//pkg/storage/tag",
         "//pkg/storage/tag/namespacemapping",
+        "//pkg/sync",
         "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/util",
@@ -48,6 +49,7 @@ go_library(
 go_test(
     name = "evaluation_test",
     srcs = [
+        "mocks_encoding_test.go",
         "mocks_evaluation_test.go",
         "recursive_computer_test.go",
     ],
@@ -55,10 +57,13 @@ go_test(
     deps = [
         "//pkg/model/core",
         "//pkg/storage/object",
+        "//pkg/storage/tag",
         "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//reflect/protoreflect",  # keep
         "@org_golang_google_protobuf//types/known/emptypb",
@@ -68,9 +73,23 @@ go_test(
 )
 
 gomock(
+    name = "mocks_encoding",
+    out = "mocks_encoding_test.go",
+    interfaces = [
+        "DeterministicBinaryEncoder",
+        "KeyedBinaryEncoder",
+    ],
+    library = "//pkg/model/encoding",
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "evaluation_test",
+)
+
+gomock(
     name = "mocks_evaluation",
     out = "mocks_evaluation_test.go",
     interfaces = [
+        "CacheObjectReaderForTesting",
         "ComputerForTesting",
         "ObjectManagerForTesting",
         "TagResolverForTesting",
