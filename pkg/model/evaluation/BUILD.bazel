@@ -89,10 +89,10 @@ gomock(
     name = "mocks_evaluation",
     out = "mocks_evaluation_test.go",
     interfaces = [
+        "BoundResolverForTesting",
         "CacheObjectReaderForTesting",
         "ComputerForTesting",
         "ObjectManagerForTesting",
-        "TagResolverForTesting",
     ],
     library = "//pkg/model/evaluation",
     mockgen_model_library = "@org_uber_go_mock//mockgen/model",

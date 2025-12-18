@@ -14,6 +14,7 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_parser "bonanza.build/pkg/model/parser"
+	model_tag "bonanza.build/pkg/model/tag"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
@@ -210,7 +211,8 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			return &result
 		}
 
-		cacheTagSignaturePublicKey, err := x509.MarshalPKIXPublicKey(e.cacheTagSignaturePrivateKey.Public())
+		cacheTagSignaturePublicKey := e.cacheTagSignaturePrivateKey.Public().(ed25519.PublicKey)
+		cacheTagSignaturePKIXPublicKey, err := x509.MarshalPKIXPublicKey(cacheTagSignaturePublicKey)
 		if err != nil {
 			result.Failure = &model_evaluation_pb.Result_Failure{
 				Status: status.Convert(err).Proto(),
@@ -223,7 +225,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				keyReferencesWithOverridesHash := keyReferencesWithOverridesHasher.Sum()
 				return &model_evaluation_cache_pb.ActionTagKeyData{
 					CommonTagKeyData: &model_tag_pb.CommonKeyData{
-						SignaturePublicKey: cacheTagSignaturePublicKey,
+						SignaturePublicKey: cacheTagSignaturePKIXPublicKey,
 						ReferenceFormat:    referenceFormat.ToProto(),
 						ObjectEncoders:     action.Encoders,
 					},
@@ -248,15 +250,20 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			queues,
 			referenceFormat,
 			objectManager,
-			tag_namespacemapping.NewNamespaceAddingResolver(
-				e.tagResolver,
-				object.Namespace{
-					InstanceName:    instanceName,
-					ReferenceFormat: referenceFormat,
-				},
+			model_tag.NewObjectImportingBoundResolver(
+				model_tag.NewStorageBackedBoundResolver(
+					tag_namespacemapping.NewNamespaceAddingResolver(
+						e.tagResolver,
+						object.Namespace{
+							InstanceName:    instanceName,
+							ReferenceFormat: referenceFormat,
+						},
+					),
+					*(*[ed25519.PublicKeySize]byte)(cacheTagSignaturePublicKey),
+				),
+				objectExporter,
 			),
 			actionTagKeyReference,
-			e.cacheTagSignaturePrivateKey,
 			model_parser.LookupParsedObjectReader(
 				parsedObjectPoolIngester,
 				// TODO: Encode objects.

@@ -2,7 +2,6 @@ package evaluation
 
 import (
 	"context"
-	"crypto/ed25519"
 	"errors"
 	"maps"
 	"slices"
@@ -16,7 +15,6 @@ import (
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
 	"bonanza.build/pkg/storage/object"
-	"bonanza.build/pkg/storage/tag"
 	bonanza_sync "bonanza.build/pkg/sync"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
@@ -66,17 +64,16 @@ type RecursiveComputerEvaluationQueuePicker[TReference object.BasicReference, TM
 // available, computation of the original key is restarted. This process
 // repeates itself until all requested keys are exhausted.
 type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	base                       Computer[TReference, TMetadata]
-	evaluationQueuePicker      RecursiveComputerEvaluationQueuePicker[TReference, TMetadata]
-	referenceFormat            object.ReferenceFormat
-	objectManager              model_core.ObjectManager[TReference, TMetadata]
-	tagResolver                tag.Resolver[struct{}]
-	actionTagKeyReference      object.LocalReference
-	cacheTagSignaturePublicKey [ed25519.PublicKeySize]byte
-	cacheObjectReader          model_parser.MessageObjectReader[TReference, *model_evaluation_cache_pb.LookupResult]
-	cacheDeterministicEncoder  model_encoding.DeterministicBinaryEncoder
-	cacheKeyedEncoder          model_encoding.KeyedBinaryEncoder
-	clock                      clock.Clock
+	base                      Computer[TReference, TMetadata]
+	evaluationQueuePicker     RecursiveComputerEvaluationQueuePicker[TReference, TMetadata]
+	referenceFormat           object.ReferenceFormat
+	objectManager             model_core.ObjectManager[TReference, TMetadata]
+	tagResolver               model_tag.BoundResolver[TReference]
+	actionTagKeyReference     object.LocalReference
+	cacheObjectReader         model_parser.MessageObjectReader[TReference, *model_evaluation_cache_pb.LookupResult]
+	cacheDeterministicEncoder model_encoding.DeterministicBinaryEncoder
+	cacheKeyedEncoder         model_encoding.KeyedBinaryEncoder
+	clock                     clock.Clock
 
 	lock sync.RWMutex
 
@@ -111,26 +108,24 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 	evaluationQueuePicker RecursiveComputerEvaluationQueuePicker[TReference, TMetadata],
 	referenceFormat object.ReferenceFormat,
 	objectManager model_core.ObjectManager[TReference, TMetadata],
-	tagResolver tag.Resolver[struct{}],
+	tagResolver model_tag.BoundResolver[TReference],
 	actionTagKeyReference object.LocalReference,
-	cacheTagSignaturePrivateKey ed25519.PrivateKey,
 	cacheObjectReader model_parser.MessageObjectReader[TReference, *model_evaluation_cache_pb.LookupResult],
 	cacheDeterministicEncoder model_encoding.DeterministicBinaryEncoder,
 	cacheKeyedEncoder model_encoding.KeyedBinaryEncoder,
 	clock clock.Clock,
 ) *RecursiveComputer[TReference, TMetadata] {
 	rc := &RecursiveComputer[TReference, TMetadata]{
-		base:                       base,
-		evaluationQueuePicker:      evaluationQueuePicker,
-		referenceFormat:            referenceFormat,
-		objectManager:              objectManager,
-		tagResolver:                tagResolver,
-		actionTagKeyReference:      actionTagKeyReference,
-		cacheTagSignaturePublicKey: *(*[ed25519.PublicKeySize]byte)(cacheTagSignaturePrivateKey.Public().(ed25519.PublicKey)),
-		cacheObjectReader:          cacheObjectReader,
-		cacheDeterministicEncoder:  cacheDeterministicEncoder,
-		cacheKeyedEncoder:          cacheKeyedEncoder,
-		clock:                      clock,
+		base:                      base,
+		evaluationQueuePicker:     evaluationQueuePicker,
+		referenceFormat:           referenceFormat,
+		objectManager:             objectManager,
+		tagResolver:               tagResolver,
+		actionTagKeyReference:     actionTagKeyReference,
+		cacheObjectReader:         cacheObjectReader,
+		cacheDeterministicEncoder: cacheDeterministicEncoder,
+		cacheKeyedEncoder:         cacheKeyedEncoder,
+		clock:                     clock,
 
 		keys:         map[object.LocalReference]*KeyState[TReference, TMetadata]{},
 		blockingKeys: map[*KeyState[TReference, TMetadata]]struct{}{},
@@ -241,6 +236,9 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextEvaluatableKey(ct
 	return true
 }
 
+// ProcessNextUploadableKey processes one of the recently evaluated keys
+// and uploads its results into storage, so that subsequent builds can
+// reuse cached results.
 func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextUploadableKey(ctx context.Context) (bool, error) {
 	rc.lock.Lock()
 	for {
@@ -273,6 +271,9 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextUploadableKey(ctx
 	return true, nil
 }
 
+// GracefullyStopUploading can be used to ensure that calls to
+// ProcessNextUploadableKey() no longer block, but immediately return if
+// no keys need to be uploaded.
 func (rc *RecursiveComputer[TReference, TMetadata]) GracefullyStopUploading() {
 	rc.lock.Lock()
 	rc.shouldStopUploading = true
@@ -628,7 +629,7 @@ type valueState[TReference object.BasicReference, TMetadata model_core.Reference
 
 type messageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	triedCacheLookup            bool
-	rootCacheResultReference    object.LocalReference
+	rootCacheResultReference    model_core.Decodable[TReference]
 	gotRootCacheResultReference bool
 
 	isOverride bool
@@ -660,20 +661,17 @@ func (vs *messageValueState[TReference, TMetadata]) compute(ctx context.Context,
 		if err != nil {
 			return nil, err
 		}
-		if rootCacheResultValue, err := tag.ResolveCompleteTag(
-			ctx,
-			rc.tagResolver,
-			struct{}{},
-			tag.Key{
-				SignaturePublicKey: rc.cacheTagSignaturePublicKey,
-				Hash:               tagKeyHash.Value,
-			},
-			/* minimumTimestamp = */ nil,
-		); err == nil {
+		if rootCacheResultValue, err := model_tag.ResolveDecodableTag(ctx, rc.tagResolver, tagKeyHash); err == nil {
 			// TODO: Actually inspect the cache result.
-			vs.rootCacheResultReference = rootCacheResultValue.Value.Reference
+			rootCacheResultReference := rootCacheResultValue
+			vs.rootCacheResultReference = vs.rootCacheResultReference
 			vs.gotRootCacheResultReference = true
-			return nil, errors.New("got a cache hit")
+
+			if _, err := rc.cacheObjectReader.ReadObject(ctx, rootCacheResultReference); err == nil {
+				return nil, errors.New("got root cache result")
+			} else if status.Code(err) != codes.NotFound {
+				return nil, err
+			}
 		} else if status.Code(err) != codes.NotFound {
 			return nil, err
 		}
@@ -861,13 +859,13 @@ func (e NestedError[TReference]) Error() string {
 }
 
 type (
+	// BoundResolverForTesting is used to generate mocks that are used
+	// by RecursiveComputer's unit tests.
+	BoundResolverForTesting = model_tag.BoundResolver[object.LocalReference]
 	// CacheObjectReaderForTesting is used to generate mocks that
 	// are used by RecursiveComputer's unit tests.
 	CacheObjectReaderForTesting = model_parser.MessageObjectReader[object.LocalReference, *model_evaluation_cache_pb.LookupResult]
 	// ObjectManagerForTesting is used to generate mocks that are
 	// used by RecursiveComputer's unit tests.
 	ObjectManagerForTesting = model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata]
-	// TagResolverForTesting is used to generate mocks that are used
-	// by RecursiveComputer's unit tests.
-	TagResolverForTesting = tag.Resolver[struct{}]
 )

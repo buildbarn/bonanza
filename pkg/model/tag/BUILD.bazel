@@ -4,8 +4,11 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "tag",
     srcs = [
+        "bound_resolver.go",
         "decodable_key_hash.go",
         "mutable_proto_store.go",
+        "object_importing_bound_resolver.go",
+        "storage_backed_bound_resolver.go",
         "storage_backed_mutable_proto_store.go",
     ],
     importpath = "bonanza.build/pkg/model/tag",
