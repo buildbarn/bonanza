@@ -191,7 +191,7 @@ type LookupResult struct {
 	// Types that are valid to be assigned to Result:
 	//
 	//	*LookupResult_Initial_
-	//	*LookupResult_MissingDependencies
+	//	*LookupResult_MissingDependencies_
 	//	*LookupResult_HitGraphlet
 	//	*LookupResult_HitValue
 	Result        isLookupResult_Result `protobuf_oneof:"result"`
@@ -245,9 +245,9 @@ func (x *LookupResult) GetInitial() *LookupResult_Initial {
 	return nil
 }
 
-func (x *LookupResult) GetMissingDependencies() *LookupResult_MissingDepoendencies {
+func (x *LookupResult) GetMissingDependencies() *LookupResult_MissingDependencies {
 	if x != nil {
-		if x, ok := x.Result.(*LookupResult_MissingDependencies); ok {
+		if x, ok := x.Result.(*LookupResult_MissingDependencies_); ok {
 			return x.MissingDependencies
 		}
 	}
@@ -280,8 +280,8 @@ type LookupResult_Initial_ struct {
 	Initial *LookupResult_Initial `protobuf:"bytes,1,opt,name=initial,proto3,oneof"`
 }
 
-type LookupResult_MissingDependencies struct {
-	MissingDependencies *LookupResult_MissingDepoendencies `protobuf:"bytes,2,opt,name=missing_dependencies,json=missingDependencies,proto3,oneof"`
+type LookupResult_MissingDependencies_ struct {
+	MissingDependencies *LookupResult_MissingDependencies `protobuf:"bytes,2,opt,name=missing_dependencies,json=missingDependencies,proto3,oneof"`
 }
 
 type LookupResult_HitGraphlet struct {
@@ -294,7 +294,7 @@ type LookupResult_HitValue struct {
 
 func (*LookupResult_Initial_) isLookupResult_Result() {}
 
-func (*LookupResult_MissingDependencies) isLookupResult_Result() {}
+func (*LookupResult_MissingDependencies_) isLookupResult_Result() {}
 
 func (*LookupResult_HitGraphlet) isLookupResult_Result() {}
 
@@ -412,27 +412,27 @@ func (x *LookupResult_Initial) GetContainsIndirectionSince() *timestamppb.Timest
 	return nil
 }
 
-type LookupResult_MissingDepoendencies struct {
+type LookupResult_MissingDependencies struct {
 	state                    protoimpl.MessageState `protogen:"open.v1"`
 	AdditionalDependencyKeys []*evaluation.Keys     `protobuf:"bytes,1,rep,name=additional_dependency_keys,json=additionalDependencyKeys,proto3" json:"additional_dependency_keys,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
 
-func (x *LookupResult_MissingDepoendencies) Reset() {
-	*x = LookupResult_MissingDepoendencies{}
+func (x *LookupResult_MissingDependencies) Reset() {
+	*x = LookupResult_MissingDependencies{}
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LookupResult_MissingDepoendencies) String() string {
+func (x *LookupResult_MissingDependencies) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LookupResult_MissingDepoendencies) ProtoMessage() {}
+func (*LookupResult_MissingDependencies) ProtoMessage() {}
 
-func (x *LookupResult_MissingDepoendencies) ProtoReflect() protoreflect.Message {
+func (x *LookupResult_MissingDependencies) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -444,12 +444,12 @@ func (x *LookupResult_MissingDepoendencies) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LookupResult_MissingDepoendencies.ProtoReflect.Descriptor instead.
-func (*LookupResult_MissingDepoendencies) Descriptor() ([]byte, []int) {
+// Deprecated: Use LookupResult_MissingDependencies.ProtoReflect.Descriptor instead.
+func (*LookupResult_MissingDependencies) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2, 1}
 }
 
-func (x *LookupResult_MissingDepoendencies) GetAdditionalDependencyKeys() []*evaluation.Keys {
+func (x *LookupResult_MissingDependencies) GetAdditionalDependencyKeys() []*evaluation.Keys {
 	if x != nil {
 		return x.AdditionalDependencyKeys
 	}
@@ -474,17 +474,17 @@ const file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc = 
 	"\x05Scope\x12\v\n" +
 	"\aINVALID\x10\x00\x12\f\n" +
 	"\bGRAPHLET\x10\x01\x12\t\n" +
-	"\x05VALUE\x10\x02\"\xed\x05\n" +
+	"\x05VALUE\x10\x02\"\xeb\x05\n" +
 	"\fLookupResult\x12P\n" +
-	"\ainitial\x18\x01 \x01(\v24.bonanza.model.evaluation.cache.LookupResult.InitialH\x00R\ainitial\x12v\n" +
-	"\x14missing_dependencies\x18\x02 \x01(\v2A.bonanza.model.evaluation.cache.LookupResult.MissingDepoendenciesH\x00R\x13missingDependencies\x12G\n" +
+	"\ainitial\x18\x01 \x01(\v24.bonanza.model.evaluation.cache.LookupResult.InitialH\x00R\ainitial\x12u\n" +
+	"\x14missing_dependencies\x18\x02 \x01(\v2@.bonanza.model.evaluation.cache.LookupResult.MissingDependenciesH\x00R\x13missingDependencies\x12G\n" +
 	"\fhit_graphlet\x18\x03 \x01(\v2\".bonanza.model.evaluation.GraphletH\x00R\vhitGraphlet\x126\n" +
 	"\thit_value\x18\x04 \x01(\v2\x17.bonanza.model.core.AnyH\x00R\bhitValue\x1a\x91\x02\n" +
 	"\aInitial\x12X\n" +
 	"\x18graphlet_dependency_keys\x18\x01 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x16graphletDependencyKeys\x12R\n" +
 	"\x15value_dependency_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x13valueDependencyKeys\x12X\n" +
-	"\x1acontains_indirection_since\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x18containsIndirectionSince\x1at\n" +
-	"\x14MissingDepoendencies\x12\\\n" +
+	"\x1acontains_indirection_since\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x18containsIndirectionSince\x1as\n" +
+	"\x13MissingDependencies\x12\\\n" +
 	"\x1aadditional_dependency_keys\x18\x01 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x18additionalDependencyKeysB\b\n" +
 	"\x06resultB0Z.bonanza.build/pkg/proto/model/evaluation/cacheb\x06proto3"
 
@@ -509,7 +509,7 @@ var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_goTypes = []
 	(*LookupResult)(nil),                         // 3: bonanza.model.evaluation.cache.LookupResult
 	(*LookupTagKeyData_SubsequentLookup)(nil),    // 4: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
 	(*LookupResult_Initial)(nil),                 // 5: bonanza.model.evaluation.cache.LookupResult.Initial
-	(*LookupResult_MissingDepoendencies)(nil),    // 6: bonanza.model.evaluation.cache.LookupResult.MissingDepoendencies
+	(*LookupResult_MissingDependencies)(nil),     // 6: bonanza.model.evaluation.cache.LookupResult.MissingDependencies
 	(*tag.CommonKeyData)(nil),                    // 7: bonanza.model.tag.CommonKeyData
 	(*core.Reference)(nil),                       // 8: bonanza.model.core.Reference
 	(*evaluation.Graphlet)(nil),                  // 9: bonanza.model.evaluation.Graphlet
@@ -523,14 +523,14 @@ var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_depIdxs = []
 	8,  // 2: bonanza.model.evaluation.cache.LookupTagKeyData.evaluation_key_reference:type_name -> bonanza.model.core.Reference
 	4,  // 3: bonanza.model.evaluation.cache.LookupTagKeyData.subsequent_lookup:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
 	5,  // 4: bonanza.model.evaluation.cache.LookupResult.initial:type_name -> bonanza.model.evaluation.cache.LookupResult.Initial
-	6,  // 5: bonanza.model.evaluation.cache.LookupResult.missing_dependencies:type_name -> bonanza.model.evaluation.cache.LookupResult.MissingDepoendencies
+	6,  // 5: bonanza.model.evaluation.cache.LookupResult.missing_dependencies:type_name -> bonanza.model.evaluation.cache.LookupResult.MissingDependencies
 	9,  // 6: bonanza.model.evaluation.cache.LookupResult.hit_graphlet:type_name -> bonanza.model.evaluation.Graphlet
 	10, // 7: bonanza.model.evaluation.cache.LookupResult.hit_value:type_name -> bonanza.model.core.Any
 	0,  // 8: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.scope:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.Scope
 	11, // 9: bonanza.model.evaluation.cache.LookupResult.Initial.graphlet_dependency_keys:type_name -> bonanza.model.evaluation.Keys
 	11, // 10: bonanza.model.evaluation.cache.LookupResult.Initial.value_dependency_keys:type_name -> bonanza.model.evaluation.Keys
 	12, // 11: bonanza.model.evaluation.cache.LookupResult.Initial.contains_indirection_since:type_name -> google.protobuf.Timestamp
-	11, // 12: bonanza.model.evaluation.cache.LookupResult.MissingDepoendencies.additional_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	11, // 12: bonanza.model.evaluation.cache.LookupResult.MissingDependencies.additional_dependency_keys:type_name -> bonanza.model.evaluation.Keys
 	13, // [13:13] is the sub-list for method output_type
 	13, // [13:13] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
@@ -545,7 +545,7 @@ func file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_init() {
 	}
 	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[2].OneofWrappers = []any{
 		(*LookupResult_Initial_)(nil),
-		(*LookupResult_MissingDependencies)(nil),
+		(*LookupResult_MissingDependencies_)(nil),
 		(*LookupResult_HitGraphlet)(nil),
 		(*LookupResult_HitValue)(nil),
 	}

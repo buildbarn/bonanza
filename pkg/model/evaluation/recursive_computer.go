@@ -647,28 +647,36 @@ func (vs *messageValueState[TReference, TMetadata]) compute(ctx context.Context,
 					LocalReference: ks.keyReference,
 				}),
 			}
-			/*
-				if false {
-					result.SubsequentLookup = &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
-						SelectedGranularityLevel: 67,
-						DependenciesHash:         []byte("TODO"),
-					}
-				}
-			*/
 			return result
 		}).SortAndSetReferences()
 		tagKeyHash, err := model_tag.NewDecodableKeyHashFromMessage(tagKeyData, rc.cacheObjectReader.GetDecodingParametersSizeBytes())
 		if err != nil {
 			return nil, err
 		}
-		if rootCacheResultValue, err := model_tag.ResolveDecodableTag(ctx, rc.tagResolver, tagKeyHash); err == nil {
-			// TODO: Actually inspect the cache result.
-			rootCacheResultReference := rootCacheResultValue
-			vs.rootCacheResultReference = vs.rootCacheResultReference
-			vs.gotRootCacheResultReference = true
-
-			if _, err := rc.cacheObjectReader.ReadObject(ctx, rootCacheResultReference); err == nil {
-				return nil, errors.New("got root cache result")
+		if rootCacheResultReference, err := model_tag.ResolveDecodableTag(ctx, rc.tagResolver, tagKeyHash); err == nil {
+			if lookupResult, err := rc.cacheObjectReader.ReadObject(ctx, rootCacheResultReference); err == nil {
+				switch r := lookupResult.Message.Result.(type) {
+				case *model_evaluation_cache_pb.LookupResult_Initial_:
+					// TODO: Actually inspect the cache result.
+					vs.rootCacheResultReference = rootCacheResultReference
+					vs.gotRootCacheResultReference = true
+					return nil, errors.New("got initial result")
+				case *model_evaluation_cache_pb.LookupResult_HitValue:
+					// It turns out the current key does
+					// not have any dependencies. This
+					// means that the initial lookup
+					// returned a value immediately.
+					cachedAnyValue, err := model_core.FlattenAny(model_core.Nested(lookupResult, r.HitValue))
+					if err != nil {
+						return nil, err
+					}
+					cachedValue, err := model_core.UnmarshalTopLevelAnyNew(cachedAnyValue)
+					if err != nil {
+						return nil, err
+					}
+					vs.value = cachedValue.Decay()
+					return nil, nil
+				}
 			} else if status.Code(err) != codes.NotFound {
 				return nil, err
 			}

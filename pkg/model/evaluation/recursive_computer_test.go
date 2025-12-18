@@ -7,6 +7,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	model_evaluation "bonanza.build/pkg/model/evaluation"
+	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
 	"bonanza.build/pkg/storage/object"
 
@@ -19,6 +20,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -420,7 +422,7 @@ func TestRecursiveComputer(t *testing.T) {
 					},
 				),
 			),
-		).Return(model_core.Message[*model_evaluation_cache_pb.LookupResult, object.LocalReference]{}, status.Error(codes.NotFound, "Tag does not exist"))
+		).Return(model_core.Message[*model_evaluation_cache_pb.LookupResult, object.LocalReference]{}, status.Error(codes.NotFound, "Object does not exist"))
 		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
@@ -441,6 +443,181 @@ func TestRecursiveComputer(t *testing.T) {
 		)
 		testutil.RequireEqualProto(t, &wrapperspb.UInt64Value{
 			Value: 42,
+		}, value.Message)
+	})
+
+	t.Run("CacheLookupReturningUnexpectedResult", func(t *testing.T) {
+		// The first cache lookup should typically contain an
+		// Initial message, describing the initial set of
+		// dependencies that need to be considered. If the
+		// message is malformed and contains another type of
+		// message, we should just ignore it.
+		computer := NewMockComputerForTesting(ctrl)
+		objectManager := NewMockObjectManagerForTesting(ctrl)
+		tagResolver := NewMockBoundResolverForTesting(ctrl)
+		cacheObjectReader := NewMockCacheObjectReaderForTesting(ctrl)
+		cacheObjectReader.EXPECT().GetDecodingParametersSizeBytes().Return(16).AnyTimes()
+		cacheDeterministicEncoder := NewMockDeterministicBinaryEncoder(ctrl)
+		cacheKeyedEncoder := NewMockKeyedBinaryEncoder(ctrl)
+
+		queuesFactory := model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
+		queues := queuesFactory.NewQueues()
+		recursiveComputer := model_evaluation.NewRecursiveComputer(
+			computer,
+			queues,
+			object.SHA256V1ReferenceFormat,
+			objectManager,
+			tagResolver,
+			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("4466f601ba900ce4e0d606dc68dd0c35c5e976792784400514f42905d6deba6e", 64722, 0, 0, 0),
+			cacheObjectReader,
+			cacheDeterministicEncoder,
+			cacheKeyedEncoder,
+			clock.SystemClock,
+		)
+
+		keyState, err := recursiveComputer.GetOrCreateKeyState(
+			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+				&wrapperspb.UInt32Value{
+					Value: 12,
+				},
+			),
+		)
+		require.NoError(t, err)
+
+		tagResolver.EXPECT().ResolveTag(
+			gomock.Any(),
+			[...]byte{
+				0x57, 0x12, 0x01, 0xf0, 0x80, 0xf7, 0xe1, 0x9f,
+				0x41, 0x44, 0x87, 0x88, 0x9b, 0xf3, 0xc9, 0x4f,
+				0x61, 0x68, 0x71, 0xd5, 0x07, 0x06, 0x3e, 0x92,
+				0xdc, 0x40, 0x42, 0xbf, 0x2a, 0x3c, 0x01, 0xec,
+			},
+		).Return(object.MustNewSHA256V1LocalReference("829d56c5c910ff51bb09192f5655cd51c02e54c3e16b00d2fde8a6b7e3d814fc", 95938, 0, 0, 0), nil)
+		cacheObjectReader.EXPECT().ReadObject(
+			gomock.Any(),
+			util.Must(
+				model_core.NewDecodable(
+					object.MustNewSHA256V1LocalReference("829d56c5c910ff51bb09192f5655cd51c02e54c3e16b00d2fde8a6b7e3d814fc", 95938, 0, 0, 0),
+					[]byte{
+						0x9c, 0x80, 0x78, 0x1a, 0xa4, 0x29, 0x20, 0x6d,
+						0x76, 0xa4, 0x4e, 0x8f, 0x4c, 0x2e, 0xce, 0xd5,
+					},
+				),
+			),
+		).Return(model_core.NewSimpleMessage[object.LocalReference](
+			&model_evaluation_cache_pb.LookupResult{
+				Result: &model_evaluation_cache_pb.LookupResult_MissingDependencies_{
+					MissingDependencies: &model_evaluation_cache_pb.LookupResult_MissingDependencies{},
+				},
+			},
+		), nil)
+		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+				return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
+					&wrapperspb.UInt64Value{Value: 13},
+				), nil
+			})
+
+		var value model_core.Message[proto.Message, object.LocalReference]
+		require.NoError(
+			t,
+			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+				queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
+
+				var err error
+				value, err = recursiveComputer.WaitForMessageValue(ctx, keyState)
+				return err
+			}),
+		)
+		testutil.RequireEqualProto(t, &wrapperspb.UInt64Value{
+			Value: 13,
+		}, value.Message)
+	})
+
+	t.Run("CacheLookupWithoutDependencies", func(t *testing.T) {
+		// In the extremely rare case that a key has no
+		// dependencies, the initial lookup result may a value
+		// directly. There should be no need to call into the
+		// computer, as the cached value can be used.
+		computer := NewMockComputerForTesting(ctrl)
+		objectManager := NewMockObjectManagerForTesting(ctrl)
+		tagResolver := NewMockBoundResolverForTesting(ctrl)
+		cacheObjectReader := NewMockCacheObjectReaderForTesting(ctrl)
+		cacheObjectReader.EXPECT().GetDecodingParametersSizeBytes().Return(16).AnyTimes()
+		cacheDeterministicEncoder := NewMockDeterministicBinaryEncoder(ctrl)
+		cacheKeyedEncoder := NewMockKeyedBinaryEncoder(ctrl)
+
+		queuesFactory := model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
+		queues := queuesFactory.NewQueues()
+		recursiveComputer := model_evaluation.NewRecursiveComputer(
+			computer,
+			queues,
+			object.SHA256V1ReferenceFormat,
+			objectManager,
+			tagResolver,
+			/* actionTagKeyReference = */
+			object.MustNewSHA256V1LocalReference("2fbd13f1ee48876ec1e85961b59877c3916fb10ae23e7e1e45083feecafe1804", 57483, 0, 0, 0),
+			cacheObjectReader,
+			cacheDeterministicEncoder,
+			cacheKeyedEncoder,
+			clock.SystemClock,
+		)
+
+		keyState, err := recursiveComputer.GetOrCreateKeyState(
+			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+				&wrapperspb.UInt32Value{
+					Value: 24,
+				},
+			),
+		)
+		require.NoError(t, err)
+
+		tagResolver.EXPECT().ResolveTag(
+			gomock.Any(),
+			[...]byte{
+				0x1e, 0x0f, 0x30, 0xc1, 0x1c, 0x0a, 0x4d, 0x1c,
+				0xd6, 0x18, 0x13, 0x8d, 0xa3, 0x58, 0x40, 0xfa,
+				0x31, 0x22, 0x07, 0x66, 0x38, 0x45, 0x22, 0x9b,
+				0x70, 0x31, 0xbb, 0xac, 0xe8, 0x70, 0x35, 0x07,
+			},
+		).Return(object.MustNewSHA256V1LocalReference("e1749fb7b82448ae6941d4f7e515818efbf781e6fe2738465bd9ce876b8d9866", 2345, 0, 0, 0), nil)
+		cacheObjectReader.EXPECT().ReadObject(
+			gomock.Any(),
+			util.Must(
+				model_core.NewDecodable(
+					object.MustNewSHA256V1LocalReference("e1749fb7b82448ae6941d4f7e515818efbf781e6fe2738465bd9ce876b8d9866", 2345, 0, 0, 0),
+					[]byte{
+						0xe5, 0x83, 0xfe, 0x6a, 0x73, 0xa3, 0x7f, 0xe9,
+						0x5c, 0xb8, 0x4f, 0x3a, 0x54, 0xdf, 0xd3, 0x87,
+					},
+				),
+			),
+		).Return(model_core.NewSimpleMessage[object.LocalReference](
+			&model_evaluation_cache_pb.LookupResult{
+				Result: &model_evaluation_cache_pb.LookupResult_HitValue{
+					HitValue: &model_core_pb.Any{
+						Value: util.Must(anypb.New(&wrapperspb.UInt64Value{
+							Value: 26,
+						})),
+						References: &model_core_pb.ReferenceSet{},
+					},
+				},
+			},
+		), nil)
+
+		var value model_core.Message[proto.Message, object.LocalReference]
+		require.NoError(
+			t,
+			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+				queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
+
+				var err error
+				value, err = recursiveComputer.WaitForMessageValue(ctx, keyState)
+				return err
+			}),
+		)
+		testutil.RequireEqualProto(t, &wrapperspb.UInt64Value{
+			Value: 26,
 		}, value.Message)
 	})
 }

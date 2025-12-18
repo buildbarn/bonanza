@@ -58,11 +58,11 @@ message LookupTagKeyData {
 
 message LookupResult {
   message Initial {
-    // The expected set of dependencies of the graphlet rooted at the
-    // current key.
+    // Non-empty expected set of dependencies of the graphlet rooted at
+    // the current key.
     repeated bonanza.model.evaluation.Keys graphlet_dependency_keys = 1;
 
-    // The expected set of direct dependencies of the current key.
+    // Non-empty expected set of direct dependencies of the current key.
     repeated bonanza.model.evaluation.Keys value_dependency_keys = 2;
 
     // If set, there is a probability that subsequent lookups will require
@@ -76,16 +76,17 @@ message LookupResult {
     google.protobuf.Timestamp contains_indirection_since = 3;
   }
 
-  message MissingDepoendencies {
-    // Set of additional dependencies for which values needs to be
-    // computed, so that another lookup can be attempted.
+  message MissingDependencies {
+    // Non-empty set of additional dependencies for which values needs
+    // to be computed, so that another lookup can be attempted.
     repeated bonanza.model.evaluation.Keys additional_dependency_keys = 1;
   }
 
   oneof result {
-    // The entry that is returned when an initial lookup is performed.
-    // It stores the expected set of dependencies of both the key and
-    // the graphlet rooted at the current key.
+    // The entry that is returned when an initial lookup is performed,
+    // and the key has a non-empty set of dependencies. It stores the
+    // expected set of dependencies of both the key and the graphlet
+    // rooted at the current key.
     Initial initial = 1;
 
     // The set of dependencies returned by the previous lookup(s) were
@@ -94,7 +95,7 @@ message LookupResult {
     // keys that are shared by all evaluations. Now an additional lookup
     // needs to be performed, incorporating the values of even more
     // dependencies.
-    MissingDepoendencies missing_dependencies = 2;
+    MissingDependencies missing_dependencies = 2;
 
     // All provided dependencies of the graphlet rooted at the current
     // key match previously observed values, meaning that a previously
@@ -104,6 +105,9 @@ message LookupResult {
     // All provided dependencies of the current key match previously
     // observed values, meaning that a previously computed value can be
     // used.
+    //
+    // This may also be returned as part of the initial lookup if the
+    // requested key does not have any dependencies.
     bonanza.model.core.Any hit_value = 4;
   }
 }
