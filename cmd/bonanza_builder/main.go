@@ -15,7 +15,6 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	"bonanza.build/pkg/proto/configuration/bonanza_builder"
-	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_executewithstorage_pb "bonanza.build/pkg/proto/model/executewithstorage"
 	remoteexecution_pb "bonanza.build/pkg/proto/remoteexecution"
@@ -44,7 +43,6 @@ import (
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -214,18 +212,18 @@ type queues[TReference object.BasicReference, TMetadata model_core.ReferenceMeta
 	remote model_evaluation.RecursiveComputerEvaluationQueues[TReference, TMetadata]
 }
 
-func (q *queues[TReference, TMetadata]) PickQueue(key model_core.Message[proto.Message, TReference]) *model_evaluation.RecursiveComputerEvaluationQueue[TReference, TMetadata] {
-	switch key.Message.(type) {
-	case *model_analysis_pb.HttpFileContents_Key:
-	case *model_analysis_pb.RawActionResult_Key:
+func (q *queues[TReference, TMetadata]) PickQueue(typeURL string) *model_evaluation.RecursiveComputerEvaluationQueue[TReference, TMetadata] {
+	switch typeURL {
+	case "type.googleapis.com/bonanza.model.analysis.HttpFileContents.Key":
+	case "type.googleapis.com/bonanza.model.analysis.RawActionResult.Key":
 		// Run evaluation steps that call into the remote
 		// execution client with a higher concurrency.
-		return q.remote.PickQueue(key)
+		return q.remote.PickQueue(typeURL)
 	}
 
 	// Run all other evaluation steps that run locally with a lower
 	// concurrency.
-	return q.local.PickQueue(key)
+	return q.local.PickQueue(typeURL)
 }
 
 func (q *queues[TReference, TMetadata]) ProcessAllEvaluatableKeys(group program.Group, computer *model_evaluation.RecursiveComputer[TReference, TMetadata]) {

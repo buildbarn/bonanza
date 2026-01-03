@@ -19,6 +19,22 @@ message ActionTagKeyData {
   bytes key_references_with_overrides_hash = 2;
 }
 
+message DependenciesHashRecord {
+  // Reference of the key for which evaluation was performed.
+  bonanza.model.core.Reference key_reference = 1;
+
+  oneof value {
+    // In case evaluation of the function yielded a message value, the
+    // reference of the message value.
+    bonanza.model.core.Reference message_value_reference = 2;
+
+    // In case evaluation of the function yielded a native value, the
+    // homomorphic hash of the keys and values of all dependencies that
+    // were accessed during evaluation.
+    bytes native_value_dependencies_hash = 3;
+  }
+}
+
 message LookupTagKeyData {
   // Reference to the ActionTagKeyData message containing parameters
   // shared across all tag key hashes belonging to a single

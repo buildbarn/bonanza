@@ -71,7 +71,7 @@ func (x LookupTagKeyData_SubsequentLookup_Scope) Number() protoreflect.EnumNumbe
 
 // Deprecated: Use LookupTagKeyData_SubsequentLookup_Scope.Descriptor instead.
 func (LookupTagKeyData_SubsequentLookup_Scope) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{1, 0, 0}
+	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2, 0, 0}
 }
 
 type ActionTagKeyData struct {
@@ -126,6 +126,58 @@ func (x *ActionTagKeyData) GetKeyReferencesWithOverridesHash() []byte {
 	return nil
 }
 
+type DependenciesHashRecord struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	KeyReference   *core.Reference        `protobuf:"bytes,1,opt,name=key_reference,json=keyReference,proto3" json:"key_reference,omitempty"`
+	ValueReference *core.Reference        `protobuf:"bytes,2,opt,name=value_reference,json=valueReference,proto3" json:"value_reference,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *DependenciesHashRecord) Reset() {
+	*x = DependenciesHashRecord{}
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DependenciesHashRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DependenciesHashRecord) ProtoMessage() {}
+
+func (x *DependenciesHashRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DependenciesHashRecord.ProtoReflect.Descriptor instead.
+func (*DependenciesHashRecord) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *DependenciesHashRecord) GetKeyReference() *core.Reference {
+	if x != nil {
+		return x.KeyReference
+	}
+	return nil
+}
+
+func (x *DependenciesHashRecord) GetValueReference() *core.Reference {
+	if x != nil {
+		return x.ValueReference
+	}
+	return nil
+}
+
 type LookupTagKeyData struct {
 	state                  protoimpl.MessageState             `protogen:"open.v1"`
 	ActionTagKeyReference  *core.Reference                    `protobuf:"bytes,1,opt,name=action_tag_key_reference,json=actionTagKeyReference,proto3" json:"action_tag_key_reference,omitempty"`
@@ -137,7 +189,7 @@ type LookupTagKeyData struct {
 
 func (x *LookupTagKeyData) Reset() {
 	*x = LookupTagKeyData{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -149,7 +201,7 @@ func (x *LookupTagKeyData) String() string {
 func (*LookupTagKeyData) ProtoMessage() {}
 
 func (x *LookupTagKeyData) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -162,7 +214,7 @@ func (x *LookupTagKeyData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LookupTagKeyData.ProtoReflect.Descriptor instead.
 func (*LookupTagKeyData) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *LookupTagKeyData) GetActionTagKeyReference() *core.Reference {
@@ -201,7 +253,7 @@ type LookupResult struct {
 
 func (x *LookupResult) Reset() {
 	*x = LookupResult{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -213,7 +265,7 @@ func (x *LookupResult) String() string {
 func (*LookupResult) ProtoMessage() {}
 
 func (x *LookupResult) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -226,7 +278,7 @@ func (x *LookupResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LookupResult.ProtoReflect.Descriptor instead.
 func (*LookupResult) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *LookupResult) GetResult() isLookupResult_Result {
@@ -310,7 +362,7 @@ type LookupTagKeyData_SubsequentLookup struct {
 
 func (x *LookupTagKeyData_SubsequentLookup) Reset() {
 	*x = LookupTagKeyData_SubsequentLookup{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -322,7 +374,7 @@ func (x *LookupTagKeyData_SubsequentLookup) String() string {
 func (*LookupTagKeyData_SubsequentLookup) ProtoMessage() {}
 
 func (x *LookupTagKeyData_SubsequentLookup) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -335,7 +387,7 @@ func (x *LookupTagKeyData_SubsequentLookup) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use LookupTagKeyData_SubsequentLookup.ProtoReflect.Descriptor instead.
 func (*LookupTagKeyData_SubsequentLookup) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{1, 0}
+	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2, 0}
 }
 
 func (x *LookupTagKeyData_SubsequentLookup) GetScope() LookupTagKeyData_SubsequentLookup_Scope {
@@ -363,7 +415,7 @@ type LookupResult_Initial struct {
 
 func (x *LookupResult_Initial) Reset() {
 	*x = LookupResult_Initial{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -375,7 +427,7 @@ func (x *LookupResult_Initial) String() string {
 func (*LookupResult_Initial) ProtoMessage() {}
 
 func (x *LookupResult_Initial) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -388,7 +440,7 @@ func (x *LookupResult_Initial) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LookupResult_Initial.ProtoReflect.Descriptor instead.
 func (*LookupResult_Initial) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2, 0}
+	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{3, 0}
 }
 
 func (x *LookupResult_Initial) GetGraphletDependencyKeys() []*evaluation.Keys {
@@ -421,7 +473,7 @@ type LookupResult_MissingDependencies struct {
 
 func (x *LookupResult_MissingDependencies) Reset() {
 	*x = LookupResult_MissingDependencies{}
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -433,7 +485,7 @@ func (x *LookupResult_MissingDependencies) String() string {
 func (*LookupResult_MissingDependencies) ProtoMessage() {}
 
 func (x *LookupResult_MissingDependencies) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -446,7 +498,7 @@ func (x *LookupResult_MissingDependencies) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LookupResult_MissingDependencies.ProtoReflect.Descriptor instead.
 func (*LookupResult_MissingDependencies) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2, 1}
+	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{3, 1}
 }
 
 func (x *LookupResult_MissingDependencies) GetAdditionalDependencyKeys() []*evaluation.Keys {
@@ -463,7 +515,10 @@ const file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc = 
 	":bonanza.build/pkg/proto/model/evaluation/cache/cache.proto\x12\x1ebonanza.model.evaluation.cache\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x1a+bonanza.build/pkg/proto/model/tag/tag.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\x01\n" +
 	"\x10ActionTagKeyData\x12O\n" +
 	"\x13common_tag_key_data\x18\x01 \x01(\v2 .bonanza.model.tag.CommonKeyDataR\x10commonTagKeyData\x12J\n" +
-	"\"key_references_with_overrides_hash\x18\x02 \x01(\fR\x1ekeyReferencesWithOverridesHash\"\x83\x04\n" +
+	"\"key_references_with_overrides_hash\x18\x02 \x01(\fR\x1ekeyReferencesWithOverridesHash\"\xa4\x01\n" +
+	"\x16DependenciesHashRecord\x12B\n" +
+	"\rkey_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\fkeyReference\x12F\n" +
+	"\x0fvalue_reference\x18\x02 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x0evalueReference\"\x83\x04\n" +
 	"\x10LookupTagKeyData\x12V\n" +
 	"\x18action_tag_key_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x15actionTagKeyReference\x12W\n" +
 	"\x18evaluation_key_reference\x18\x02 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x16evaluationKeyReference\x12n\n" +
@@ -501,41 +556,44 @@ func file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP
 }
 
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_goTypes = []any{
 	(LookupTagKeyData_SubsequentLookup_Scope)(0), // 0: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.Scope
 	(*ActionTagKeyData)(nil),                     // 1: bonanza.model.evaluation.cache.ActionTagKeyData
-	(*LookupTagKeyData)(nil),                     // 2: bonanza.model.evaluation.cache.LookupTagKeyData
-	(*LookupResult)(nil),                         // 3: bonanza.model.evaluation.cache.LookupResult
-	(*LookupTagKeyData_SubsequentLookup)(nil),    // 4: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
-	(*LookupResult_Initial)(nil),                 // 5: bonanza.model.evaluation.cache.LookupResult.Initial
-	(*LookupResult_MissingDependencies)(nil),     // 6: bonanza.model.evaluation.cache.LookupResult.MissingDependencies
-	(*tag.CommonKeyData)(nil),                    // 7: bonanza.model.tag.CommonKeyData
-	(*core.Reference)(nil),                       // 8: bonanza.model.core.Reference
-	(*evaluation.Graphlet)(nil),                  // 9: bonanza.model.evaluation.Graphlet
-	(*core.Any)(nil),                             // 10: bonanza.model.core.Any
-	(*evaluation.Keys)(nil),                      // 11: bonanza.model.evaluation.Keys
-	(*timestamppb.Timestamp)(nil),                // 12: google.protobuf.Timestamp
+	(*DependenciesHashRecord)(nil),               // 2: bonanza.model.evaluation.cache.DependenciesHashRecord
+	(*LookupTagKeyData)(nil),                     // 3: bonanza.model.evaluation.cache.LookupTagKeyData
+	(*LookupResult)(nil),                         // 4: bonanza.model.evaluation.cache.LookupResult
+	(*LookupTagKeyData_SubsequentLookup)(nil),    // 5: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
+	(*LookupResult_Initial)(nil),                 // 6: bonanza.model.evaluation.cache.LookupResult.Initial
+	(*LookupResult_MissingDependencies)(nil),     // 7: bonanza.model.evaluation.cache.LookupResult.MissingDependencies
+	(*tag.CommonKeyData)(nil),                    // 8: bonanza.model.tag.CommonKeyData
+	(*core.Reference)(nil),                       // 9: bonanza.model.core.Reference
+	(*evaluation.Graphlet)(nil),                  // 10: bonanza.model.evaluation.Graphlet
+	(*core.Any)(nil),                             // 11: bonanza.model.core.Any
+	(*evaluation.Keys)(nil),                      // 12: bonanza.model.evaluation.Keys
+	(*timestamppb.Timestamp)(nil),                // 13: google.protobuf.Timestamp
 }
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_depIdxs = []int32{
-	7,  // 0: bonanza.model.evaluation.cache.ActionTagKeyData.common_tag_key_data:type_name -> bonanza.model.tag.CommonKeyData
-	8,  // 1: bonanza.model.evaluation.cache.LookupTagKeyData.action_tag_key_reference:type_name -> bonanza.model.core.Reference
-	8,  // 2: bonanza.model.evaluation.cache.LookupTagKeyData.evaluation_key_reference:type_name -> bonanza.model.core.Reference
-	4,  // 3: bonanza.model.evaluation.cache.LookupTagKeyData.subsequent_lookup:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
-	5,  // 4: bonanza.model.evaluation.cache.LookupResult.initial:type_name -> bonanza.model.evaluation.cache.LookupResult.Initial
-	6,  // 5: bonanza.model.evaluation.cache.LookupResult.missing_dependencies:type_name -> bonanza.model.evaluation.cache.LookupResult.MissingDependencies
-	9,  // 6: bonanza.model.evaluation.cache.LookupResult.hit_graphlet:type_name -> bonanza.model.evaluation.Graphlet
-	10, // 7: bonanza.model.evaluation.cache.LookupResult.hit_value:type_name -> bonanza.model.core.Any
-	0,  // 8: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.scope:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.Scope
-	11, // 9: bonanza.model.evaluation.cache.LookupResult.Initial.graphlet_dependency_keys:type_name -> bonanza.model.evaluation.Keys
-	11, // 10: bonanza.model.evaluation.cache.LookupResult.Initial.value_dependency_keys:type_name -> bonanza.model.evaluation.Keys
-	12, // 11: bonanza.model.evaluation.cache.LookupResult.Initial.contains_indirection_since:type_name -> google.protobuf.Timestamp
-	11, // 12: bonanza.model.evaluation.cache.LookupResult.MissingDependencies.additional_dependency_keys:type_name -> bonanza.model.evaluation.Keys
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	8,  // 0: bonanza.model.evaluation.cache.ActionTagKeyData.common_tag_key_data:type_name -> bonanza.model.tag.CommonKeyData
+	9,  // 1: bonanza.model.evaluation.cache.DependenciesHashRecord.key_reference:type_name -> bonanza.model.core.Reference
+	9,  // 2: bonanza.model.evaluation.cache.DependenciesHashRecord.value_reference:type_name -> bonanza.model.core.Reference
+	9,  // 3: bonanza.model.evaluation.cache.LookupTagKeyData.action_tag_key_reference:type_name -> bonanza.model.core.Reference
+	9,  // 4: bonanza.model.evaluation.cache.LookupTagKeyData.evaluation_key_reference:type_name -> bonanza.model.core.Reference
+	5,  // 5: bonanza.model.evaluation.cache.LookupTagKeyData.subsequent_lookup:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
+	6,  // 6: bonanza.model.evaluation.cache.LookupResult.initial:type_name -> bonanza.model.evaluation.cache.LookupResult.Initial
+	7,  // 7: bonanza.model.evaluation.cache.LookupResult.missing_dependencies:type_name -> bonanza.model.evaluation.cache.LookupResult.MissingDependencies
+	10, // 8: bonanza.model.evaluation.cache.LookupResult.hit_graphlet:type_name -> bonanza.model.evaluation.Graphlet
+	11, // 9: bonanza.model.evaluation.cache.LookupResult.hit_value:type_name -> bonanza.model.core.Any
+	0,  // 10: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.scope:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.Scope
+	12, // 11: bonanza.model.evaluation.cache.LookupResult.Initial.graphlet_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	12, // 12: bonanza.model.evaluation.cache.LookupResult.Initial.value_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	13, // 13: bonanza.model.evaluation.cache.LookupResult.Initial.contains_indirection_since:type_name -> google.protobuf.Timestamp
+	12, // 14: bonanza.model.evaluation.cache.LookupResult.MissingDependencies.additional_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_init() }
@@ -543,7 +601,7 @@ func file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_init() {
 	if File_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto != nil {
 		return
 	}
-	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[2].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[3].OneofWrappers = []any{
 		(*LookupResult_Initial_)(nil),
 		(*LookupResult_MissingDependencies_)(nil),
 		(*LookupResult_HitGraphlet)(nil),
@@ -555,7 +613,7 @@ func file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

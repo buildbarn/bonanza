@@ -35,6 +35,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ComputerFactory is called into by the executor to obtain an instance
@@ -239,6 +240,13 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		)
 
 		queues := e.evaluationQueuesFactory.NewQueues()
+		keysReader := model_parser.LookupParsedObjectReader(
+			parsedObjectPoolIngester,
+			model_parser.NewChainedObjectParser(
+				model_parser.NewEncodedObjectParser[buffered.Reference](deterministicActionEncoder),
+				model_parser.NewProtoListObjectParser[buffered.Reference, model_evaluation_pb.Keys](),
+			),
+		)
 		recursiveComputer := NewRecursiveComputer(
 			NewLeakCheckingComputer(
 				e.computerFactory.NewComputer(
@@ -266,9 +274,12 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			actionTagKeyReference,
 			model_parser.LookupParsedObjectReader(
 				parsedObjectPoolIngester,
-				// TODO: Encode objects.
-				model_parser.NewProtoObjectParser[buffered.Reference, model_evaluation_cache_pb.LookupResult](),
+				model_parser.NewChainedObjectParser(
+					model_parser.NewEncodedObjectParser[buffered.Reference](keyedActionEncoder),
+					model_parser.NewProtoObjectParser[buffered.Reference, model_evaluation_cache_pb.LookupResult](),
+				),
 			),
+			keysReader,
 			deterministicActionEncoder,
 			keyedActionEncoder,
 			e.clock,
@@ -306,14 +317,14 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				}
 				return &result
 			}
-			value, err := model_core.UnmarshalAnyNew(model_core.Nested(override, graphlet.Value))
+			value, err := model_core.FlattenAny(model_core.Nested(override, graphlet.Value))
 			if err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.Convert(err).Proto(),
 				}
 				return &result
 			}
-			if err := recursiveComputer.InjectKeyState(keyReference, value.Decay()); err != nil {
+			if err := recursiveComputer.InjectKeyState(keyReference, value); err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.Convert(err).Proto(),
 				}
@@ -329,15 +340,9 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 
 		// Determine which keys are requested. For each of them
 		// create a KeyState so that its value will be computed.
-		keysReader := model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[buffered.Reference](deterministicActionEncoder),
-				model_parser.NewProtoListObjectParser[buffered.Reference, model_evaluation_pb.Keys](),
-			),
-		)
 		var errIterRequestedKeys error
-		var requestedKeys []model_core.TopLevelMessage[proto.Message, buffered.Reference]
+		var requestedKeys []model_core.TopLevelMessage[*anypb.Any, buffered.Reference]
+		var requestedKeyReferences []object.LocalReference
 		for requestedKeyNode := range btree.AllLeaves(
 			ctx,
 			keysReader,
@@ -354,7 +359,8 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				}
 				return &result
 			}
-			requestedKey, err := model_core.UnmarshalAnyNew(model_core.Nested(requestedKeyNode, requestedKeyLeaf.Leaf))
+
+			requestedKey, err := model_core.FlattenAny(model_core.Nested(requestedKeyNode, requestedKeyLeaf.Leaf))
 			if err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.Convert(err).Proto(),
@@ -362,6 +368,16 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				return &result
 			}
 			requestedKeys = append(requestedKeys, requestedKey)
+
+			requestedKeyReference, err := model_core.ComputeTopLevelMessageReference(requestedKey, referenceFormat)
+			if err != nil {
+				result.Failure = &model_evaluation_pb.Result_Failure{
+					Status: status.Convert(err).Proto(),
+				}
+				return &result
+			}
+			requestedKeyReferences = append(requestedKeyReferences, requestedKeyReference)
+
 		}
 		if errIterRequestedKeys != nil {
 			result.Failure = &model_evaluation_pb.Result_Failure{
@@ -395,7 +411,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 					case <-tChan:
 					}
 
-					progress, err := recursiveComputer.GetProgress()
+					progress, err := recursiveComputer.GetProgress(ctx)
 					if err != nil {
 						return err
 					}
@@ -451,10 +467,10 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				// Launch goroutines for waiting for build completion.
 				for i, requestedKeyState := range requestedKeyStates {
 					siblingsGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-						if _, err := recursiveComputer.WaitForMessageValue(ctx, requestedKeyState); err != nil {
-							return NestedError[buffered.Reference]{
-								Key: requestedKeys[i],
-								Err: err,
+						if err := recursiveComputer.WaitForEvaluation(ctx, requestedKeyState); err != nil {
+							return NestedError[buffered.Reference, buffered.ReferenceMetadata]{
+								KeyState: requestedKeyStates[i],
+								Err:      err,
 							}
 						}
 						return nil
@@ -483,12 +499,20 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		if errComputeAndUpload != nil {
 			var patchedStackTraceKeys []*model_core_pb.Any
 			for {
-				var nestedErr NestedError[buffered.Reference]
+				var nestedErr NestedError[buffered.Reference, buffered.ReferenceMetadata]
 				if !errors.As(errComputeAndUpload, &nestedErr) {
 					break
 				}
 
-				patchedKey := model_core.Patch(objectManager, nestedErr.Key.Decay())
+				key, err := recursiveComputer.GetKeyStateKeyMessage(ctx, nestedErr.KeyState)
+				if err != nil {
+					result.Failure = &model_evaluation_pb.Result_Failure{
+						Status: status.Convert(err).Proto(),
+					}
+					return &result
+				}
+
+				patchedKey := model_core.Patch(objectManager, key.Decay())
 				marshaledKey, err := model_core.MarshalAny(patchedKey)
 				if err != nil {
 					result.Failure = &model_evaluation_pb.Result_Failure{

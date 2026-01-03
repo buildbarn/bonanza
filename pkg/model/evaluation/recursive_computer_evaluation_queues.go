@@ -7,8 +7,6 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/program"
-
-	"google.golang.org/protobuf/proto"
 )
 
 // RecursiveComputerEvaluationQueuesFactory is invoked by Executor to
@@ -61,7 +59,7 @@ type simpleRecursiveComputerEvaluationQueues[TReference object.BasicReference, T
 	concurrency uint32
 }
 
-func (q *simpleRecursiveComputerEvaluationQueues[TReference, TMetadata]) PickQueue(key model_core.Message[proto.Message, TReference]) *RecursiveComputerEvaluationQueue[TReference, TMetadata] {
+func (q *simpleRecursiveComputerEvaluationQueues[TReference, TMetadata]) PickQueue(typeURL string) *RecursiveComputerEvaluationQueue[TReference, TMetadata] {
 	return q.queue
 }
 
