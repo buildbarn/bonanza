@@ -127,11 +127,15 @@ func (x *ActionTagKeyData) GetKeyReferencesWithOverridesHash() []byte {
 }
 
 type DependenciesHashRecord struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	KeyReference   *core.Reference        `protobuf:"bytes,1,opt,name=key_reference,json=keyReference,proto3" json:"key_reference,omitempty"`
-	ValueReference *core.Reference        `protobuf:"bytes,2,opt,name=value_reference,json=valueReference,proto3" json:"value_reference,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	KeyReference *core.Reference        `protobuf:"bytes,1,opt,name=key_reference,json=keyReference,proto3" json:"key_reference,omitempty"`
+	// Types that are valid to be assigned to Value:
+	//
+	//	*DependenciesHashRecord_MessageValueReference
+	//	*DependenciesHashRecord_NativeValueDependenciesHash
+	Value         isDependenciesHashRecord_Value `protobuf_oneof:"value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DependenciesHashRecord) Reset() {
@@ -171,12 +175,46 @@ func (x *DependenciesHashRecord) GetKeyReference() *core.Reference {
 	return nil
 }
 
-func (x *DependenciesHashRecord) GetValueReference() *core.Reference {
+func (x *DependenciesHashRecord) GetValue() isDependenciesHashRecord_Value {
 	if x != nil {
-		return x.ValueReference
+		return x.Value
 	}
 	return nil
 }
+
+func (x *DependenciesHashRecord) GetMessageValueReference() *core.Reference {
+	if x != nil {
+		if x, ok := x.Value.(*DependenciesHashRecord_MessageValueReference); ok {
+			return x.MessageValueReference
+		}
+	}
+	return nil
+}
+
+func (x *DependenciesHashRecord) GetNativeValueDependenciesHash() []byte {
+	if x != nil {
+		if x, ok := x.Value.(*DependenciesHashRecord_NativeValueDependenciesHash); ok {
+			return x.NativeValueDependenciesHash
+		}
+	}
+	return nil
+}
+
+type isDependenciesHashRecord_Value interface {
+	isDependenciesHashRecord_Value()
+}
+
+type DependenciesHashRecord_MessageValueReference struct {
+	MessageValueReference *core.Reference `protobuf:"bytes,2,opt,name=message_value_reference,json=messageValueReference,proto3,oneof"`
+}
+
+type DependenciesHashRecord_NativeValueDependenciesHash struct {
+	NativeValueDependenciesHash []byte `protobuf:"bytes,3,opt,name=native_value_dependencies_hash,json=nativeValueDependenciesHash,proto3,oneof"`
+}
+
+func (*DependenciesHashRecord_MessageValueReference) isDependenciesHashRecord_Value() {}
+
+func (*DependenciesHashRecord_NativeValueDependenciesHash) isDependenciesHashRecord_Value() {}
 
 type LookupTagKeyData struct {
 	state                  protoimpl.MessageState             `protogen:"open.v1"`
@@ -515,10 +553,12 @@ const file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc = 
 	":bonanza.build/pkg/proto/model/evaluation/cache/cache.proto\x12\x1ebonanza.model.evaluation.cache\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x1a+bonanza.build/pkg/proto/model/tag/tag.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\x01\n" +
 	"\x10ActionTagKeyData\x12O\n" +
 	"\x13common_tag_key_data\x18\x01 \x01(\v2 .bonanza.model.tag.CommonKeyDataR\x10commonTagKeyData\x12J\n" +
-	"\"key_references_with_overrides_hash\x18\x02 \x01(\fR\x1ekeyReferencesWithOverridesHash\"\xa4\x01\n" +
+	"\"key_references_with_overrides_hash\x18\x02 \x01(\fR\x1ekeyReferencesWithOverridesHash\"\x85\x02\n" +
 	"\x16DependenciesHashRecord\x12B\n" +
-	"\rkey_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\fkeyReference\x12F\n" +
-	"\x0fvalue_reference\x18\x02 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x0evalueReference\"\x83\x04\n" +
+	"\rkey_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\fkeyReference\x12W\n" +
+	"\x17message_value_reference\x18\x02 \x01(\v2\x1d.bonanza.model.core.ReferenceH\x00R\x15messageValueReference\x12E\n" +
+	"\x1enative_value_dependencies_hash\x18\x03 \x01(\fH\x00R\x1bnativeValueDependenciesHashB\a\n" +
+	"\x05value\"\x83\x04\n" +
 	"\x10LookupTagKeyData\x12V\n" +
 	"\x18action_tag_key_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x15actionTagKeyReference\x12W\n" +
 	"\x18evaluation_key_reference\x18\x02 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x16evaluationKeyReference\x12n\n" +
@@ -576,7 +616,7 @@ var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_goTypes = []
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_depIdxs = []int32{
 	8,  // 0: bonanza.model.evaluation.cache.ActionTagKeyData.common_tag_key_data:type_name -> bonanza.model.tag.CommonKeyData
 	9,  // 1: bonanza.model.evaluation.cache.DependenciesHashRecord.key_reference:type_name -> bonanza.model.core.Reference
-	9,  // 2: bonanza.model.evaluation.cache.DependenciesHashRecord.value_reference:type_name -> bonanza.model.core.Reference
+	9,  // 2: bonanza.model.evaluation.cache.DependenciesHashRecord.message_value_reference:type_name -> bonanza.model.core.Reference
 	9,  // 3: bonanza.model.evaluation.cache.LookupTagKeyData.action_tag_key_reference:type_name -> bonanza.model.core.Reference
 	9,  // 4: bonanza.model.evaluation.cache.LookupTagKeyData.evaluation_key_reference:type_name -> bonanza.model.core.Reference
 	5,  // 5: bonanza.model.evaluation.cache.LookupTagKeyData.subsequent_lookup:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
@@ -600,6 +640,10 @@ func init() { file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_in
 func file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_init() {
 	if File_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto != nil {
 		return
+	}
+	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[1].OneofWrappers = []any{
+		(*DependenciesHashRecord_MessageValueReference)(nil),
+		(*DependenciesHashRecord_NativeValueDependenciesHash)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[3].OneofWrappers = []any{
 		(*LookupResult_Initial_)(nil),

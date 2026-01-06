@@ -661,11 +661,11 @@ func (x *Progress_EvaluatingKey) GetRestarts() uint32 {
 }
 
 type Result_Failure struct {
-	state                   protoimpl.MessageState `protogen:"open.v1"`
-	StackTraceKeyReferences [][]byte               `protobuf:"bytes,1,rep,name=stack_trace_key_references,json=stackTraceKeyReferences,proto3" json:"stack_trace_key_references,omitempty"`
-	Status                  *status.Status         `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	StackTraceKeys []*core.Any            `protobuf:"bytes,1,rep,name=stack_trace_keys,json=stackTraceKeys,proto3" json:"stack_trace_keys,omitempty"`
+	Status         *status.Status         `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Result_Failure) Reset() {
@@ -698,9 +698,9 @@ func (*Result_Failure) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{5, 0}
 }
 
-func (x *Result_Failure) GetStackTraceKeyReferences() [][]byte {
+func (x *Result_Failure) GetStackTraceKeys() []*core.Any {
 	if x != nil {
-		return x.StackTraceKeyReferences
+		return x.StackTraceKeys
 	}
 	return nil
 }
@@ -752,12 +752,12 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12P\n" +
 	"\x16first_evaluation_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x14firstEvaluationStart\x12T\n" +
 	"\x18current_evaluation_start\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x16currentEvaluationStart\x12\x1a\n" +
-	"\brestarts\x18\x04 \x01(\rR\brestarts\"\xc3\x02\n" +
+	"\brestarts\x18\x04 \x01(\rR\brestarts\"\xc9\x02\n" +
 	"\x06Result\x12B\n" +
 	"\afailure\x18\x01 \x01(\v2(.bonanza.model.evaluation.Result.FailureR\afailure\x12\x80\x01\n" +
-	"\x12outcomes_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x11outcomesReference\x1ar\n" +
-	"\aFailure\x12;\n" +
-	"\x1astack_trace_key_references\x18\x01 \x03(\fR\x17stackTraceKeyReferences\x12*\n" +
+	"\x12outcomes_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.evaluation.EvaluationR\x11outcomesReference\x1ax\n" +
+	"\aFailure\x12A\n" +
+	"\x10stack_trace_keys\x18\x01 \x03(\v2\x17.bonanza.model.core.AnyR\x0estackTraceKeys\x12*\n" +
 	"\x06status\x18\x02 \x01(\v2\x12.google.rpc.StatusR\x06statusB*Z(bonanza.build/pkg/proto/model/evaluationb\x06proto3"
 
 var (
@@ -809,12 +809,13 @@ var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []i
 	11, // 15: bonanza.model.evaluation.Progress.EvaluatingKey.key:type_name -> bonanza.model.core.Any
 	13, // 16: bonanza.model.evaluation.Progress.EvaluatingKey.first_evaluation_start:type_name -> google.protobuf.Timestamp
 	13, // 17: bonanza.model.evaluation.Progress.EvaluatingKey.current_evaluation_start:type_name -> google.protobuf.Timestamp
-	14, // 18: bonanza.model.evaluation.Result.Failure.status:type_name -> google.rpc.Status
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	11, // 18: bonanza.model.evaluation.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
+	14, // 19: bonanza.model.evaluation.Result.Failure.status:type_name -> google.rpc.Status
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_init() }
