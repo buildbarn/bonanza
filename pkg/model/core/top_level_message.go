@@ -1,7 +1,11 @@
 package core
 
 import (
+	"math/bits"
+	"sync/atomic"
+
 	"bonanza.build/pkg/encoding/varint"
+	model_core_pb "bonanza.build/pkg/proto/model/core"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -150,6 +154,39 @@ func UnmarshalTopLevelAnyNew[TReference any](m TopLevelMessage[*anypb.Any, TRefe
 		return TopLevelMessage[proto.Message, TReference]{}, err
 	}
 	return NewTopLevelMessage(message, m.OutgoingReferences), nil
+}
+
+var identityReferenceSetIndices atomic.Pointer[[]uint32]
+
+func init() {
+	var emptyIndices []uint32
+	identityReferenceSetIndices.Store(&emptyIndices)
+}
+
+// WrapTopLevelAny performs te inverse of FlattenAny. Namely, it wraps
+// an anypb.Any into a model_core_pb.Any. This allows one or more
+// anypb.Any messages to be stored in a single object, together with
+// other data and references.
+func WrapTopLevelAny[TReference any](m TopLevelMessage[*anypb.Any, TReference]) TopLevelMessage[*model_core_pb.Any, TReference] {
+	degree := m.OutgoingReferences.GetDegree()
+	indices := *identityReferenceSetIndices.Load()
+	if len(indices) < degree {
+		newLength := uint32(1 << bits.Len(uint(degree)))
+		indices = make([]uint32, 0, newLength)
+		for i := uint32(1); i <= newLength; i++ {
+			indices = append(indices, i)
+		}
+		identityReferenceSetIndices.Store(&indices)
+	}
+	return NewTopLevelMessage(
+		&model_core_pb.Any{
+			Value: m.Message,
+			References: &model_core_pb.ReferenceSet{
+				Indices: indices[:degree],
+			},
+		},
+		m.OutgoingReferences,
+	)
 }
 
 // ComputeTopLevelMessageReference computes the local reference of an
