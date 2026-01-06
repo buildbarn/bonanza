@@ -128,7 +128,10 @@ func (s *PathPatternSet[TMetadata]) ToProto(
 	if len(s.children) == 0 {
 		panic("leaf path should have been included in the path pattern set")
 	}
+
 	inlineCandidates := make(inlinedtree.CandidateList[*model_command_pb.PathPattern_Children, TMetadata], 0, len(s.children))
+	defer inlineCandidates.Discard()
+
 	for _, name := range slices.Sorted(maps.Keys(s.children)) {
 		grandChildren, err := s.children[name].ToProto(ctx, encoder, inlinedTreeOptions, objectCapturer)
 		if err != nil {
