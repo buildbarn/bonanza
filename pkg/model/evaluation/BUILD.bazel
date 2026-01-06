@@ -19,6 +19,7 @@ go_library(
         "//pkg/model/core",
         "//pkg/model/core/btree",
         "//pkg/model/core/buffered",
+        "//pkg/model/core/inlinedtree",
         "//pkg/model/encoding",
         "//pkg/model/executewithstorage",
         "//pkg/model/parser",
