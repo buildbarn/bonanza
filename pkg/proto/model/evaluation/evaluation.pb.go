@@ -107,12 +107,12 @@ func (*Keys_Leaf) isKeys_Level() {}
 func (*Keys_Parent_) isKeys_Level() {}
 
 type Graphlet struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	Value                 *core.Any              `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	DirectDependencyKeys  []*Keys                `protobuf:"bytes,2,rep,name=direct_dependency_keys,json=directDependencyKeys,proto3" json:"direct_dependency_keys,omitempty"`
-	DependencyEvaluations []*Evaluations         `protobuf:"bytes,3,rep,name=dependency_evaluations,json=dependencyEvaluations,proto3" json:"dependency_evaluations,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                        protoimpl.MessageState `protogen:"open.v1"`
+	Value                        *core.Any              `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	DirectVariableDependencyKeys []*Keys                `protobuf:"bytes,2,rep,name=direct_variable_dependency_keys,json=directVariableDependencyKeys,proto3" json:"direct_variable_dependency_keys,omitempty"`
+	DependencyEvaluations        []*Evaluations         `protobuf:"bytes,3,rep,name=dependency_evaluations,json=dependencyEvaluations,proto3" json:"dependency_evaluations,omitempty"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *Graphlet) Reset() {
@@ -152,9 +152,9 @@ func (x *Graphlet) GetValue() *core.Any {
 	return nil
 }
 
-func (x *Graphlet) GetDirectDependencyKeys() []*Keys {
+func (x *Graphlet) GetDirectVariableDependencyKeys() []*Keys {
 	if x != nil {
-		return x.DirectDependencyKeys
+		return x.DirectVariableDependencyKeys
 	}
 	return nil
 }
@@ -722,10 +722,10 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	"\x06parent\x18\x02 \x01(\v2%.bonanza.model.evaluation.Keys.ParentH\x00R\x06parent\x1as\n" +
 	"\x06Parent\x12i\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x1a\x1dbonanza.model.evaluation.KeysR\treferenceB\a\n" +
-	"\x05level\"\xed\x01\n" +
+	"\x05level\"\xfe\x01\n" +
 	"\bGraphlet\x12-\n" +
-	"\x05value\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x05value\x12T\n" +
-	"\x16direct_dependency_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x14directDependencyKeys\x12\\\n" +
+	"\x05value\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x05value\x12e\n" +
+	"\x1fdirect_variable_dependency_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x1cdirectVariableDependencyKeys\x12\\\n" +
 	"\x16dependency_evaluations\x18\x03 \x03(\v2%.bonanza.model.evaluation.EvaluationsR\x15dependencyEvaluations\"\xba\x03\n" +
 	"\vEvaluations\x12@\n" +
 	"\x04leaf\x18\x01 \x01(\v2*.bonanza.model.evaluation.Evaluations.LeafH\x00R\x04leaf\x12F\n" +
@@ -794,7 +794,7 @@ var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []i
 	11, // 0: bonanza.model.evaluation.Keys.leaf:type_name -> bonanza.model.core.Any
 	6,  // 1: bonanza.model.evaluation.Keys.parent:type_name -> bonanza.model.evaluation.Keys.Parent
 	11, // 2: bonanza.model.evaluation.Graphlet.value:type_name -> bonanza.model.core.Any
-	0,  // 3: bonanza.model.evaluation.Graphlet.direct_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	0,  // 3: bonanza.model.evaluation.Graphlet.direct_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
 	2,  // 4: bonanza.model.evaluation.Graphlet.dependency_evaluations:type_name -> bonanza.model.evaluation.Evaluations
 	8,  // 5: bonanza.model.evaluation.Evaluations.leaf:type_name -> bonanza.model.evaluation.Evaluations.Leaf
 	7,  // 6: bonanza.model.evaluation.Evaluations.parent:type_name -> bonanza.model.evaluation.Evaluations.Parent

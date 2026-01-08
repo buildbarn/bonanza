@@ -24,9 +24,9 @@ message DependenciesHashRecord {
   bonanza.model.core.Reference key_reference = 1;
 
   oneof value {
-    // In case evaluation of the function yielded a message value, the
-    // reference of the message value.
-    bonanza.model.core.Reference message_value_reference = 2;
+    // The message value, in case evaluation of the function is expected
+    // to yield one.
+    bonanza.model.core.Any message_value = 2;
 
     // In case evaluation of the function yielded a native value, the
     // homomorphic hash of the keys and values of all dependencies that
@@ -75,11 +75,16 @@ message LookupTagKeyData {
 message LookupResult {
   message Initial {
     // Non-empty expected set of dependencies of the graphlet rooted at
-    // the current key.
-    repeated bonanza.model.evaluation.Keys graphlet_dependency_keys = 1;
+    // the current key. Only keys whose values are variable (i.e.,
+    // transitively dependent on keys for which overrides are present)
+    // are included.
+    repeated bonanza.model.evaluation.Keys graphlet_variable_dependency_keys =
+        1;
 
     // Non-empty expected set of direct dependencies of the current key.
-    repeated bonanza.model.evaluation.Keys value_dependency_keys = 2;
+    // Only keys whose values are variable (i.e., transitively dependent
+    // on keys for which overrides are present) are included.
+    repeated bonanza.model.evaluation.Keys value_variable_dependency_keys = 2;
 
     // If set, there is a probability that subsequent lookups will require
     // specifying even more dependencies. This field denotes the time at
@@ -94,8 +99,11 @@ message LookupResult {
 
   message MissingDependencies {
     // Non-empty set of additional dependencies for which values needs
-    // to be computed, so that another lookup can be attempted.
-    repeated bonanza.model.evaluation.Keys additional_dependency_keys = 1;
+    // to be computed, so that another lookup can be attempted. Only
+    // keys whose values are variable (i.e., transitively dependent on
+    // keys for which overrides are present) are included.
+    repeated bonanza.model.evaluation.Keys additional_variable_dependency_keys =
+        1;
   }
 
   oneof result {

@@ -2,11 +2,17 @@ package buffered
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/sha256"
 
 	model_core "bonanza.build/pkg/model/core"
 	model_parser "bonanza.build/pkg/model/parser"
+	model_tag "bonanza.build/pkg/model/tag"
 	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
+	"bonanza.build/pkg/storage/tag"
+
+	"github.com/buildbarn/bb-storage/pkg/clock"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -171,4 +177,47 @@ func (r *objectReader) ReadObject(ctx context.Context, reference Reference) (mod
 		})
 	}
 	return model_core.NewMessage(m.Message, outgoingReferences), nil
+}
+
+type tagBoundUpdater struct {
+	dagUploader dag.Uploader[struct{}, object.LocalReference]
+	privateKey  ed25519.PrivateKey
+	publicKey   [ed25519.PublicKeySize]byte
+	clock       clock.Clock
+}
+
+// NewTagBoundUpdater creates an updater for tags in storage that
+// accepts buffered references. It automatically flushes objects that
+// are only present locally to storage prior to creating the tag.
+func NewTagBoundUpdater(dagUploader dag.Uploader[struct{}, object.LocalReference], privateKey ed25519.PrivateKey, clock clock.Clock) model_tag.BoundUpdater[Reference] {
+	return &tagBoundUpdater{
+		dagUploader: dagUploader,
+		privateKey:  privateKey,
+		publicKey:   *(*[ed25519.PublicKeySize]byte)(privateKey.Public().(ed25519.PublicKey)),
+		clock:       clock,
+	}
+}
+
+func (u *tagBoundUpdater) UpdateTag(ctx context.Context, keyHash [sha256.Size]byte, reference Reference) error {
+	key := tag.Key{
+		SignaturePublicKey: u.publicKey,
+		Hash:               keyHash,
+	}
+	value := tag.Value{
+		Reference: reference.GetLocalReference(),
+		Timestamp: u.clock.Now(),
+	}
+	signedValue, err := value.Sign(u.privateKey, keyHash)
+	if err != nil {
+		return err
+	}
+	return u.dagUploader.UploadTaggedDAG(
+		ctx,
+		struct{}{},
+		key,
+		signedValue,
+		objectContentsWalker{
+			embeddedMetadata: reference.embeddedMetadata,
+		},
+	)
 }

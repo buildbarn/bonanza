@@ -124,6 +124,7 @@ func main() {
 	fmt.Printf("\t\"bonanza.build/pkg/storage/object\"\n")
 	fmt.Printf("\tmodel_core \"bonanza.build/pkg/model/core\"\n")
 	fmt.Printf("\t\"google.golang.org/protobuf/proto\"\n")
+	fmt.Printf("\t\"google.golang.org/protobuf/types/known/anypb\"\n")
 	fmt.Printf("\tpb %#v\n", computerDefinition.ProtoPackage)
 	for _, shortName := range slices.Sorted(maps.Keys(imports)) {
 		fmt.Printf("\t%s %#v\n", shortName, imports[shortName])
@@ -233,6 +234,23 @@ func main() {
 		}
 	}
 
+	fmt.Printf("var nativeValueKeyTypeURLs map[string]struct{}\n")
+	fmt.Printf("func init() {\n")
+	fmt.Printf("\tnativeValueKeys := []proto.Message{\n")
+	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
+		functionDefinition := computerDefinition.Functions[functionName]
+		if functionDefinition.NativeValueType != nil {
+			fmt.Printf("\t\t&pb.%s_Key{},\n", getMessageName(functionName))
+		}
+	}
+	fmt.Printf("\t}\n")
+	fmt.Printf("\tnativeValueKeyTypeURLs = make(map[string]struct{}, len(nativeValueKeys))\n")
+	fmt.Printf("\tfor _, m := range nativeValueKeys {\n")
+	fmt.Printf("\t\ta, _ := anypb.New(m)\n")
+	fmt.Printf("\t\t\tnativeValueKeyTypeURLs[a.TypeUrl] = struct{}{}\n")
+	fmt.Printf("\t}\n")
+	fmt.Printf("}\n")
+
 	fmt.Printf("type typedComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {\n")
 	fmt.Printf("\tbase Computer[TReference, TMetadata]\n")
 	fmt.Printf("}\n")
@@ -283,5 +301,10 @@ func main() {
 	fmt.Printf("\tdefault:\n")
 	fmt.Printf("\t\treturn false\n")
 	fmt.Printf("\t}\n")
+	fmt.Printf("}\n")
+
+	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ReturnsNativeValue(typeURL string) bool {\n")
+	fmt.Printf("\t_, ok := nativeValueKeyTypeURLs[typeURL]\n")
+	fmt.Printf("\treturn ok\n")
 	fmt.Printf("}\n")
 }

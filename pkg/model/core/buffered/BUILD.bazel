@@ -8,8 +8,11 @@ go_library(
     deps = [
         "//pkg/model/core",
         "//pkg/model/parser",
+        "//pkg/model/tag",
         "//pkg/storage/dag",
         "//pkg/storage/object",
+        "//pkg/storage/tag",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
     ],

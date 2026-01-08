@@ -776,7 +776,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		for dependency := range btree.AllLeaves(
 			ctx,
 			keysReader,
-			model_core.Nested(evaluation, graphlet.DirectDependencyKeys),
+			model_core.Nested(evaluation, graphlet.DirectVariableDependencyKeys),
 			func(element model_core.Message[*model_evaluation_pb.Keys, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
 				return element.Message.GetParent().GetReference(), nil
 			},

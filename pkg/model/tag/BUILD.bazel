@@ -5,6 +5,8 @@ go_library(
     name = "tag",
     srcs = [
         "bound_resolver.go",
+        "bound_store.go",
+        "bound_updater.go",
         "decodable_key_hash.go",
         "mutable_proto_store.go",
         "object_importing_bound_resolver.go",

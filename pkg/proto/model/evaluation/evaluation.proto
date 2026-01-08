@@ -58,8 +58,10 @@ message Graphlet {
   bonanza.model.core.Any value = 1;
 
   // Keys of dependencies that were accessed by the computer while
-  // processing the current key.
-  repeated Keys direct_dependency_keys = 2;
+  // processing the current key. Only keys whose values are variable
+  // (i.e., transitively dependent on keys for which overrides are
+  // present) are included.
+  repeated Keys direct_variable_dependency_keys = 2;
 
   // Evaluations of direct or transitive dependencies of the current
   // key. Whether an evaluation is stored in this specific graphlet or

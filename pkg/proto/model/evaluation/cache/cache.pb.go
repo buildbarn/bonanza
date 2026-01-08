@@ -131,7 +131,7 @@ type DependenciesHashRecord struct {
 	KeyReference *core.Reference        `protobuf:"bytes,1,opt,name=key_reference,json=keyReference,proto3" json:"key_reference,omitempty"`
 	// Types that are valid to be assigned to Value:
 	//
-	//	*DependenciesHashRecord_MessageValueReference
+	//	*DependenciesHashRecord_MessageValue
 	//	*DependenciesHashRecord_NativeValueDependenciesHash
 	Value         isDependenciesHashRecord_Value `protobuf_oneof:"value"`
 	unknownFields protoimpl.UnknownFields
@@ -182,10 +182,10 @@ func (x *DependenciesHashRecord) GetValue() isDependenciesHashRecord_Value {
 	return nil
 }
 
-func (x *DependenciesHashRecord) GetMessageValueReference() *core.Reference {
+func (x *DependenciesHashRecord) GetMessageValue() *core.Any {
 	if x != nil {
-		if x, ok := x.Value.(*DependenciesHashRecord_MessageValueReference); ok {
-			return x.MessageValueReference
+		if x, ok := x.Value.(*DependenciesHashRecord_MessageValue); ok {
+			return x.MessageValue
 		}
 	}
 	return nil
@@ -204,15 +204,15 @@ type isDependenciesHashRecord_Value interface {
 	isDependenciesHashRecord_Value()
 }
 
-type DependenciesHashRecord_MessageValueReference struct {
-	MessageValueReference *core.Reference `protobuf:"bytes,2,opt,name=message_value_reference,json=messageValueReference,proto3,oneof"`
+type DependenciesHashRecord_MessageValue struct {
+	MessageValue *core.Any `protobuf:"bytes,2,opt,name=message_value,json=messageValue,proto3,oneof"`
 }
 
 type DependenciesHashRecord_NativeValueDependenciesHash struct {
 	NativeValueDependenciesHash []byte `protobuf:"bytes,3,opt,name=native_value_dependencies_hash,json=nativeValueDependenciesHash,proto3,oneof"`
 }
 
-func (*DependenciesHashRecord_MessageValueReference) isDependenciesHashRecord_Value() {}
+func (*DependenciesHashRecord_MessageValue) isDependenciesHashRecord_Value() {}
 
 func (*DependenciesHashRecord_NativeValueDependenciesHash) isDependenciesHashRecord_Value() {}
 
@@ -443,12 +443,12 @@ func (x *LookupTagKeyData_SubsequentLookup) GetDependenciesHash() []byte {
 }
 
 type LookupResult_Initial struct {
-	state                    protoimpl.MessageState `protogen:"open.v1"`
-	GraphletDependencyKeys   []*evaluation.Keys     `protobuf:"bytes,1,rep,name=graphlet_dependency_keys,json=graphletDependencyKeys,proto3" json:"graphlet_dependency_keys,omitempty"`
-	ValueDependencyKeys      []*evaluation.Keys     `protobuf:"bytes,2,rep,name=value_dependency_keys,json=valueDependencyKeys,proto3" json:"value_dependency_keys,omitempty"`
-	ContainsIndirectionSince *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=contains_indirection_since,json=containsIndirectionSince,proto3" json:"contains_indirection_since,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"open.v1"`
+	GraphletVariableDependencyKeys []*evaluation.Keys     `protobuf:"bytes,1,rep,name=graphlet_variable_dependency_keys,json=graphletVariableDependencyKeys,proto3" json:"graphlet_variable_dependency_keys,omitempty"`
+	ValueVariableDependencyKeys    []*evaluation.Keys     `protobuf:"bytes,2,rep,name=value_variable_dependency_keys,json=valueVariableDependencyKeys,proto3" json:"value_variable_dependency_keys,omitempty"`
+	ContainsIndirectionSince       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=contains_indirection_since,json=containsIndirectionSince,proto3" json:"contains_indirection_since,omitempty"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *LookupResult_Initial) Reset() {
@@ -481,16 +481,16 @@ func (*LookupResult_Initial) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{3, 0}
 }
 
-func (x *LookupResult_Initial) GetGraphletDependencyKeys() []*evaluation.Keys {
+func (x *LookupResult_Initial) GetGraphletVariableDependencyKeys() []*evaluation.Keys {
 	if x != nil {
-		return x.GraphletDependencyKeys
+		return x.GraphletVariableDependencyKeys
 	}
 	return nil
 }
 
-func (x *LookupResult_Initial) GetValueDependencyKeys() []*evaluation.Keys {
+func (x *LookupResult_Initial) GetValueVariableDependencyKeys() []*evaluation.Keys {
 	if x != nil {
-		return x.ValueDependencyKeys
+		return x.ValueVariableDependencyKeys
 	}
 	return nil
 }
@@ -503,10 +503,10 @@ func (x *LookupResult_Initial) GetContainsIndirectionSince() *timestamppb.Timest
 }
 
 type LookupResult_MissingDependencies struct {
-	state                    protoimpl.MessageState `protogen:"open.v1"`
-	AdditionalDependencyKeys []*evaluation.Keys     `protobuf:"bytes,1,rep,name=additional_dependency_keys,json=additionalDependencyKeys,proto3" json:"additional_dependency_keys,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"open.v1"`
+	AdditionalVariableDependencyKeys []*evaluation.Keys     `protobuf:"bytes,1,rep,name=additional_variable_dependency_keys,json=additionalVariableDependencyKeys,proto3" json:"additional_variable_dependency_keys,omitempty"`
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *LookupResult_MissingDependencies) Reset() {
@@ -539,9 +539,9 @@ func (*LookupResult_MissingDependencies) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{3, 1}
 }
 
-func (x *LookupResult_MissingDependencies) GetAdditionalDependencyKeys() []*evaluation.Keys {
+func (x *LookupResult_MissingDependencies) GetAdditionalVariableDependencyKeys() []*evaluation.Keys {
 	if x != nil {
-		return x.AdditionalDependencyKeys
+		return x.AdditionalVariableDependencyKeys
 	}
 	return nil
 }
@@ -553,10 +553,10 @@ const file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc = 
 	":bonanza.build/pkg/proto/model/evaluation/cache/cache.proto\x12\x1ebonanza.model.evaluation.cache\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x1a+bonanza.build/pkg/proto/model/tag/tag.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\x01\n" +
 	"\x10ActionTagKeyData\x12O\n" +
 	"\x13common_tag_key_data\x18\x01 \x01(\v2 .bonanza.model.tag.CommonKeyDataR\x10commonTagKeyData\x12J\n" +
-	"\"key_references_with_overrides_hash\x18\x02 \x01(\fR\x1ekeyReferencesWithOverridesHash\"\x85\x02\n" +
+	"\"key_references_with_overrides_hash\x18\x02 \x01(\fR\x1ekeyReferencesWithOverridesHash\"\xec\x01\n" +
 	"\x16DependenciesHashRecord\x12B\n" +
-	"\rkey_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\fkeyReference\x12W\n" +
-	"\x17message_value_reference\x18\x02 \x01(\v2\x1d.bonanza.model.core.ReferenceH\x00R\x15messageValueReference\x12E\n" +
+	"\rkey_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\fkeyReference\x12>\n" +
+	"\rmessage_value\x18\x02 \x01(\v2\x17.bonanza.model.core.AnyH\x00R\fmessageValue\x12E\n" +
 	"\x1enative_value_dependencies_hash\x18\x03 \x01(\fH\x00R\x1bnativeValueDependenciesHashB\a\n" +
 	"\x05value\"\x83\x04\n" +
 	"\x10LookupTagKeyData\x12V\n" +
@@ -569,18 +569,18 @@ const file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc = 
 	"\x05Scope\x12\v\n" +
 	"\aINVALID\x10\x00\x12\f\n" +
 	"\bGRAPHLET\x10\x01\x12\t\n" +
-	"\x05VALUE\x10\x02\"\xeb\x05\n" +
+	"\x05VALUE\x10\x02\"\x9f\x06\n" +
 	"\fLookupResult\x12P\n" +
 	"\ainitial\x18\x01 \x01(\v24.bonanza.model.evaluation.cache.LookupResult.InitialH\x00R\ainitial\x12u\n" +
 	"\x14missing_dependencies\x18\x02 \x01(\v2@.bonanza.model.evaluation.cache.LookupResult.MissingDependenciesH\x00R\x13missingDependencies\x12G\n" +
 	"\fhit_graphlet\x18\x03 \x01(\v2\".bonanza.model.evaluation.GraphletH\x00R\vhitGraphlet\x126\n" +
-	"\thit_value\x18\x04 \x01(\v2\x17.bonanza.model.core.AnyH\x00R\bhitValue\x1a\x91\x02\n" +
-	"\aInitial\x12X\n" +
-	"\x18graphlet_dependency_keys\x18\x01 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x16graphletDependencyKeys\x12R\n" +
-	"\x15value_dependency_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x13valueDependencyKeys\x12X\n" +
-	"\x1acontains_indirection_since\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x18containsIndirectionSince\x1as\n" +
-	"\x13MissingDependencies\x12\\\n" +
-	"\x1aadditional_dependency_keys\x18\x01 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x18additionalDependencyKeysB\b\n" +
+	"\thit_value\x18\x04 \x01(\v2\x17.bonanza.model.core.AnyH\x00R\bhitValue\x1a\xb3\x02\n" +
+	"\aInitial\x12i\n" +
+	"!graphlet_variable_dependency_keys\x18\x01 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x1egraphletVariableDependencyKeys\x12c\n" +
+	"\x1evalue_variable_dependency_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x1bvalueVariableDependencyKeys\x12X\n" +
+	"\x1acontains_indirection_since\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x18containsIndirectionSince\x1a\x84\x01\n" +
+	"\x13MissingDependencies\x12m\n" +
+	"#additional_variable_dependency_keys\x18\x01 \x03(\v2\x1e.bonanza.model.evaluation.KeysR additionalVariableDependencyKeysB\b\n" +
 	"\x06resultB0Z.bonanza.build/pkg/proto/model/evaluation/cacheb\x06proto3"
 
 var (
@@ -608,27 +608,27 @@ var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_goTypes = []
 	(*LookupResult_MissingDependencies)(nil),     // 7: bonanza.model.evaluation.cache.LookupResult.MissingDependencies
 	(*tag.CommonKeyData)(nil),                    // 8: bonanza.model.tag.CommonKeyData
 	(*core.Reference)(nil),                       // 9: bonanza.model.core.Reference
-	(*evaluation.Graphlet)(nil),                  // 10: bonanza.model.evaluation.Graphlet
-	(*core.Any)(nil),                             // 11: bonanza.model.core.Any
+	(*core.Any)(nil),                             // 10: bonanza.model.core.Any
+	(*evaluation.Graphlet)(nil),                  // 11: bonanza.model.evaluation.Graphlet
 	(*evaluation.Keys)(nil),                      // 12: bonanza.model.evaluation.Keys
 	(*timestamppb.Timestamp)(nil),                // 13: google.protobuf.Timestamp
 }
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_depIdxs = []int32{
 	8,  // 0: bonanza.model.evaluation.cache.ActionTagKeyData.common_tag_key_data:type_name -> bonanza.model.tag.CommonKeyData
 	9,  // 1: bonanza.model.evaluation.cache.DependenciesHashRecord.key_reference:type_name -> bonanza.model.core.Reference
-	9,  // 2: bonanza.model.evaluation.cache.DependenciesHashRecord.message_value_reference:type_name -> bonanza.model.core.Reference
+	10, // 2: bonanza.model.evaluation.cache.DependenciesHashRecord.message_value:type_name -> bonanza.model.core.Any
 	9,  // 3: bonanza.model.evaluation.cache.LookupTagKeyData.action_tag_key_reference:type_name -> bonanza.model.core.Reference
 	9,  // 4: bonanza.model.evaluation.cache.LookupTagKeyData.evaluation_key_reference:type_name -> bonanza.model.core.Reference
 	5,  // 5: bonanza.model.evaluation.cache.LookupTagKeyData.subsequent_lookup:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
 	6,  // 6: bonanza.model.evaluation.cache.LookupResult.initial:type_name -> bonanza.model.evaluation.cache.LookupResult.Initial
 	7,  // 7: bonanza.model.evaluation.cache.LookupResult.missing_dependencies:type_name -> bonanza.model.evaluation.cache.LookupResult.MissingDependencies
-	10, // 8: bonanza.model.evaluation.cache.LookupResult.hit_graphlet:type_name -> bonanza.model.evaluation.Graphlet
-	11, // 9: bonanza.model.evaluation.cache.LookupResult.hit_value:type_name -> bonanza.model.core.Any
+	11, // 8: bonanza.model.evaluation.cache.LookupResult.hit_graphlet:type_name -> bonanza.model.evaluation.Graphlet
+	10, // 9: bonanza.model.evaluation.cache.LookupResult.hit_value:type_name -> bonanza.model.core.Any
 	0,  // 10: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.scope:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.Scope
-	12, // 11: bonanza.model.evaluation.cache.LookupResult.Initial.graphlet_dependency_keys:type_name -> bonanza.model.evaluation.Keys
-	12, // 12: bonanza.model.evaluation.cache.LookupResult.Initial.value_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	12, // 11: bonanza.model.evaluation.cache.LookupResult.Initial.graphlet_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	12, // 12: bonanza.model.evaluation.cache.LookupResult.Initial.value_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
 	13, // 13: bonanza.model.evaluation.cache.LookupResult.Initial.contains_indirection_since:type_name -> google.protobuf.Timestamp
-	12, // 14: bonanza.model.evaluation.cache.LookupResult.MissingDependencies.additional_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	12, // 14: bonanza.model.evaluation.cache.LookupResult.MissingDependencies.additional_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
 	15, // [15:15] is the sub-list for method output_type
 	15, // [15:15] is the sub-list for method input_type
 	15, // [15:15] is the sub-list for extension type_name
@@ -642,7 +642,7 @@ func file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[1].OneofWrappers = []any{
-		(*DependenciesHashRecord_MessageValueReference)(nil),
+		(*DependenciesHashRecord_MessageValue)(nil),
 		(*DependenciesHashRecord_NativeValueDependenciesHash)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[3].OneofWrappers = []any{

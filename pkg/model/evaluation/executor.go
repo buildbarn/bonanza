@@ -120,9 +120,8 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	}
 
 	objectManager := buffered.NewObjectManager()
-	objectExporter := buffered.NewObjectExporter(
-		dag_namespacemapping.NewNamespaceAddingUploader(e.dagUploader, instanceName),
-	)
+	dagUploader := dag_namespacemapping.NewNamespaceAddingUploader(e.dagUploader, instanceName)
+	objectExporter := buffered.NewObjectExporter(dagUploader)
 	resultMessage := model_core.MustBuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Result {
 		var result model_evaluation_pb.Result
 		parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester[buffered.Reference](
@@ -258,18 +257,25 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			queues,
 			referenceFormat,
 			objectManager,
-			model_tag.NewObjectImportingBoundResolver(
-				model_tag.NewStorageBackedBoundResolver(
-					tag_namespacemapping.NewNamespaceAddingResolver(
-						e.tagResolver,
-						object.Namespace{
-							InstanceName:    instanceName,
-							ReferenceFormat: referenceFormat,
-						},
+			model_tag.NewBoundStore(
+				model_tag.NewObjectImportingBoundResolver(
+					model_tag.NewStorageBackedBoundResolver(
+						tag_namespacemapping.NewNamespaceAddingResolver(
+							e.tagResolver,
+							object.Namespace{
+								InstanceName:    instanceName,
+								ReferenceFormat: referenceFormat,
+							},
+						),
+						*(*[ed25519.PublicKeySize]byte)(cacheTagSignaturePublicKey),
 					),
-					*(*[ed25519.PublicKeySize]byte)(cacheTagSignaturePublicKey),
+					objectExporter,
 				),
-				objectExporter,
+				buffered.NewTagBoundUpdater(
+					dagUploader,
+					e.cacheTagSignaturePrivateKey,
+					e.clock,
+				),
 			),
 			actionTagKeyReference,
 			model_parser.LookupParsedObjectReader(
@@ -324,7 +330,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				}
 				return &result
 			}
-			if err := recursiveComputer.InjectKeyState(keyReference, value); err != nil {
+			if err := recursiveComputer.OverrideKeyState(keyReference, value); err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.Convert(err).Proto(),
 				}

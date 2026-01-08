@@ -19,7 +19,6 @@ go_library(
         "//pkg/model/core",
         "//pkg/model/core/btree",
         "//pkg/model/core/buffered",
-        "//pkg/model/core/inlinedtree",
         "//pkg/model/encoding",
         "//pkg/model/executewithstorage",
         "//pkg/model/parser",
@@ -58,6 +57,7 @@ go_test(
     embed = [":evaluation"],
     deps = [
         "//pkg/model/core",
+        "//pkg/model/encoding",
         "//pkg/proto/model/core",
         "//pkg/proto/model/evaluation",
         "//pkg/proto/model/evaluation/cache",
@@ -95,10 +95,10 @@ gomock(
     name = "mocks_evaluation",
     out = "mocks_evaluation_test.go",
     interfaces = [
-        "BoundResolverForTesting",
+        "BoundStoreForTesting",
         "ComputerForTesting",
-        "LookupResultReaderForTesting",
         "KeysReaderForTesting",
+        "LookupResultReaderForTesting",
         "ObjectManagerForTesting",
     ],
     library = "//pkg/model/evaluation",
