@@ -588,6 +588,18 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(
 	return evaluationsBuilder.FinalizeList()
 }
 
+// gatherTopLevelKeyStates recursively gathers all hoisted dependencies
+// of a KeyState. This should be invoked when creating a top-level list
+// of evaluation results, which can be returned to the client.
+func gatherTopLevelKeyStates[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](out map[*KeyState[TReference, TMetadata]]struct{}, ks *KeyState[TReference, TMetadata]) {
+	if _, ok := out[ks]; !ok {
+		out[ks] = struct{}{}
+		for _, ksDep := range ks.valueState.getHoistedDependencies() {
+			gatherTopLevelKeyStates(out, ksDep)
+		}
+	}
+}
+
 // GetEvaluations returns a B-tree of evaluations, including graphlets
 // for all provided KeyStates, including all of their transitive
 // dependencies.
@@ -595,11 +607,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetEvaluations(ctx context.C
 	rc.lock.Lock()
 	defer rc.lock.Unlock()
 
-	topLevelKeyStates := make(map[*KeyState[TReference, TMetadata]]struct{}, len(keyStates))
-	// TODO: Gather nested top-level key states.
+	topLevelKeyStates := map[*KeyState[TReference, TMetadata]]struct{}{}
 	for _, ks := range keyStates {
 		if ks.valueState.isVariableDependency() {
-			topLevelKeyStates[ks] = struct{}{}
+			gatherTopLevelKeyStates(topLevelKeyStates, ks)
 		}
 	}
 
