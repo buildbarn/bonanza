@@ -348,6 +348,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) forceUnblockKeyState(ks *Key
 func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(keyReference object.LocalReference, keyMessageFetcher messageFetcher[TReference, TMetadata], initialValueState valueState[TReference, TMetadata], evaluationQueue *RecursiveComputerEvaluationQueue[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
 	ks, ok := rc.keys[keyReference]
 	if !ok {
+		// Brand new key.
 		ks = &KeyState[TReference, TMetadata]{
 			keyReference:      keyReference,
 			keyMessageFetcher: keyMessageFetcher,
@@ -356,6 +357,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(ke
 		}
 		rc.keys[keyReference] = ks
 		rc.enqueueForEvaluation(ks)
+	} else if ks.keyMessageFetcher == nil {
+		// Key for which an override was created, but the key
+		// message itself was up to this point still unknown.
+		ks.keyMessageFetcher = keyMessageFetcher
 	}
 	return ks
 }
