@@ -500,7 +500,34 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			})
 		})
 
-		// TODO: Attach all graphlets to the result.
+		outcomes, err := recursiveComputer.GetEvaluations(ctx, requestedKeyStates)
+		if err != nil {
+			result.Failure = &model_evaluation_pb.Result_Failure{
+				Status: status.Convert(err).Proto(),
+			}
+			return &result
+		}
+		if len(outcomes.Message) > 0 {
+			createdEvaluations, err := model_core.MarshalAndEncodeDeterministic(
+				model_core.ProtoListToBinaryMarshaler(outcomes),
+				referenceFormat,
+				deterministicActionEncoder,
+			)
+			if err != nil {
+				result.Failure = &model_evaluation_pb.Result_Failure{
+					Status: status.Convert(err).Proto(),
+				}
+				return &result
+			}
+			outcomesReference, err := resultPatcher.CaptureAndAddDecodableReference(ctx, createdEvaluations, objectManager)
+			if err != nil {
+				result.Failure = &model_evaluation_pb.Result_Failure{
+					Status: status.Convert(err).Proto(),
+				}
+				return &result
+			}
+			result.OutcomesReference = outcomesReference
+		}
 
 		if errComputeAndUpload != nil {
 			var patchedStackTraceKeys []*model_core_pb.Any
