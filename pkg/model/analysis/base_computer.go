@@ -396,7 +396,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 		return PatchedBuildResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	return PatchedBuildResultValue[TMetadata]{}, errors.New("TODO: report build results in a meaningful way")
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.BuildResult_Value{}), nil
 }
 
 func (baseComputer[TReference, TMetadata]) ComputeBuiltinsModuleNamesValue(ctx context.Context, key *model_analysis_pb.BuiltinsModuleNames_Key, e BuiltinsModuleNamesEnvironment[TReference, TMetadata]) (PatchedBuiltinsModuleNamesValue[TMetadata], error) {
