@@ -32,6 +32,13 @@ func NewHashMapFromConfiguration[TKey comparable, TValue, TExpirationData any](
 		return nil, status.Error(codes.InvalidArgument, "No configuration provided")
 	}
 
+	if configuration.MaximumGetAttempts < 1 {
+		return nil, status.Error(codes.InvalidArgument, "Maximum get attempts must be positive")
+	}
+	if configuration.MaximumPutAttempts < 1 {
+		return nil, status.Error(codes.InvalidArgument, "Maximum put attempts must be positive")
+	}
+
 	// Create the record array that backs the hash map.
 	var recordCount uint64
 	var recordArray RecordArray[TKey, TValue, TExpirationData]
