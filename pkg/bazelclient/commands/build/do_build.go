@@ -517,6 +517,25 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		})
 	}
 
+	// The evaluation key that this build requests. Also create a
+	// marshaled copy of it, as we need to embed that into the
+	// bonanza_browser URL to link to the results.
+	patchedBuildResultKey := model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+		&model_analysis_pb.BuildResult_Key{
+			TargetPatterns: targetPatterns,
+			Configurations: configurations,
+		},
+	)
+	buildResultKey, _ := patchedBuildResultKey.SortAndSetReferences()
+	buildResultKeyAny, err := model_core.MarshalTopLevelAny(buildResultKey)
+	if err != nil {
+		logger.Fatal(formatted.Textf("Failed to marshal build result key: %s", err))
+	}
+	marshaledBuildResultKey, err := model_core.MarshalTopLevelMessage(buildResultKeyAny)
+	if err != nil {
+		logger.Fatal(formatted.Textf("Failed to marshal build result key: %s", err))
+	}
+
 	// Construct an Action message.
 	actionMessage, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) (encoding.BinaryMarshaler, error) {
 		overridesReference, err := patcher.CaptureAndAddDecodableReference(
@@ -528,14 +547,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			return nil, err
 		}
 
-		buildResultKey, err := model_core.MarshalAny(
-			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
-				&model_analysis_pb.BuildResult_Key{
-					TargetPatterns: targetPatterns,
-					Configurations: configurations,
-				},
-			),
-		)
+		patchedBuildResultKeyAny, err := model_core.MarshalAny(patchedBuildResultKey)
 		if err != nil {
 			return nil, err
 		}
@@ -544,7 +556,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			OverridesReference: overridesReference,
 			RequestedKeys: []*model_evaluation_pb.Keys{{
 				Level: &model_evaluation_pb.Keys_Leaf{
-					Leaf: buildResultKey.Merge(patcher),
+					Leaf: patchedBuildResultKeyAny.Merge(patcher),
 				},
 			}},
 		}), nil
@@ -808,6 +820,26 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	if f := result.Message.Failure; f != nil {
 		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, &jsonFormatter, browserURL, outcomesReference)
 		logger.Fatal(formatted.Textf("Failed to perform build: %s", status.FromProto(f.Status)))
+	} else if outcomesReference != nil {
+		outcomesReferenceNode := formatted.Text(model_core.DecodableLocalReferenceToString(*outcomesReference))
+		if browserURL != "" {
+			if evaluationURL, err := url.JoinPath(
+				browserURL,
+				"evaluation",
+				url.PathEscape(namespace.InstanceName.String()),
+				namespace.ReferenceFormat.ToProto().String(),
+				model_core.DecodableLocalReferenceToString(*outcomesReference),
+				base64.RawURLEncoding.EncodeToString(marshaledBuildResultKey),
+			); err == nil {
+				outcomesReferenceNode = formatted.Link(evaluationURL, outcomesReferenceNode)
+			}
+		}
+		logger.Info(
+			formatted.Join(
+				formatted.Text("Got build results "),
+				outcomesReferenceNode,
+			),
+		)
 	}
 }
 
