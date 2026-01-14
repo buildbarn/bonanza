@@ -787,7 +787,7 @@ func (g *variableDependenciesGatherer[TReference, TMetadata]) gatherDependencies
 func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getVariableDependenciesComputedValueState(ks *KeyState[TReference, TMetadata], dependenciesHashRecordReference object.LocalReference) variableDependenciesComputedValueState[TReference, TMetadata] {
 	directVariableDependencies := sortedKeyStates(e.directVariableDependencies)
 	if len(directVariableDependencies) == 0 {
-		panic("key does not have any direct variable depdendencies")
+		panic("key does not have any direct variable dependencies")
 	}
 	gatherer := variableDependenciesGatherer[TReference, TMetadata]{
 		keyRawReference:             ks.keyReference.GetRawReference(),
@@ -797,7 +797,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getVariableDepe
 	gatherer.gatherDependencies(directVariableDependencies)
 	hoistedVariableDependencies := sortedKeyStates(gatherer.hoistedVariableDependencies)
 	if len(hoistedVariableDependencies) == 0 {
-		panic("key does not have any hoisted variable depdendencies")
+		panic("key does not have any hoisted variable dependencies")
 	}
 
 	return variableDependenciesComputedValueState[TReference, TMetadata]{
