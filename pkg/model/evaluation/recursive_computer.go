@@ -14,6 +14,7 @@ import (
 	"bonanza.build/pkg/crypto/lthash"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
+	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_tag "bonanza.build/pkg/model/tag"
@@ -560,7 +561,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(
 
 	for _, ks := range sortedKeyStates {
 		evaluation, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_evaluation_pb.Evaluations, error) {
-			newValueState, graphlet, err := ks.valueState.getGraphlet(ctx, rc)
+			newValueState, graphlet, err := ks.valueState.getGraphlet(ctx, rc, ks)
 			ks.valueState = newValueState
 			if err != nil {
 				return nil, err
@@ -726,15 +727,80 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetNativeValue(
 	return v, true
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getVariableDependenciesValueState() (variableDependenciesValueState[TReference, TMetadata], bool) {
+// variableDependenciesGatherer can be used to compute the hoisted and
+// nested variable dependencies of a graphlet. In other words, it
+// implements a strategy for determining which dependencies are stored
+// above or below a given key.
+//
+// The nested variable dependencies differ from the hoisted variable
+// dependencies in that these are only needed when actually constructing
+// the graphlet of the current key. The hoisted variable dependencies
+// need to be tracked in the value state permanently, as those are also
+// used when constructing graphlets for parents. To permit recomputing
+// just the nested variable dependencies, the hoisted variable
+// dependencies map can be set to nil.
+type variableDependenciesGatherer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	keyRawReference             []byte
+	hoistedVariableDependencies map[*KeyState[TReference, TMetadata]]struct{}
+	nestedVariableDependencies  map[*KeyState[TReference, TMetadata]]struct{}
+}
+
+func (g *variableDependenciesGatherer[TReference, TMetadata]) gatherDependencies(variableDependencies []*KeyState[TReference, TMetadata]) {
+	for _, ksDep := range variableDependencies {
+		if cmp := bytes.Compare(g.keyRawReference, ksDep.keyReference.GetRawReference()); cmp < 0 {
+			// Hoist dependencies having a higher key reference.
+			// That way the size of this graphlet remains bounded.
+			if g.hoistedVariableDependencies != nil {
+				g.hoistedVariableDependencies[ksDep] = struct{}{}
+			}
+		} else if cmp > 0 {
+			if false /* TODO: ksDep.isLookup || ksDep.value.getError() != nil */ {
+				// Keys that only have acyclic dependencies
+				// and only look up data within their parents
+				// are better hoisted, as they mostly just
+				// cause churn.
+				//
+				// Keys that are in an error state are also
+				// better hoisted. The idea behind nesting
+				// dependencies is that it allows us to
+				// perform cache lookups for larger parts of
+				// the build graph. As errors are not cached,
+				// there is no point in nesting them.
+				if g.hoistedVariableDependencies != nil {
+					g.hoistedVariableDependencies[ksDep] = struct{}{}
+				}
+			} else if _, ok := g.nestedVariableDependencies[ksDep]; !ok {
+				// Dependencies having a lower key reference
+				// can be stored inside this graphlet.
+				g.nestedVariableDependencies[ksDep] = struct{}{}
+				g.gatherDependencies(ksDep.valueState.getHoistedDependencies())
+			}
+		} else {
+			// Cyclic dependency. Neither hoist nor nest it, as
+			// storing it once is enough.
+		}
+	}
+}
+
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getVariableDependenciesValueState(ks *KeyState[TReference, TMetadata]) (variableDependenciesComputedValueState[TReference, TMetadata], bool) {
 	if len(e.directVariableDependencies) == 0 {
 		// This key does not have any direct or transitive
 		// dependencies on keys for which overrides are in
 		// place. For these keys we don't construct graphlets.
-		return variableDependenciesValueState[TReference, TMetadata]{}, false
+		return variableDependenciesComputedValueState[TReference, TMetadata]{}, false
 	}
 
-	panic("TODO")
+	directVariableDependencies := sortedKeyStates(e.directVariableDependencies)
+	gatherer := variableDependenciesGatherer[TReference, TMetadata]{
+		keyRawReference:             ks.keyReference.GetRawReference(),
+		hoistedVariableDependencies: map[*KeyState[TReference, TMetadata]]struct{}{},
+		nestedVariableDependencies:  map[*KeyState[TReference, TMetadata]]struct{}{},
+	}
+	gatherer.gatherDependencies(directVariableDependencies)
+	return variableDependenciesComputedValueState[TReference, TMetadata]{
+		directVariableDependencies:  directVariableDependencies,
+		hoistedVariableDependencies: sortedKeyStates(gatherer.hoistedVariableDependencies),
+	}, true
 }
 
 type keyStateList[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -929,11 +995,18 @@ type valueState[TReference object.BasicReference, TMetadata model_core.Reference
 	getGraphlet(
 		ctx context.Context,
 		rc *RecursiveComputer[TReference, TMetadata],
+		ks *KeyState[TReference, TMetadata],
 	) (
 		newValueState valueState[TReference, TMetadata],
 		graphlet model_core.Message[*model_evaluation_pb.Graphlet, TReference],
 		err error,
 	)
+
+	// Return the set of dependencies that are referenced by the
+	// graphlet returned by getGraphlet(), but for which an
+	// evaluation is not contained within. These dependencies need
+	// to be placed in a graphlet at a higher level.
+	getHoistedDependencies() []*KeyState[TReference, TMetadata]
 
 	// Get a reference of a DependenciesHashRecord message
 	// containing the key and value. This reference is necessary
@@ -1033,8 +1106,12 @@ func (earlyFailedValueState[TReference, TMetadata]) isVariableDependency() bool 
 	panic("key has not evaluated successfully")
 }
 
-func (vs *earlyFailedValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+func (vs *earlyFailedValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
 	return vs, model_core.NewSimpleMessage[TReference](&model_evaluation_pb.Graphlet{}), nil
+}
+
+func (earlyFailedValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
+	return nil
 }
 
 type evaluationFailedValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -1067,8 +1144,12 @@ func (evaluationFailedValueState[TReference, TMetadata]) isVariableDependency() 
 	panic("key has not evaluated successfully")
 }
 
-func (vs *evaluationFailedValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+func (vs *evaluationFailedValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
 	return vs, model_core.NewSimpleMessage[TReference](&model_evaluation_pb.Graphlet{}), nil
+}
+
+func (evaluationFailedValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
+	return nil
 }
 
 type uploadedValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -1083,7 +1164,11 @@ type noDependenciesValueState[TReference object.BasicReference, TMetadata model_
 	evaluatedValueState[TReference, TMetadata]
 }
 
-func (noDependenciesValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+func (noDependenciesValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+	panic("key cannot be embedded into another graphlet, as it is not a variable dependency")
+}
+
+func (noDependenciesValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
 	panic("key cannot be embedded into another graphlet, as it is not a variable dependency")
 }
 
@@ -1095,13 +1180,18 @@ func (noDependenciesValueState[TReference, TMetadata]) isVariableDependency() bo
 	return false
 }
 
-type variableDependenciesValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+type variableDependenciesComputedValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	evaluatedValueState[TReference, TMetadata]
 
-	directVariableDependencies []*KeyState[TReference, TMetadata]
+	directVariableDependencies  []*KeyState[TReference, TMetadata]
+	hoistedVariableDependencies []*KeyState[TReference, TMetadata]
 }
 
-func (variableDependenciesValueState[TReference, TMetadata]) isVariableDependency() bool {
+func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
+	return vs.hoistedVariableDependencies
+}
+
+func (variableDependenciesComputedValueState[TReference, TMetadata]) isVariableDependency() bool {
 	return true
 }
 
@@ -1286,8 +1376,12 @@ func (initialMessageValueState[TReference, TMetadata]) gotFailedDependency(err N
 	panic("key has never been attempted to be evaluated, meaning that it cannot have any dependencies")
 }
 
-func (vs initialMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+func (vs initialMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
 	return vs, model_core.NewSimpleMessage[TReference](&model_evaluation_pb.Graphlet{}), nil
+}
+
+func (initialMessageValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
+	return nil
 }
 
 type computingMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -1324,9 +1418,9 @@ func (vs computingMessageValueState[TReference, TMetadata]) evaluate(ctx context
 			err: fmt.Errorf("failed to marshal value yielded by evaluation function: %w", err),
 		}, nil
 	}
-	if vsDependencies, ok := e.getVariableDependenciesValueState(); ok {
+	if vsDependencies, ok := e.getVariableDependenciesValueState(ks); ok {
 		return &variableDependenciesComputedMessageValueState[TReference, TMetadata]{
-			variableDependenciesValueState: vsDependencies,
+			variableDependenciesComputedValueState: vsDependencies,
 			computedMessageValueState: computedMessageValueState[TReference, TMetadata]{
 				value: anyValue,
 			},
@@ -1350,12 +1444,16 @@ func (computingMessageValueState[TReference, TMetadata]) gotFailedDependency(err
 	}
 }
 
-func (vs computingMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+func (vs computingMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
 	// In principle it would be possible to return a graphlet that
 	// contains information on the dependencies gathered up to this
 	// point. However, this would lead to non-deterministic results.
 	// Return an empty graphlet instead.
 	return vs, model_core.NewSimpleMessage[TReference](&model_evaluation_pb.Graphlet{}), nil
+}
+
+func (computingMessageValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
+	return nil
 }
 
 type computedMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -1429,7 +1527,7 @@ func (vs *noDependenciesComputedMessageValueState[TReference, TMetadata]) upload
 }
 
 type variableDependenciesComputedMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	variableDependenciesValueState[TReference, TMetadata]
+	variableDependenciesComputedValueState[TReference, TMetadata]
 	computedMessageValueState[TReference, TMetadata]
 	dependenciesHashRecordReference object.LocalReference
 }
@@ -1439,8 +1537,145 @@ func (vs *variableDependenciesComputedMessageValueState[TReference, TMetadata]) 
 	return vs, nil
 }
 
-func (variableDependenciesComputedMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
-	panic("TODO")
+func (vs *variableDependenciesComputedMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+	inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_pb.Graphlet, TMetadata], 0, 3)
+	defer inlineCandidates.Discard()
+
+	// Attach the computed value.
+	patchedValue := model_core.Patch(
+		rc.objectManager,
+		model_core.WrapTopLevelAny(vs.value).Decay(),
+	)
+	inlineCandidates = append(inlineCandidates, inlinedtree.AlwaysInline(
+		patchedValue.Patcher,
+		func(graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata]) {
+			graphlet.Message.Value = patchedValue.Message
+		},
+	))
+
+	// Attach the keys of the direct variable dependencies.
+	keysParentNodeComputer := btree.Capturing(ctx, rc.objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Keys, TMetadata] {
+		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_pb.Keys {
+			return &model_evaluation_pb.Keys{
+				Level: &model_evaluation_pb.Keys_Parent_{
+					Parent: &model_evaluation_pb.Keys_Parent{
+						Reference: patcher.AddDecodableReference(createdObject),
+					},
+				},
+			}
+		})
+	})
+	directVariableDependenciesBuilder := btree.NewHeightAwareBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			/* minimumSizeBytes = */ 1<<16,
+			/* maximumSizeBytes = */ 1<<18,
+			/* isParent = */ func(keys *model_evaluation_pb.Keys) bool {
+				return keys.GetParent() != nil
+			},
+		),
+		btree.NewObjectCreatingNodeMerger(
+			rc.cacheDeterministicEncoder,
+			rc.referenceFormat,
+			keysParentNodeComputer,
+		),
+	)
+	defer directVariableDependenciesBuilder.Discard()
+
+	for _, ksDep := range vs.directVariableDependencies {
+		directDependency, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_evaluation_pb.Keys, error) {
+			key, err := ksDep.keyMessageFetcher.getAny(ctx, rc)
+			if err != nil {
+				return nil, err
+			}
+			return &model_evaluation_pb.Keys{
+				Level: &model_evaluation_pb.Keys_Leaf{
+					Leaf: model_core.Patch(
+						rc.objectManager,
+						model_core.WrapTopLevelAny(key).Decay(),
+					).Merge(patcher),
+				},
+			}, nil
+		})
+		if err != nil {
+			return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+		}
+		if err := directVariableDependenciesBuilder.PushChild(directDependency); err != nil {
+			return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+		}
+	}
+
+	directVariableDependenciesList, err := directVariableDependenciesBuilder.FinalizeList()
+	if err != nil {
+		return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+	}
+	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{
+		ExternalMessage: model_core.ProtoListToBinaryMarshaler(directVariableDependenciesList),
+		Encoder:         rc.cacheDeterministicEncoder,
+		ParentAppender: func(
+			graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata],
+			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+		) error {
+			directVariableDependencies, err := btree.MaybeMergeNodes(
+				directVariableDependenciesList.Message,
+				externalObject,
+				graphlet.Patcher,
+				keysParentNodeComputer,
+			)
+			if err != nil {
+				return err
+			}
+			graphlet.Message.DirectVariableDependencyKeys = directVariableDependencies
+			return nil
+		},
+	})
+
+	// Attach evaluations of direct and transitive dependencies that
+	// did not get hoisted to the parent.
+	gatherer := variableDependenciesGatherer[TReference, TMetadata]{
+		keyRawReference:            ks.keyReference.GetRawReference(),
+		nestedVariableDependencies: map[*KeyState[TReference, TMetadata]]struct{}{},
+	}
+	gatherer.gatherDependencies(vs.directVariableDependencies)
+	nestedVariableDependencies := sortedKeyStates(gatherer.nestedVariableDependencies)
+
+	evaluationsParentNodeComputer := rc.getEvaluationsParentNodeComputer(ctx)
+	dependencyEvaluationsList, err := rc.getEvaluationsForSortedList(ctx, nestedVariableDependencies)
+	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{
+		ExternalMessage: model_core.ProtoListToBinaryMarshaler(dependencyEvaluationsList),
+		Encoder:         rc.cacheDeterministicEncoder,
+		ParentAppender: func(
+			graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata],
+			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+		) error {
+			dependencyEvaluations, err := btree.MaybeMergeNodes(
+				dependencyEvaluationsList.Message,
+				externalObject,
+				graphlet.Patcher,
+				evaluationsParentNodeComputer,
+			)
+			if err != nil {
+				return err
+			}
+			graphlet.Message.DependencyEvaluations = dependencyEvaluations
+			return nil
+		},
+	})
+
+	patchedGraphlet, err := inlinedtree.Build(
+		inlineCandidates,
+		&inlinedtree.Options{
+			ReferenceFormat:  rc.referenceFormat,
+			MaximumSizeBytes: 1 << 16,
+		},
+	)
+	if err != nil {
+		return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+	}
+	graphlet := model_core.Unpatch(rc.objectManager, patchedGraphlet).Decay()
+
+	// TODO: We should return a different value state that has the
+	// graphlet captured.
+	return vs, graphlet, nil
 }
 
 func (vs *variableDependenciesComputedMessageValueState[TReference, TMetadata]) getDependenciesHashRecordReference() object.LocalReference {
@@ -1478,169 +1713,6 @@ func (noDependenciesUploadedMessageValueState[TReference, TMetadata]) getError()
 	return nil
 }
 
-// // cacheHitValueBackedMessageValueState is used for keys whose value was
-// // obtained by getting a cache hit for a bare value (not a full
-// // graphlet). This means that the value can be obtained by reloading it
-// // from storage, but that a graphlet containing the value needs to be
-// // reconstructed.
-// type cacheHitValueBackedMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-// 	evaluatedValueState[TReference, TMetadata]
-//
-// 	lookupResultReference            model_core.Decodable[TReference]
-// 	directDependencies              []*KeyState[TReference, TMetadata]
-// 	dependenciesHashRecordReference object.LocalReference
-// }
-//
-// func (cacheHitValueBackedMessageValueState[TReference, TMetadata]) getMessageValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[proto.Message, TReference], error)
-//
-// func (cacheHitValueBackedMessageValueState[TReference, TMetadata]) getNativeValue() (any, error) {
-// 	return nil, errors.New("key does not yield a native value")
-// }
-//
-// func (vs *cacheHitValueBackedMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
-// 	inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_pb.Graphlet, TMetadata], 0, 3)
-// 	defer inlineCandidates.Discard()
-//
-// 	lookupResult, err := rc.lookupResultReader.ReadObject(ctx, vs.lookupResultReference)
-// 	if err != nil {
-// 		return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
-// 	}
-//
-// 	// Attach the computed value, if any.
-// 	patchedValue := model_core.Patch(
-// 		rc.objectManager,
-// 		model_core.Nested(lookupResult, lookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitValue).HitValue),
-// 	)
-// 	inlineCandidates = append(inlineCandidates, inlinedtree.AlwaysInline(
-// 		patchedValue.Patcher,
-// 		func(graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata]) {
-// 			graphlet.Message.Value = patchedValue.Message
-// 		},
-// 	))
-//
-// 	// Attach the direct dependencies.
-// 	directDependenciesParentNodeComputer := btree.Capturing(ctx, rc.objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Keys, TMetadata] {
-// 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_pb.Keys {
-// 			return &model_evaluation_pb.Keys{
-// 				Level: &model_evaluation_pb.Keys_Parent_{
-// 					Parent: &model_evaluation_pb.Keys_Parent{
-// 						Reference: patcher.AddDecodableReference(createdObject),
-// 					},
-// 				},
-// 			}
-// 		})
-// 	})
-// 	directDependenciesBuilder := btree.NewHeightAwareBuilder(
-// 		btree.NewProllyChunkerFactory[TMetadata](
-// 			/* minimumSizeBytes = */ 1<<16,
-// 			/* maximumSizeBytes = */ 1<<18,
-// 			/* isParent = */ func(keys *model_evaluation_pb.Keys) bool {
-// 				return keys.GetParent() != nil
-// 			},
-// 		),
-// 		btree.NewObjectCreatingNodeMerger(
-// 			rc.cacheDeterministicEncoder,
-// 			rc.referenceFormat,
-// 			directDependenciesParentNodeComputer,
-// 		),
-// 	)
-// 	defer directDependenciesBuilder.Discard()
-//
-// 	for _, ksDep := range vs.directDependencies {
-// 		directDependency, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_evaluation_pb.Keys, error) {
-// 			key, err := ksDep.keyMessageFetcher.getAny(ctx, rc)
-// 			if err != nil {
-// 				return nil, err
-// 			}
-// 			return &model_evaluation_pb.Keys{
-// 				Level: &model_evaluation_pb.Keys_Leaf{
-// 					Leaf: model_core.Patch(
-// 						rc.objectManager,
-// 						model_core.WrapTopLevelAny(key).Decay(),
-// 					).Merge(patcher),
-// 				},
-// 			}, nil
-// 		})
-// 		if err != nil {
-// 			return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
-// 		}
-// 		if err := directDependenciesBuilder.PushChild(directDependency); err != nil {
-// 			return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
-// 		}
-// 	}
-//
-// 	directDependenciesList, err := directDependenciesBuilder.FinalizeList()
-// 	if err != nil {
-// 		return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
-// 	}
-// 	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{
-// 		ExternalMessage: model_core.ProtoListToBinaryMarshaler(directDependenciesList),
-// 		Encoder:         rc.cacheDeterministicEncoder,
-// 		ParentAppender: func(
-// 			graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata],
-// 			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-// 		) error {
-// 			directDependencies, err := btree.MaybeMergeNodes(
-// 				directDependenciesList.Message,
-// 				externalObject,
-// 				graphlet.Patcher,
-// 				directDependenciesParentNodeComputer,
-// 			)
-// 			if err != nil {
-// 				return err
-// 			}
-// 			graphlet.Message.DirectDependencyKeys = directDependencies
-// 			return nil
-// 		},
-// 	})
-//
-// 	// Attach evaluations of direct and transitive dependencies that
-// 	// did not get promoted to the parent.
-// 	// TODO: Use the correct set of dependencies!
-// 	evaluationsParentNodeComputer := rc.getEvaluationsParentNodeComputer(ctx)
-// 	dependencyEvaluationsList, err := rc.getEvaluationsForSortedList(ctx, vs.directDependencies)
-// 	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{
-// 		ExternalMessage: model_core.ProtoListToBinaryMarshaler(dependencyEvaluationsList),
-// 		Encoder:         rc.cacheDeterministicEncoder,
-// 		ParentAppender: func(
-// 			graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata],
-// 			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-// 		) error {
-// 			dependencyEvaluations, err := btree.MaybeMergeNodes(
-// 				dependencyEvaluationsList.Message,
-// 				externalObject,
-// 				graphlet.Patcher,
-// 				evaluationsParentNodeComputer,
-// 			)
-// 			if err != nil {
-// 				return err
-// 			}
-// 			graphlet.Message.DependencyEvaluations = dependencyEvaluations
-// 			return nil
-// 		},
-// 	})
-//
-// 	patchedGraphlet, err := inlinedtree.Build(
-// 		inlineCandidates,
-// 		&inlinedtree.Options{
-// 			ReferenceFormat:  rc.referenceFormat,
-// 			MaximumSizeBytes: 1 << 16,
-// 		},
-// 	)
-// 	if err != nil {
-// 		return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
-// 	}
-// 	graphlet := model_core.Unpatch(rc.objectManager, patchedGraphlet).Decay()
-//
-// 	return &inMemoryMessageValueState[TReference, TMetadata]{
-// 		graphlet: graphlet,
-// 	}, graphlet, nil
-// }
-//
-// func (vs *cacheHitValueBackedMessageValueState[TReference, TMetadata]) getDependenciesHashRecordReference() object.LocalReference {
-// 	return vs.dependenciesHashRecordReference
-// }
-
 type overriddenMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	uploadedValueState[TReference, TMetadata]
 	isVariableDependencyValueState[TReference, TMetadata]
@@ -1660,7 +1732,7 @@ func (overriddenMessageValueState[TReference, TMetadata]) getError() error {
 	return nil
 }
 
-func (vs *overriddenMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+func (vs *overriddenMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
 	wrappedValue := model_core.WrapTopLevelAny(vs.value).Decay()
 	return vs, model_core.Nested(
 		wrappedValue,
@@ -1668,6 +1740,10 @@ func (vs *overriddenMessageValueState[TReference, TMetadata]) getGraphlet(ctx co
 			Value: wrappedValue.Message,
 		},
 	), nil
+}
+
+func (overriddenMessageValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
+	return nil
 }
 
 type computingNativeValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -1699,7 +1775,7 @@ func (vs *computingNativeValueState[TReference, TMetadata]) evaluate(ctx context
 		}, nil
 	}
 
-	if vsDependencies, ok := e.getVariableDependenciesValueState(); ok {
+	if vsDependencies, ok := e.getVariableDependenciesValueState(ks); ok {
 		dependenciesHasher := lthash.NewHasher()
 		rc.lock.RLock()
 		for _, ksDep := range vsDependencies.directVariableDependencies {
@@ -1720,7 +1796,7 @@ func (vs *computingNativeValueState[TReference, TMetadata]) evaluate(ctx context
 		dependenciesHashRecordReference := util.Must(model_core.ComputeTopLevelMessageReference(dependenciesHashRecord, rc.referenceFormat))
 
 		return &variableDependenciesComputedNativeValueState[TReference, TMetadata]{
-			variableDependenciesValueState: vsDependencies,
+			variableDependenciesComputedValueState: vsDependencies,
 			computedNativeValueState: computedNativeValueState[TReference, TMetadata]{
 				value: value,
 			},
@@ -1748,12 +1824,16 @@ func (computingNativeValueState[TReference, TMetadata]) gotFailedDependency(err 
 	}
 }
 
-func (vs *computingNativeValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+func (vs *computingNativeValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
 	// In principle it would be possible to return a graphlet that
 	// contains information on the dependencies gathered up to this
 	// point. However, this would lead to non-deterministic results.
 	// Return an empty graphlet instead.
 	return vs, model_core.NewSimpleMessage[TReference](&model_evaluation_pb.Graphlet{}), nil
+}
+
+func (computingNativeValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
+	return nil
 }
 
 type computedNativeValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -1783,7 +1863,7 @@ func (vs *noDependenciesComputedNativeValueState[TReference, TMetadata]) upload(
 }
 
 type variableDependenciesComputedNativeValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	variableDependenciesValueState[TReference, TMetadata]
+	variableDependenciesComputedValueState[TReference, TMetadata]
 	computedNativeValueState[TReference, TMetadata]
 	dependenciesHashRecordReference object.LocalReference
 }
@@ -1793,7 +1873,7 @@ func (vs *variableDependenciesComputedNativeValueState[TReference, TMetadata]) u
 	return vs, nil
 }
 
-func (variableDependenciesComputedNativeValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+func (variableDependenciesComputedNativeValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
 	panic("TODO")
 }
 
