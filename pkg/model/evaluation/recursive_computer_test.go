@@ -67,6 +67,7 @@ func TestRecursiveComputer(t *testing.T) {
 				), nil
 			}).
 			AnyTimes()
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
@@ -198,6 +199,7 @@ func TestRecursiveComputer(t *testing.T) {
 				require.False(t, v.IsSet())
 				return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 			})
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
@@ -273,6 +275,7 @@ func TestRecursiveComputer(t *testing.T) {
 				), nil
 			}).
 			Times(6)
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
@@ -398,6 +401,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// set of expected dependencies. If this returns
 		// NOT_FOUND, evaluation should be performed.
 		computer := NewMockComputerForTesting(ctrl)
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		lookupResultReader := NewMockLookupResultReaderForTesting(ctrl)
@@ -472,6 +476,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// cause subsequent reads to return NOT_FOUND. In such
 		// cases we simply assume there's a cache miss.
 		computer := NewMockComputerForTesting(ctrl)
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		lookupResultReader := NewMockLookupResultReaderForTesting(ctrl)
@@ -559,6 +564,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// message is malformed and contains another type of
 		// message, we should just ignore it.
 		computer := NewMockComputerForTesting(ctrl)
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		lookupResultReader := NewMockLookupResultReaderForTesting(ctrl)
@@ -651,6 +657,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// directly. There should be no need to call into the
 		// computer, as the cached value can be used.
 		computer := NewMockComputerForTesting(ctrl)
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		lookupResultReader := NewMockLookupResultReaderForTesting(ctrl)
@@ -738,6 +745,7 @@ func TestRecursiveComputer(t *testing.T) {
 
 	t.Run("CacheLookupFoo", func(t *testing.T) {
 		computer := NewMockComputerForTesting(ctrl)
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		lookupResultReader := NewMockLookupResultReaderForTesting(ctrl)

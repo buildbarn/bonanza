@@ -23,7 +23,7 @@ var ErrMissingDependency = errors.New("missing dependency")
 type Computer[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	ComputeMessageValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error)
 	ComputeNativeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (any, error)
-	IsLookup(proto.Message) bool
+	IsLookup(typeURL string) bool
 	ReturnsNativeValue(typeURL string) bool
 }
 

@@ -346,13 +346,14 @@ func (rc *RecursiveComputer[TReference, TMetadata]) forceUnblockKeyState(ks *Key
 	rc.blockedKeys.remove(ks)
 }
 
-func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(keyReference object.LocalReference, keyMessageFetcher messageFetcher[TReference, TMetadata], initialValueState valueState[TReference, TMetadata], evaluationQueue *RecursiveComputerEvaluationQueue[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
+func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(keyReference object.LocalReference, keyMessageFetcher messageFetcher[TReference, TMetadata], keyTypeURL string, initialValueState valueState[TReference, TMetadata], evaluationQueue *RecursiveComputerEvaluationQueue[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
 	ks, ok := rc.keys[keyReference]
 	if !ok {
 		// Brand new key.
 		ks = &KeyState[TReference, TMetadata]{
 			keyReference:      keyReference,
 			keyMessageFetcher: keyMessageFetcher,
+			isLookup:          rc.base.IsLookup(keyTypeURL),
 			valueState:        initialValueState,
 			evaluationQueue:   evaluationQueue,
 		}
@@ -397,7 +398,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key mode
 	evaluationQueue := rc.evaluationQueuePicker.PickQueue(key.Message.TypeUrl)
 
 	rc.lock.Lock()
-	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, rc.newInitialValueState(key.Message.TypeUrl), evaluationQueue)
+	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.TypeUrl, rc.newInitialValueState(key.Message.TypeUrl), evaluationQueue)
 	rc.lock.Unlock()
 	return ks, nil
 }
@@ -436,6 +437,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) OverrideKeyState(keyReferenc
 	if _, ok := rc.keys[keyReference]; !ok {
 		rc.keys[keyReference] = &KeyState[TReference, TMetadata]{
 			keyReference: keyReference,
+			isLookup:     true,
 			valueState: &overriddenMessageValueState[TReference, TMetadata]{
 				isVariableDependencyValueState: isVariableDependencyValueState[TReference, TMetadata]{
 					dependenciesHashRecordReference: dependenciesHashRecordReference,
@@ -678,7 +680,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(p
 	rc.lock.Lock()
 	defer rc.lock.Unlock()
 
-	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, initialValueState, evaluationQueue)
+	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.TypeUrl, initialValueState, evaluationQueue)
 	if !ks.valueState.isEvaluated() {
 		e.missingDependencies[ks] = struct{}{}
 		return nil
@@ -754,7 +756,7 @@ func (g *variableDependenciesGatherer[TReference, TMetadata]) gatherDependencies
 				g.hoistedVariableDependencies[ksDep] = struct{}{}
 			}
 		} else if cmp > 0 {
-			if false /* TODO: ksDep.isLookup || ksDep.value.getError() != nil */ {
+			if ksDep.isLookup /* TODO: || ksDep.value.getError() != nil */ {
 				// Keys that only have acyclic dependencies
 				// and only look up data within their parents
 				// are better hoisted, as they mostly just
@@ -882,6 +884,7 @@ type KeyState[TReference object.BasicReference, TMetadata model_core.ReferenceMe
 	// Constant fields.
 	keyReference      object.LocalReference
 	keyMessageFetcher messageFetcher[TReference, TMetadata]
+	isLookup          bool
 
 	// Pointers to siblings in the keyStateList.
 	previousKey *KeyState[TReference, TMetadata]
@@ -1326,6 +1329,7 @@ func (vs initialMessageValueState[TReference, TMetadata]) evaluate(ctx context.C
 					ksDep := rc.getOrCreateKeyStateLocked(
 						dependencyKeyReference,
 						dependencyKeyMessageFetcher,
+						dependencyKey.Message.TypeUrl,
 						// TODO: This might need to use nativeValueState.
 						rc.newInitialValueState(dependencyKey.Message.TypeUrl),
 						evaluationQueue,
