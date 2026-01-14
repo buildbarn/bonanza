@@ -489,12 +489,8 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress(ctx context.Cont
 			if err != nil {
 				return nil, err
 			}
-			anyKey, err := model_core.MarshalAny(model_core.Patch(rc.objectManager, key.Decay()))
-			if err != nil {
-				return nil, err
-			}
 			evaluatingKeysMessages = append(evaluatingKeysMessages, &model_evaluation_pb.Progress_EvaluatingKey{
-				Key:                    anyKey.Merge(patcher),
+				Key:                    model_core.Patch(rc.objectManager, model_core.WrapTopLevelAny(key).Decay()).Merge(patcher),
 				FirstEvaluationStart:   timestamppb.New(ks.firstEvaluationStart),
 				CurrentEvaluationStart: timestamppb.New(ks.currentEvaluationStart),
 				Restarts:               ks.restarts,

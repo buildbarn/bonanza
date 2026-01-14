@@ -517,17 +517,13 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 					}
 					return &result
 				}
-
-				patchedKey := model_core.Patch(objectManager, key.Decay())
-				marshaledKey, err := model_core.MarshalAny(patchedKey)
-				if err != nil {
-					result.Failure = &model_evaluation_pb.Result_Failure{
-						Status: status.Convert(err).Proto(),
-					}
-					return &result
-				}
-				patchedStackTraceKeys = append(patchedStackTraceKeys, marshaledKey.Message)
-				resultPatcher.Merge(marshaledKey.Patcher)
+				patchedStackTraceKeys = append(
+					patchedStackTraceKeys,
+					model_core.Patch(
+						objectManager,
+						model_core.WrapTopLevelAny(key).Decay(),
+					).Merge(resultPatcher),
+				)
 
 				errComputeAndUpload = nestedErr.Err
 			}
