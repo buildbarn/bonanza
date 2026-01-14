@@ -609,7 +609,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetEvaluations(ctx context.C
 
 	topLevelKeyStates := map[*KeyState[TReference, TMetadata]]struct{}{}
 	for _, ks := range keyStates {
-		if ks.valueState.isVariableDependency() {
+		if ks.valueState.isEvaluated() && (ks.valueState.getError() != nil || ks.valueState.isVariableDependency()) {
 			gatherTopLevelKeyStates(topLevelKeyStates, ks)
 		}
 	}
