@@ -27,6 +27,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_evaluation "bonanza.build/pkg/model/evaluation"
 	model_parser "bonanza.build/pkg/model/parser"
 	browser_pb "bonanza.build/pkg/proto/browser"
 	buildqueuestate_pb "bonanza.build/pkg/proto/buildqueuestate"
@@ -532,10 +533,10 @@ func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObserv
 }
 
 // renderEvaluationPage renders a HTML page for displaying the contents
-// of an evaluation of a key stored in an evaluation list.
+// of an evaluation of a key stored in an evaluations list.
 func renderEvaluationPage(
 	w http.ResponseWriter,
-	evaluationListReference model_core.Decodable[object.GlobalReference],
+	evaluationsListReference model_core.Decodable[object.GlobalReference],
 	keyJSONNodes []g.Node,
 	valueNodes []g.Node,
 	dependenciesNodes []g.Node,
@@ -585,7 +586,7 @@ func renderEvaluationPage(
 			h.Div(append(
 				[]g.Node{
 					h.Class("flex flex-col w-1/3 space-y-4"),
-					renderReferenceCard("Evaluation list reference", evaluationListReference),
+					renderReferenceCard("Evaluations list reference", evaluationsListReference),
 				},
 				renderEncoderSelector(cookie.RecentlyObservedEncoders, currentEncoderConfiguration)...,
 			)...),
@@ -596,11 +597,11 @@ func renderEvaluationPage(
 }
 
 func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g.Node, error) {
-	evaluationListReference, err := getReferenceFromRequest(r)
+	evaluationsListReference, err := getReferenceFromRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	referenceFormat := evaluationListReference.Value.GetReferenceFormat()
+	referenceFormat := evaluationsListReference.Value.GetReferenceFormat()
 
 	keyBytes, err := base64.RawURLEncoding.DecodeString(r.PathValue("key"))
 	if err != nil {
@@ -618,7 +619,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	jsonRenderer := messageJSONRenderer{
 		basePath: path.Join(
 			"../../../../object",
-			url.PathEscape(evaluationListReference.Value.InstanceName.String()),
+			url.PathEscape(evaluationsListReference.Value.InstanceName.String()),
 			referenceFormat.ToProto().String(),
 		),
 		referenceFormat: &referenceFormat,
@@ -634,7 +635,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		errNodes := renderErrorAlert(fmt.Errorf("failed to obtain encoder configuration: %w", err))
 		return renderEvaluationPage(
 			w,
-			evaluationListReference,
+			evaluationsListReference,
 			keyJSONNodes,
 			errNodes,
 			errNodes,
@@ -651,7 +652,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		errNodes := renderErrorAlert(fmt.Errorf("failed to create encoder: %w", err))
 		return renderEvaluationPage(
 			w,
-			evaluationListReference,
+			evaluationsListReference,
 			keyJSONNodes,
 			errNodes,
 			errNodes,
@@ -663,7 +664,14 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester(
 		s.parsedObjectPool,
 		model_parser.NewDownloadingObjectReader(
-			object_namespacemapping.NewNamespaceAddingDownloader(s.objectDownloader, evaluationListReference.Value.InstanceName),
+			object_namespacemapping.NewNamespaceAddingDownloader(s.objectDownloader, evaluationsListReference.Value.InstanceName),
+		),
+	)
+	evaluationReader := model_parser.LookupParsedObjectReader(
+		parsedObjectPoolIngester,
+		model_parser.NewChainedObjectParser(
+			model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
+			model_parser.NewProtoObjectParser[object.LocalReference, model_evaluation_pb.Evaluation](),
 		),
 	)
 	evaluationsReader := model_parser.LookupParsedObjectReader(
@@ -681,15 +689,15 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		),
 	)
 	ctx := r.Context()
-	evaluationList, err := evaluationsReader.ReadObject(
+	evaluationsList, err := evaluationsReader.ReadObject(
 		ctx,
-		model_core.CopyDecodable(evaluationListReference, evaluationListReference.Value.LocalReference),
+		model_core.CopyDecodable(evaluationsListReference, evaluationsListReference.Value.LocalReference),
 	)
 	if err != nil {
-		errNodes := renderErrorAlert(fmt.Errorf("failed to download and decode evaluation list object: %w", err))
+		errNodes := renderErrorAlert(fmt.Errorf("failed to download and decode evaluations list object: %w", err))
 		return renderEvaluationPage(
 			w,
-			evaluationListReference,
+			evaluationsListReference,
 			keyJSONNodes,
 			errNodes,
 			errNodes,
@@ -699,10 +707,10 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	}
 
 	// TODO: This is oblivious of graphlets.
-	evaluation, err := btree.Find(
+	evaluations, err := btree.Find(
 		ctx,
 		evaluationsReader,
-		evaluationList,
+		evaluationsList,
 		func(entry model_core.Message[*model_evaluation_pb.Evaluations, object.LocalReference]) (int, *model_core_pb.DecodableReference) {
 			switch level := entry.Message.Level.(type) {
 			case *model_evaluation_pb.Evaluations_Leaf_:
@@ -715,10 +723,10 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		},
 	)
 	if err != nil {
-		errNodes := renderErrorAlert(fmt.Errorf("failed to look up key in evaluation list: %w", err))
+		errNodes := renderErrorAlert(fmt.Errorf("failed to look up key in evaluations list: %w", err))
 		return renderEvaluationPage(
 			w,
-			evaluationListReference,
+			evaluationsListReference,
 			keyJSONNodes,
 			errNodes,
 			errNodes,
@@ -729,13 +737,13 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 
 	valueNodes := renderWarningAlert("This key yields a native value that cannot be represented as JSON, or evaluation failed to yield a value.")
 	dependenciesNodes := renderWarningAlert("This key has no dependencies, or evaluation failed to yield a list of dependencies.")
-	if evaluation.IsSet() {
-		evaluationLeaf, ok := evaluation.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
+	if evaluations.IsSet() {
+		evaluationsLeaf, ok := evaluations.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
 		if !ok {
-			errNodes := renderErrorAlert(errors.New("evaluation list entry is not a valid leaf"))
+			errNodes := renderErrorAlert(errors.New("evaluations list entry is not a valid leaf"))
 			return renderEvaluationPage(
 				w,
-				evaluationListReference,
+				evaluationsListReference,
 				keyJSONNodes,
 				errNodes,
 				errNodes,
@@ -744,12 +752,13 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			), nil
 		}
 
-		graphlet := evaluationLeaf.Leaf.Graphlet
-		if graphlet == nil {
-			errNodes := renderErrorAlert(errors.New("evaluation leaf does not have a graphlet"))
+		graphlet := model_core.Nested(evaluations, evaluationsLeaf.Leaf.Graphlet)
+		evaluation, err := model_evaluation.GraphletGetEvaluation(ctx, evaluationReader, graphlet)
+		if err != nil {
+			errNodes := renderErrorAlert(err)
 			return renderEvaluationPage(
 				w,
-				evaluationListReference,
+				evaluationsListReference,
 				keyJSONNodes,
 				errNodes,
 				errNodes,
@@ -758,7 +767,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			), nil
 		}
 
-		if v := graphlet.Value; v != nil {
+		if v := evaluation.Message.Value; v != nil {
 			valueNodes = []g.Node{
 				h.Div(
 					append(
@@ -776,7 +785,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		for dependency := range btree.AllLeaves(
 			ctx,
 			keysReader,
-			model_core.Nested(evaluation, graphlet.DirectVariableDependencyKeys),
+			model_core.Nested(evaluation, evaluation.Message.DirectVariableDependencyKeys),
 			func(element model_core.Message[*model_evaluation_pb.Keys, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
 				return element.Message.GetParent().GetReference(), nil
 			},
@@ -823,7 +832,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	)
 	return renderEvaluationPage(
 		w,
-		evaluationListReference,
+		evaluationsListReference,
 		keyJSONNodes,
 		valueNodes,
 		dependenciesNodes,

@@ -459,7 +459,11 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 				Leaf: &model_evaluation_pb.Evaluations_Leaf{
 					KeyReference: buildSpecificationKeyReference.GetRawReference(),
 					Graphlet: &model_evaluation_pb.Graphlet{
-						Value: buildSpecificationValue.Merge(patcher),
+						Evaluation: &model_evaluation_pb.Graphlet_EvaluationInline{
+							EvaluationInline: &model_evaluation_pb.Evaluation{
+								Value: buildSpecificationValue.Merge(patcher),
+							},
+						},
 					},
 				},
 			},

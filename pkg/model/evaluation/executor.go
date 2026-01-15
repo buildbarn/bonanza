@@ -154,7 +154,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		}
 
 		// Keys for which we have overrides in place.
-		evaluationReader := model_parser.LookupParsedObjectReader(
+		evaluationsReader := model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
 				model_parser.NewEncodedObjectParser[buffered.Reference](deterministicActionEncoder),
@@ -163,7 +163,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		)
 		overrides, err := model_parser.MaybeDereference(
 			ctx,
-			evaluationReader,
+			evaluationsReader,
 			model_core.Nested(actionMessage, actionMessage.Message.OverridesReference),
 		)
 		if err != nil {
@@ -181,7 +181,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		keyReferencesWithOverridesHasher := lthash.NewHasher()
 		for override := range btree.AllLeaves(
 			ctx,
-			evaluationReader,
+			evaluationsReader,
 			overrides,
 			/* traverser = */ func(evaluation model_core.Message[*model_evaluation_pb.Evaluations, buffered.Reference]) (*model_core_pb.DecodableReference, error) {
 				return evaluation.Message.GetParent().GetReference(), nil
@@ -246,6 +246,13 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				model_parser.NewProtoListObjectParser[buffered.Reference, model_evaluation_pb.Keys](),
 			),
 		)
+		evaluationReader := model_parser.LookupParsedObjectReader(
+			parsedObjectPoolIngester,
+			model_parser.NewChainedObjectParser(
+				model_parser.NewEncodedObjectParser[buffered.Reference](keyedActionEncoder),
+				model_parser.NewProtoObjectParser[buffered.Reference, model_evaluation_pb.Evaluation](),
+			),
+		)
 		recursiveComputer := NewRecursiveComputer(
 			NewLeakCheckingComputer(
 				e.computerFactory.NewComputer(
@@ -278,6 +285,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				),
 			),
 			actionTagKeyReference,
+			evaluationReader,
 			model_parser.LookupParsedObjectReader(
 				parsedObjectPoolIngester,
 				model_parser.NewChainedObjectParser(
@@ -295,7 +303,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		var errIterRegisterOverrides error
 		for override := range btree.AllLeaves(
 			ctx,
-			evaluationReader,
+			evaluationsReader,
 			overrides,
 			/* traverser = */ func(evaluation model_core.Message[*model_evaluation_pb.Evaluations, buffered.Reference]) (*model_core_pb.DecodableReference, error) {
 				return evaluation.Message.GetParent().GetReference(), nil
@@ -316,14 +324,14 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				}
 				return &result
 			}
-			graphlet := overrideLeaf.Leaf.Graphlet
-			if graphlet == nil {
+			evaluation, err := GraphletGetEvaluation(ctx, evaluationReader, model_core.Nested(override, overrideLeaf.Leaf.Graphlet))
+			if err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
-					Status: status.New(codes.InvalidArgument, "Override does not contain a graphlet").Proto(),
+					Status: status.Convert(err).Proto(),
 				}
 				return &result
 			}
-			value, err := model_core.FlattenAny(model_core.Nested(override, graphlet.Value))
+			value, err := model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
 			if err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.Convert(err).Proto(),

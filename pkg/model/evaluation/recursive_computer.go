@@ -78,6 +78,7 @@ type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.Re
 	objectManager             model_core.ObjectManager[TReference, TMetadata]
 	tagStore                  model_tag.BoundStore[TReference]
 	actionTagKeyReference     object.LocalReference
+	evaluationReader          model_parser.MessageObjectReader[TReference, *model_evaluation_pb.Evaluation]
 	lookupResultReader        model_parser.MessageObjectReader[TReference, *model_evaluation_cache_pb.LookupResult]
 	keysReader                model_parser.MessageObjectReader[TReference, []*model_evaluation_pb.Keys]
 	cacheDeterministicEncoder model_encoding.DeterministicBinaryEncoder
@@ -116,6 +117,7 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 	objectManager model_core.ObjectManager[TReference, TMetadata],
 	tagStore model_tag.BoundStore[TReference],
 	actionTagKeyReference object.LocalReference,
+	evaluationReader model_parser.MessageObjectReader[TReference, *model_evaluation_pb.Evaluation],
 	lookupResultReader model_parser.MessageObjectReader[TReference, *model_evaluation_cache_pb.LookupResult],
 	keysReader model_parser.MessageObjectReader[TReference, []*model_evaluation_pb.Keys],
 	cacheDeterministicEncoder model_encoding.DeterministicBinaryEncoder,
@@ -562,7 +564,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(
 	defer evaluationsBuilder.Discard()
 
 	for _, ks := range sortedKeyStates {
-		evaluation, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_evaluation_pb.Evaluations, error) {
+		evaluations, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_evaluation_pb.Evaluations, error) {
 			newValueState, graphlet, err := ks.valueState.getGraphlet(ctx, rc, ks)
 			ks.valueState = newValueState
 			if err != nil {
@@ -580,7 +582,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(
 		if err != nil {
 			return model_core.PatchedMessage[[]*model_evaluation_pb.Evaluations, TMetadata]{}, err
 		}
-		if err := evaluationsBuilder.PushChild(evaluation); err != nil {
+		if err := evaluationsBuilder.PushChild(evaluations); err != nil {
 			return model_core.PatchedMessage[[]*model_evaluation_pb.Evaluations, TMetadata]{}, err
 		}
 	}
@@ -1222,8 +1224,8 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) getHois
 	return vs.hoistedVariableDependencies
 }
 
-func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata], value model_core.Message[*model_core_pb.Any, TReference]) (variableDependenciesMarshaledValueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
-	inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_pb.Graphlet, TMetadata], 0, 3)
+func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildEvaluation(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata], value model_core.Message[*model_core_pb.Any, TReference]) (model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata], error) {
+	inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_pb.Evaluation, TMetadata], 0, 2)
 	defer inlineCandidates.Discard()
 
 	// Attach the computed value, if any.
@@ -1231,8 +1233,8 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGr
 		patchedValue := model_core.Patch(rc.objectManager, value)
 		inlineCandidates = append(inlineCandidates, inlinedtree.AlwaysInline(
 			patchedValue.Patcher,
-			func(graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata]) {
-				graphlet.Message.Value = patchedValue.Message
+			func(evaluation model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata]) {
+				evaluation.Message.Value = patchedValue.Message
 			},
 		))
 	}
@@ -1281,36 +1283,72 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGr
 			}, nil
 		})
 		if err != nil {
-			return variableDependenciesMarshaledValueState[TReference, TMetadata]{}, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+			return model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata]{}, err
 		}
 		if err := directVariableDependenciesBuilder.PushChild(directDependency); err != nil {
-			return variableDependenciesMarshaledValueState[TReference, TMetadata]{}, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+			return model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata]{}, err
 		}
 	}
 
 	directVariableDependenciesList, err := directVariableDependenciesBuilder.FinalizeList()
 	if err != nil {
-		return variableDependenciesMarshaledValueState[TReference, TMetadata]{}, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+		return model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata]{}, err
 	}
-	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{
+	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_pb.Evaluation, TMetadata]{
 		ExternalMessage: model_core.ProtoListToBinaryMarshaler(directVariableDependenciesList),
 		Encoder:         rc.cacheDeterministicEncoder,
 		ParentAppender: func(
-			graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata],
+			evaluation model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata],
 			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
 		) error {
 			directVariableDependencies, err := btree.MaybeMergeNodes(
 				directVariableDependenciesList.Message,
 				externalObject,
-				graphlet.Patcher,
+				evaluation.Patcher,
 				keysParentNodeComputer,
 			)
 			if err != nil {
 				return err
 			}
-			graphlet.Message.DirectVariableDependencyKeys = directVariableDependencies
+			evaluation.Message.DirectVariableDependencyKeys = directVariableDependencies
 			return nil
 		},
+	})
+
+	return inlinedtree.Build(
+		inlineCandidates,
+		&inlinedtree.Options{
+			ReferenceFormat:  rc.referenceFormat,
+			MaximumSizeBytes: 1 << 16,
+		},
+	)
+}
+
+func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata], value model_core.Message[*model_core_pb.Any, TReference]) (variableDependenciesMarshaledValueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+	inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_pb.Graphlet, TMetadata], 0, 2)
+	defer inlineCandidates.Discard()
+
+	evaluation, err := vs.buildEvaluation(ctx, rc, ks, value)
+	if err != nil {
+		return variableDependenciesMarshaledValueState[TReference, TMetadata]{}, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+	}
+	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{
+		ExternalMessage: model_core.ProtoToBinaryMarshaler(evaluation),
+		Encoder:         rc.cacheDeterministicEncoder,
+		ParentAppender: inlinedtree.Capturing(ctx, rc.objectManager, func(
+			graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata],
+			externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
+		) {
+			if externalObject == nil {
+				graphlet.Message.Evaluation = &model_evaluation_pb.Graphlet_EvaluationInline{
+					EvaluationInline: evaluation.Message,
+				}
+			} else {
+				graphlet.Message.Evaluation = &model_evaluation_pb.Graphlet_EvaluationExternal{
+					EvaluationExternal: graphlet.Patcher.AddDecodableReference(*externalObject),
+				}
+			}
+		}),
 	})
 
 	// Attach evaluations of direct and transitive dependencies that
@@ -1741,9 +1779,11 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 }
 
 func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata]) getMessageValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
-	return model_core.FlattenAny(
-		model_core.Nested(vs.graphlet, vs.graphlet.Message.Value),
-	)
+	evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, vs.graphlet)
+	if err != nil {
+		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, nil
+	}
+	return model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
 }
 
 func (variableDependenciesMarshaledMessageValueState[TReference, TMetadata]) getNativeValue() (any, error) {
@@ -1805,11 +1845,16 @@ func (overriddenMessageValueState[TReference, TMetadata]) getError() error {
 }
 
 func (vs *overriddenMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+	// TODO: Should this also use inlinedtree?
 	wrappedValue := model_core.WrapTopLevelAny(vs.value).Decay()
 	return vs, model_core.Nested(
 		wrappedValue,
 		&model_evaluation_pb.Graphlet{
-			Value: wrappedValue.Message,
+			Evaluation: &model_evaluation_pb.Graphlet_EvaluationInline{
+				EvaluationInline: &model_evaluation_pb.Evaluation{
+					Value: wrappedValue.Message,
+				},
+			},
 		},
 	), nil
 }
@@ -2002,4 +2047,7 @@ type (
 	// ObjectManagerForTesting is used to generate mocks that are
 	// used by RecursiveComputer's unit tests.
 	ObjectManagerForTesting = model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata]
+	// ProtoEvaluationReaderForTesting is used to generate mocks that
+	// are used by RecursiveComputer's unit tests.
+	ProtoEvaluationReaderForTesting = model_parser.MessageObjectReader[object.LocalReference, *model_evaluation_pb.Evaluation]
 )

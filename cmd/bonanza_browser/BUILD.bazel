@@ -21,6 +21,7 @@ go_library(
         "//pkg/model/core",
         "//pkg/model/core/btree",
         "//pkg/model/encoding",
+        "//pkg/model/evaluation",
         "//pkg/model/parser",
         "//pkg/proto/browser",
         "//pkg/proto/buildqueuestate",

@@ -46,11 +46,10 @@ message Keys {
   }
 }
 
-// Graphlet contains the value of a key for which evaluation was
+// Evaluation contains the value of a key for which evaluation was
 // performed, and a list of dependencies that were requested during
-// evaluation. Depending on server-side heuristics, the values of
-// dependencies are included as well.
-message Graphlet {
+// evaluation.
+message Evaluation {
   // The value that was emitted by the computer for the given key.
   //
   // This field may be left unset if the computer yielded a native
@@ -62,6 +61,23 @@ message Graphlet {
   // (i.e., transitively dependent on keys for which overrides are
   // present) are included.
   repeated Keys direct_variable_dependency_keys = 2;
+}
+
+// Graphlet contains the evaluation results of a key. Depending on
+// server-side heuristics, the evaluations of certain dependencies are
+// included as well.
+message Graphlet {
+  oneof evaluation {
+    // Evaluation of the current key, stored inline.
+    Evaluation evaluation_inline = 1;
+
+    // Evaluation of the current key, stored in a separate object.
+    bonanza.model.core.DecodableReference evaluation_external = 2
+        [(bonanza.model.core.object_format) = {
+          proto_type_name:
+            "bonanza.model.evaluation.Evaluation";
+        }];
+  }
 
   // Evaluations of direct or transitive dependencies of the current
   // key. Whether an evaluation is stored in this specific graphlet or
@@ -192,6 +208,6 @@ message Result {
   bonanza.model.core.DecodableReference outcomes_reference = 2
       [(bonanza.model.core.object_format) = {
         proto_list_type_name:
-          "bonanza.model.evaluation.Evaluation";
+          "bonanza.model.evaluation.Evaluations";
       }];
 }
