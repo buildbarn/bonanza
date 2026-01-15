@@ -89,8 +89,13 @@ func wrapHandler(handler func(http.ResponseWriter, *http.Request) (g.Node, error
 			return
 		}
 
-		if err := node.Render(w); err != nil {
-			http.Error(w, "error rendering node: "+err.Error(), http.StatusInternalServerError)
+		// The handler may return a nil node to indicate that it
+		// is responsible for writing its own output (e.g.,
+		// performing a HTTP redirect).
+		if node != nil {
+			if err := node.Render(w); err != nil {
+				http.Error(w, "error rendering node: "+err.Error(), http.StatusInternalServerError)
+			}
 		}
 	}
 }
@@ -99,7 +104,7 @@ func wrapHandler(handler func(http.ResponseWriter, *http.Request) (g.Node, error
 func (s *BrowserService) RegisterHandlers(mux *http.ServeMux) {
 	// Storage related endpoints.
 	mux.HandleFunc(
-		"/evaluation/{instance_name}/{reference_format}/{reference}/{key}",
+		"/evaluation/{instance_name}/{reference_format}/{reference}/{key_path...}",
 		wrapHandler(s.doEvaluation),
 	)
 	mux.HandleFunc(
@@ -603,7 +608,25 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	}
 	referenceFormat := evaluationsListReference.Value.GetReferenceFormat()
 
-	keyBytes, err := base64.RawURLEncoding.DecodeString(r.PathValue("key"))
+	// The final component of the URL contains the key to display.
+	// Before it, there may be references of keys whose graphlets
+	// contain the key to display.
+	keyPath := strings.Split(r.PathValue("key_path"), "/")
+	parentKeyPath := keyPath[:len(keyPath)-1]
+	parentKeyReferences := make([]object.LocalReference, 0, len(parentKeyPath))
+	for _, pathSegment := range parentKeyPath {
+		keyReferenceBytes, err := base64.RawURLEncoding.DecodeString(pathSegment)
+		if err != nil {
+			return nil, err
+		}
+		keyReference, err := referenceFormat.NewLocalReference(keyReferenceBytes)
+		if err != nil {
+			return nil, err
+		}
+		parentKeyReferences = append(parentKeyReferences, keyReference)
+	}
+
+	keyBytes, err := base64.RawURLEncoding.DecodeString(keyPath[len(keyPath)-1])
 	if err != nil {
 		return nil, err
 	}
@@ -618,7 +641,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 
 	jsonRenderer := messageJSONRenderer{
 		basePath: path.Join(
-			"../../../../object",
+			strings.Repeat("../", len(parentKeyReferences))+"../../../../object",
 			url.PathEscape(evaluationsListReference.Value.InstanceName.String()),
 			referenceFormat.ToProto().String(),
 		),
@@ -706,7 +729,65 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		), nil
 	}
 
-	// TODO: This is oblivious of graphlets.
+	// If the key to display is contained within a graphlet, we must
+	// first look up the graphlet.
+	for _, parentKeyReference := range parentKeyReferences {
+		evaluations, err := btree.Find(
+			ctx,
+			evaluationsReader,
+			evaluationsList,
+			func(entry model_core.Message[*model_evaluation_pb.Evaluations, object.LocalReference]) (int, *model_core_pb.DecodableReference) {
+				switch level := entry.Message.Level.(type) {
+				case *model_evaluation_pb.Evaluations_Leaf_:
+					return bytes.Compare(parentKeyReference.GetRawReference(), level.Leaf.KeyReference), nil
+				case *model_evaluation_pb.Evaluations_Parent_:
+					return bytes.Compare(parentKeyReference.GetRawReference(), level.Parent.FirstKeyReference), level.Parent.Reference
+				default:
+					return 0, nil
+				}
+			},
+		)
+		if err != nil {
+			errNodes := renderErrorAlert(fmt.Errorf("failed to look up key in evaluations list: %w", err))
+			return renderEvaluationPage(
+				w,
+				evaluationsListReference,
+				keyJSONNodes,
+				errNodes,
+				errNodes,
+				currentEncoderConfigurationStr,
+				cookie,
+			), nil
+		}
+
+		if !evaluations.IsSet() {
+			errNodes := renderErrorAlert(fmt.Errorf("parent %s cannot be found in evaluations list", base64.RawURLEncoding.EncodeToString(parentKeyReference.GetRawReference())))
+			return renderEvaluationPage(
+				w,
+				evaluationsListReference,
+				keyJSONNodes,
+				errNodes,
+				errNodes,
+				currentEncoderConfigurationStr,
+				cookie,
+			), nil
+		}
+		evaluationsLeaf, ok := evaluations.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
+		if !ok {
+			errNodes := renderErrorAlert(errors.New("evaluations list entry is not a valid leaf"))
+			return renderEvaluationPage(
+				w,
+				evaluationsListReference,
+				keyJSONNodes,
+				errNodes,
+				errNodes,
+				currentEncoderConfigurationStr,
+				cookie,
+			), nil
+		}
+		evaluationsList = model_core.Nested(evaluations, evaluationsLeaf.Leaf.Graphlet.GetDependencyEvaluations())
+	}
+
 	evaluations, err := btree.Find(
 		ctx,
 		evaluationsReader,
@@ -798,7 +879,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				if dependencyKey, err := model_core.FlattenAny(model_core.Nested(dependency, dependencyLeaf.Leaf)); err == nil {
 					if marshaledDependencyKey, err := model_core.MarshalTopLevelMessage(dependencyKey); err == nil {
 						cardNodes = append(cardNodes, h.Form(
-							h.Action(base64.RawURLEncoding.EncodeToString(marshaledDependencyKey)),
+							h.Action(base64.RawURLEncoding.EncodeToString(keyReference.GetRawReference())+"/"+base64.RawURLEncoding.EncodeToString(marshaledDependencyKey)),
 							h.Button(
 								h.Class("btn btn-primary btn-square float-right inline-block"),
 								g.Text("↗"),
@@ -818,6 +899,13 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		} else {
 			dependenciesNodes = renderErrorAlert(errIter)
 		}
+	} else if len(parentKeyReferences) > 0 {
+		// The requested key is not present in the current
+		// graphlet. However, it may be the case that it's
+		// present in one of its parents. Perform a redirect to
+		// the same key within the parent graphlet.
+		http.Redirect(w, r, "../"+base64.RawURLEncoding.EncodeToString(keyBytes), http.StatusMovedPermanently)
+		return nil, nil
 	}
 
 	// Rendering values might reveal the existence of additional encoders.
