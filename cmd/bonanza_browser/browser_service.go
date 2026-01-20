@@ -1082,55 +1082,58 @@ func (s *BrowserService) doObject(
 }
 
 func (s *BrowserService) doProtoObject(w http.ResponseWriter, r *http.Request) (g.Node, error) {
+	payloadRenderers := []payloadRenderer{
+		rawPayloadRenderer{},
+		decodedPayloadRenderer{},
+		messageJSONPayloadRenderer{
+			CustomRenderer: stubCustomRenderer,
+		},
+		messagePrettyRenderer{
+			jsonRenderer: messageJSONPayloadRenderer{
+				CustomRenderer: renderMessagePretty,
+			},
+		},
+	}
 	return s.doObject(
 		w,
 		r,
-		[]payloadRenderer{
-			rawPayloadRenderer{},
-			decodedPayloadRenderer{},
-			messageJSONPayloadRenderer{
-				CustomRenderer: stubCustomRenderer,
-			},
-			messagePrettyRenderer{
-				jsonRenderer: messageJSONPayloadRenderer{
-					CustomRenderer: renderMessagePretty,
-				},
-			},
-		},
-		2,
+		payloadRenderers,
+		/* defaultPayloadRendererIndex = */ len(payloadRenderers)-1,
 	)
 }
 
 func (s *BrowserService) doProtoListObject(w http.ResponseWriter, r *http.Request) (g.Node, error) {
+	payloadRenderers := []payloadRenderer{
+		rawPayloadRenderer{},
+		decodedPayloadRenderer{},
+		messageListJSONPayloadRenderer{
+			CustomRenderer: stubCustomRenderer,
+		},
+		messageListPrettyRenderer{
+			jsonRenderer: messageListJSONPayloadRenderer{
+				CustomRenderer: renderMessagePretty,
+			},
+		},
+	}
 	return s.doObject(
 		w,
 		r,
-		[]payloadRenderer{
-			rawPayloadRenderer{},
-			decodedPayloadRenderer{},
-			messageListJSONPayloadRenderer{
-				CustomRenderer: stubCustomRenderer,
-			},
-			messageListPrettyRenderer{
-				jsonRenderer: messageListJSONPayloadRenderer{
-					CustomRenderer: renderMessagePretty,
-				},
-			},
-		},
-		2,
+		payloadRenderers,
+		/* defaultPayloadRendererIndex = */ len(payloadRenderers)-1,
 	)
 }
 
 func (s *BrowserService) doRawObject(w http.ResponseWriter, r *http.Request) (g.Node, error) {
+	payloadRenderers := []payloadRenderer{
+		rawPayloadRenderer{},
+		decodedPayloadRenderer{},
+		textPayloadRenderer{},
+	}
 	return s.doObject(
 		w,
 		r,
-		[]payloadRenderer{
-			rawPayloadRenderer{},
-			decodedPayloadRenderer{},
-			textPayloadRenderer{},
-		},
-		2,
+		payloadRenderers,
+		/* defaultPayloadRendererIndex = */ len(payloadRenderers)-1,
 	)
 }
 
