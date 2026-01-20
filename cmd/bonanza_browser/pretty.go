@@ -299,7 +299,7 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 
 func prettySize(bytes uint64) string {
 	unit := 0
-	units := []string{"b", "KiB", "MiB", "GiB", "TiB", "PiB"}
+	units := []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB"}
 	for bytes >= 1024 && unit+1 < len(units) {
 		bytes /= 1024
 		unit++
