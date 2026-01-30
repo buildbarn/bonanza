@@ -1,0 +1,27 @@
+load("//pkg/proto:proto_api.bzl", "complete_proto_api")
+
+complete_proto_api(
+    name = "complete_proto_api",
+    roots = [
+        "//pkg/proto/configuration/bonanza_browser:bonanza_browser_proto",
+        "//pkg/proto/configuration/bonanza_builder:bonanza_builder_proto",
+        "//pkg/proto/configuration/bonanza_fetcher:bonanza_fetcher_proto",
+        "//pkg/proto/configuration/bonanza_scheduler:bonanza_scheduler_proto",
+        "//pkg/proto/configuration/bonanza_storage_frontend:bonanza_storage_frontend_proto",
+        "//pkg/proto/configuration/bonanza_storage_shard:bonanza_storage_shard_proto",
+        "//pkg/proto/configuration/bonanza_worker:bonanza_worker_proto",
+        "//pkg/proto/configuration/model/parser:bonanza_configuration_model_parser_proto",
+        "//pkg/proto/configuration/mount_directory:mount_directory_proto",
+        "//pkg/proto/configuration/scheduler:scheduler_proto",
+        "//pkg/proto/configuration/storage/object/local:local_proto",
+        "@com_github_buildbarn_bb_remote_execution//pkg/proto/configuration/bb_runner:bb_runner_proto",
+        "//pkg/proto/encryptedaction:encryptedaction_proto",
+        "//pkg/proto/model/analysis:analysis_proto",
+        "//pkg/proto/model/command:command_proto",
+        "//pkg/proto/model/executewithstorage:executewithstorage_proto",
+        "//pkg/proto/model/fetch:fetch_proto",
+        "//pkg/proto/remoteexecution:remoteexecution_proto",
+        "//pkg/proto/remoteworker:remoteworker_proto",
+    ],
+    visibility = ["//visibility:public"],
+)
