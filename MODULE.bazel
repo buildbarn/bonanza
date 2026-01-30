@@ -58,6 +58,12 @@ single_version_override(
     patches = ["//:patches/toolchains_llvm/non-root.diff"],
 )
 
+bazel_lib_toolchains = use_extension("@aspect_bazel_lib//lib:extensions.bzl", "toolchains")
+bazel_lib_toolchains.copy_to_directory()
+use_repo(bazel_lib_toolchains, "copy_to_directory_toolchains")
+
+register_toolchains("@copy_to_directory_toolchains//:all")
+
 protoc = use_extension("@toolchains_protoc//protoc:extensions.bzl", "protoc")
 protoc.toolchain(version = "v33.0")
 
