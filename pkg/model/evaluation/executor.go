@@ -249,7 +249,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		evaluationReader := model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[buffered.Reference](keyedActionEncoder),
+				model_parser.NewEncodedObjectParser[buffered.Reference](deterministicActionEncoder),
 				model_parser.NewProtoObjectParser[buffered.Reference, model_evaluation_pb.Evaluation](),
 			),
 		)
