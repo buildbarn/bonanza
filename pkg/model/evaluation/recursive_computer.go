@@ -131,6 +131,7 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 		objectManager:             objectManager,
 		tagStore:                  tagStore,
 		actionTagKeyReference:     actionTagKeyReference,
+		evaluationReader:          evaluationReader,
 		lookupResultReader:        lookupResultReader,
 		keysReader:                keysReader,
 		cacheDeterministicEncoder: cacheDeterministicEncoder,
