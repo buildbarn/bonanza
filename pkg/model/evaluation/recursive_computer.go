@@ -1781,7 +1781,7 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata]) getMessageValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
 	evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, vs.graphlet)
 	if err != nil {
-		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, nil
+		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, err
 	}
 	return model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
 }
