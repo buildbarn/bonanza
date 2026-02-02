@@ -1534,7 +1534,6 @@ func (vs initialMessageValueState[TReference, TMetadata]) evaluate(ctx context.C
 						dependencyKeyReference,
 						dependencyKeyMessageFetcher,
 						dependencyKey.Message.TypeUrl,
-						// TODO: This might need to use nativeValueState.
 						rc.newInitialValueState(dependencyKey.Message.TypeUrl),
 						evaluationQueue,
 					)
