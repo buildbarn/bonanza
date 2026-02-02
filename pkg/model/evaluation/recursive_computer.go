@@ -3,7 +3,6 @@ package evaluation
 import (
 	"bytes"
 	"context"
-	"encoding"
 	"errors"
 	"fmt"
 	"maps"
@@ -592,6 +591,63 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(
 	return evaluationsBuilder.FinalizeList()
 }
 
+func (rc *RecursiveComputer[TReference, TMetadata]) getKeysParentNodeComputer(ctx context.Context) btree.ParentNodeComputer[*model_evaluation_pb.Keys, TMetadata] {
+	return btree.Capturing(ctx, rc.objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Keys, TMetadata] {
+		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_pb.Keys {
+			return &model_evaluation_pb.Keys{
+				Level: &model_evaluation_pb.Keys_Parent_{
+					Parent: &model_evaluation_pb.Keys_Parent{
+						Reference: patcher.AddDecodableReference(createdObject),
+					},
+				},
+			}
+		})
+	})
+}
+
+func (rc *RecursiveComputer[TReference, TMetadata]) getKeysForSortedList(ctx context.Context, sortedKeyStates []*KeyState[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_evaluation_pb.Keys, TMetadata], error) {
+	keysBuilder := btree.NewHeightAwareBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			/* minimumSizeBytes = */ 1<<16,
+			/* maximumSizeBytes = */ 1<<18,
+			/* isParent = */ func(keys *model_evaluation_pb.Keys) bool {
+				return keys.GetParent() != nil
+			},
+		),
+		btree.NewObjectCreatingNodeMerger(
+			rc.cacheDeterministicEncoder,
+			rc.referenceFormat,
+			rc.getKeysParentNodeComputer(ctx),
+		),
+	)
+	defer keysBuilder.Discard()
+
+	for _, ks := range sortedKeyStates {
+		directDependency, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_evaluation_pb.Keys, error) {
+			key, err := ks.keyMessageFetcher.getAny(ctx, rc)
+			if err != nil {
+				return nil, err
+			}
+			return &model_evaluation_pb.Keys{
+				Level: &model_evaluation_pb.Keys_Leaf{
+					Leaf: model_core.Patch(
+						rc.objectManager,
+						model_core.WrapTopLevelAny(key).Decay(),
+					).Merge(patcher),
+				},
+			}, nil
+		})
+		if err != nil {
+			return model_core.PatchedMessage[[]*model_evaluation_pb.Keys, TMetadata]{}, err
+		}
+		if err := keysBuilder.PushChild(directDependency); err != nil {
+			return model_core.PatchedMessage[[]*model_evaluation_pb.Keys, TMetadata]{}, err
+		}
+	}
+
+	return keysBuilder.FinalizeList()
+}
+
 // gatherTopLevelKeyStates recursively gathers all hoisted dependencies
 // of a KeyState. This should be invoked when creating a top-level list
 // of evaluation results, which can be returned to the client.
@@ -635,6 +691,30 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getCacheLookupTagKeyHash(ks 
 		return result
 	}).SortAndSetReferences()
 	return model_tag.NewDecodableKeyHashFromMessage(tagKeyData, rc.lookupResultReader.GetDecodingParametersSizeBytes())
+}
+
+// storeLookupResult writes an object containing a LookupResult message
+// to the object store and associates a tag with it. The reference of
+// the resulting object is returned, making it possible to read the
+// object's contents without resolving the tag.
+func (rc *RecursiveComputer[TReference, TMetadata]) storeLookupResult(ctx context.Context, tagKeyHash model_tag.DecodableKeyHash, lookupResult model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult, TMetadata]) (TReference, error) {
+	createdLookupResult, err := model_core.MarshalAndEncodeKeyed(
+		model_core.ProtoToBinaryMarshaler(lookupResult),
+		rc.referenceFormat,
+		rc.cacheKeyedEncoder,
+		tagKeyHash.GetDecodingParameters(),
+	)
+	if err != nil {
+		var badReference TReference
+		return badReference, err
+	}
+	lookupResultMetadataEntry, err := createdLookupResult.Capture(ctx, rc.objectManager)
+	if err != nil {
+		var badReference TReference
+		return badReference, err
+	}
+	lookupResultReference := rc.objectManager.ReferenceObject(lookupResultMetadataEntry)
+	return lookupResultReference, rc.tagStore.UpdateTag(ctx, tagKeyHash.Value, lookupResultReference)
 }
 
 type recursivelyComputingEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -1242,57 +1322,8 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildEv
 	}
 
 	// Attach the keys of the direct variable dependencies.
-	keysParentNodeComputer := btree.Capturing(ctx, rc.objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Keys, TMetadata] {
-		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_pb.Keys {
-			return &model_evaluation_pb.Keys{
-				Level: &model_evaluation_pb.Keys_Parent_{
-					Parent: &model_evaluation_pb.Keys_Parent{
-						Reference: patcher.AddDecodableReference(createdObject),
-					},
-				},
-			}
-		})
-	})
-	directVariableDependenciesBuilder := btree.NewHeightAwareBuilder(
-		btree.NewProllyChunkerFactory[TMetadata](
-			/* minimumSizeBytes = */ 1<<16,
-			/* maximumSizeBytes = */ 1<<18,
-			/* isParent = */ func(keys *model_evaluation_pb.Keys) bool {
-				return keys.GetParent() != nil
-			},
-		),
-		btree.NewObjectCreatingNodeMerger(
-			rc.cacheDeterministicEncoder,
-			rc.referenceFormat,
-			keysParentNodeComputer,
-		),
-	)
-	defer directVariableDependenciesBuilder.Discard()
-
-	for _, ksDep := range vs.directVariableDependencies {
-		directDependency, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_evaluation_pb.Keys, error) {
-			key, err := ksDep.keyMessageFetcher.getAny(ctx, rc)
-			if err != nil {
-				return nil, err
-			}
-			return &model_evaluation_pb.Keys{
-				Level: &model_evaluation_pb.Keys_Leaf{
-					Leaf: model_core.Patch(
-						rc.objectManager,
-						model_core.WrapTopLevelAny(key).Decay(),
-					).Merge(patcher),
-				},
-			}, nil
-		})
-		if err != nil {
-			return model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata]{}, err
-		}
-		if err := directVariableDependenciesBuilder.PushChild(directDependency); err != nil {
-			return model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata]{}, err
-		}
-	}
-
-	directVariableDependenciesList, err := directVariableDependenciesBuilder.FinalizeList()
+	keysParentNodeComputer := rc.getKeysParentNodeComputer(ctx)
+	directVariableDependenciesList, err := rc.getKeysForSortedList(ctx, vs.directVariableDependencies)
 	if err != nil {
 		return model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata]{}, err
 	}
@@ -1696,38 +1727,23 @@ func (vs *noDependenciesComputedMessageValueState[TReference, TMetadata]) upload
 		return vs, err
 	}
 
-	// Create a root LookupResult message containing the message value.
-	createdRootLookupResult, err := model_core.MarshalAndEncodeKeyed(
+	rootLookupResultReference, err := rc.storeLookupResult(
+		ctx,
+		rootTagKeyHash,
 		model_core.MustBuildPatchedMessage(
-			func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) encoding.BinaryMarshaler {
-				return model_core.NewProtoBinaryMarshaler(
-					&model_evaluation_cache_pb.LookupResult{
-						Result: &model_evaluation_cache_pb.LookupResult_HitValue{
-							HitValue: model_core.Patch(
-								rc.objectManager,
-								model_core.WrapTopLevelAny(vs.value).Decay(),
-							).Merge(patcher),
-						},
+			func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
+				return &model_evaluation_cache_pb.LookupResult{
+					Result: &model_evaluation_cache_pb.LookupResult_HitValue{
+						HitValue: model_core.Patch(
+							rc.objectManager,
+							model_core.WrapTopLevelAny(vs.value).Decay(),
+						).Merge(patcher),
 					},
-				)
+				}
 			},
 		),
-		rc.referenceFormat,
-		rc.cacheKeyedEncoder,
-		rootTagKeyHash.GetDecodingParameters(),
 	)
 	if err != nil {
-		return vs, err
-	}
-	rootLookupResultMetadataEntry, err := createdRootLookupResult.Capture(ctx, rc.objectManager)
-	if err != nil {
-		return vs, err
-	}
-	rootLookupResultReference := rc.objectManager.ReferenceObject(rootLookupResultMetadataEntry)
-
-	// Create a tag that points to the LookupResult message, so that
-	// subsequent builds are able to find it again.
-	if err := rc.tagStore.UpdateTag(ctx, rootTagKeyHash.Value, rootLookupResultReference); err != nil {
 		return vs, err
 	}
 
@@ -1795,8 +1811,84 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 			return err
 		}
 
-		// TODO: Implement!
-		return nil
+		inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata], 0, 2)
+		defer inlineCandidates.Discard()
+
+		keysParentNodeComputer := rc.getKeysParentNodeComputer(ctx)
+		graphletVariableDependencyKeys, err := rc.getKeysForSortedList(ctx, vs.hoistedVariableDependencies)
+		if err != nil {
+			return err
+		}
+		inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata]{
+			ExternalMessage: model_core.ProtoListToBinaryMarshaler(graphletVariableDependencyKeys),
+			Encoder:         rc.cacheDeterministicEncoder,
+			ParentAppender: func(
+				evaluation model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata],
+				externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+			) error {
+				dependencies, err := btree.MaybeMergeNodes(
+					graphletVariableDependencyKeys.Message,
+					externalObject,
+					evaluation.Patcher,
+					keysParentNodeComputer,
+				)
+				if err != nil {
+					return err
+				}
+				evaluation.Message.GraphletVariableDependencyKeys = dependencies
+				return nil
+			},
+		})
+		valueVariableDependencyKeys, err := rc.getKeysForSortedList(ctx, vs.directVariableDependencies)
+		if err != nil {
+			return err
+		}
+		inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata]{
+			ExternalMessage: model_core.ProtoListToBinaryMarshaler(valueVariableDependencyKeys),
+			Encoder:         rc.cacheDeterministicEncoder,
+			ParentAppender: func(
+				evaluation model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata],
+				externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+			) error {
+				dependencies, err := btree.MaybeMergeNodes(
+					valueVariableDependencyKeys.Message,
+					externalObject,
+					evaluation.Patcher,
+					keysParentNodeComputer,
+				)
+				if err != nil {
+					return err
+				}
+				evaluation.Message.GraphletVariableDependencyKeys = dependencies
+				return nil
+			},
+		})
+
+		lookupResultInitial, err := inlinedtree.Build(
+			inlineCandidates,
+			&inlinedtree.Options{
+				ReferenceFormat:  rc.referenceFormat,
+				MaximumSizeBytes: 1 << 16,
+			},
+		)
+		if err != nil {
+			return err
+		}
+
+		_, err = rc.storeLookupResult(
+			ctx,
+			rootTagKeyHash,
+			model_core.MustBuildPatchedMessage(
+				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
+					return &model_evaluation_cache_pb.LookupResult{
+						Result: &model_evaluation_cache_pb.LookupResult_Initial_{
+							Initial: lookupResultInitial.Merge(patcher),
+						},
+					}
+				},
+			),
+		)
+		return err
 	})
 
 	// Upload the "hit graphlet" lookup result entry.
@@ -1816,33 +1908,25 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 			return err
 		}
 
-		createdHitGraphletLookupResult, err := model_core.MarshalAndEncodeKeyed(
+		hitGraphletLookupResultReference, err := rc.storeLookupResult(
+			ctx,
+			hitGraphletTagKeyHash,
 			model_core.MustBuildPatchedMessage(
-				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) encoding.BinaryMarshaler {
-					return model_core.NewProtoBinaryMarshaler(
-						&model_evaluation_cache_pb.LookupResult{
-							Result: &model_evaluation_cache_pb.LookupResult_HitGraphlet{
-								HitGraphlet: model_core.Patch(
-									rc.objectManager,
-									vs.graphlet,
-								).Merge(patcher),
-							},
+				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
+					return &model_evaluation_cache_pb.LookupResult{
+						Result: &model_evaluation_cache_pb.LookupResult_HitGraphlet{
+							HitGraphlet: model_core.Patch(
+								rc.objectManager,
+								vs.graphlet,
+							).Merge(patcher),
 						},
-					)
+					}
 				},
 			),
-			rc.referenceFormat,
-			rc.cacheKeyedEncoder,
-			hitGraphletTagKeyHash.GetDecodingParameters(),
 		)
 		if err != nil {
 			return err
 		}
-		hitGraphletLookupResultMetadataEntry, err := createdHitGraphletLookupResult.Capture(groupCtx, rc.objectManager)
-		if err != nil {
-			return err
-		}
-		hitGraphletLookupResultReference := rc.objectManager.ReferenceObject(hitGraphletLookupResultMetadataEntry)
 
 		// Subsequent attempts to access the graphlet may use
 		// the copy that has been written to storage.
@@ -1851,7 +1935,7 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 			hitGraphletLookupResultReference: model_core.CopyDecodable(hitGraphletTagKeyHash, hitGraphletLookupResultReference),
 			hoistedVariableDependencies:      vs.hoistedVariableDependencies,
 		}
-		return rc.tagStore.UpdateTag(groupCtx, hitGraphletTagKeyHash.Value, hitGraphletLookupResultReference)
+		return nil
 	})
 
 	// Upload the "hit value" lookup result entry.
@@ -1871,7 +1955,7 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 		}
 		rc.lock.RUnlock()
 		dependenciesHash := directDependenciesHasher.Sum()
-		hitValuetTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
+		hitValueTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
 			Scope:            model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_VALUE,
 			DependenciesHash: dependenciesHash[:],
 		})
@@ -1883,34 +1967,23 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 		if err != nil {
 			return err
 		}
-		createdHitValuetLookupResult, err := model_core.MarshalAndEncodeKeyed(
+		_, err = rc.storeLookupResult(
+			ctx,
+			hitValueTagKeyHash,
 			model_core.MustBuildPatchedMessage(
-				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) encoding.BinaryMarshaler {
-					return model_core.NewProtoBinaryMarshaler(
-						&model_evaluation_cache_pb.LookupResult{
-							Result: &model_evaluation_cache_pb.LookupResult_HitValue{
-								HitValue: model_core.Patch(
-									rc.objectManager,
-									model_core.Nested(evaluation, evaluation.Message.Value),
-								).Merge(patcher),
-							},
+				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
+					return &model_evaluation_cache_pb.LookupResult{
+						Result: &model_evaluation_cache_pb.LookupResult_HitValue{
+							HitValue: model_core.Patch(
+								rc.objectManager,
+								model_core.Nested(evaluation, evaluation.Message.Value),
+							).Merge(patcher),
 						},
-					)
+					}
 				},
 			),
-			rc.referenceFormat,
-			rc.cacheKeyedEncoder,
-			hitValuetTagKeyHash.GetDecodingParameters(),
 		)
-		if err != nil {
-			return err
-		}
-		hitValuetLookupResultMetadataEntry, err := createdHitValuetLookupResult.Capture(groupCtx, rc.objectManager)
-		if err != nil {
-			return err
-		}
-		hitValuetLookupResultReference := rc.objectManager.ReferenceObject(hitValuetLookupResultMetadataEntry)
-		return rc.tagStore.UpdateTag(groupCtx, hitValuetTagKeyHash.Value, hitValuetLookupResultReference)
+		return err
 	})
 
 	err := group.Wait()

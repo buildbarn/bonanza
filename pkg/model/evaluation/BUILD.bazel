@@ -8,7 +8,6 @@ go_library(
         "environment.go",
         "executor.go",
         "graphlet.go",
-        "keys.go",
         "leak_checking_computer.go",
         "recursive_computer.go",
         "recursive_computer_evaluation_queues.go",
