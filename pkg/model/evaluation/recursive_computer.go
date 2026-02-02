@@ -1742,8 +1742,14 @@ type variableDependenciesComputedMessageValueState[TReference object.BasicRefere
 }
 
 func (vs *variableDependenciesComputedMessageValueState[TReference, TMetadata]) upload(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], error) {
-	// TODO: Implement uploading!
-	return vs, nil
+	// Uploading the value requires us to have it in graphlet form
+	// anyway. Compute the graphlet and then call
+	// variableDependenciesMarshaledMessageValueState.upload().
+	marshaledValueState, _, err := vs.getGraphlet(ctx, rc, ks)
+	if err != nil {
+		return marshaledValueState, err
+	}
+	return marshaledValueState.upload(ctx, rc, ks)
 }
 
 func (vs *variableDependenciesComputedMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
