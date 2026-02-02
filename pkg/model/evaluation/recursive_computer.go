@@ -27,6 +27,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -1400,6 +1401,7 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGr
 		variableDependencyValueState: vs.variableDependencyValueState,
 		graphlet:                     graphlet,
 		hoistedVariableDependencies:  vs.hoistedVariableDependencies,
+		directVariableDependencies:   vs.directVariableDependencies,
 	}, graphlet, nil
 }
 
@@ -1409,6 +1411,7 @@ type variableDependenciesMarshaledValueState[TReference object.BasicReference, T
 
 	graphlet                    model_core.Message[*model_evaluation_pb.Graphlet, TReference]
 	hoistedVariableDependencies []*KeyState[TReference, TMetadata]
+	directVariableDependencies  []*KeyState[TReference, TMetadata]
 }
 
 func (vs *variableDependenciesMarshaledValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
@@ -1568,7 +1571,7 @@ func (vs initialMessageValueState[TReference, TMetadata]) evaluate(ctx context.C
 		// dependencies. This means that the initial lookup
 		// returned a value immediately.
 		return &noDependenciesUploadedMessageValueState[TReference, TMetadata]{
-			lookupResultReference: rootLookupResultReference,
+			hitValueLookupResultReference: rootLookupResultReference,
 		}, nil
 	default:
 		// Malformed cache entry.
@@ -1732,7 +1735,7 @@ func (vs *noDependenciesComputedMessageValueState[TReference, TMetadata]) upload
 	// of the LookupResult. This prevents the need for keeping the
 	// value in memory.
 	return &noDependenciesUploadedMessageValueState[TReference, TMetadata]{
-		lookupResultReference: model_core.CopyDecodable(rootTagKeyHash, rootLookupResultReference),
+		hitValueLookupResultReference: model_core.CopyDecodable(rootTagKeyHash, rootLookupResultReference),
 	}, nil
 }
 
@@ -1776,8 +1779,142 @@ type variableDependenciesMarshaledMessageValueState[TReference object.BasicRefer
 }
 
 func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata]) upload(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], error) {
-	// TODO: Implement uploading!
-	return vs, nil
+	nextValueState := valueState[TReference, TMetadata](vs)
+	group, groupCtx := errgroup.WithContext(ctx)
+
+	// Upload the initial lookup result entry, and missing
+	// dependencies lookup result entries if needed.
+	group.Go(func() error {
+		rootTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, nil)
+		if err != nil {
+			return err
+		}
+		if _, err = model_tag.ResolveDecodableTag(groupCtx, rc.tagStore, rootTagKeyHash); err == nil {
+			return errors.New("merging of lookup results is not implemented yet")
+		} else if status.Code(err) != codes.NotFound {
+			return err
+		}
+
+		// TODO: Implement!
+		return nil
+	})
+
+	// Upload the "hit graphlet" lookup result entry.
+	group.Go(func() error {
+		hoistedDependenciesHasher := lthash.NewHasher()
+		rc.lock.RLock()
+		for _, ksDep := range vs.hoistedVariableDependencies {
+			hoistedDependenciesHasher.Add(ksDep.valueState.getDependenciesHashRecordReference().GetRawReference())
+		}
+		rc.lock.RUnlock()
+		dependenciesHash := hoistedDependenciesHasher.Sum()
+		hitGraphletTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
+			Scope:            model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET,
+			DependenciesHash: dependenciesHash[:],
+		})
+		if err != nil {
+			return err
+		}
+
+		createdHitGraphletLookupResult, err := model_core.MarshalAndEncodeKeyed(
+			model_core.MustBuildPatchedMessage(
+				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) encoding.BinaryMarshaler {
+					return model_core.NewProtoBinaryMarshaler(
+						&model_evaluation_cache_pb.LookupResult{
+							Result: &model_evaluation_cache_pb.LookupResult_HitGraphlet{
+								HitGraphlet: model_core.Patch(
+									rc.objectManager,
+									vs.graphlet,
+								).Merge(patcher),
+							},
+						},
+					)
+				},
+			),
+			rc.referenceFormat,
+			rc.cacheKeyedEncoder,
+			hitGraphletTagKeyHash.GetDecodingParameters(),
+		)
+		if err != nil {
+			return err
+		}
+		hitGraphletLookupResultMetadataEntry, err := createdHitGraphletLookupResult.Capture(groupCtx, rc.objectManager)
+		if err != nil {
+			return err
+		}
+		hitGraphletLookupResultReference := rc.objectManager.ReferenceObject(hitGraphletLookupResultMetadataEntry)
+
+		// Subsequent attempts to access the graphlet may use
+		// the copy that has been written to storage.
+		nextValueState = &variableDependenciesUploadedMessageValueState[TReference, TMetadata]{
+			variableDependencyValueState:     vs.variableDependencyValueState,
+			hitGraphletLookupResultReference: model_core.CopyDecodable(hitGraphletTagKeyHash, hitGraphletLookupResultReference),
+			hoistedVariableDependencies:      vs.hoistedVariableDependencies,
+		}
+		return rc.tagStore.UpdateTag(groupCtx, hitGraphletTagKeyHash.Value, hitGraphletLookupResultReference)
+	})
+
+	// Upload the "hit value" lookup result entry.
+	group.Go(func() error {
+		// Only write it if the value's dependencies differ from
+		// the graphlet's. Given that we always attempt to look
+		// up the graphlet first, a "hit value" lookup result
+		// entry having the same dependencies would never be
+		// requested.
+		if slices.Equal(vs.hoistedVariableDependencies, vs.directVariableDependencies) {
+			return nil
+		}
+		directDependenciesHasher := lthash.NewHasher()
+		rc.lock.RLock()
+		for _, ksDep := range vs.directVariableDependencies {
+			directDependenciesHasher.Add(ksDep.valueState.getDependenciesHashRecordReference().GetRawReference())
+		}
+		rc.lock.RUnlock()
+		dependenciesHash := directDependenciesHasher.Sum()
+		hitValuetTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
+			Scope:            model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_VALUE,
+			DependenciesHash: dependenciesHash[:],
+		})
+		if err != nil {
+			return err
+		}
+
+		evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, vs.graphlet)
+		if err != nil {
+			return err
+		}
+		createdHitValuetLookupResult, err := model_core.MarshalAndEncodeKeyed(
+			model_core.MustBuildPatchedMessage(
+				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) encoding.BinaryMarshaler {
+					return model_core.NewProtoBinaryMarshaler(
+						&model_evaluation_cache_pb.LookupResult{
+							Result: &model_evaluation_cache_pb.LookupResult_HitValue{
+								HitValue: model_core.Patch(
+									rc.objectManager,
+									model_core.Nested(evaluation, evaluation.Message.Value),
+								).Merge(patcher),
+							},
+						},
+					)
+				},
+			),
+			rc.referenceFormat,
+			rc.cacheKeyedEncoder,
+			hitValuetTagKeyHash.GetDecodingParameters(),
+		)
+		if err != nil {
+			return err
+		}
+		hitValuetLookupResultMetadataEntry, err := createdHitValuetLookupResult.Capture(groupCtx, rc.objectManager)
+		if err != nil {
+			return err
+		}
+		hitValuetLookupResultReference := rc.objectManager.ReferenceObject(hitValuetLookupResultMetadataEntry)
+		return rc.tagStore.UpdateTag(groupCtx, hitValuetTagKeyHash.Value, hitValuetLookupResultReference)
+	})
+
+	err := group.Wait()
+	return nextValueState, err
 }
 
 func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
@@ -1803,7 +1940,7 @@ func (variableDependenciesMarshaledMessageValueState[TReference, TMetadata]) get
 type noDependenciesUploadedMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	noDependenciesValueState[TReference, TMetadata]
 
-	lookupResultReference model_core.Decodable[TReference]
+	hitValueLookupResultReference model_core.Decodable[TReference]
 }
 
 func (vs *noDependenciesUploadedMessageValueState[TReference, TMetadata]) upload(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], error) {
@@ -1811,7 +1948,7 @@ func (vs *noDependenciesUploadedMessageValueState[TReference, TMetadata]) upload
 }
 
 func (vs *noDependenciesUploadedMessageValueState[TReference, TMetadata]) getMessageValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
-	rootLookupResult, err := rc.lookupResultReader.ReadObject(ctx, vs.lookupResultReference)
+	rootLookupResult, err := rc.lookupResultReader.ReadObject(ctx, vs.hitValueLookupResultReference)
 	if err != nil {
 		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, err
 	}
@@ -1829,6 +1966,56 @@ func (noDependenciesUploadedMessageValueState[TReference, TMetadata]) getNativeV
 
 func (noDependenciesUploadedMessageValueState[TReference, TMetadata]) getError() error {
 	return nil
+}
+
+type variableDependenciesUploadedMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	uploadedValueState[TReference, TMetadata]
+	variableDependencyValueState[TReference, TMetadata]
+
+	hitGraphletLookupResultReference model_core.Decodable[TReference]
+	hoistedVariableDependencies      []*KeyState[TReference, TMetadata]
+}
+
+func (vs *variableDependenciesUploadedMessageValueState[TReference, TMetadata]) getMessageValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
+	hitGraphletLookupResultReference, err := rc.lookupResultReader.ReadObject(ctx, vs.hitGraphletLookupResultReference)
+	if err != nil {
+		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, err
+	}
+	evaluation, err := GraphletGetEvaluation(
+		ctx,
+		rc.evaluationReader,
+		model_core.Nested(
+			hitGraphletLookupResultReference,
+			hitGraphletLookupResultReference.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitGraphlet).HitGraphlet,
+		),
+	)
+	if err != nil {
+		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, err
+	}
+	return model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
+}
+
+func (variableDependenciesUploadedMessageValueState[TReference, TMetadata]) getNativeValue() (any, error) {
+	return nil, errors.New("key does not yield a native value")
+}
+
+func (variableDependenciesUploadedMessageValueState[TReference, TMetadata]) getError() error {
+	return nil
+}
+
+func (vs *variableDependenciesUploadedMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+	hitGraphletLookupResultReference, err := rc.lookupResultReader.ReadObject(ctx, vs.hitGraphletLookupResultReference)
+	if err != nil {
+		return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+	}
+	return vs, model_core.Nested(
+		hitGraphletLookupResultReference,
+		hitGraphletLookupResultReference.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitGraphlet).HitGraphlet,
+	), nil
+}
+
+func (vs *variableDependenciesUploadedMessageValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
+	return vs.hoistedVariableDependencies
 }
 
 type overriddenMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
