@@ -1977,7 +1977,7 @@ type variableDependenciesUploadedMessageValueState[TReference object.BasicRefere
 }
 
 func (vs *variableDependenciesUploadedMessageValueState[TReference, TMetadata]) getMessageValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
-	hitGraphletLookupResultReference, err := rc.lookupResultReader.ReadObject(ctx, vs.hitGraphletLookupResultReference)
+	hitGraphletLookupResult, err := rc.lookupResultReader.ReadObject(ctx, vs.hitGraphletLookupResultReference)
 	if err != nil {
 		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, err
 	}
@@ -1985,8 +1985,8 @@ func (vs *variableDependenciesUploadedMessageValueState[TReference, TMetadata]) 
 		ctx,
 		rc.evaluationReader,
 		model_core.Nested(
-			hitGraphletLookupResultReference,
-			hitGraphletLookupResultReference.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitGraphlet).HitGraphlet,
+			hitGraphletLookupResult,
+			hitGraphletLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitGraphlet).HitGraphlet,
 		),
 	)
 	if err != nil {
@@ -2004,13 +2004,13 @@ func (variableDependenciesUploadedMessageValueState[TReference, TMetadata]) getE
 }
 
 func (vs *variableDependenciesUploadedMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
-	hitGraphletLookupResultReference, err := rc.lookupResultReader.ReadObject(ctx, vs.hitGraphletLookupResultReference)
+	hitGraphletLookupResult, err := rc.lookupResultReader.ReadObject(ctx, vs.hitGraphletLookupResultReference)
 	if err != nil {
 		return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
 	}
 	return vs, model_core.Nested(
-		hitGraphletLookupResultReference,
-		hitGraphletLookupResultReference.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitGraphlet).HitGraphlet,
+		hitGraphletLookupResult,
+		hitGraphletLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitGraphlet).HitGraphlet,
 	), nil
 }
 
