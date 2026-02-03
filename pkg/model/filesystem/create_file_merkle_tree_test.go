@@ -119,7 +119,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 			TotalSizeBytes: 1 << 30,
 		}, rootFileContents.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
-			object.MustNewSHA256V1LocalReference("de074da0ad31c5690ed2c086bee725dc858f4f85a591273d49136d1fc0614101", 1938, 2, 34, 14744),
+			object.MustNewSHA256V1LocalReference("bf03c6a5c1ead6b1e90ebfd26cc4fe905151e0832d5bd10d3b09efbcfd223910", 1881, 2, 33, 15932),
 		}, references)
 	})
 }
