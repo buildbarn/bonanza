@@ -15,6 +15,7 @@ complete_proto_api(
         "//pkg/proto/configuration/scheduler:scheduler_proto",
         "//pkg/proto/configuration/storage/object/local:local_proto",
         "@com_github_buildbarn_bb_remote_execution//pkg/proto/configuration/bb_runner:bb_runner_proto",
+        "@com_github_buildbarn_bb_remote_execution//pkg/proto/resourceusage:resourceusage_proto",
         "//pkg/proto/encryptedaction:encryptedaction_proto",
         "//pkg/proto/model/analysis:analysis_proto",
         "//pkg/proto/model/command:command_proto",
@@ -22,6 +23,7 @@ complete_proto_api(
         "//pkg/proto/model/fetch:fetch_proto",
         "//pkg/proto/remoteexecution:remoteexecution_proto",
         "//pkg/proto/remoteworker:remoteworker_proto",
+        "//pkg/proto/storage/dag:dag_proto",
     ],
     visibility = ["//visibility:public"],
 )
