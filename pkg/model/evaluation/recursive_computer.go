@@ -1254,14 +1254,6 @@ func (evaluationFailedValueState[TReference, TMetadata]) getHoistedDependencies(
 	return nil
 }
 
-type uploadedValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	evaluatedValueState[TReference, TMetadata]
-}
-
-func (uploadedValueState[TReference, TMetadata]) upload(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], error) {
-	panic("key already uploaded")
-}
-
 type noDependenciesValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	evaluatedValueState[TReference, TMetadata]
 }
@@ -1512,19 +1504,24 @@ func (vs initialMessageValueState[TReference, TMetadata]) evaluate(ctx context.C
 				err: err,
 			}, nil
 		}
+		if len(dependencyKeyReferences) == 0 {
+			return computingMessageValueState[TReference, TMetadata]{}.evaluate(ctx, rc, ks)
+		}
 
 		dependenciesHasher := lthash.NewHasher()
+		evaluatedDependencies := make([]*KeyState[TReference, TMetadata], 0, len(dependencyKeyReferences))
 		var unevaluatedDependencies []*KeyState[TReference, TMetadata]
 		missingDependencyIndices := make([]int, 0, len(dependencyKeyReferences))
 		rc.lock.RLock()
 		for i, dependencyKeyReference := range dependencyKeyReferences {
-			if ksDep, ok := rc.keys[dependencyKeyReference]; ok {
+			if ksDep, ok := rc.keys[dependencyKeyReference]; ok && ksDep.keyMessageFetcher != nil {
 				if vsDep := ksDep.valueState; !vsDep.isEvaluated() {
 					unevaluatedDependencies = append(unevaluatedDependencies, ksDep)
 				} else if vsDep.getError() != nil || !vsDep.isVariableDependency() {
 					rc.lock.RUnlock()
 					return computingMessageValueState[TReference, TMetadata]{}.evaluate(ctx, rc, ks)
 				} else {
+					evaluatedDependencies = append(evaluatedDependencies, ksDep)
 					dependenciesHasher.Add(vsDep.getDependenciesHashRecordReference().GetRawReference())
 				}
 			} else {
@@ -1587,15 +1584,71 @@ func (vs initialMessageValueState[TReference, TMetadata]) evaluate(ctx context.C
 					err: err,
 				}, nil
 			}
+			if len(missingDependencyIndices) != 0 {
+				panic("second iteration should have found keys of all missing dependencies")
+			}
 		}
 
 		if len(unevaluatedDependencies) > 0 {
 			return vs, unevaluatedDependencies
 		}
+		if len(evaluatedDependencies) != len(dependencyKeyReferences) {
+			panic("all dependencies should have been evaluated at this point")
+		}
 
-		// TODO!
-		return &earlyFailedValueState[TReference, TMetadata]{
-			err: errors.New("got initial result"),
+		dependenciesHash := dependenciesHasher.Sum()
+		subsequentTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
+			Scope:            model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET,
+			DependenciesHash: dependenciesHash[:],
+		})
+		if err != nil {
+			if status.Code(err) != codes.NotFound {
+				return &earlyFailedValueState[TReference, TMetadata]{
+					err: err,
+				}, nil
+			}
+			return computingMessageValueState[TReference, TMetadata]{}.evaluate(ctx, rc, ks)
+		}
+		subsequentLookupResultReference, err := model_tag.ResolveDecodableTag(ctx, rc.tagStore, subsequentTagKeyHash)
+		if err != nil {
+			if status.Code(err) != codes.NotFound {
+				return &earlyFailedValueState[TReference, TMetadata]{
+					err: err,
+				}, nil
+			}
+			return computingMessageValueState[TReference, TMetadata]{}.evaluate(ctx, rc, ks)
+		}
+		subsequentLookupResult, err := rc.lookupResultReader.ReadObject(ctx, subsequentLookupResultReference)
+		if err != nil {
+			if status.Code(err) != codes.NotFound {
+				return &earlyFailedValueState[TReference, TMetadata]{
+					err: err,
+				}, nil
+			}
+			return computingMessageValueState[TReference, TMetadata]{}.evaluate(ctx, rc, ks)
+		}
+		hitGraphlet, ok := subsequentLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitGraphlet)
+		if !ok {
+			return computingMessageValueState[TReference, TMetadata]{}.evaluate(ctx, rc, ks)
+		}
+		evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, model_core.Nested(subsequentLookupResult, hitGraphlet.HitGraphlet))
+		if err != nil {
+			return &earlyFailedValueState[TReference, TMetadata]{
+				err: err,
+			}, nil
+		}
+		value, err := model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
+		if err != nil {
+			return computingMessageValueState[TReference, TMetadata]{}.evaluate(ctx, rc, ks)
+		}
+
+		return &variableDependenciesUploadedMessageValueState[TReference, TMetadata]{
+			variableDependencyValueState: variableDependencyValueState[TReference, TMetadata]{
+				dependenciesHashRecordReference: rc.computeDependenciesHashRecordReferenceForMessage(ks.keyReference, value),
+			},
+			hitGraphletLookupResultReference: subsequentLookupResultReference,
+			// TODO: Should we check that the list is actually sorted?
+			hoistedVariableDependencies: evaluatedDependencies,
 		}, nil
 	case *model_evaluation_cache_pb.LookupResult_HitValue:
 		// It turns out the current key does not have any
@@ -1805,17 +1858,19 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 		if err != nil {
 			return err
 		}
-		if _, err = model_tag.ResolveDecodableTag(groupCtx, rc.tagStore, rootTagKeyHash); err == nil {
-			return errors.New("merging of lookup results is not implemented yet")
-		} else if status.Code(err) != codes.NotFound {
-			return err
-		}
+		/*
+			if _, err = model_tag.ResolveDecodableTag(groupCtx, rc.tagStore, rootTagKeyHash); err == nil {
+				return errors.New("merging of lookup results is not implemented yet")
+			} else if status.Code(err) != codes.NotFound {
+				return err
+			}
+		*/
 
 		inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata], 0, 2)
 		defer inlineCandidates.Discard()
 
-		keysParentNodeComputer := rc.getKeysParentNodeComputer(ctx)
-		graphletVariableDependencyKeys, err := rc.getKeysForSortedList(ctx, vs.hoistedVariableDependencies)
+		keysParentNodeComputer := rc.getKeysParentNodeComputer(groupCtx)
+		graphletVariableDependencyKeys, err := rc.getKeysForSortedList(groupCtx, vs.hoistedVariableDependencies)
 		if err != nil {
 			return err
 		}
@@ -1839,7 +1894,7 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 				return nil
 			},
 		})
-		valueVariableDependencyKeys, err := rc.getKeysForSortedList(ctx, vs.directVariableDependencies)
+		valueVariableDependencyKeys, err := rc.getKeysForSortedList(groupCtx, vs.directVariableDependencies)
 		if err != nil {
 			return err
 		}
@@ -1859,7 +1914,7 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 				if err != nil {
 					return err
 				}
-				evaluation.Message.GraphletVariableDependencyKeys = dependencies
+				evaluation.Message.ValueVariableDependencyKeys = dependencies
 				return nil
 			},
 		})
@@ -1876,7 +1931,7 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 		}
 
 		_, err = rc.storeLookupResult(
-			ctx,
+			groupCtx,
 			rootTagKeyHash,
 			model_core.MustBuildPatchedMessage(
 				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
@@ -1909,7 +1964,7 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 		}
 
 		hitGraphletLookupResultReference, err := rc.storeLookupResult(
-			ctx,
+			groupCtx,
 			hitGraphletTagKeyHash,
 			model_core.MustBuildPatchedMessage(
 				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
@@ -1963,12 +2018,12 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 			return err
 		}
 
-		evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, vs.graphlet)
+		evaluation, err := GraphletGetEvaluation(groupCtx, rc.evaluationReader, vs.graphlet)
 		if err != nil {
 			return err
 		}
 		_, err = rc.storeLookupResult(
-			ctx,
+			groupCtx,
 			hitValueTagKeyHash,
 			model_core.MustBuildPatchedMessage(
 				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
@@ -2042,11 +2097,15 @@ func (noDependenciesUploadedMessageValueState[TReference, TMetadata]) getError()
 }
 
 type variableDependenciesUploadedMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	uploadedValueState[TReference, TMetadata]
+	evaluatedValueState[TReference, TMetadata]
 	variableDependencyValueState[TReference, TMetadata]
 
 	hitGraphletLookupResultReference model_core.Decodable[TReference]
 	hoistedVariableDependencies      []*KeyState[TReference, TMetadata]
+}
+
+func (vs *variableDependenciesUploadedMessageValueState[TReference, TMetadata]) upload(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], error) {
+	return vs, nil
 }
 
 func (vs *variableDependenciesUploadedMessageValueState[TReference, TMetadata]) getMessageValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
@@ -2092,10 +2151,14 @@ func (vs *variableDependenciesUploadedMessageValueState[TReference, TMetadata]) 
 }
 
 type overriddenMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	uploadedValueState[TReference, TMetadata]
+	evaluatedValueState[TReference, TMetadata]
 	variableDependencyValueState[TReference, TMetadata]
 
 	value model_core.TopLevelMessage[*anypb.Any, TReference]
+}
+
+func (overriddenMessageValueState[TReference, TMetadata]) upload(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], error) {
+	panic("key already uploaded")
 }
 
 func (vs *overriddenMessageValueState[TReference, TMetadata]) getMessageValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
