@@ -265,7 +265,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			FileContentsListEncoders: defaultEncoders,
 		},
 		ChunkMinimumSizeBytes:            64 * 1024,
-		ChunkMaximumSizeBytes:            256 * 1024,
+		ChunkHorizonSizeBytes:            512 * 1024,
 		FileContentsListMinimumSizeBytes: 4 * 1024,
 		FileContentsListMaximumSizeBytes: 16 * 1024,
 	}

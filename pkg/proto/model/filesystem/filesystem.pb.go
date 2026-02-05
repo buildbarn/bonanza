@@ -827,7 +827,7 @@ type FileCreationParameters struct {
 	state                            protoimpl.MessageState `protogen:"open.v1"`
 	Access                           *FileAccessParameters  `protobuf:"bytes,1,opt,name=access,proto3" json:"access,omitempty"`
 	ChunkMinimumSizeBytes            uint32                 `protobuf:"varint,2,opt,name=chunk_minimum_size_bytes,json=chunkMinimumSizeBytes,proto3" json:"chunk_minimum_size_bytes,omitempty"`
-	ChunkMaximumSizeBytes            uint32                 `protobuf:"varint,3,opt,name=chunk_maximum_size_bytes,json=chunkMaximumSizeBytes,proto3" json:"chunk_maximum_size_bytes,omitempty"`
+	ChunkHorizonSizeBytes            uint32                 `protobuf:"varint,3,opt,name=chunk_horizon_size_bytes,json=chunkHorizonSizeBytes,proto3" json:"chunk_horizon_size_bytes,omitempty"`
 	FileContentsListMinimumSizeBytes uint32                 `protobuf:"varint,4,opt,name=file_contents_list_minimum_size_bytes,json=fileContentsListMinimumSizeBytes,proto3" json:"file_contents_list_minimum_size_bytes,omitempty"`
 	FileContentsListMaximumSizeBytes uint32                 `protobuf:"varint,5,opt,name=file_contents_list_maximum_size_bytes,json=fileContentsListMaximumSizeBytes,proto3" json:"file_contents_list_maximum_size_bytes,omitempty"`
 	unknownFields                    protoimpl.UnknownFields
@@ -878,9 +878,9 @@ func (x *FileCreationParameters) GetChunkMinimumSizeBytes() uint32 {
 	return 0
 }
 
-func (x *FileCreationParameters) GetChunkMaximumSizeBytes() uint32 {
+func (x *FileCreationParameters) GetChunkHorizonSizeBytes() uint32 {
 	if x != nil {
-		return x.ChunkMaximumSizeBytes
+		return x.ChunkHorizonSizeBytes
 	}
 	return 0
 }
@@ -1011,7 +1011,7 @@ const file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "
 	"\x16FileCreationParameters\x12F\n" +
 	"\x06access\x18\x01 \x01(\v2..bonanza.model.filesystem.FileAccessParametersR\x06access\x127\n" +
 	"\x18chunk_minimum_size_bytes\x18\x02 \x01(\rR\x15chunkMinimumSizeBytes\x127\n" +
-	"\x18chunk_maximum_size_bytes\x18\x03 \x01(\rR\x15chunkMaximumSizeBytes\x12O\n" +
+	"\x18chunk_horizon_size_bytes\x18\x03 \x01(\rR\x15chunkHorizonSizeBytes\x12O\n" +
 	"%file_contents_list_minimum_size_bytes\x18\x04 \x01(\rR fileContentsListMinimumSizeBytes\x12O\n" +
 	"%file_contents_list_maximum_size_bytes\x18\x05 \x01(\rR fileContentsListMaximumSizeBytesB*Z(bonanza.build/pkg/proto/model/filesystemb\x06proto3"
 

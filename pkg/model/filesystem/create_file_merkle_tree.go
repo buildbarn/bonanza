@@ -62,11 +62,11 @@ func maybeWriteHole[T model_core.ReferenceMetadata](treeBuilder btree.Builder[*m
 // TODO: Change this function to support more efficient creation of
 // Merkle trees for sparse files.
 func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, parameters *FileCreationParameters, f io.Reader, capturer FileMerkleTreeCapturer[T]) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, T], error) {
-	chunker := cdc.NewMaxContentDefinedChunker(
+	chunker := cdc.NewRepMaxContentDefinedChunker(
 		f,
-		/* bufferSizeBytes = */ max(parameters.referenceFormat.GetMaximumObjectSizeBytes(), parameters.chunkMinimumSizeBytes+parameters.chunkMaximumSizeBytes),
+		/* bufferSizeBytes = */ max(parameters.referenceFormat.GetMaximumObjectSizeBytes(), 2*parameters.chunkMinimumSizeBytes+parameters.chunkHorizonSizeBytes),
 		parameters.chunkMinimumSizeBytes,
-		parameters.chunkMaximumSizeBytes,
+		parameters.chunkHorizonSizeBytes,
 	)
 	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[T](

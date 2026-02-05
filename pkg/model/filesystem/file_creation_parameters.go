@@ -16,7 +16,7 @@ type FileCreationParameters struct {
 	*FileAccessParameters
 	referenceFormat                  object.ReferenceFormat
 	chunkMinimumSizeBytes            int
-	chunkMaximumSizeBytes            int
+	chunkHorizonSizeBytes            int
 	fileContentsListMinimumSizeBytes int
 	fileContentsListMaximumSizeBytes int
 }
@@ -42,11 +42,11 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 	if limit := uint32(1024); m.ChunkMinimumSizeBytes < limit {
 		return nil, status.Errorf(codes.InvalidArgument, "Minimum size of chunks is below %d bytes", limit)
 	}
-	if m.ChunkMaximumSizeBytes > maximumObjectSizeBytes {
-		return nil, status.Errorf(codes.InvalidArgument, "Maximum size of chunks is above maximum object size of %d bytes", maximumObjectSizeBytes)
+	if m.ChunkMinimumSizeBytes > maximumObjectSizeBytes {
+		return nil, status.Errorf(codes.InvalidArgument, "Minimum size of chunks is above maximum object size of %d bytes", maximumObjectSizeBytes)
 	}
-	if uint64(m.ChunkMaximumSizeBytes) < 2*uint64(m.ChunkMinimumSizeBytes) {
-		return nil, status.Error(codes.InvalidArgument, "Maximum size of chunks must be at least twice as large as the minimum")
+	if maxMultiplier := uint64(32); uint64(m.ChunkHorizonSizeBytes) > maxMultiplier*uint64(m.ChunkMinimumSizeBytes) {
+		return nil, status.Errorf(codes.InvalidArgument, "Horizon size of chunks is more than %d times as large as the minimum object size", maxMultiplier)
 	}
 
 	if limit := uint32(1024); m.FileContentsListMinimumSizeBytes < limit {
@@ -63,7 +63,7 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 		FileAccessParameters:             accessParameters,
 		referenceFormat:                  referenceFormat,
 		chunkMinimumSizeBytes:            int(m.ChunkMinimumSizeBytes),
-		chunkMaximumSizeBytes:            int(m.ChunkMaximumSizeBytes),
+		chunkHorizonSizeBytes:            int(m.ChunkHorizonSizeBytes),
 		fileContentsListMinimumSizeBytes: int(m.FileContentsListMinimumSizeBytes),
 		fileContentsListMaximumSizeBytes: int(m.FileContentsListMaximumSizeBytes),
 	}, nil

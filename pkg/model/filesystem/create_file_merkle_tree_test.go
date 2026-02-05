@@ -28,7 +28,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		&model_filesystem_pb.FileCreationParameters{
 			Access:                           &model_filesystem_pb.FileAccessParameters{},
 			ChunkMinimumSizeBytes:            1 << 16,
-			ChunkMaximumSizeBytes:            1 << 18,
+			ChunkHorizonSizeBytes:            1 << 19,
 			FileContentsListMinimumSizeBytes: 1 << 12,
 			FileContentsListMaximumSizeBytes: 1 << 14,
 		},
@@ -119,7 +119,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 			TotalSizeBytes: 1 << 30,
 		}, rootFileContents.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
-			object.MustNewSHA256V1LocalReference("bf03c6a5c1ead6b1e90ebfd26cc4fe905151e0832d5bd10d3b09efbcfd223910", 1881, 2, 33, 15932),
+			object.MustNewSHA256V1LocalReference("25e3b44198a89b8eae90e5f882a69e873cf3cf2e2ea5ce2915723de03d885ad6", 3705, 2, 65, 16308),
 		}, references)
 	})
 }

@@ -205,18 +205,24 @@ message FileCreationParameters {
   // The minimum size of a chunk in bytes, prior to applying any
   // encoding steps. The resulting chunks may be smaller than the
   // minimum size, if and only if the file consists of a single chunk.
+  // The maximum size of a chunk is as follows:
+  //
+  //     chunk_maximum_size_bytes = chunk_minimum_size_bytes * 2 - 1
   uint32 chunk_minimum_size_bytes = 2;
 
-  // The maximum size of a chunk in bytes, prior to applying any
-  // encoding steps.
+  // The amount of data the content defined chunking algorithm may look
+  // ahead to determine the optimal set of cutting points. The higher
+  // this value is set, the better the quality of the chunking will be.
   //
-  // This limit MUST be at least twice as large as the minimum size, as
-  // it would be impossible to partition a file into chunks otherwise.
-  // It is recommended to set it to about four times the minimum size,
-  // so that the content defined chunking algorithm has enough freedom
-  // to create chunks at optimal boundaries, while keeping the spread in
-  // chunk sizes small.
-  uint32 chunk_maximum_size_bytes = 3;
+  // When set to zero, the algorithm may not perform any lookahead,
+  // meaning that all resulting chunks (except the last one) will be of
+  // size chunk_minimum_size_bytes.
+  //
+  // Setting this field to 8 times the minimum chunk size already seems
+  // to yield optimal results for most data sets. To limit memory usage,
+  // this implementation forbids setting it to a value larger than 32
+  // times the minimum chunk size.
+  uint32 chunk_horizon_size_bytes = 3;
 
   // The minimum size of objects containing lists of FileContents
   // messages, prior to applying any encoding steps and deduplicating

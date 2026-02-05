@@ -111,7 +111,7 @@ func (baseComputerTester) expectGetFileCreationParametersObjectValue(t *testing.
 		&model_filesystem_pb.FileCreationParameters{
 			Access:                           &model_filesystem_pb.FileAccessParameters{},
 			ChunkMinimumSizeBytes:            1 << 16,
-			ChunkMaximumSizeBytes:            1 << 18,
+			ChunkHorizonSizeBytes:            1 << 19,
 			FileContentsListMinimumSizeBytes: 1 << 16,
 			FileContentsListMaximumSizeBytes: 1 << 18,
 		},
