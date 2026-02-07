@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	"bufio"
 	"context"
 	"io"
 	"math"
@@ -63,8 +64,13 @@ func maybeWriteHole[T model_core.ReferenceMetadata](treeBuilder btree.Builder[*m
 // Merkle trees for sparse files.
 func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, parameters *FileCreationParameters, f io.Reader, capturer FileMerkleTreeCapturer[T]) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, T], error) {
 	chunker := cdc.NewRepMaxContentDefinedChunker(
-		f,
-		/* bufferSizeBytes = */ max(parameters.referenceFormat.GetMaximumObjectSizeBytes(), 2*parameters.chunkMinimumSizeBytes+parameters.chunkHorizonSizeBytes),
+		bufio.NewReaderSize(
+			f,
+			max(
+				parameters.referenceFormat.GetMaximumObjectSizeBytes(),
+				2*parameters.chunkMinimumSizeBytes+parameters.chunkHorizonSizeBytes,
+			),
+		),
 		parameters.chunkMinimumSizeBytes,
 		parameters.chunkHorizonSizeBytes,
 	)
