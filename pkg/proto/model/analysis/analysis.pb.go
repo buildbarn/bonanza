@@ -2157,13 +2157,12 @@ func (*ModuleExtensionRepos) Descriptor() ([]byte, []int) {
 }
 
 type BuildListModule struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Name               string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Version            string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	CompatibilityLevel int32                  `protobuf:"varint,3,opt,name=compatibility_level,json=compatibilityLevel,proto3" json:"compatibility_level,omitempty"`
-	RegistryUrl        string                 `protobuf:"bytes,4,opt,name=registry_url,json=registryUrl,proto3" json:"registry_url,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	RegistryUrl   string                 `protobuf:"bytes,4,opt,name=registry_url,json=registryUrl,proto3" json:"registry_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BuildListModule) Reset() {
@@ -2208,13 +2207,6 @@ func (x *BuildListModule) GetVersion() string {
 		return x.Version
 	}
 	return ""
-}
-
-func (x *BuildListModule) GetCompatibilityLevel() int32 {
-	if x != nil {
-		return x.CompatibilityLevel
-	}
-	return 0
 }
 
 func (x *BuildListModule) GetRegistryUrl() string {
@@ -13494,12 +13486,11 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB<\xea\xd7 8\x1a6bonanza.model.analysis.ModuleExtensionRepos.Value.RepoR\treference\x12\x1d\n" +
 	"\n" +
 	"first_name\x18\x02 \x01(\tR\tfirstNameB\a\n" +
-	"\x05level\"\x93\x01\n" +
+	"\x05level\"h\n" +
 	"\x0fBuildListModule\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\tR\aversion\x12/\n" +
-	"\x13compatibility_level\x18\x03 \x01(\x05R\x12compatibilityLevel\x12!\n" +
-	"\fregistry_url\x18\x04 \x01(\tR\vregistryUrl\"n\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\x12!\n" +
+	"\fregistry_url\x18\x04 \x01(\tR\vregistryUrlJ\x04\b\x03\x10\x04\"n\n" +
 	"\x14ModuleFinalBuildList\x1a\x05\n" +
 	"\x03Key\x1aO\n" +
 	"\x05Value\x12F\n" +

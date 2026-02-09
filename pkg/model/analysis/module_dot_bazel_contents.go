@@ -109,7 +109,6 @@ func (baseComputer[TReference, TMetadata]) parseModuleDotBazel(ctx context.Conte
 		if err := handler.BazelDep(
 			bazelToolsModule,
 			/* version = */ nil,
-			/* maxCompatibilityLevel = */ 0,
 			bazelToolsModule.ToApparentRepo(),
 			/* devDependency = */ false,
 		); err != nil {
@@ -137,7 +136,7 @@ type dependencQueueingModuleDotBazelHandler struct {
 	ignoreDevDependencies       bool
 }
 
-func (h *dependencQueueingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, maxCompatibilityLevel int, repoName label.ApparentRepo, devDependency bool) error {
+func (h *dependencQueueingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
 	if devDependency && h.ignoreDevDependencies {
 		return nil
 	}
@@ -159,7 +158,7 @@ func (h *dependencQueueingModuleDotBazelHandler) BazelDep(name label.Module, ver
 		h.moduleInstancesSeen[moduleInstance] = struct{}{}
 	}
 
-	return h.ChildModuleDotBazelHandler.BazelDep(name, version, maxCompatibilityLevel, repoName, devDependency)
+	return h.ChildModuleDotBazelHandler.BazelDep(name, version, repoName, devDependency)
 }
 
 func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFirst(

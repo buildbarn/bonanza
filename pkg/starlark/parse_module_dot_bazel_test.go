@@ -51,14 +51,12 @@ func TestParseModuleDotBazel(t *testing.T) {
 			handler.EXPECT().BazelDep(
 				/* name = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ nil,
-				/* maxCompatibilityLevel = */ -1,
 				/* repoName = */ util.Must(label.NewApparentRepo("my_module_name")),
 				/* devDependency = */ false,
 			).Times(2),
 			handler.EXPECT().BazelDep(
 				/* name = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ &version1,
-				/* maxCompatibilityLevel = */ 123,
 				/* repoName = */ util.Must(label.NewApparentRepo("my_repo_name")),
 				/* devDependency = */ true,
 			),
@@ -102,14 +100,12 @@ func TestParseModuleDotBazel(t *testing.T) {
 			handler.EXPECT().Module(
 				/* name = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ nil,
-				/* compatibilityLevel = */ 0,
 				/* repoName = */ util.Must(label.NewApparentRepo("my_module_name")),
 				/* bazelCompatibility = */ gomock.Len(0),
 			).Times(2),
 			handler.EXPECT().Module(
 				/* name = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ &version2,
-				/* compatibilityLevel = */ 123,
 				/* repoName = */ util.Must(label.NewApparentRepo("my_repo_name")),
 				/* bazelCompatibility = */ []string{
 					">=6.4.0",

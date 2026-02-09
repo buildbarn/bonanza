@@ -29,11 +29,10 @@ var moduleDotBazelTargetName = util.Must(label.NewTargetName(moduleDotBazelFilen
 type bazelDepCapturingModuleDotBazelHandler struct {
 	ignoreDevDependencies bool
 
-	compatibilityLevel int
-	dependencies       map[label.Module]*label.ModuleVersion
+	dependencies map[label.Module]*label.ModuleVersion
 }
 
-func (h *bazelDepCapturingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, maxCompatibilityLevel int, repoName label.ApparentRepo, devDependency bool) error {
+func (h *bazelDepCapturingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
 	if !devDependency || !h.ignoreDevDependencies {
 		if _, ok := h.dependencies[name]; ok {
 			return fmt.Errorf("module depends on module %#v multiple times", name.String())
@@ -43,8 +42,7 @@ func (h *bazelDepCapturingModuleDotBazelHandler) BazelDep(name label.Module, ver
 	return nil
 }
 
-func (h *bazelDepCapturingModuleDotBazelHandler) Module(name label.Module, version *label.ModuleVersion, compatibilityLevel int, repoName label.ApparentRepo, bazelCompatibility []string) error {
-	h.compatibilityLevel = compatibilityLevel
+func (bazelDepCapturingModuleDotBazelHandler) Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	return nil
 }
 
@@ -269,7 +267,6 @@ ProcessModule:
 		}
 
 		if buildListEntry != nil {
-			buildListEntry.CompatibilityLevel = int32(handler.compatibilityLevel)
 			buildList.Slice = append(buildList.Slice, buildListEntry)
 		}
 

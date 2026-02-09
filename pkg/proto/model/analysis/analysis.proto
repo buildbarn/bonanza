@@ -1193,8 +1193,8 @@ message BuildListModule {
   // The version of the module.
   string version = 2;
 
-  // The compatibility level of the module.
-  int32 compatibility_level = 3;
+  // Was 'compatibility_level'.
+  reserved 3;
 
   // The URL of the registry in which the module was found.
   string registry_url = 4;

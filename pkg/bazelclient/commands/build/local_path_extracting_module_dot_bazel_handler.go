@@ -46,7 +46,7 @@ func (h *LocalPathExtractingModuleDotBazelHandler) GetRootModuleName() (label.Mo
 
 // BazelDep can normally be used to capture calls in MODULE.bazel to
 // bazel_dep(). This implementation does not need to do that.
-func (LocalPathExtractingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, maxCompatibilityLevel int, repoName label.ApparentRepo, devDependency bool) error {
+func (LocalPathExtractingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
 	return nil
 }
 
@@ -63,7 +63,7 @@ func (h *LocalPathExtractingModuleDotBazelHandler) LocalPathOverride(moduleName 
 
 // Module is used to capture calls in MODULE.bazel to module(). This
 // allows extracting the name of the root module.
-func (h *LocalPathExtractingModuleDotBazelHandler) Module(name label.Module, version *label.ModuleVersion, compatibilityLevel int, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (h *LocalPathExtractingModuleDotBazelHandler) Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	if h.rootModuleName != nil {
 		return errors.New("multiple module() declarations")
 	}

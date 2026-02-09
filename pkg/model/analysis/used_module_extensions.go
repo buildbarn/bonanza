@@ -79,11 +79,11 @@ type usedModuleExtensionExtractingModuleDotBazelHandler[TReference object.BasicR
 	valueEncodingOptions  *model_starlark.ValueEncodingOptions[TReference, TMetadata]
 }
 
-func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, maxCompatibilityLevel int, repoName label.ApparentRepo, devDependency bool) error {
+func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
 	return nil
 }
 
-func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, version *label.ModuleVersion, compatibilityLevel int, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	return nil
 }
 

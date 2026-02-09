@@ -81,7 +81,7 @@ func (h *repoMappingCapturingModuleDotBazelHandler) setRepo(from label.ApparentR
 	return nil
 }
 
-func (h *repoMappingCapturingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, maxCompatibilityLevel int, repoName label.ApparentRepo, devDependency bool) error {
+func (h *repoMappingCapturingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
 	if devDependency && h.ignoreDevDependencies {
 		return nil
 	}
@@ -99,7 +99,7 @@ func (h *repoMappingCapturingModuleDotBazelHandler) BazelDep(name label.Module, 
 	})
 }
 
-func (h *repoMappingCapturingModuleDotBazelHandler) Module(name label.Module, version *label.ModuleVersion, compatibilityLevel int, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (h *repoMappingCapturingModuleDotBazelHandler) Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	return h.setRepo(repoName, canonicalRepoMapping{
 		canonicalRepo: h.moduleInstance.GetBareCanonicalRepo(),
 	})
