@@ -5,6 +5,8 @@ import (
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
+	"github.com/buildbarn/go-cdc"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -17,6 +19,7 @@ type FileCreationParameters struct {
 	referenceFormat                  object.ReferenceFormat
 	chunkMinimumSizeBytes            int
 	chunkHorizonSizeBytes            int
+	chunkGearTable                   *cdc.GearTable
 	fileContentsListMinimumSizeBytes int
 	fileContentsListMaximumSizeBytes int
 }
@@ -64,6 +67,7 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 		referenceFormat:                  referenceFormat,
 		chunkMinimumSizeBytes:            int(m.ChunkMinimumSizeBytes),
 		chunkHorizonSizeBytes:            int(m.ChunkHorizonSizeBytes),
+		chunkGearTable:                   cdc.NewSeededGearTable(m.ChunkGearTableSeed),
 		fileContentsListMinimumSizeBytes: int(m.FileContentsListMinimumSizeBytes),
 		fileContentsListMaximumSizeBytes: int(m.FileContentsListMaximumSizeBytes),
 	}, nil

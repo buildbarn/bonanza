@@ -71,6 +71,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 				2*parameters.chunkMinimumSizeBytes+parameters.chunkHorizonSizeBytes,
 			),
 		),
+		parameters.chunkGearTable,
 		parameters.chunkMinimumSizeBytes,
 		parameters.chunkHorizonSizeBytes,
 	)

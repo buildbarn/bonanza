@@ -266,6 +266,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		},
 		ChunkMinimumSizeBytes:            64 * 1024,
 		ChunkHorizonSizeBytes:            512 * 1024,
+		ChunkGearTableSeed:               encryptionKeyBytes,
 		FileContentsListMinimumSizeBytes: 4 * 1024,
 		FileContentsListMaximumSizeBytes: 16 * 1024,
 	}

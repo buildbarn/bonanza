@@ -224,6 +224,10 @@ message FileCreationParameters {
   // times the minimum chunk size.
   uint32 chunk_horizon_size_bytes = 3;
 
+  // Seed to derive values for the Gear table of the content defined
+  // chunking algorithm that is used to chunk files.
+  bytes chunk_gear_table_seed = 6;
+
   // The minimum size of objects containing lists of FileContents
   // messages, prior to applying any encoding steps and deduplicating
   // any outgoing references.

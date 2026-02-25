@@ -828,6 +828,7 @@ type FileCreationParameters struct {
 	Access                           *FileAccessParameters  `protobuf:"bytes,1,opt,name=access,proto3" json:"access,omitempty"`
 	ChunkMinimumSizeBytes            uint32                 `protobuf:"varint,2,opt,name=chunk_minimum_size_bytes,json=chunkMinimumSizeBytes,proto3" json:"chunk_minimum_size_bytes,omitempty"`
 	ChunkHorizonSizeBytes            uint32                 `protobuf:"varint,3,opt,name=chunk_horizon_size_bytes,json=chunkHorizonSizeBytes,proto3" json:"chunk_horizon_size_bytes,omitempty"`
+	ChunkGearTableSeed               []byte                 `protobuf:"bytes,6,opt,name=chunk_gear_table_seed,json=chunkGearTableSeed,proto3" json:"chunk_gear_table_seed,omitempty"`
 	FileContentsListMinimumSizeBytes uint32                 `protobuf:"varint,4,opt,name=file_contents_list_minimum_size_bytes,json=fileContentsListMinimumSizeBytes,proto3" json:"file_contents_list_minimum_size_bytes,omitempty"`
 	FileContentsListMaximumSizeBytes uint32                 `protobuf:"varint,5,opt,name=file_contents_list_maximum_size_bytes,json=fileContentsListMaximumSizeBytes,proto3" json:"file_contents_list_maximum_size_bytes,omitempty"`
 	unknownFields                    protoimpl.UnknownFields
@@ -883,6 +884,13 @@ func (x *FileCreationParameters) GetChunkHorizonSizeBytes() uint32 {
 		return x.ChunkHorizonSizeBytes
 	}
 	return 0
+}
+
+func (x *FileCreationParameters) GetChunkGearTableSeed() []byte {
+	if x != nil {
+		return x.ChunkGearTableSeed
+	}
+	return nil
 }
 
 func (x *FileCreationParameters) GetFileContentsListMinimumSizeBytes() uint32 {
@@ -1007,11 +1015,12 @@ const file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "
 	"\x1cdirectory_maximum_size_bytes\x18\x02 \x01(\rR\x19directoryMaximumSizeBytes\"\xca\x01\n" +
 	"\x14FileAccessParameters\x12L\n" +
 	"\x0echunk_encoders\x18\x01 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\rchunkEncoders\x12d\n" +
-	"\x1bfile_contents_list_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x18fileContentsListEncoders\"\xf4\x02\n" +
+	"\x1bfile_contents_list_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x18fileContentsListEncoders\"\xa7\x03\n" +
 	"\x16FileCreationParameters\x12F\n" +
 	"\x06access\x18\x01 \x01(\v2..bonanza.model.filesystem.FileAccessParametersR\x06access\x127\n" +
 	"\x18chunk_minimum_size_bytes\x18\x02 \x01(\rR\x15chunkMinimumSizeBytes\x127\n" +
-	"\x18chunk_horizon_size_bytes\x18\x03 \x01(\rR\x15chunkHorizonSizeBytes\x12O\n" +
+	"\x18chunk_horizon_size_bytes\x18\x03 \x01(\rR\x15chunkHorizonSizeBytes\x121\n" +
+	"\x15chunk_gear_table_seed\x18\x06 \x01(\fR\x12chunkGearTableSeed\x12O\n" +
 	"%file_contents_list_minimum_size_bytes\x18\x04 \x01(\rR fileContentsListMinimumSizeBytes\x12O\n" +
 	"%file_contents_list_maximum_size_bytes\x18\x05 \x01(\rR fileContentsListMaximumSizeBytesB*Z(bonanza.build/pkg/proto/model/filesystemb\x06proto3"
 
