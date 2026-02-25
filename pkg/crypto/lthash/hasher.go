@@ -19,7 +19,7 @@ import (
 //
 // This implementation is similar to the one proposed in the second
 // paper, with the main difference that the extendable-output function
-// (XOF) that is used by this implementation is SHAKE128 instead of
+// (XOF) that is used by this implementation is cSHAKE128 instead of
 // BLAKE2b.
 type Hasher struct {
 	shake      *sha3.SHAKE
@@ -31,7 +31,7 @@ type Hasher struct {
 // representing the empty set.
 func NewHasher() *Hasher {
 	return &Hasher{
-		shake: sha3.NewSHAKE128(),
+		shake: sha3.NewCSHAKE128(nil, []byte("ad087f9f-3649-434a-be50-4fbd318a1ec9")),
 	}
 }
 
