@@ -97,10 +97,6 @@ func (f *objectBackedFile) VirtualRead(buf []byte, offsetBytes uint64) (int, boo
 	return nRead, eof, virtual.StatusOK
 }
 
-func (objectBackedFile) VirtualReadlink(ctx context.Context) ([]byte, virtual.Status) {
-	return nil, virtual.StatusErrInval
-}
-
 func (f *objectBackedFile) VirtualSeek(offset uint64, regionType filesystem.RegionType) (*uint64, virtual.Status) {
 	// TODO: Actually report holes contained in files.
 	endBytes := f.fileContents.GetEndBytes()

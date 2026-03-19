@@ -767,14 +767,19 @@ func (d *prepopulatedCapturableDirectory) Readlink(name path.Component) (path.Pa
 	if err != nil {
 		return nil, err
 	}
-	if _, leaf := child.GetPair(); leaf != nil {
-		p := virtual.ApplyReadlink{}
-		if !child.GetNode().VirtualApply(&p) {
-			panic("build directory contains leaves that don't handle ApplyReadlink")
-		}
-		return p.Target, p.Err
+
+	_, leaf := child.GetPair()
+	if leaf == nil {
+		return nil, syscall.EISDIR
 	}
-	return nil, syscall.EISDIR
+
+	var attributes virtual.Attributes
+	leaf.VirtualGetAttributes(context.TODO(), virtual.AttributesMaskSymlinkTarget, &attributes)
+	symlinkTarget, ok := attributes.GetSymlinkTarget()
+	if !ok {
+		return nil, syscall.EINVAL
+	}
+	return symlinkTarget, nil
 }
 
 func (d *prepopulatedCapturableDirectory) EnterCapturableDirectory(name path.Component) (*model_filesystem.CreatedDirectory[dag.ObjectContentsWalker], model_filesystem.CapturableDirectory[dag.ObjectContentsWalker, dag.ObjectContentsWalker], error) {

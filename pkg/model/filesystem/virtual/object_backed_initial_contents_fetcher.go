@@ -171,7 +171,10 @@ func (icf *objectBackedInitialContentsFetcher) FetchContents(fileReadMonitorFact
 			return nil, status.Errorf(codes.InvalidArgument, "Directory contains multiple children named %#v", entry.Name)
 		}
 
-		leaf := options.symlinkFactory.LookupSymlink([]byte(entry.Target))
+		leaf, err := options.symlinkFactory.LookupSymlink(path.UNIXFormat.NewParser(entry.Target))
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "Failed to look up symlink named %#v", entry.Name)
+		}
 		children[component] = virtual.InitialChild{}.FromLeaf(leaf)
 		leavesToUnlink = append(leavesToUnlink, leaf)
 	}

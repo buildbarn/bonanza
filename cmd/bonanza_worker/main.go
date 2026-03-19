@@ -34,6 +34,7 @@ import (
 	virtual_configuration "github.com/buildbarn/bb-remote-execution/pkg/filesystem/virtual/configuration"
 	runner_pb "github.com/buildbarn/bb-remote-execution/pkg/proto/runner"
 	"github.com/buildbarn/bb-storage/pkg/clock"
+	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/global"
 	"github.com/buildbarn/bb-storage/pkg/program"
 	"github.com/buildbarn/bb-storage/pkg/random"
@@ -129,6 +130,7 @@ func main() {
 			symlinkFactory := virtual.NewHandleAllocatingSymlinkFactory(
 				virtual.BaseSymlinkFactory,
 				handleAllocator.New(),
+				path.LocalFormat,
 			)
 
 			if err := mount.Expose(dependenciesGroup, rootDirectory); err != nil {

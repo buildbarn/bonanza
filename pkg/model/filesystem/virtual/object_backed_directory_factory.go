@@ -144,7 +144,11 @@ func (df *ObjectBackedDirectoryFactory) resolveHandle(r io.ByteReader) (virtual.
 	if symlinkIndex > uint(len(symlinks)) {
 		return virtual.DirectoryChild{}, virtual.StatusErrIO
 	}
-	return virtual.DirectoryChild{}.FromLeaf(df.createSymlink(clusterReference, directoryIndex, symlinkIndex, symlinks[symlinkIndex-1].Target)), virtual.StatusOK
+	symlink, s := df.createSymlink(clusterReference, directoryIndex, symlinkIndex, symlinks[symlinkIndex-1].Target)
+	if s != virtual.StatusOK {
+		return virtual.DirectoryChild{}, s
+	}
+	return virtual.DirectoryChild{}.FromLeaf(symlink), virtual.StatusOK
 }
 
 // LookupDirectory returns a virtual file system directory object that
@@ -166,14 +170,18 @@ func (df *ObjectBackedDirectoryFactory) LookupDirectory(clusterReference model_c
 		})
 }
 
-func (df *ObjectBackedDirectoryFactory) createSymlink(clusterReference model_core.Decodable[object.LocalReference], directoryIndex, symlinkIndex uint, target string) virtual.LinkableLeaf {
+func (df *ObjectBackedDirectoryFactory) createSymlink(clusterReference model_core.Decodable[object.LocalReference], directoryIndex, symlinkIndex uint, target string) (virtual.LinkableLeaf, virtual.Status) {
 	handle := varint.AppendForward(nil, clusterReference.Value.GetReferenceFormat().ToProto())
 	handle = append(handle, clusterReference.Value.GetRawReference()...)
 	handle = append(handle, clusterReference.GetDecodingParameters()...)
 	handle = varint.AppendForward(handle, directoryIndex)
 	handle = varint.AppendForward(handle, symlinkIndex+1)
-	return df.handleAllocator.New(bytes.NewBuffer(handle)).
-		AsLinkableLeaf(virtual.BaseSymlinkFactory.LookupSymlink([]byte(target)))
+	symlink, err := virtual.BaseSymlinkFactory.LookupSymlink(path.UNIXFormat.NewParser(target))
+	if err != nil {
+		df.errorLogger.Log(util.StatusWrapf(err, "Failed to create symbolic link with target %#v", target))
+		return nil, virtual.StatusErrIO
+	}
+	return df.handleAllocator.New(bytes.NewBuffer(handle)).AsLinkableLeaf(symlink), virtual.StatusOK
 }
 
 type objectBackedDirectory struct {
@@ -299,7 +307,10 @@ func (d *objectBackedDirectory) VirtualLookup(ctx context.Context, name path.Com
 		len(symlinks),
 		func(i int) int { return strings.Compare(n, symlinks[i].Name) },
 	); ok {
-		f := df.createSymlink(d.clusterReference, d.directoryIndex, uint(i), symlinks[i].Target)
+		f, s := df.createSymlink(d.clusterReference, d.directoryIndex, uint(i), symlinks[i].Target)
+		if s != virtual.StatusOK {
+			return virtual.DirectoryChild{}, virtual.StatusErrIO
+		}
 		f.VirtualGetAttributes(ctx, requested, out)
 		return virtual.DirectoryChild{}.FromLeaf(f), virtual.StatusOK
 	}
@@ -431,7 +442,10 @@ func (d *objectBackedDirectory) VirtualReadDir(ctx context.Context, firstCookie 
 			df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "Symbolic link %#v has an invalid name", entry.Name))
 			return virtual.StatusErrIO
 		}
-		child := df.createSymlink(d.clusterReference, d.directoryIndex, uint(i), entry.Target)
+		child, s := df.createSymlink(d.clusterReference, d.directoryIndex, uint(i), entry.Target)
+		if s != virtual.StatusOK {
+			return s
+		}
 		var attributes virtual.Attributes
 		child.VirtualGetAttributes(ctx, requested, &attributes)
 		if !reporter.ReportEntry(nextCookieOffset+i, name, virtual.DirectoryChild{}.FromLeaf(child), &attributes) {
