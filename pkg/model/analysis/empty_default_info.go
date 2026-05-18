@@ -46,9 +46,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx c
 
 	defaultInfo, err := defaultInfoProvider.Instantiate(thread, nil, nil)
 	if err != nil {
-		var evalErr *starlark.EvalError
-		if errors.As(err, &evalErr) {
-			return PatchedEmptyDefaultInfoValue[TMetadata]{}, errors.New(evalErr.Backtrace())
+		if !errors.Is(err, evaluation.ErrMissingDependency) {
+			var evalErr *starlark.EvalError
+			if errors.As(err, &evalErr) {
+				return PatchedEmptyDefaultInfoValue[TMetadata]{}, errors.New(evalErr.Backtrace())
+			}
 		}
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, err
 	}
