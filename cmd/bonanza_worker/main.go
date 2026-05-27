@@ -127,11 +127,6 @@ func main() {
 			}
 
 			rootDirectory := model_filesystem_virtual.NewWorkerTopLevelDirectory(handleAllocator.New())
-			symlinkFactory := virtual.NewHandleAllocatingSymlinkFactory(
-				virtual.BaseSymlinkFactory,
-				handleAllocator.New(),
-				path.LocalFormat,
-			)
 
 			if err := mount.Expose(dependenciesGroup, rootDirectory); err != nil {
 				return util.StatusWrap(err, "Failed to expose build directory mount")
@@ -177,6 +172,16 @@ func main() {
 				if runnerConfiguration.ShuffleDirectoryListings {
 					initialContentsSorter = virtual.Shuffle
 				}
+
+				defaultAttributesSetter := func(requested virtual.AttributesMask, attributes *virtual.Attributes) {
+					attributes.SetOwnerUserID(runnerConfiguration.BuildDirectoryOwnerUserId)
+					attributes.SetOwnerGroupID(runnerConfiguration.BuildDirectoryOwnerGroupId)
+				}
+				symlinkFactory := virtual.NewHandleAllocatingSymlinkFactory(
+					virtual.NewBaseSymlinkFactory(defaultAttributesSetter),
+					handleAllocator.New(),
+					path.LocalFormat,
+				)
 
 				// Execute commands using a separate runner process. Due to the
 				// interaction between threads, forking and execve() returning
@@ -228,8 +233,7 @@ func main() {
 						uuid.NewRandom,
 						maximumWritableFileUploadDelay,
 						runnerConfiguration.EnvironmentVariables,
-						runnerConfiguration.BuildDirectoryOwnerUserId,
-						runnerConfiguration.BuildDirectoryOwnerGroupId,
+						defaultAttributesSetter,
 						maximumExecutionTimeoutCompensation,
 						workerID,
 					)

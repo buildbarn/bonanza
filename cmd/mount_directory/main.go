@@ -16,6 +16,7 @@ import (
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
 	object_namespacemapping "bonanza.build/pkg/storage/object/namespacemapping"
 
+	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/virtual"
 	virtual_configuration "github.com/buildbarn/bb-remote-execution/pkg/filesystem/virtual/configuration"
 	"github.com/buildbarn/bb-storage/pkg/global"
 	"github.com/buildbarn/bb-storage/pkg/program"
@@ -150,6 +151,9 @@ func main() {
 			directoryClusterReader,
 			leavesReader,
 			fileFactory,
+			virtual.NewBaseSymlinkFactory(
+				/* defaultAttributesSetter = */ func(requested virtual.AttributesMask, attributes *virtual.Attributes) {},
+			),
 			util.DefaultErrorLogger,
 		)
 		rootDirectory := directoryFactory.LookupDirectory(

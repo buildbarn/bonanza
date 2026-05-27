@@ -38,6 +38,7 @@ type ObjectBackedDirectoryFactory struct {
 	directoryClusterDecodingParametersSizeBytes int
 	leavesReader                                model_parser.MessageObjectReader[object.LocalReference, *model_filesystem_pb.Leaves]
 	fileFactory                                 FileFactory
+	symlinkFactory                              virtual.SymlinkFactory
 	errorLogger                                 util.ErrorLogger
 }
 
@@ -49,14 +50,16 @@ func NewObjectBackedDirectoryFactory(
 	directoryClusterReader model_parser.MessageObjectReader[object.LocalReference, model_filesystem.DirectoryCluster],
 	leavesReader model_parser.MessageObjectReader[object.LocalReference, *model_filesystem_pb.Leaves],
 	fileFactory FileFactory,
+	symlinkFactory virtual.SymlinkFactory,
 	errorLogger util.ErrorLogger,
 ) *ObjectBackedDirectoryFactory {
 	df := &ObjectBackedDirectoryFactory{
 		directoryClusterReader:                      directoryClusterReader,
 		directoryClusterDecodingParametersSizeBytes: directoryClusterReader.GetDecodingParametersSizeBytes(),
-		leavesReader: leavesReader,
-		fileFactory:  fileFactory,
-		errorLogger:  errorLogger,
+		leavesReader:   leavesReader,
+		fileFactory:    fileFactory,
+		symlinkFactory: symlinkFactory,
+		errorLogger:    errorLogger,
 	}
 	df.handleAllocator = handleAllocation.AsResolvableAllocator(df.resolveHandle)
 	return df
@@ -176,7 +179,7 @@ func (df *ObjectBackedDirectoryFactory) createSymlink(clusterReference model_cor
 	handle = append(handle, clusterReference.GetDecodingParameters()...)
 	handle = varint.AppendForward(handle, directoryIndex)
 	handle = varint.AppendForward(handle, symlinkIndex+1)
-	symlink, err := virtual.BaseSymlinkFactory.LookupSymlink(path.UNIXFormat.NewParser(target))
+	symlink, err := df.symlinkFactory.LookupSymlink(path.UNIXFormat.NewParser(target))
 	if err != nil {
 		df.errorLogger.Log(util.StatusWrapf(err, "Failed to create symbolic link with target %#v", target))
 		return nil, virtual.StatusErrIO

@@ -113,8 +113,7 @@ type localExecutor struct {
 	uuidGenerator                       util.UUIDGenerator
 	maximumWritableFileUploadDelay      time.Duration
 	environmentVariables                map[string]string
-	buildDirectoryOwnerUserID           uint32
-	buildDirectoryOwnerGroupID          uint32
+	defaultAttributesSetter             virtual.DefaultAttributesSetter
 	readinessCheckingDirectory          virtual.Directory
 	maximumExecutionTimeoutCompensation time.Duration
 	workerID                            map[string]string
@@ -141,8 +140,7 @@ func NewLocalExecutor(
 	uuidGenerator util.UUIDGenerator,
 	maximumWritableFileUploadDelay time.Duration,
 	environmentVariables map[string]string,
-	buildDirectoryOwnerUserID uint32,
-	buildDirectoryOwnerGroupID uint32,
+	defaultAttributesSetter virtual.DefaultAttributesSetter,
 	maximumExecutionTimeoutCompensation time.Duration,
 	workerID map[string]string,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
@@ -163,8 +161,7 @@ func NewLocalExecutor(
 		uuidGenerator:                  uuidGenerator,
 		maximumWritableFileUploadDelay: maximumWritableFileUploadDelay,
 		environmentVariables:           environmentVariables,
-		buildDirectoryOwnerUserID:      buildDirectoryOwnerUserID,
-		buildDirectoryOwnerGroupID:     buildDirectoryOwnerGroupID,
+		defaultAttributesSetter:        defaultAttributesSetter,
 		readinessCheckingDirectory: handleAllocator.New().AsStatelessDirectory(
 			virtual.NewStaticDirectory(
 				virtual.CaseSensitiveComponentNormalizer,
@@ -381,16 +378,12 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		directoryEncoder := directoryCreationParameters.GetEncoder()
 
 		// Create build directory and expose it via the virtual file system.
-		defaultAttributesSetter := func(requested virtual.AttributesMask, attributes *virtual.Attributes) {
-			attributes.SetOwnerUserID(e.buildDirectoryOwnerUserID)
-			attributes.SetOwnerGroupID(e.buildDirectoryOwnerGroupID)
-		}
 		namedAttributesFactory := virtual.NewInMemoryNamedAttributesFactory(
 			virtual.NewHandleAllocatingFileAllocator(
 				virtual.NewPoolBackedFileAllocator(
 					e.filePool,
 					ioErrorCapturer,
-					defaultAttributesSetter,
+					e.defaultAttributesSetter,
 					virtual.InNamedAttributeDirectoryNamedAttributesFactory,
 				),
 				e.handleAllocator,
@@ -403,7 +396,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		fileAllocator := virtual.NewPoolBackedFileAllocator(
 			e.filePool,
 			ioErrorCapturer,
-			defaultAttributesSetter,
+			e.defaultAttributesSetter,
 			namedAttributesFactory,
 		)
 		buildDirectory := virtual.NewInMemoryPrepopulatedDirectory(
@@ -415,7 +408,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			e.hiddenFilesMatcher,
 			e.clock,
 			virtual.CaseSensitiveComponentNormalizer,
-			defaultAttributesSetter,
+			e.defaultAttributesSetter,
 			namedAttributesFactory,
 		)
 		defer buildDirectory.RemoveAllChildren(true)

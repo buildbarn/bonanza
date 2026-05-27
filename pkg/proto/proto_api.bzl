@@ -1,5 +1,5 @@
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory_bin_action")
-load("@rules_proto//proto:defs.bzl", "ProtoInfo")
+load("@protobuf//bazel/common:proto_info.bzl", "ProtoInfo")
 
 def _complete_proto_api_impl(ctx):
     transitive_sources = depset(
