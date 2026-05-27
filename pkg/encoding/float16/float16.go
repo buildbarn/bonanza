@@ -9,7 +9,7 @@ const (
 	significandMask       = (1 << significandBits) - 1
 	significandLeadingBit = 1 << significandBits
 	exponentBits          = 16 - significandBits
-	exponentMax           = (1 << (exponentBits)) - 1
+	exponentMax           = (1 << exponentBits) - 1
 )
 
 func float16GetExponent(v uint64) int {

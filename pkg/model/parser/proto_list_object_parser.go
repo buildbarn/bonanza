@@ -78,7 +78,7 @@ type protoListObjectParserKey struct {
 func (protoListObjectParser[TReference, TMessage, TMessagePtr]) AppendUniqueKeys(keys []unique.Handle[any]) []unique.Handle[any] {
 	return append(keys, unique.Make[any](
 		protoListObjectParserKey{
-			descriptor: (TMessagePtr)(nil).ProtoReflect().Descriptor(),
+			descriptor: TMessagePtr(nil).ProtoReflect().Descriptor(),
 		},
 	))
 }

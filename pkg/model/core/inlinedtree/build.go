@@ -49,7 +49,7 @@ func AlwaysInline[TParentMessage any, TMetadata model_core.ReferenceMetadata](
 	parentAppender func(parent model_core.PatchedMessage[TParentMessage, TMetadata]),
 ) Candidate[TParentMessage, TMetadata] {
 	return Candidate[TParentMessage, TMetadata]{
-		ExternalMessage: model_core.NewPatchedMessage((encoding.BinaryMarshaler)(nil), patcher),
+		ExternalMessage: model_core.NewPatchedMessage(encoding.BinaryMarshaler(nil), patcher),
 		ParentAppender: func(
 			out model_core.PatchedMessage[TParentMessage, TMetadata],
 			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],

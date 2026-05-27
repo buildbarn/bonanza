@@ -32,21 +32,24 @@ var (
 			Subsystem: "tag",
 			Name:      "storage_backed_mutable_proto_handles_created_total",
 			Help:      "Number of mutable Protobuf message handles that were created during Get()",
-		})
+		},
+	)
 	storageBackedMutableProtoHandlesDestroyed = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "bonanza",
 			Subsystem: "tag",
 			Name:      "storage_backed_mutable_proto_handles_destroyed_total",
 			Help:      "Number of mutable Protobuf message handles that were destroyed",
-		})
+		},
+	)
 	storageBackedMutableProtoHandlesDequeued = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "bonanza",
 			Subsystem: "tag",
 			Name:      "storage_backed_mutable_proto_handles_dequeued_total",
 			Help:      "Number of mutable Protobuf message handles that were dequeued for writing during Get()",
-		})
+		},
+	)
 
 	storageBackedMutableProtoHandlesQueued = prometheus.NewCounter(
 		prometheus.CounterOpts{
@@ -54,7 +57,8 @@ var (
 			Subsystem: "tag",
 			Name:      "storage_backed_mutable_proto_handles_queued_total",
 			Help:      "Number of mutable Protobuf message handles that were queued for writing",
-		})
+		},
+	)
 )
 
 type storageBackedMutableProtoStore[T any, TProto interface {

@@ -203,7 +203,8 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 			case *model_filesystem_pb.Directory_ContentsExternal:
 				pathNodes := getPathNodes(path)
 				pathNodes = append(pathNodes, g.Text(name+"/"))
-				pathNodes = append(pathNodes,
+				pathNodes = append(
+					pathNodes,
 					renderReferenceLinkPretty(
 						r.basePath,
 						model_core.Nested(dirMessage, contents.ContentsExternal.Reference),
@@ -228,7 +229,8 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 
 		case *model_filesystem_pb.LeavesReference:
 			pathNodes := getPathNodes(path)
-			pathNodes = append(pathNodes,
+			pathNodes = append(
+				pathNodes,
 				renderReferenceLinkPretty(
 					r.basePath,
 					model_core.Nested(dirMessage, file.Reference),
@@ -252,7 +254,8 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 			pathNodes := getPathNodes(path)
 			switch reference := file.Properties.Contents.Level.(type) {
 			case *model_filesystem_pb.FileContents_ChunkReference:
-				pathNodes = append(pathNodes,
+				pathNodes = append(
+					pathNodes,
 					renderReferenceLinkPretty(
 						r.basePath,
 						model_core.Nested(dirMessage, reference.ChunkReference),
@@ -262,7 +265,8 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 				)
 
 			case *model_filesystem_pb.FileContents_List_:
-				pathNodes = append(pathNodes,
+				pathNodes = append(
+					pathNodes,
 					renderReferenceLinkPretty(
 						r.basePath,
 						model_core.Nested(dirMessage, reference.List.Reference),
@@ -281,7 +285,8 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 		case *model_filesystem_pb.SymlinkNode:
 			pathNodes := getPathNodes(path)
 			pathNodes = append(pathNodes, g.Text(file.Name))
-			pathNodes = append(pathNodes,
+			pathNodes = append(
+				pathNodes,
 				g.Text(" → "+file.Target),
 			)
 

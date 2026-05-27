@@ -93,7 +93,8 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to remove previous temporary file: permission denied"),
-			persistentStateStore.WritePersistentState(&examplePersistentState))
+			persistentStateStore.WritePersistentState(&examplePersistentState),
+		)
 	})
 
 	t.Run("WriteTemporaryFileCreationFailure", func(t *testing.T) {
@@ -103,7 +104,8 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to create temporary file: input/output error"),
-			persistentStateStore.WritePersistentState(&examplePersistentState))
+			persistentStateStore.WritePersistentState(&examplePersistentState),
+		)
 	})
 
 	t.Run("WriteTemporaryFileWriteFailure", func(t *testing.T) {
@@ -116,7 +118,8 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to write to temporary file: no space left on device"),
-			persistentStateStore.WritePersistentState(&examplePersistentState))
+			persistentStateStore.WritePersistentState(&examplePersistentState),
+		)
 	})
 
 	t.Run("WriteTemporaryFileSyncFailure", func(t *testing.T) {
@@ -130,7 +133,8 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to synchronize temporary file: input/output error"),
-			persistentStateStore.WritePersistentState(&examplePersistentState))
+			persistentStateStore.WritePersistentState(&examplePersistentState),
+		)
 	})
 
 	t.Run("WriteTemporaryFileCloseFailure", func(t *testing.T) {
@@ -144,7 +148,8 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to close temporary file: input/output error"),
-			persistentStateStore.WritePersistentState(&examplePersistentState))
+			persistentStateStore.WritePersistentState(&examplePersistentState),
+		)
 	})
 
 	t.Run("WriteDirectoryRenameFailure", func(t *testing.T) {
@@ -159,7 +164,8 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to rename temporary file: permission denied"),
-			persistentStateStore.WritePersistentState(&examplePersistentState))
+			persistentStateStore.WritePersistentState(&examplePersistentState),
+		)
 	})
 
 	t.Run("WriteDirectorySyncFailure", func(t *testing.T) {
@@ -175,7 +181,8 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to synchronize directory: input/output error"),
-			persistentStateStore.WritePersistentState(&examplePersistentState))
+			persistentStateStore.WritePersistentState(&examplePersistentState),
+		)
 	})
 
 	t.Run("WriteSuccess", func(t *testing.T) {

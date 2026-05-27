@@ -901,7 +901,8 @@ func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Messa
 					jsonFormatter,
 					browserURL,
 					outcomesReference,
-					longestType),
+					longestType,
+				),
 			)
 		}
 	}

@@ -50,7 +50,8 @@ func NewAnalyzerFromConfiguration(
 				minimumExecutionTimeout.AsDuration(),
 				pageRankConfiguration.AcceptableExecutionTimeIncreaseExponent,
 				pageRankConfiguration.SmallerSizeClassExecutionTimeoutMultiplier,
-				pageRankConfiguration.MaximumConvergenceError)
+				pageRankConfiguration.MaximumConvergenceError,
+			)
 		}
 
 		analyzer = NewFeedbackDrivenAnalyzer(
