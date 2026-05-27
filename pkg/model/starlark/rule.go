@@ -307,7 +307,8 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		if err != nil {
 			return nil, err
 		}
-		publicAttrValues = append(publicAttrValues,
+		publicAttrValues = append(
+			publicAttrValues,
 			&model_starlark_pb.RuleTarget_PublicAttrValue{
 				ValueParts: encodedGroups.Message,
 			},

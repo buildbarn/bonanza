@@ -55,7 +55,8 @@ var (
 			Name:      "in_memory_build_queue_in_flight_deduplications_total",
 			Help:      "Number of times an Execute() request of a cacheable action was performed, and whether it was in-flight deduplicated against an existing task.",
 		},
-		[]string{"pkix_public_key", "size_class", "outcome"})
+		[]string{"pkix_public_key", "size_class", "outcome"},
+	)
 
 	inMemoryBuildQueueInvocationsCreatedTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -64,7 +65,8 @@ var (
 			Name:      "in_memory_build_queue_invocations_created_total",
 			Help:      "Number of times an invocation object was created by creating a size class queue or scheduling a task through Execute().",
 		},
-		[]string{"pkix_public_key", "size_class", "depth"})
+		[]string{"pkix_public_key", "size_class", "depth"},
+	)
 	inMemoryBuildQueueInvocationsActivatedTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "bonanza",
@@ -72,7 +74,8 @@ var (
 			Name:      "in_memory_build_queue_invocations_activated_total",
 			Help:      "Number of times an invocation object transitioned from being idle to having queued or executing operations.",
 		},
-		[]string{"pkix_public_key", "size_class", "depth"})
+		[]string{"pkix_public_key", "size_class", "depth"},
+	)
 	inMemoryBuildQueueInvocationsDeactivatedTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "bonanza",
@@ -80,7 +83,8 @@ var (
 			Name:      "in_memory_build_queue_invocations_deactivated_total",
 			Help:      "Number of times an invocation object transitioned from having queued or executing operations to being idle.",
 		},
-		[]string{"pkix_public_key", "size_class", "depth"})
+		[]string{"pkix_public_key", "size_class", "depth"},
+	)
 	inMemoryBuildQueueInvocationsRemovedTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "bonanza",
@@ -88,7 +92,8 @@ var (
 			Name:      "in_memory_build_queue_invocations_removed_total",
 			Help:      "Number of times an invocation object was removed.",
 		},
-		[]string{"pkix_public_key", "size_class", "depth"})
+		[]string{"pkix_public_key", "size_class", "depth"},
+	)
 
 	inMemoryBuildQueueTasksScheduledTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -97,7 +102,8 @@ var (
 			Name:      "in_memory_build_queue_tasks_scheduled_total",
 			Help:      "Number of times tasks were scheduled, either by calling Execute() or through initial size class selection retries.",
 		},
-		[]string{"pkix_public_key", "size_class", "assignment"})
+		[]string{"pkix_public_key", "size_class", "assignment"},
+	)
 	inMemoryBuildQueueTasksQueuedDurationSeconds = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "bonanza",
@@ -106,7 +112,8 @@ var (
 			Help:      "Time in seconds that tasks were queued before executing.",
 			Buckets:   util.DecimalExponentialBuckets(-3, 6, 2),
 		},
-		[]string{"pkix_public_key", "size_class"})
+		[]string{"pkix_public_key", "size_class"},
+	)
 	inMemoryBuildQueueTasksExecutingDurationSeconds = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "bonanza",
@@ -115,7 +122,8 @@ var (
 			Help:      "Time in seconds that tasks were executing before completing.",
 			Buckets:   util.DecimalExponentialBuckets(-3, 6, 2),
 		},
-		[]string{"pkix_public_key", "size_class", "result", "grpc_code"})
+		[]string{"pkix_public_key", "size_class", "result", "grpc_code"},
+	)
 	inMemoryBuildQueueTasksExecutingRetries = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "bonanza",
@@ -124,7 +132,8 @@ var (
 			Help:      "Number of times that tasks were retried before completing.",
 			Buckets:   prometheus.LinearBuckets(0, 1, 11),
 		},
-		[]string{"pkix_public_key", "size_class", "result", "grpc_code"})
+		[]string{"pkix_public_key", "size_class", "result", "grpc_code"},
+	)
 	inMemoryBuildQueueTasksCompletedDurationSeconds = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "bonanza",
@@ -133,7 +142,8 @@ var (
 			Help:      "Time in seconds that tasks were completed before being removed.",
 			Buckets:   util.DecimalExponentialBuckets(-3, 6, 2),
 		},
-		[]string{"pkix_public_key", "size_class"})
+		[]string{"pkix_public_key", "size_class"},
+	)
 
 	inMemoryBuildQueueWorkersCreatedTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -142,7 +152,8 @@ var (
 			Name:      "in_memory_build_queue_workers_created_total",
 			Help:      "Number of workers created by Synchronize().",
 		},
-		[]string{"pkix_public_key", "size_class"})
+		[]string{"pkix_public_key", "size_class"},
+	)
 	inMemoryBuildQueueWorkersTerminatingTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "bonanza",
@@ -150,7 +161,8 @@ var (
 			Name:      "in_memory_build_queue_workers_terminating_total",
 			Help:      "Number of workers that have entered the terminating state.",
 		},
-		[]string{"pkix_public_key", "size_class"})
+		[]string{"pkix_public_key", "size_class"},
+	)
 	inMemoryBuildQueueWorkersRemovedTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "bonanza",
@@ -158,7 +170,8 @@ var (
 			Name:      "in_memory_build_queue_workers_removed_total",
 			Help:      "Number of workers removed due to expiration.",
 		},
-		[]string{"pkix_public_key", "size_class", "state"})
+		[]string{"pkix_public_key", "size_class", "state"},
+	)
 
 	inMemoryBuildQueueWorkerInvocationStickinessRetained = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -168,7 +181,8 @@ var (
 			Help:      "How many levels of worker invocation stickiness were respected, as configured through worker_invocation_stickiness_limits.",
 			Buckets:   prometheus.LinearBuckets(0, 1, 11),
 		},
-		[]string{"pkix_public_key", "size_class"})
+		[]string{"pkix_public_key", "size_class"},
+	)
 )
 
 // InMemoryBuildQueueConfiguration contains all the tunable settings of
@@ -1740,7 +1754,8 @@ func (scq *sizeClassQueue) incrementInvocationsCreatedTotal(depth int) {
 				activatedTotal:   inMemoryBuildQueueInvocationsActivatedTotal.WithLabelValues(pkixPublicKey, sizeClassStr, depthStr),
 				deactivatedTotal: inMemoryBuildQueueInvocationsDeactivatedTotal.WithLabelValues(pkixPublicKey, sizeClassStr, depthStr),
 				removedTotal:     inMemoryBuildQueueInvocationsRemovedTotal.WithLabelValues(pkixPublicKey, sizeClassStr, depthStr),
-			})
+			},
+		)
 	}
 
 	scq.invocationsMetrics[depth].createdTotal.Inc()
@@ -2852,7 +2867,8 @@ func (w *worker) dequeue(scq *sizeClassQueue) {
 		heapRemoveOrFix(
 			&i.parent.idleSynchronizingWorkersChildren,
 			i.idleSynchronizingWorkersChildrenIndex,
-			len(i.idleSynchronizingWorkers)+i.idleSynchronizingWorkersChildren.Len())
+			len(i.idleSynchronizingWorkers)+i.idleSynchronizingWorkersChildren.Len(),
+		)
 		i = i.parent
 	}
 	w.wakeup = nil

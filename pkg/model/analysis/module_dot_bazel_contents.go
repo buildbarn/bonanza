@@ -303,7 +303,8 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 							Urls: []string{moduleFileURL},
 						},
 					},
-				})
+				},
+			)
 			if !fileContentsValue.IsSet() {
 				return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}

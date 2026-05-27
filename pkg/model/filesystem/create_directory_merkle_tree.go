@@ -312,7 +312,8 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 										externalObject,
 										directory.Patcher,
 									),
-								})
+								},
+							)
 						},
 					),
 				},

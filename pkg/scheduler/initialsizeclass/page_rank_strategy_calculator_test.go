@@ -53,7 +53,8 @@ func TestPageRankStrategyCalculatorEmpty(t *testing.T) {
 				RunInBackground: true,
 			},
 		},
-		strategies)
+		strategies,
+	)
 }
 
 // If the action has succeeded once on both the smallest and the largest
@@ -93,7 +94,8 @@ func TestPageRankStrategyCalculatorSingleRunSuccess(t *testing.T) {
 				ForegroundExecutionTimeout: 5 * time.Second,
 			},
 		},
-		strategies)
+		strategies,
+	)
 }
 
 // If execution succeeded on the largest and failed on the smallest, the
@@ -127,7 +129,8 @@ func TestPageRankStrategyCalculatorSingleRunFailure(t *testing.T) {
 				RunInBackground: true,
 			},
 		},
-		strategies)
+		strategies,
+	)
 }
 
 // When timeoutMultiplier is set to 1.5, an action with a 900s timeout
@@ -215,7 +218,8 @@ func TestPageRankStrategyCalculatorCloseToTimeout(t *testing.T) {
 				RunInBackground: true,
 			},
 		},
-		strategies)
+		strategies,
+	)
 }
 
 // Size classes for which we don't have any outcomes should always
@@ -285,7 +289,8 @@ func TestPageRankStrategyCalculatorUntestedSizeClass(t *testing.T) {
 				ForegroundExecutionTimeout: 5 * time.Second,
 			},
 		},
-		strategies)
+		strategies,
+	)
 }
 
 // Test the extreme case, where an action always fails on all size
@@ -386,7 +391,8 @@ func TestPageRankStrategyCalculatorExtremelyHighProbability(t *testing.T) {
 				RunInBackground: true,
 			},
 		},
-		strategies)
+		strategies,
+	)
 }
 
 // Due to measurement inaccuracies of execution times on workers, it may
@@ -412,9 +418,11 @@ func TestPageRankStrategyCalculatorExecutionTimesLargerThanTimeout(t *testing.T)
 				RunInBackground: true,
 			},
 		},
-		strategyCalculator.GetStrategies(stats, []uint32{1, 2, 4, 8}, 150*time.Second))
+		strategyCalculator.GetStrategies(stats, []uint32{1, 2, 4, 8}, 150*time.Second),
+	)
 	require.Equal(
 		t,
 		150*time.Second,
-		strategyCalculator.GetBackgroundExecutionTimeout(stats, []uint32{1, 2, 4, 8}, 0, 150*time.Second))
+		strategyCalculator.GetBackgroundExecutionTimeout(stats, []uint32{1, 2, 4, 8}, 0, 150*time.Second),
+	)
 }

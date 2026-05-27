@@ -787,18 +787,19 @@ func TestFileRoot(t *testing.T) {
 											"myrepo+",
 											&model_filesystem_pb.DirectoryContents{
 												Directories: []*model_filesystem_pb.DirectoryNode{
-													directoryNode("mydir", &model_filesystem_pb.DirectoryContents{
-														Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-															LeavesInline: &model_filesystem_pb.Leaves{
-																Files: []*model_filesystem_pb.FileNode{
-																	{
-																		Name:       "myfile",
-																		Properties: &model_filesystem_pb.FileProperties{},
+													directoryNode(
+														"mydir", &model_filesystem_pb.DirectoryContents{
+															Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
+																LeavesInline: &model_filesystem_pb.Leaves{
+																	Files: []*model_filesystem_pb.FileNode{
+																		{
+																			Name:       "myfile",
+																			Properties: &model_filesystem_pb.FileProperties{},
+																		},
 																	},
 																},
 															},
 														},
-													},
 													),
 												},
 												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{

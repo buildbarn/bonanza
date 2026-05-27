@@ -37,7 +37,8 @@ func TestPeriodicSyncerProcessLocationsChanged(t *testing.T) {
 		30*time.Second,
 		time.Minute,
 		0xdf280dd45b2c39e,
-		dataSyncer.Call)
+		dataSyncer.Call,
+	)
 
 	exampleEpochStates := []*pb.EpochState{{
 		HashSeed:         0xc6e9c01b35dfeb40,

@@ -346,7 +346,8 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 					},
 				}, &stats)
 				return 80 * time.Second
-			})
+			},
+		)
 
 		sizeClassIndex2, expectedDuration2, timeout2, learner2 := learner1.Succeeded(42*time.Second, []uint32{1, 2, 4, 8})
 		require.NotNil(t, learner2)

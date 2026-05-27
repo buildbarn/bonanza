@@ -599,7 +599,8 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 			&listElementsDecodingOptions[TReference]{
 				valueDecodingOptions: options,
 				out:                  list,
-			}); err != nil {
+			},
+		); err != nil {
 			return nil, err
 		}
 		return list, nil

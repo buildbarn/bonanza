@@ -132,9 +132,11 @@ func (lbm *blockDeviceBackedLocationBlobMap) Put(data []byte) (uint64, error) {
 
 	// Cases 2 and 3: write full sectors.
 	for len(data) >= lbm.sectorSizeBytes {
-		availableBytes := int(min(
-			uint64(len(data)/lbm.sectorSizeBytes),
-			uint64(lbm.sectorCount)-fullSectorIndex),
+		availableBytes := int(
+			min(
+				uint64(len(data)/lbm.sectorSizeBytes),
+				uint64(lbm.sectorCount)-fullSectorIndex,
+			),
 		) * lbm.sectorSizeBytes
 		if _, err := lbm.blockDevice.WriteAt(data[:availableBytes], int64(fullSectorIndex)*int64(lbm.sectorSizeBytes)); err != nil {
 			return 0, err
