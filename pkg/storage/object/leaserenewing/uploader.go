@@ -165,7 +165,7 @@ func (u *Uploader[TReference, TLease]) finalizeObjectLocked(o *objectState[TRefe
 		oParent := unfinalizedParent.object
 		hasUnfinalizedChildren := oParent.hasUnfinalizedChildren
 		if leaseIndex := unfinalizedParent.leaseIndex; lease == nil {
-			hasUnfinalizedChildren.gotNoLease[leaseIndex/bits.UintSize] = 1 << (leaseIndex % bits.UintSize)
+			hasUnfinalizedChildren.gotNoLease[leaseIndex/bits.UintSize] |= 1 << (leaseIndex % bits.UintSize)
 		} else {
 			hasUnfinalizedChildren.leases[leaseIndex] = *lease
 			hasUnfinalizedChildren.originalIncompleteResult = nil

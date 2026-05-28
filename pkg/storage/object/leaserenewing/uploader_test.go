@@ -513,5 +513,87 @@ func TestUploader(t *testing.T) {
 				WantOutgoingReferencesLeases: []int{1},
 			}, result)
 		})
+
+		t.Run("IncompleteWithMultipleMissingChildren", func(t *testing.T) {
+			// This test is identical to IncompleteWithMissingChild,
+			// except that multiple children are missing. In this
+			// case the upload result should contain the indices of
+			// both children that are missing.
+			contents := object.MustNewContents(
+				object_pb.ReferenceFormat_SHA256_V1,
+				object.OutgoingReferencesList[object.LocalReference]{
+					object.MustNewSHA256V1LocalReference("5a5fd94c0c2a6d5783148772a37c087a835744f2b63eb7c9009dea8a7018c80d", 95852, 0, 0, 0),
+					object.MustNewSHA256V1LocalReference("631fa5ce15d7ea9c9f49813a5e67ac13fe4dd1d590f302c0feb8c23adb390130", 95852, 0, 0, 0),
+					object.MustNewSHA256V1LocalReference("e4a58e4210d9c962faa8dcfab6cae16278cc14621f85a809d0c628e49dd7c2f0", 95852, 0, 0, 0),
+				},
+				[]byte("Hello"),
+			)
+			gomock.InOrder(
+				baseUploader.EXPECT().UploadObject(
+					gomock.Any(),
+					object.NewInstanceName("hello/world").WithLocalReference(contents.GetLocalReference()),
+					/* contents = */ nil,
+					/* childrenLeases = */ nil,
+					/* wantContentsIfIncomplete = */ true,
+				).Return(object.UploadObjectIncomplete[any]{
+					Contents:                     contents,
+					WantOutgoingReferencesLeases: []int{0, 1, 2},
+				}, nil),
+				baseUploader.EXPECT().UploadObject(
+					gomock.Any(),
+					object.MustNewSHA256V1GlobalReference("hello/world", "5a5fd94c0c2a6d5783148772a37c087a835744f2b63eb7c9009dea8a7018c80d", 95852, 0, 0, 0),
+					/* contents = */ nil,
+					/* childrenLeases = */ nil,
+					/* wantContentsIfIncomplete = */ false,
+				).Return(object.UploadObjectComplete[any]{
+					Lease: "Lease",
+				}, nil),
+				baseUploader.EXPECT().UploadObject(
+					gomock.Any(),
+					object.MustNewSHA256V1GlobalReference("hello/world", "631fa5ce15d7ea9c9f49813a5e67ac13fe4dd1d590f302c0feb8c23adb390130", 95852, 0, 0, 0),
+					/* contents = */ nil,
+					/* childrenLeases = */ nil,
+					/* wantContentsIfIncomplete = */ false,
+				).Return(object.UploadObjectMissing[any]{}, nil),
+				baseUploader.EXPECT().UploadObject(
+					gomock.Any(),
+					object.MustNewSHA256V1GlobalReference("hello/world", "e4a58e4210d9c962faa8dcfab6cae16278cc14621f85a809d0c628e49dd7c2f0", 95852, 0, 0, 0),
+					/* contents = */ nil,
+					/* childrenLeases = */ nil,
+					/* wantContentsIfIncomplete = */ false,
+				).Return(object.UploadObjectMissing[any]{}, nil),
+				baseUploader.EXPECT().UploadObject(
+					gomock.Any(),
+					object.NewInstanceName("hello/world").WithLocalReference(contents.GetLocalReference()),
+					/* contents = */ nil,
+					[]any{
+						"Lease",
+						nil,
+						nil,
+					},
+					/* wantContentsIfIncomplete = */ false,
+				).Return(object.UploadObjectIncomplete[any]{
+					WantOutgoingReferencesLeases: []int{1, 2},
+				}, nil),
+			)
+
+			go func() {
+				for i := 0; i < 4; i++ {
+					require.True(t, uploader.ProcessSingleObject(ctx))
+				}
+			}()
+			result, err := uploader.UploadObject(
+				ctx,
+				object.NewInstanceName("hello/world").WithLocalReference(contents.GetLocalReference()),
+				/* contents = */ nil,
+				/* childrenLeases = */ nil,
+				/* wantContentsIfIncomplete = */ true,
+			)
+			require.NoError(t, err)
+			require.Equal(t, object.UploadObjectIncomplete[any]{
+				Contents:                     contents,
+				WantOutgoingReferencesLeases: []int{1, 2},
+			}, result)
+		})
 	}
 }
