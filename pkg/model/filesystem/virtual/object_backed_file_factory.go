@@ -59,7 +59,7 @@ func (objectBackedFile) Link() virtual.Status {
 func (objectBackedFile) Unlink() {
 }
 
-func (objectBackedFile) VirtualAllocate(off, size uint64) virtual.Status {
+func (objectBackedFile) VirtualAllocate(ctx context.Context, off, size uint64) virtual.Status {
 	return virtual.StatusErrWrongType
 }
 
@@ -86,7 +86,7 @@ func (f *objectBackedFile) VirtualOpenSelf(ctx context.Context, shareAccess virt
 	return virtual.StatusOK
 }
 
-func (f *objectBackedFile) VirtualRead(buf []byte, offsetBytes uint64) (int, bool, virtual.Status) {
+func (f *objectBackedFile) VirtualRead(ctx context.Context, buf []byte, offsetBytes uint64) (int, bool, virtual.Status) {
 	buf, eof := virtual.BoundReadToFileSize(buf, offsetBytes, f.fileContents.GetEndBytes())
 	ff := f.factory
 	nRead, err := ff.fileReader.FileReadAt(ff.context, f.fileContents, buf, offsetBytes)
@@ -97,7 +97,7 @@ func (f *objectBackedFile) VirtualRead(buf []byte, offsetBytes uint64) (int, boo
 	return nRead, eof, virtual.StatusOK
 }
 
-func (f *objectBackedFile) VirtualSeek(offset uint64, regionType filesystem.RegionType) (*uint64, virtual.Status) {
+func (f *objectBackedFile) VirtualSeek(ctx context.Context, offset uint64, regionType filesystem.RegionType) (*uint64, virtual.Status) {
 	// TODO: Actually report holes contained in files.
 	endBytes := f.fileContents.GetEndBytes()
 	switch regionType {
@@ -120,6 +120,12 @@ func (f *objectBackedFile) VirtualSetAttributes(ctx context.Context, in *virtual
 	if _, ok := in.GetPermissions(); ok {
 		return virtual.StatusErrPerm
 	}
+	if _, ok := in.GetOwnerUserID(); ok {
+		return virtual.StatusErrPerm
+	}
+	if _, ok := in.GetOwnerGroupID(); ok {
+		return virtual.StatusErrPerm
+	}
 	if _, ok := in.GetSizeBytes(); ok {
 		return virtual.StatusErrAccess
 	}
@@ -127,7 +133,7 @@ func (f *objectBackedFile) VirtualSetAttributes(ctx context.Context, in *virtual
 	return virtual.StatusOK
 }
 
-func (objectBackedFile) VirtualWrite(buf []byte, offset uint64) (int, virtual.Status) {
+func (objectBackedFile) VirtualWrite(ctx context.Context, buf []byte, offset uint64) (int, virtual.Status) {
 	panic("request to write to read-only file should have been intercepted")
 }
 

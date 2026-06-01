@@ -68,9 +68,9 @@ func (f *mutationTrackingFile) VirtualSetAttributes(ctx context.Context, in *vir
 	return f.LinkableLeaf.VirtualSetAttributes(ctx, in, requested, attributes)
 }
 
-func (f *mutationTrackingFile) VirtualAllocate(off, size uint64) virtual.Status {
+func (f *mutationTrackingFile) VirtualAllocate(ctx context.Context, off, size uint64) virtual.Status {
 	f.isMutated.Store(true)
-	return f.LinkableLeaf.VirtualAllocate(off, size)
+	return f.LinkableLeaf.VirtualAllocate(ctx, off, size)
 }
 
 func (f *mutationTrackingFile) VirtualOpenSelf(ctx context.Context, shareAccess virtual.ShareMask, options *virtual.OpenExistingOptions, requested virtual.AttributesMask, attributes *virtual.Attributes) virtual.Status {
@@ -80,7 +80,7 @@ func (f *mutationTrackingFile) VirtualOpenSelf(ctx context.Context, shareAccess 
 	return f.LinkableLeaf.VirtualOpenSelf(ctx, shareAccess, options, requested, attributes)
 }
 
-func (f *mutationTrackingFile) VirtualWrite(buf []byte, offset uint64) (int, virtual.Status) {
+func (f *mutationTrackingFile) VirtualWrite(ctx context.Context, buf []byte, offset uint64) (int, virtual.Status) {
 	f.isMutated.Store(true)
-	return f.LinkableLeaf.VirtualWrite(buf, offset)
+	return f.LinkableLeaf.VirtualWrite(ctx, buf, offset)
 }
