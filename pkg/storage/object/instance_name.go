@@ -1,5 +1,12 @@
 package object
 
+import (
+	"regexp"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
 // InstanceName denotes the name of a namespace in storage.
 //
 // In this implementation instance names can have arbitrary string
@@ -9,9 +16,21 @@ type InstanceName struct {
 	value string
 }
 
+const validInstanceNameComponentPattern = `[0-9A-Za-z]+`
+
+// Be conservative about what what kinds of instance names we accept.
+// It's often desirable to embed instance names in pathnames and URLs.
+var (
+	validInstanceNameRegexp       = regexp.MustCompile(`^(` + validInstanceNameComponentPattern + `(/` + validInstanceNameComponentPattern + `)*)?$`)
+	errInvalidInstanceNamePattern = status.Error(codes.InvalidArgument, "Instance name must consist of zero or more components matching "+validInstanceNameComponentPattern+" separated by a forward slash")
+)
+
 // NewInstanceName creates a new InstanceName that corresponds to the
 // provided value.
 func NewInstanceName(value string) (InstanceName, error) {
+	if !validInstanceNameRegexp.MatchString(value) {
+		return InstanceName{}, errInvalidInstanceNamePattern
+	}
 	return InstanceName{
 		value: value,
 	}, nil

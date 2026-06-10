@@ -95,8 +95,11 @@ message Namespace {
   // The instance of the execution system to operate against. A server
   // may support multiple instances of the execution system (with their
   // own workers, storage, caches, etc.). The server MAY require use of
-  // this field to select between them in an implementation- defined
+  // this field to select between them in an implementation-defined
   // fashion, otherwise it can be omitted.
+  //
+  // Implementations MAY place restrictions on the format of the
+  // instance name string (e.g., requiring them to be path-like).
   string instance_name = 1;
 
   // The format that is used to encode references.

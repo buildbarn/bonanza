@@ -35,6 +35,7 @@ go_test(
     name = "object_test",
     srcs = [
         "downloader_server_test.go",
+        "instance_name_test.go",
         "local_reference_test.go",
         "mocks_object_test.go",
         "uploader_server_test.go",
