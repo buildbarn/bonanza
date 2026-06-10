@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "build",
@@ -56,5 +56,15 @@ go_library(
         "@org_golang_x_sync//errgroup",
         "@org_golang_x_sync//semaphore",
         "@org_golang_x_term//:term",
+    ],
+)
+
+go_test(
+    name = "build_test",
+    srcs = ["do_build_test.go"],
+    embed = [":build"],
+    deps = [
+        "//pkg/bazelclient/arguments",
+        "@com_github_stretchr_testify//require",
     ],
 )

@@ -95,6 +95,13 @@ func newGRPCClient(endpoint string, commonFlags *arguments.CommonFlags) (*grpc.C
 	return grpc.NewClient(target, grpc.WithTransportCredentials(clientCredentials))
 }
 
+func validateBuildCommonFlags(commonFlags *arguments.CommonFlags) error {
+	if commonFlags.BrowserUrl != "" && commonFlags.RemoteInstanceName == "" {
+		return errors.New("--browser_url requires --remote_instance_name to be non-empty, because browser links include the instance name in their URL path")
+	}
+	return nil
+}
+
 type localCapturableDirectoryOptions[TFile model_core.ReferenceMetadata] struct {
 	fileParameters *model_filesystem.FileCreationParameters
 	capturer       model_filesystem.FileMerkleTreeCapturer[TFile]
@@ -166,6 +173,9 @@ func (f *localCapturableFile[TFile]) Discard() {
 func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	logger := logging.NewLoggerFromFlags(&args.CommonFlags)
 	commands.ValidateInsideWorkspace(logger, "build", workspacePath)
+	if err := validateBuildCommonFlags(&args.CommonFlags); err != nil {
+		logger.Fatal(formatted.Text(err.Error()))
+	}
 
 	remoteCacheClient, err := newGRPCClient(args.CommonFlags.RemoteCache, &args.CommonFlags)
 	if err != nil {
