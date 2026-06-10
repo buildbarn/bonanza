@@ -34,6 +34,10 @@ Make sure to adjust any paths as needed (or change your username to
 common:bonanza --remote_cache=unix:///Users/ed/bonanza_demo/bonanza_storage_frontend.sock
 common:bonanza --remote_executor=unix:///Users/ed/bonanza_demo/bonanza_scheduler_clients.sock
 
+# Store objects in a non-empty namespace. bonanza_browser links emitted
+# by bonanza_bazel include this value in their URL path.
+common:bonanza --remote_instance_name=bonanza-demo
+
 # Bonanza supports encrypting CAS objects using AES. This key can be
 # generated client side and is passed along to the cluster when a build
 # is kicked off. If you change this key, you are effectively busting the
@@ -123,6 +127,10 @@ common:bonanza --repo_platform=//platforms:repo
 # bonanza_browser that can be used to inspect objects in storage. By
 # setting this flag to the address of this service, bonanza_bazel is
 # capable of emitting clickable links in its terminal output.
+#
+# Browser links include the --remote_instance_name value in their path,
+# so make sure that flag is set to a non-empty value when using this
+# option.
 #
 # This option should only be enabled if your terminal supports "OSC 8"
 # style hyperlinks. https://github.com/Alhadis/OSC8-Adoption/
