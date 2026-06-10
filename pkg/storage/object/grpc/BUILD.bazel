@@ -29,6 +29,7 @@ go_test(
         "//pkg/proto/storage/object",
         "//pkg/storage/object",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
+        "@com_github_buildbarn_bb_storage//pkg/util",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//:grpc",  # keep
         "@org_golang_google_grpc//codes",

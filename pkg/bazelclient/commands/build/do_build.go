@@ -575,7 +575,10 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 
 	logger.Info(formatted.Text("Uploading module sources"))
-	instanceName := object.NewInstanceName(args.CommonFlags.RemoteInstanceName)
+	instanceName, err := object.NewInstanceName(args.CommonFlags.RemoteInstanceName)
+	if err != nil {
+		logger.Fatal(formatted.Textf("Invalid --remote_instance_name=%#v: %s", args.CommonFlags.RemoteInstanceName, err))
+	}
 	actionReference := createdAction.Value.GetLocalReference()
 	actionGlobalReference := instanceName.WithLocalReference(actionReference)
 	dagUploader := dag_grpc.NewUploader(

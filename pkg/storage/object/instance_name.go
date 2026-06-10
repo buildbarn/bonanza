@@ -11,10 +11,10 @@ type InstanceName struct {
 
 // NewInstanceName creates a new InstanceName that corresponds to the
 // provided value.
-func NewInstanceName(value string) InstanceName {
+func NewInstanceName(value string) (InstanceName, error) {
 	return InstanceName{
 		value: value,
-	}
+	}, nil
 }
 
 // WithLocalReference upgrades a LocalReference to a GlobalReference
