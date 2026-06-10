@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
-	"net/url"
 	"path"
 	"slices"
 	"strconv"
@@ -154,6 +153,9 @@ func renderPage(title string, body []g.Node) g.Node {
 func getReferenceFromRequest(r *http.Request) (model_core.Decodable[object.GlobalReference], error) {
 	var bad model_core.Decodable[object.GlobalReference]
 	instanceNameStr := r.PathValue("instance_name")
+	if instanceNameStr == "-" {
+		instanceNameStr = ""
+	}
 	instanceName, err := object.NewInstanceName(instanceNameStr)
 	if err != nil {
 		return bad, util.StatusWrapf(err, "Invalid instance name %#v", instanceNameStr)
@@ -648,7 +650,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	jsonRenderer := messageJSONRenderer{
 		basePath: path.Join(
 			strings.Repeat("../", len(parentKeyReferences))+"../../../../object",
-			url.PathEscape(evaluationsListReference.Value.InstanceName.String()),
+			evaluationsListReference.Value.InstanceName.AsURLSafeComponent(),
 			referenceFormat.ToProto().String(),
 		),
 		referenceFormat: &referenceFormat,
@@ -1576,7 +1578,7 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 			}
 			jsonRenderer.basePath = path.Join(
 				"../../object",
-				namespace.InstanceName.String(),
+				namespace.InstanceName.AsURLSafeComponent(),
 				namespace.ReferenceFormat.ToProto().String(),
 			)
 			jsonRenderer.fallbackObjectFormat = executeWithStorageAction.ActionFormat

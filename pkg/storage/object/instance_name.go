@@ -1,6 +1,7 @@
 package object
 
 import (
+	"net/url"
 	"regexp"
 
 	"google.golang.org/grpc/codes"
@@ -58,4 +59,14 @@ func (in InstanceName) WithReferenceFormat(referenceFormat ReferenceFormat) Name
 
 func (in InstanceName) String() string {
 	return in.value
+}
+
+// AsURLSafeComponent escapes the instance name string, so that it can
+// safely be embedded into URLs. All slashes are are converted to %2F.
+// If the instance name is empty, special value "-" is returned.
+func (in InstanceName) AsURLSafeComponent() string {
+	if in.value == "" {
+		return "-"
+	}
+	return url.PathEscape(in.value)
 }

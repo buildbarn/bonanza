@@ -656,7 +656,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			append(
 				[]string{
 					"object",
-					url.PathEscape(instanceName.String()),
+					instanceName.AsURLSafeComponent(),
 					referenceFormat.ToProto().String(),
 					actionReferenceStr,
 				},
@@ -687,7 +687,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		if baseURL, err := url.JoinPath(
 			browserURL,
 			"object",
-			url.PathEscape(instanceName.String()),
+			instanceName.AsURLSafeComponent(),
 			referenceFormat.ToProto().String(),
 		); err == nil {
 			jsonFormatter.baseURL = baseURL
@@ -834,7 +834,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			if evaluationURL, err := url.JoinPath(
 				browserURL,
 				"evaluation",
-				url.PathEscape(namespace.InstanceName.String()),
+				namespace.InstanceName.AsURLSafeComponent(),
 				namespace.ReferenceFormat.ToProto().String(),
 				model_core.DecodableLocalReferenceToString(*outcomesReference),
 				base64.RawURLEncoding.EncodeToString(marshaledBuildResultKey),
@@ -865,7 +865,7 @@ func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core
 				if evaluationURL, err := url.JoinPath(
 					browserURL,
 					"evaluation",
-					url.PathEscape(namespace.InstanceName.String()),
+					namespace.InstanceName.AsURLSafeComponent(),
 					namespace.ReferenceFormat.ToProto().String(),
 					model_core.DecodableLocalReferenceToString(*outcomesReference),
 					base64.RawURLEncoding.EncodeToString(marshaledKey),
