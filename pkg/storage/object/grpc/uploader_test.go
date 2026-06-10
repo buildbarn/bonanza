@@ -9,6 +9,7 @@ import (
 	"bonanza.build/pkg/storage/object/grpc"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
+	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
 	"google.golang.org/grpc/codes"
@@ -78,7 +79,7 @@ func TestUploader(t *testing.T) {
 		)
 		_, err := uploader.UploadObject(
 			ctx,
-			object.NewInstanceName("hello/world").WithLocalReference(contents.GetLocalReference()),
+			util.Must(object.NewInstanceName("hello/world")).WithLocalReference(contents.GetLocalReference()),
 			contents,
 			[][]byte{
 				{1, 2, 3},
@@ -160,7 +161,7 @@ func TestUploader(t *testing.T) {
 		)
 		_, err := uploader.UploadObject(
 			ctx,
-			object.NewInstanceName("hello/world").WithLocalReference(contents.GetLocalReference()),
+			util.Must(object.NewInstanceName("hello/world")).WithLocalReference(contents.GetLocalReference()),
 			contents,
 			/* outgoingReferencesLeases = */ nil,
 			/* wantContentsIfIncomplete = */ false,

@@ -3,6 +3,8 @@ package object
 import (
 	"bonanza.build/pkg/proto/storage/object"
 
+	"github.com/buildbarn/bb-storage/pkg/util"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -23,12 +25,16 @@ func NewNamespace(namespaceMessage *object.Namespace) (Namespace, error) {
 	if namespaceMessage == nil {
 		return Namespace{}, status.Error(codes.InvalidArgument, "No message provided")
 	}
+	instanceName, err := NewInstanceName(namespaceMessage.InstanceName)
+	if err != nil {
+		return Namespace{}, util.StatusWrapf(err, "Invalid instance name %#v", namespaceMessage.InstanceName)
+	}
 	referenceFormat, err := NewReferenceFormat(namespaceMessage.ReferenceFormat)
 	if err != nil {
-		return Namespace{}, err
+		return Namespace{}, util.StatusWrap(err, "Invalid reference format")
 	}
 	return Namespace{
-		InstanceName:    NewInstanceName(namespaceMessage.InstanceName),
+		InstanceName:    instanceName,
 		ReferenceFormat: referenceFormat,
 	}, nil
 }

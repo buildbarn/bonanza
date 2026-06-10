@@ -2,6 +2,8 @@ package object
 
 import (
 	"strings"
+
+	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
 // GlobalReference uniquely identifies an object across all namespaces.
@@ -15,7 +17,7 @@ type GlobalReference struct {
 // tests.
 func MustNewSHA256V1GlobalReference(instanceName, hash string, sizeBytes uint32, height uint8, degree uint16, maximumTotalParentsSizeBytes uint64) GlobalReference {
 	return GlobalReference{
-		InstanceName:   NewInstanceName(instanceName),
+		InstanceName:   util.Must(NewInstanceName(instanceName)),
 		LocalReference: MustNewSHA256V1LocalReference(hash, sizeBytes, height, degree, maximumTotalParentsSizeBytes),
 	}
 }

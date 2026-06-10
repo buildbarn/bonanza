@@ -153,6 +153,12 @@ func renderPage(title string, body []g.Node) g.Node {
 // an object.GlobalReference that can be used to download an object.
 func getReferenceFromRequest(r *http.Request) (model_core.Decodable[object.GlobalReference], error) {
 	var bad model_core.Decodable[object.GlobalReference]
+	instanceNameStr := r.PathValue("instance_name")
+	instanceName, err := object.NewInstanceName(instanceNameStr)
+	if err != nil {
+		return bad, util.StatusWrapf(err, "Invalid instance name %#v", instanceNameStr)
+	}
+
 	referenceFormatStr := r.PathValue("reference_format")
 	referenceFormatValue, ok := object_pb.ReferenceFormat_Value_value[referenceFormatStr]
 	if !ok {
@@ -173,7 +179,7 @@ func getReferenceFromRequest(r *http.Request) (model_core.Decodable[object.Globa
 
 	return model_core.CopyDecodable(
 		localReference,
-		object.NewInstanceName(r.PathValue("instance_name")).WithLocalReference(localReference.Value),
+		instanceName.WithLocalReference(localReference.Value),
 	), nil
 }
 

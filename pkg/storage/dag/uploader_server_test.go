@@ -14,6 +14,7 @@ import (
 	"bonanza.build/pkg/storage/tag"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
+	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
 	"golang.org/x/sync/semaphore"
@@ -466,7 +467,7 @@ func TestUploaderServer(t *testing.T) {
 			tagUpdater.EXPECT().UpdateTag(
 				gomock.Any(),
 				object.Namespace{
-					InstanceName:    object.NewInstanceName("hello/world"),
+					InstanceName:    util.Must(object.NewInstanceName("hello/world")),
 					ReferenceFormat: object.SHA256V1ReferenceFormat,
 				},
 				tag.Key{
@@ -631,7 +632,7 @@ func TestUploaderServer(t *testing.T) {
 			tagUpdater.EXPECT().UpdateTag(
 				gomock.Any(),
 				object.Namespace{
-					InstanceName:    object.NewInstanceName("hello/world"),
+					InstanceName:    util.Must(object.NewInstanceName("hello/world")),
 					ReferenceFormat: object.SHA256V1ReferenceFormat,
 				},
 				tag.Key{

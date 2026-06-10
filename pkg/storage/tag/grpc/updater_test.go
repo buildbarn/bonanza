@@ -12,6 +12,7 @@ import (
 	"bonanza.build/pkg/storage/tag/grpc"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
+	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
 	"google.golang.org/grpc/codes"
@@ -92,7 +93,7 @@ func TestUpdater(t *testing.T) {
 			updater.UpdateTag(
 				ctx,
 				object.Namespace{
-					InstanceName:    object.NewInstanceName("hello/world"),
+					InstanceName:    util.Must(object.NewInstanceName("hello/world")),
 					ReferenceFormat: object.SHA256V1ReferenceFormat,
 				},
 				tag.Key{
@@ -190,7 +191,7 @@ func TestUpdater(t *testing.T) {
 		require.NoError(t, updater.UpdateTag(
 			ctx,
 			object.Namespace{
-				InstanceName:    object.NewInstanceName("hello/world"),
+				InstanceName:    util.Must(object.NewInstanceName("hello/world")),
 				ReferenceFormat: object.SHA256V1ReferenceFormat,
 			},
 			tag.Key{
