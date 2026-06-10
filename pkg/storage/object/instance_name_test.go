@@ -45,16 +45,17 @@ func TestInstanceName(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		for _, str := range []string{
-			"",
-			"hello",
-			"hello123",
-			"123hello",
-			"MyTeam/Project42",
+		for str, urlComponent := range map[string]string{
+			"":                 "-",
+			"hello":            "hello",
+			"hello123":         "hello123",
+			"123hello":         "123hello",
+			"MyTeam/Project42": "MyTeam%2FProject42",
 		} {
 			instanceName, err := object.NewInstanceName(str)
 			require.NoError(t, err)
 			require.Equal(t, str, instanceName.String())
+			require.Equal(t, urlComponent, instanceName.AsURLSafeComponent())
 		}
 	})
 }
