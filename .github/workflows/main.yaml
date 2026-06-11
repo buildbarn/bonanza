@@ -26,7 +26,7 @@
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64: copy bonanza_bazel",
-               "run": "rm -f bonanza_bazel && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel"
+               "run": "rm -f bonanza_bazel.linux_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel.linux_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -34,13 +34,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_bazel.linux_amd64",
-                  "path": "bonanza_bazel"
+                  "path": "bonanza_bazel.linux_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64: copy bonanza_browser",
-               "run": "rm -f bonanza_browser && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_browser $(pwd)/bonanza_browser"
+               "run": "rm -f bonanza_browser.linux_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_browser $(pwd)/bonanza_browser.linux_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -48,13 +48,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_browser.linux_amd64",
-                  "path": "bonanza_browser"
+                  "path": "bonanza_browser.linux_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64: copy bonanza_builder",
-               "run": "rm -f bonanza_builder && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_builder $(pwd)/bonanza_builder"
+               "run": "rm -f bonanza_builder.linux_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_builder $(pwd)/bonanza_builder.linux_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -62,13 +62,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_builder.linux_amd64",
-                  "path": "bonanza_builder"
+                  "path": "bonanza_builder.linux_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64: copy bonanza_fetcher",
-               "run": "rm -f bonanza_fetcher && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher"
+               "run": "rm -f bonanza_fetcher.linux_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher.linux_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -76,13 +76,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_fetcher.linux_amd64",
-                  "path": "bonanza_fetcher"
+                  "path": "bonanza_fetcher.linux_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64: copy bonanza_scheduler",
-               "run": "rm -f bonanza_scheduler && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler"
+               "run": "rm -f bonanza_scheduler.linux_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler.linux_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -90,13 +90,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_scheduler.linux_amd64",
-                  "path": "bonanza_scheduler"
+                  "path": "bonanza_scheduler.linux_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64: copy bonanza_storage_frontend",
-               "run": "rm -f bonanza_storage_frontend && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend"
+               "run": "rm -f bonanza_storage_frontend.linux_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend.linux_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -104,13 +104,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_frontend.linux_amd64",
-                  "path": "bonanza_storage_frontend"
+                  "path": "bonanza_storage_frontend.linux_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64: copy bonanza_storage_shard",
-               "run": "rm -f bonanza_storage_shard && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard"
+               "run": "rm -f bonanza_storage_shard.linux_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard.linux_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -118,13 +118,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_shard.linux_amd64",
-                  "path": "bonanza_storage_shard"
+                  "path": "bonanza_storage_shard.linux_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64: copy bonanza_worker",
-               "run": "rm -f bonanza_worker && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_worker $(pwd)/bonanza_worker"
+               "run": "rm -f bonanza_worker.linux_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64 //cmd/bonanza_worker $(pwd)/bonanza_worker.linux_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -132,7 +132,7 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_worker.linux_amd64",
-                  "path": "bonanza_worker"
+                  "path": "bonanza_worker.linux_amd64"
                }
             },
             {
@@ -143,7 +143,7 @@
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64_v3: copy bonanza_bazel",
-               "run": "rm -f bonanza_bazel && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_bazel $(pwd)/bonanza_bazel"
+               "run": "rm -f bonanza_bazel.linux_amd64_v3 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_bazel $(pwd)/bonanza_bazel.linux_amd64_v3"
             },
             {
                "if": "matrix.host.upload",
@@ -151,13 +151,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_bazel.linux_amd64_v3",
-                  "path": "bonanza_bazel"
+                  "path": "bonanza_bazel.linux_amd64_v3"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64_v3: copy bonanza_browser",
-               "run": "rm -f bonanza_browser && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_browser $(pwd)/bonanza_browser"
+               "run": "rm -f bonanza_browser.linux_amd64_v3 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_browser $(pwd)/bonanza_browser.linux_amd64_v3"
             },
             {
                "if": "matrix.host.upload",
@@ -165,13 +165,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_browser.linux_amd64_v3",
-                  "path": "bonanza_browser"
+                  "path": "bonanza_browser.linux_amd64_v3"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64_v3: copy bonanza_builder",
-               "run": "rm -f bonanza_builder && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_builder $(pwd)/bonanza_builder"
+               "run": "rm -f bonanza_builder.linux_amd64_v3 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_builder $(pwd)/bonanza_builder.linux_amd64_v3"
             },
             {
                "if": "matrix.host.upload",
@@ -179,13 +179,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_builder.linux_amd64_v3",
-                  "path": "bonanza_builder"
+                  "path": "bonanza_builder.linux_amd64_v3"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64_v3: copy bonanza_fetcher",
-               "run": "rm -f bonanza_fetcher && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher"
+               "run": "rm -f bonanza_fetcher.linux_amd64_v3 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher.linux_amd64_v3"
             },
             {
                "if": "matrix.host.upload",
@@ -193,13 +193,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_fetcher.linux_amd64_v3",
-                  "path": "bonanza_fetcher"
+                  "path": "bonanza_fetcher.linux_amd64_v3"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64_v3: copy bonanza_scheduler",
-               "run": "rm -f bonanza_scheduler && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler"
+               "run": "rm -f bonanza_scheduler.linux_amd64_v3 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler.linux_amd64_v3"
             },
             {
                "if": "matrix.host.upload",
@@ -207,13 +207,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_scheduler.linux_amd64_v3",
-                  "path": "bonanza_scheduler"
+                  "path": "bonanza_scheduler.linux_amd64_v3"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64_v3: copy bonanza_storage_frontend",
-               "run": "rm -f bonanza_storage_frontend && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend"
+               "run": "rm -f bonanza_storage_frontend.linux_amd64_v3 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend.linux_amd64_v3"
             },
             {
                "if": "matrix.host.upload",
@@ -221,13 +221,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_frontend.linux_amd64_v3",
-                  "path": "bonanza_storage_frontend"
+                  "path": "bonanza_storage_frontend.linux_amd64_v3"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64_v3: copy bonanza_storage_shard",
-               "run": "rm -f bonanza_storage_shard && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard"
+               "run": "rm -f bonanza_storage_shard.linux_amd64_v3 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard.linux_amd64_v3"
             },
             {
                "if": "matrix.host.upload",
@@ -235,13 +235,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_shard.linux_amd64_v3",
-                  "path": "bonanza_storage_shard"
+                  "path": "bonanza_storage_shard.linux_amd64_v3"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_amd64_v3: copy bonanza_worker",
-               "run": "rm -f bonanza_worker && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_worker $(pwd)/bonanza_worker"
+               "run": "rm -f bonanza_worker.linux_amd64_v3 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_amd64_v3 //cmd/bonanza_worker $(pwd)/bonanza_worker.linux_amd64_v3"
             },
             {
                "if": "matrix.host.upload",
@@ -249,7 +249,7 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_worker.linux_amd64_v3",
-                  "path": "bonanza_worker"
+                  "path": "bonanza_worker.linux_amd64_v3"
                }
             },
             {
@@ -260,7 +260,7 @@
             {
                "if": "matrix.host.upload",
                "name": "linux_386: copy bonanza_bazel",
-               "run": "rm -f bonanza_bazel && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_bazel $(pwd)/bonanza_bazel"
+               "run": "rm -f bonanza_bazel.linux_386 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_bazel $(pwd)/bonanza_bazel.linux_386"
             },
             {
                "if": "matrix.host.upload",
@@ -268,13 +268,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_bazel.linux_386",
-                  "path": "bonanza_bazel"
+                  "path": "bonanza_bazel.linux_386"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_386: copy bonanza_browser",
-               "run": "rm -f bonanza_browser && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_browser $(pwd)/bonanza_browser"
+               "run": "rm -f bonanza_browser.linux_386 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_browser $(pwd)/bonanza_browser.linux_386"
             },
             {
                "if": "matrix.host.upload",
@@ -282,13 +282,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_browser.linux_386",
-                  "path": "bonanza_browser"
+                  "path": "bonanza_browser.linux_386"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_386: copy bonanza_builder",
-               "run": "rm -f bonanza_builder && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_builder $(pwd)/bonanza_builder"
+               "run": "rm -f bonanza_builder.linux_386 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_builder $(pwd)/bonanza_builder.linux_386"
             },
             {
                "if": "matrix.host.upload",
@@ -296,13 +296,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_builder.linux_386",
-                  "path": "bonanza_builder"
+                  "path": "bonanza_builder.linux_386"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_386: copy bonanza_fetcher",
-               "run": "rm -f bonanza_fetcher && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher"
+               "run": "rm -f bonanza_fetcher.linux_386 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher.linux_386"
             },
             {
                "if": "matrix.host.upload",
@@ -310,13 +310,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_fetcher.linux_386",
-                  "path": "bonanza_fetcher"
+                  "path": "bonanza_fetcher.linux_386"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_386: copy bonanza_scheduler",
-               "run": "rm -f bonanza_scheduler && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler"
+               "run": "rm -f bonanza_scheduler.linux_386 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler.linux_386"
             },
             {
                "if": "matrix.host.upload",
@@ -324,13 +324,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_scheduler.linux_386",
-                  "path": "bonanza_scheduler"
+                  "path": "bonanza_scheduler.linux_386"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_386: copy bonanza_storage_frontend",
-               "run": "rm -f bonanza_storage_frontend && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend"
+               "run": "rm -f bonanza_storage_frontend.linux_386 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend.linux_386"
             },
             {
                "if": "matrix.host.upload",
@@ -338,13 +338,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_frontend.linux_386",
-                  "path": "bonanza_storage_frontend"
+                  "path": "bonanza_storage_frontend.linux_386"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_386: copy bonanza_storage_shard",
-               "run": "rm -f bonanza_storage_shard && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard"
+               "run": "rm -f bonanza_storage_shard.linux_386 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard.linux_386"
             },
             {
                "if": "matrix.host.upload",
@@ -352,13 +352,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_shard.linux_386",
-                  "path": "bonanza_storage_shard"
+                  "path": "bonanza_storage_shard.linux_386"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_386: copy bonanza_worker",
-               "run": "rm -f bonanza_worker && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_worker $(pwd)/bonanza_worker"
+               "run": "rm -f bonanza_worker.linux_386 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_386 //cmd/bonanza_worker $(pwd)/bonanza_worker.linux_386"
             },
             {
                "if": "matrix.host.upload",
@@ -366,7 +366,7 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_worker.linux_386",
-                  "path": "bonanza_worker"
+                  "path": "bonanza_worker.linux_386"
                }
             },
             {
@@ -377,7 +377,7 @@
             {
                "if": "matrix.host.upload",
                "name": "linux_arm: copy bonanza_bazel",
-               "run": "rm -f bonanza_bazel && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_bazel $(pwd)/bonanza_bazel"
+               "run": "rm -f bonanza_bazel.linux_arm && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_bazel $(pwd)/bonanza_bazel.linux_arm"
             },
             {
                "if": "matrix.host.upload",
@@ -385,13 +385,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_bazel.linux_arm",
-                  "path": "bonanza_bazel"
+                  "path": "bonanza_bazel.linux_arm"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm: copy bonanza_browser",
-               "run": "rm -f bonanza_browser && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_browser $(pwd)/bonanza_browser"
+               "run": "rm -f bonanza_browser.linux_arm && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_browser $(pwd)/bonanza_browser.linux_arm"
             },
             {
                "if": "matrix.host.upload",
@@ -399,13 +399,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_browser.linux_arm",
-                  "path": "bonanza_browser"
+                  "path": "bonanza_browser.linux_arm"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm: copy bonanza_builder",
-               "run": "rm -f bonanza_builder && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_builder $(pwd)/bonanza_builder"
+               "run": "rm -f bonanza_builder.linux_arm && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_builder $(pwd)/bonanza_builder.linux_arm"
             },
             {
                "if": "matrix.host.upload",
@@ -413,13 +413,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_builder.linux_arm",
-                  "path": "bonanza_builder"
+                  "path": "bonanza_builder.linux_arm"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm: copy bonanza_fetcher",
-               "run": "rm -f bonanza_fetcher && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher"
+               "run": "rm -f bonanza_fetcher.linux_arm && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher.linux_arm"
             },
             {
                "if": "matrix.host.upload",
@@ -427,13 +427,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_fetcher.linux_arm",
-                  "path": "bonanza_fetcher"
+                  "path": "bonanza_fetcher.linux_arm"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm: copy bonanza_scheduler",
-               "run": "rm -f bonanza_scheduler && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler"
+               "run": "rm -f bonanza_scheduler.linux_arm && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler.linux_arm"
             },
             {
                "if": "matrix.host.upload",
@@ -441,13 +441,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_scheduler.linux_arm",
-                  "path": "bonanza_scheduler"
+                  "path": "bonanza_scheduler.linux_arm"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm: copy bonanza_storage_frontend",
-               "run": "rm -f bonanza_storage_frontend && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend"
+               "run": "rm -f bonanza_storage_frontend.linux_arm && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend.linux_arm"
             },
             {
                "if": "matrix.host.upload",
@@ -455,13 +455,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_frontend.linux_arm",
-                  "path": "bonanza_storage_frontend"
+                  "path": "bonanza_storage_frontend.linux_arm"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm: copy bonanza_storage_shard",
-               "run": "rm -f bonanza_storage_shard && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard"
+               "run": "rm -f bonanza_storage_shard.linux_arm && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard.linux_arm"
             },
             {
                "if": "matrix.host.upload",
@@ -469,13 +469,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_shard.linux_arm",
-                  "path": "bonanza_storage_shard"
+                  "path": "bonanza_storage_shard.linux_arm"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm: copy bonanza_worker",
-               "run": "rm -f bonanza_worker && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_worker $(pwd)/bonanza_worker"
+               "run": "rm -f bonanza_worker.linux_arm && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm //cmd/bonanza_worker $(pwd)/bonanza_worker.linux_arm"
             },
             {
                "if": "matrix.host.upload",
@@ -483,7 +483,7 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_worker.linux_arm",
-                  "path": "bonanza_worker"
+                  "path": "bonanza_worker.linux_arm"
                }
             },
             {
@@ -494,7 +494,7 @@
             {
                "if": "matrix.host.upload",
                "name": "linux_arm64: copy bonanza_bazel",
-               "run": "rm -f bonanza_bazel && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel"
+               "run": "rm -f bonanza_bazel.linux_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel.linux_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -502,13 +502,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_bazel.linux_arm64",
-                  "path": "bonanza_bazel"
+                  "path": "bonanza_bazel.linux_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm64: copy bonanza_browser",
-               "run": "rm -f bonanza_browser && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_browser $(pwd)/bonanza_browser"
+               "run": "rm -f bonanza_browser.linux_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_browser $(pwd)/bonanza_browser.linux_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -516,13 +516,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_browser.linux_arm64",
-                  "path": "bonanza_browser"
+                  "path": "bonanza_browser.linux_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm64: copy bonanza_builder",
-               "run": "rm -f bonanza_builder && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_builder $(pwd)/bonanza_builder"
+               "run": "rm -f bonanza_builder.linux_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_builder $(pwd)/bonanza_builder.linux_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -530,13 +530,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_builder.linux_arm64",
-                  "path": "bonanza_builder"
+                  "path": "bonanza_builder.linux_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm64: copy bonanza_fetcher",
-               "run": "rm -f bonanza_fetcher && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher"
+               "run": "rm -f bonanza_fetcher.linux_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher.linux_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -544,13 +544,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_fetcher.linux_arm64",
-                  "path": "bonanza_fetcher"
+                  "path": "bonanza_fetcher.linux_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm64: copy bonanza_scheduler",
-               "run": "rm -f bonanza_scheduler && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler"
+               "run": "rm -f bonanza_scheduler.linux_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler.linux_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -558,13 +558,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_scheduler.linux_arm64",
-                  "path": "bonanza_scheduler"
+                  "path": "bonanza_scheduler.linux_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm64: copy bonanza_storage_frontend",
-               "run": "rm -f bonanza_storage_frontend && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend"
+               "run": "rm -f bonanza_storage_frontend.linux_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend.linux_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -572,13 +572,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_frontend.linux_arm64",
-                  "path": "bonanza_storage_frontend"
+                  "path": "bonanza_storage_frontend.linux_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm64: copy bonanza_storage_shard",
-               "run": "rm -f bonanza_storage_shard && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard"
+               "run": "rm -f bonanza_storage_shard.linux_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard.linux_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -586,13 +586,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_shard.linux_arm64",
-                  "path": "bonanza_storage_shard"
+                  "path": "bonanza_storage_shard.linux_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "linux_arm64: copy bonanza_worker",
-               "run": "rm -f bonanza_worker && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_worker $(pwd)/bonanza_worker"
+               "run": "rm -f bonanza_worker.linux_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:linux_arm64 //cmd/bonanza_worker $(pwd)/bonanza_worker.linux_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -600,7 +600,7 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_worker.linux_arm64",
-                  "path": "bonanza_worker"
+                  "path": "bonanza_worker.linux_arm64"
                }
             },
             {
@@ -611,7 +611,7 @@
             {
                "if": "matrix.host.upload",
                "name": "darwin_amd64: copy bonanza_bazel",
-               "run": "rm -f bonanza_bazel && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel"
+               "run": "rm -f bonanza_bazel.darwin_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel.darwin_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -619,13 +619,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_bazel.darwin_amd64",
-                  "path": "bonanza_bazel"
+                  "path": "bonanza_bazel.darwin_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_amd64: copy bonanza_browser",
-               "run": "rm -f bonanza_browser && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_browser $(pwd)/bonanza_browser"
+               "run": "rm -f bonanza_browser.darwin_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_browser $(pwd)/bonanza_browser.darwin_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -633,13 +633,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_browser.darwin_amd64",
-                  "path": "bonanza_browser"
+                  "path": "bonanza_browser.darwin_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_amd64: copy bonanza_builder",
-               "run": "rm -f bonanza_builder && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_builder $(pwd)/bonanza_builder"
+               "run": "rm -f bonanza_builder.darwin_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_builder $(pwd)/bonanza_builder.darwin_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -647,13 +647,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_builder.darwin_amd64",
-                  "path": "bonanza_builder"
+                  "path": "bonanza_builder.darwin_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_amd64: copy bonanza_fetcher",
-               "run": "rm -f bonanza_fetcher && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher"
+               "run": "rm -f bonanza_fetcher.darwin_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher.darwin_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -661,13 +661,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_fetcher.darwin_amd64",
-                  "path": "bonanza_fetcher"
+                  "path": "bonanza_fetcher.darwin_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_amd64: copy bonanza_scheduler",
-               "run": "rm -f bonanza_scheduler && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler"
+               "run": "rm -f bonanza_scheduler.darwin_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler.darwin_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -675,13 +675,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_scheduler.darwin_amd64",
-                  "path": "bonanza_scheduler"
+                  "path": "bonanza_scheduler.darwin_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_amd64: copy bonanza_storage_frontend",
-               "run": "rm -f bonanza_storage_frontend && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend"
+               "run": "rm -f bonanza_storage_frontend.darwin_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend.darwin_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -689,13 +689,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_frontend.darwin_amd64",
-                  "path": "bonanza_storage_frontend"
+                  "path": "bonanza_storage_frontend.darwin_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_amd64: copy bonanza_storage_shard",
-               "run": "rm -f bonanza_storage_shard && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard"
+               "run": "rm -f bonanza_storage_shard.darwin_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard.darwin_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -703,13 +703,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_shard.darwin_amd64",
-                  "path": "bonanza_storage_shard"
+                  "path": "bonanza_storage_shard.darwin_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_amd64: copy bonanza_worker",
-               "run": "rm -f bonanza_worker && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_worker $(pwd)/bonanza_worker"
+               "run": "rm -f bonanza_worker.darwin_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_amd64 //cmd/bonanza_worker $(pwd)/bonanza_worker.darwin_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -717,7 +717,7 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_worker.darwin_amd64",
-                  "path": "bonanza_worker"
+                  "path": "bonanza_worker.darwin_amd64"
                }
             },
             {
@@ -728,7 +728,7 @@
             {
                "if": "matrix.host.upload",
                "name": "darwin_arm64: copy bonanza_bazel",
-               "run": "rm -f bonanza_bazel && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel"
+               "run": "rm -f bonanza_bazel.darwin_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel.darwin_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -736,13 +736,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_bazel.darwin_arm64",
-                  "path": "bonanza_bazel"
+                  "path": "bonanza_bazel.darwin_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_arm64: copy bonanza_browser",
-               "run": "rm -f bonanza_browser && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_browser $(pwd)/bonanza_browser"
+               "run": "rm -f bonanza_browser.darwin_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_browser $(pwd)/bonanza_browser.darwin_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -750,13 +750,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_browser.darwin_arm64",
-                  "path": "bonanza_browser"
+                  "path": "bonanza_browser.darwin_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_arm64: copy bonanza_builder",
-               "run": "rm -f bonanza_builder && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_builder $(pwd)/bonanza_builder"
+               "run": "rm -f bonanza_builder.darwin_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_builder $(pwd)/bonanza_builder.darwin_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -764,13 +764,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_builder.darwin_arm64",
-                  "path": "bonanza_builder"
+                  "path": "bonanza_builder.darwin_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_arm64: copy bonanza_fetcher",
-               "run": "rm -f bonanza_fetcher && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher"
+               "run": "rm -f bonanza_fetcher.darwin_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher.darwin_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -778,13 +778,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_fetcher.darwin_arm64",
-                  "path": "bonanza_fetcher"
+                  "path": "bonanza_fetcher.darwin_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_arm64: copy bonanza_scheduler",
-               "run": "rm -f bonanza_scheduler && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler"
+               "run": "rm -f bonanza_scheduler.darwin_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler.darwin_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -792,13 +792,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_scheduler.darwin_arm64",
-                  "path": "bonanza_scheduler"
+                  "path": "bonanza_scheduler.darwin_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_arm64: copy bonanza_storage_frontend",
-               "run": "rm -f bonanza_storage_frontend && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend"
+               "run": "rm -f bonanza_storage_frontend.darwin_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend.darwin_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -806,13 +806,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_frontend.darwin_arm64",
-                  "path": "bonanza_storage_frontend"
+                  "path": "bonanza_storage_frontend.darwin_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_arm64: copy bonanza_storage_shard",
-               "run": "rm -f bonanza_storage_shard && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard"
+               "run": "rm -f bonanza_storage_shard.darwin_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard.darwin_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -820,13 +820,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_shard.darwin_arm64",
-                  "path": "bonanza_storage_shard"
+                  "path": "bonanza_storage_shard.darwin_arm64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "darwin_arm64: copy bonanza_worker",
-               "run": "rm -f bonanza_worker && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_worker $(pwd)/bonanza_worker"
+               "run": "rm -f bonanza_worker.darwin_arm64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:darwin_arm64 //cmd/bonanza_worker $(pwd)/bonanza_worker.darwin_arm64"
             },
             {
                "if": "matrix.host.upload",
@@ -834,7 +834,7 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_worker.darwin_arm64",
-                  "path": "bonanza_worker"
+                  "path": "bonanza_worker.darwin_arm64"
                }
             },
             {
@@ -845,7 +845,7 @@
             {
                "if": "matrix.host.upload",
                "name": "freebsd_amd64: copy bonanza_bazel",
-               "run": "rm -f bonanza_bazel && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel"
+               "run": "rm -f bonanza_bazel.freebsd_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel.freebsd_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -853,13 +853,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_bazel.freebsd_amd64",
-                  "path": "bonanza_bazel"
+                  "path": "bonanza_bazel.freebsd_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "freebsd_amd64: copy bonanza_browser",
-               "run": "rm -f bonanza_browser && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_browser $(pwd)/bonanza_browser"
+               "run": "rm -f bonanza_browser.freebsd_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_browser $(pwd)/bonanza_browser.freebsd_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -867,13 +867,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_browser.freebsd_amd64",
-                  "path": "bonanza_browser"
+                  "path": "bonanza_browser.freebsd_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "freebsd_amd64: copy bonanza_builder",
-               "run": "rm -f bonanza_builder && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_builder $(pwd)/bonanza_builder"
+               "run": "rm -f bonanza_builder.freebsd_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_builder $(pwd)/bonanza_builder.freebsd_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -881,13 +881,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_builder.freebsd_amd64",
-                  "path": "bonanza_builder"
+                  "path": "bonanza_builder.freebsd_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "freebsd_amd64: copy bonanza_fetcher",
-               "run": "rm -f bonanza_fetcher && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher"
+               "run": "rm -f bonanza_fetcher.freebsd_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher.freebsd_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -895,13 +895,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_fetcher.freebsd_amd64",
-                  "path": "bonanza_fetcher"
+                  "path": "bonanza_fetcher.freebsd_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "freebsd_amd64: copy bonanza_scheduler",
-               "run": "rm -f bonanza_scheduler && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler"
+               "run": "rm -f bonanza_scheduler.freebsd_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler.freebsd_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -909,13 +909,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_scheduler.freebsd_amd64",
-                  "path": "bonanza_scheduler"
+                  "path": "bonanza_scheduler.freebsd_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "freebsd_amd64: copy bonanza_storage_frontend",
-               "run": "rm -f bonanza_storage_frontend && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend"
+               "run": "rm -f bonanza_storage_frontend.freebsd_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend.freebsd_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -923,13 +923,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_frontend.freebsd_amd64",
-                  "path": "bonanza_storage_frontend"
+                  "path": "bonanza_storage_frontend.freebsd_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "freebsd_amd64: copy bonanza_storage_shard",
-               "run": "rm -f bonanza_storage_shard && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard"
+               "run": "rm -f bonanza_storage_shard.freebsd_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard.freebsd_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -937,13 +937,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_shard.freebsd_amd64",
-                  "path": "bonanza_storage_shard"
+                  "path": "bonanza_storage_shard.freebsd_amd64"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "freebsd_amd64: copy bonanza_worker",
-               "run": "rm -f bonanza_worker && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_worker $(pwd)/bonanza_worker"
+               "run": "rm -f bonanza_worker.freebsd_amd64 && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:freebsd_amd64 //cmd/bonanza_worker $(pwd)/bonanza_worker.freebsd_amd64"
             },
             {
                "if": "matrix.host.upload",
@@ -951,7 +951,7 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_worker.freebsd_amd64",
-                  "path": "bonanza_worker"
+                  "path": "bonanza_worker.freebsd_amd64"
                }
             },
             {
@@ -962,7 +962,7 @@
             {
                "if": "matrix.host.upload",
                "name": "windows_amd64: copy bonanza_bazel",
-               "run": "rm -f bonanza_bazel.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel.exe"
+               "run": "rm -f bonanza_bazel.windows_amd64.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_bazel $(pwd)/bonanza_bazel.windows_amd64.exe"
             },
             {
                "if": "matrix.host.upload",
@@ -970,13 +970,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_bazel.windows_amd64",
-                  "path": "bonanza_bazel.exe"
+                  "path": "bonanza_bazel.windows_amd64.exe"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "windows_amd64: copy bonanza_browser",
-               "run": "rm -f bonanza_browser.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_browser $(pwd)/bonanza_browser.exe"
+               "run": "rm -f bonanza_browser.windows_amd64.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_browser $(pwd)/bonanza_browser.windows_amd64.exe"
             },
             {
                "if": "matrix.host.upload",
@@ -984,13 +984,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_browser.windows_amd64",
-                  "path": "bonanza_browser.exe"
+                  "path": "bonanza_browser.windows_amd64.exe"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "windows_amd64: copy bonanza_builder",
-               "run": "rm -f bonanza_builder.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_builder $(pwd)/bonanza_builder.exe"
+               "run": "rm -f bonanza_builder.windows_amd64.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_builder $(pwd)/bonanza_builder.windows_amd64.exe"
             },
             {
                "if": "matrix.host.upload",
@@ -998,13 +998,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_builder.windows_amd64",
-                  "path": "bonanza_builder.exe"
+                  "path": "bonanza_builder.windows_amd64.exe"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "windows_amd64: copy bonanza_fetcher",
-               "run": "rm -f bonanza_fetcher.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher.exe"
+               "run": "rm -f bonanza_fetcher.windows_amd64.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_fetcher $(pwd)/bonanza_fetcher.windows_amd64.exe"
             },
             {
                "if": "matrix.host.upload",
@@ -1012,13 +1012,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_fetcher.windows_amd64",
-                  "path": "bonanza_fetcher.exe"
+                  "path": "bonanza_fetcher.windows_amd64.exe"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "windows_amd64: copy bonanza_scheduler",
-               "run": "rm -f bonanza_scheduler.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler.exe"
+               "run": "rm -f bonanza_scheduler.windows_amd64.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_scheduler $(pwd)/bonanza_scheduler.windows_amd64.exe"
             },
             {
                "if": "matrix.host.upload",
@@ -1026,13 +1026,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_scheduler.windows_amd64",
-                  "path": "bonanza_scheduler.exe"
+                  "path": "bonanza_scheduler.windows_amd64.exe"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "windows_amd64: copy bonanza_storage_frontend",
-               "run": "rm -f bonanza_storage_frontend.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend.exe"
+               "run": "rm -f bonanza_storage_frontend.windows_amd64.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_storage_frontend $(pwd)/bonanza_storage_frontend.windows_amd64.exe"
             },
             {
                "if": "matrix.host.upload",
@@ -1040,13 +1040,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_frontend.windows_amd64",
-                  "path": "bonanza_storage_frontend.exe"
+                  "path": "bonanza_storage_frontend.windows_amd64.exe"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "windows_amd64: copy bonanza_storage_shard",
-               "run": "rm -f bonanza_storage_shard.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard.exe"
+               "run": "rm -f bonanza_storage_shard.windows_amd64.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_storage_shard $(pwd)/bonanza_storage_shard.windows_amd64.exe"
             },
             {
                "if": "matrix.host.upload",
@@ -1054,13 +1054,13 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_storage_shard.windows_amd64",
-                  "path": "bonanza_storage_shard.exe"
+                  "path": "bonanza_storage_shard.windows_amd64.exe"
                }
             },
             {
                "if": "matrix.host.upload",
                "name": "windows_amd64: copy bonanza_worker",
-               "run": "rm -f bonanza_worker.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_worker $(pwd)/bonanza_worker.exe"
+               "run": "rm -f bonanza_worker.windows_amd64.exe && bazel run --run_under cp --platforms=@com_github_buildbarn_bb_storage//tools/platforms:windows_amd64 //cmd/bonanza_worker $(pwd)/bonanza_worker.windows_amd64.exe"
             },
             {
                "if": "matrix.host.upload",
@@ -1068,7 +1068,7 @@
                "uses": "actions/upload-artifact@v4",
                "with": {
                   "name": "bonanza_worker.windows_amd64",
-                  "path": "bonanza_worker.exe"
+                  "path": "bonanza_worker.windows_amd64.exe"
                }
             },
             {
@@ -1165,6 +1165,49 @@
             {
                "name": "Golint",
                "run": "bazel run @org_golang_x_lint//golint -- -set_exit_status $(pwd)/..."
+            }
+         ]
+      },
+      "publish": {
+         "name": "publish",
+         "needs": [
+            "build_and_test"
+         ],
+         "runs-on": "ubuntu-latest",
+         "steps": [
+            {
+               "name": "Checkout the repository",
+               "uses": "actions/checkout@v4 "
+            },
+            {
+               "name": "Download release artifacts",
+               "uses": "actions/download-artifact@v4",
+               "with": {
+                  "merge-multiple": true,
+                  "path": "assets"
+               }
+            },
+            {
+               "name": "Calculate shasum",
+               "run": "shasum -a 256 assets/* > sha256"
+            },
+            {
+               "name": "Set release Git user",
+               "run": "git config --global user.email \"41898282+github-actions[bot]@users.noreply.github.com\"\ngit config --global user.name \"github-actions[bot]\"\n"
+            },
+            {
+               "id": "create_tag",
+               "name": "Generate tag",
+               "run": "BUILD_SCM_REVISION=$(git rev-parse --short HEAD)\nBUILD_SCM_TIMESTAMP=$(TZ=UTC date --date \"@$(git show -s --format=%ct HEAD)\" +%Y%m%dT%H%M%SZ)\nRELEASE_TAG=\"${BUILD_SCM_TIMESTAMP}-${BUILD_SCM_REVISION}\"\ngit tag $RELEASE_TAG\ngit push --follow-tags\necho \"release_tag=$RELEASE_TAG\" >> $GITHUB_OUTPUT\n"
+            },
+            {
+               "name": "Create GitHub release and upload artifacts",
+               "uses": "softprops/action-gh-release@v2",
+               "with": {
+                  "files": "assets/*\nsha256\n",
+                  "make_latest": true,
+                  "tag_name": "${{ steps.create_tag.outputs.release_tag }}"
+               }
             }
          ]
       }
