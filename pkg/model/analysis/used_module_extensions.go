@@ -134,6 +134,9 @@ func (h *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadat
 		}
 		h.usedModuleExtensions[moduleExtensionName] = ume
 	}
+	if h.isRoot && !devDependency {
+		ume.message.RootModuleHasNonDevDependency = true
+	}
 
 	meu, ok := ume.users[h.moduleInstance]
 	if !ok {

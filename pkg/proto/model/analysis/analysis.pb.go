@@ -3839,11 +3839,12 @@ func (*TargetProviders) Descriptor() ([]byte, []int) {
 }
 
 type ModuleExtension struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Identifier    string                  `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
-	Users         []*ModuleExtension_User `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                         protoimpl.MessageState  `protogen:"open.v1"`
+	Identifier                    string                  `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	Users                         []*ModuleExtension_User `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"`
+	RootModuleHasNonDevDependency bool                    `protobuf:"varint,3,opt,name=root_module_has_non_dev_dependency,json=rootModuleHasNonDevDependency,proto3" json:"root_module_has_non_dev_dependency,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *ModuleExtension) Reset() {
@@ -3888,6 +3889,13 @@ func (x *ModuleExtension) GetUsers() []*ModuleExtension_User {
 		return x.Users
 	}
 	return nil
+}
+
+func (x *ModuleExtension) GetRootModuleHasNonDevDependency() bool {
+	if x != nil {
+		return x.RootModuleHasNonDevDependency
+	}
+	return false
 }
 
 type RepositoryRuleObject struct {
@@ -13728,12 +13736,13 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x92\x01\n" +
 	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x1aV\n" +
 	"\x05Value\x12M\n" +
-	"\x12provider_instances\x18\x01 \x03(\v2\x1e.bonanza.model.starlark.StructR\x11providerInstances\"\xe4\x03\n" +
+	"\x12provider_instances\x18\x01 \x03(\v2\x1e.bonanza.model.starlark.StructR\x11providerInstances\"\xaf\x04\n" +
 	"\x0fModuleExtension\x12\x1e\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\tR\n" +
 	"identifier\x12B\n" +
-	"\x05users\x18\x02 \x03(\v2,.bonanza.model.analysis.ModuleExtension.UserR\x05users\x1a\x9b\x01\n" +
+	"\x05users\x18\x02 \x03(\v2,.bonanza.model.analysis.ModuleExtension.UserR\x05users\x12I\n" +
+	"\"root_module_has_non_dev_dependency\x18\x03 \x01(\bR\x1drootModuleHasNonDevDependency\x1a\x9b\x01\n" +
 	"\x04User\x12'\n" +
 	"\x0fmodule_instance\x18\x01 \x01(\tR\x0emoduleInstance\x12\x17\n" +
 	"\ais_root\x18\x02 \x01(\bR\x06isRoot\x12Q\n" +

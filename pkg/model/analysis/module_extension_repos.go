@@ -418,18 +418,19 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 
 		moduleCtx := model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
 			// Fields shared with repository_ctx.
-			"download":             starlark.NewBuiltin("module_ctx.download", moduleContext.doDownload),
-			"download_and_extract": starlark.NewBuiltin("module_ctx.download_and_extract", moduleContext.doDownloadAndExtract),
-			"execute":              starlark.NewBuiltin("module_ctx.execute", moduleContext.doExecute),
-			"extract":              starlark.NewBuiltin("module_ctx.extract", moduleContext.doExtract),
-			"file":                 starlark.NewBuiltin("module_ctx.file", moduleContext.doFile),
-			"getenv":               starlark.NewBuiltin("module_ctx.getenv", moduleContext.doGetenv),
-			"os":                   newRepositoryOS[TReference, TMetadata](thread, repoPlatform.Message),
-			"path":                 starlark.NewBuiltin("module_ctx.path", moduleContext.doPath),
-			"read":                 starlark.NewBuiltin("module_ctx.read", moduleContext.doRead),
-			"report_progress":      starlark.NewBuiltin("module_ctx.report_progress", moduleContext.doReportProgress),
-			"watch":                starlark.NewBuiltin("module_ctx.watch", moduleContext.doWatch),
-			"which":                starlark.NewBuiltin("module_ctx.which", moduleContext.doWhich),
+			"download":                           starlark.NewBuiltin("module_ctx.download", moduleContext.doDownload),
+			"download_and_extract":               starlark.NewBuiltin("module_ctx.download_and_extract", moduleContext.doDownloadAndExtract),
+			"execute":                            starlark.NewBuiltin("module_ctx.execute", moduleContext.doExecute),
+			"extract":                            starlark.NewBuiltin("module_ctx.extract", moduleContext.doExtract),
+			"file":                               starlark.NewBuiltin("module_ctx.file", moduleContext.doFile),
+			"getenv":                             starlark.NewBuiltin("module_ctx.getenv", moduleContext.doGetenv),
+			"os":                                 newRepositoryOS[TReference, TMetadata](thread, repoPlatform.Message),
+			"path":                               starlark.NewBuiltin("module_ctx.path", moduleContext.doPath),
+			"read":                               starlark.NewBuiltin("module_ctx.read", moduleContext.doRead),
+			"report_progress":                    starlark.NewBuiltin("module_ctx.report_progress", moduleContext.doReportProgress),
+			"root_module_has_non_dev_dependency": starlark.Bool(usedModuleExtension.RootModuleHasNonDevDependency),
+			"watch":                              starlark.NewBuiltin("module_ctx.watch", moduleContext.doWatch),
+			"which":                              starlark.NewBuiltin("module_ctx.which", moduleContext.doWhich),
 
 			// Fields specific to module_ctx.
 			"extension_metadata": starlark.NewBuiltin(

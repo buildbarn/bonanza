@@ -1963,6 +1963,11 @@ message ModuleExtension {
   // list is the same as a breadth-first search starting from the root
   // module.
   repeated User users = 2;
+
+  // Whether the MODULE.bazel file of the root module contains one or
+  // more calls to use_extension() for this extension with
+  // dev_dependency set to False.
+  bool root_module_has_non_dev_dependency = 3;
 }
 
 message RepositoryRuleObject {
