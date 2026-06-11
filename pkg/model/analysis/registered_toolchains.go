@@ -127,6 +127,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 
 				var targetSettings []string
 				var toolchain, toolchainType *string
+				useTargetPlatformConstraints := false
 				var errIter error
 				for key, value := range model_starlark.AllStructFields(
 					h.context,
@@ -169,6 +170,12 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 							return fmt.Errorf("toolchain_type field of DeclaredToolchainInfo of toolchain %#v is not a label", toolchainLabelStr)
 						}
 						toolchainType = &l.Label
+					case "use_target_platform_constraints":
+						b, ok := value.Message.Kind.(*model_starlark_pb.Value_Bool)
+						if !ok {
+							return fmt.Errorf("use_target_platform_constraints field of DeclaredToolchainInfo of toolchain %#v is not a bool", toolchainLabelStr)
+						}
+						useTargetPlatformConstraints = b.Bool
 					}
 				}
 				if errIter != nil {
@@ -253,15 +260,29 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					missingDependencies = true
 				}
 
+				var compatibleWith *model_analysis_pb.RegisteredToolchain_CompatibleWith
+				if useTargetPlatformConstraints {
+					if len(execCompatibleWith) > 0 {
+						return fmt.Errorf("exec_compatible_with of toolchain %#v is non-empty, while use_target_platform_constraints is set to True", toolchainLabelStr)
+					}
+					if len(targetCompatibleWith) > 0 {
+						return fmt.Errorf("target_compatible_with of toolchain %#v is non-empty, while use_target_platform_constraints is set to True", toolchainLabelStr)
+					}
+				} else {
+					compatibleWith = &model_analysis_pb.RegisteredToolchain_CompatibleWith{
+						Exec:   execCompatibleWith,
+						Target: targetCompatibleWith,
+					}
+				}
+
 				if !missingDependencies {
 					slices.Sort(targetSettings)
 					h.registeredToolchainsByType[*toolchainType] = append(
 						h.registeredToolchainsByType[*toolchainType],
 						&model_analysis_pb.RegisteredToolchain{
-							ExecCompatibleWith:   execCompatibleWith,
-							TargetCompatibleWith: targetCompatibleWith,
-							TargetSettings:       slices.Compact(targetSettings),
-							Toolchain:            *toolchain,
+							CompatibleWith: compatibleWith,
+							TargetSettings: slices.Compact(targetSettings),
+							Toolchain:      *toolchain,
 						},
 					)
 				}

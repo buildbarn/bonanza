@@ -1479,33 +1479,42 @@ message RegisteredRepoPlatform {
 }
 
 message RegisteredToolchain {
-  // List of constraints that must be satisfied by an execution platform
-  // in order for this toolchain to be selected for a target building on
-  // that platform.
-  //
-  // Constraints for which the value is equal to the default value of
-  // the setting have their value set to the empty string.
-  repeated Constraint exec_compatible_with = 1;
+  message CompatibleWith {
+    // List of constraints that must be satisfied by an execution platform
+    // in order for this toolchain to be selected for a target building on
+    // that platform.
+    //
+    // Constraints for which the value is equal to the default value of
+    // the setting have their value set to the empty string.
+    repeated Constraint exec = 1;
 
-  // List of constraints that must be satisfied by the target platform
-  // in order for this toolchain to be selected for a target building
-  // for that platform.
+    // List of constraints that must be satisfied by the target platform
+    // in order for this toolchain to be selected for a target building
+    // for that platform.
+    //
+    // Constraints for which the value is equal to the default value of
+    // the setting have their value set to the empty string.
+    repeated Constraint target = 2;
+  }
+
+  // If set, the toolchain provide separate execution and target
+  // platform constraints.
   //
-  // Constraints for which the value is equal to the default value of
-  // the setting have their value set to the empty string.
-  repeated Constraint target_compatible_with = 2;
+  // If not set, this toolchain behaves as if "exec" and "target"
+  // constraints are set to those of the current target platform.
+  CompatibleWith compatible_with = 1;
 
   // List of config_settings that must be satisfied by the target
   // configuration in order for this toolchain to be selected during
   // toolchain resolution.
-  repeated string target_settings = 3;
+  repeated string target_settings = 2;
 
   // Label of target representing the actual tool or tool suite that is
   // made available when this toolchain is selected.
   //
   // As toolchain targets are typically placed in other repos, this
   // label may still refer to an alias that needs to be expanded.
-  string toolchain = 4;
+  string toolchain = 3;
 }
 
 message RegisteredToolchains {

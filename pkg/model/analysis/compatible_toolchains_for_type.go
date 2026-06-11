@@ -69,7 +69,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompatibleToolchainsForType
 	var compatibleToolchains []*model_analysis_pb.RegisteredToolchain
 FindCompatibleToolchains:
 	for _, toolchain := range allToolchains {
-		if !constraintsAreCompatible(constraints, toolchain.TargetCompatibleWith) {
+		if compatibleWith := toolchain.CompatibleWith; compatibleWith != nil && !constraintsAreCompatible(constraints, compatibleWith.Target) {
 			// Missing incompatible constraint value.
 			continue FindCompatibleToolchains
 		}

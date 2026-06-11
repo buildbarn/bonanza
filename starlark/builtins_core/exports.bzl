@@ -656,6 +656,7 @@ def _toolchain_impl(ctx):
         ],
         toolchain = ctx.attr.toolchain.original_label,
         toolchain_type = ctx.attr.toolchain_type[ToolchainTypeInfo].type_label,
+        use_target_platform_constraints = ctx.attr.use_target_platform_constraints,
     )]
 
 toolchain = rule(
@@ -674,6 +675,7 @@ toolchain = rule(
             mandatory = True,
             providers = [ToolchainTypeInfo],
         ),
+        "use_target_platform_constraints": attr.bool(),
     },
     needs = [],
     provides = [DeclaredToolchainInfo],

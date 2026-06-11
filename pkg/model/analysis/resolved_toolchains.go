@@ -110,7 +110,12 @@ CheckExecutionPlatform:
 	CheckToolchainType:
 		for i, toolchainsForType := range compatibleToolchainsByType {
 			for _, toolchain := range toolchainsForType {
-				if constraintsAreCompatible(executionPlatform.Constraints, toolchain.ExecCompatibleWith) {
+				compatibleWith := toolchain.CompatibleWith
+				if compatibleWith == nil {
+					// TODO: Add support for this.
+					return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("toolchain %#v uses use_target_platform_constraints, which is not yet supported", toolchain.Toolchain)
+				}
+				if constraintsAreCompatible(executionPlatform.Constraints, compatibleWith.Exec) {
 					toolchainTypeHasAtLeastOneMatchingExecutionPlatform[i] = true
 					resolvedToolchains = append(resolvedToolchains, toolchain)
 					continue CheckToolchainType
