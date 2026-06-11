@@ -263,6 +263,10 @@ ProcessModule:
 			nil,
 			pg_starlark.NewOverrideIgnoringRootModuleDotBazelHandler(&handler),
 		); err != nil {
+			var evalErr *starlark.EvalError
+			if !errors.Is(err, evaluation.ErrMissingDependency) && errors.As(err, &evalErr) {
+				return PatchedModuleRoughBuildListValue[TMetadata]{}, errors.New(evalErr.Backtrace())
+			}
 			return PatchedModuleRoughBuildListValue[TMetadata]{}, err
 		}
 
