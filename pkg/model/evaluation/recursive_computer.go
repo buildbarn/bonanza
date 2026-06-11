@@ -1664,7 +1664,7 @@ func (vs initialMessageValueState[TReference, TMetadata]) evaluate(ctx context.C
 }
 
 func (initialMessageValueState[TReference, TMetadata]) disableCacheLookup() valueState[TReference, TMetadata] {
-	panic("key has never been attempted to be evaluated, meaning that cyclic dependencies may not occur")
+	return computingMessageValueState[TReference, TMetadata]{}
 }
 
 func (initialMessageValueState[TReference, TMetadata]) gotFailedDependency(err NestedError[TReference, TMetadata]) valueState[TReference, TMetadata] {
