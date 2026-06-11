@@ -177,12 +177,12 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextEvaluatableKey(ct
 
 			blockedCyclic := make(map[*KeyState[TReference, TMetadata]]bool, rc.blockedKeys.count)
 			disabledCacheLookupOnAKey := false
-			for ks := rc.blockedKeys.head.nextKey; ks != &rc.blockedKeys.head; ks = ks.nextKey {
-				if ks.isBlockedCyclic(blockedOn, blockedCyclic) {
-					if newValueState := ks.valueState.disableCacheLookup(); newValueState != nil {
-						ks.valueState = newValueState
-						rc.forceUnblockKeyState(ks, blockedOn[ks])
-						rc.enqueueForEvaluation(ks)
+			for ks := &rc.blockedKeys.head.nextKey; *ks != &rc.blockedKeys.head; ks = &(*ks).nextKey {
+				if (*ks).isBlockedCyclic(blockedOn, blockedCyclic) {
+					if newValueState := (*ks).valueState.disableCacheLookup(); newValueState != nil {
+						(*ks).valueState = newValueState
+						rc.forceUnblockKeyState(*ks, blockedOn[*ks])
+						rc.enqueueForEvaluation(*ks)
 						disabledCacheLookupOnAKey = true
 					}
 				}
