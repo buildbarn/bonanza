@@ -207,7 +207,7 @@ func ParseModuleDotBazel(contents string, filename label.CanonicalLabel, localPa
 					"name", unpack.Bind(thread, &name, unpack.Module),
 					"version?", unpack.Bind(thread, &version, unpack.IfNonEmptyString(unpack.Pointer(unpack.ModuleVersion))),
 					"max_compatibility_level?", unpack.Bind(thread, &maxCompatibilityLevel, unpack.Int[int]()),
-					"repo_name?", unpack.Bind(thread, &repoName, unpack.IfNonEmptyString(unpack.Pointer(unpack.ApparentRepo))),
+					"repo_name?", unpack.Bind(thread, &repoName, unpack.IfNotNone(unpack.IfNonEmptyString(unpack.Pointer(unpack.ApparentRepo)))),
 					"dev_dependency?", unpack.Bind(thread, &devDependency, unpack.Bool),
 				); err != nil {
 					return nil, err
