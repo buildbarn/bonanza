@@ -989,7 +989,7 @@ def builtins_internal_cc_common_configure_features(
             "strip",
         ] +
         requested_features +
-        toolchain_features._default_selectables
+        toolchain_features.default_features_and_action_configs()
     )
 
     if language in ["objc", "objc++"]:
@@ -3030,7 +3030,6 @@ def builtins_internal_cc_internal_cc_toolchain_features(*, toolchain_config_info
         _action_configs_by_action_name = action_configs_by_action_name,
         _artifact_name_patterns = toolchain_config_info._artifact_name_patterns,
         _cc_toolchain_path = tools_directory,
-        _default_selectables = default_selectables,
         _implied_by = implied_by,
         _implies = implies,
         _provides = provides,
@@ -3038,6 +3037,7 @@ def builtins_internal_cc_internal_cc_toolchain_features(*, toolchain_config_info
         _requires = requires,
         _selectables = selectables,
         _selectables_by_name = selectables_by_name,
+        default_features_and_action_configs = lambda: default_selectables,
     )
 
 def builtins_internal_cc_internal_cc_toolchain_variables(vars):
