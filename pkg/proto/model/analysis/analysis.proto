@@ -631,6 +631,14 @@ message TargetOutputDefinition {
     bool is_executable = 2;
   }
 
+  message Write {
+    // The content of the file.
+    Args.Leaf content = 1;
+
+    // Whether the output file is executable.
+    bool is_executable = 2;
+  }
+
   oneof source {
     // Output of a command that was declared using
     // ctx.actions.run() or ctx.actions.run_shell(). The
@@ -642,14 +650,17 @@ message TargetOutputDefinition {
     ExpandTemplate expand_template = 3;
 
     // Output of ctx.actions.symlink(target_path=...) or
-    // ctx.actions.write(), provided in the form of a directory
-    // hierarchy containing the file or symlink in question,
+    // ctx.actions.write(content=<str>), provided in the form of a
+    // directory hierarchy containing the file or symlink in question,
     // rooted at the output directory of the current package and
     // configuration.
     bonanza.model.filesystem.DirectoryContents static_package_directory = 4;
 
     // Output of ctx.actions.symlink(target_file=...).
     Symlink symlink = 5;
+
+    // Output of ctx.actions.write(content=<Args>).
+    Write write = 6;
   }
 }
 

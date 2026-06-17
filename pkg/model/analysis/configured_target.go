@@ -2988,17 +2988,24 @@ func (d *singleFileDirectory[TFile, TDirectory]) OpenForFileMerkleTreeCreation(n
 	return d.file, nil
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *starlark.Thread, b *starlark.Builtin, fnArgs starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if len(fnArgs) > 3 {
+		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 3", b.Name(), len(fnArgs))
+	}
 	var output *targetOutput[TMetadata]
-	var content string
+	var content any
 	isExecutable := false
+	mnemonic := ""
 	rc := rca.ruleContext
 	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
+		b.Name(), fnArgs, kwargs,
 		"output", unpack.Bind(thread, &output, rc.outputRegistrar),
-		// TODO: Accept Args.
-		"content", unpack.Bind(thread, &content, unpack.String),
+		"content", unpack.Bind(thread, &content, unpack.Or([]unpack.UnpackerInto[any]{
+			unpack.Decay(unpack.Type[*args[TReference, TMetadata]]("Args")),
+			unpack.Decay(unpack.String),
+		})),
 		"is_executable?", unpack.Bind(thread, &isExecutable, unpack.Bool),
+		"mnemonic?", unpack.Bind(thread, &mnemonic, unpack.IfNotNone(unpack.String)),
 	); err != nil {
 		return nil, err
 	}
@@ -3007,24 +3014,47 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *starlark.T
 		return nil, errors.New("output was not declared as a regular file")
 	}
 
-	fileContents, err := model_filesystem.CreateFileMerkleTree(
-		rc.context,
-		rc.fileCreationParameters,
-		strings.NewReader(content),
-		model_filesystem.NewSimpleFileMerkleTreeCapturer(rc.environment),
-	)
-	if err != nil {
-		return nil, err
-	}
+	switch typedContent := content.(type) {
+	case *args[TReference, TMetadata]:
+		valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.context, rc.environment, nil)
+		encodedContent, err := typedContent.Encode(map[starlark.Value]struct{}{}, valueEncodingOptions)
+		if err != nil {
+			return nil, err
+		}
+		return starlark.None, output.setDefinition(
+			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetOutputDefinition {
+				return &model_analysis_pb.TargetOutputDefinition{
+					Source: &model_analysis_pb.TargetOutputDefinition_Write_{
+						Write: &model_analysis_pb.TargetOutputDefinition_Write{
+							Content:      encodedContent.Merge(patcher),
+							IsExecutable: isExecutable,
+						},
+					},
+				}
+			}),
+		)
+	case string:
+		fileContents, err := model_filesystem.CreateFileMerkleTree(
+			rc.context,
+			rc.fileCreationParameters,
+			strings.NewReader(typedContent),
+			model_filesystem.NewSimpleFileMerkleTreeCapturer(rc.environment),
+		)
+		if err != nil {
+			return nil, err
+		}
 
-	return starlark.None, rc.setOutputToStaticDirectory(
-		output,
-		&singleFileDirectory[TMetadata, TMetadata]{
-			components:   output.packageRelativePath.ToComponents(),
-			isExecutable: isExecutable,
-			file:         model_filesystem.NewSimpleCapturableFile(fileContents),
-		},
-	)
+		return starlark.None, rc.setOutputToStaticDirectory(
+			output,
+			&singleFileDirectory[TMetadata, TMetadata]{
+				components:   output.packageRelativePath.ToComponents(),
+				isExecutable: isExecutable,
+				file:         model_filesystem.NewSimpleCapturableFile(fileContents),
+			},
+		)
+	default:
+		panic("unexpected argument type")
+	}
 }
 
 type ruleContextExecGroups[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
