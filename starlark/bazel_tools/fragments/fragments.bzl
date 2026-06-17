@@ -109,6 +109,8 @@ def _cpp_fragment_impl(ctx):
     should_strip_binaries = strip == "always" or (strip == "sometimes" and compilation_mode == "fastbuild")
     use_specific_tool_files = ctx.attr._use_specific_tool_files[BuildSettingInfo].value
     return [FragmentInfo(
+        _dont_enable_host_nonhost = ctx.attr._dont_enable_host_nonhost_crosstool_features[BuildSettingInfo].value,
+        _fdo_prefetch_hints_label = ctx.attr._fdo_prefetch_hints.label if ctx.attr._fdo_prefetch_hints else None,
         apple_generate_dsym = ctx.attr._apple_generate_dsym[BuildSettingInfo].value,
         collect_code_coverage = ctx.attr._collect_code_coverage[BuildSettingInfo].value,
         compilation_mode = lambda: compilation_mode,
@@ -119,14 +121,12 @@ def _cpp_fragment_impl(ctx):
         custom_malloc = ctx.attr._custom_malloc[BuildSettingInfo].value if ctx.attr._custom_malloc else None,
         cxxopts = ctx.attr._cxxopt[BuildSettingInfo].value,
         do_not_use_macos_set_install_name = ctx.attr._macos_set_install_name[BuildSettingInfo].value,
-        dont_enable_host_nonhost = ctx.attr._dont_enable_host_nonhost_crosstool_features[BuildSettingInfo].value,
         dynamic_mode = lambda: dynamic_mode,
         experimental_cc_implementation_deps = lambda: experimental_cc_implementation_deps,
         experimental_starlark_compiling = lambda: experimental_starlark_compiling,
         experimental_starlark_linking = lambda: experimental_starlark_linking,
         fdo_instrument = lambda: fdo_instrument,
         fdo_path = lambda: None,  # We assume --fdo_optimize is always a label.
-        fdo_prefetch_hints = ctx.attr._fdo_prefetch_hints.label if ctx.attr._fdo_prefetch_hints else None,
         fission_active_for_current_compilation_mode = lambda: fission_active_for_current_compilation_mode,
         force_pic = lambda: force_pic,
         generate_llvm_lcov = lambda: generate_llvm_lcov,

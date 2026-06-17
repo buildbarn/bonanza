@@ -1000,7 +1000,7 @@ def builtins_internal_cc_common_configure_features(
             "objc-executable",
         ]
 
-    if not cpp_configuration.dont_enable_host_nonhost:
+    if not cpp_configuration._dont_enable_host_nonhost:
         if cc_toolchain._configuration.is_tool_configuration:
             all_features.append("host")
         else:
@@ -1032,7 +1032,7 @@ def builtins_internal_cc_common_configure_features(
 
     if branch_fdo_provider and cpp_configuration.compilation_mode == "opt":
         fail("TODO: add FDO related features")
-    if cpp_configuration.fdo_prefetch_hints:
+    if cpp_configuration._fdo_prefetch_hints_label:
         all_requested_features_builder.add("fdo_prefetch_hints")
 
     if enable_propeller_optimize:
