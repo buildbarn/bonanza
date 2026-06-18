@@ -35,6 +35,7 @@ type registeredToolchainExtractingModuleDotBazelHandler[TReference object.BasicR
 	moduleInstance             label.ModuleInstance
 	ignoreDevDependencies      bool
 	registeredToolchainsByType map[string][]*model_analysis_pb.RegisteredToolchain
+	missingDependencies        *bool
 }
 
 func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
@@ -51,13 +52,12 @@ func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata])
 
 func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]) RegisterToolchains(toolchainTargetPatterns []label.ApparentTargetPattern, devDependency bool) error {
 	if !devDependency || !h.ignoreDevDependencies {
-		missingDependencies := false
 		listReader := h.computer.valueReaders.List
 		for _, apparentToolchainTargetPattern := range toolchainTargetPatterns {
 			canonicalToolchainTargetPattern, err := label.Canonicalize(h.labelResolver, h.moduleInstance.GetBareCanonicalRepo(), apparentToolchainTargetPattern)
 			if err != nil {
 				if errors.Is(err, evaluation.ErrMissingDependency) {
-					missingDependencies = true
+					*h.missingDependencies = true
 					continue
 				}
 				return err
@@ -80,7 +80,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					),
 				)
 				if !visibleTargetValue.IsSet() {
-					missingDependencies = true
+					*h.missingDependencies = true
 					continue
 				}
 
@@ -99,7 +99,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					Label: toolchainLabelStr,
 				})
 				if !targetValue.IsSet() {
-					missingDependencies = true
+					*h.missingDependencies = true
 					continue
 				}
 				ruleTarget, ok := targetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget)
@@ -119,7 +119,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				)
 				if err != nil {
 					if errors.Is(err, evaluation.ErrMissingDependency) {
-						missingDependencies = true
+						*h.missingDependencies = true
 						continue
 					}
 					return fmt.Errorf("toolchain %#v: %w", toolchainLabelStr, err)
@@ -199,7 +199,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					if !errors.Is(err, evaluation.ErrMissingDependency) {
 						return err
 					}
-					missingDependencies = true
+					*h.missingDependencies = true
 				}
 
 				// Annoyingly enough, target_compatible_with is
@@ -257,7 +257,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					if !errors.Is(err, evaluation.ErrMissingDependency) {
 						return err
 					}
-					missingDependencies = true
+					*h.missingDependencies = true
 				}
 
 				var compatibleWith *model_analysis_pb.RegisteredToolchain_CompatibleWith
@@ -275,7 +275,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					}
 				}
 
-				if !missingDependencies {
+				if !*h.missingDependencies {
 					slices.Sort(targetSettings)
 					h.registeredToolchainsByType[*toolchainType] = append(
 						h.registeredToolchainsByType[*toolchainType],
@@ -291,12 +291,8 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				if !errors.Is(err, evaluation.ErrMissingDependency) {
 					return fmt.Errorf("failed to expand target pattern %#v: %w", canonicalToolchainTargetPattern.String(), iterErr)
 				}
-				missingDependencies = true
+				*h.missingDependencies = true
 			}
-		}
-
-		if missingDependencies {
-			return evaluation.ErrMissingDependency
 		}
 	}
 	return nil
@@ -314,6 +310,7 @@ func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata])
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(ctx context.Context, key *model_analysis_pb.RegisteredToolchains_Key, e RegisteredToolchainsEnvironment[TReference, TMetadata]) (PatchedRegisteredToolchainsValue[TMetadata], error) {
 	registeredToolchainsByType := map[string][]*model_analysis_pb.RegisteredToolchain{}
+	missingDependencies := false
 	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) pg_starlark.ChildModuleDotBazelHandler {
 		return &registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]{
 			context:                    ctx,
@@ -323,9 +320,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(c
 			moduleInstance:             moduleInstance,
 			ignoreDevDependencies:      ignoreDevDependencies,
 			registeredToolchainsByType: registeredToolchainsByType,
+			missingDependencies:        &missingDependencies,
 		}
 	}); err != nil {
 		return PatchedRegisteredToolchainsValue[TMetadata]{}, err
+	}
+	if missingDependencies {
+		return PatchedRegisteredToolchainsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	toolchainTypes := make([]*model_analysis_pb.RegisteredToolchains_Value_RegisteredToolchainType, 0, len(registeredToolchainsByType))
