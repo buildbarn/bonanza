@@ -1,5 +1,6 @@
 module(name = "bazel_tools")
 
+bazel_dep(name = "apple_support")
 bazel_dep(name = "bazel_skylib")
 bazel_dep(name = "platforms")
 bazel_dep(name = "protobuf")
