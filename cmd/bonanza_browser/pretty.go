@@ -252,33 +252,37 @@ func renderDirectoryPretty(r *messageJSONRenderer, dirMessage model_core.Message
 			}
 
 			pathNodes := getPathNodes(path)
-			switch reference := file.Properties.Contents.Level.(type) {
-			case *model_filesystem_pb.FileContents_ChunkReference:
-				pathNodes = append(
-					pathNodes,
-					renderReferenceLinkPretty(
-						r.basePath,
-						model_core.Nested(dirMessage, reference.ChunkReference),
-						file.Properties.Contents, "chunk_reference",
-						file.Name,
-					)...,
-				)
-
-			case *model_filesystem_pb.FileContents_List_:
-				pathNodes = append(
-					pathNodes,
-					renderReferenceLinkPretty(
-						r.basePath,
-						model_core.Nested(dirMessage, reference.List.Reference),
-						reference.List, "reference",
-						file.Name,
-					)...,
-				)
+			totalSizeBytes := uint64(0)
+			if contents := file.Properties.Contents; contents != nil {
+				switch reference := contents.Level.(type) {
+				case *model_filesystem_pb.FileContents_ChunkReference:
+					pathNodes = append(
+						pathNodes,
+						renderReferenceLinkPretty(
+							r.basePath,
+							model_core.Nested(dirMessage, reference.ChunkReference),
+							contents, "chunk_reference",
+							file.Name,
+						)...,
+					)
+				case *model_filesystem_pb.FileContents_List_:
+					pathNodes = append(
+						pathNodes,
+						renderReferenceLinkPretty(
+							r.basePath,
+							model_core.Nested(dirMessage, reference.List.Reference),
+							reference.List, "reference",
+							file.Name,
+						)...,
+					)
+				}
+				totalSizeBytes = contents.TotalSizeBytes
+			} else {
+				pathNodes = append(pathNodes, g.Text(file.Name))
 			}
-
 			res = append(res, h.Tr(
 				h.Td(g.Text(prefix)),
-				h.Td(g.Text(prettySize(file.Properties.Contents.TotalSizeBytes))),
+				h.Td(g.Text(prettySize(totalSizeBytes))),
 				h.Td(pathNodes...),
 			))
 
