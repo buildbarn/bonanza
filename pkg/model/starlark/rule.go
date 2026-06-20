@@ -115,9 +115,9 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 				"package_metadata", "tags", "target_compatible_with",
 				"testonly", "visibility":
 				return nil, fmt.Errorf("rule uses attribute with reserved name %#v", nameStr)
-			case "build_setting_default":
+			case "build_setting_default", "help":
 				if buildSetting != nil {
-					return nil, fmt.Errorf("rule uses attribute with name \"build_setting_default\", which is reserved for build settings", nameStr)
+					return nil, fmt.Errorf("rule uses attribute with name %#v, which is reserved for build settings", nameStr)
 				}
 			case "args", "flaky", "local", "shard_count", "size", "timeout":
 				if test {
@@ -186,6 +186,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 
 	var buildSettingDefault starlark.Value
 	if buildSetting != nil {
+		var help string
 		mandatoryUnpackers = append(
 			mandatoryUnpackers,
 			"build_setting_default",
@@ -195,6 +196,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 				unpack.Canonicalize(buildSetting.buildSettingType.GetCanonicalizer(currentPackage)),
 			),
 		)
+		optionalUnpackers = append(optionalUnpackers, "help?", unpack.Bind(thread, &help, unpack.String))
 	}
 
 	if test {

@@ -91,6 +91,7 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 
 	var name string
 	var buildSettingDefault string
+	var help string
 	singletonList := false
 	var visibility []pg_label.ResolvedLabel
 	labelOrStringUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
@@ -101,6 +102,7 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 		// None to implement command line flags that don't point
 		// to anything by default.
 		"build_setting_default", unpack.Bind(thread, &buildSettingDefault, unpack.IfNotNone(unpack.Stringer(labelOrStringUnpackerInto))),
+		"help?", unpack.Bind(thread, &help, unpack.String),
 		// Extension: --platforms is a list at the command line
 		// level, but it can only be set to a single value at a
 		// time during analysis. As part of transitions it still
