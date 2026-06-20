@@ -946,6 +946,7 @@ func renderObjectPage(
 	currentPayloadRendererIndex int,
 	currentEncoderConfiguration string,
 	cookie *browser_pb.Cookie,
+	titlePrefix string,
 	payload []g.Node,
 ) g.Node {
 	setCookie(w, cookie)
@@ -959,7 +960,7 @@ func renderObjectPage(
 	}
 
 	rawReference := base64.RawURLEncoding.EncodeToString(decodableReference.Value.GetRawReference())
-	return renderPage(rawReference, []g.Node{
+	return renderPage(titlePrefix+rawReference, []g.Node{
 		h.Div(
 			h.Class("flex w-full space-x-4 p-4"),
 
@@ -1013,6 +1014,7 @@ func (s *BrowserService) doObject(
 	r *http.Request,
 	payloadRenderers []payloadRenderer,
 	defaultPayloadRendererIndex int,
+	titlePrefix string,
 ) (g.Node, error) {
 	objectReference, err := getReferenceFromRequest(r)
 	if err != nil {
@@ -1037,6 +1039,7 @@ func (s *BrowserService) doObject(
 			currentPayloadRendererIndex,
 			currentEncoderConfigurationStr,
 			cookie,
+			titlePrefix,
 			renderErrorAlert(fmt.Errorf("failed to obtain encoder configuration: %w", err)),
 		), nil
 	}
@@ -1051,6 +1054,7 @@ func (s *BrowserService) doObject(
 			currentPayloadRendererIndex,
 			currentEncoderConfigurationStr,
 			cookie,
+			titlePrefix,
 			renderErrorAlert(fmt.Errorf("failed to download object: %w", err)),
 		), nil
 	}
@@ -1085,8 +1089,17 @@ func (s *BrowserService) doObject(
 		currentPayloadRendererIndex,
 		currentEncoderConfigurationStr,
 		cookie,
+		titlePrefix,
 		rendered,
 	), nil
+}
+
+func getAbbreviatedMessageType(r *http.Request) string {
+	messageType := r.PathValue("message_type")
+	if i := strings.LastIndexByte(messageType, '.'); i >= 0 {
+		messageType = messageType[i+1:]
+	}
+	return messageType
 }
 
 func (s *BrowserService) doProtoObject(w http.ResponseWriter, r *http.Request) (g.Node, error) {
@@ -1107,6 +1120,7 @@ func (s *BrowserService) doProtoObject(w http.ResponseWriter, r *http.Request) (
 		r,
 		payloadRenderers,
 		/* defaultPayloadRendererIndex = */ len(payloadRenderers)-1,
+		getAbbreviatedMessageType(r)+" ",
 	)
 }
 
@@ -1128,6 +1142,7 @@ func (s *BrowserService) doProtoListObject(w http.ResponseWriter, r *http.Reques
 		r,
 		payloadRenderers,
 		/* defaultPayloadRendererIndex = */ len(payloadRenderers)-1,
+		getAbbreviatedMessageType(r)+" list ",
 	)
 }
 
@@ -1142,6 +1157,7 @@ func (s *BrowserService) doRawObject(w http.ResponseWriter, r *http.Request) (g.
 		r,
 		payloadRenderers,
 		/* defaultPayloadRendererIndex = */ len(payloadRenderers)-1,
+		"",
 	)
 }
 
