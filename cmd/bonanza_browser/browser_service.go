@@ -1094,14 +1094,6 @@ func (s *BrowserService) doObject(
 	), nil
 }
 
-func getAbbreviatedMessageType(r *http.Request) string {
-	messageType := r.PathValue("message_type")
-	if i := strings.LastIndexByte(messageType, '.'); i >= 0 {
-		messageType = messageType[i+1:]
-	}
-	return messageType
-}
-
 func (s *BrowserService) doProtoObject(w http.ResponseWriter, r *http.Request) (g.Node, error) {
 	payloadRenderers := []payloadRenderer{
 		rawPayloadRenderer{},
@@ -1120,7 +1112,7 @@ func (s *BrowserService) doProtoObject(w http.ResponseWriter, r *http.Request) (
 		r,
 		payloadRenderers,
 		/* defaultPayloadRendererIndex = */ len(payloadRenderers)-1,
-		getAbbreviatedMessageType(r)+" ",
+		r.PathValue("message_type")+" ",
 	)
 }
 
@@ -1142,7 +1134,7 @@ func (s *BrowserService) doProtoListObject(w http.ResponseWriter, r *http.Reques
 		r,
 		payloadRenderers,
 		/* defaultPayloadRendererIndex = */ len(payloadRenderers)-1,
-		getAbbreviatedMessageType(r)+" list ",
+		r.PathValue("message_type")+" list ",
 	)
 }
 
