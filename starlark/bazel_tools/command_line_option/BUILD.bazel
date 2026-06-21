@@ -136,6 +136,25 @@ int_flag(
     visibility = ["//visibility:public"],
 )
 
+# TODO: Should be a string_keyed_label_dict_flag().
+string_list_flag(
+    name = "bytecode_optimizers",
+    build_setting_default = [],
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "cc_dotd_files",
+    build_setting_default = True,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "cc_include_scanning",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
 string_list_flag(
     name = "cc_proto_library_header_suffixes",
     build_setting_default = [".pb.h"],
@@ -334,6 +353,12 @@ bool_flag(
 )
 
 bool_flag(
+    name = "experimental_allow_map_directory",
+    build_setting_default = True,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
     name = "experimental_allow_runtime_deps_on_neverlink",
     build_setting_default = True,
     visibility = ["//visibility:public"],
@@ -462,6 +487,12 @@ bool_flag(
 
 bool_flag(
     name = "experimental_enable_jspecify",
+    build_setting_default = True,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "experimental_enforce_transitive_visibility",
     build_setting_default = True,
     visibility = ["//visibility:public"],
 )
@@ -792,6 +823,12 @@ bool_flag(
     visibility = ["//visibility:public"],
 )
 
+int_flag(
+    name = "experimental_turbine_cpu_reservation",
+    build_setting_default = 1,
+    visibility = ["//visibility:public"],
+)
+
 bool_flag(
     name = "experimental_unsupported_and_brittle_include_scanning",
     build_setting_default = False,
@@ -1047,6 +1084,12 @@ bool_flag(
 )
 
 bool_flag(
+    name = "incompatible_bep_cpu_from_platform",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
     name = "incompatible_builtin_objc_strip_action",
     build_setting_default = True,
     visibility = ["//visibility:public"],
@@ -1061,6 +1104,12 @@ bool_flag(
 bool_flag(
     name = "incompatible_check_visibility_for_toolchains",
     build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "incompatible_compact_repo_mapping_manifest",
+    build_setting_default = True,
     visibility = ["//visibility:public"],
 )
 
@@ -1131,6 +1180,24 @@ bool_flag(
 )
 
 bool_flag(
+    name = "incompatible_exclude_starlark_flags_from_exec_config",
+    build_setting_default = True,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "incompatible_filegroup_runfiles_for_data",
+    build_setting_default = True,
+    visibility = ["//visibility:public"],
+)
+
+label_list_flag(
+    name = "incompatible_limit_platforms_in_output_dir_to",
+    build_setting_default = [],
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
     name = "incompatible_make_thinlto_command_lines_standalone",
     build_setting_default = True,
     visibility = ["//visibility:public"],
@@ -1186,6 +1253,24 @@ bool_flag(
 
 bool_flag(
     name = "incompatible_python_disallow_native_rules",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "incompatible_remove_ctx_android_fragment",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "incompatible_remove_ctx_apple_fragment",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "incompatible_remove_ctx_objc_fragment",
     build_setting_default = False,
     visibility = ["//visibility:public"],
 )
@@ -1373,6 +1458,12 @@ string_flag(
 string_list_flag(
     name = "non_incremental_per_target_dexopts",
     build_setting_default = ["--positions"],
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "objc_use_dotd_pruning",
+    build_setting_default = True,
     visibility = ["//visibility:public"],
 )
 

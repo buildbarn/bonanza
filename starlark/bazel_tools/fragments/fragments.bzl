@@ -103,10 +103,11 @@ def _cpp_fragment_impl(ctx):
     remove_legacy_whole_archive = ctx.attr._remove_legacy_whole_archive[BuildSettingInfo].value
     save_feature_state = ctx.attr._save_feature_state[BuildSettingInfo].value
     save_temps = ctx.attr._save_temps[BuildSettingInfo].value
-    start_end_lib = ctx.attr._start_end_lib[BuildSettingInfo].value
+    should_generate_dotd_files = ctx.attr._cc_dotd_files[BuildSettingInfo].value
     strip = ctx.attr._strip[BuildSettingInfo].value
-    stripopt = ctx.attr._stripopt[BuildSettingInfo].value
     should_strip_binaries = strip == "always" or (strip == "sometimes" and compilation_mode == "fastbuild")
+    start_end_lib = ctx.attr._start_end_lib[BuildSettingInfo].value
+    stripopt = ctx.attr._stripopt[BuildSettingInfo].value
     use_specific_tool_files = ctx.attr._use_specific_tool_files[BuildSettingInfo].value
     return [FragmentInfo(
         _dont_enable_host_nonhost = ctx.attr._dont_enable_host_nonhost_crosstool_features[BuildSettingInfo].value,
@@ -141,6 +142,7 @@ def _cpp_fragment_impl(ctx):
         proto_profile = lambda: proto_profile,
         save_feature_state = lambda: save_feature_state,
         save_temps = lambda: save_temps,
+        should_generate_dotd_files = lambda: should_generate_dotd_files,
         should_strip_binaries = lambda: should_strip_binaries,
         start_end_lib = lambda: start_end_lib,
         strip_opts = lambda: stripopt,
@@ -150,6 +152,7 @@ cpp_fragment = rule(
     _cpp_fragment_impl,
     attrs = {
         "_apple_generate_dsym": attr.label(default = "//command_line_option:apple_generate_dsym"),
+        "_cc_dotd_files": attr.label(default = "//command_line_option:cc_dotd_files"),
         "_cc_implementation_deps": attr.label(default = "//command_line_option:experimental_cc_implementation_deps"),
         "_collect_code_coverage": attr.label(default = "//command_line_option:collect_code_coverage"),
         "_compilation_mode": attr.label(default = "//command_line_option:compilation_mode"),

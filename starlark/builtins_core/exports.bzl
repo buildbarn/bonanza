@@ -1,12 +1,8 @@
 AnalysisFailureInfo = provider()
 AnalysisTestResultInfo = provider()
-CcLauncherInfo = provider()
-CcToolchainConfigInfo = provider()
-CcToolchainInfo = provider()
 ConfigSettingInfo = provider()
 ConstraintSettingInfo = provider()
 ConstraintValueInfo = provider()
-DebugPackageInfo = provider()
 DeclaredToolchainInfo = provider()
 ExecutionInfo = provider()
 FeatureFlagInfo = provider()
@@ -16,37 +12,9 @@ JavaPluginInfo = provider()
 OutputGroupInfo = provider(dict_like = True)
 PackageSpecificationInfo = provider()
 PlatformInfo = provider()
-ProguardSpecProvider = provider()
-PyInfo = provider()
-StaticallyLinkedMarkerProvider = provider()
 SymlinkEntry = provider()
 ToolchainInfo = provider()
 ToolchainTypeInfo = provider()
-
-def _cc_info_init(
-        *,
-        cc_native_library_info = None,
-        compilation_context = None,
-        debug_context = None,
-        linking_context = None):
-    if not debug_context:
-        debug_context = builtins_internal_cc_common_create_debug_context()
-    transitive_native_libraries = cc_native_library_info.libraries_to_link if cc_native_library_info else depset()
-    return {
-        "debug_context": lambda: debug_context,
-        "compilation_context": compilation_context or builtins_internal_cc_common_create_compilation_context(),
-        "linking_context": linking_context or builtins_internal_cc_common_create_linking_context(),
-        "transitive_native_libraries": lambda: transitive_native_libraries,
-    }
-
-CcInfo, _CcInfoRaw = provider(init = _cc_info_init)
-
-def _cc_native_library_info_init(*, libraries_to_link = None):
-    return {
-        "libraries_to_link": libraries_to_link or depset(),
-    }
-
-CcNativeLibraryInfo, _CcNativeLibraryInfoRaw = provider(init = _cc_native_library_info_init)
 
 def _runfiles_init(*, files = None, root_symlinks = None, symlinks = None):
     return {
@@ -172,17 +140,6 @@ def _cc_libc_top_alias_impl(ctx):
 
 cc_libc_top_alias = rule(
     implementation = _cc_libc_top_alias_impl,
-    needs = [],
-)
-
-def _cc_proto_library_impl(ctx):
-    fail("TODO")
-
-cc_proto_library = rule(
-    implementation = _cc_proto_library_impl,
-    attrs = {
-        "deps": attr.label_list(),
-    },
     needs = [],
 )
 
@@ -479,17 +436,6 @@ java_plugins_flag_alias = rule(
     needs = [],
 )
 
-def _java_proto_library_impl(ctx):
-    fail("TODO")
-
-java_proto_library = rule(
-    implementation = _java_proto_library_impl,
-    attrs = {
-        "deps": attr.label_list(),
-    },
-    needs = [],
-)
-
 def licenses(license_types):
     # This function is deprecated. Licenses can nowadays be attached in
     # the form of metadata. Provide a no-op stub.
@@ -611,20 +557,6 @@ platform = rule(
     provides = [PlatformInfo],
 )
 
-def _sh_test_impl(ctx):
-    fail("TODO: implement")
-
-sh_test = rule(
-    _sh_test_impl,
-    attrs = {
-        "data": attr.label_list(allow_files = True),
-        "deps": attr.label_list(),
-        "srcs": attr.label_list(allow_files = True),
-    },
-    needs = [],
-    test = True,
-)
-
 def _starlark_doc_extract_impl(ctx):
     fail("TODO: implement")
 
@@ -721,47 +653,6 @@ def builtins_internal_apple_common_dotted_version(v):
 
 def builtins_internal_cc_common_action_is_enabled(*, feature_configuration, action_name):
     return action_name in feature_configuration._enabled_action_config_action_names
-
-def builtins_internal_cc_common_check_private_api(allowlist = []):
-    pass
-
-def _create_compilation_outputs(
-        *,
-        header_tokens,
-        lto_compilation_context,
-        objects,
-        pic_objects):
-    # TODO: Where do we get these from?
-    dwo_files = depset()
-    pic_dwo_files = depset()
-
-    return struct(
-        _header_tokens = header_tokens,
-        _dwo_files = dwo_files,
-        _objects = objects,
-        _pic_dwo_files = pic_dwo_files,
-        _pic_objects = pic_objects,
-        lto_compilation_context = lambda: lto_compilation_context,
-
-        # We unfortunately also need to provide access to these in the
-        # form of lists.
-        dwo_files = lambda: dwo_files.to_list(),
-        objects = objects.to_list(),
-        pic_dwo_files = lambda: pic_dwo_files.to_list(),
-        pic_objects = pic_objects.to_list(),
-
-        # TODO: Where do these come from?
-        files_to_compile = lambda parse_headers = False, use_pic = False: depset(
-            direct = [],
-            transitive = [pic_objects if use_pic else objects] +
-                         ([header_tokens] if parse_headers else []),
-        ),
-        gcno_files = lambda: [],
-        header_tokens = lambda: header_tokens.to_list(),
-        module_files = lambda: [],
-        pic_gcno_files = lambda: [],
-        temps = lambda: depset(),
-    )
 
 def _selectable_get_name(selectable):
     if selectable.type_name == "action_config":
@@ -910,1761 +801,11 @@ def _get_feature_configuration(
     ])
     return FeatureConfiguration(
         _action_config_by_action_name = action_configs_by_action_name,
+        _cc_toolchain_path = cc_toolchain_path,
         _enabled_action_config_action_names = enabled_action_config_names,
         _enabled_features = enabled_features_in_order,
         _enabled_feature_names = enabled_feature_names,
         is_requested = lambda feature: feature in requested_features,
-    )
-
-def builtins_internal_cc_common_configure_features(
-        ctx,
-        cc_toolchain = None,
-        language = None,
-        requested_features = [],
-        unsupported_features = []):
-    # From CcCommon.configureFeaturesOrThrowEvalException():
-    cpp_configuration = cc_toolchain._cpp_configuration
-
-    all_requested_features_builder = set()
-    unsupported_features_builder = set(unsupported_features)
-    if not cc_toolchain._supports_header_parsing:
-        unsupported_features_builder.add("parse_headers")
-
-    if (
-        language not in ["objc", "objc++"] and
-        not cc_toolchain._cc_info.compilation_context.module_map()
-    ):
-        unsupported_features_builder.add("module_maps")
-
-    if cpp_configuration.force_pic:
-        if "supports_pic" in unsupported_features_builder:
-            fail("PIC compilation is requested but the toolchain does not support it (feature named 'supports_pic' is not enabled)")
-
-        all_requested_features_builder.add("supports_pic")
-
-    if cpp_configuration.apple_generate_dsym:
-        all_requested_features_builder.add("generate_dsym_file")
-    else:
-        all_requested_features_builder.add("no_generate_debug_symbols")
-
-    if language in ["objc", "objc++"]:
-        all_requested_features_builder.add("lang_objc")
-        if cpp_configuration.objc_generate_linkmap:
-            all_requested_features_builder.add("generate_linkmap")
-        if cpp_configuration.objc_should_strip_binary:
-            all_requested_features_builder.add("dead_strip")
-
-    all_unsupported_features = unsupported_features_builder
-
-    toolchain_features = cc_toolchain._toolchain_features
-    all_features = (
-        [
-            cpp_configuration.compilation_mode(),
-            # ALL_COMPILE_ACTIONS:
-            "c-compile",
-            "c++-compile",
-            "c++-header-parsing",
-            "c++-module-compile",
-            "c++-module-codegen",
-            "c++-module-deps-scanning",
-            "c++20-module-compile",
-            "c++20-module-codegen",
-            "assemble",
-            "preprocess-assemble",
-            "clif-match",
-            "linkstamp-compile",
-            "cc-flags-make-variable",
-            "lto-backend",
-            "c++-header-analysis",
-            # ALL_LINK_ACTIONS:
-            "lto-index-for-executable",
-            "lto-index-for-dynamic-library",
-            "lto-index-for-nodeps-dynamic-library",
-            "c++-link-executable",
-            "c++-link-dynamic-library",
-            "c++-link-nodeps-dynamic-library",
-            # ALL_ARCHIVE_ACTIONS:
-            "c++-link-static-library",
-            # ALL_OTHER_ACTIONS:
-            "strip",
-        ] +
-        requested_features +
-        toolchain_features.default_features_and_action_configs()
-    )
-
-    if language in ["objc", "objc++"]:
-        all_features += [
-            "objc-compile",
-            "objc++-compile",
-            "objc-fully-link",
-            "objc-executable",
-        ]
-
-    if not cpp_configuration._dont_enable_host_nonhost:
-        if cc_toolchain._configuration.is_tool_configuration:
-            all_features.append("host")
-        else:
-            all_features.append("host")
-
-    if cpp_configuration.collect_code_coverage:
-        all_features.append("coverage")
-        if cpp_configuration.use_llvm_coverage_map_format:
-            all_features.append("llvm_coverage_map_format")
-        else:
-            all_features.append("gcc_coverage_map_format")
-
-    if "fdo_instrument" not in all_unsupported_features:
-        if cpp_configuration.fdo_instrument():
-            all_features += ["fdo_instrument"]
-        elif cpp_configuration.cs_fdo_instrument():
-            all_features += ["cs_fdo_instrument"]
-
-    branch_fdo_provider = getattr(cc_toolchain._fdo_context, "branch_fdo_profile", None)
-
-    propeller_optimize_info = getattr(cc_toolchain._fdo_context, "propeller_optimize_info", None)
-    enable_propeller_optimize = (
-        propeller_optimize_info and
-        (
-            propeller_optimize_info.cc_artifact or
-            propeller_optimize_info.ld_artifact
-        )
-    )
-
-    if branch_fdo_provider and cpp_configuration.compilation_mode == "opt":
-        fail("TODO: add FDO related features")
-    if cpp_configuration._fdo_prefetch_hints_label:
-        all_requested_features_builder.add("fdo_prefetch_hints")
-
-    if enable_propeller_optimize:
-        all_requested_features_builder.add("propeller_optimize")
-
-    for feature in all_features:
-        if feature not in all_unsupported_features:
-            all_requested_features_builder.add(feature)
-
-    feature_configuration = _get_feature_configuration(
-        all_requested_features_builder,
-        toolchain_features._selectables_by_name,
-        toolchain_features._selectables,
-        toolchain_features._provides,
-        toolchain_features._implies,
-        toolchain_features._implied_by,
-        toolchain_features._requires,
-        toolchain_features._required_by,
-        toolchain_features._action_configs_by_action_name,
-        toolchain_features._cc_toolchain_path,
-    )
-    for feature in unsupported_features:
-        if feature_configuration.is_enabled(feature):
-            fail("The C++ toolchain '%s' unconditionally implies feature '%s', which is unsupported by this rule. This is most likely a misconfiguration in the C++ toolchain." % toolchain.get_cc_toolchain_label(), feature)
-    if (
-        cpp_configuration.force_pic and
-        not feature_configuration.is_enabled("pic") and
-        not feature_configuration.is_enabled("supports_pic")
-    ):
-        fail("PIC compilation is requested but the toolchain does not support it (feature named 'supports_pic' is not enabled)")
-    return feature_configuration
-
-def _feature(
-        name,
-        enabled = False,
-        flag_sets = [],
-        env_sets = [],
-        requires = [],
-        implies = [],
-        provides = []):
-    return struct(
-        name = name,
-        enabled = enabled,
-        flag_sets = flag_sets,
-        env_sets = env_sets,
-        requires = requires,
-        implies = implies,
-        provides = provides,
-        type_name = "feature",
-    )
-
-def _flag_group(
-        flags = [],
-        flag_groups = [],
-        iterate_over = None,
-        expand_if_available = None,
-        expand_if_not_available = None,
-        expand_if_true = None,
-        expand_if_false = None,
-        expand_if_equal = None):
-    return struct(
-        flags = flags,
-        flag_groups = flag_groups,
-        iterate_over = iterate_over,
-        expand_if_available = expand_if_available,
-        expand_if_not_available = expand_if_not_available,
-        expand_if_true = expand_if_true,
-        expand_if_false = expand_if_false,
-        expand_if_equal = expand_if_equal,
-        type_name = "flag_group",
-    )
-
-def _flag_set(
-        actions = [],
-        with_features = [],
-        flag_groups = []):
-    return struct(
-        actions = actions,
-        with_features = with_features,
-        flag_groups = flag_groups,
-        type_name = "flag_set",
-    )
-
-def _variable_with_value(name, value):
-    return struct(
-        name = name,
-        value = value,
-        type_name = "variable_with_value",
-    )
-
-def _with_feature_set(features = [], not_features = []):
-    return struct(
-        features = features,
-        not_features = not_features,
-        type_name = "with_feature_set",
-    )
-
-def _action_config(
-        action_name,
-        enabled = False,
-        tools = [],
-        flag_sets = [],
-        implies = []):
-    return struct(
-        action_name = action_name,
-        enabled = enabled,
-        tools = tools,
-        flag_sets = flag_sets,
-        implies = implies,
-        type_name = "action_config",
-    )
-
-def _tool(path = None, with_features = [], execution_requirements = [], tool = None):
-    return struct(
-        path = path,
-        tool = tool,
-        with_features = with_features,
-        execution_requirements = execution_requirements,
-        type_name = "tool",
-    )
-
-def _path_relative_to_package(ctx, path):
-    if path.startswith("/"):
-        return path
-
-    return "/".join(
-        [
-            component
-            for component in (
-                ctx.label.workspace_root.split("/") +
-                ctx.label.package.split("/") +
-                path.split("/")
-            )
-            if component
-        ],
-    )
-
-def builtins_internal_cc_common_create_cc_compile_actions(
-        *,
-        action_construction_context,
-        cc_compilation_context,
-        cc_toolchain,
-        compilation_unit_sources,
-        configuration,
-        copts_filter,
-        cpp_configuration,
-        fdo_context,
-        feature_configuration,
-        generate_no_pic_action,
-        generate_pic_action,
-        is_code_coverage_enabled,
-        label,
-        purpose,
-        additional_compilation_inputs = [],
-        additional_include_scanning_roots = [],
-        conlyopts = [],
-        copts = [],
-        cxxopts = [],
-        language = None,
-        private_headers = [],
-        public_headers = [],
-        separate_module_headers = [],
-        variables_extension = None):
-    common_inputs = depset(
-        direct = public_headers + private_headers,
-        transitive = [
-            cc_toolchain._compiler_files,
-            cc_compilation_context.headers,
-        ],
-    )
-
-    header_tokens = []
-    objects = []
-    pic_objects = []
-    for source in compilation_unit_sources:
-        source_base = source.basename
-        if source_base.endswith(".c"):
-            action_name = "c-compile"
-            user_compile_flags = copts + conlyopts
-        elif source_base.endswith(".cc") or source_base.endswith(".cpp"):
-            action_name = "c++-compile"
-            user_compile_flags = copts + cxxopts
-        else:
-            fail(source)
-
-        inputs = depset(
-            direct = [source],
-            transitive = [common_inputs],
-        )
-
-        object_file_base = "_objs/%s/%s" % (label.name, source_base.rsplit(".", 1)[0])
-        if generate_no_pic_action:
-            object_file = action_construction_context.actions.declare_file(object_file_base + ".o")
-            variables = builtins_internal_cc_common_create_compile_variables(
-                cc_toolchain = cc_toolchain,
-                feature_configuration = feature_configuration,
-                source_file = source.path,
-                output_file = object_file.path,
-                user_compile_flags = user_compile_flags,
-                include_directories = cc_compilation_context.includes,
-                quote_include_directories = cc_compilation_context.quote_includes,
-                system_include_directories = cc_compilation_context.system_includes,
-                framework_include_directories = cc_compilation_context.framework_includes,
-                preprocessor_defines = cc_compilation_context.defines,
-                use_pic = False,
-                variables_extension = variables_extension,
-            )
-            action_construction_context.actions.run(
-                executable = builtins_internal_cc_common_get_tool_for_action(feature_configuration, action_name),
-                arguments = builtins_internal_cc_common_get_memory_inefficient_command_line(feature_configuration, action_name, variables),
-                env = builtins_internal_cc_common_get_environment_variables(feature_configuration, action_name, variables),
-                inputs = inputs,
-                outputs = [object_file],
-            )
-            objects.append(object_file)
-
-        if generate_pic_action:
-            pic_object_file = action_construction_context.actions.declare_file(object_file_base + ".pic.o")
-            pic_variables = builtins_internal_cc_common_create_compile_variables(
-                cc_toolchain = cc_toolchain,
-                feature_configuration = feature_configuration,
-                source_file = source.path,
-                output_file = pic_object_file.path,
-                user_compile_flags = user_compile_flags,
-                include_directories = cc_compilation_context.includes,
-                quote_include_directories = cc_compilation_context.quote_includes,
-                system_include_directories = cc_compilation_context.system_includes,
-                framework_include_directories = cc_compilation_context.framework_includes,
-                preprocessor_defines = cc_compilation_context.defines,
-                use_pic = True,
-                variables_extension = variables_extension,
-            )
-            action_construction_context.actions.run(
-                executable = builtins_internal_cc_common_get_tool_for_action(feature_configuration, action_name),
-                env = builtins_internal_cc_common_get_environment_variables(feature_configuration, action_name, pic_variables),
-                arguments = builtins_internal_cc_common_get_memory_inefficient_command_line(feature_configuration, action_name, pic_variables),
-                inputs = inputs,
-                outputs = [pic_object_file],
-            )
-            pic_objects.append(pic_object_file)
-
-    return _create_compilation_outputs(
-        lto_compilation_context = _create_lto_compilation_context(),
-        header_tokens = depset(header_tokens),
-        objects = depset(objects),
-        pic_objects = depset(pic_objects),
-    )
-
-def builtins_internal_cc_common_create_cc_toolchain_config_info(
-        ctx,
-        toolchain_identifier,
-        compiler,
-        features = [],
-        action_configs = [],
-        artifact_name_patterns = [],
-        cxx_builtin_include_directories = [],
-        host_system_name = None,
-        target_system_name = None,
-        target_cpu = None,
-        target_libc = None,
-        abi_version = None,
-        abi_libc_version = None,
-        tool_paths = [],
-        make_variables = [],
-        builtin_sysroot = None):
-    feature_names = set([feature.name for feature in features])
-    if "no_legacy_features" not in feature_names:
-        gcc_tool_path = "DUMMY_GCC_TOOL"
-        linker_tool_path = "DUMMY_LINKER_TOOL"
-        ar_tool_path = "DUMMY_AR_TOOL"
-        strip_tool_path = "DUMMY_STRIP_TOOL"
-        for tool in tool_paths:
-            if tool.name == "gcc":
-                gcc_tool_path = tool.path
-                linker_tool_path = _path_relative_to_package(ctx, tool.path)
-            elif tool.name == "ar":
-                ar_tool_path = tool.path
-            elif tool.name == "strip":
-                strip_tool_path = tool.path
-
-        legacy_features_builder = [
-            feature
-            for feature in features
-            if feature.name == "legacy_compile_flags"
-        ][:1] + [
-            feature
-            for feature in features
-            if feature.name == "default_compile_flags"
-        ][:1]
-
-        if "legacy_compile_flags" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "legacy_compile_flags",
-                enabled = True,
-                flag_sets = [_flag_set(
-                    actions = [
-                        "assemble",
-                        "c-compile",
-                        "c++-compile",
-                        "c++-header-parsing",
-                        "c++-module-codegen",
-                        "c++-module-compile",
-                        "clif-match",
-                        "linkstamp-compile",
-                        "lto-backend",
-                        "preprocess-assemble",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "legacy_compile_flags",
-                        iterate_over = "legacy_compile_flags",
-                        flags = ["%{legacy_compile_flags}"],
-                    )],
-                )],
-            ))
-        if "dependency_file" not in feature_names:
-            fail("TODO: dependency_file")
-        if "random_seed" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "random_seed",
-                enabled = True,
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c-compile",
-                        "c++-compile",
-                        "c++-module-codegen",
-                        "c++-module-compile",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "output_file",
-                        flags = ["-frandom-seed=%{output_file}"],
-                    )],
-                )],
-            ))
-        if "pic" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "pic",
-                enabled = True,
-                flag_sets = [_flag_set(
-                    actions = [
-                        "assemble",
-                        "c-compile",
-                        "c++-compile",
-                        "c++-module-codegen",
-                        "c++-module-compile",
-                        "linkstamp-compile",
-                        "preprocess-assemble",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "pic",
-                        flags = ["-fPIC"],
-                    )],
-                )],
-            ))
-        if "per_object_debug_info" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "per_object_debug_info",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "assemble",
-                        "c-compile",
-                        "c++-compile",
-                        "c++-module-codegen",
-                        "preprocess-assemble",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "per_object_debug_info_file",
-                        flags = ["-gsplit-dwarf", "-g"],
-                    )],
-                )],
-            ))
-        if "preprocessor_defines" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "preprocessor_defines",
-                enabled = True,
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c-compile",
-                        "c++-compile",
-                        "c++-header-parsing",
-                        "c++-module-compile",
-                        "clif-match",
-                        "linkstamp-compile",
-                        "preprocess-assemble",
-                    ],
-                    flag_groups = [_flag_group(
-                        iterate_over = "preprocessor_defines",
-                        flags = ["-D%{preprocessor_defines}"],
-                    )],
-                )],
-            ))
-        if "includes" not in feature_names:
-            fail("TODO: includes")
-        if "include_paths" not in feature_names:
-            fail("TODO: include_paths")
-        if "fdo_instrument" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "fdo_instrument",
-                provides = ["profile"],
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c-compile",
-                        "c++-compile",
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "fdo_instrument_path",
-                        flags = [
-                            "-fprofile-generate=%{fdo_instrument_path}",
-                            "-fno-data-sections",
-                        ],
-                    )],
-                )],
-            ))
-        if "fdo_optimize" not in feature_names:
-            fail("TODO: fdo_optimize")
-        if "cs_fdo_instrument" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "cs_fdo_instrument",
-                provides = ["csprofile"],
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c-compile",
-                        "c++-compile",
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-backend",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "cs_fdo_instrument_path",
-                        flags = ["-fcs-profile-generate=%{cs_fdo_instrument_path}"],
-                    )],
-                )],
-            ))
-        if "cs_fdo_optimize" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "cs_fdo_optimize",
-                provides = ["csprofile"],
-                flag_sets = [_flag_set(
-                    actions = ["lto-backend"],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "fdo_profile_path",
-                        flags = [
-                            "-fprofile-use=%{fdo_profile_path}",
-                            "-Wno-profile-instr-unprofiled",
-                            "-Wno-profile-instr-out-of-date",
-                            "-fprofile-correction",
-                        ],
-                    )],
-                )],
-            ))
-        if "fdo_prefetch_hints" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "fdo_prefetch_hints",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c-compile",
-                        "c++-compile",
-                        "lto-backend",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "fdo_prefetch_hints_path",
-                        flags = [
-                            "-mllvm",
-                            "-prefetch-hints-file=%{fdo_prefetch_hints_path}",
-                        ],
-                    )],
-                )],
-            ))
-        if "autofdo" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "autofdo",
-                provides = ["profile"],
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c-compile",
-                        "c++-compile",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "fdo_profile_path",
-                        flags = [
-                            "-fauto-profile=%{fdo_profile_path}",
-                            "-fprofile-correction",
-                        ],
-                    )],
-                )],
-            ))
-        if "propeller_optimize_thinlto_compile_actions" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "propeller_optimize_thinlto_compile_actions",
-            ))
-        if "propeller_optimize" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "propeller_optimize",
-                flag_sets = [
-                    _flag_set(
-                        actions = [
-                            "c-compile",
-                            "c++-compile",
-                            "lto-compile",
-                        ],
-                        flag_groups = [_flag_group(
-                            expand_if_available = "propeller_optimize_cc_path",
-                            flags = [
-                                "-fbasic-block-sections=list=%{propeller_optimize_cc_path}",
-                                "-DBUILD_PROPELLER_ENABLED=1",
-                            ],
-                        )],
-                    ),
-                    _flag_set(
-                        actions = ["c++-link-executable"],
-                        flag_groups = [_flag_group(
-                            flags = ["-Wl,--symbol-ordering-file=%{propeller_optimize_ld_path}"],
-                        )],
-                    ),
-                ],
-            ))
-        if "memprof_optimize" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "memprof_optimize",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c-compile",
-                        "c++-compile",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "memprof_profile_path",
-                        flags = ["-memprof-profile-file=%{memprof_profile_path}"],
-                    )],
-                )],
-            ))
-        if "build_interface_libraries" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "build_interface_libraries",
-                flag_sets = [_flag_set(
-                    with_features = [_with_feature_set(
-                        features = ["supports_interface_shared_libraries"],
-                    )],
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "generate_interface_library",
-                        flags = [
-                            "%{generate_interface_library}",
-                            "%{interface_library_builder_path}",
-                            "%{interface_library_input_path}",
-                            "%{interface_library_output_path}",
-                        ],
-                    )],
-                )],
-            ))
-        if "dynamic_library_linker_tool" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "dynamic_library_linker_tool",
-                flag_sets = [_flag_set(
-                    with_features = [_with_feature_set(
-                        features = ["supports_interface_shared_libraries"],
-                    )],
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "generate_interface_library",
-                        flags = [linker_tool_path],
-                    )],
-                )],
-            ))
-        if "shared_flag" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "shared_flag",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        flags = ["-shared"],
-                    )],
-                )],
-            ))
-        if "linkstamps" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "linkstamps",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "linkstamp_paths",
-                        iterate_over = "linkstamp_paths",
-                        flags = ["%{linkstamp_paths}"],
-                    )],
-                )],
-            ))
-        if "output_execpath_flags" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "output_execpath_flags",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "output_execpath",
-                        flags = ["-o", "%{output_execpath}"],
-                    )],
-                )],
-            ))
-        if "runtime_library_search_directories" not in feature_names:
-            fail("TODO: runtime_library_search_directories")
-        if "library_search_directories" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "library_search_directories",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "library_search_directories",
-                        iterate_over = "library_search_directories",
-                        flags = ["-L%{library_search_directories}"],
-                    )],
-                )],
-            ))
-        if "archiver_flags" not in feature_names:
-            fail("TODO: archiver_flags")
-        if "libraries_to_link" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "libraries_to_link",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [
-                        _flag_group(
-                            expand_if_true = "thinlto_param_file",
-                            flags = ["-Wl,@%{thinlto_param_file}"],
-                        ),
-                        _flag_group(
-                            expand_if_available = "libraries_to_link",
-                            iterate_over = "libraries_to_link",
-                            flag_groups = [
-                                _flag_group(
-                                    expand_if_equal = _variable_with_value(
-                                        name = "libraries_to_link.type",
-                                        value = "object_file_group",
-                                    ),
-                                    expand_if_false = "libraries_to_link.is_whole_archive",
-                                    flags = ["-Wl,--start-lib"],
-                                ),
-                            ] + (
-                                ([
-                                    _flag_group(
-                                        expand_if_true = "libraries_to_link.is_whole_archive",
-                                        expand_if_equal = _variable_with_value(
-                                            name = "libraries_to_link.type",
-                                            value = "static_library",
-                                        ),
-                                        flags = ["-Wl,-whole-archive"],
-                                    ),
-                                    _flag_group(
-                                        expand_if_equal = _variable_with_value(
-                                            name = "libraries_to_link.type",
-                                            value = "object_file_group",
-                                        ),
-                                        iterate_over = "libraries_to_link.object_files",
-                                        flags = ["%{libraries_to_link.object_files}"],
-                                    ),
-                                ] + [
-                                    _flag_group(
-                                        expand_if_equal = _variable_with_value(
-                                            name = "libraries_to_link.type",
-                                            value = libraries_to_link_type,
-                                        ),
-                                        flags = ["%{libraries_to_link.name}"],
-                                    )
-                                    for libraries_to_link_type in [
-                                        "object_file",
-                                        "interface_library",
-                                        "static_library",
-                                    ]
-                                ] + [
-                                    _flag_group(
-                                        expand_if_equal = _variable_with_value(
-                                            name = "libraries_to_link.type",
-                                            value = "dynamic_library",
-                                        ),
-                                        flags = ["-l%{libraries_to_link.name}"],
-                                    ),
-                                    _flag_group(
-                                        expand_if_equal = _variable_with_value(
-                                            name = "libraries_to_link.type",
-                                            value = "versioned_dynamic_library",
-                                        ),
-                                        flags = ["-l:%{libraries_to_link.name}"],
-                                    ),
-                                    _flag_group(
-                                        expand_if_true = "libraries_to_link.is_whole_archive",
-                                        expand_if_equal = _variable_with_value(
-                                            name = "libraries_to_link.type",
-                                            value = "static_library",
-                                        ),
-                                        flags = ["-Wl,-no-whole-archive"],
-                                    ),
-                                ]) if target_cpu != "macosx" else ([
-                                    _flag_group(
-                                        expand_if_equal = _variable_with_value(
-                                            name = "libraries_to_link.type",
-                                            value = "object_file_group",
-                                        ),
-                                        iterate_over = "libraries_to_link.object_files",
-                                        flag_groups = [
-                                            _flag_group(
-                                                expand_if_false = "libraries_to_link.is_whole_archive",
-                                                flags = ["%{libraries_to_link.object_files}"],
-                                            ),
-                                            _flag_group(
-                                                expand_if_true = "libraries_to_link.is_whole_archive",
-                                                flags = ["-Wl,-force_load,%{libraries_to_link.object_files}"],
-                                            ),
-                                        ],
-                                    ),
-                                ] + [
-                                    _flag_group(
-                                        expand_if_equal = _variable_with_value(
-                                            name = "libraries_to_link.type",
-                                            value = libraries_to_link_type,
-                                        ),
-                                        iterate_over = "libraries_to_link.object_files",
-                                        flag_groups = [
-                                            _flag_group(
-                                                expand_if_false = "libraries_to_link.is_whole_archive",
-                                                flags = ["%{libraries_to_link.name}"],
-                                            ),
-                                            _flag_group(
-                                                expand_if_true = "libraries_to_link.is_whole_archive",
-                                                flags = ["-Wl,-force_load,%{libraries_to_link.name}"],
-                                            ),
-                                        ],
-                                    )
-                                    for libraries_to_link_type in [
-                                        "object_file",
-                                        "interface_library",
-                                        "static_library",
-                                    ]
-                                ] + [
-                                    _flag_group(
-                                        expand_if_equal = _variable_with_value(
-                                            name = "libraries_to_link.type",
-                                            value = "dynamic_library",
-                                        ),
-                                        flags = ["-l%{libraries_to_link.name}"],
-                                    ),
-                                    _flag_group(
-                                        expand_if_equal = _variable_with_value(
-                                            name = "libraries_to_link.type",
-                                            value = "versioned_dynamic_library",
-                                        ),
-                                        flags = ["%{libraries_to_link.path}"],
-                                    ),
-                                ])
-                            ) + [
-                                _flag_group(
-                                    expand_if_equal = _variable_with_value(
-                                        name = "libraries_to_link.type",
-                                        value = "object_file_group",
-                                    ),
-                                    expand_if_false = "libraries_to_link.is_whole_archive",
-                                    flags = ["-Wl,--end-lib"],
-                                ),
-                            ],
-                        ),
-                    ],
-                )],
-            ))
-        if "force_pic_flags" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "force_pic_flags",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-executable",
-                        "lto-index-for-executable",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "force_pic",
-                        flags = ["-pie" if target_cpu != "macosx" else "-Wl,-pie"],
-                    )],
-                )],
-            ))
-        if "user_link_flags" not in feature_names:
-            fail("TODO: user_link_flags")
-        if "legacy_link_flags" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "legacy_link_flags",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "legacy_link_flags",
-                        iterate_over = "legacy_link_flags",
-                        flags = ["%{legacy_link_flags}"],
-                    )],
-                )],
-            ))
-        if "static_libgcc" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "static_libgcc",
-                enabled = True,
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                    ],
-                    with_features = [_with_feature_set(
-                        features = ["static_link_cpp_runtimes"],
-                    )],
-                    flag_groups = [_flag_group(
-                        flags = ["-static-libgcc"],
-                    )],
-                )],
-            ))
-        if "fission_support" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "fission_support",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "is_using_fission",
-                        flags = ["-Wl,--gdb-index"],
-                    )],
-                )],
-            ))
-        if "strip_debug_symbols" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "strip_debug_symbols",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "c++-link-nodeps-dynamic-library",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                        "lto-index-for-nodeps-dynamic-library",
-                    ],
-                    flag_groups = [_flag_group(
-                        expand_if_available = "strip_debug_symbols",
-                        flags = ["-Wl,-S"],
-                    )],
-                )],
-            ))
-        if "coverage" not in feature_names:
-            fail("TODO: coverage")
-
-        legacy_features_builder += [
-            feature
-            for feature in features
-            if feature.name not in ["legacy_compile_flags", "default_compile_flags"]
-        ]
-
-        if "fully_static_link" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "fully_static_link",
-                flag_sets = [_flag_set(
-                    actions = [
-                        "c++-link-dynamic-library",
-                        "c++-link-executable",
-                        "lto-index-for-dynamic-library",
-                        "lto-index-for-executable",
-                    ],
-                    flag_groups = [_flag_group(
-                        flags = ["-static"],
-                    )],
-                )],
-            ))
-        if "user_compile_flags" not in feature_names:
-            fail("TODO: user_compile_flags")
-        if "sysroot" not in feature_names:
-            fail("TODO: sysroot")
-        if "sysroot" not in feature_names:
-            fail("TODO: sysroot")
-        if "unfiltered_compile_flags" not in feature_names:
-            fail("TODO: unfiltered_compile_flags")
-        if "linker_param_file" not in feature_names:
-            legacy_features_builder.append(_feature(
-                name = "linker_param_file",
-                flag_sets = [
-                    _flag_set(
-                        actions = [
-                            "c++-link-dynamic-library",
-                            "c++-link-executable",
-                            "c++-link-nodeps-dynamic-library",
-                            "lto-index-for-dynamic-library",
-                            "lto-index-for-executable",
-                            "lto-index-for-nodeps-dynamic-library",
-                        ],
-                        flag_groups = [_flag_group(
-                            expand_if_available = "linker_param_file",
-                            flags = ["@%{linker_param_file}"],
-                        )],
-                    ),
-                    _flag_set(
-                        actions = ["c++-link-static-library"],
-                        flag_groups = [_flag_group(
-                            expand_if_available = "linker_param_file",
-                            flags = ["@%{linker_param_file}"],
-                        )],
-                    ),
-                ],
-            ))
-        if "compiler_input_flags" not in feature_names:
-            fail("TODO: compiler_input_flags")
-        if "compiler_output_flags" not in feature_names:
-            fail("TODO: compiler_output_flags")
-
-        features = legacy_features_builder
-
-        legacy_action_config_builder = []
-
-        existing_action_config_names = set([action_config.action_name for action_config in action_configs])
-        for action_name in [
-            "assemble",
-            "preprocess-assemble",
-            "linkstamp-compile",
-            "lto-backend",
-            "c-compile",
-            "c++-compile",
-            "c++-header-parsing",
-            "c++-module-compile",
-            "c++-module-codegen",
-        ]:
-            if action_name not in existing_action_config_names:
-                legacy_action_config_builder.append(_action_config(
-                    action_name = action_name,
-                    tools = [_tool(path = gcc_tool_path)],
-                    implies = [
-                        "legacy_compile_flags",
-                        "user_compile_flags",
-                        "sysroot",
-                        "unfiltered_compile_flags",
-                        "compiler_input_flags",
-                        "compiler_output_flags",
-                    ],
-                ))
-        for action_name in [
-            "c++-link-executable",
-            "lto-index-for-executable",
-        ]:
-            if action_name not in existing_action_config_names:
-                legacy_action_config_builder.append(_action_config(
-                    action_name = action_name,
-                    tools = [_tool(path = gcc_tool_path)],
-                    implies = [
-                        "strip_debug_symbols",
-                        "linkstamps",
-                        "output_execpath_flags",
-                        "runtime_library_search_directories",
-                        "library_search_directories",
-                        "libraries_to_link",
-                        "force_pic_flags",
-                        "user_link_flags",
-                        "legacy_link_flags",
-                        "linker_param_file",
-                        "fission_support",
-                        "sysroot",
-                    ],
-                ))
-        for action_name in [
-            "c++-link-nodeps-dynamic-library",
-            "lto-index-for-nodeps-dynamic-library",
-            "c++-link-dynamic-library",
-            "lto-index-for-dynamic-library",
-        ]:
-            if action_name not in existing_action_config_names:
-                legacy_action_config_builder.append(_action_config(
-                    action_name = action_name,
-                    tools = [_tool(path = gcc_tool_path)],
-                    implies = [
-                        "build_interface_libraries",
-                        "dynamic_library_linker_tool",
-                        "strip_debug_symbols",
-                        "shared_flag",
-                        "linkstamps",
-                        "output_execpath_flags",
-                        "runtime_library_search_directories",
-                        "library_search_directories",
-                        "libraries_to_link",
-                        "user_link_flags",
-                        "legacy_link_flags",
-                        "linker_param_file",
-                        "fission_support",
-                        "sysroot",
-                    ],
-                ))
-        if "c++-link-static-library" not in existing_action_config_names:
-            legacy_action_config_builder.append(_action_config(
-                action_name = "c++-link-static-library",
-                tools = [_tool(path = ar_tool_path)],
-                implies = ["archiver_flags", "linker_param_file"],
-            ))
-        if "strip" not in existing_action_config_names:
-            legacy_action_config_builder.append(_action_config(
-                action_name = "strip",
-                tools = [_tool(path = strip_tool_path)],
-                flag_sets = [_flag_set(
-                    flag_groups = [
-                        _flag_group(
-                            flags = ["-S"] +
-                                    (["-p"] if target_cpu != "macosx" else []) +
-                                    ["-o", "%{output_file}"],
-                        ),
-                        _flag_group(
-                            iterate_over = "stripopts",
-                            flags = ["%{stripopts}"],
-                        ),
-                        _flag_group(
-                            flags = ["%{input_file}"],
-                        ),
-                    ],
-                )],
-            ))
-
-        legacy_action_config_builder += action_configs
-        action_configs = legacy_action_config_builder
-
-    make_variables_tuples = [
-        (make_variable.name, make_variable.value)
-        for make_variable in make_variables
-    ]
-    tool_paths_tuples = [
-        (tool.name, _tool_get_tool_path_string(tool))
-        for tool in tool_paths
-    ]
-    return CcToolchainConfigInfo(
-        # Tools provided by the caller contain paths that are relative
-        # to the current package, but CcToolchainConfigInfo needs to
-        # report paths relative to the input root. Rewrite all action
-        # configs and tools to fix up the paths.
-        _action_configs = [
-            _action_config(
-                action_name = action_config.action_name,
-                enabled = action_config.enabled,
-                tools = [
-                    _tool(
-                        path = tool.tool.path if tool.tool else _path_relative_to_package(ctx, tool.path),
-                        tool = tool.tool,
-                        with_features = tool.with_features,
-                        execution_requirements = tool.execution_requirements,
-                    )
-                    for tool in action_config.tools
-                ],
-                flag_sets = action_config.flag_sets,
-                implies = action_config.implies,
-            )
-            for action_config in action_configs
-        ],
-        _artifact_name_patterns = {
-            pattern.category_name: struct(prefix = pattern.prefix, extension = pattern.extension)
-            for pattern in artifact_name_patterns
-        },
-        _features = features,
-        abi_libc_version = lambda: abi_libc_version,
-        abi_version = lambda: abi_version,
-        builtin_sysroot = lambda: builtin_sysroot,
-        compiler = lambda: compiler,
-        cxx_builtin_include_directories = lambda: cxx_builtin_include_directories,
-        make_variables = lambda: make_variables_tuples,
-        target_cpu = lambda: target_cpu,
-        target_libc = lambda: target_libc,
-        target_system_name = lambda: target_system_name,
-        tool_paths = lambda: tool_paths_tuples,
-        toolchain_id = lambda: toolchain_identifier,
-    )
-
-def new_header_info_builder():
-    return struct(
-        deps = [],
-        header_module = [None],
-        modular_public_headers = set(),
-        modular_private_headers = set(),
-        pic_header_module = [None],
-        separate_module = [None],
-        separate_module_headers = [],
-        separate_pic_module = [None],
-        textual_headers = set(),
-    )
-
-def header_info_add_textual_headers(hib, headers):
-    hib.textual_headers.update(headers)
-
-def header_info_add_public_headers(hib, headers):
-    for header in headers:
-        if header.path.endswith(".inc"):
-            hib.textual_headers.add(header)
-        else:
-            hib.modular_public_headers.add(header)
-
-def header_info_add_private_headers(hib, headers):
-    for header in headers:
-        if header.path.endswith(".inc"):
-            hib.textual_headers.add(header)
-        else:
-            hib.modular_private_headers.add(header)
-
-def header_info_set_pic_header_module(hib, header_module):
-    hib.pic_header_module[0] = header_module
-
-def header_info_set_header_module(hib, header_module):
-    hib.header_module[0] = header_module
-
-def header_info_set_separate_module_hdrs(hib, headers, separate_module, separate_pic_module):
-    hib.separate_module_headers.clear()
-    hib.separate_module_headers.extend(headers)
-    hib.separate_module[0] = separate_module
-    hib.separate_pic_module[0] = separate_pic_module
-
-def header_info_add_dep(hib, dep):
-    hib.deps.append(dep)
-
-def header_info_merge_header_info(hib, other_header_info):
-    hib.modular_public_headers.update(other_header_info.modular_public_headers)
-    hib.modular_private_headers.update(other_header_info.modular_private_headers)
-    hib.textual_headers.update(other_header_info.textual_headers)
-
-def header_info_build(hib):
-    return struct(
-        deps = hib.deps,
-        header_module = hib.header_module[0],
-        modular_private_headers = list(hib.modular_private_headers),
-        modular_public_headers = list(hib.modular_public_headers),
-        pic_header_module = hib.pic_header_module[0],
-        separate_module = hib.separate_module[0],
-        separate_module_headers = list(hib.separate_module_headers),
-        separate_pic_module = hib.separate_pic_module[0],
-        textual_headers = list(hib.textual_headers),
-    )
-
-def new_cc_compilation_context_builder():
-    return struct(
-        compilation_prerequisites = [depset()],
-        cpp_module_map = [None],
-        declared_include_srcs = [depset()],
-        defines = set(),
-        deps = [],
-        exported_deps = [],
-        external_include_dirs = [depset()],
-        framework_include_dirs = [depset()],
-        header_info_builder = new_header_info_builder(),
-        header_tokens = [depset()],
-        include_dirs = [depset()],
-        local_defines = set(),
-        non_code_inputs = [depset()],
-        propagate_module_map_as_action_input = [False],
-        quote_include_dirs = [depset()],
-        system_include_dirs = [depset()],
-        virtual_to_original_headers = [depset()],
-    )
-
-def cc_compilation_context_add_declared_include_srcs(ccb, declared_included_srcs):
-    ccb.declared_include_srcs[0] = depset(
-        direct = declared_included_srcs,
-        transitive = [ccb.declared_include_srcs[0]],
-    )
-    ccb.compilation_prerequisites[0] = depset(
-        direct = declared_included_srcs,
-        transitive = [ccb.compilation_prerequisites[0]],
-    )
-
-def cc_compilation_context_add_system_include_dirs(ccb, system_include_dirs):
-    ccb.system_include_dirs[0] = depset(
-        direct = system_include_dirs,
-        transitive = [ccb.system_include_dirs[0]],
-    )
-
-def cc_compilation_context_add_include_dirs(ccb, include_dirs):
-    ccb.include_dirs[0] = depset(
-        direct = include_dirs,
-        transitive = [ccb.include_dirs[0]],
-    )
-
-def cc_compilation_context_add_quote_include_dirs(ccb, quote_include_dirs):
-    ccb.quote_include_dirs[0] = depset(
-        direct = quote_include_dirs,
-        transitive = [ccb.quote_include_dirs[0]],
-    )
-
-def cc_compilation_context_add_framework_include_dirs(ccb, framework_include_dirs):
-    ccb.framework_include_dirs[0] = depset(
-        direct = framework_include_dirs,
-        transitive = [ccb.framework_include_dirs[0]],
-    )
-
-def cc_compilation_context_add_defines(ccb, defines):
-    if type(defines) == type(depset()):
-        defines = defines.to_list()
-    ccb.defines.update(defines)
-
-def cc_compilation_context_add_non_transitive_defines(ccb, defines):
-    if type(defines) == type(depset()):
-        defines = defines.to_list()
-    ccb.local_defines.update(defines)
-
-def cc_compilation_context_add_textual_hdrs(ccb, headers):
-    header_info_add_textual_headers(ccb.header_info_builder, headers)
-
-def cc_compilation_context_add_modular_public_hdrs(ccb, headers):
-    header_info_add_public_headers(ccb.header_info_builder, headers)
-
-def cc_compilation_context_add_modular_private_hdrs(ccb, headers):
-    header_info_add_private_headers(ccb.header_info_builder, headers)
-
-def cc_compilation_context_set_cpp_module_map(ccb, cpp_module_map):
-    ccb.cpp_module_map[0] = cpp_module_map
-
-def cc_compilation_context_add_external_include_dirs(ccb, external_include_dirs):
-    ccb.external_include_dirs[0] = depset(
-        direct = external_include_dirs,
-        transitive = [ccb.external_include_dirs[0]],
-    )
-
-def cc_compilation_context_add_virtual_to_original_headers(ccb, virtual_to_original_headers):
-    ccb.virtual_to_original_headers[0] = depset(
-        transitive = [ccb.virtual_to_original_headers[0], virtual_to_original_headers],
-    )
-
-def cc_compilation_context_add_dependent_cc_compilation_contexts(ccb, exported_cc_compilation_contexts, cc_compilation_contexts):
-    ccb.deps.extend(cc_compilation_contexts)
-    ccb.exported_deps.extend(exported_cc_compilation_contexts)
-
-def cc_compilation_context_add_non_code_inputs(ccb, inputs):
-    ccb.non_code_inputs[0] = depset(
-        direct = inputs,
-        transitive = [ccb.non_code_inputs[0]],
-    )
-
-def cc_compilation_context_set_propagate_cpp_module_map_as_action_input(ccb, propagate_module_map):
-    ccb.propagate_module_map_as_action_input[0] = propagate_module_map
-
-def cc_compilation_context_set_pic_header_module(ccb, pic_header_module):
-    header_info_set_pic_header_module(ccb.header_info_builder, pic_header_module)
-
-def cc_compilation_context_set_header_module(ccb, header_module):
-    header_info_set_header_module(ccb.header_info_builder, header_module)
-
-def cc_compilation_context_set_separate_module_hdrs(ccb, headers, separate_module, separate_pic_module):
-    header_info_set_separate_module_hdrs(ccb.header_info_builder, headers, separate_module, separate_pic_module)
-
-def cc_compilation_context_merge_dependent_cc_compilation_context(
-        ccb,
-        other_cc_compilation_context,
-        all_defines,
-        transitive_modules,
-        transitive_pic_modules,
-        direct_module_maps):
-    ccb.compilation_prerequisites[0] = depset(transitive = [ccb.compilation_prerequisites[0], other_cc_compilation_context._compilation_prerequisites])
-    ccb.include_dirs[0] = depset(transitive = [ccb.include_dirs[0], other_cc_compilation_context.includes])
-    ccb.quote_include_dirs[0] = depset(transitive = [ccb.quote_include_dirs[0], other_cc_compilation_context.quote_includes])
-    ccb.system_include_dirs[0] = depset(transitive = [ccb.system_include_dirs[0], other_cc_compilation_context.system_includes])
-    ccb.framework_include_dirs[0] = depset(transitive = [ccb.framework_include_dirs[0], other_cc_compilation_context.framework_includes])
-    ccb.external_include_dirs[0] = depset(transitive = [ccb.external_include_dirs[0], other_cc_compilation_context.external_includes])
-    ccb.declared_include_srcs[0] = depset(transitive = [ccb.declared_include_srcs[0], other_cc_compilation_context.headers])
-    header_info_add_dep(ccb.header_info_builder, other_cc_compilation_context._header_info)
-
-    transitive_modules[0] = depset(
-        direct =
-            ([other_cc_compilation_context._header_info.header_module] if other_cc_compilation_context._header_info.header_module else []) +
-            ([other_cc_compilation_context._header_info.separate_module] if other_cc_compilation_context._header_info.separate_module else []),
-        transitive = [transitive_modules[0], other_cc_compilation_context.transitive_modules(use_pic = False)],
-    )
-    transitive_pic_modules[0] = depset(
-        direct =
-            ([other_cc_compilation_context._header_info.pic_header_module] if other_cc_compilation_context._header_info.pic_header_module else []) +
-            ([other_cc_compilation_context._header_info.separate_pic_module] if other_cc_compilation_context._header_info.separate_pic_module else []),
-        transitive = [transitive_pic_modules[0], other_cc_compilation_context.transitive_modules(use_pic = True)],
-    )
-
-    ccb.non_code_inputs[0] = depset(transitive = [ccb.non_code_inputs[0], other_cc_compilation_context._non_code_inputs])
-
-    other_module_map = other_cc_compilation_context.module_map()
-    if other_module_map:
-        direct_module_maps.add(other_module_map.file())
-    for module_map in other_cc_compilation_context.exporting_module_maps():
-        direct_module_maps.add(module_map.file())
-
-    all_defines[0] = depset(transitive = [all_defines[0], other_cc_compilation_context.defines])
-    ccb.virtual_to_original_headers[0] = depset(transitive = [ccb.virtual_to_original_headers[0], other_cc_compilation_context.virtual_to_original_headers()])
-
-    ccb.header_tokens[0] = depset(transitive = [ccb.header_tokens[0], other_cc_compilation_context.validation_artifacts])
-
-def cc_compilation_context_merge_dependent_cc_compilation_contexts(
-        ccb,
-        exported_cc_compilation_contexts,
-        cc_compilation_contexts,
-        all_defines,
-        transitive_modules,
-        transitive_pic_modules,
-        direct_module_maps,
-        exporting_module_maps):
-    for cc_compilation_context in exported_cc_compilation_contexts + cc_compilation_contexts:
-        cc_compilation_context_merge_dependent_cc_compilation_context(
-            ccb,
-            cc_compilation_context,
-            all_defines,
-            transitive_modules,
-            transitive_pic_modules,
-            direct_module_maps,
-        )
-
-    for cc_compilation_context in exported_cc_compilation_contexts:
-        module_map = cc_compilation_context.module_map()
-        if module_map:
-            exporting_module_maps.add(module_map)
-        exporting_module_maps.update(cc_compilation_context.exporting_module_maps())
-
-        header_info_merge_header_info(ccb.header_info_builder, cc_compilation_context._header_info)
-
-def cc_compilation_context_build(ccb):
-    # From CcCompilationContext.Builder.build():
-    all_defines = [depset()]
-    transitive_modules = [depset()]
-    transitive_pic_modules = [depset()]
-    direct_module_maps = set()
-    exporting_module_maps = set()
-    cc_compilation_context_merge_dependent_cc_compilation_contexts(
-        ccb,
-        ccb.exported_deps,
-        ccb.deps,
-        all_defines,
-        transitive_modules,
-        transitive_pic_modules,
-        direct_module_maps,
-        exporting_module_maps,
-    )
-
-    all_defines[0] = depset(direct = list(ccb.defines), transitive = [all_defines[0]])
-
-    header_info = header_info_build(ccb.header_info_builder)
-    constructed_prereq = ccb.compilation_prerequisites[0]
-    module_map = ccb.cpp_module_map[0]
-    additional_inputs = depset(
-        direct = list(direct_module_maps) + (
-            [ccb.cpp_module_map[0].file()] if ccb.cpp_module_map[0] else []
-        ),
-        transitive = [ccb.non_code_inputs[0]],
-    )
-    exporting_module_maps_list = list(exporting_module_maps)
-    transitive_modules_depset = transitive_modules[0]
-    transitive_pic_modules_depset = transitive_pic_modules[0]
-    virtual_to_original_headers = ccb.virtual_to_original_headers[0]
-    return struct(
-        _compilation_prerequisites = constructed_prereq,
-        _header_info = header_info,
-        _non_code_inputs = ccb.non_code_inputs[0],
-        virtual_to_original_headers = lambda: virtual_to_original_headers,
-        additional_inputs = lambda: additional_inputs,
-        defines = all_defines[0],
-        exporting_module_maps = lambda: exporting_module_maps_list,
-        external_includes = ccb.external_include_dirs[0],
-        framework_includes = ccb.framework_include_dirs[0],
-        headers = ccb.declared_include_srcs[0],
-        includes = ccb.include_dirs[0],
-        module_map = lambda: module_map,
-        quote_includes = ccb.quote_include_dirs[0],
-        system_includes = ccb.system_include_dirs[0],
-        transitive_modules = lambda use_pic: transitive_pic_modules_depset if use_pic else transitive_modules_depset,
-        validation_artifacts = ccb.header_tokens[0],
-    )
-
-def builtins_internal_cc_common_create_compilation_context(
-        *,
-        actions = None,
-        add_public_headers_to_modular_headers = None,
-        defines = None,
-        dependent_cc_compilation_contexts = [],
-        direct_private_headers = [],
-        direct_public_headers = [],
-        direct_textual_headers = [],
-        exported_dependent_cc_compilation_contexts = [],
-        external_includes = None,
-        framework_includes = None,
-        header_module = None,
-        headers = None,
-        headers_checking_mode = None,
-        includes = None,
-        label = None,
-        local_defines = None,
-        loose_hdrs_dirs = [],
-        module_map = None,
-        non_code_inputs = [],
-        pic_header_module = None,
-        propagate_module_map_to_compile_action = False,
-        purpose = None,
-        quote_includes = None,
-        separate_module = None,
-        separate_module_headers = [],
-        separate_pic_module = None,
-        system_includes = None,
-        virtual_to_original_headers = None):
-    # From CcModule.createCcCompilationContext():
-    cc_compilation_context = new_cc_compilation_context_builder()
-
-    header_list = (headers or depset()).to_list()
-    cc_compilation_context_add_declared_include_srcs(cc_compilation_context, header_list)
-    textual_hdrs_list = list(direct_textual_headers)
-    modular_public_hdrs_list = list(direct_public_headers)
-    modular_private_hdrs_list = list(direct_private_headers)
-
-    cc_compilation_context_add_system_include_dirs(cc_compilation_context, (system_includes or depset()).to_list())
-    cc_compilation_context_add_include_dirs(cc_compilation_context, (includes or depset()).to_list())
-    cc_compilation_context_add_quote_include_dirs(cc_compilation_context, (quote_includes or depset()).to_list())
-    cc_compilation_context_add_framework_include_dirs(cc_compilation_context, (framework_includes or depset()).to_list())
-    cc_compilation_context_add_defines(cc_compilation_context, defines or list())
-    cc_compilation_context_add_non_transitive_defines(cc_compilation_context, local_defines or list())
-    cc_compilation_context_add_textual_hdrs(cc_compilation_context, textual_hdrs_list)
-    cc_compilation_context_add_modular_public_hdrs(cc_compilation_context, modular_public_hdrs_list)
-    cc_compilation_context_add_modular_private_hdrs(cc_compilation_context, modular_private_hdrs_list)
-
-    if module_map:
-        cc_compilation_context_set_cpp_module_map(cc_compilation_context, module_map)
-
-    cc_compilation_context_add_external_include_dirs(cc_compilation_context, (external_includes or depset()).to_list())
-
-    cc_compilation_context_add_virtual_to_original_headers(cc_compilation_context, virtual_to_original_headers or depset())
-
-    cc_compilation_context_add_dependent_cc_compilation_contexts(
-        cc_compilation_context,
-        exported_dependent_cc_compilation_contexts,
-        dependent_cc_compilation_contexts,
-    )
-
-    cc_compilation_context_add_non_code_inputs(cc_compilation_context, non_code_inputs)
-
-    cc_compilation_context_set_propagate_cpp_module_map_as_action_input(cc_compilation_context, propagate_module_map_to_compile_action)
-    cc_compilation_context_set_pic_header_module(cc_compilation_context, pic_header_module)
-    cc_compilation_context_set_header_module(cc_compilation_context, header_module)
-    cc_compilation_context_set_separate_module_hdrs(
-        cc_compilation_context,
-        separate_module_headers,
-        separate_module,
-        separate_pic_module,
-    )
-
-    if add_public_headers_to_modular_headers:
-        cc_compilation_context_add_modular_public_hdrs(cc_compilation_context, header_list)
-
-    return cc_compilation_context_build(cc_compilation_context)
-
-def _create_lto_compilation_context():
-    return struct(
-        lto_bitcode_inputs = lambda: {},
-    )
-
-def builtins_internal_cc_common_create_compilation_outputs(
-        *,
-        dwo_objects,
-        pic_dwo_objects,
-        lto_compilation_context = None,
-        objects = None,
-        pic_objects = None):
-    return _create_compilation_outputs(
-        header_tokens = depset(),
-        lto_compilation_context = lto_compilation_context or _create_lto_compilation_context(),
-        objects = objects or depset(),
-        pic_objects = pic_objects or depset(),
-    )
-
-def builtins_internal_cc_common_create_compile_variables(
-        cc_toolchain,
-        feature_configuration,
-        source_file = None,
-        output_file = None,
-        user_compile_flags = None,
-        include_directories = None,
-        quote_include_directories = None,
-        system_include_directories = None,
-        framework_include_directories = None,
-        preprocessor_defines = None,
-        thinlto_index = None,
-        thinlto_input_bitcode_file = None,
-        thinlto_output_object_file = None,
-        use_pic = False,
-        add_legacy_cxx_options = False,
-        variables_extension = None,
-        strip_opts = None,
-        input_file = None):
-    # From CompileBuildVariables.setupCommonVariablesInternal():
-    variables = {}
-    variables["include_paths"] = include_directories or depset()
-    variables["quote_include_paths"] = quote_include_directories or depset()
-    variables["system_include_paths"] = system_include_directories or depset()
-    variables["framework_include_paths"] = framework_include_directories or depset()
-    variables["preprocessor_defines"] = preprocessor_defines or depset()
-    variables.update(variables_extension)
-
-    # From CompileBuildVariables.setupSpecificVariables():
-    variables["user_compile_flags"] = user_compile_flags or []
-    if source_file:
-        variables["source_file"] = source_file
-    if output_file:
-        variables["output_file"] = output_file
-    if thinlto_index:
-        variables["thinlto_index"] = thinlto_index
-    if thinlto_input_bitcode_file:
-        variables["thinlto_input_bitcode_file"] = thinlto_input_bitcode_file
-    if thinlto_output_object_file:
-        variables["thinlto_output_object_file"] = thinlto_output_object_file
-    if use_pic:
-        variables["pic"] = ""
-
-    # From CcModule.getCompileBuildVariables():
-    variables["striptopts"] = strip_opts
-    return variables
-
-def _create_debug_context(dwo_files, pic_dwo_files):
-    return struct(
-        dwo_files = dwo_files,
-        pic_dwo_files = pic_dwo_files,
-        # TODO: How do we set these?
-        files = depset(),
-        pic_files = depset(),
-    )
-
-def builtins_internal_cc_common_create_debug_context(compilation_outputs = None):
-    return _create_debug_context(
-        dwo_files = compilation_outputs._dwo_files if compilation_outputs else depset(),
-        pic_dwo_files = compilation_outputs._pic_dwo_files if compilation_outputs else depset(),
-    )
-
-def builtins_internal_cc_common_create_linker_input(
-        *,
-        owner,
-        additional_inputs = None,
-        libraries = None,
-        linkstamps = None,
-        user_link_flags = None):
-    return struct(
-        additional_inputs = tuple(additional_inputs.to_list()) if additional_inputs else (),
-        libraries = tuple(libraries.to_list()) if libraries else (),
-        linkstamps = tuple(linkstamps.to_list()) if linkstamps else (),
-        user_link_flags = tuple(user_link_flags) if user_link_flags else (),
-    )
-
-def builtins_internal_cc_common_create_linking_context(
-        *,
-        additional_inputs = None,
-        extra_link_time_library = None,
-        libraries_to_link = None,
-        linker_inputs = None,
-        owner = None,
-        user_link_flags = None):
-    return struct(
-        extra_link_time_libraries = lambda: struct(
-            # TODO: Return proper depsets.
-            build_libraries = lambda ctx, static_mode, for_dynamic_library: (depset(), depset()),
-        ),
-        linker_inputs = linker_inputs or depset(),
-    )
-
-def builtins_internal_cc_common_create_lto_compilation_context(*, objects = {}):
-    return struct(__todo_lto_compilation_context = True)
-
-def cpp_module_map_file(module_map):
-    return lambda: module_map._file
-
-def cpp_module_map_umbrella_header(module_map):
-    return lambda: module_map._umbrella_header
-
-CppModuleMap = provider(
-    computed_fields = {
-        "file": cpp_module_map_file,
-        "umbrella_header": cpp_module_map_umbrella_header,
-    },
-)
-
-def builtins_internal_cc_common_create_module_map(
-        *,
-        file,
-        name,
-        umbrella_header = None):
-    return CppModuleMap(
-        _file = file,
-        _umbrella_header = umbrella_header,
     )
 
 def env_entry_can_be_expanded(env_entry, variables):
@@ -2887,8 +1028,11 @@ def builtins_internal_cc_common_get_memory_inefficient_command_line(
         )
     return command_line
 
-def _tool_get_tool_path_string(tool):
-    return tool.path
+def _tool_get_tool_path_string(tool, cc_toolchain_path):
+    p = tool.path
+    if cc_toolchain_path and not p.startswith("/"):
+        p = cc_toolchain_path + "/" + p
+    return p
 
 def _tool_is_with_features_satisfied(with_feature_sets, enabled_feature_names):
     if not with_feature_sets:
@@ -2907,77 +1051,11 @@ def builtins_internal_cc_common_get_tool_for_action(feature_configuration, actio
     action_config = feature_configuration._action_config_by_action_name[action_name]
     return _tool_get_tool_path_string(
         _action_config_get_tool(action_config, feature_configuration._enabled_feature_names),
+        feature_configuration._cc_toolchain_path,
     )
 
 def builtins_internal_cc_common_get_tool_requirement_for_action(*, action_name, feature_configuration):
     return []
-
-def builtins_internal_cc_common_merge_compilation_contexts(compilation_contexts = [], non_exported_compilation_contexts = []):
-    cc_compilation_context = new_cc_compilation_context_builder()
-    cc_compilation_context_add_dependent_cc_compilation_contexts(
-        cc_compilation_context,
-        compilation_contexts,
-        non_exported_compilation_contexts,
-    )
-    return cc_compilation_context_build(cc_compilation_context)
-
-def builtins_internal_cc_common_merge_compilation_outputs(*, compilation_outputs = []):
-    return _create_compilation_outputs(
-        header_tokens = depset(
-            transitive = [
-                co._header_tokens
-                for co in compilation_outputs
-            ],
-        ),
-        objects = depset(
-            transitive = [
-                co._objects
-                for co in compilation_outputs
-            ],
-        ),
-        pic_objects = depset(
-            transitive = [
-                co._pic_objects
-                for co in compilation_outputs
-            ],
-        ),
-        lto_compilation_context = _create_lto_compilation_context(),
-    )
-
-def builtins_internal_cc_common_merge_debug_context(debug_contexts = []):
-    return _create_debug_context(
-        dwo_files = depset(
-            transitive = [
-                dc.dwo_files
-                for dc in debug_contexts
-            ],
-        ),
-        pic_dwo_files = depset(
-            transitive = [
-                dc.pic_dwo_files
-                for dc in debug_contexts
-            ],
-        ),
-    )
-
-def builtins_internal_cc_common_merge_linking_contexts(linking_contexts = []):
-    return builtins_internal_cc_common_create_linking_context(
-        linker_inputs = depset(
-            transitive = [
-                lc.linker_inputs
-                for lc in linking_contexts
-            ],
-            order = "topological",
-        ),
-    )
-
-def builtins_internal_cc_common_validate_starlark_compile_api_call(
-        *,
-        actions,
-        include_prefix,
-        strip_include_prefix,
-        additional_include_scanning_roots):
-    pass
 
 def builtins_internal_cc_internal_actions2ctx_cheat(actions):
     return native.current_ctx()
@@ -2987,13 +1065,13 @@ def builtins_internal_cc_internal_cc_toolchain_features(*, toolchain_config_info
     selectables_by_name = {}
     action_configs_by_action_name = {}
     default_selectables = []
-    for feature in toolchain_config_info._features:
+    for feature in toolchain_config_info._features_DO_NOT_USE:
         selectables.append(feature)
         selectables_by_name[feature.name] = feature
         if feature.enabled:
             default_selectables.append(feature.name)
 
-    for action_config in toolchain_config_info._action_configs:
+    for action_config in toolchain_config_info._action_configs_DO_NOT_USE:
         selectables.append(action_config)
         selectables_by_name[action_config.action_name] = action_config
         action_configs_by_action_name[action_config.action_name] = action_config
@@ -3006,7 +1084,7 @@ def builtins_internal_cc_internal_cc_toolchain_features(*, toolchain_config_info
     implied_by = {}
     required_by = {}
 
-    for feature in toolchain_config_info._features:
+    for feature in toolchain_config_info._features_DO_NOT_USE:
         name = feature.name
         for required_features in feature.requires:
             all_of = set()
@@ -3020,28 +1098,40 @@ def builtins_internal_cc_internal_cc_toolchain_features(*, toolchain_config_info
         for provides_name in feature.provides:
             provides.setdefault(provides_name, set()).add(name)
 
-    for action_config in toolchain_config_info._action_configs:
+    for action_config in toolchain_config_info._action_configs_DO_NOT_USE:
         name = action_config.action_name
         for implied_name in action_config.implies:
             implied_by.setdefault(implied_name, set()).add(name)
             implies.setdefault(name, set()).add(implied_name)
 
+    def configure_features(requested_features):
+        return _get_feature_configuration(
+            requested_features,
+            selectables_by_name,
+            selectables,
+            provides,
+            implies,
+            implied_by,
+            requires,
+            required_by,
+            action_configs_by_action_name,
+            tools_directory,
+        )
+
     return struct(
-        _action_configs_by_action_name = action_configs_by_action_name,
-        _artifact_name_patterns = toolchain_config_info._artifact_name_patterns,
-        _cc_toolchain_path = tools_directory,
-        _implied_by = implied_by,
-        _implies = implies,
-        _provides = provides,
-        _required_by = required_by,
-        _requires = requires,
-        _selectables = selectables,
-        _selectables_by_name = selectables_by_name,
+        _artifact_name_patterns = {
+            pattern.category_name: pattern
+            for pattern in toolchain_config_info._artifact_name_patterns_DO_NOT_USE
+        },
+        configure_features = configure_features,
         default_features_and_action_configs = lambda: default_selectables,
     )
 
 def builtins_internal_cc_internal_cc_toolchain_variables(vars):
     return vars
+
+def builtins_internal_cc_internal_check_private_api(*, allowlist, depth = 1):
+    pass
 
 def builtins_internal_cc_internal_collect_libraries_to_link(
         libraries_to_link,
@@ -3060,16 +1150,141 @@ def builtins_internal_cc_internal_collect_libraries_to_link(
         library_search_directories = depset(),
     )
 
+def builtins_internal_cc_internal_combine_cc_toolchain_variables(parent, *variables):
+    for v in variables:
+        parent = parent | v
+    return parent
+
+def builtins_internal_cc_internal_compute_output_name_prefix_dir(*, configuration, purpose):
+    return ""
+
 def builtins_internal_cc_internal_convert_library_to_link_list_to_linker_input_list(libraries_to_link, static_mode, for_dynamic_library, support_dynamic_linker):
     library_inputs = []
     for library_to_link in libraries_to_link.to_list():
         fail("TODO: implement!")
     return library_inputs
 
-def builtins_internal_cc_internal_create_cc_launcher_info(*, cc_info, compilation_outputs):
-    return CcLauncherInfo(
-        cc_info = lambda: cc_info,
-        compilation_outputs = lambda: compilation_outputs,
+def builtins_internal_cc_internal_create_cc_compile_action(
+        *,
+        action_construction_context,
+        cc_compilation_context,  # TODO
+        cc_toolchain,  # TODO
+        compile_build_variables,
+        configuration,  # TODO
+        feature_configuration,
+        source,  # TODO
+        toolchain_type,  # TODO
+        action_name = None,
+        additional_compilation_inputs = [],
+        additional_compilation_inputs_set = None,
+        additional_include_scanning_roots = [],  # TODO
+        additional_outputs = [],  # TODO
+        additional_prunable_headers = None,  # TODO
+        build_info_header_files = None,  # TODO
+        cache_key_inputs = None,  # TODO
+        copts_filter = None,  # TODO
+        diagnostics_file = None,  # TODO
+        dotd_file = None,  # TODO
+        dwo_file = None,  # TODO
+        gcno_file = None,  # TODO
+        lto_indexing_file = None,  # TODO
+        modmap_file = None,  # TODO
+        modmap_input_file = None,  # TODO
+        module_files = None,  # TODO
+        needs_include_validation = False,  # TODO
+        output_file = None,
+        progress_message_prefix = None,  # TODO
+        shareable = None,  # TODO
+        should_scan_includes = None,  # TODO
+        use_pic = False):
+    # From CppCompileActionBuilder.getActionName():
+    if not action_name:
+        source_path = source.path
+        if source_path.endswith(".cppmap"):
+            action_name = "c++-module-compile"
+        elif source_path.endswith((".h", ".hh", ".hpp", ".ipp", ".hxx", ".h++", ".inc", ".inl", ".tlh", ".tli", ".H", ".tcc")):
+            if not feature_configuration.is_enabled("parse_headers"):
+                fail("header files can only be used as source files if header parsing is enabled")
+            action_name = "c++-header-parsing"
+        elif source_path.endswith(".c"):
+            action_name = "c-compile"
+        elif source_path.endswith((".cc", ".cpp", ".cxx", ".c++", ".C", ".cu", ".cl")):
+            action_name = "c++-compile"
+        elif source_path.endswith(".m"):
+            action_name = "objc-compile"
+        elif source_path.endswith(".mm"):
+            action_name = "objc++-compile"
+        elif source_path.endswith(".s"):
+            action_name = "assemble"
+        elif source_path.endswith(".S"):
+            action_name = "preprocess-assemble"
+        elif source_path.endswith(".ipb"):
+            action_name = "clif-match"
+        elif source_path.endswith((".pcm", ".gcm", ".ifc")):
+            action_name = "c++-module-codegen"
+        else:
+            fail("cannot infer action name for source file " + source.path)
+
+    direct_inputs = [source]
+    if additional_compilation_inputs:
+        direct_inputs += additional_compilation_inputs
+    transitive_inputs = [cc_toolchain.all_files, cc_compilation_context.headers]
+    if additional_compilation_inputs_set:
+        transitive_inputs.append(additional_compilation_inputs_set)
+    inputs = depset(
+        direct = direct_inputs,
+        transitive = transitive_inputs,
+    )
+
+    outputs = []
+    if output_file:
+        outputs.append(output_file)
+    if dotd_file:
+        outputs.append(dotd_file)
+
+    action_construction_context.actions.run(
+        executable = builtins_internal_cc_common_get_tool_for_action(feature_configuration, action_name),
+        arguments = builtins_internal_cc_common_get_memory_inefficient_command_line(feature_configuration, action_name, compile_build_variables),
+        env = builtins_internal_cc_common_get_environment_variables(feature_configuration, action_name, compile_build_variables),
+        inputs = inputs,
+        outputs = outputs,
+    )
+
+def builtins_internal_cc_internal_create_header_info(
+        *,
+        header_module = None,
+        modular_private_headers = [],
+        modular_public_headers = [],
+        pic_header_module = None,
+        separate_module = None,
+        separate_module_headers = [],
+        separate_pic_module = None,
+        textual_headers = []):
+    return struct(
+        header_module = header_module,
+        modular_private_headers = modular_private_headers,
+        modular_public_headers = modular_public_headers,
+        pic_header_module = pic_header_module,
+        separate_module = separate_module,
+        separate_module_headers = separate_module_headers,
+        separate_pic_module = separate_pic_module,
+        textual_headers = textual_headers,
+    )
+
+def builtins_internal_cc_internal_create_header_info_with_deps(
+        *,
+        header_info = None,
+        deps = [],
+        merged_deps = []):
+    return struct(
+        header_module = header_info.header_module,
+        modular_private_headers = header_info.modular_private_headers,
+        modular_public_headers = header_info.modular_public_headers,
+        pic_header_module = header_info.pic_header_module,
+        separate_module = header_info.separate_module,
+        separate_module_headers = header_info.separate_module_headers,
+        separate_pic_module = header_info.separate_pic_module,
+        textual_headers = header_info.textual_headers,
     )
 
 def builtins_internal_cc_internal_create_cpp_source(*, label, source, type):
@@ -3155,6 +1370,9 @@ def builtins_internal_cc_internal_create_shared_non_lto_artifacts(
             fail("TODO")
     return shared_non_lto_backends
 
+def builtins_internal_cc_internal_declare_compile_output_file(*, configuration, ctx, label, output_name):
+    return ctx.actions.declare_file(output_name)
+
 def _escaped_path(p):
     return "".join([
         "_U" if c == "_" else "_S" if c == "/" else "_B" if c == "\\" else "_C" if c == ":" else "_A" if c == "@" else c
@@ -3178,13 +1396,8 @@ def builtins_internal_cc_internal_dynamic_library_symlink(actions, library, soli
     actions.symlink(symlink, target_file = library)
     return symlink
 
-def builtins_internal_cc_internal_empty_compilation_outputs():
-    return _create_compilation_outputs(
-        header_tokens = depset(),
-        objects = depset(),
-        pic_objects = depset(),
-        lto_compilation_context = _create_lto_compilation_context(),
-    )
+def builtins_internal_cc_internal_exec_os(ctx):
+    return "unknown"
 
 def builtins_internal_cc_internal_escape_label(label):
     return _escaped_path(label.repo_name + "@" + label.package + ":" + label.name)
@@ -3202,6 +1415,13 @@ def builtins_internal_cc_internal_for_static_library(name, is_whole_archive):
         name = name,
         type = "static_library",
     )
+
+def builtins_internal_cc_internal_freeze(value):
+    if type(value) == "list":
+        return tuple(value)
+    if type(value) == "dict":
+        return tuple(value.items())
+    return value
 
 # Artifact name patterns that are registered by default.
 # Obtained from ArtifactCategory.java.
@@ -3266,8 +1486,21 @@ def builtins_internal_cc_internal_get_link_args(
     args.add_all(command_line)
     return args
 
+def builtins_internal_cc_internal_intern_seq(seq):
+    return tuple(seq)
+
+def builtins_internal_cc_internal_intern_string_sequence_variable_value(string_sequence):
+    return string_sequence
+
+def builtins_internal_cc_internal_is_tree_artifact(artifact):
+    return artifact.is_directory
+
 def builtins_internal_cc_internal_licenses(ctx):
     return None
+
+def builtins_internal_cc_internal_per_file_copts(cpp_configuration, source_file, label):
+    # TODO: Implement.
+    return ()
 
 def builtins_internal_cc_internal_wrap_link_actions(actions, build_config = None, use_shareable_artifact_factory = False):
     return actions
@@ -3342,7 +1575,6 @@ def builtins_json_encode_indent(x, **kwargs):
 exported_rules = {
     "alias": native.alias,
     "cc_libc_top_alias": cc_libc_top_alias,
-    "cc_proto_library": cc_proto_library,
     "cc_toolchain_suite": cc_toolchain_suite,
     "config_setting": config_setting,
     "constraint_setting": constraint_setting,
@@ -3352,13 +1584,11 @@ exported_rules = {
     "genrule": genrule,
     "glob": native.glob,
     "java_plugins_flag_alias": java_plugins_flag_alias,
-    "java_proto_library": java_proto_library,
     "label_flag": native.label_flag,
     "label_setting": native.label_setting,
     "licenses": licenses,
     "package_group": native.package_group,
     "platform": platform,
-    "sh_test": sh_test,
     "starlark_doc_extract": starlark_doc_extract,
     "test_suite": test_suite,
     "toolchain": toolchain,
@@ -3370,15 +1600,10 @@ exported_toplevels = {
     "DefaultInfo": DefaultInfo,
     "OutputGroupInfo": OutputGroupInfo,
     "RunEnvironmentInfo": RunEnvironmentInfo,
-    "CcInfo": CcInfo,
-    "CcToolchainConfigInfo": CcToolchainConfigInfo,
-    "DebugPackageInfo": DebugPackageInfo,
     "InstrumentedFilesInfo": InstrumentedFilesInfo,
     "JavaInfo": JavaInfo,
     "JavaPluginInfo": JavaPluginInfo,
     "PackageSpecificationInfo": PackageSpecificationInfo,
-    "ProguardSpecProvider": ProguardSpecProvider,
-    "PyInfo": PyInfo,
     "config_common": struct(
         FeatureFlagInfo = FeatureFlagInfo,
         toolchain_type = config_common.toolchain_type,
@@ -3413,60 +1638,50 @@ exported_toplevels = {
 
 exported_toplevels["_builtins"] = struct(
     internal = struct(
-        CcNativeLibraryInfo = CcNativeLibraryInfo,
-        StaticallyLinkedMarkerProvider = StaticallyLinkedMarkerProvider,
         apple_common = struct(
             dotted_version = builtins_internal_apple_common_dotted_version,
         ),
         cc_common = struct(
-            CcToolchainInfo = CcToolchainInfo,
             action_is_enabled = builtins_internal_cc_common_action_is_enabled,
-            check_private_api = builtins_internal_cc_common_check_private_api,
-            configure_features = builtins_internal_cc_common_configure_features,
-            create_cc_compile_actions = builtins_internal_cc_common_create_cc_compile_actions,
-            create_cc_toolchain_config_info = builtins_internal_cc_common_create_cc_toolchain_config_info,
-            create_compilation_context = builtins_internal_cc_common_create_compilation_context,
-            create_compilation_outputs = builtins_internal_cc_common_create_compilation_outputs,
-            create_compile_variables = builtins_internal_cc_common_create_compile_variables,
-            create_debug_context = builtins_internal_cc_common_create_debug_context,
-            create_linker_input = builtins_internal_cc_common_create_linker_input,
-            create_linking_context = builtins_internal_cc_common_create_linking_context,
-            create_lto_compilation_context = builtins_internal_cc_common_create_lto_compilation_context,
-            create_module_map = builtins_internal_cc_common_create_module_map,
             do_not_use_tools_cpp_compiler_present = None,
             get_environment_variables = builtins_internal_cc_common_get_environment_variables,
             get_execution_requirements = builtins_internal_cc_common_get_execution_requirements,
             get_memory_inefficient_command_line = builtins_internal_cc_common_get_memory_inefficient_command_line,
             get_tool_for_action = builtins_internal_cc_common_get_tool_for_action,
             get_tool_requirement_for_action = builtins_internal_cc_common_get_tool_requirement_for_action,
-            merge_compilation_contexts = builtins_internal_cc_common_merge_compilation_contexts,
-            merge_compilation_outputs = builtins_internal_cc_common_merge_compilation_outputs,
-            merge_debug_context = builtins_internal_cc_common_merge_debug_context,
-            merge_linking_contexts = builtins_internal_cc_common_merge_linking_contexts,
-            validate_starlark_compile_api_call = builtins_internal_cc_common_validate_starlark_compile_api_call,
         ),
         cc_internal = struct(
             actions2ctx_cheat = builtins_internal_cc_internal_actions2ctx_cheat,
             cc_toolchain_features = builtins_internal_cc_internal_cc_toolchain_features,
             cc_toolchain_variables = builtins_internal_cc_internal_cc_toolchain_variables,
+            check_private_api = builtins_internal_cc_internal_check_private_api,
             collect_libraries_to_link = builtins_internal_cc_internal_collect_libraries_to_link,
+            combine_cc_toolchain_variables = builtins_internal_cc_internal_combine_cc_toolchain_variables,
+            compute_output_name_prefix_dir = builtins_internal_cc_internal_compute_output_name_prefix_dir,
             convert_library_to_link_list_to_linker_input_list = builtins_internal_cc_internal_convert_library_to_link_list_to_linker_input_list,
-            create_cc_launcher_info = builtins_internal_cc_internal_create_cc_launcher_info,
-            create_cpp_source = builtins_internal_cc_internal_create_cpp_source,
+            create_cc_compile_action = builtins_internal_cc_internal_create_cc_compile_action,
             create_copts_filter = builtins_internal_cc_internal_create_copts_filter,
+            create_cpp_source = builtins_internal_cc_internal_create_cpp_source,
+            create_header_info = builtins_internal_cc_internal_create_header_info,
+            create_header_info_with_deps = builtins_internal_cc_internal_create_header_info_with_deps,
             create_library_to_link = builtins_internal_cc_internal_create_library_to_link,
             create_module_map_action = builtins_internal_cc_internal_create_module_map_action,
             create_shared_non_lto_artifacts = builtins_internal_cc_internal_create_shared_non_lto_artifacts,
+            declare_compile_output_file = builtins_internal_cc_internal_declare_compile_output_file,
             dynamic_library_soname = builtins_internal_cc_internal_dynamic_library_soname,
             dynamic_library_symlink = builtins_internal_cc_internal_dynamic_library_symlink,
-            empty_compilation_outputs = builtins_internal_cc_internal_empty_compilation_outputs,
             escape_label = builtins_internal_cc_internal_escape_label,
+            exec_os = builtins_internal_cc_internal_exec_os,
             for_object_file = builtins_internal_cc_internal_for_object_file,
             for_static_library = builtins_internal_cc_internal_for_static_library,
+            freeze = builtins_internal_cc_internal_freeze,
             get_artifact_name_for_category = builtins_internal_cc_internal_get_artifact_name_for_category,
             get_link_args = builtins_internal_cc_internal_get_link_args,
-            launcher_provider = CcLauncherInfo,
+            intern_seq = builtins_internal_cc_internal_intern_seq,
+            intern_string_sequence_variable_value = builtins_internal_cc_internal_intern_string_sequence_variable_value,
+            is_tree_artifact = builtins_internal_cc_internal_is_tree_artifact,
             licenses = builtins_internal_cc_internal_licenses,
+            per_file_copts = builtins_internal_cc_internal_per_file_copts,
             wrap_link_actions = builtins_internal_cc_internal_wrap_link_actions,
         ),
         java_common_internal_do_not_use = struct(
@@ -3484,7 +1699,6 @@ exported_toplevels["_builtins"] = struct(
             tokenize_javacopts = builtins_internal_java_common_internal_do_not_use_tokenize_javacopts,
             wrap_java_info = builtins_internal_java_common_internal_do_not_use_wrap_java_info,
         ),
-        objc_internal = struct(),
         py_builtins = struct(
             are_action_listeners_enabled = builtins_internal_py_builtins_are_action_listeners_enabled,
             create_repo_mapping_manifest = builtins_internal_py_builtins_create_repo_mapping_manifest,
@@ -3496,5 +1710,8 @@ exported_toplevels["_builtins"] = struct(
             merge_runfiles_with_generated_inits_empty_files_supplier = builtins_internal_py_builtins_merge_runfiles_with_generated_inits_empty_files_supplier,
         ),
     ),
-    toplevel = struct(**exported_toplevels),
+    toplevel = struct(
+        native = struct(**exported_rules),
+        **exported_toplevels
+    ),
 )

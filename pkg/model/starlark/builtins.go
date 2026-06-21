@@ -1038,7 +1038,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					)
 				},
 			),
-			"bazel_version": starlark.String("8.0.0"),
+			"bazel_version": starlark.String("10.0.0"),
 			"current_ctx": starlark.NewBuiltin(
 				"native.current_ctx",
 				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

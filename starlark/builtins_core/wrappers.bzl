@@ -160,7 +160,8 @@ def _wrap_rule_ctx(ctx):
         "actions": _wrap_actions(ctx.actions, ctx.bin_dir, ctx.label),
         "build_file_path": ctx.label.package + "/BUILD",
         "coverage_instrumented": ctx_coverage_instrumented,
-        "disabled_features": [],
+        # TODO: Where is this supposed to come from?
+        "disabled_features": ["fdo_instrument", "cs_fdo_instrument"],
         "expand_location": ctx_expand_location,
         "features": [],
         "genfiles_dir": ctx.bin_dir,
