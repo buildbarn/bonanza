@@ -165,7 +165,7 @@ func main() {
 				ExecutionUpdateInterval:           time.Minute,
 				OperationWithNoWaitersTimeout:     time.Minute,
 				PlatformQueueWithNoWorkersTimeout: platformQueueWithNoWorkersTimeout.AsDuration(),
-				BusyWorkerSynchronizationInterval: 10 * time.Second,
+				BusyWorkerSynchronizationInterval: 2 * time.Second,
 				GetIdleWorkerSynchronizationInterval: func() time.Duration {
 					// Let synchronization calls block somewhere
 					// between 0 and 2 minutes. Add jitter to

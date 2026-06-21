@@ -417,7 +417,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			// Launch a goroutine for reporting progress.
 			dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
 				for {
-					t, tChan := e.clock.NewTimer(10 * time.Second)
+					t, tChan := e.clock.NewTimer(2 * time.Second)
 					select {
 					case <-ctx.Done():
 						t.Stop()
