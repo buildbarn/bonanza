@@ -285,11 +285,13 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
 					}
 
+					configurable := true
 					var defaultValue starlark.Value = starlark.False
 					doc := ""
 					mandatory := false
 					if err := starlark.UnpackArgs(
 						b.Name(), args, kwargs,
+						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
 						"default?", &defaultValue,
 						"doc?", unpack.Bind(thread, &doc, unpack.String),
 						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
@@ -318,12 +320,14 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
 					}
 
+					configurable := true
 					var defaultValue starlark.Value = starlark.MakeInt(0)
 					doc := ""
 					mandatory := false
 					var values []int32
 					if err := starlark.UnpackArgs(
 						b.Name(), args, kwargs,
+						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
 						"default?", &defaultValue,
 						"doc?", unpack.Bind(thread, &doc, unpack.String),
 						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
@@ -358,6 +362,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var allowSingleFile *glob.NFA
 					var aspects []*Aspect[TReference, TMetadata]
 					var cfg TransitionDefinition[TReference, TMetadata]
+					configurable := true
 					var defaultValue starlark.Value = starlark.None
 					doc := ""
 					executable := false
@@ -371,6 +376,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						"allow_single_file?", unpack.Bind(thread, &allowSingleFile, allowFilesUnpackerInto{}),
 						"aspects?", unpack.Bind(thread, &aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
 						"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
+						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
 						"default?", &defaultValue,
 						"doc?", unpack.Bind(thread, &doc, unpack.String),
 						"executable?", unpack.Bind(thread, &executable, unpack.Bool),
@@ -420,6 +426,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					allowFiles := &glob.NFAMatchingNothing
 					var aspects []*Aspect[TReference, TMetadata]
 					cfg := targetTransitionDefinition
+					configurable := true
 					var defaultValue starlark.Value = starlark.NewDict(0)
 					doc := ""
 					mandatory := false
@@ -432,6 +439,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						"allow_files?", unpack.Bind(thread, &allowFiles, allowFilesUnpackerInto{}),
 						"aspects?", unpack.Bind(thread, &aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
 						"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
+						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
 						"default?", &defaultValue,
 						"doc?", unpack.Bind(thread, &doc, unpack.String),
 						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
@@ -466,6 +474,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var allowRules []string
 					var aspects []*Aspect[TReference, TMetadata]
 					cfg := targetTransitionDefinition
+					configurable := true
 					var defaultValue starlark.Value = starlark.NewList(nil)
 					doc := ""
 					var flags []string
@@ -480,6 +489,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						"allow_rules?", unpack.Bind(thread, &allowRules, unpack.IfNotNone(unpack.List(unpack.String))),
 						"aspects?", unpack.Bind(thread, &aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
 						"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
+						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
 						"default?", &defaultValue,
 						"doc?", unpack.Bind(thread, &doc, unpack.String),
 						"flags?", unpack.Bind(thread, &flags, unpack.List(unpack.String)),
@@ -554,12 +564,14 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
 					}
 
+					configurable := true
 					var defaultValue starlark.Value = starlark.String("")
 					doc := ""
 					mandatory := false
 					var values []string
 					if err := starlark.UnpackArgs(
 						b.Name(), args, kwargs,
+						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
 						"default?", &defaultValue,
 						"doc?", unpack.Bind(thread, &doc, unpack.String),
 						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
@@ -591,6 +603,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 
 					var allowEmpty bool
 					var defaultValue starlark.Value = starlark.NewDict(0)
+					configurable := true
 					doc := ""
 					mandatory := false
 					if err := starlark.UnpackArgs(
@@ -598,6 +611,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						// Positional arguments.
 						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
 						// Keyword arguments.
+						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
 						"default?", &defaultValue,
 						"doc?", unpack.Bind(thread, &doc, unpack.String),
 						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
@@ -628,11 +642,13 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 
 					mandatory := false
 					var allowEmpty bool
+					configurable := true
 					var defaultValue starlark.Value = starlark.NewList(nil)
 					doc := ""
 					if err := starlark.UnpackArgs(
 						b.Name(), args, kwargs,
 						// Positional arguments.
+						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
 						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
 						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
 						// Keyword arguments.
@@ -663,6 +679,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
 					}
 					var allowEmpty bool
+					configurable := true
 					var defaultValue starlark.Value = starlark.NewDict(0)
 					doc := ""
 					mandatory := false
@@ -671,6 +688,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						// Positional arguments.
 						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
 						// Keyword arguments.
+						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
 						"default?", &defaultValue,
 						"doc?", unpack.Bind(thread, &doc, unpack.String),
 						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
