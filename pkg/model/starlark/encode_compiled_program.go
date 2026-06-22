@@ -842,6 +842,16 @@ func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.Refer
 		return NewStringAttrType[TReference, TMetadata](attrTypeInfo.String_.Values), nil
 	case *model_starlark_pb.Attr_StringDict:
 		return NewStringDictAttrType[TReference, TMetadata](), nil
+	case *model_starlark_pb.Attr_StringKeyedLabelDict:
+		if attrTypeInfo.StringKeyedLabelDict.DictValueOptions == nil || attrTypeInfo.StringKeyedLabelDict.DictValueOptions.Cfg == nil {
+			return nil, errors.New("missing dict value options")
+		}
+		return NewStringKeyedLabelDictAttrType[TReference, TMetadata](
+			attrTypeInfo.StringKeyedLabelDict.DictValueOptions.AllowFiles,
+			NewProtoTransitionDefinition[TReference, TMetadata](
+				model_core.Nested(attr, attrTypeInfo.StringKeyedLabelDict.DictValueOptions.Cfg),
+			),
+		), nil
 	case *model_starlark_pb.Attr_StringList:
 		return NewStringListAttrType[TReference, TMetadata](), nil
 	case *model_starlark_pb.Attr_StringListDict:
