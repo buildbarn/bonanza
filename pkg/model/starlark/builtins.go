@@ -633,6 +633,53 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
 				},
 			),
+			"string_keyed_label_dict": starlark.NewBuiltin(
+				"attr.string_keyed_label_dict",
+				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+					if len(args) > 1 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+					}
+
+					allowEmpty := true
+					allowFiles := &glob.NFAMatchingNothing
+					var aspects []*Aspect[TReference, TMetadata]
+					cfg := targetTransitionDefinition
+					configurable := true
+					var defaultValue starlark.Value = starlark.NewDict(0)
+					doc := ""
+					mandatory := false
+					providers := [][]*Provider[TReference, TMetadata]{{}}
+					if err := starlark.UnpackArgs(
+						b.Name(), args, kwargs,
+						// Positional arguments.
+						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+						// Keyword arguments.
+						"allow_files?", unpack.Bind(thread, &allowFiles, allowFilesUnpackerInto{}),
+						"aspects?", unpack.Bind(thread, &aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
+						"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
+						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
+						"default?", &defaultValue,
+						"doc?", unpack.Bind(thread, &doc, unpack.String),
+						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
+						"providers?", unpack.Bind(thread, &providers, providersListUnpackerInto),
+					); err != nil {
+						return nil, err
+					}
+
+					attrType := NewStringKeyedLabelDictAttrType[TReference, TMetadata](allowFiles.Bytes(), cfg)
+					if mandatory {
+						defaultValue = nil
+					} else {
+						if err := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
+							unpack.Canonicalize(namedFunctionUnpackerInto),
+							unpack.Canonicalize(attrType.GetCanonicalizer(CurrentFilePackage(thread, 1))),
+						}).UnpackInto(thread, defaultValue, &defaultValue); err != nil {
+							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
+						}
+					}
+					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+				},
+			),
 			"string_list": starlark.NewBuiltin(
 				"attr.string_list",
 				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

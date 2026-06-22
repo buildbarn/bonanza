@@ -531,6 +531,49 @@ func (stringListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
+type stringKeyedLabelDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	dictKeyAllowFiles []byte
+	dictValueCfg      TransitionDefinition[TReference, TMetadata]
+}
+
+// NewStringKeyedLabelDictAttrType creates a dictionary attribute type,
+// where keys are labels and values are strings. These are normally
+// constructed by calling config.string_keyed_label_dict().
+func NewStringKeyedLabelDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](dictKeyAllowFiles []byte, dictValueCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+	return &stringKeyedLabelDictAttrType[TReference, TMetadata]{
+		dictKeyAllowFiles: dictKeyAllowFiles,
+		dictValueCfg:      dictValueCfg,
+	}
+}
+
+func (stringKeyedLabelDictAttrType[TReference, TMetadata]) Type() string {
+	return "string_keyed_label_dict"
+}
+
+func (at *stringKeyedLabelDictAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+	dictValueCfg, err := at.dictValueCfg.Encode(path, options)
+	if err != nil {
+		return err
+	}
+	out.Message.Type = &model_starlark_pb.Attr_StringKeyedLabelDict{
+		StringKeyedLabelDict: &model_starlark_pb.Attr_StringKeyedLabelDictType{
+			DictValueOptions: &model_starlark_pb.Attr_LabelOptions{
+				AllowFiles: at.dictKeyAllowFiles,
+				Cfg:        dictValueCfg.Merge(out.Patcher),
+			},
+		},
+	}
+	return nil
+}
+
+func (stringKeyedLabelDictAttrType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) unpack.Canonicalizer {
+	return unpack.Dict(unpack.String, NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage))
+}
+
+func (stringKeyedLabelDictAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
+	return "", false
+}
+
 type stringListDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
 // NewStringListDictAttrType creates a dictionary attribute type, where

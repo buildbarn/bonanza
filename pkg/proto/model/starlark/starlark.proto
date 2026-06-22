@@ -162,6 +162,12 @@ message Attr {
     CompositeOptions list_options = 1;
   }
 
+  message StringKeyedLabelDictType {
+    CompositeOptions dict_options = 1;
+
+    LabelOptions dict_value_options = 2;
+  }
+
   message StringListDictType {
     CompositeOptions dict_options = 1;
   }
@@ -199,6 +205,9 @@ message Attr {
 
     // Accept []string values.
     StringListType string_list = 12;
+
+    // Accept map[string]Label values.
+    StringKeyedLabelDictType string_keyed_label_dict = 14;
 
     // Accept map[string][]string values.
     StringListDictType string_list_dict = 13;
