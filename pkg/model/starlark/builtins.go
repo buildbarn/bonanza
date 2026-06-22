@@ -994,7 +994,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					// Positional arguments.
 					"implementation", unpack.Bind(thread, &implementation, namedFunctionUnpackerInto),
 					// Keyword arguments.
-					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
+					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.IfNotNone(unpack.Type[*Attr[TReference, TMetadata]]("attr.*")))),
 					"doc?", unpack.Bind(thread, &doc, unpack.String),
 					"finalizer?", &finalizer,
 					"inherit_attrs?", &inheritAttrs,
