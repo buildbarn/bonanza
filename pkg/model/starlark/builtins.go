@@ -1001,7 +1001,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				); err != nil {
 					return nil, err
 				}
-				return nil, errors.New("TODO: Implement macro()")
+				return NewMacro[TReference, TMetadata](), nil
 			},
 		),
 		"module_extension": starlark.NewBuiltin(

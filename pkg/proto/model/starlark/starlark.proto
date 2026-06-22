@@ -28,6 +28,7 @@ message Value {
     Int int = 11;
     string label = 12;
     List list = 13;
+    google.protobuf.Empty macro = 30;
     ModuleExtension module_extension = 14;
     google.protobuf.Empty none = 15;
     Provider provider = 16;

@@ -15,6 +15,7 @@ go_library(
         "file.go",
         "label.go",
         "list.go",
+        "macro.go",
         "module_extension.go",
         "named_function.go",
         "named_global.go",

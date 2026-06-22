@@ -604,6 +604,8 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 			return nil, err
 		}
 		return list, nil
+	case *model_starlark_pb.Value_Macro:
+		return NewMacro[TReference, TMetadata](), nil
 	case *model_starlark_pb.Value_ModuleExtension:
 		return NewModuleExtension(NewProtoModuleExtensionDefinition[TReference, TMetadata](
 			model_core.Nested(encodedValue, typedValue.ModuleExtension),
