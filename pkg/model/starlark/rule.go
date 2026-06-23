@@ -29,7 +29,8 @@ var (
 	_ NamedGlobal                                                         = (*rule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
-// NewRule creates a Starlark rule object.
+// NewRule creates a Starlark rule object. These are normally created
+// using the rule() function.
 func NewRule[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition RuleDefinition[TReference, TMetadata]) starlark.Value {
 	return &rule[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{

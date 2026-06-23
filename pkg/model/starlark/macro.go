@@ -17,6 +17,8 @@ type macro[TReference object.BasicReference, TMetadata model_core.ReferenceMetad
 
 var _ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*macro[object.LocalReference, model_core.ReferenceMetadata])(nil)
 
+// NewMacro creates a Starlark macro object. These are normally created
+// using the macro() function.
 func NewMacro[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() starlark.Value {
 	return macro[TReference, TMetadata]{}
 }
