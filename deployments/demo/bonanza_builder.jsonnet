@@ -19,6 +19,11 @@ local statePath = std.extVar('STATE_PATH');
     count: 1e6,
     sizeBytes: 1e9,
   },
+  bufferedObjectsLimit: {
+    count: 1e6,
+    sizeBytes: 2e9,
+  },
+  bufferedObjectsCacheReplacementPolicy: 'LEAST_RECENTLY_USED',
   filePool: { blockDevice: { file: {
     path: statePath + '/bonanza_builder_filepool',
     sizeBytes: 1e9,

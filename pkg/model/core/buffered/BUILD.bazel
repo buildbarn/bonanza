@@ -1,19 +1,75 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//extras:gomock.bzl", "gomock")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "buffered",
-    srcs = ["object_manager.go"],
+    srcs = ["object_pool.go"],
     importpath = "bonanza.build/pkg/model/core/buffered",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/model/core",
         "//pkg/model/parser",
         "//pkg/model/tag",
-        "//pkg/storage/dag",
+        "//pkg/proto/storage/dag",
         "//pkg/storage/object",
         "//pkg/storage/tag",
+        "//pkg/sync",
         "@com_github_buildbarn_bb_storage//pkg/clock",
+        "@com_github_buildbarn_bb_storage//pkg/eviction",
+        "@com_github_buildbarn_bb_storage//pkg/program",
+        "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
+)
+
+go_test(
+    name = "buffered_test",
+    srcs = [
+        "mocks_buffered_test.go",
+        "mocks_dag_pb_test.go",
+        "object_pool_test.go",
+    ],
+    embed = [":buffered"],
+    deps = [
+        "//pkg/model/core",
+        "//pkg/proto/storage/dag",
+        "//pkg/proto/storage/object",
+        "//pkg/storage/object",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
+        "@com_github_buildbarn_bb_storage//pkg/eviction",
+        "@com_github_buildbarn_bb_storage//pkg/testutil",
+        "@com_github_buildbarn_bb_storage//pkg/util",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_genproto_googleapis_rpc//status",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//metadata",  # keep
+        "@org_golang_google_grpc//status",
+        "@org_uber_go_mock//gomock",
+    ],
+)
+
+gomock(
+    name = "mocks_buffered",
+    out = "mocks_buffered_test.go",
+    interfaces = ["ObjectReaderForTesting"],
+    library = "//pkg/model/core/buffered",
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "buffered_test",
+)
+
+gomock(
+    name = "mocks_dag_pb",
+    out = "mocks_dag_pb_test.go",
+    interfaces = [
+        "UploaderClient",
+        "Uploader_UploadDagsClient",
+    ],
+    library = "//pkg/proto/storage/dag",
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "buffered_test",
 )

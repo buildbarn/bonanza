@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"runtime"
 
 	"bonanza.build/pkg/crypto"
 	model_analysis "bonanza.build/pkg/model/analysis"
@@ -24,7 +23,6 @@ import (
 	tag_pb "bonanza.build/pkg/proto/storage/tag"
 	remoteexecution "bonanza.build/pkg/remoteexecution"
 	"bonanza.build/pkg/remoteworker"
-	dag_grpc "bonanza.build/pkg/storage/dag/grpc"
 	"bonanza.build/pkg/storage/object"
 	object_existenceprecondition "bonanza.build/pkg/storage/object/existenceprecondition"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
@@ -130,6 +128,10 @@ func main() {
 			return util.StatusWrap(err, "Failed to create cache tag signature private key")
 		}
 
+		if configuration.BufferedObjectsLimit == nil {
+			return status.Error(codes.InvalidArgument, "No buffered objects limit provided")
+		}
+
 		bzlFileBuiltins, buildFileBuiltins := model_starlark.GetBuiltins[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]()
 		client, err := remoteworker.NewClient(
 			remoteWorkerClient,
@@ -157,12 +159,9 @@ func main() {
 							remote: model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.RemoteEvaluationConcurrency),
 						},
 						parsedObjectPool,
-						dag_grpc.NewUploader(
-							dag_pb.NewUploaderClient(storageGRPCClient),
-							semaphore.NewWeighted(int64(runtime.NumCPU())),
-							// Assume everything we attempt to upload is memory backed.
-							object.Unlimited,
-						),
+						dag_pb.NewUploaderClient(storageGRPCClient),
+						object.NewLimit(configuration.BufferedObjectsLimit),
+						configuration.BufferedObjectsCacheReplacementPolicy,
 						tag_grpc.NewResolver(
 							tag_pb.NewResolverClient(storageGRPCClient),
 						),

@@ -48,12 +48,31 @@ func (l Limit) ToProto() *object.Limit {
 	}
 }
 
+// CanAcquireSingleObject returns whether the current limits allow
+// processing the referenced object.
+func (l *Limit) CanAcquireSingleObject(reference LocalReference) bool {
+	return l.count >= 1 && l.sizeBytes >= uint64(reference.GetSizeBytes())
+}
+
 // CanAcquireParentAndChildren returns whether the current limits allow
 // processing the subgraph rooted at the referenced object.
 func (l *Limit) CanAcquireParentAndChildren(reference LocalReference) bool {
 	count := uint32(reference.GetHeight())
 	sizeBytes := uint64(reference.GetMaximumTotalParentsSizeBytes(true))
 	return l.count >= count && l.sizeBytes >= sizeBytes
+}
+
+// AcquireSingleObject reduces the limits, so that resources are
+// allocated for processing the referenced object.
+func (l *Limit) AcquireSingleObject(reference LocalReference) bool {
+	sizeBytes := uint64(reference.GetSizeBytes())
+	if l.count < 1 || l.sizeBytes < sizeBytes {
+		return false
+	}
+
+	l.count--
+	l.sizeBytes -= sizeBytes
+	return true
 }
 
 // AcquireParentAndChildren reduces the limits, so that resources are
@@ -71,13 +90,19 @@ func (l *Limit) AcquireParentAndChildren(reference LocalReference) bool {
 	return true
 }
 
+// ReleaseSingleObject increases the limits, so that resources are released
+// that were acquired for processing the referenced object.
+func (l *Limit) ReleaseSingleObject(reference LocalReference) {
+	l.count++
+	l.sizeBytes += uint64(reference.GetSizeBytes())
+}
+
 // ReleaseParent increases the limits, so that resources are released
 // that were acquired for processing the referenced parent object (but
 // not its children).
 func (l *Limit) ReleaseParent(reference LocalReference) {
 	if reference.GetHeight() > 0 {
-		l.count++
-		l.sizeBytes += uint64(reference.GetSizeBytes())
+		l.ReleaseSingleObject(reference)
 	}
 }
 

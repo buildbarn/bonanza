@@ -9,7 +9,9 @@ package bonanza_builder
 import (
 	parser "bonanza.build/pkg/proto/configuration/model/parser"
 	local "bonanza.build/pkg/proto/configuration/storage/object/local"
+	object "bonanza.build/pkg/proto/storage/object"
 	filesystem "github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem"
+	eviction "github.com/buildbarn/bb-storage/pkg/proto/configuration/eviction"
 	global "github.com/buildbarn/bb-storage/pkg/proto/configuration/global"
 	grpc "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc"
 	x509 "github.com/buildbarn/bb-storage/pkg/proto/configuration/x509"
@@ -28,26 +30,28 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                           protoimpl.MessageState                       `protogen:"open.v1"`
-	Global                          *global.Configuration                        `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	StorageGrpcClient               *grpc.ClientConfiguration                    `protobuf:"bytes,3,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
-	FilePool                        *filesystem.FilePoolConfiguration            `protobuf:"bytes,5,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
-	ExecutionGrpcClient             *grpc.ClientConfiguration                    `protobuf:"bytes,7,opt,name=execution_grpc_client,json=executionGrpcClient,proto3" json:"execution_grpc_client,omitempty"`
-	ExecutionClientPrivateKey       string                                       `protobuf:"bytes,8,opt,name=execution_client_private_key,json=executionClientPrivateKey,proto3" json:"execution_client_private_key,omitempty"`
-	ExecutionClientCertificateChain string                                       `protobuf:"bytes,9,opt,name=execution_client_certificate_chain,json=executionClientCertificateChain,proto3" json:"execution_client_certificate_chain,omitempty"`
-	RemoteWorkerGrpcClient          *grpc.ClientConfiguration                    `protobuf:"bytes,10,opt,name=remote_worker_grpc_client,json=remoteWorkerGrpcClient,proto3" json:"remote_worker_grpc_client,omitempty"`
-	PlatformPrivateKeys             []string                                     `protobuf:"bytes,11,rep,name=platform_private_keys,json=platformPrivateKeys,proto3" json:"platform_private_keys,omitempty"`
-	ClientCertificateVerifier       *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,12,opt,name=client_certificate_verifier,json=clientCertificateVerifier,proto3" json:"client_certificate_verifier,omitempty"`
-	WorkerId                        map[string]string                            `protobuf:"bytes,13,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	LocalObjectStore                *local.StoreConfiguration                    `protobuf:"bytes,17,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
-	ParsedObjectPool                *parser.ParsedObjectPool                     `protobuf:"bytes,14,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
-	LocalEvaluationConcurrency      uint32                                       `protobuf:"varint,15,opt,name=local_evaluation_concurrency,json=localEvaluationConcurrency,proto3" json:"local_evaluation_concurrency,omitempty"`
-	RemoteEvaluationConcurrency     uint32                                       `protobuf:"varint,16,opt,name=remote_evaluation_concurrency,json=remoteEvaluationConcurrency,proto3" json:"remote_evaluation_concurrency,omitempty"`
-	UploadConcurrency               uint32                                       `protobuf:"varint,20,opt,name=upload_concurrency,json=uploadConcurrency,proto3" json:"upload_concurrency,omitempty"`
-	ObjectStoreConcurrency          int64                                        `protobuf:"varint,18,opt,name=object_store_concurrency,json=objectStoreConcurrency,proto3" json:"object_store_concurrency,omitempty"`
-	CacheTagSignaturePrivateKey     string                                       `protobuf:"bytes,19,opt,name=cache_tag_signature_private_key,json=cacheTagSignaturePrivateKey,proto3" json:"cache_tag_signature_private_key,omitempty"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
+	state                                 protoimpl.MessageState                       `protogen:"open.v1"`
+	Global                                *global.Configuration                        `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
+	StorageGrpcClient                     *grpc.ClientConfiguration                    `protobuf:"bytes,3,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
+	FilePool                              *filesystem.FilePoolConfiguration            `protobuf:"bytes,5,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
+	ExecutionGrpcClient                   *grpc.ClientConfiguration                    `protobuf:"bytes,7,opt,name=execution_grpc_client,json=executionGrpcClient,proto3" json:"execution_grpc_client,omitempty"`
+	ExecutionClientPrivateKey             string                                       `protobuf:"bytes,8,opt,name=execution_client_private_key,json=executionClientPrivateKey,proto3" json:"execution_client_private_key,omitempty"`
+	ExecutionClientCertificateChain       string                                       `protobuf:"bytes,9,opt,name=execution_client_certificate_chain,json=executionClientCertificateChain,proto3" json:"execution_client_certificate_chain,omitempty"`
+	RemoteWorkerGrpcClient                *grpc.ClientConfiguration                    `protobuf:"bytes,10,opt,name=remote_worker_grpc_client,json=remoteWorkerGrpcClient,proto3" json:"remote_worker_grpc_client,omitempty"`
+	PlatformPrivateKeys                   []string                                     `protobuf:"bytes,11,rep,name=platform_private_keys,json=platformPrivateKeys,proto3" json:"platform_private_keys,omitempty"`
+	ClientCertificateVerifier             *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,12,opt,name=client_certificate_verifier,json=clientCertificateVerifier,proto3" json:"client_certificate_verifier,omitempty"`
+	WorkerId                              map[string]string                            `protobuf:"bytes,13,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	LocalObjectStore                      *local.StoreConfiguration                    `protobuf:"bytes,17,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
+	ParsedObjectPool                      *parser.ParsedObjectPool                     `protobuf:"bytes,14,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
+	LocalEvaluationConcurrency            uint32                                       `protobuf:"varint,15,opt,name=local_evaluation_concurrency,json=localEvaluationConcurrency,proto3" json:"local_evaluation_concurrency,omitempty"`
+	RemoteEvaluationConcurrency           uint32                                       `protobuf:"varint,16,opt,name=remote_evaluation_concurrency,json=remoteEvaluationConcurrency,proto3" json:"remote_evaluation_concurrency,omitempty"`
+	UploadConcurrency                     uint32                                       `protobuf:"varint,20,opt,name=upload_concurrency,json=uploadConcurrency,proto3" json:"upload_concurrency,omitempty"`
+	ObjectStoreConcurrency                int64                                        `protobuf:"varint,18,opt,name=object_store_concurrency,json=objectStoreConcurrency,proto3" json:"object_store_concurrency,omitempty"`
+	CacheTagSignaturePrivateKey           string                                       `protobuf:"bytes,19,opt,name=cache_tag_signature_private_key,json=cacheTagSignaturePrivateKey,proto3" json:"cache_tag_signature_private_key,omitempty"`
+	BufferedObjectsLimit                  *object.Limit                                `protobuf:"bytes,21,opt,name=buffered_objects_limit,json=bufferedObjectsLimit,proto3" json:"buffered_objects_limit,omitempty"`
+	BufferedObjectsCacheReplacementPolicy eviction.CacheReplacementPolicy              `protobuf:"varint,22,opt,name=buffered_objects_cache_replacement_policy,json=bufferedObjectsCacheReplacementPolicy,proto3,enum=buildbarn.configuration.eviction.CacheReplacementPolicy" json:"buffered_objects_cache_replacement_policy,omitempty"`
+	unknownFields                         protoimpl.UnknownFields
+	sizeCache                             protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -199,11 +203,25 @@ func (x *ApplicationConfiguration) GetCacheTagSignaturePrivateKey() string {
 	return ""
 }
 
+func (x *ApplicationConfiguration) GetBufferedObjectsLimit() *object.Limit {
+	if x != nil {
+		return x.BufferedObjectsLimit
+	}
+	return nil
+}
+
+func (x *ApplicationConfiguration) GetBufferedObjectsCacheReplacementPolicy() eviction.CacheReplacementPolicy {
+	if x != nil {
+		return x.BufferedObjectsCacheReplacementPolicy
+	}
+	return eviction.CacheReplacementPolicy(0)
+}
+
 var File_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDesc = "" +
 	"\n" +
-	"Kbonanza.build/pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\xea\v\n" +
+	"Kbonanza.build/pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aOgithub.com/buildbarn/bb-storage/pkg/proto/configuration/eviction/eviction.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\xd4\r\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x03 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12V\n" +
@@ -222,7 +240,9 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder
 	"\x1dremote_evaluation_concurrency\x18\x10 \x01(\rR\x1bremoteEvaluationConcurrency\x12-\n" +
 	"\x12upload_concurrency\x18\x14 \x01(\rR\x11uploadConcurrency\x128\n" +
 	"\x18object_store_concurrency\x18\x12 \x01(\x03R\x16objectStoreConcurrency\x12D\n" +
-	"\x1fcache_tag_signature_private_key\x18\x13 \x01(\tR\x1bcacheTagSignaturePrivateKey\x1a;\n" +
+	"\x1fcache_tag_signature_private_key\x18\x13 \x01(\tR\x1bcacheTagSignaturePrivateKey\x12S\n" +
+	"\x16buffered_objects_limit\x18\x15 \x01(\v2\x1d.bonanza.storage.object.LimitR\x14bufferedObjectsLimit\x12\x92\x01\n" +
+	")buffered_objects_cache_replacement_policy\x18\x16 \x01(\x0e28.buildbarn.configuration.eviction.CacheReplacementPolicyR%bufferedObjectsCacheReplacementPolicy\x1a;\n" +
 	"\rWorkerIdEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B7Z5bonanza.build/pkg/proto/configuration/bonanza_builderb\x06proto3"
@@ -249,22 +269,26 @@ var file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_p
 	(*x509.ClientCertificateVerifierConfiguration)(nil), // 5: buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
 	(*local.StoreConfiguration)(nil),                    // 6: bonanza.configuration.storage.object.local.StoreConfiguration
 	(*parser.ParsedObjectPool)(nil),                     // 7: bonanza.configuration.model.parser.ParsedObjectPool
+	(*object.Limit)(nil),                                // 8: bonanza.storage.object.Limit
+	(eviction.CacheReplacementPolicy)(0),                // 9: buildbarn.configuration.eviction.CacheReplacementPolicy
 }
 var file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_depIdxs = []int32{
-	2, // 0: bonanza.configuration.bonanza_builder.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
-	3, // 1: bonanza.configuration.bonanza_builder.ApplicationConfiguration.storage_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
-	4, // 2: bonanza.configuration.bonanza_builder.ApplicationConfiguration.file_pool:type_name -> buildbarn.configuration.filesystem.FilePoolConfiguration
-	3, // 3: bonanza.configuration.bonanza_builder.ApplicationConfiguration.execution_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
-	3, // 4: bonanza.configuration.bonanza_builder.ApplicationConfiguration.remote_worker_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
-	5, // 5: bonanza.configuration.bonanza_builder.ApplicationConfiguration.client_certificate_verifier:type_name -> buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
-	1, // 6: bonanza.configuration.bonanza_builder.ApplicationConfiguration.worker_id:type_name -> bonanza.configuration.bonanza_builder.ApplicationConfiguration.WorkerIdEntry
-	6, // 7: bonanza.configuration.bonanza_builder.ApplicationConfiguration.local_object_store:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration
-	7, // 8: bonanza.configuration.bonanza_builder.ApplicationConfiguration.parsed_object_pool:type_name -> bonanza.configuration.model.parser.ParsedObjectPool
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	2,  // 0: bonanza.configuration.bonanza_builder.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
+	3,  // 1: bonanza.configuration.bonanza_builder.ApplicationConfiguration.storage_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
+	4,  // 2: bonanza.configuration.bonanza_builder.ApplicationConfiguration.file_pool:type_name -> buildbarn.configuration.filesystem.FilePoolConfiguration
+	3,  // 3: bonanza.configuration.bonanza_builder.ApplicationConfiguration.execution_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
+	3,  // 4: bonanza.configuration.bonanza_builder.ApplicationConfiguration.remote_worker_grpc_client:type_name -> buildbarn.configuration.grpc.ClientConfiguration
+	5,  // 5: bonanza.configuration.bonanza_builder.ApplicationConfiguration.client_certificate_verifier:type_name -> buildbarn.configuration.x509.ClientCertificateVerifierConfiguration
+	1,  // 6: bonanza.configuration.bonanza_builder.ApplicationConfiguration.worker_id:type_name -> bonanza.configuration.bonanza_builder.ApplicationConfiguration.WorkerIdEntry
+	6,  // 7: bonanza.configuration.bonanza_builder.ApplicationConfiguration.local_object_store:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration
+	7,  // 8: bonanza.configuration.bonanza_builder.ApplicationConfiguration.parsed_object_pool:type_name -> bonanza.configuration.model.parser.ParsedObjectPool
+	8,  // 9: bonanza.configuration.bonanza_builder.ApplicationConfiguration.buffered_objects_limit:type_name -> bonanza.storage.object.Limit
+	9,  // 10: bonanza.configuration.bonanza_builder.ApplicationConfiguration.buffered_objects_cache_replacement_policy:type_name -> buildbarn.configuration.eviction.CacheReplacementPolicy
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_init() }

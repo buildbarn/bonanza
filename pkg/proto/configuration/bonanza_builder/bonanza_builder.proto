@@ -4,7 +4,9 @@ package bonanza.configuration.bonanza_builder;
 
 import "bonanza.build/pkg/proto/configuration/model/parser/parser.proto";
 import "bonanza.build/pkg/proto/configuration/storage/object/local/local.proto";
+import "bonanza.build/pkg/proto/storage/object/object.proto";
 import "github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/eviction/eviction.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto";
@@ -107,4 +109,21 @@ message ApplicationConfiguration {
   // evaluations. The key must be in PKCS #8, ASN.1 DER form, stored in
   // a PEM block of type "PRIVATE KEY".
   string cache_tag_signature_private_key = 19;
+
+  // Limits on the number of objects and their combined size that may be
+  // kept in memory while evaluating. Objects created during evaluation
+  // are written to storage asynchronously. Once written, they are kept
+  // in memory as a cache until space is needed. If the limit is reached
+  // and none of the objects have been written to storage yet,
+  // evaluation is blocked until writes complete.
+  //
+  // The size limit must be at least as large as the maximum object
+  // size permitted by the reference format.
+  bonanza.storage.object.Limit buffered_objects_limit = 21;
+
+  // The cache replacement policy to use for evicting objects that have
+  // been written to storage from memory. Objects are touched when they
+  // are created or read during evaluation.
+  buildbarn.configuration.eviction.CacheReplacementPolicy
+      buffered_objects_cache_replacement_policy = 22;
 }

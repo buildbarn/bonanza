@@ -20,16 +20,17 @@ import (
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
 	model_tag_pb "bonanza.build/pkg/proto/model/tag"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
+	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	"bonanza.build/pkg/remoteworker"
-	"bonanza.build/pkg/storage/dag"
-	dag_namespacemapping "bonanza.build/pkg/storage/dag/namespacemapping"
 	"bonanza.build/pkg/storage/object"
 	object_namespacemapping "bonanza.build/pkg/storage/object/namespacemapping"
 	"bonanza.build/pkg/storage/tag"
 	tag_namespacemapping "bonanza.build/pkg/storage/tag/namespacemapping"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
+	"github.com/buildbarn/bb-storage/pkg/eviction"
 	"github.com/buildbarn/bb-storage/pkg/program"
+	eviction_pb "github.com/buildbarn/bb-storage/pkg/proto/configuration/eviction"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/grpc/codes"
@@ -49,15 +50,17 @@ type ComputerFactory[TReference any, TMetadata model_core.ReferenceMetadata] int
 }
 
 type executor struct {
-	objectDownloader            object.Downloader[object.GlobalReference]
-	computerFactory             ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
-	evaluationQueuesFactory     RecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
-	parsedObjectPool            *model_parser.ParsedObjectPool
-	dagUploader                 dag.Uploader[object.InstanceName, object.GlobalReference]
-	tagResolver                 tag.Resolver[object.Namespace]
-	cacheTagSignaturePrivateKey ed25519.PrivateKey
-	uploadConcurrency           uint32
-	clock                       clock.Clock
+	objectDownloader                      object.Downloader[object.GlobalReference]
+	computerFactory                       ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
+	evaluationQueuesFactory               RecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
+	parsedObjectPool                      *model_parser.ParsedObjectPool
+	dagUploaderClient                     dag_pb.UploaderClient
+	bufferedObjectsLimit                  object.Limit
+	bufferedObjectsCacheReplacementPolicy eviction_pb.CacheReplacementPolicy
+	tagResolver                           tag.Resolver[object.Namespace]
+	cacheTagSignaturePrivateKey           ed25519.PrivateKey
+	uploadConcurrency                     uint32
+	clock                                 clock.Clock
 }
 
 // NewExecutor creates a remote worker that is capable of executing
@@ -67,22 +70,26 @@ func NewExecutor(
 	computerFactory ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]],
 	evaluationQueuesFactory RecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata],
 	parsedObjectPool *model_parser.ParsedObjectPool,
-	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
+	dagUploaderClient dag_pb.UploaderClient,
+	bufferedObjectsLimit object.Limit,
+	bufferedObjectsCacheReplacementPolicy eviction_pb.CacheReplacementPolicy,
 	tagResolver tag.Resolver[object.Namespace],
 	cacheTagSignaturePrivateKey ed25519.PrivateKey,
 	uploadConcurrency uint32,
 	clock clock.Clock,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &executor{
-		objectDownloader:            objectDownloader,
-		computerFactory:             computerFactory,
-		evaluationQueuesFactory:     evaluationQueuesFactory,
-		parsedObjectPool:            parsedObjectPool,
-		dagUploader:                 dagUploader,
-		tagResolver:                 tagResolver,
-		cacheTagSignaturePrivateKey: cacheTagSignaturePrivateKey,
-		uploadConcurrency:           uploadConcurrency,
-		clock:                       clock,
+		objectDownloader:                      objectDownloader,
+		computerFactory:                       computerFactory,
+		evaluationQueuesFactory:               evaluationQueuesFactory,
+		parsedObjectPool:                      parsedObjectPool,
+		dagUploaderClient:                     dagUploaderClient,
+		bufferedObjectsLimit:                  bufferedObjectsLimit,
+		bufferedObjectsCacheReplacementPolicy: bufferedObjectsCacheReplacementPolicy,
+		tagResolver:                           tagResolver,
+		cacheTagSignaturePrivateKey:           cacheTagSignaturePrivateKey,
+		uploadConcurrency:                     uploadConcurrency,
+		clock:                                 clock,
 	}
 }
 
@@ -93,9 +100,39 @@ func (executor) CheckReadiness(ctx context.Context) error {
 var actionObjectFormat = model_core.NewProtoObjectFormat(&model_evaluation_pb.Action{})
 
 func (e *executor) Execute(ctx context.Context, action *model_executewithstorage.Action[object.GlobalReference], executionTimeout time.Duration, executionEvents chan<- model_core.Decodable[object.LocalReference]) (model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
+	// Objects created during evaluation are buffered in memory,
+	// and written to storage in the background. If writing fails,
+	// evaluation is interrupted and the error is returned.
+	evictionSet, err := eviction.NewSetFromConfiguration[object.LocalReference](e.bufferedObjectsCacheReplacementPolicy)
+	if err != nil {
+		var badReference model_core.Decodable[object.LocalReference]
+		return badReference, 0, 0, util.StatusWrap(err, "Failed to create eviction set for buffered objects")
+	}
+	objectPool := buffered.NewObjectPool(
+		e.bufferedObjectsLimit,
+		eviction.NewMetricsSet(evictionSet, "BufferedObjectPool"),
+	)
+	var resultReference model_core.Decodable[object.LocalReference]
+	var resultCode remoteworker_pb.CurrentState_Completed_Result
+	if err := program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+		dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+			return objectPool.SendQueuedObjects(ctx, e.dagUploaderClient, action.Reference.Value.GetNamespace())
+		})
+
+		var err error
+		resultReference, resultCode, err = e.execute(ctx, action, executionEvents, objectPool)
+		return err
+	}); err != nil {
+		var badReference model_core.Decodable[object.LocalReference]
+		return badReference, 0, 0, err
+	}
+	return resultReference, 0, resultCode, nil
+}
+
+func (e *executor) execute(ctx context.Context, action *model_executewithstorage.Action[object.GlobalReference], executionEvents chan<- model_core.Decodable[object.LocalReference], objectPool *buffered.ObjectPool) (model_core.Decodable[object.LocalReference], remoteworker_pb.CurrentState_Completed_Result, error) {
 	if !proto.Equal(action.Format, actionObjectFormat) {
 		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
+		return badReference, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
 	}
 
 	actionGlobalReference := action.Reference.Value
@@ -108,7 +145,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	)
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrap(err, "Failed to create deterministic action encoder")
+		return badReference, 0, util.StatusWrap(err, "Failed to create deterministic action encoder")
 	}
 	keyedActionEncoder, err := model_encoding.NewKeyedBinaryEncoderFromProto(
 		action.Encoders,
@@ -116,12 +153,11 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	)
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrap(err, "Failed to create keyed action encoder")
+		return badReference, 0, util.StatusWrap(err, "Failed to create keyed action encoder")
 	}
 
-	objectManager := buffered.NewObjectManager()
-	dagUploader := dag_namespacemapping.NewNamespaceAddingUploader(e.dagUploader, instanceName)
-	objectExporter := buffered.NewObjectExporter(dagUploader)
+	objectManager := buffered.NewObjectManager(objectPool)
+	objectExporter := buffered.ObjectExporter
 	resultMessage := model_core.MustBuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[buffered.ReferenceMetadata]) *model_evaluation_pb.Result {
 		var result model_evaluation_pb.Result
 		parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester[buffered.Reference](
@@ -130,6 +166,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 				model_parser.NewDownloadingObjectReader(
 					object_namespacemapping.NewNamespaceAddingDownloader(e.objectDownloader, instanceName),
 				),
+				objectPool,
 			),
 		)
 		actionReader := model_parser.LookupParsedObjectReader(
@@ -279,7 +316,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 					objectExporter,
 				),
 				buffered.NewTagBoundUpdater(
-					dagUploader,
+					objectPool,
 					e.cacheTagSignaturePrivateKey,
 					e.clock,
 				),
@@ -579,23 +616,31 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	)
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
+		return badReference, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
 	}
 	capturedResult, err := createdResult.Value.Capture(ctx, objectManager)
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrap(err, "Failed to capture result")
+		return badReference, 0, util.StatusWrap(err, "Failed to capture result")
 	}
 
 	resultReference, err := objectExporter.ExportReference(ctx, objectManager.ReferenceObject(capturedResult))
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrap(err, "Failed to export result")
+		return badReference, 0, util.StatusWrap(err, "Failed to export result")
+	}
+
+	// Tags are created asynchronously. Wait for them to be written,
+	// so that subsequent builds can make use of the cached
+	// evaluation results.
+	if err := objectPool.FlushTags(ctx); err != nil {
+		var badReference model_core.Decodable[object.LocalReference]
+		return badReference, 0, util.StatusWrap(err, "Failed to write cached evaluation results")
 	}
 
 	resultCode := remoteworker_pb.CurrentState_Completed_SUCCEEDED
 	if resultMessage.Message.Failure != nil {
 		resultCode = remoteworker_pb.CurrentState_Completed_FAILED
 	}
-	return model_core.CopyDecodable(createdResult, resultReference), 0, resultCode, nil
+	return model_core.CopyDecodable(createdResult, resultReference), resultCode, nil
 }
