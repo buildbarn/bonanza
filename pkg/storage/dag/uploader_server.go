@@ -17,8 +17,15 @@ import (
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+var (
+	statusClientCanceledUpload = status.New(codes.Canceled, "Client canceled upload of object").Proto()
+	statusChildUploadFailure   = status.New(codes.Canceled, "One or more child objects were not uploaded successfully").Proto()
+	statusRootUploadFailure    = status.New(codes.Canceled, "Root object was not uploaded successfully").Proto()
 )
 
 type uploaderServer[TLease any] struct {
@@ -98,10 +105,11 @@ func (s *uploaderServer[TLease]) UploadDags(stream dag.Uploader_UploadDagsServer
 
 			remainingUnfinalizedParentsLimit: maximumUnfinalizedParentsLimit,
 			objectsByReference:               map[object.LocalReference]*objectState[TLease]{},
-			replicatingObjects:               map[uint64]*objectState[TLease]{},
+			requestedObjects:                 map[uint64]*objectState[TLease]{},
 		}
 		r.lastRequestedObject = &r.firstRequestedObject
-		r.lastFinalizedDAG = &r.firstFinalizedDAG
+		r.lastFinalizedObject = &r.firstFinalizedObject
+		r.lastFinalizedTag = &r.firstFinalizedTag
 		group.Go(r.processIncomingMessages)
 		group.Go(r.processPendingObjects)
 		group.Go(r.processOutgoingMessages)
@@ -115,26 +123,32 @@ func (s *uploaderServer[TLease]) UploadDags(stream dag.Uploader_UploadDagsServer
 type objectState[TLease any] struct {
 	reference object.LocalReference
 
-	// If set, the RequestObject message that still needs to be sent
-	// to the client to either request the object's contents, or
-	// indicate they are not needed.
+	// If set, the FinalizeObject message that still needs to be
+	// sent to the client to report whether or not an object was
+	// successfully written to storage.
 	//
 	// This field may be set multiple times during the lifetime of
 	// objectState. If an object has already been received by the
 	// server and is in the process of being written to storage, it
 	// may also appear in other DAGs, or other parts of the same
-	// DAG. In that case a second RequestObject message still needs
+	// DAG. In that case a second FinalizeObject message still needs
 	// to be sent to the client to release the reference index.
-	requestObject *dag.UploadDagsResponse_RequestObject
+	finalizeObject *dag.UploadDagsResponse_FinalizeObject
 
-	// If the RequestObject message is queued for transmission, the
-	// next object in the transmission queue.
-	nextRequestedObject *objectState[TLease]
+	// If the RequestObjectContents or FinalizeObject message is
+	// queued for transmission, the next object in the transmission
+	// queue.
+	nextRequestedOrFinalizedObject *objectState[TLease]
 
 	// If set, the object is still in the process of its existence
 	// being checked, transmitted to the server, or written into
 	// object.Uploader.
 	unfinalized *unfinalizedObjectState[TLease]
+
+	// The number of times InitiateDag was called without specifying
+	// a root tag, for which no FinalizeObject has been returned
+	// yet.
+	unfinalizedDAGsWithoutTagsCount uint32
 
 	// When the object is finalized, the lease that needs to be
 	// provided to PutObject when writing parent objects.
@@ -147,7 +161,7 @@ type objectState[TLease any] struct {
 type unfinalizedObjectState[TLease any] struct {
 	// If the object is the root of a DAG, the tag that needs to be
 	// written into TagStore after upload has completed.
-	dags []*unfinalizedDAGState
+	tags []*unfinalizedTagState
 	// If the object is a child, the list of parent objects that
 	// can't be written to store yet, due to the child not being
 	// stored yet.
@@ -168,7 +182,7 @@ type unfinalizedParent[TLease any] struct {
 type hasUnfinalizedChildrenState[TLease any] struct {
 	contents                 *object.Contents
 	leases                   []TLease
-	childErr                 error
+	hasChildFailures         bool
 	unfinalizedChildrenCount int
 }
 
@@ -182,24 +196,20 @@ func (h pendingObjectsHeap[TLease]) Less(i, j int) bool {
 	return h.Slice[i].reference.CompareByHeight(h.Slice[j].reference) < 0
 }
 
-type unfinalizedDAGRootTag struct {
-	key         tag.Key
-	signedValue tag.SignedValue
-}
-
-// unfinalizedDAGState contains all state for a single DAG that is in
+// unfinalizedTagState contains all state for a single tag that is in
 // the process of being uploaded to storage.
-type unfinalizedDAGState struct {
+type unfinalizedTagState struct {
 	rootReferenceIndex uint64
-	rootTag            *unfinalizedDAGRootTag
+	key                tag.Key
+	signedValue        tag.SignedValue
 }
 
-// finalizedDAGState contains all state for a single DAG that has been
-// written to storage, but for which a FinalizeDag message still needs
+// finalizedTagState contains all state for a single tag that has been
+// written to storage, but for which a FinalizeTag message still needs
 // to be sent back to the client.
-type finalizedDAGState struct {
-	finalization     dag.UploadDagsResponse_FinalizeDag
-	nextFinalizedDAG *finalizedDAGState
+type finalizedTagState struct {
+	finalization     dag.UploadDagsResponse_FinalizeTag
+	nextFinalizedTag *finalizedTagState
 }
 
 // dagReceiver contains all state that needs to be tracked during a call
@@ -224,29 +234,23 @@ type dagReceiver[TLease any] struct {
 	objectsByReference map[object.LocalReference]*objectState[TLease]
 
 	// Queue of objects that still need to be replicated.
-	pendingObjects       pendingObjectsHeap[TLease]
-	pendingObjectsWakeup pg_sync.ConditionVariable
+	pendingObjects         pendingObjectsHeap[TLease]
+	pendingObjectsWakeup   pg_sync.ConditionVariable
+	requestableObjectCount int
 
 	// Queues for messages to be sent back to the client.
-	requestObjectCount     int
 	firstRequestedObject   *objectState[TLease]
 	lastRequestedObject    **objectState[TLease]
-	firstFinalizedDAG      *finalizedDAGState
-	lastFinalizedDAG       **finalizedDAGState
+	requestedObjectCount   int
+	firstFinalizedObject   *objectState[TLease]
+	lastFinalizedObject    **objectState[TLease]
+	firstFinalizedTag      *finalizedTagState
+	lastFinalizedTag       **finalizedTagState
 	outgoingMessagesWakeup pg_sync.ConditionVariable
 
-	// Objects for which we have sent RequestObject, but still need
-	// to receive ProvideObjectContents.
-	replicatingObjects map[uint64]*objectState[TLease]
-}
-
-// newRequestObject creates a new RequestObject message that at some
-// point needs to be sent back to the client.
-func (r *dagReceiver[TLease]) newRequestObject(referenceIndex uint64) *dag.UploadDagsResponse_RequestObject {
-	r.requestObjectCount++
-	return &dag.UploadDagsResponse_RequestObject{
-		LowestReferenceIndex: referenceIndex,
-	}
+	// Objects for which we have sent RequestObjectContents, but
+	// still need to receive ProvideObjectContents.
+	requestedObjects map[uint64]*objectState[TLease]
 }
 
 // getOrCreateObjectState looks up the state that is tracked by
@@ -254,34 +258,39 @@ func (r *dagReceiver[TLease]) newRequestObject(referenceIndex uint64) *dag.Uploa
 func (r *dagReceiver[TLease]) getOrCreateObjectState(reference object.LocalReference, referenceIndex uint64) *objectState[TLease] {
 	o, ok := r.objectsByReference[reference]
 	if ok {
-		if o.requestObject == nil {
+		if o.finalizeObject == nil {
 			// An existing object appeared in another (part
 			// of the) DAG, and we have already sent a
-			// RequestObject message back to the client.
+			// FinalizeObject message back to the client.
 			// Schedule the transmission of another
-			// RequestObject message, indicating that we
+			// FinalizeObject message, indicating that we
 			// don't want the client to send the object's
 			// contents again.
-			o.requestObject = r.newRequestObject(referenceIndex)
-			r.queueRequestObjectLocked(o)
+			o.finalizeObject = &dag.UploadDagsResponse_FinalizeObject{
+				LowestReferenceIndex: referenceIndex,
+			}
+			r.queueFinalizeObjectLocked(o, nil)
 		} else {
-			// A RequestObject message was already scheduled
-			// to be transmitted. Make sure that we send
-			// back a single RequestObject message that
-			// acknowledges both reference indices at the
-			// same time.
-			o.requestObject.AdditionalReferenceIndices++
+			// A FinalizeObject message was already
+			// scheduled to be transmitted. Make sure that
+			// we send back a single FinalizeObject message
+			// that acknowledges both reference indices at
+			// the same time.
+			o.finalizeObject.AdditionalReferenceIndices++
 		}
 	} else {
 		// Object was not seen before, or its state has already
 		// been purged in the meantime.
 		o = &objectState[TLease]{
-			reference:     reference,
-			requestObject: r.newRequestObject(referenceIndex),
-			unfinalized:   &unfinalizedObjectState[TLease]{},
+			reference: reference,
+			finalizeObject: &dag.UploadDagsResponse_FinalizeObject{
+				LowestReferenceIndex: referenceIndex,
+			},
+			unfinalized: &unfinalizedObjectState[TLease]{},
 		}
 		r.objectsByReference[reference] = o
 		heap.Push(&r.pendingObjects, o)
+		r.requestableObjectCount++
 		r.pendingObjectsWakeup.Broadcast()
 	}
 	return o
@@ -305,13 +314,9 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 		request, err := r.stream.Recv()
 		if err == io.EOF {
 			r.lock.Lock()
-			if r.requestObjectCount != 0 {
+			if a, b, c := r.requestableObjectCount, r.requestedObjectCount, len(r.requestedObjects); a != 0 || b != 0 || c != 0 {
 				r.lock.Unlock()
-				return status.Errorf(codes.InvalidArgument, "Client closed the request, even though the server still needs to request %d or more objects", r.requestObjectCount)
-			}
-			if len(r.replicatingObjects) != 0 {
-				r.lock.Unlock()
-				return status.Errorf(codes.InvalidArgument, "Client closed the request, even though the client still needs to provide the contents of %d or more objects", len(r.replicatingObjects))
+				return status.Errorf(codes.InvalidArgument, "Client closed the request, even though the server was still checking the existence of %d objects, had %d object request messages queued, and was waiting for the contents of %d objects from the client", a, b, c)
 			}
 
 			// The client has finished sending all objects
@@ -332,49 +337,45 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 		switch requestType := request.Type.(type) {
 		case *dag.UploadDagsRequest_InitiateDag_:
 			initiateDAG := requestType.InitiateDag
-			var rootReference object.LocalReference
-			var rootTag *unfinalizedDAGRootTag
-			err := func() error {
-				var err error
-				rootReference, err = r.namespace.NewLocalReference(initiateDAG.RootReference)
+			rootReference, err := r.namespace.NewLocalReference(initiateDAG.RootReference)
+			if err != nil {
+				return util.StatusWrap(err, "Invalid root reference")
+			}
+
+			// Deny requests to upload DAGs that have an
+			// excessive height or size. Queueing these
+			// would be pointless, as getPendingObject()
+			// wouldn't be willing to dequeue them.
+			if !r.maximumUnfinalizedParentsLimit.CanAcquireObjectAndChildren(rootReference) {
+				return status.Error(codes.InvalidArgument, "Height or maximum total parents size of the object exceeds the limit that was established during handshaking")
+			}
+
+			var rootTag *unfinalizedTagState
+			if rootTagMessage := initiateDAG.RootTag; rootTagMessage != nil {
+				key, err := tag.NewKeyFromProto(rootTagMessage.Key)
 				if err != nil {
-					return util.StatusWrap(err, "Invalid root reference")
+					return util.StatusWrap(err, "Invalid root tag key")
 				}
-
-				// Deny requests to upload DAGs that have an
-				// excessive height or size. Queueing these
-				// would be pointless, as getPendingObject()
-				// wouldn't be willing to dequeue them.
-				if !r.maximumUnfinalizedParentsLimit.CanAcquireObjectAndChildren(rootReference) {
-					return status.Error(codes.InvalidArgument, "Height or maximum total parents size of the object exceeds the limit that was established during handshaking")
-				}
-
-				if rootTagMessage := initiateDAG.RootTag; rootTagMessage != nil {
-					key, err := tag.NewKeyFromProto(rootTagMessage.Key)
-					if err != nil {
-						return util.StatusWrap(err, "Invalid root tag key")
-					}
-					signedValue, err := tag.NewSignedValueFromProto(
-						&tag_pb.SignedValue{
-							Value: &tag_pb.Value{
-								Reference: rootReference.GetRawReference(),
-								Timestamp: rootTagMessage.Timestamp,
-							},
-							Signature: rootTagMessage.Signature,
+				signedValue, err := tag.NewSignedValueFromProto(
+					&tag_pb.SignedValue{
+						Value: &tag_pb.Value{
+							Reference: rootReference.GetRawReference(),
+							Timestamp: rootTagMessage.Timestamp,
 						},
-						r.namespace.ReferenceFormat,
-						key,
-					)
-					if err != nil {
-						return util.StatusWrap(err, "Invalid root tag signed value")
-					}
-					rootTag = &unfinalizedDAGRootTag{
-						key:         key,
-						signedValue: signedValue,
-					}
+						Signature: rootTagMessage.Signature,
+					},
+					r.namespace.ReferenceFormat,
+					key,
+				)
+				if err != nil {
+					return util.StatusWrap(err, "Invalid root tag signed value")
 				}
-				return nil
-			}()
+				rootTag = &unfinalizedTagState{
+					rootReferenceIndex: nextReferenceIndex,
+					key:                key,
+					signedValue:        signedValue,
+				}
+			}
 
 			// The client should respect the maximum number of
 			// DAGs that the server is willing to process at once.
@@ -385,33 +386,23 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 			}
 			r.unfinalizedDAGsCount++
 
-			if err == nil {
-				o := r.getOrCreateObjectState(rootReference, nextReferenceIndex)
-				if o.unfinalized == nil {
-					// The provided DAG was already
-					// uploaded previously. Simply write
-					// an additional tag in TagStore.
-					r.finalizeDAGLocked(rootReference, o.lease, rootTag, nextReferenceIndex, nil)
-				} else {
-					// DAG for which we don't know if it
-					// exists yet.
-					o.unfinalized.dags = append(
-						o.unfinalized.dags,
-						&unfinalizedDAGState{
-							rootReferenceIndex: nextReferenceIndex,
-							rootTag:            rootTag,
-						},
-					)
-				}
+			o := r.getOrCreateObjectState(rootReference, nextReferenceIndex)
+			if rootTag == nil {
+				// Because no tag was provided, we will
+				// not send back FinalizeTag. This means
+				// that FinalizeObject of the root
+				// object concludes the transmission of
+				// this DAG.
+				o.unfinalizedDAGsWithoutTagsCount++
+			} else if o.unfinalized == nil {
+				// The provided DAG was already uploaded
+				// previously. Simply write an
+				// additional tag in TagStore.
+				r.updateAndFinalizeTag(rootReference, o.lease, rootTag)
 			} else {
-				// Client provided an invalid reference.
-				// Instead of making the RPC fail, return
-				// the error through fictive RequestObject
-				// and FinalizeDag messages. This allows
-				r.queueRequestObjectLocked(&objectState[TLease]{
-					requestObject: r.newRequestObject(nextReferenceIndex),
-				})
-				r.queueFinalizeDAGLocked(nextReferenceIndex, err)
+				// DAG for which we don't know if it
+				// exists yet.
+				o.unfinalized.tags = append(o.unfinalized.tags, rootTag)
 			}
 			r.lock.Unlock()
 
@@ -419,12 +410,12 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 		case *dag.UploadDagsRequest_ProvideObjectContents_:
 			provideObjectContents := requestType.ProvideObjectContents
 			r.lock.Lock()
-			o, ok := r.replicatingObjects[provideObjectContents.LowestReferenceIndex]
+			o, ok := r.requestedObjects[provideObjectContents.LowestReferenceIndex]
 			if !ok {
 				r.lock.Unlock()
 				return status.Errorf(codes.InvalidArgument, "Client provided object contents for lowest reference index %d, which was not expected", provideObjectContents.LowestReferenceIndex)
 			}
-			delete(r.replicatingObjects, provideObjectContents.LowestReferenceIndex)
+			delete(r.requestedObjects, provideObjectContents.LowestReferenceIndex)
 
 			if len(provideObjectContents.ObjectContents) == 0 {
 				// Client left ObjectContents unset. This can
@@ -432,7 +423,7 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 				// transmission of DAGs without tearing down
 				// the connection entirely.
 				var lease TLease
-				r.finalizeObjectLocked(o, lease, status.Errorf(codes.Canceled, "Client canceled upload of object with reference %s", o.reference))
+				r.finalizeObjectLocked(o, lease, statusClientCanceledUpload)
 				r.lock.Unlock()
 			} else {
 				r.lock.Unlock()
@@ -500,27 +491,46 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 	}
 }
 
-func (r *dagReceiver[TLease]) queueRequestObjectLocked(o *objectState[TLease]) {
-	if o.requestObject == nil {
-		panic("attempted to schedule RequestObject message for object that did not have an outstanding request")
-	}
-	if o.nextRequestedObject != nil || r.lastRequestedObject == &o.nextRequestedObject {
-		panic("RequestObject message is already requested for object")
+// queueRequestObjectContentsLocked queues aeRequestObjectContents
+// message for transmission back to the client.
+func (r *dagReceiver[TLease]) queueRequestObjectContentsLocked(o *objectState[TLease]) {
+	if o.nextRequestedOrFinalizedObject != nil || r.lastRequestedObject == &o.nextRequestedOrFinalizedObject || r.lastFinalizedObject == &o.nextRequestedOrFinalizedObject {
+		panic("RequestObjectContents or FinalizeObject message is already requested for object")
 	}
 	*r.lastRequestedObject = o
-	r.lastRequestedObject = &o.nextRequestedObject
+	r.lastRequestedObject = &o.nextRequestedOrFinalizedObject
+	r.requestedObjectCount++
 	r.outgoingMessagesWakeup.Broadcast()
 }
 
-func (r *dagReceiver[TLease]) queueFinalizeDAGLocked(rootReferenceIndex uint64, err error) {
-	d := &finalizedDAGState{
-		finalization: dag.UploadDagsResponse_FinalizeDag{
+// queueFinalizeObjectLocked queues a FinalizeObject message for
+// transmission back to the client.
+func (r *dagReceiver[TLease]) queueFinalizeObjectLocked(o *objectState[TLease], status *statuspb.Status) {
+	if o.finalizeObject == nil {
+		panic("attempted to schedule FinalizeObject message for object that did not have an outstanding request")
+	}
+	o.finalizeObject.Status = status
+
+	if o.nextRequestedOrFinalizedObject != nil || r.lastRequestedObject == &o.nextRequestedOrFinalizedObject || r.lastFinalizedObject == &o.nextRequestedOrFinalizedObject {
+		panic("RequestObjectContents or FinalizeObject message is already requested for object")
+	}
+	*r.lastFinalizedObject = o
+	r.lastFinalizedObject = &o.nextRequestedOrFinalizedObject
+	r.outgoingMessagesWakeup.Broadcast()
+}
+
+// queueFinalizeTagLocked queues a FinalizeTag message for transmission
+// back to the client.
+func (r *dagReceiver[TLease]) queueFinalizeTagLocked(rootReferenceIndex uint64, status *statuspb.Status) {
+	t := &finalizedTagState{
+		finalization: dag.UploadDagsResponse_FinalizeTag{
 			RootReferenceIndex: rootReferenceIndex,
-			Status:             status.Convert(err).Proto(),
+			Status:             status,
 		},
 	}
-	*r.lastFinalizedDAG = d
-	r.lastFinalizedDAG = &d.nextFinalizedDAG
+
+	*r.lastFinalizedTag = t
+	r.lastFinalizedTag = &t.nextFinalizedTag
 	r.outgoingMessagesWakeup.Broadcast()
 }
 
@@ -581,6 +591,8 @@ func (r *dagReceiver[TLease]) processPendingObjects() error {
 			r.lock.Lock()
 			defer r.lock.Unlock()
 
+			r.requestableObjectCount--
+			requestContents := false
 			if err == nil {
 				switch resultType := result.(type) {
 				case object.UploadObjectComplete[TLease]:
@@ -593,23 +605,23 @@ func (r *dagReceiver[TLease]) processPendingObjects() error {
 					// leases. Request that the client
 					// uploads it again to reobtain valid
 					// leases.
-					o.requestObject.RequestContents = true
+					requestContents = true
+					r.queueRequestObjectContentsLocked(o)
 				default:
 					panic("unknown upload object result type")
 				}
 			} else {
 				// Internal error.
 				var lease TLease
-				r.finalizeObjectLocked(o, lease, err)
+				r.finalizeObjectLocked(o, lease, status.Convert(err).Proto())
 			}
-			r.queueRequestObjectLocked(o)
 
 			// If we're not going to request the object's
 			// contents, we're not going to receive a
 			// ProvideObjectContents message from the
 			// client. This means we're free to request
 			// other objects.
-			if !o.requestObject.RequestContents {
+			if !requestContents {
 				r.remainingUnfinalizedParentsLimit.ReleaseChildren(o.reference)
 				r.pendingObjectsWakeup.Broadcast()
 			}
@@ -620,15 +632,18 @@ func (r *dagReceiver[TLease]) processPendingObjects() error {
 
 // finalizeObjectLocked is called when an object has finished
 // replicating, or after an error occurred in the process.
-func (r *dagReceiver[TLease]) finalizeObjectLocked(o *objectState[TLease], lease TLease, err error) {
+func (r *dagReceiver[TLease]) finalizeObjectLocked(o *objectState[TLease], lease TLease, status *statuspb.Status) {
+	r.queueFinalizeObjectLocked(o, status)
+
 	unfinalized := o.unfinalized
 	o.unfinalized = nil
 
-	// Delete the object state if it is completely unused. If not,
-	// preserve the lease, so that any future ProvideObjectContents
-	// messages that refer to this object can obtain the lease
-	// without needing to call GetObjectLease() again.
-	if err != nil || o.requestObject == nil {
+	// Upon success, don't detach the object state immediately. This
+	// alllows us to hold on to the lease a bit longer. That way we
+	// need to do fewer lookups against storage, and may send fewer
+	// FinalizeObject messages back to the client.
+	hasFailure := status.GetCode() != 0
+	if hasFailure {
 		r.detachObjectState(o)
 	} else {
 		o.lease = lease
@@ -645,10 +660,10 @@ func (r *dagReceiver[TLease]) finalizeObjectLocked(o *objectState[TLease], lease
 		// If an error occurred replicating an object, place any
 		// parents in a dead state. This ensures that they don't
 		// get written to storage.
-		if err != nil && hasUnfinalizedChildren.childErr == nil {
+		if hasFailure && !hasUnfinalizedChildren.hasChildFailures {
 			hasUnfinalizedChildren.contents = nil
 			hasUnfinalizedChildren.leases = nil
-			hasUnfinalizedChildren.childErr = err
+			hasUnfinalizedChildren.hasChildFailures = true
 			r.detachObjectState(oParent)
 		}
 
@@ -658,53 +673,48 @@ func (r *dagReceiver[TLease]) finalizeObjectLocked(o *objectState[TLease], lease
 		hasUnfinalizedChildren.unfinalizedChildrenCount--
 		if hasUnfinalizedChildren.unfinalizedChildrenCount == 0 {
 			oParent.unfinalized.hasUnfinalizedChildren = nil
-			if childErr := hasUnfinalizedChildren.childErr; childErr == nil {
+			if hasUnfinalizedChildren.hasChildFailures {
+				var lease TLease
+				r.finalizeObjectLocked(oParent, lease, statusChildUploadFailure)
+			} else {
 				r.lock.Unlock()
 				r.putObject(oParent, hasUnfinalizedChildren.contents, hasUnfinalizedChildren.leases)
 				r.lock.Lock()
-			} else {
-				var lease TLease
-				r.finalizeObjectLocked(oParent, lease, childErr)
 			}
 		}
 	}
 
 	// If the object is the root of a DAG, write tags into TagStore
-	// and send FinalizeDag messages back to the client.
-	for _, dag := range unfinalized.dags {
-		r.finalizeDAGLocked(o.reference, lease, dag.rootTag, dag.rootReferenceIndex, err)
+	// and send FinalizeTag messages back to the client.
+	for _, tag := range unfinalized.tags {
+		if hasFailure {
+			r.queueFinalizeTagLocked(tag.rootReferenceIndex, statusRootUploadFailure)
+		} else {
+			r.updateAndFinalizeTag(o.reference, lease, tag)
+		}
 	}
 
 	r.remainingUnfinalizedParentsLimit.ReleaseObject(o.reference)
 	r.pendingObjectsWakeup.Broadcast()
 }
 
-// finalizeDAGLocked writes tags into TagStore and sends FinalizeDag
-// messages back to the client.
-func (r *dagReceiver[TLease]) finalizeDAGLocked(rootReference object.LocalReference, rootLease TLease, rootTag *unfinalizedDAGRootTag, rootReferenceIndex uint64, err error) {
-	if err != nil || rootTag == nil {
-		// Fast path: Client requested uploading a DAG without
-		// storing a tag in TagStore, or uploading failed.
-		r.queueFinalizeDAGLocked(rootReferenceIndex, err)
-	} else {
-		// Slow path: Only send FinalizeDag to the client after
-		// we've been able to write a tag. The concurrency of
-		// this is bounded by unfinalizedDAGsCount.
-		r.group.Go(func() error {
-			err := r.server.tagUpdater.UpdateTag(
-				r.context,
-				r.namespace,
-				rootTag.key,
-				rootTag.signedValue,
-				rootLease,
-			)
+// updateAndFinalizeTag writes tags into TagStore and sends a
+// FinalizeTag messages back to the client.
+func (r *dagReceiver[TLease]) updateAndFinalizeTag(rootReference object.LocalReference, rootLease TLease, rootTag *unfinalizedTagState) {
+	r.group.Go(func() error {
+		err := r.server.tagUpdater.UpdateTag(
+			r.context,
+			r.namespace,
+			rootTag.key,
+			rootTag.signedValue,
+			rootLease,
+		)
 
-			r.lock.Lock()
-			r.queueFinalizeDAGLocked(rootReferenceIndex, err)
-			r.lock.Unlock()
-			return nil
-		})
-	}
+		r.lock.Lock()
+		r.queueFinalizeTagLocked(rootTag.rootReferenceIndex, status.Convert(err).Proto())
+		r.lock.Unlock()
+		return nil
+	})
 }
 
 // putObject writes an object into object.Uploader, after all of its
@@ -744,20 +754,20 @@ func (r *dagReceiver[TLease]) putObject(o *objectState[TLease], contents *object
 		} else {
 			// Internal error.
 			var lease TLease
-			r.finalizeObjectLocked(o, lease, err)
+			r.finalizeObjectLocked(o, lease, status.Convert(err).Proto())
 		}
 		r.lock.Unlock()
 		return nil
 	})
 }
 
-// processOutgoingMessages sends RequestObject and FinalizeDag messages
-// to the client.
+// processOutgoingMessages sends RequestObjectContents, FinalizeObject,
+// and FinalizeTag messages to the client.
 func (r *dagReceiver[TLease]) processOutgoingMessages() error {
 	for {
 		// Wait for one or more UploadDagsResponse messages be sent.
 		r.lock.Lock()
-		for r.firstRequestedObject == nil && r.firstFinalizedDAG == nil {
+		for r.firstFinalizedObject == nil && r.firstFinalizedTag == nil && r.firstRequestedObject == nil {
 			if r.gracefulShutdown && r.unfinalizedDAGsCount == 0 {
 				r.lock.Unlock()
 				return nil
@@ -767,56 +777,65 @@ func (r *dagReceiver[TLease]) processOutgoingMessages() error {
 			}
 		}
 
-		if r.firstRequestedObject != nil {
-			// There are one or more objects for which we've
-			// checked existence. Send a RequestObject message
-			// to the client.
-			o := r.firstRequestedObject
-			r.firstRequestedObject = o.nextRequestedObject
-			if r.firstRequestedObject == nil {
-				r.lastRequestedObject = &r.firstRequestedObject
+		// The order of preference in which we send messages is
+		// chosen intentionally, so that resources are released
+		// prior to acquiring them.
+		if r.firstFinalizedObject != nil {
+			// There are one or more objects that were
+			// written to storage, or were already
+			// determined to exist. Send a FinalizeObject
+			// message to the client.
+			o := r.firstFinalizedObject
+			r.firstFinalizedObject = o.nextRequestedOrFinalizedObject
+			if r.firstFinalizedObject == nil {
+				r.lastFinalizedObject = &r.firstFinalizedObject
 			}
-			o.nextRequestedObject = nil
+			o.nextRequestedOrFinalizedObject = nil
 
-			// Detach the existing RequestObject message.
+			// Detach the existing FinalizeObject message.
 			// This ensures that if we see this object being
 			// referenced later on, we release those
 			// reference indices as well by sending
-			// additional RequestObject messages.
-			requestObject := o.requestObject
-			o.requestObject = nil
-			r.requestObjectCount--
+			// additional FinalizeObject messages.
+			finalizeObject := o.finalizeObject
+			o.finalizeObject = nil
 			if o.unfinalized == nil {
 				r.detachObjectState(o)
 			}
-			if requestObject.RequestContents {
-				r.replicatingObjects[requestObject.LowestReferenceIndex] = o
+
+			// If this object is the root of a DAG for which
+			// no tag was provided, this concludes the
+			// transmission. Allow the transmission of
+			// additional DAGs to be initiated.
+			if r.unfinalizedDAGsCount < o.unfinalizedDAGsWithoutTagsCount {
+				panic("invalid unfinalized DAGs count")
 			}
+			r.unfinalizedDAGsCount -= o.unfinalizedDAGsWithoutTagsCount
 			r.lock.Unlock()
 
 			if err := r.stream.Send(&dag.UploadDagsResponse{
-				Type: &dag.UploadDagsResponse_RequestObject_{
-					RequestObject: requestObject,
+				Type: &dag.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: finalizeObject,
 				},
 			}); err != nil {
 				return err
 			}
-		} else {
-			// There one or more DAGs that have finished
-			// uploading. Send a FinalizeDag message to the
+		} else if r.firstFinalizedTag != nil {
+			// There is a tag that has just been written to
+			// storage. Send a FinalizeTag message to the
 			// client.
 			//
 			// Make sure that this is only done after all
-			// RequestObjects are messages are sent, so that
-			// the client only receives FinalizeDag after it
+			// FinalizeObject are messages are sent, so that
+			// the client only receives FinalizeTag after it
 			// has purged all object state belonging to that
 			// DAG.
-			d := r.firstFinalizedDAG
-			r.firstFinalizedDAG = d.nextFinalizedDAG
-			if r.firstFinalizedDAG == nil {
-				r.lastFinalizedDAG = &r.firstFinalizedDAG
+			d := r.firstFinalizedTag
+			r.firstFinalizedTag = d.nextFinalizedTag
+			if r.firstFinalizedTag == nil {
+				r.lastFinalizedTag = &r.firstFinalizedTag
 			}
-			d.nextFinalizedDAG = nil
+			d.nextFinalizedTag = nil
 
 			if r.unfinalizedDAGsCount == 0 {
 				panic("invalid unfinalized DAGs count")
@@ -825,8 +844,36 @@ func (r *dagReceiver[TLease]) processOutgoingMessages() error {
 			r.lock.Unlock()
 
 			if err := r.stream.Send(&dag.UploadDagsResponse{
-				Type: &dag.UploadDagsResponse_FinalizeDag_{
-					FinalizeDag: &d.finalization,
+				Type: &dag.UploadDagsResponse_FinalizeTag_{
+					FinalizeTag: &d.finalization,
+				},
+			}); err != nil {
+				return err
+			}
+		} else {
+			// There are one or more objects for which we've
+			// determined they are absent. Send a
+			// RequestObjectContents message to the client.
+			o := r.firstRequestedObject
+			r.firstRequestedObject = o.nextRequestedOrFinalizedObject
+			if r.firstRequestedObject == nil {
+				r.lastRequestedObject = &r.firstRequestedObject
+			}
+			if r.requestedObjectCount == 0 {
+				panic("invalid requested object count")
+			}
+			r.requestedObjectCount--
+			o.nextRequestedOrFinalizedObject = nil
+
+			lowestReferenceIndex := o.finalizeObject.LowestReferenceIndex
+			r.requestedObjects[lowestReferenceIndex] = o
+			r.lock.Unlock()
+
+			if err := r.stream.Send(&dag.UploadDagsResponse{
+				Type: &dag.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag.UploadDagsResponse_RequestObjectContents{
+						LowestReferenceIndex: lowestReferenceIndex,
+					},
 				},
 			}); err != nil {
 				return err

@@ -128,8 +128,9 @@ type UploadDagsResponse struct {
 	// Types that are valid to be assigned to Type:
 	//
 	//	*UploadDagsResponse_Handshake_
-	//	*UploadDagsResponse_RequestObject_
-	//	*UploadDagsResponse_FinalizeDag_
+	//	*UploadDagsResponse_RequestObjectContents_
+	//	*UploadDagsResponse_FinalizeObject_
+	//	*UploadDagsResponse_FinalizeTag_
 	Type          isUploadDagsResponse_Type `protobuf_oneof:"type"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -181,19 +182,28 @@ func (x *UploadDagsResponse) GetHandshake() *UploadDagsResponse_Handshake {
 	return nil
 }
 
-func (x *UploadDagsResponse) GetRequestObject() *UploadDagsResponse_RequestObject {
+func (x *UploadDagsResponse) GetRequestObjectContents() *UploadDagsResponse_RequestObjectContents {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsResponse_RequestObject_); ok {
-			return x.RequestObject
+		if x, ok := x.Type.(*UploadDagsResponse_RequestObjectContents_); ok {
+			return x.RequestObjectContents
 		}
 	}
 	return nil
 }
 
-func (x *UploadDagsResponse) GetFinalizeDag() *UploadDagsResponse_FinalizeDag {
+func (x *UploadDagsResponse) GetFinalizeObject() *UploadDagsResponse_FinalizeObject {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsResponse_FinalizeDag_); ok {
-			return x.FinalizeDag
+		if x, ok := x.Type.(*UploadDagsResponse_FinalizeObject_); ok {
+			return x.FinalizeObject
+		}
+	}
+	return nil
+}
+
+func (x *UploadDagsResponse) GetFinalizeTag() *UploadDagsResponse_FinalizeTag {
+	if x != nil {
+		if x, ok := x.Type.(*UploadDagsResponse_FinalizeTag_); ok {
+			return x.FinalizeTag
 		}
 	}
 	return nil
@@ -207,19 +217,25 @@ type UploadDagsResponse_Handshake_ struct {
 	Handshake *UploadDagsResponse_Handshake `protobuf:"bytes,1,opt,name=handshake,proto3,oneof"`
 }
 
-type UploadDagsResponse_RequestObject_ struct {
-	RequestObject *UploadDagsResponse_RequestObject `protobuf:"bytes,2,opt,name=request_object,json=requestObject,proto3,oneof"`
+type UploadDagsResponse_RequestObjectContents_ struct {
+	RequestObjectContents *UploadDagsResponse_RequestObjectContents `protobuf:"bytes,2,opt,name=request_object_contents,json=requestObjectContents,proto3,oneof"`
 }
 
-type UploadDagsResponse_FinalizeDag_ struct {
-	FinalizeDag *UploadDagsResponse_FinalizeDag `protobuf:"bytes,3,opt,name=finalize_dag,json=finalizeDag,proto3,oneof"`
+type UploadDagsResponse_FinalizeObject_ struct {
+	FinalizeObject *UploadDagsResponse_FinalizeObject `protobuf:"bytes,3,opt,name=finalize_object,json=finalizeObject,proto3,oneof"`
+}
+
+type UploadDagsResponse_FinalizeTag_ struct {
+	FinalizeTag *UploadDagsResponse_FinalizeTag `protobuf:"bytes,4,opt,name=finalize_tag,json=finalizeTag,proto3,oneof"`
 }
 
 func (*UploadDagsResponse_Handshake_) isUploadDagsResponse_Type() {}
 
-func (*UploadDagsResponse_RequestObject_) isUploadDagsResponse_Type() {}
+func (*UploadDagsResponse_RequestObjectContents_) isUploadDagsResponse_Type() {}
 
-func (*UploadDagsResponse_FinalizeDag_) isUploadDagsResponse_Type() {}
+func (*UploadDagsResponse_FinalizeObject_) isUploadDagsResponse_Type() {}
+
+func (*UploadDagsResponse_FinalizeTag_) isUploadDagsResponse_Type() {}
 
 type UploadDagsRequest_Handshake struct {
 	state                          protoimpl.MessageState `protogen:"open.v1"`
@@ -481,29 +497,27 @@ func (x *UploadDagsResponse_Handshake) GetMaximumUnfinalizedDagsCount() uint32 {
 	return 0
 }
 
-type UploadDagsResponse_RequestObject struct {
-	state                      protoimpl.MessageState `protogen:"open.v1"`
-	LowestReferenceIndex       uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex,proto3" json:"lowest_reference_index,omitempty"`
-	AdditionalReferenceIndices uint32                 `protobuf:"varint,2,opt,name=additional_reference_indices,json=additionalReferenceIndices,proto3" json:"additional_reference_indices,omitempty"`
-	RequestContents            bool                   `protobuf:"varint,3,opt,name=request_contents,json=requestContents,proto3" json:"request_contents,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+type UploadDagsResponse_RequestObjectContents struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	LowestReferenceIndex uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex,proto3" json:"lowest_reference_index,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
-func (x *UploadDagsResponse_RequestObject) Reset() {
-	*x = UploadDagsResponse_RequestObject{}
+func (x *UploadDagsResponse_RequestObjectContents) Reset() {
+	*x = UploadDagsResponse_RequestObjectContents{}
 	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UploadDagsResponse_RequestObject) String() string {
+func (x *UploadDagsResponse_RequestObjectContents) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UploadDagsResponse_RequestObject) ProtoMessage() {}
+func (*UploadDagsResponse_RequestObjectContents) ProtoMessage() {}
 
-func (x *UploadDagsResponse_RequestObject) ProtoReflect() protoreflect.Message {
+func (x *UploadDagsResponse_RequestObjectContents) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -515,33 +529,79 @@ func (x *UploadDagsResponse_RequestObject) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsResponse_RequestObject.ProtoReflect.Descriptor instead.
-func (*UploadDagsResponse_RequestObject) Descriptor() ([]byte, []int) {
+// Deprecated: Use UploadDagsResponse_RequestObjectContents.ProtoReflect.Descriptor instead.
+func (*UploadDagsResponse_RequestObjectContents) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 1}
 }
 
-func (x *UploadDagsResponse_RequestObject) GetLowestReferenceIndex() uint64 {
+func (x *UploadDagsResponse_RequestObjectContents) GetLowestReferenceIndex() uint64 {
 	if x != nil {
 		return x.LowestReferenceIndex
 	}
 	return 0
 }
 
-func (x *UploadDagsResponse_RequestObject) GetAdditionalReferenceIndices() uint32 {
+type UploadDagsResponse_FinalizeObject struct {
+	state                      protoimpl.MessageState `protogen:"open.v1"`
+	LowestReferenceIndex       uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex,proto3" json:"lowest_reference_index,omitempty"`
+	AdditionalReferenceIndices uint32                 `protobuf:"varint,2,opt,name=additional_reference_indices,json=additionalReferenceIndices,proto3" json:"additional_reference_indices,omitempty"`
+	Status                     *status.Status         `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+func (x *UploadDagsResponse_FinalizeObject) Reset() {
+	*x = UploadDagsResponse_FinalizeObject{}
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadDagsResponse_FinalizeObject) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadDagsResponse_FinalizeObject) ProtoMessage() {}
+
+func (x *UploadDagsResponse_FinalizeObject) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadDagsResponse_FinalizeObject.ProtoReflect.Descriptor instead.
+func (*UploadDagsResponse_FinalizeObject) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 2}
+}
+
+func (x *UploadDagsResponse_FinalizeObject) GetLowestReferenceIndex() uint64 {
+	if x != nil {
+		return x.LowestReferenceIndex
+	}
+	return 0
+}
+
+func (x *UploadDagsResponse_FinalizeObject) GetAdditionalReferenceIndices() uint32 {
 	if x != nil {
 		return x.AdditionalReferenceIndices
 	}
 	return 0
 }
 
-func (x *UploadDagsResponse_RequestObject) GetRequestContents() bool {
+func (x *UploadDagsResponse_FinalizeObject) GetStatus() *status.Status {
 	if x != nil {
-		return x.RequestContents
+		return x.Status
 	}
-	return false
+	return nil
 }
 
-type UploadDagsResponse_FinalizeDag struct {
+type UploadDagsResponse_FinalizeTag struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	RootReferenceIndex uint64                 `protobuf:"varint,1,opt,name=root_reference_index,json=rootReferenceIndex,proto3" json:"root_reference_index,omitempty"`
 	Status             *status.Status         `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
@@ -549,21 +609,21 @@ type UploadDagsResponse_FinalizeDag struct {
 	sizeCache          protoimpl.SizeCache
 }
 
-func (x *UploadDagsResponse_FinalizeDag) Reset() {
-	*x = UploadDagsResponse_FinalizeDag{}
-	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[8]
+func (x *UploadDagsResponse_FinalizeTag) Reset() {
+	*x = UploadDagsResponse_FinalizeTag{}
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UploadDagsResponse_FinalizeDag) String() string {
+func (x *UploadDagsResponse_FinalizeTag) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UploadDagsResponse_FinalizeDag) ProtoMessage() {}
+func (*UploadDagsResponse_FinalizeTag) ProtoMessage() {}
 
-func (x *UploadDagsResponse_FinalizeDag) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[8]
+func (x *UploadDagsResponse_FinalizeTag) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -574,19 +634,19 @@ func (x *UploadDagsResponse_FinalizeDag) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsResponse_FinalizeDag.ProtoReflect.Descriptor instead.
-func (*UploadDagsResponse_FinalizeDag) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 2}
+// Deprecated: Use UploadDagsResponse_FinalizeTag.ProtoReflect.Descriptor instead.
+func (*UploadDagsResponse_FinalizeTag) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 3}
 }
 
-func (x *UploadDagsResponse_FinalizeDag) GetRootReferenceIndex() uint64 {
+func (x *UploadDagsResponse_FinalizeTag) GetRootReferenceIndex() uint64 {
 	if x != nil {
 		return x.RootReferenceIndex
 	}
 	return 0
 }
 
-func (x *UploadDagsResponse_FinalizeDag) GetStatus() *status.Status {
+func (x *UploadDagsResponse_FinalizeTag) GetStatus() *status.Status {
 	if x != nil {
 		return x.Status
 	}
@@ -615,18 +675,21 @@ const file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc = "" +
 	"\x15ProvideObjectContents\x124\n" +
 	"\x16lowest_reference_index\x18\x01 \x01(\x04R\x14lowestReferenceIndex\x12'\n" +
 	"\x0fobject_contents\x18\x02 \x01(\fR\x0eobjectContentsB\x06\n" +
-	"\x04type\"\x9d\x05\n" +
+	"\x04type\"\xea\x06\n" +
 	"\x12UploadDagsResponse\x12Q\n" +
-	"\thandshake\x18\x01 \x01(\v21.bonanza.storage.dag.UploadDagsResponse.HandshakeH\x00R\thandshake\x12^\n" +
-	"\x0erequest_object\x18\x02 \x01(\v25.bonanza.storage.dag.UploadDagsResponse.RequestObjectH\x00R\rrequestObject\x12X\n" +
-	"\ffinalize_dag\x18\x03 \x01(\v23.bonanza.storage.dag.UploadDagsResponse.FinalizeDagH\x00R\vfinalizeDag\x1aP\n" +
+	"\thandshake\x18\x01 \x01(\v21.bonanza.storage.dag.UploadDagsResponse.HandshakeH\x00R\thandshake\x12w\n" +
+	"\x17request_object_contents\x18\x02 \x01(\v2=.bonanza.storage.dag.UploadDagsResponse.RequestObjectContentsH\x00R\x15requestObjectContents\x12a\n" +
+	"\x0ffinalize_object\x18\x03 \x01(\v26.bonanza.storage.dag.UploadDagsResponse.FinalizeObjectH\x00R\x0efinalizeObject\x12X\n" +
+	"\ffinalize_tag\x18\x04 \x01(\v23.bonanza.storage.dag.UploadDagsResponse.FinalizeTagH\x00R\vfinalizeTag\x1aP\n" +
 	"\tHandshake\x12C\n" +
-	"\x1emaximum_unfinalized_dags_count\x18\x01 \x01(\rR\x1bmaximumUnfinalizedDagsCount\x1a\xb2\x01\n" +
-	"\rRequestObject\x124\n" +
+	"\x1emaximum_unfinalized_dags_count\x18\x01 \x01(\rR\x1bmaximumUnfinalizedDagsCount\x1aM\n" +
+	"\x15RequestObjectContents\x124\n" +
+	"\x16lowest_reference_index\x18\x01 \x01(\x04R\x14lowestReferenceIndex\x1a\xb4\x01\n" +
+	"\x0eFinalizeObject\x124\n" +
 	"\x16lowest_reference_index\x18\x01 \x01(\x04R\x14lowestReferenceIndex\x12@\n" +
-	"\x1cadditional_reference_indices\x18\x02 \x01(\rR\x1aadditionalReferenceIndices\x12)\n" +
-	"\x10request_contents\x18\x03 \x01(\bR\x0frequestContents\x1ak\n" +
-	"\vFinalizeDag\x120\n" +
+	"\x1cadditional_reference_indices\x18\x02 \x01(\rR\x1aadditionalReferenceIndices\x12*\n" +
+	"\x06status\x18\x03 \x01(\v2\x12.google.rpc.StatusR\x06status\x1ak\n" +
+	"\vFinalizeTag\x120\n" +
 	"\x14root_reference_index\x18\x01 \x01(\x04R\x12rootReferenceIndex\x12*\n" +
 	"\x06status\x18\x02 \x01(\v2\x12.google.rpc.StatusR\x06statusB\x06\n" +
 	"\x04type2m\n" +
@@ -646,43 +709,46 @@ func file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP() []byte {
 	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescData
 }
 
-var file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_bonanza_build_pkg_proto_storage_dag_dag_proto_goTypes = []any{
-	(*UploadDagsRequest)(nil),                       // 0: bonanza.storage.dag.UploadDagsRequest
-	(*UploadDagsResponse)(nil),                      // 1: bonanza.storage.dag.UploadDagsResponse
-	(*UploadDagsRequest_Handshake)(nil),             // 2: bonanza.storage.dag.UploadDagsRequest.Handshake
-	(*UploadDagsRequest_InitiateDag)(nil),           // 3: bonanza.storage.dag.UploadDagsRequest.InitiateDag
-	(*UploadDagsRequest_ProvideObjectContents)(nil), // 4: bonanza.storage.dag.UploadDagsRequest.ProvideObjectContents
-	(*UploadDagsRequest_InitiateDag_Tag)(nil),       // 5: bonanza.storage.dag.UploadDagsRequest.InitiateDag.Tag
-	(*UploadDagsResponse_Handshake)(nil),            // 6: bonanza.storage.dag.UploadDagsResponse.Handshake
-	(*UploadDagsResponse_RequestObject)(nil),        // 7: bonanza.storage.dag.UploadDagsResponse.RequestObject
-	(*UploadDagsResponse_FinalizeDag)(nil),          // 8: bonanza.storage.dag.UploadDagsResponse.FinalizeDag
-	(*object.Namespace)(nil),                        // 9: bonanza.storage.object.Namespace
-	(*object.Limit)(nil),                            // 10: bonanza.storage.object.Limit
-	(*tag.Key)(nil),                                 // 11: bonanza.storage.tag.Key
-	(*timestamppb.Timestamp)(nil),                   // 12: google.protobuf.Timestamp
-	(*status.Status)(nil),                           // 13: google.rpc.Status
+	(*UploadDagsRequest)(nil),                        // 0: bonanza.storage.dag.UploadDagsRequest
+	(*UploadDagsResponse)(nil),                       // 1: bonanza.storage.dag.UploadDagsResponse
+	(*UploadDagsRequest_Handshake)(nil),              // 2: bonanza.storage.dag.UploadDagsRequest.Handshake
+	(*UploadDagsRequest_InitiateDag)(nil),            // 3: bonanza.storage.dag.UploadDagsRequest.InitiateDag
+	(*UploadDagsRequest_ProvideObjectContents)(nil),  // 4: bonanza.storage.dag.UploadDagsRequest.ProvideObjectContents
+	(*UploadDagsRequest_InitiateDag_Tag)(nil),        // 5: bonanza.storage.dag.UploadDagsRequest.InitiateDag.Tag
+	(*UploadDagsResponse_Handshake)(nil),             // 6: bonanza.storage.dag.UploadDagsResponse.Handshake
+	(*UploadDagsResponse_RequestObjectContents)(nil), // 7: bonanza.storage.dag.UploadDagsResponse.RequestObjectContents
+	(*UploadDagsResponse_FinalizeObject)(nil),        // 8: bonanza.storage.dag.UploadDagsResponse.FinalizeObject
+	(*UploadDagsResponse_FinalizeTag)(nil),           // 9: bonanza.storage.dag.UploadDagsResponse.FinalizeTag
+	(*object.Namespace)(nil),                         // 10: bonanza.storage.object.Namespace
+	(*object.Limit)(nil),                             // 11: bonanza.storage.object.Limit
+	(*tag.Key)(nil),                                  // 12: bonanza.storage.tag.Key
+	(*timestamppb.Timestamp)(nil),                    // 13: google.protobuf.Timestamp
+	(*status.Status)(nil),                            // 14: google.rpc.Status
 }
 var file_bonanza_build_pkg_proto_storage_dag_dag_proto_depIdxs = []int32{
 	2,  // 0: bonanza.storage.dag.UploadDagsRequest.handshake:type_name -> bonanza.storage.dag.UploadDagsRequest.Handshake
 	3,  // 1: bonanza.storage.dag.UploadDagsRequest.initiate_dag:type_name -> bonanza.storage.dag.UploadDagsRequest.InitiateDag
 	4,  // 2: bonanza.storage.dag.UploadDagsRequest.provide_object_contents:type_name -> bonanza.storage.dag.UploadDagsRequest.ProvideObjectContents
 	6,  // 3: bonanza.storage.dag.UploadDagsResponse.handshake:type_name -> bonanza.storage.dag.UploadDagsResponse.Handshake
-	7,  // 4: bonanza.storage.dag.UploadDagsResponse.request_object:type_name -> bonanza.storage.dag.UploadDagsResponse.RequestObject
-	8,  // 5: bonanza.storage.dag.UploadDagsResponse.finalize_dag:type_name -> bonanza.storage.dag.UploadDagsResponse.FinalizeDag
-	9,  // 6: bonanza.storage.dag.UploadDagsRequest.Handshake.namespace:type_name -> bonanza.storage.object.Namespace
-	10, // 7: bonanza.storage.dag.UploadDagsRequest.Handshake.maximum_unfinalized_parents_limit:type_name -> bonanza.storage.object.Limit
-	5,  // 8: bonanza.storage.dag.UploadDagsRequest.InitiateDag.root_tag:type_name -> bonanza.storage.dag.UploadDagsRequest.InitiateDag.Tag
-	11, // 9: bonanza.storage.dag.UploadDagsRequest.InitiateDag.Tag.key:type_name -> bonanza.storage.tag.Key
-	12, // 10: bonanza.storage.dag.UploadDagsRequest.InitiateDag.Tag.timestamp:type_name -> google.protobuf.Timestamp
-	13, // 11: bonanza.storage.dag.UploadDagsResponse.FinalizeDag.status:type_name -> google.rpc.Status
-	0,  // 12: bonanza.storage.dag.Uploader.UploadDags:input_type -> bonanza.storage.dag.UploadDagsRequest
-	1,  // 13: bonanza.storage.dag.Uploader.UploadDags:output_type -> bonanza.storage.dag.UploadDagsResponse
-	13, // [13:14] is the sub-list for method output_type
-	12, // [12:13] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	7,  // 4: bonanza.storage.dag.UploadDagsResponse.request_object_contents:type_name -> bonanza.storage.dag.UploadDagsResponse.RequestObjectContents
+	8,  // 5: bonanza.storage.dag.UploadDagsResponse.finalize_object:type_name -> bonanza.storage.dag.UploadDagsResponse.FinalizeObject
+	9,  // 6: bonanza.storage.dag.UploadDagsResponse.finalize_tag:type_name -> bonanza.storage.dag.UploadDagsResponse.FinalizeTag
+	10, // 7: bonanza.storage.dag.UploadDagsRequest.Handshake.namespace:type_name -> bonanza.storage.object.Namespace
+	11, // 8: bonanza.storage.dag.UploadDagsRequest.Handshake.maximum_unfinalized_parents_limit:type_name -> bonanza.storage.object.Limit
+	5,  // 9: bonanza.storage.dag.UploadDagsRequest.InitiateDag.root_tag:type_name -> bonanza.storage.dag.UploadDagsRequest.InitiateDag.Tag
+	12, // 10: bonanza.storage.dag.UploadDagsRequest.InitiateDag.Tag.key:type_name -> bonanza.storage.tag.Key
+	13, // 11: bonanza.storage.dag.UploadDagsRequest.InitiateDag.Tag.timestamp:type_name -> google.protobuf.Timestamp
+	14, // 12: bonanza.storage.dag.UploadDagsResponse.FinalizeObject.status:type_name -> google.rpc.Status
+	14, // 13: bonanza.storage.dag.UploadDagsResponse.FinalizeTag.status:type_name -> google.rpc.Status
+	0,  // 14: bonanza.storage.dag.Uploader.UploadDags:input_type -> bonanza.storage.dag.UploadDagsRequest
+	1,  // 15: bonanza.storage.dag.Uploader.UploadDags:output_type -> bonanza.storage.dag.UploadDagsResponse
+	15, // [15:16] is the sub-list for method output_type
+	14, // [14:15] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_storage_dag_dag_proto_init() }
@@ -697,8 +763,9 @@ func file_bonanza_build_pkg_proto_storage_dag_dag_proto_init() {
 	}
 	file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[1].OneofWrappers = []any{
 		(*UploadDagsResponse_Handshake_)(nil),
-		(*UploadDagsResponse_RequestObject_)(nil),
-		(*UploadDagsResponse_FinalizeDag_)(nil),
+		(*UploadDagsResponse_RequestObjectContents_)(nil),
+		(*UploadDagsResponse_FinalizeObject_)(nil),
+		(*UploadDagsResponse_FinalizeTag_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -706,7 +773,7 @@ func file_bonanza_build_pkg_proto_storage_dag_dag_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

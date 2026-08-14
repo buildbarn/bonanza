@@ -11,10 +11,10 @@ option go_package = "bonanza.build/pkg/proto/storage/dag";
 
 // Uploader service that wraps bonanza.storage.object.Uploader and
 // bonanza.storage.tag.Updater into a more streamlined API. It's
-// recommended that most clients are built on top of this API, as it completely
-// abstracts away concepts such as lease expiration. It also reduces the
-// latency induced by network roundtrips, assuming the server is run close to
-// the Object & Tag Store servers.
+// recommended that most clients are built on top of this API, as it
+// completely abstracts away concepts such as lease expiration. It also
+// reduces the latency induced by network roundtrips, assuming the
+// server is run close to the Object & Tag Store servers.
 //
 // For reading objects and tags, bonanza.storage.object.Downloader
 // and bonanza.storage.tag.Resolver continue to be the recommended
@@ -42,29 +42,35 @@ service Uploader {
   // instances of the following flows:
   //
   // - The client sends an UploadDagsRequest.InitiateDag to inform the
-  //   server that it wants to upload a DAG with a given root object.
-  // - The server sends an UploadDagsResponse.RequestObject to indicate
-  //   whether or not it wants to receive the DAG's root object.
-  //   - If so, the client sends the contents of the object via
+  //   server that it wants to upload a DAG with a given root object,
+  //   and an optional tag to assignafter uploading.
+  // - The server may send an UploadDagsResponse.RequestObjectContents
+  //   to indicate that it wants to receive the DAG's root object.
+  //   - The client sends the contents of the object via
   //     UploadDagsRequest.ProvideObjectContents.
   //   - For each of the outgoing references of the root object, the
-  //     server sends UploadDagsResponse.RequestObject to indicate
-  //     whether or not it wants to receive the child objects.
-  //   - ...
-  // - Once the objects within a DAG for which the server can issue
-  //   UploadDagsResponse.RequestObject have exhausted, the server sends
-  //   UploadDagsResponse.FinalizeDag to report whether the DAG has been
-  //   persisted successfully.
+  //     server may send UploadDagsResponse.RequestObjectContents to
+  //     indicate that it wants to receive the child objects.
+  //     - ...
+  //   - For each of the outgoing references of the root object, the
+  //     server sends UploadDagsResponse.FinalizeObject to indicate
+  //     whether writing the child objects succeeded.
+  // - The server sends an UploadDagsResponse.FinalizeObject to indicate
+  //   whether writing the DAG's root object succeeded.
+  // - Optional: If a tag was provided in UploadDagsRequest.InitiateDag,
+  //   the server sends an UploadDagsResponse.FinalizeTag to indicate
+  //   whether writing the DAG's tag succeeded.
   //
-  // In order to correlated messages UploadDagsRequest.ProvideObjectContents,
-  // UploadDagsResponse.RequestObject, and UploadDagsResponse.FinalizeDag
+  // In order to correlate messages UploadDagsRequest.ProvideObjectContents,
+  // UploadDagsResponse.RequestObjectContents,
+  // UploadDagsResponse.FinalizeObject, and UploadDagsResponse.FinalizeTag
   // against previously transmitted messages, UploadDags() uses the
   // concept of reference indices. These indices are sequentially
   // assigned to references in the order in which they occur in
-  // UploadDagsRequest.InitiateDag and UploadDagsRequest.ProvideObjectContents
-  // messages. The reference that is part of the very first
-  // UploadDagsRequest.InitiateDag message will always have reference
-  // index zero.
+  // UploadDagsRequest.InitiateDag and
+  // UploadDagsRequest.ProvideObjectContents messages. The reference
+  // that is part of the very first UploadDagsRequest.InitiateDag
+  // message will always have reference index zero.
   rpc UploadDags(stream UploadDagsRequest) returns (stream UploadDagsResponse);
 }
 
@@ -75,7 +81,7 @@ message UploadDagsRequest {
 
     // The maximum permitted number of parent objects and their combined
     // size for which the server has one or more child objects for which
-    // it still needs to issue RequestObject.
+    // it still needs to issue FinalizeObject.
     //
     // This option can be used by clients to limit the breadth at which
     // DAGs to be uploaded are traversed by the server. Increasing
@@ -137,9 +143,9 @@ message UploadDagsRequest {
     // The client MAY leave this field empty if it wants to cancel
     // uploading DAGs containing the object. In that case no new
     // reference indices are assigned to any of the children of the
-    // object. The server SHOULD respond with FinalizeDag messages for
-    // each of the DAGs containing the object with
-    // UploadDagsResponse.FinalizeDag.status.code set to CANCELLED.
+    // object. The server SHOULD respond with a FinalizeObject message
+    // for this object with UploadDagsResponse.FinalizeObject.status.code
+    // set to CANCELLED.
     bytes object_contents = 2;
   }
 
@@ -151,8 +157,8 @@ message UploadDagsRequest {
     InitiateDag initiate_dag = 2;
 
     // Provide the contents of an object to the server. This message is
-    // sent in response to the server sending a RequestObject message
-    // where UploadDagsResponse.RequestObject.request_contents is true.
+    // sent in response to the server sending a RequestObjectContents
+    // message.
     ProvideObjectContents provide_object_contents = 3;
   }
 }
@@ -161,13 +167,25 @@ message UploadDagsResponse {
   message Handshake {
     // The maximum number of times the client is permitted to send
     // UploadDagsRequest.InitiateDag requests without receiving
-    // corresponding UploadDagsResponse.FinalizeDag responses from the
-    // server to indicate that uploading of a DAG has completed.
+    // corresponding UploadDagsResponse.FinalizeObject responses (for
+    // DAGs without tags) or UploadDagsResponse.FinalizeTag (for DAGs
+    // with tags) from the server to indicate that uploading of a DAG
+    // has completed.
     uint32 maximum_unfinalized_dags_count = 1;
   }
 
-  message RequestObject {
+  message RequestObjectContents {
     // The reference index of the object to request.
+    //
+    // Because of overlap between parts of DAGs, multiple reference
+    // indices may refer to the same object. In that case, this field
+    // MUST be set to the lowest index that is known to the server which
+    // has not yet been requested.
+    uint64 lowest_reference_index = 1;
+  }
+
+  message FinalizeObject {
+    // The reference index of the object to finalize.
     //
     // Because of overlap between parts of DAGs, multiple reference
     // indices may refer to the same object. In that case, this field
@@ -179,26 +197,30 @@ message UploadDagsResponse {
     // refer to the same object. This can be used by the server to
     // collapse uploads of identical parts of DAGs. For these parts the
     // server no longer needs to send additional
-    // UploadDagsResponse.RequestObject messages.
+    // UploadDagsResponse.FinalizeObject messages.
     uint32 additional_reference_indices = 2;
 
-    // Whether the server wants the client to upload the object's
-    // contents. This can be set to false if the server is already in
-    // possession of the object and all of transitive children. When set
-    // to true, the client MUST respond by sending a
-    // UploadDagsRequest.ProvideObjectContents message with
-    // UploadDagsRequest.ProvideObjectContents.lowest_reference_index
-    // set to the same value as
-    // UploadDagsResponse.RequestObject.lowest_reference_index.
-    bool request_contents = 3;
+    // Status that indicates whether writing the object succeeded. Upon
+    // success, the object and any of its children are immediately
+    // readable through DownloadObject().
+    //
+    // If an object cannot be written to storage because of a failure
+    // writing one of its child objects, status.code is set to
+    // CANCELLED.
+    google.rpc.Status status = 3;
   }
 
-  message FinalizeDag {
-    // Index of the reference of the root of the DAG to finalize.
+  message FinalizeTag {
+    // Index of the reference of the root object of the tag to finalize.
     uint64 root_reference_index = 1;
 
-    // Status that indicates whether writing all objects contained in
-    // the DAG and creating the provided tag succeeded.
+    // Status that indicates whether creating the provided tag
+    // succeeded. Upon success, the tag is resolvable through
+    // ResolveTag().
+    //
+    // If a tag cannot be written to storage because of a failure
+    // writing one of its child objects, status.code is set to
+    // CANCELLED.
     google.rpc.Status status = 2;
   }
 
@@ -207,14 +229,19 @@ message UploadDagsResponse {
     // handshake message sent by the client.
     Handshake handshake = 1;
 
-    // Instruct the client to either upload an object, or to discard it
-    // due to it already being present on the server.
-    RequestObject request_object = 2;
+    // Instruct the client to upload the contents of an object.
+    RequestObjectContents request_object_contents = 2;
 
-    // Inform the client that it will no longer send any
-    // UploadDagsResponse.RequestObject messages pertaining to a given
-    // DAG, and report whether writing the provided DAG and tag
-    // succeeded.
-    FinalizeDag finalize_dag = 3;
+    // Inform the client whether or not an object and all of its
+    // children have been written to storage successfully. Upon success,
+    // the client may release any resources associated with the object,
+    // as it is capable of reading the object through DownloadObject().
+    FinalizeObject finalize_object = 3;
+
+    // Inform the client whether or not a tag and all objects it
+    // references has been written to storage successfully. Upon
+    // success, the client may release any resources associated with the
+    // tag, as it is capable of reading the tag through ResolveTag().
+    FinalizeTag finalize_tag = 4;
   }
 }

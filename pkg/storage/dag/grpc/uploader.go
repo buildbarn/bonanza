@@ -9,7 +9,6 @@ import (
 	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 	"bonanza.build/pkg/storage/tag"
-	pg_sync "bonanza.build/pkg/sync"
 
 	"github.com/buildbarn/bb-storage/pkg/program"
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -20,7 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type requestableObjectState struct {
+type unfinalizedObjectState struct {
 	reference                  object.LocalReference
 	walker                     dag.ObjectContentsWalker
 	additionalReferenceIndices []uint64
@@ -44,22 +43,22 @@ func NewUploader(client dag_pb.UploaderClient, objectContentsWalkerSemaphore *se
 
 func (u *uploader) uploadDAG(ctx context.Context, rootReference object.GlobalReference, rootObjectContentsWalker dag.ObjectContentsWalker, rootTag *dag_pb.UploadDagsRequest_InitiateDag_Tag) error {
 	return program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-		// State associated with all requestable objects. Ensure
+		// State associated with all unfinalized objects. Ensure
 		// that all walkers that traversed are discarded upon
 		// failure.
-		rootObject := &requestableObjectState{
+		rootObject := &unfinalizedObjectState{
 			reference: rootReference.LocalReference,
 			walker:    rootObjectContentsWalker,
 		}
-		requestableObjectsByLowestIndex := map[uint64]*requestableObjectState{
+		unfinalizedObjectsByLowestIndex := map[uint64]*unfinalizedObjectState{
 			0: rootObject,
 		}
-		requestableObjectsByReference := map[object.LocalReference]*requestableObjectState{
+		unfinalizedObjectsByReference := map[object.LocalReference]*unfinalizedObjectState{
 			rootReference.LocalReference: rootObject,
 		}
 		dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
 			<-ctx.Done()
-			for _, o := range requestableObjectsByLowestIndex {
+			for _, o := range unfinalizedObjectsByLowestIndex {
 				if o.walker != nil {
 					o.walker.Discard()
 				}
@@ -117,115 +116,82 @@ func (u *uploader) uploadDAG(ctx context.Context, rootReference object.GlobalRef
 
 		var objectsLock, sendLock sync.Mutex
 		nextReferenceIndex := uint64(1)
-		currentlyRequestedObjectsCount := 0
-		var receiveWakeup pg_sync.ConditionVariable
 
 		// Process requests for object contents.
 		for {
 			objectsLock.Lock()
-			for len(requestableObjectsByLowestIndex) == 0 {
-				if currentlyRequestedObjectsCount == 0 {
-					objectsLock.Unlock()
+			for len(unfinalizedObjectsByLowestIndex) == 0 {
+				objectsLock.Unlock()
 
-					// We are not going to use the stream for sending any
-					// more DAGs. Close the stream for sending, so that the
-					// server will hang up as well after sending FinalizeDag.
-					if err := stream.CloseSend(); err != nil {
-						return util.StatusWrap(err, "Failed to close stream for sending")
-					}
+				// We are not going to use the stream for sending any more
+				// DAGs. Close the stream for sending, so that the server
+				// will hang up as well, potentially after sending a
+				// FinalizeTag message.
+				if err := stream.CloseSend(); err != nil {
+					return util.StatusWrap(err, "Failed to close stream for sending")
+				}
 
-					// After all objects have been sent, we should receive a
-					// FinalizeDag message from the server, containing the
+				if rootTag != nil {
+					// After all objects have been sent, we may receive a
+					// FinalizeTag message from the server, containing the
 					// status.
 					response, err = stream.Recv()
 					if err != nil {
 						return util.StatusWrap(err, "Failed to receive DAG finalization message from server")
 					}
-					responseTypeFinalizeDAG, ok := response.Type.(*dag_pb.UploadDagsResponse_FinalizeDag_)
+					responseTypeFinalizeTag, ok := response.Type.(*dag_pb.UploadDagsResponse_FinalizeTag_)
 					if !ok {
 						return status.Error(codes.Internal, "Final message from server did not contain a DAG finalization")
 					}
-					finalizeDAG := responseTypeFinalizeDAG.FinalizeDag
-					if finalizeDAG.RootReferenceIndex != 0 {
-						return status.Errorf(codes.Internal, "Server finalized DAG with root reference index %d, which was not expected", finalizeDAG.RootReferenceIndex)
+					finalizeTag := responseTypeFinalizeTag.FinalizeTag
+					if finalizeTag.RootReferenceIndex != 0 {
+						return status.Errorf(codes.Internal, "Server finalized DAG with root reference index %d, which was not expected", finalizeTag.RootReferenceIndex)
 					}
-					if err := status.ErrorProto(finalizeDAG.Status); err != nil {
-						return err
+					if err := status.ErrorProto(finalizeTag.Status); err != nil {
+						return util.StatusWrap(err, "Server failed to write tag")
 					}
-
-					// Because we closed the stream for sending, the server
-					// should gracefully hang up.
-					if _, err := stream.Recv(); err == io.EOF {
-						return nil
-					} else if err != nil {
-						return util.StatusWrap(err, "Failed to receive DAG finalization message from server")
-					}
-					return status.Error(codes.Internal, "Server sent additional messages after DAG finalization")
 				}
 
-				if err := receiveWakeup.Wait(ctx, &objectsLock); err != nil {
-					return err
+				// Because we closed the stream for sending, the server
+				// should gracefully hang up.
+				if _, err := stream.Recv(); err == io.EOF {
+					return nil
+				} else if err != nil {
+					return util.StatusWrap(err, "Failed to receive DAG finalization message from server")
 				}
+				return status.Error(codes.Internal, "Server sent additional messages after DAG finalization")
 			}
 			objectsLock.Unlock()
 
 			response, err := stream.Recv()
 			if err != nil {
-				return util.StatusWrap(err, "Failed to receive object request message from server")
-			}
-			responseTypeRequestObject, ok := response.Type.(*dag_pb.UploadDagsResponse_RequestObject_)
-			if !ok {
-				return status.Error(codes.Internal, "Message from server did not contain an object request")
-			}
-			requestObject := responseTypeRequestObject.RequestObject
-
-			objectsLock.Lock()
-			o, ok := requestableObjectsByLowestIndex[requestObject.LowestReferenceIndex]
-			if !ok {
-				objectsLock.Unlock()
-				return status.Errorf(codes.Internal, "Server requested object with lowest reference index %d, which was not expected", requestObject.LowestReferenceIndex)
-			}
-			delete(requestableObjectsByLowestIndex, requestObject.LowestReferenceIndex)
-
-			// If the DAG contains multiple outgoing
-			// references pointing to the same object, the
-			// server may coalesce these references and send
-			// a single request. Only remove the requestable
-			// object if all reference indices for the
-			// object have been exhausted.
-			if requestObject.AdditionalReferenceIndices > uint32(len(o.additionalReferenceIndices)) {
-				objectsLock.Unlock()
-				return status.Errorf(codes.Internal, "Server requested object with lowest reference index %d, which was not expected", requestObject.LowestReferenceIndex)
-			} else if requestObject.AdditionalReferenceIndices < uint32(len(o.additionalReferenceIndices)) {
-				requestableObjectsByLowestIndex[o.additionalReferenceIndices[requestObject.AdditionalReferenceIndices]] = o
-				o.additionalReferenceIndices = o.additionalReferenceIndices[requestObject.AdditionalReferenceIndices+1:]
-			} else {
-				delete(requestableObjectsByReference, o.reference)
+				return util.StatusWrap(err, "Failed to receive message from server")
 			}
 
-			// Detach the walker, because we might receive
-			// other RequestObject messages for the same
-			// object while processing.
-			walker := o.walker
-			o.walker = nil
-			if requestObject.RequestContents {
-				currentlyRequestedObjectsCount++
-			}
-			objectsLock.Unlock()
+			switch responseType := response.Type.(type) {
+			case *dag_pb.UploadDagsResponse_RequestObjectContents_:
+				requestObject := responseType.RequestObjectContents
 
-			if err := util.AcquireSemaphore(ctx, u.objectContentsWalkerSemaphore, 1); err != nil {
-				if walker != nil {
-					walker.Discard()
+				objectsLock.Lock()
+				o, ok := unfinalizedObjectsByLowestIndex[requestObject.LowestReferenceIndex]
+				if !ok {
+					objectsLock.Unlock()
+					return status.Errorf(codes.Internal, "Server requested object with lowest reference index %d, which was not expected", requestObject.LowestReferenceIndex)
 				}
-				return err
-			}
-			siblingsGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-				defer u.objectContentsWalkerSemaphore.Release(1)
+				walker := o.walker
+				o.walker = nil
+				objectsLock.Unlock()
+				if walker == nil {
+					return status.Errorf(codes.Internal, "Server requested contents of object with reference %s, even though it was already requested previously", o.reference)
+				}
 
-				if requestObject.RequestContents {
-					if walker == nil {
-						return status.Errorf(codes.Internal, "Server requested contents of object with reference %s, even though it was already requested previously", o.reference)
-					}
+				if err := util.AcquireSemaphore(ctx, u.objectContentsWalkerSemaphore, 1); err != nil {
+					walker.Discard()
+					return err
+				}
+				siblingsGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+					defer u.objectContentsWalkerSemaphore.Release(1)
+
 					contents, childrenWalkers, err := walker.GetContents(ctx)
 					if err != nil {
 						return util.StatusWrapf(err, "Failed to get contents of object with reference %s", o.reference)
@@ -245,16 +211,20 @@ func (u *uploader) uploadDAG(ctx context.Context, rootReference object.GlobalRef
 						nextReferenceIndex++
 
 						childReference := contents.GetOutgoingReference(i)
-						if oChild, ok := requestableObjectsByReference[childReference]; ok {
-							oChild.additionalReferenceIndices = append(oChild.additionalReferenceIndices, childReferenceIndex)
-							walkersToDiscard = append(walkersToDiscard, childWalker)
+						if childObject, ok := unfinalizedObjectsByReference[childReference]; ok {
+							childObject.additionalReferenceIndices = append(childObject.additionalReferenceIndices, childReferenceIndex)
+							if childObject.walker == nil {
+								childObject.walker = childWalker
+							} else {
+								walkersToDiscard = append(walkersToDiscard, childWalker)
+							}
 						} else {
-							childObject := &requestableObjectState{
+							childObject := &unfinalizedObjectState{
 								reference: childReference,
 								walker:    childWalker,
 							}
-							requestableObjectsByReference[childReference] = childObject
-							requestableObjectsByLowestIndex[childReferenceIndex] = childObject
+							unfinalizedObjectsByReference[childReference] = childObject
+							unfinalizedObjectsByLowestIndex[childReferenceIndex] = childObject
 						}
 					}
 					objectsLock.Unlock()
@@ -269,25 +239,54 @@ func (u *uploader) uploadDAG(ctx context.Context, rootReference object.GlobalRef
 					})
 					sendLock.Unlock()
 
-					// Now that the response has been sent,
-					// permit the main goroutine to call
-					// CloseSend() if no more work remains.
-					objectsLock.Lock()
-					currentlyRequestedObjectsCount--
-					receiveWakeup.Broadcast()
-					objectsLock.Unlock()
-
 					for _, childWalker := range walkersToDiscard {
 						childWalker.Discard()
 					}
 					if err != nil {
 						return util.StatusWrapf(err, "Failed to send contents of object with reference %s to server", o.reference)
 					}
-				} else if walker != nil {
+					return nil
+				})
+			case *dag_pb.UploadDagsResponse_FinalizeObject_:
+				finalizeObject := responseType.FinalizeObject
+
+				objectsLock.Lock()
+				o, ok := unfinalizedObjectsByLowestIndex[finalizeObject.LowestReferenceIndex]
+				if !ok {
+					objectsLock.Unlock()
+					return status.Errorf(codes.Internal, "Server finalized object with lowest reference index %d, which was not expected", finalizeObject.LowestReferenceIndex)
+				}
+				if err := status.ErrorProto(finalizeObject.Status); err != nil {
+					objectsLock.Unlock()
+					return util.StatusWrapf(err, "Server failed to write object with reference %s", o.reference)
+				}
+				delete(unfinalizedObjectsByLowestIndex, finalizeObject.LowestReferenceIndex)
+
+				// If the DAG contains multiple outgoing
+				// references pointing to the same object, the
+				// server may coalesce these references and send
+				// a single request. Only remove the requestable
+				// object if all reference indices for the
+				// object have been exhausted.
+				var walker dag.ObjectContentsWalker
+				if finalizeObject.AdditionalReferenceIndices > uint32(len(o.additionalReferenceIndices)) {
+					objectsLock.Unlock()
+					return status.Errorf(codes.Internal, "Server finalized object with lowest reference index %d and %d additional reference indices, which was not expected", finalizeObject.LowestReferenceIndex, finalizeObject.AdditionalReferenceIndices)
+				} else if finalizeObject.AdditionalReferenceIndices < uint32(len(o.additionalReferenceIndices)) {
+					unfinalizedObjectsByLowestIndex[o.additionalReferenceIndices[finalizeObject.AdditionalReferenceIndices]] = o
+					o.additionalReferenceIndices = o.additionalReferenceIndices[finalizeObject.AdditionalReferenceIndices+1:]
+				} else {
+					walker = o.walker
+					delete(unfinalizedObjectsByReference, o.reference)
+				}
+				objectsLock.Unlock()
+
+				if walker != nil {
 					walker.Discard()
 				}
-				return nil
-			})
+			default:
+				return status.Error(codes.Internal, "Message from server did not contain a supported message type")
+			}
 		}
 	})
 }

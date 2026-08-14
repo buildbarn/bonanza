@@ -11,7 +11,6 @@ go_library(
         "//pkg/storage/dag",
         "//pkg/storage/object",
         "//pkg/storage/tag",
-        "//pkg/sync",
         "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",

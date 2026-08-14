@@ -179,10 +179,9 @@ func TestUploaderServer(t *testing.T) {
 
 	t.Run("InitiateDAGBadRootReferences", func(t *testing.T) {
 		// Send an InitiateDag message that does not contain a
-		// valid root reference. The server should allocate a
-		// reference index for it and send a RequestObject
-		// message regardless. The error message should be
-		// reported through FinalizeDag.
+		// valid root reference. This should be treated as a
+		// hard error and should cause the stream to be closed
+		// immediately.
 		for _, e := range []struct {
 			rootReference []byte
 			statusMessage string
@@ -230,7 +229,6 @@ func TestUploaderServer(t *testing.T) {
 		} {
 			server := NewMockUploader_UploadDagsServer(ctrl)
 			server.EXPECT().Context().Return(ctx).AnyTimes()
-			wait := make(chan struct{})
 			gomock.InOrder(
 				server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
 					Type: &dag_pb.UploadDagsRequest_Handshake_{
@@ -253,37 +251,16 @@ func TestUploaderServer(t *testing.T) {
 						},
 					},
 				}, nil),
-				server.EXPECT().Recv().
-					Do(func() { <-wait }).
-					Return(nil, io.EOF),
 			)
-			gomock.InOrder(
-				server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-					Type: &dag_pb.UploadDagsResponse_Handshake_{
-						Handshake: &dag_pb.UploadDagsResponse_Handshake{
-							MaximumUnfinalizedDagsCount: 5,
-						},
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_Handshake_{
+					Handshake: &dag_pb.UploadDagsResponse_Handshake{
+						MaximumUnfinalizedDagsCount: 5,
 					},
-				})),
-				server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-					Type: &dag_pb.UploadDagsResponse_RequestObject_{
-						RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
-							LowestReferenceIndex: 0,
-							RequestContents:      false,
-						},
-					},
-				})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
-				server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-					Type: &dag_pb.UploadDagsResponse_FinalizeDag_{
-						FinalizeDag: &dag_pb.UploadDagsResponse_FinalizeDag{
-							RootReferenceIndex: 0,
-							Status:             status.New(codes.InvalidArgument, e.statusMessage).Proto(),
-						},
-					},
-				})),
-			)
+				},
+			}))
 
-			require.NoError(t, uploaderServer.UploadDags(server))
+			testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, e.statusMessage), uploaderServer.UploadDags(server))
 		}
 	})
 
@@ -445,16 +422,15 @@ func TestUploaderServer(t *testing.T) {
 				},
 			})),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
 						LowestReferenceIndex: 0,
-						RequestContents:      false,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeDag_{
-					FinalizeDag: &dag_pb.UploadDagsResponse_FinalizeDag{
+				Type: &dag_pb.UploadDagsResponse_FinalizeTag_{
+					FinalizeTag: &dag_pb.UploadDagsResponse_FinalizeTag{
 						RootReferenceIndex: 0,
 					},
 				},
@@ -513,7 +489,8 @@ func TestUploaderServer(t *testing.T) {
 		// DAG's contents.
 		server := NewMockUploader_UploadDagsServer(ctrl)
 		server.EXPECT().Context().Return(ctx).AnyTimes()
-		wait := make(chan struct{})
+		wait1 := make(chan struct{})
+		wait2 := make(chan struct{})
 		gomock.InOrder(
 			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
 				Type: &dag_pb.UploadDagsRequest_Handshake_{
@@ -582,7 +559,7 @@ func TestUploaderServer(t *testing.T) {
 				},
 			}, nil),
 			server.EXPECT().Recv().
-				Do(func() { <-wait }).
+				Do(func() { <-wait1 }).
 				Return(&dag_pb.UploadDagsRequest{
 					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{
 						ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
@@ -592,6 +569,7 @@ func TestUploaderServer(t *testing.T) {
 					},
 				}, nil),
 			server.EXPECT().Recv().
+				Do(func() { <-wait2 }).
 				Return(nil, io.EOF),
 		)
 		gomock.InOrder(
@@ -603,16 +581,22 @@ func TestUploaderServer(t *testing.T) {
 				},
 			})),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 0,
-						RequestContents:      true,
 					},
 				},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
+			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeDag_{
-					FinalizeDag: &dag_pb.UploadDagsResponse_FinalizeDag{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 0,
+					},
+				},
+			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) }),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeTag_{
+					FinalizeTag: &dag_pb.UploadDagsResponse_FinalizeTag{
 						RootReferenceIndex: 0,
 					},
 				},
@@ -676,7 +660,7 @@ func TestUploaderServer(t *testing.T) {
 		// If the client wants to cancel the upload of a given
 		// DAG without terminating the request entirely, it can
 		// leave ObjectContents unset. This should cause
-		// FinalizeDag to contain a CANCELLED error.
+		// FinalizeObject to contain a CANCELLED error.
 		server := NewMockUploader_UploadDagsServer(ctrl)
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		wait := make(chan struct{})
@@ -737,18 +721,17 @@ func TestUploaderServer(t *testing.T) {
 				},
 			})),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 0,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeDag_{
-					FinalizeDag: &dag_pb.UploadDagsResponse_FinalizeDag{
-						RootReferenceIndex: 0,
-						Status:             status.New(codes.Canceled, "Client canceled upload of object with reference SHA256=207cefdbee02ece5b644ddc278362822e6f517df8bbe3de0bc11fee772581bea:S=241:H=0:D=0:M=0").Proto(),
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 0,
+						Status:               status.New(codes.Canceled, "Client canceled upload of object").Proto(),
 					},
 				},
 			})),
@@ -824,10 +807,9 @@ func TestUploaderServer(t *testing.T) {
 				},
 			})),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 0,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
@@ -1074,65 +1056,100 @@ func TestUploaderServer(t *testing.T) {
 				},
 			})),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 0,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait0) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 1,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 4,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait4) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 4,
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 1,
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 2,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 5,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait5) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 5,
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 2,
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 3,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait3) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 6,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait6) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeDag_{
-					FinalizeDag: &dag_pb.UploadDagsResponse_FinalizeDag{
-						RootReferenceIndex: 0,
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 6,
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 3,
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 0,
 					},
 				},
 			})),
@@ -1328,41 +1345,37 @@ func TestUploaderServer(t *testing.T) {
 				},
 			})),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 0,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait0) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
 						LowestReferenceIndex: 1,
-						RequestContents:      false,
 					},
 				},
 			})),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
 						LowestReferenceIndex: 2,
-						RequestContents:      false,
 					},
 				},
 			})),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
 						LowestReferenceIndex: 3,
-						RequestContents:      false,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait3) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeDag_{
-					FinalizeDag: &dag_pb.UploadDagsResponse_FinalizeDag{
-						RootReferenceIndex: 0,
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 0,
 					},
 				},
 			})),
@@ -1403,8 +1416,9 @@ func TestUploaderServer(t *testing.T) {
 
 	t.Run("DeepClientCancelation", func(t *testing.T) {
 		// If cancelations occur deep inside of a DAG, the error
-		// should still be propagated up to FinalizeDag. Parent
-		// objects should not be written into object.Store.
+		// should still be propagated up the chain of
+		// FinalizeObject messages. Parent objects should not be
+		// written into object.Store.
 		server := NewMockUploader_UploadDagsServer(ctrl)
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		wait0 := make(chan struct{})
@@ -1563,50 +1577,77 @@ func TestUploaderServer(t *testing.T) {
 				},
 			})),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 0,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait0) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 1,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 4,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait4) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 4,
+						Status:               status.New(codes.Canceled, "Client canceled upload of object").Proto(),
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 1,
+						Status:               status.New(codes.Canceled, "One or more child objects were not uploaded successfully").Proto(),
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 2,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 2,
+						Status:               status.New(codes.Canceled, "Client canceled upload of object").Proto(),
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 3,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait3) }),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeDag_{
-					FinalizeDag: &dag_pb.UploadDagsResponse_FinalizeDag{
-						RootReferenceIndex: 0,
-						Status:             status.New(codes.Canceled, "Client canceled upload of object with reference SHA256=ed322edaa790eeedae11619eceaf20981f74e5f2a7071f5365597089d349be14:S=5920:H=0:D=0:M=0").Proto(),
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 3,
+						Status:               status.New(codes.Canceled, "Client canceled upload of object").Proto(),
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 0,
+						Status:               status.New(codes.Canceled, "One or more child objects were not uploaded successfully").Proto(),
 					},
 				},
 			})),
@@ -1632,13 +1673,14 @@ func TestUploaderServer(t *testing.T) {
 		require.NoError(t, uploaderServer.UploadDags(server))
 	})
 
-	t.Run("PrematureCloseBeforeRequestObject", func(t *testing.T) {
+	t.Run("PrematureCloseBeforeRequestObjectContents", func(t *testing.T) {
 		// Even though it's valid for clients to close the
 		// stream for sending before receiving the final
-		// FinalizeDag messages, they are not permitted to close
-		// it if they still need to receive one or more
-		// RequestObject messages. Those might still necessitate
-		// the client to send the contents of an object.
+		// FinalizeObject or FinalizeTag messages, they are not
+		// permitted to close it if they may still receive one
+		// or more RequestObjectContents messages. Those might
+		// still necessitate the client to send the contents of
+		// an object.
 		server := NewMockUploader_UploadDagsServer(ctrl)
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		wait := make(chan struct{})
@@ -1703,12 +1745,12 @@ func TestUploaderServer(t *testing.T) {
 
 		testutil.RequireEqualStatus(
 			t,
-			status.Error(codes.InvalidArgument, "Client closed the request, even though the server still needs to request 1 or more objects"),
+			status.Error(codes.InvalidArgument, "Client closed the request, even though the server was still checking the existence of 1 objects, had 0 object request messages queued, and was waiting for the contents of 0 objects from the client"),
 			uploaderServer.UploadDags(server),
 		)
 	})
 
-	t.Run("PrematureCloseAfterRequestObject", func(t *testing.T) {
+	t.Run("PrematureCloseAfterRequestObjectContents", func(t *testing.T) {
 		// Similar to the above, the client may not close the
 		// stream for sending if the server is waiting for the
 		// client to send one or more ProvideObjectContents
@@ -1765,10 +1807,9 @@ func TestUploaderServer(t *testing.T) {
 				},
 			})),
 			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+					RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: 0,
-						RequestContents:      true,
 					},
 				},
 			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
@@ -1781,7 +1822,7 @@ func TestUploaderServer(t *testing.T) {
 
 		testutil.RequireEqualStatus(
 			t,
-			status.Error(codes.InvalidArgument, "Client closed the request, even though the client still needs to provide the contents of 1 or more objects"),
+			status.Error(codes.InvalidArgument, "Client closed the request, even though the server was still checking the existence of 0 objects, had 0 object request messages queued, and was waiting for the contents of 1 objects from the client"),
 			uploaderServer.UploadDags(server),
 		)
 	})

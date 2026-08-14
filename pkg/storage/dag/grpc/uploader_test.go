@@ -138,21 +138,13 @@ func TestRemoteUploader(t *testing.T) {
 				},
 			})),
 			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObject_{
-					RequestObject: &dag_pb.UploadDagsResponse_RequestObject{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
 						LowestReferenceIndex: 0,
-						RequestContents:      false,
 					},
 				},
 			}, nil),
 			stream.EXPECT().CloseSend(),
-			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeDag_{
-					FinalizeDag: &dag_pb.UploadDagsResponse_FinalizeDag{
-						RootReferenceIndex: 0,
-					},
-				},
-			}, nil),
 			stream.EXPECT().Recv().Return(nil, io.EOF).MinTimes(1),
 		)
 
@@ -162,4 +154,6 @@ func TestRemoteUploader(t *testing.T) {
 			rootObjectContentsWalker,
 		))
 	})
+
+	// TODO: Provide more testing coverage.
 }
