@@ -66,7 +66,7 @@ type RootModuleDotBazelHandler interface {
 // modules.
 type ChildModuleDotBazelHandler interface {
 	BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error
-	Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error
+	Module(name label.Module, repoName label.ApparentRepo, bazelCompatibility []string) error
 	RegisterExecutionPlatforms(platformTargetPatterns []label.ApparentTargetPattern, devDependency bool) error
 	RegisterToolchains(toolchainTargetPatterns []label.ApparentTargetPattern, devDependency bool) error
 	UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (ModuleExtensionProxy, error)
@@ -274,7 +274,6 @@ func ParseModuleDotBazel(contents string, filename label.CanonicalLabel, localPa
 				}
 				return starlark.None, handler.Module(
 					name,
-					version,
 					*repoName,
 					bazelCompatibility,
 				)

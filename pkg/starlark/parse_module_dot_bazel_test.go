@@ -95,17 +95,14 @@ func TestParseModuleDotBazel(t *testing.T) {
 			require.Equal(t, "/some/path", localPathBuilder.GetUNIXString())
 		})
 
-		version2 := util.Must(label.NewModuleVersion("1.0.0"))
 		gomock.InOrder(
 			handler.EXPECT().Module(
 				/* name = */ util.Must(label.NewModule("my_module_name")),
-				/* version = */ nil,
 				/* repoName = */ util.Must(label.NewApparentRepo("my_module_name")),
 				/* bazelCompatibility = */ gomock.Len(0),
 			).Times(2),
 			handler.EXPECT().Module(
 				/* name = */ util.Must(label.NewModule("my_module_name")),
-				/* version = */ &version2,
 				/* repoName = */ util.Must(label.NewApparentRepo("my_repo_name")),
 				/* bazelCompatibility = */ []string{
 					">=6.4.0",
@@ -163,6 +160,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 			),
 		)
 
+		version2 := util.Must(label.NewModuleVersion("1.0.0"))
 		gomock.InOrder(
 			handler.EXPECT().SingleVersionOverride(
 				/* moduleName = */ util.Must(label.NewModule("my_module_name")),

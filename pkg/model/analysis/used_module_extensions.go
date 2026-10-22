@@ -83,7 +83,7 @@ func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata])
 	return nil
 }
 
-func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	return nil
 }
 

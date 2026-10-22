@@ -42,7 +42,7 @@ func (h *bazelDepCapturingModuleDotBazelHandler) BazelDep(name label.Module, ver
 	return nil
 }
 
-func (bazelDepCapturingModuleDotBazelHandler) Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (bazelDepCapturingModuleDotBazelHandler) Module(name label.Module, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	return nil
 }
 

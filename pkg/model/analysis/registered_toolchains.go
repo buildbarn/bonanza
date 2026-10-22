@@ -42,7 +42,7 @@ func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata])
 	return nil
 }
 
-func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	return nil
 }
 

@@ -63,7 +63,7 @@ func (h *LocalPathExtractingModuleDotBazelHandler) LocalPathOverride(moduleName 
 
 // Module is used to capture calls in MODULE.bazel to module(). This
 // allows extracting the name of the root module.
-func (h *LocalPathExtractingModuleDotBazelHandler) Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (h *LocalPathExtractingModuleDotBazelHandler) Module(name label.Module, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	if h.rootModuleName != nil {
 		return errors.New("multiple module() declarations")
 	}

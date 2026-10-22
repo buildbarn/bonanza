@@ -106,7 +106,7 @@ func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) LocalPathO
 	return nil
 }
 
-func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Module(name label.Module, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	return nil
 }
 

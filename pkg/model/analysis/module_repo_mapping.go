@@ -99,7 +99,7 @@ func (h *repoMappingCapturingModuleDotBazelHandler) BazelDep(name label.Module, 
 	})
 }
 
-func (h *repoMappingCapturingModuleDotBazelHandler) Module(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, bazelCompatibility []string) error {
+func (h *repoMappingCapturingModuleDotBazelHandler) Module(name label.Module, repoName label.ApparentRepo, bazelCompatibility []string) error {
 	return h.setRepo(repoName, canonicalRepoMapping{
 		canonicalRepo: h.moduleInstance.GetBareCanonicalRepo(),
 	})
