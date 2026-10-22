@@ -1,9 +1,11 @@
 package evaluation_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
@@ -93,6 +95,7 @@ func TestRecursiveComputer(t *testing.T) {
 			cacheDeterministicEncoder,
 			cacheKeyedEncoder,
 			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
 		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
@@ -227,6 +230,7 @@ func TestRecursiveComputer(t *testing.T) {
 			cacheDeterministicEncoder,
 			cacheKeyedEncoder,
 			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
 		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
@@ -305,6 +309,7 @@ func TestRecursiveComputer(t *testing.T) {
 			cacheDeterministicEncoder,
 			cacheKeyedEncoder,
 			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
 		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
@@ -432,6 +437,7 @@ func TestRecursiveComputer(t *testing.T) {
 			cacheDeterministicEncoder,
 			cacheKeyedEncoder,
 			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
 		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
@@ -509,6 +515,7 @@ func TestRecursiveComputer(t *testing.T) {
 			cacheDeterministicEncoder,
 			cacheKeyedEncoder,
 			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
 		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
@@ -599,6 +606,7 @@ func TestRecursiveComputer(t *testing.T) {
 			cacheDeterministicEncoder,
 			cacheKeyedEncoder,
 			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
 		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
@@ -694,6 +702,7 @@ func TestRecursiveComputer(t *testing.T) {
 			cacheDeterministicEncoder,
 			cacheKeyedEncoder,
 			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
 		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
@@ -757,7 +766,12 @@ func TestRecursiveComputer(t *testing.T) {
 		*/
 	})
 
-	t.Run("CacheLookupFoo", func(t *testing.T) {
+	t.Run("CacheLookupUnsortedKeys", func(t *testing.T) {
+		// Lists of keys stored in cache entries are sorted by
+		// key reference. Lists that are not sorted must be
+		// treated as malformed. This should cause the key to be
+		// evaluated, without creating KeyStates for any of the
+		// keys contained in the list.
 		computer := NewMockComputerForTesting(ctrl)
 		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
@@ -784,23 +798,29 @@ func TestRecursiveComputer(t *testing.T) {
 			cacheDeterministicEncoder,
 			cacheKeyedEncoder,
 			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
 		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
-		keyState, err := recursiveComputer.GetOrCreateKeyState(
-			util.Must(
-				model_core.MarshalTopLevelAny(
-					model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
-						&wrapperspb.UInt32Value{
-							Value: 18,
-						},
-					),
-				),
-			),
-		)
+		keyState, err := recursiveComputer.GetOrCreateKeyState(cacheTestKey(18))
 		require.NoError(t, err)
 
-		// Initial lookup for &wrapperspb.UInt32Value{Value: 18}.
+		// Initial lookup for &wrapperspb.UInt32Value{Value: 18},
+		// returning lists of keys in descending order.
+		newKeysLeaf := func(n uint32) *model_evaluation_pb.Keys {
+			return &model_evaluation_pb.Keys{
+				Level: &model_evaluation_pb.Keys_Leaf{
+					Leaf: &model_core_pb.Any{
+						Value:      util.Must(anypb.New(&wrapperspb.UInt32Value{Value: n})),
+						References: &model_core_pb.ReferenceSet{},
+					},
+				},
+			}
+		}
+		low, high := uint32(16), uint32(17)
+		if bytes.Compare(cacheTestKeyReference(low).GetRawReference(), cacheTestKeyReference(high).GetRawReference()) > 0 {
+			low, high = high, low
+		}
 		tagStore.EXPECT().ResolveTag(
 			gomock.Any(),
 			[...]byte{
@@ -810,114 +830,28 @@ func TestRecursiveComputer(t *testing.T) {
 				0xd7, 0x49, 0x74, 0xf1, 0x93, 0xad, 0xb0, 0x52,
 			},
 		).Return(object.MustNewSHA256V1LocalReference("cd897b5bbc720746ba0740100714e8f98f36e3c3cda42b3d3e8c0c26884c0780", 43984, 0, 0, 0), nil)
-		lookupResultReader.EXPECT().ReadObject(
-			gomock.Any(),
-			util.Must(
-				model_core.NewDecodable(
-					object.MustNewSHA256V1LocalReference("cd897b5bbc720746ba0740100714e8f98f36e3c3cda42b3d3e8c0c26884c0780", 43984, 0, 0, 0),
-					[]byte{
-						0xf9, 0x5c, 0x1b, 0x38, 0xaa, 0xc0, 0x11, 0x82,
-						0x6e, 0x8c, 0xda, 0x68, 0x47, 0x16, 0x03, 0x48,
-					},
-				),
-			),
-		).Return(model_core.NewSimpleMessage[object.LocalReference](
+		lookupResultReader.EXPECT().ReadObject(gomock.Any(), gomock.Any()).Return(model_core.NewSimpleMessage[object.LocalReference](
 			&model_evaluation_cache_pb.LookupResult{
 				Result: &model_evaluation_cache_pb.LookupResult_Initial_{
 					Initial: &model_evaluation_cache_pb.LookupResult_Initial{
-						GraphletVariableDependencyKeys: []*model_evaluation_pb.Keys{{
-							Level: &model_evaluation_pb.Keys_Leaf{
-								Leaf: &model_core_pb.Any{
-									Value: util.Must(anypb.New(&wrapperspb.UInt32Value{
-										Value: 16,
-									})),
-									References: &model_core_pb.ReferenceSet{},
-								},
-							},
-						}},
-						ValueVariableDependencyKeys: []*model_evaluation_pb.Keys{
-							{
-								Level: &model_evaluation_pb.Keys_Leaf{
-									Leaf: &model_core_pb.Any{
-										Value: util.Must(anypb.New(&wrapperspb.UInt32Value{
-											Value: 16,
-										})),
-										References: &model_core_pb.ReferenceSet{},
-									},
-								},
-							},
-							{
-								Level: &model_evaluation_pb.Keys_Leaf{
-									Leaf: &model_core_pb.Any{
-										Value: util.Must(anypb.New(&wrapperspb.UInt32Value{
-											Value: 17,
-										})),
-										References: &model_core_pb.ReferenceSet{},
-									},
-								},
-							},
-						},
+						GraphletVariableDependencyKeys: []*model_evaluation_pb.Keys{newKeysLeaf(high), newKeysLeaf(low)},
+						ValueVariableDependencyKeys:    []*model_evaluation_pb.Keys{newKeysLeaf(high), newKeysLeaf(low)},
 					},
 				},
 			},
 		), nil)
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 
-		// Initial lookup for &wrapperspb.UInt32Value{Value: 16}.
-		tagStore.EXPECT().ResolveTag(
-			gomock.Any(),
-			[...]byte{
-				0x5e, 0x5b, 0x0e, 0xc1, 0x14, 0x87, 0x2d, 0x85,
-				0x6c, 0xdc, 0x77, 0xfb, 0x44, 0x11, 0xb0, 0x8e,
-				0xcd, 0xe6, 0x1e, 0x02, 0x04, 0x75, 0xeb, 0xc3,
-				0xe0, 0x4a, 0x14, 0xfd, 0x17, 0xee, 0x87, 0x06,
-			},
-		).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
 		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				testutil.RequireEqualProto(t, &wrapperspb.UInt32Value{
-					Value: 16,
+					Value: 18,
 				}, key.Message)
 				return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
 					&wrapperspb.UInt32Value{
-						Value: 987,
+						Value: 42,
 					},
 				), nil
 			})
-
-		// Subsequent lookup for &wrapperspb.UInt32Value{Value: 18}.
-		tagStore.EXPECT().ResolveTag(
-			gomock.Any(),
-			[...]byte{
-				0xba, 0x4e, 0xe4, 0x47, 0x51, 0x09, 0x77, 0x2d,
-				0x0f, 0x8f, 0x90, 0x9d, 0xce, 0xc6, 0xe2, 0x14,
-				0x6a, 0xee, 0xed, 0x9c, 0x1d, 0x44, 0x9d, 0x3f,
-				0xd7, 0x49, 0x74, 0xf1, 0x93, 0xad, 0xb0, 0x52,
-			},
-		).Return(object.MustNewSHA256V1LocalReference("423b895a5498a677b5075170e6da337499e7f69646d50adabe4ba2026ecee247", 84733, 0, 0, 0), nil)
-		lookupResultReader.EXPECT().ReadObject(
-			gomock.Any(),
-			util.Must(
-				model_core.NewDecodable(
-					object.MustNewSHA256V1LocalReference("423b895a5498a677b5075170e6da337499e7f69646d50adabe4ba2026ecee247", 84733, 0, 0, 0),
-					[]byte{
-						0xf9, 0x5c, 0x1b, 0x38, 0xaa, 0xc0, 0x11, 0x82,
-						0x6e, 0x8c, 0xda, 0x68, 0x47, 0x16, 0x03, 0x48,
-					},
-				),
-			),
-		).Return(model_core.NewSimpleMessage[object.LocalReference](
-			&model_evaluation_cache_pb.LookupResult{
-				Result: &model_evaluation_cache_pb.LookupResult_HitValue{
-					HitValue: &model_core_pb.Any{
-						Value: util.Must(anypb.New(&wrapperspb.UInt64Value{
-							Value: 2584,
-						})),
-						References: &model_core_pb.ReferenceSet{},
-					},
-				},
-			},
-		), nil)
 
 		require.NoError(
 			t,
@@ -926,10 +860,5 @@ func TestRecursiveComputer(t *testing.T) {
 				return recursiveComputer.WaitForEvaluation(ctx, keyState)
 			}),
 		)
-		/*
-			testutil.RequireEqualProto(t, &wrapperspb.UInt64Value{
-				Value: 26,
-			}, value.Message)
-		*/
 	})
 }

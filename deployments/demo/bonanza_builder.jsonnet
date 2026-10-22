@@ -79,6 +79,7 @@ local statePath = std.extVar('STATE_PATH');
   remoteEvaluationConcurrency: 100,
   uploadConcurrency: std.extVar('NCPU'),
   objectStoreConcurrency: std.extVar('NCPU'),
+  cacheLookupResultIndirectionMaximumAge: '86400s',
   cacheTagSignaturePrivateKey: |||
     -----BEGIN PRIVATE KEY-----
     MC4CAQAwBQYDK2VwBCIEIB02dlibU4cQ7kQaoTg3f4VeXtrM0aM5q6VYslB+1UNE

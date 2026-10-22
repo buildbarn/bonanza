@@ -10,6 +10,7 @@ import "github.com/buildbarn/bb-storage/pkg/proto/configuration/eviction/evictio
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto";
+import "google/protobuf/duration.proto";
 
 option go_package = "bonanza.build/pkg/proto/configuration/bonanza_builder";
 
@@ -126,4 +127,15 @@ message ApplicationConfiguration {
   // are created or read during evaluation.
   buildbarn.configuration.eviction.CacheReplacementPolicy
       buffered_objects_cache_replacement_policy = 22;
+
+  // The set of dependencies of a key may vary between evaluations.
+  // When uploading results into the cache, existing lookup results
+  // are merged with ones describing the current evaluation, causing
+  // cache lookups to require additional round trips. This option
+  // controls how long lookup results containing such indirection may
+  // be merged. After this amount of time has passed, they are
+  // overwritten with lookup results that only describe the current
+  // evaluation, ensuring that the amount of indirection does not
+  // continue to grow over time.
+  google.protobuf.Duration cache_lookup_result_indirection_maximum_age = 23;
 }

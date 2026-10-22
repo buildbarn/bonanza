@@ -131,6 +131,10 @@ func main() {
 		if configuration.BufferedObjectsLimit == nil {
 			return status.Error(codes.InvalidArgument, "No buffered objects limit provided")
 		}
+		cacheLookupResultIndirectionMaximumAge := configuration.CacheLookupResultIndirectionMaximumAge
+		if err := cacheLookupResultIndirectionMaximumAge.CheckValid(); err != nil {
+			return util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid cache lookup result indirection maximum age")
+		}
 
 		bzlFileBuiltins, buildFileBuiltins := model_starlark.GetBuiltins[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]()
 		client, err := remoteworker.NewClient(
@@ -167,6 +171,7 @@ func main() {
 						),
 						cacheTagSignaturePrivateKey,
 						configuration.UploadConcurrency,
+						cacheLookupResultIndirectionMaximumAge.AsDuration(),
 						clock.SystemClock,
 					),
 				),

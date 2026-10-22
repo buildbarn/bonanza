@@ -50,17 +50,18 @@ type ComputerFactory[TReference any, TMetadata model_core.ReferenceMetadata] int
 }
 
 type executor struct {
-	objectDownloader                      object.Downloader[object.GlobalReference]
-	computerFactory                       ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
-	evaluationQueuesFactory               RecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
-	parsedObjectPool                      *model_parser.ParsedObjectPool
-	dagUploaderClient                     dag_pb.UploaderClient
-	bufferedObjectsLimit                  object.Limit
-	bufferedObjectsCacheReplacementPolicy eviction_pb.CacheReplacementPolicy
-	tagResolver                           tag.Resolver[object.Namespace]
-	cacheTagSignaturePrivateKey           ed25519.PrivateKey
-	uploadConcurrency                     uint32
-	clock                                 clock.Clock
+	objectDownloader                       object.Downloader[object.GlobalReference]
+	computerFactory                        ComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]
+	evaluationQueuesFactory                RecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata]
+	parsedObjectPool                       *model_parser.ParsedObjectPool
+	dagUploaderClient                      dag_pb.UploaderClient
+	bufferedObjectsLimit                   object.Limit
+	bufferedObjectsCacheReplacementPolicy  eviction_pb.CacheReplacementPolicy
+	tagResolver                            tag.Resolver[object.Namespace]
+	cacheTagSignaturePrivateKey            ed25519.PrivateKey
+	uploadConcurrency                      uint32
+	cacheLookupResultIndirectionMaximumAge time.Duration
+	clock                                  clock.Clock
 }
 
 // NewExecutor creates a remote worker that is capable of executing
@@ -76,20 +77,22 @@ func NewExecutor(
 	tagResolver tag.Resolver[object.Namespace],
 	cacheTagSignaturePrivateKey ed25519.PrivateKey,
 	uploadConcurrency uint32,
+	cacheLookupResultIndirectionMaximumAge time.Duration,
 	clock clock.Clock,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &executor{
-		objectDownloader:                      objectDownloader,
-		computerFactory:                       computerFactory,
-		evaluationQueuesFactory:               evaluationQueuesFactory,
-		parsedObjectPool:                      parsedObjectPool,
-		dagUploaderClient:                     dagUploaderClient,
-		bufferedObjectsLimit:                  bufferedObjectsLimit,
-		bufferedObjectsCacheReplacementPolicy: bufferedObjectsCacheReplacementPolicy,
-		tagResolver:                           tagResolver,
-		cacheTagSignaturePrivateKey:           cacheTagSignaturePrivateKey,
-		uploadConcurrency:                     uploadConcurrency,
-		clock:                                 clock,
+		objectDownloader:                       objectDownloader,
+		computerFactory:                        computerFactory,
+		evaluationQueuesFactory:                evaluationQueuesFactory,
+		parsedObjectPool:                       parsedObjectPool,
+		dagUploaderClient:                      dagUploaderClient,
+		bufferedObjectsLimit:                   bufferedObjectsLimit,
+		bufferedObjectsCacheReplacementPolicy:  bufferedObjectsCacheReplacementPolicy,
+		tagResolver:                            tagResolver,
+		cacheTagSignaturePrivateKey:            cacheTagSignaturePrivateKey,
+		uploadConcurrency:                      uploadConcurrency,
+		cacheLookupResultIndirectionMaximumAge: cacheLookupResultIndirectionMaximumAge,
+		clock:                                  clock,
 	}
 }
 
@@ -334,6 +337,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 			deterministicActionEncoder,
 			keyedActionEncoder,
 			e.clock,
+			e.cacheLookupResultIndirectionMaximumAge,
 		)
 
 		// Create KeyState for keys for which overrides are present.

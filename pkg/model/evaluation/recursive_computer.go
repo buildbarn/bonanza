@@ -85,6 +85,13 @@ type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.Re
 	cacheKeyedEncoder         model_encoding.KeyedBinaryEncoder
 	clock                     clock.Clock
 
+	// The maximum amount of time an initial lookup result may
+	// indicate that it contains indirection. After this amount of
+	// time has passed, lookup results are no longer merged.
+	// Instead, they are overwritten with ones only describing the
+	// current evaluation.
+	cacheLookupResultIndirectionMaximumAge time.Duration
+
 	lock sync.RWMutex
 
 	// Map of all keys that have been requested.
@@ -123,6 +130,7 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 	cacheDeterministicEncoder model_encoding.DeterministicBinaryEncoder,
 	cacheKeyedEncoder model_encoding.KeyedBinaryEncoder,
 	clock clock.Clock,
+	cacheLookupResultIndirectionMaximumAge time.Duration,
 ) *RecursiveComputer[TReference, TMetadata] {
 	rc := &RecursiveComputer[TReference, TMetadata]{
 		base:                      base,
@@ -137,6 +145,8 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 		cacheDeterministicEncoder: cacheDeterministicEncoder,
 		cacheKeyedEncoder:         cacheKeyedEncoder,
 		clock:                     clock,
+
+		cacheLookupResultIndirectionMaximumAge: cacheLookupResultIndirectionMaximumAge,
 
 		keys: map[object.LocalReference]*KeyState[TReference, TMetadata]{},
 	}
@@ -719,6 +729,139 @@ func (rc *RecursiveComputer[TReference, TMetadata]) storeLookupResult(ctx contex
 	return lookupResultReference, rc.tagStore.UpdateTag(ctx, tagKeyHash.Value, lookupResultReference)
 }
 
+// readLookupResult resolves a tag and reads the LookupResult message
+// that it references. If either the tag or the object does not exist,
+// found is set to false.
+func (rc *RecursiveComputer[TReference, TMetadata]) readLookupResult(ctx context.Context, tagKeyHash model_tag.DecodableKeyHash) (model_core.Message[*model_evaluation_cache_pb.LookupResult, TReference], model_core.Decodable[TReference], bool, error) {
+	var badLookupResult model_core.Message[*model_evaluation_cache_pb.LookupResult, TReference]
+	var badReference model_core.Decodable[TReference]
+	lookupResultReference, err := model_tag.ResolveDecodableTag(ctx, rc.tagStore, tagKeyHash)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return badLookupResult, badReference, false, nil
+		}
+		return badLookupResult, badReference, false, err
+	}
+	lookupResult, err := rc.lookupResultReader.ReadObject(ctx, lookupResultReference)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return badLookupResult, badReference, false, nil
+		}
+		return badLookupResult, badReference, false, err
+	}
+	return lookupResult, lookupResultReference, true, nil
+}
+
+// forEachCachedKey iterates over a list of keys that is stored in a
+// cache entry, yielding the reference and message of each key. As lists
+// of keys are always stored in sorted order without any duplicates,
+// this function returns false if the list is empty, contains entries
+// that are not leaves, or is not sorted.
+func (rc *RecursiveComputer[TReference, TMetadata]) forEachCachedKey(
+	ctx context.Context,
+	keys model_core.Message[[]*model_evaluation_pb.Keys, TReference],
+	yield func(keyReference object.LocalReference, key model_core.TopLevelMessage[*anypb.Any, TReference]),
+) (bool, error) {
+	var previousKeyReference []byte
+	var errIter error
+	for key := range btree.AllLeaves(
+		ctx,
+		rc.keysReader,
+		keys,
+		/* traverser = */ func(keys model_core.Message[*model_evaluation_pb.Keys, TReference]) (*model_core_pb.DecodableReference, error) {
+			return keys.Message.GetParent().GetReference(), nil
+		},
+		&errIter,
+	) {
+		leaf, ok := key.Message.Level.(*model_evaluation_pb.Keys_Leaf)
+		if !ok {
+			return false, nil
+		}
+		keyMessage, err := model_core.FlattenAny(model_core.Nested(key, leaf.Leaf))
+		if err != nil {
+			return false, nil
+		}
+		keyReference, err := model_core.ComputeTopLevelMessageReference(keyMessage, rc.referenceFormat)
+		if err != nil {
+			return false, nil
+		}
+		rawKeyReference := keyReference.GetRawReference()
+		if previousKeyReference != nil && bytes.Compare(previousKeyReference, rawKeyReference) >= 0 {
+			return false, nil
+		}
+		previousKeyReference = rawKeyReference
+		yield(keyReference, keyMessage)
+	}
+	if errIter != nil {
+		return false, errIter
+	}
+	return previousKeyReference != nil, nil
+}
+
+// resolveCachedKeys converts a list of keys that is stored in a cache
+// entry to a list of KeyStates, sorted by key reference. KeyStates are
+// created for keys that have not been requested before, causing them
+// to be evaluated.
+func (rc *RecursiveComputer[TReference, TMetadata]) resolveCachedKeys(ctx context.Context, keys model_core.Message[[]*model_evaluation_pb.Keys, TReference]) ([]*KeyState[TReference, TMetadata], bool, error) {
+	// Validate the full list before creating any KeyStates, so
+	// that malformed lists don't cause keys to be evaluated.
+	type cachedKey struct {
+		reference object.LocalReference
+		message   model_core.TopLevelMessage[*anypb.Any, TReference]
+	}
+	var cachedKeys []cachedKey
+	ok, err := rc.forEachCachedKey(ctx, keys, func(keyReference object.LocalReference, key model_core.TopLevelMessage[*anypb.Any, TReference]) {
+		cachedKeys = append(cachedKeys, cachedKey{
+			reference: keyReference,
+			message:   key,
+		})
+	})
+	if !ok || err != nil {
+		return nil, false, err
+	}
+
+	keyStates := make([]*KeyState[TReference, TMetadata], 0, len(cachedKeys))
+	for _, cachedKey := range cachedKeys {
+		keyReference, key := cachedKey.reference, cachedKey.message
+		// TODO: We should have one that reloads the message from storage.
+		keyMessageFetcher := &staticMessageFetcher[TReference, TMetadata]{
+			message: key,
+		}
+		rc.lock.Lock()
+		ks, exists := rc.keys[keyReference]
+		if exists && ks.keyMessageFetcher == nil {
+			ks.keyMessageFetcher = keyMessageFetcher
+		}
+		rc.lock.Unlock()
+		if !exists {
+			// Key has not been requested before. Only
+			// consult the base computer in this case.
+			typeURL := key.Message.TypeUrl
+			initialValueState := rc.newInitialValueState(typeURL)
+			evaluationQueue := rc.evaluationQueuePicker.PickQueue(typeURL)
+			rc.lock.Lock()
+			ks = rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, typeURL, initialValueState, evaluationQueue)
+			rc.lock.Unlock()
+		}
+		keyStates = append(keyStates, ks)
+	}
+	return keyStates, true, nil
+}
+
+// getCachedKeyReferences returns the references of the keys contained
+// in a list of keys that is stored in a cache entry. In contrast to
+// resolveCachedKeys(), it does not create any KeyStates.
+func (rc *RecursiveComputer[TReference, TMetadata]) getCachedKeyReferences(ctx context.Context, keys model_core.Message[[]*model_evaluation_pb.Keys, TReference]) (map[object.LocalReference]struct{}, bool, error) {
+	keyReferences := map[object.LocalReference]struct{}{}
+	ok, err := rc.forEachCachedKey(ctx, keys, func(keyReference object.LocalReference, key model_core.TopLevelMessage[*anypb.Any, TReference]) {
+		keyReferences[keyReference] = struct{}{}
+	})
+	if !ok || err != nil {
+		return nil, false, err
+	}
+	return keyReferences, true, nil
+}
+
 func (rc *RecursiveComputer[TReference, TMetadata]) buildEvaluation(ctx context.Context, value model_core.Message[*model_core_pb.Any, TReference], directVariableDependencies []*KeyState[TReference, TMetadata]) (model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata], error) {
 	inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_pb.Evaluation, TMetadata], 0, 2)
 	defer inlineCandidates.Discard()
@@ -963,7 +1106,14 @@ func (g *variableDependenciesGatherer[TReference, TMetadata]) gatherDependencies
 }
 
 func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getVariableDependenciesComputedValueState(ks *KeyState[TReference, TMetadata], dependenciesHashRecordReference object.LocalReference) variableDependenciesComputedValueState[TReference, TMetadata] {
-	directVariableDependencies := sortedKeyStates(e.directVariableDependencies)
+	return e.computer.newVariableDependenciesComputedValueState(ks, sortedKeyStates(e.directVariableDependencies), dependenciesHashRecordReference)
+}
+
+// newVariableDependenciesComputedValueState creates the value state of
+// a key whose value has been obtained, and has a non-empty set of
+// direct variable dependencies. The list of direct variable
+// dependencies must be sorted by key reference.
+func (RecursiveComputer[TReference, TMetadata]) newVariableDependenciesComputedValueState(ks *KeyState[TReference, TMetadata], directVariableDependencies []*KeyState[TReference, TMetadata], dependenciesHashRecordReference object.LocalReference) variableDependenciesComputedValueState[TReference, TMetadata] {
 	if len(directVariableDependencies) == 0 {
 		panic("key does not have any direct variable dependencies")
 	}
@@ -1098,6 +1248,27 @@ func sortedKeyStates[TReference object.BasicReference, TMetadata model_core.Refe
 			return bytes.Compare(a.keyReference.GetRawReference(), b.keyReference.GetRawReference())
 		},
 	)
+}
+
+// mergeSortedKeyStates merges two lists of KeyStates that are sorted
+// by key reference, yielding a single sorted list. If the lists have
+// any KeyStates in common, false is returned.
+func mergeSortedKeyStates[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](a, b []*KeyState[TReference, TMetadata]) ([]*KeyState[TReference, TMetadata], bool) {
+	merged := make([]*KeyState[TReference, TMetadata], 0, len(a)+len(b))
+	for len(a) > 0 && len(b) > 0 {
+		switch cmp := bytes.Compare(a[0].keyReference.GetRawReference(), b[0].keyReference.GetRawReference()); {
+		case cmp < 0:
+			merged = append(merged, a[0])
+			a = a[1:]
+		case cmp > 0:
+			merged = append(merged, b[0])
+			b = b[1:]
+		default:
+			return nil, false
+		}
+	}
+	merged = append(merged, a...)
+	return append(merged, b...), true
 }
 
 func (ks *KeyState[TReference, TMetadata]) isBlockedCyclic(blockedOn map[*KeyState[TReference, TMetadata]][]*KeyState[TReference, TMetadata], cyclic map[*KeyState[TReference, TMetadata]]bool) bool {
@@ -1411,6 +1582,11 @@ type variableDependenciesComputedValueState[TReference object.BasicReference, TM
 
 	directVariableDependencies  []*KeyState[TReference, TMetadata]
 	hoistedVariableDependencies []*KeyState[TReference, TMetadata]
+
+	// If set, the value was obtained from a cache entry having the
+	// same set of direct variable dependencies. This means that
+	// there is no need to upload it to the cache once more.
+	valueIsCached bool
 }
 
 func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
@@ -1476,6 +1652,7 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGr
 		graphlet:                     graphlet,
 		hoistedVariableDependencies:  vs.hoistedVariableDependencies,
 		directVariableDependencies:   vs.directVariableDependencies,
+		valueIsCached:                vs.valueIsCached,
 	}, graphlet, nil
 }
 
@@ -1486,6 +1663,7 @@ type variableDependenciesMarshaledValueState[TReference object.BasicReference, T
 	graphlet                    model_core.Message[*model_evaluation_pb.Graphlet, TReference]
 	hoistedVariableDependencies []*KeyState[TReference, TMetadata]
 	directVariableDependencies  []*KeyState[TReference, TMetadata]
+	valueIsCached               bool
 }
 
 func (vs *variableDependenciesMarshaledValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
@@ -1496,211 +1674,49 @@ type initialMessageValueState[TReference object.BasicReference, TMetadata model_
 	unevaluatedValueState[TReference, TMetadata]
 }
 
-func (vs initialMessageValueState[TReference, TMetadata]) evaluate(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], []*KeyState[TReference, TMetadata]) {
+func (initialMessageValueState[TReference, TMetadata]) evaluate(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], []*KeyState[TReference, TMetadata]) {
 	rootTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, nil)
 	if err != nil {
 		return &earlyFailedValueState[TReference, TMetadata]{
 			err: err,
 		}, nil
 	}
-	rootLookupResultReference, err := model_tag.ResolveDecodableTag(ctx, rc.tagStore, rootTagKeyHash)
+	rootLookupResult, rootLookupResultReference, found, err := rc.readLookupResult(ctx, rootTagKeyHash)
 	if err != nil {
-		if status.Code(err) != codes.NotFound {
-			return &earlyFailedValueState[TReference, TMetadata]{
-				err: err,
-			}, nil
-		}
-		return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
+		return &earlyFailedValueState[TReference, TMetadata]{
+			err: err,
+		}, nil
 	}
-
-	rootLookupResult, err := rc.lookupResultReader.ReadObject(ctx, rootLookupResultReference)
-	if err != nil {
-		if status.Code(err) != codes.NotFound {
-			return &earlyFailedValueState[TReference, TMetadata]{
-				err: err,
-			}, nil
-		}
+	if !found {
 		return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
 	}
 
 	switch r := rootLookupResult.Message.Result.(type) {
 	case *model_evaluation_cache_pb.LookupResult_Initial_:
-		var dependencyKeyReferences []object.LocalReference
-		var errIter error
-		for dependency := range btree.AllLeaves(
-			ctx,
-			rc.keysReader,
-			model_core.Nested(rootLookupResult, r.Initial.GraphletVariableDependencyKeys),
-			/* traverser = */ func(keys model_core.Message[*model_evaluation_pb.Keys, TReference]) (*model_core_pb.DecodableReference, error) {
-				return keys.Message.GetParent().GetReference(), nil
-			},
-			&errIter,
-		) {
-			dependencyLeaf, ok := dependency.Message.Level.(*model_evaluation_pb.Keys_Leaf)
-			if !ok {
-				return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-			}
-			dependencyKey, err := model_core.FlattenAny(model_core.Nested(dependency, dependencyLeaf.Leaf))
-			if err != nil {
-				return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-			}
-			dependencyKeyReference, err := model_core.ComputeTopLevelMessageReference(dependencyKey, rc.referenceFormat)
-			if err != nil {
-				return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-			}
-			dependencyKeyReferences = append(dependencyKeyReferences, dependencyKeyReference)
-		}
-		if errIter != nil {
+		// Start off by attempting to obtain a cache hit on the
+		// graphlet. Retain the expected direct dependencies of
+		// the key, so that we can fall back to obtaining a
+		// cache hit on the value.
+		dependencies, ok, err := rc.resolveCachedKeys(ctx, model_core.Nested(rootLookupResult, r.Initial.GraphletVariableDependencyKeys))
+		if err != nil {
 			return &earlyFailedValueState[TReference, TMetadata]{
 				err: err,
 			}, nil
 		}
-		if len(dependencyKeyReferences) == 0 {
-			return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-		}
-
-		dependenciesHasher := lthash.NewHasher()
-		evaluatedDependencies := make([]*KeyState[TReference, TMetadata], 0, len(dependencyKeyReferences))
-		var unevaluatedDependencies []*KeyState[TReference, TMetadata]
-		missingDependencyIndices := make([]int, 0, len(dependencyKeyReferences))
-		rc.lock.RLock()
-		for i, dependencyKeyReference := range dependencyKeyReferences {
-			if ksDep, ok := rc.keys[dependencyKeyReference]; ok && ksDep.keyMessageFetcher != nil {
-				if vsDep := ksDep.valueState; !vsDep.isEvaluated() {
-					unevaluatedDependencies = append(unevaluatedDependencies, ksDep)
-				} else if vsDep.getError() != nil || !vsDep.isVariableDependency() {
-					rc.lock.RUnlock()
-					return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-				} else {
-					evaluatedDependencies = append(evaluatedDependencies, ksDep)
-					dependenciesHasher.Add(vsDep.getDependenciesHashRecordReference().GetRawReference())
-				}
-			} else {
-				missingDependencyIndices = append(missingDependencyIndices, i)
-			}
-		}
-		rc.lock.RUnlock()
-
-		if len(missingDependencyIndices) > 0 {
-			var errIter error
-			i := 0
-			for dependency := range btree.AllLeaves(
-				ctx,
-				rc.keysReader,
-				model_core.Nested(rootLookupResult, r.Initial.GraphletVariableDependencyKeys),
-				/* traverser = */ func(keys model_core.Message[*model_evaluation_pb.Keys, TReference]) (*model_core_pb.DecodableReference, error) {
-					return keys.Message.GetParent().GetReference(), nil
-				},
-				&errIter,
-			) {
-				if i == missingDependencyIndices[0] {
-					dependencyLeaf, ok := dependency.Message.Level.(*model_evaluation_pb.Keys_Leaf)
-					if !ok {
-						return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-					}
-					dependencyKey, err := model_core.FlattenAny(model_core.Nested(dependency, dependencyLeaf.Leaf))
-					if err != nil {
-						return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-					}
-					dependencyKeyReference, err := model_core.ComputeTopLevelMessageReference(dependencyKey, rc.referenceFormat)
-					if err != nil {
-						return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-					}
-					// TODO: We should have one that reloads the message from storage.
-					dependencyKeyMessageFetcher := &staticMessageFetcher[TReference, TMetadata]{
-						message: dependencyKey,
-					}
-
-					evaluationQueue := rc.evaluationQueuePicker.PickQueue(dependencyKey.Message.TypeUrl)
-					rc.lock.Lock()
-					ksDep := rc.getOrCreateKeyStateLocked(
-						dependencyKeyReference,
-						dependencyKeyMessageFetcher,
-						dependencyKey.Message.TypeUrl,
-						rc.newInitialValueState(dependencyKey.Message.TypeUrl),
-						evaluationQueue,
-					)
-					rc.lock.Unlock()
-					unevaluatedDependencies = append(unevaluatedDependencies, ksDep)
-
-					missingDependencyIndices = missingDependencyIndices[1:]
-					if len(missingDependencyIndices) == 0 {
-						break
-					}
-				}
-				i++
-			}
-			if errIter != nil {
-				return &earlyFailedValueState[TReference, TMetadata]{
-					err: err,
-				}, nil
-			}
-			if len(missingDependencyIndices) != 0 {
-				panic("second iteration should have found keys of all missing dependencies")
-			}
-		}
-
-		if len(unevaluatedDependencies) > 0 {
-			return vs, unevaluatedDependencies
-		}
-		if len(evaluatedDependencies) != len(dependencyKeyReferences) {
-			panic("all dependencies should have been evaluated at this point")
-		}
-
-		dependenciesHash := dependenciesHasher.Sum()
-		subsequentTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
-			Scope:            model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET,
-			DependenciesHash: dependenciesHash[:],
-		})
-		if err != nil {
-			if status.Code(err) != codes.NotFound {
-				return &earlyFailedValueState[TReference, TMetadata]{
-					err: err,
-				}, nil
-			}
-			return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-		}
-		subsequentLookupResultReference, err := model_tag.ResolveDecodableTag(ctx, rc.tagStore, subsequentTagKeyHash)
-		if err != nil {
-			if status.Code(err) != codes.NotFound {
-				return &earlyFailedValueState[TReference, TMetadata]{
-					err: err,
-				}, nil
-			}
-			return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-		}
-		subsequentLookupResult, err := rc.lookupResultReader.ReadObject(ctx, subsequentLookupResultReference)
-		if err != nil {
-			if status.Code(err) != codes.NotFound {
-				return &earlyFailedValueState[TReference, TMetadata]{
-					err: err,
-				}, nil
-			}
-			return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-		}
-		hitGraphlet, ok := subsequentLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitGraphlet)
+		valueVariableDependencyKeys := model_core.Nested(rootLookupResult, r.Initial.ValueVariableDependencyKeys)
 		if !ok {
-			return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
+			// Malformed list of graphlet dependencies.
+			// Attempt a lookup of the value instead.
+			return (&lookingUpMessageValueState[TReference, TMetadata]{
+				scope:                       model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET,
+				valueVariableDependencyKeys: valueVariableDependencyKeys,
+			}).fallBackToValueLookup(ctx, rc, ks)
 		}
-		evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, model_core.Nested(subsequentLookupResult, hitGraphlet.HitGraphlet))
-		if err != nil {
-			return &earlyFailedValueState[TReference, TMetadata]{
-				err: err,
-			}, nil
-		}
-		value, err := model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
-		if err != nil {
-			return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
-		}
-
-		return &variableDependenciesUploadedMessageValueState[TReference, TMetadata]{
-			variableDependencyValueState: variableDependencyValueState[TReference, TMetadata]{
-				dependenciesHashRecordReference: rc.computeDependenciesHashRecordReferenceForMessage(ks.keyReference, value),
-			},
-			hitGraphletLookupResultReference: subsequentLookupResultReference,
-			// TODO: Should we check that the list is actually sorted?
-			hoistedVariableDependencies: evaluatedDependencies,
-		}, nil
+		return (&lookingUpMessageValueState[TReference, TMetadata]{
+			scope:                       model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET,
+			dependencies:                dependencies,
+			valueVariableDependencyKeys: valueVariableDependencyKeys,
+		}).evaluate(ctx, rc, ks)
 	case *model_evaluation_cache_pb.LookupResult_HitValue:
 		// It turns out the current key does not have any
 		// dependencies. This means that the initial lookup
@@ -1727,6 +1743,200 @@ func (vs initialMessageValueState[TReference, TMetadata]) getGraphlet(ctx contex
 }
 
 func (initialMessageValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
+	return nil
+}
+
+// lookingUpMessageValueState is the value state of a key for which a
+// cache lookup is in progress. The initial lookup result has been
+// obtained, and it is now attempting to traverse the chain of
+// subsequent lookup results belonging to either the graphlet or the
+// value of the key.
+//
+// The lookup proceeds by waiting for all dependencies to be evaluated,
+// computing a homomorphic hash of their keys and values, and resolving
+// the tag corresponding to that hash. This either yields a hit, or
+// returns a set of additional dependencies whose values need to be
+// incorporated into the hash.
+type lookingUpMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	unevaluatedValueState[TReference, TMetadata]
+
+	// Whether a hit on the graphlet or value is being looked up.
+	scope model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_Scope
+
+	// Dependencies gathered for the current scope up to this point,
+	// sorted by key reference.
+	dependencies []*KeyState[TReference, TMetadata]
+
+	// If the graphlet is being looked up, the keys of the direct
+	// dependencies of the key that should be used to perform a
+	// lookup of the value in case the graphlet cannot be found.
+	valueVariableDependencyKeys model_core.Message[[]*model_evaluation_pb.Keys, TReference]
+}
+
+func (vs *lookingUpMessageValueState[TReference, TMetadata]) evaluate(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], []*KeyState[TReference, TMetadata]) {
+	dependencies := vs.dependencies
+	for {
+		// Wait for all dependencies gathered up to this point
+		// to be evaluated, and compute the hash of their keys
+		// and values. If any of the dependencies failed or
+		// turns out to be constant, the cache entry is not
+		// applicable.
+		var unevaluatedDependencies []*KeyState[TReference, TMetadata]
+		dependenciesHasher := lthash.NewHasher()
+		usable := true
+		rc.lock.RLock()
+		for _, ksDep := range dependencies {
+			if vsDep := ksDep.valueState; !vsDep.isEvaluated() {
+				unevaluatedDependencies = append(unevaluatedDependencies, ksDep)
+			} else if vsDep.getError() != nil || !vsDep.isVariableDependency() {
+				usable = false
+				break
+			} else {
+				dependenciesHasher.Add(vsDep.getDependenciesHashRecordReference().GetRawReference())
+			}
+		}
+		rc.lock.RUnlock()
+		if !usable {
+			return vs.fallBackToValueLookup(ctx, rc, ks)
+		}
+		if len(unevaluatedDependencies) > 0 {
+			return &lookingUpMessageValueState[TReference, TMetadata]{
+				scope:                       vs.scope,
+				dependencies:                dependencies,
+				valueVariableDependencyKeys: vs.valueVariableDependencyKeys,
+			}, unevaluatedDependencies
+		}
+
+		dependenciesHash := dependenciesHasher.Sum()
+		tagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
+			Scope:            vs.scope,
+			DependenciesHash: dependenciesHash[:],
+		})
+		if err != nil {
+			return &earlyFailedValueState[TReference, TMetadata]{
+				err: err,
+			}, nil
+		}
+		lookupResult, lookupResultReference, found, err := rc.readLookupResult(ctx, tagKeyHash)
+		if err != nil {
+			return &earlyFailedValueState[TReference, TMetadata]{
+				err: err,
+			}, nil
+		}
+		if !found {
+			return vs.fallBackToValueLookup(ctx, rc, ks)
+		}
+
+		switch r := lookupResult.Message.Result.(type) {
+		case *model_evaluation_cache_pb.LookupResult_HitGraphlet:
+			if vs.scope != model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET {
+				return vs.fallBackToValueLookup(ctx, rc, ks)
+			}
+			evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, model_core.Nested(lookupResult, r.HitGraphlet))
+			if err != nil {
+				return &earlyFailedValueState[TReference, TMetadata]{
+					err: err,
+				}, nil
+			}
+			value, err := model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
+			if err != nil {
+				return vs.fallBackToValueLookup(ctx, rc, ks)
+			}
+			return &variableDependenciesUploadedMessageValueState[TReference, TMetadata]{
+				variableDependencyValueState: variableDependencyValueState[TReference, TMetadata]{
+					dependenciesHashRecordReference: rc.computeDependenciesHashRecordReferenceForMessage(ks.keyReference, value),
+				},
+				hitGraphletLookupResultReference: lookupResultReference,
+				hoistedVariableDependencies:      dependencies,
+			}, nil
+		case *model_evaluation_cache_pb.LookupResult_HitValue:
+			if vs.scope != model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_VALUE {
+				return vs.fallBackToValueLookup(ctx, rc, ks)
+			}
+			value, err := model_core.FlattenAny(model_core.Nested(lookupResult, r.HitValue))
+			if err != nil {
+				return vs.fallBackToValueLookup(ctx, rc, ks)
+			}
+
+			// We only obtained the value of the key, not its
+			// graphlet. As we know the full set of direct
+			// dependencies, the graphlet can be constructed
+			// locally. There is no need to upload the value
+			// to the cache once more.
+			computedValueState := rc.newVariableDependenciesComputedValueState(
+				ks,
+				dependencies,
+				rc.computeDependenciesHashRecordReferenceForMessage(ks.keyReference, value),
+			)
+			computedValueState.valueIsCached = true
+			return &variableDependenciesComputedMessageValueState[TReference, TMetadata]{
+				variableDependenciesComputedValueState: computedValueState,
+				computedMessageValueState: computedMessageValueState[TReference, TMetadata]{
+					value: value,
+				},
+			}, nil
+		case *model_evaluation_cache_pb.LookupResult_MissingDependencies_:
+			// The dependencies gathered up to this point
+			// are insufficient to obtain a hit. Extend the
+			// set of dependencies and perform another lookup.
+			additionalDependencies, ok, err := rc.resolveCachedKeys(ctx, model_core.Nested(lookupResult, r.MissingDependencies.AdditionalVariableDependencyKeys))
+			if err != nil {
+				return &earlyFailedValueState[TReference, TMetadata]{
+					err: err,
+				}, nil
+			}
+			if !ok {
+				return vs.fallBackToValueLookup(ctx, rc, ks)
+			}
+			dependencies, ok = mergeSortedKeyStates(dependencies, additionalDependencies)
+			if !ok {
+				// Additional dependencies overlap with
+				// the ones gathered previously.
+				return vs.fallBackToValueLookup(ctx, rc, ks)
+			}
+		default:
+			// Malformed cache entry.
+			return vs.fallBackToValueLookup(ctx, rc, ks)
+		}
+	}
+}
+
+// fallBackToValueLookup is called when a cache lookup of the current
+// scope yields a miss. If the graphlet was being looked up, a lookup of
+// the value is attempted. Otherwise, the key is evaluated.
+func (vs *lookingUpMessageValueState[TReference, TMetadata]) fallBackToValueLookup(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], []*KeyState[TReference, TMetadata]) {
+	if vs.scope == model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET && len(vs.valueVariableDependencyKeys.Message) > 0 {
+		dependencies, ok, err := rc.resolveCachedKeys(ctx, vs.valueVariableDependencyKeys)
+		if err != nil {
+			return &earlyFailedValueState[TReference, TMetadata]{
+				err: err,
+			}, nil
+		}
+		if ok {
+			return (&lookingUpMessageValueState[TReference, TMetadata]{
+				scope:        model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_VALUE,
+				dependencies: dependencies,
+			}).evaluate(ctx, rc, ks)
+		}
+	}
+	return (&computingMessageValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
+}
+
+func (lookingUpMessageValueState[TReference, TMetadata]) disableCacheLookup() valueState[TReference, TMetadata] {
+	return &computingMessageValueState[TReference, TMetadata]{}
+}
+
+func (lookingUpMessageValueState[TReference, TMetadata]) gotFailedDependency(err NestedError[TReference, TMetadata]) valueState[TReference, TMetadata] {
+	return &evaluationFailedValueState[TReference, TMetadata]{
+		err: err,
+	}
+}
+
+func (vs *lookingUpMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+	return vs, model_core.NewSimpleMessage[TReference](&model_evaluation_pb.Graphlet{}), nil
+}
+
+func (lookingUpMessageValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
 	return nil
 }
 
@@ -1889,184 +2099,35 @@ type variableDependenciesMarshaledMessageValueState[TReference object.BasicRefer
 }
 
 func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata]) upload(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], error) {
-	nextValueState := valueState[TReference, TMetadata](vs)
-	group, groupCtx := errgroup.WithContext(ctx)
+	buildHitGraphlet := func() (model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult, TMetadata], error) {
+		return model_core.MustBuildPatchedMessage(
+			func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
+				return &model_evaluation_cache_pb.LookupResult{
+					Result: &model_evaluation_cache_pb.LookupResult_HitGraphlet{
+						HitGraphlet: model_core.Patch(
+							rc.objectManager,
+							vs.graphlet,
+						).Merge(patcher),
+					},
+				}
+			},
+		), nil
+	}
 
-	// Upload the initial lookup result entry, and missing
-	// dependencies lookup result entries if needed.
-	group.Go(func() error {
-		rootTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, nil)
-		if err != nil {
-			return err
-		}
-		/*
-			if _, err = model_tag.ResolveDecodableTag(groupCtx, rc.tagStore, rootTagKeyHash); err == nil {
-				return errors.New("merging of lookup results is not implemented yet")
-			} else if status.Code(err) != codes.NotFound {
-				return err
+	// Only upload a "hit value" lookup result if the value's
+	// dependencies differ from the graphlet's. Given that we
+	// always attempt to look up the graphlet first, a "hit value"
+	// lookup result entry having the same dependencies would never
+	// be requested. There is also no need to upload it if the
+	// value was obtained from the cache in the first place.
+	var buildHitValue lookupResultBuilder[TMetadata]
+	if !vs.valueIsCached && !slices.Equal(vs.hoistedVariableDependencies, vs.directVariableDependencies) {
+		buildHitValue = func() (model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult, TMetadata], error) {
+			evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, vs.graphlet)
+			if err != nil {
+				return model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult, TMetadata]{}, err
 			}
-		*/
-
-		inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata], 0, 2)
-		defer inlineCandidates.Discard()
-
-		keysParentNodeComputer := rc.getKeysParentNodeComputer(groupCtx)
-		graphletVariableDependencyKeys, err := rc.getKeysForSortedList(groupCtx, vs.hoistedVariableDependencies)
-		if err != nil {
-			return err
-		}
-		inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata]{
-			ExternalMessage: model_core.ProtoListToBinaryMarshaler(graphletVariableDependencyKeys),
-			Encoder:         rc.cacheDeterministicEncoder,
-			ParentAppender: func(
-				evaluation model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata],
-				externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-			) error {
-				dependencies, err := btree.MaybeMergeNodes(
-					graphletVariableDependencyKeys.Message,
-					externalObject,
-					evaluation.Patcher,
-					keysParentNodeComputer,
-				)
-				if err != nil {
-					return err
-				}
-				evaluation.Message.GraphletVariableDependencyKeys = dependencies
-				return nil
-			},
-		})
-		valueVariableDependencyKeys, err := rc.getKeysForSortedList(groupCtx, vs.directVariableDependencies)
-		if err != nil {
-			return err
-		}
-		inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata]{
-			ExternalMessage: model_core.ProtoListToBinaryMarshaler(valueVariableDependencyKeys),
-			Encoder:         rc.cacheDeterministicEncoder,
-			ParentAppender: func(
-				evaluation model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata],
-				externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
-			) error {
-				dependencies, err := btree.MaybeMergeNodes(
-					valueVariableDependencyKeys.Message,
-					externalObject,
-					evaluation.Patcher,
-					keysParentNodeComputer,
-				)
-				if err != nil {
-					return err
-				}
-				evaluation.Message.ValueVariableDependencyKeys = dependencies
-				return nil
-			},
-		})
-
-		lookupResultInitial, err := inlinedtree.Build(
-			inlineCandidates,
-			&inlinedtree.Options{
-				ReferenceFormat:  rc.referenceFormat,
-				MaximumSizeBytes: 1 << 16,
-			},
-		)
-		if err != nil {
-			return err
-		}
-
-		_, err = rc.storeLookupResult(
-			groupCtx,
-			rootTagKeyHash,
-			model_core.MustBuildPatchedMessage(
-				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
-					return &model_evaluation_cache_pb.LookupResult{
-						Result: &model_evaluation_cache_pb.LookupResult_Initial_{
-							Initial: lookupResultInitial.Merge(patcher),
-						},
-					}
-				},
-			),
-		)
-		return err
-	})
-
-	// Upload the "hit graphlet" lookup result entry.
-	group.Go(func() error {
-		hoistedDependenciesHasher := lthash.NewHasher()
-		rc.lock.RLock()
-		for _, ksDep := range vs.hoistedVariableDependencies {
-			hoistedDependenciesHasher.Add(ksDep.valueState.getDependenciesHashRecordReference().GetRawReference())
-		}
-		rc.lock.RUnlock()
-		dependenciesHash := hoistedDependenciesHasher.Sum()
-		hitGraphletTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
-			Scope:            model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET,
-			DependenciesHash: dependenciesHash[:],
-		})
-		if err != nil {
-			return err
-		}
-
-		hitGraphletLookupResultReference, err := rc.storeLookupResult(
-			groupCtx,
-			hitGraphletTagKeyHash,
-			model_core.MustBuildPatchedMessage(
-				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
-					return &model_evaluation_cache_pb.LookupResult{
-						Result: &model_evaluation_cache_pb.LookupResult_HitGraphlet{
-							HitGraphlet: model_core.Patch(
-								rc.objectManager,
-								vs.graphlet,
-							).Merge(patcher),
-						},
-					}
-				},
-			),
-		)
-		if err != nil {
-			return err
-		}
-
-		// Subsequent attempts to access the graphlet may use
-		// the copy that has been written to storage.
-		nextValueState = &variableDependenciesUploadedMessageValueState[TReference, TMetadata]{
-			variableDependencyValueState:     vs.variableDependencyValueState,
-			hitGraphletLookupResultReference: model_core.CopyDecodable(hitGraphletTagKeyHash, hitGraphletLookupResultReference),
-			hoistedVariableDependencies:      vs.hoistedVariableDependencies,
-		}
-		return nil
-	})
-
-	// Upload the "hit value" lookup result entry.
-	group.Go(func() error {
-		// Only write it if the value's dependencies differ from
-		// the graphlet's. Given that we always attempt to look
-		// up the graphlet first, a "hit value" lookup result
-		// entry having the same dependencies would never be
-		// requested.
-		if slices.Equal(vs.hoistedVariableDependencies, vs.directVariableDependencies) {
-			return nil
-		}
-		directDependenciesHasher := lthash.NewHasher()
-		rc.lock.RLock()
-		for _, ksDep := range vs.directVariableDependencies {
-			directDependenciesHasher.Add(ksDep.valueState.getDependenciesHashRecordReference().GetRawReference())
-		}
-		rc.lock.RUnlock()
-		dependenciesHash := directDependenciesHasher.Sum()
-		hitValueTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
-			Scope:            model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_VALUE,
-			DependenciesHash: dependenciesHash[:],
-		})
-		if err != nil {
-			return err
-		}
-
-		evaluation, err := GraphletGetEvaluation(groupCtx, rc.evaluationReader, vs.graphlet)
-		if err != nil {
-			return err
-		}
-		_, err = rc.storeLookupResult(
-			groupCtx,
-			hitValueTagKeyHash,
-			model_core.MustBuildPatchedMessage(
+			return model_core.MustBuildPatchedMessage(
 				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
 					return &model_evaluation_cache_pb.LookupResult{
 						Result: &model_evaluation_cache_pb.LookupResult_HitValue{
@@ -2077,13 +2138,437 @@ func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata])
 						},
 					}
 				},
-			),
+			), nil
+		}
+	}
+
+	hitGraphletLookupResultReference, err := rc.uploadVariableDependenciesLookupResults(
+		ctx,
+		ks,
+		vs.hoistedVariableDependencies,
+		vs.directVariableDependencies,
+		buildHitGraphlet,
+		buildHitValue,
+	)
+	if err != nil {
+		return vs, err
+	}
+
+	// Subsequent attempts to access the graphlet may use the copy
+	// that has been written to storage.
+	return &variableDependenciesUploadedMessageValueState[TReference, TMetadata]{
+		variableDependencyValueState:     vs.variableDependencyValueState,
+		hitGraphletLookupResultReference: hitGraphletLookupResultReference,
+		hoistedVariableDependencies:      vs.hoistedVariableDependencies,
+	}, nil
+}
+
+// lookupResultBuilder is invoked to construct the LookupResult message
+// that needs to be stored at the end of a chain of lookup results,
+// containing the graphlet or value of a key.
+type lookupResultBuilder[TMetadata model_core.ReferenceMetadata] func() (model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult, TMetadata], error)
+
+// uploadVariableDependenciesLookupResults stores lookup results for a
+// key having a non-empty set of variable dependencies, so that
+// subsequent builds may obtain cache hits on the key's graphlet and
+// value.
+//
+// As the set of dependencies of a key may vary between evaluations,
+// existing lookup results are merged with the ones that are being
+// stored. The initial lookup result is reduced to the dependencies
+// that are shared by all evaluations, and subsequent lookup results
+// returning missing dependencies are used to discriminate between
+// evaluations. The reference of the lookup result containing the
+// graphlet is returned.
+func (rc *RecursiveComputer[TReference, TMetadata]) uploadVariableDependenciesLookupResults(
+	ctx context.Context,
+	ks *KeyState[TReference, TMetadata],
+	graphletVariableDependencies []*KeyState[TReference, TMetadata],
+	valueVariableDependencies []*KeyState[TReference, TMetadata],
+	buildHitGraphlet lookupResultBuilder[TMetadata],
+	buildHitValue lookupResultBuilder[TMetadata],
+) (model_core.Decodable[TReference], error) {
+	var badReference model_core.Decodable[TReference]
+	rootTagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, nil)
+	if err != nil {
+		return badReference, err
+	}
+	rootLookupResult, _, found, err := rc.readLookupResult(ctx, rootTagKeyHash)
+	if err != nil {
+		return badReference, err
+	}
+
+	// If an initial lookup result already exists, reduce its sets
+	// of dependencies to the ones shared with the current
+	// evaluation. If the existing lookup result contains
+	// indirection that has been present for too long, discard it
+	// and start from scratch. This ensures that the amount of
+	// indirection does not continue to grow over time.
+	graphletInitialDependencies, valueInitialDependencies := graphletVariableDependencies, valueVariableDependencies
+	var containsIndirectionSince *timestamppb.Timestamp
+	rootNeedsUpdate := true
+	if found {
+		if initial, ok := rootLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_Initial_); ok {
+			since := initial.Initial.ContainsIndirectionSince
+			if since == nil || (since.IsValid() && rc.clock.Now().Sub(since.AsTime()) < rc.cacheLookupResultIndirectionMaximumAge) {
+				var graphletChanged, valueChanged bool
+				graphletInitialDependencies, graphletChanged, err = rc.intersectCachedKeys(
+					ctx,
+					model_core.Nested(rootLookupResult, initial.Initial.GraphletVariableDependencyKeys),
+					graphletVariableDependencies,
+				)
+				if err != nil {
+					return badReference, err
+				}
+				valueInitialDependencies, valueChanged, err = rc.intersectCachedKeys(
+					ctx,
+					model_core.Nested(rootLookupResult, initial.Initial.ValueVariableDependencyKeys),
+					valueVariableDependencies,
+				)
+				if err != nil {
+					return badReference, err
+				}
+				containsIndirectionSince = since
+				rootNeedsUpdate = graphletChanged || valueChanged
+			}
+		}
+	}
+
+	// Store the chains of subsequent lookup results for the
+	// graphlet and value.
+	group, groupCtx := errgroup.WithContext(ctx)
+	var hitGraphletLookupResultReference model_core.Decodable[TReference]
+	var graphletContainsIndirection, valueContainsIndirection bool
+	group.Go(func() error {
+		var err error
+		hitGraphletLookupResultReference, graphletContainsIndirection, err = rc.uploadLookupResultChain(
+			groupCtx,
+			ks,
+			model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET,
+			graphletInitialDependencies,
+			graphletVariableDependencies,
+			buildHitGraphlet,
 		)
 		return err
 	})
+	if buildHitValue != nil {
+		group.Go(func() error {
+			var err error
+			_, valueContainsIndirection, err = rc.uploadLookupResultChain(
+				groupCtx,
+				ks,
+				model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_VALUE,
+				valueInitialDependencies,
+				valueVariableDependencies,
+				buildHitValue,
+			)
+			return err
+		})
+	}
+	if err := group.Wait(); err != nil {
+		return badReference, err
+	}
 
-	err := group.Wait()
-	return nextValueState, err
+	if (graphletContainsIndirection || valueContainsIndirection) && containsIndirectionSince == nil {
+		containsIndirectionSince = timestamppb.New(rc.clock.Now())
+		rootNeedsUpdate = true
+	}
+	if rootNeedsUpdate {
+		if err := rc.storeInitialLookupResult(
+			ctx,
+			rootTagKeyHash,
+			graphletInitialDependencies,
+			valueInitialDependencies,
+			containsIndirectionSince,
+		); err != nil {
+			return badReference, err
+		}
+	}
+	return hitGraphletLookupResultReference, nil
+}
+
+// intersectCachedKeys computes the intersection of a list of keys that
+// is stored in an existing cache entry with a list of dependencies of
+// the current evaluation. If the intersection is empty or the existing
+// list is malformed, the list of dependencies of the current
+// evaluation is returned. The returned boolean indicates whether the
+// resulting list differs from the existing one.
+func (rc *RecursiveComputer[TReference, TMetadata]) intersectCachedKeys(ctx context.Context, existingKeys model_core.Message[[]*model_evaluation_pb.Keys, TReference], dependencies []*KeyState[TReference, TMetadata]) ([]*KeyState[TReference, TMetadata], bool, error) {
+	existingKeyReferences, ok, err := rc.getCachedKeyReferences(ctx, existingKeys)
+	if err != nil {
+		return nil, false, err
+	}
+	if !ok {
+		return dependencies, true, nil
+	}
+	intersection := filterKeyStatesByReference(dependencies, existingKeyReferences)
+	if len(intersection) == 0 {
+		return dependencies, true, nil
+	}
+	return intersection, len(intersection) != len(existingKeyReferences), nil
+}
+
+// filterKeyStatesByReference returns the KeyStates whose key
+// references are contained in a set, preserving their order.
+func filterKeyStatesByReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](keyStates []*KeyState[TReference, TMetadata], keyReferences map[object.LocalReference]struct{}) []*KeyState[TReference, TMetadata] {
+	var filtered []*KeyState[TReference, TMetadata]
+	for _, ks := range keyStates {
+		if _, ok := keyReferences[ks.keyReference]; ok {
+			filtered = append(filtered, ks)
+		}
+	}
+	return filtered
+}
+
+// uploadLookupResultChain stores the chain of subsequent lookup results
+// for a single scope (i.e., graphlet or value). Starting with the
+// initial set of dependencies, it traverses existing lookup results
+// returning missing dependencies for as long as these are consistent
+// with the current evaluation. Lookup results are added or reduced
+// where needed. At the end of the chain, a lookup result containing
+// the hit is stored.
+//
+// Both initialDependencies and allDependencies must be sorted by key
+// reference, and initialDependencies must be a subset of
+// allDependencies. The reference of the lookup result containing the
+// hit is returned, and whether the chain contains any indirection.
+func (rc *RecursiveComputer[TReference, TMetadata]) uploadLookupResultChain(
+	ctx context.Context,
+	ks *KeyState[TReference, TMetadata],
+	scope model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_Scope,
+	initialDependencies []*KeyState[TReference, TMetadata],
+	allDependencies []*KeyState[TReference, TMetadata],
+	buildHit lookupResultBuilder[TMetadata],
+) (model_core.Decodable[TReference], bool, error) {
+	var badReference model_core.Decodable[TReference]
+	gatheredDependencies := make(map[*KeyState[TReference, TMetadata]]struct{}, len(allDependencies))
+	dependenciesHasher := lthash.NewHasher()
+	gatherDependencies := func(dependencies []*KeyState[TReference, TMetadata]) {
+		rc.lock.RLock()
+		for _, ksDep := range dependencies {
+			gatheredDependencies[ksDep] = struct{}{}
+			dependenciesHasher.Add(ksDep.valueState.getDependenciesHashRecordReference().GetRawReference())
+		}
+		rc.lock.RUnlock()
+	}
+	gatherDependencies(initialDependencies)
+
+	containsIndirection := false
+	for {
+		dependenciesHash := dependenciesHasher.Sum()
+		tagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
+			Scope:            scope,
+			DependenciesHash: dependenciesHash[:],
+		})
+		if err != nil {
+			return badReference, false, err
+		}
+
+		if len(gatheredDependencies) == len(allDependencies) {
+			// All dependencies have been gathered. Store
+			// the hit, overwriting any existing entry.
+			lookupResult, err := buildHit()
+			if err != nil {
+				return badReference, false, err
+			}
+			lookupResultReference, err := rc.storeLookupResult(ctx, tagKeyHash, lookupResult)
+			if err != nil {
+				return badReference, false, err
+			}
+			return model_core.CopyDecodable(tagKeyHash, lookupResultReference), containsIndirection, nil
+		}
+
+		remainingDependencies := make([]*KeyState[TReference, TMetadata], 0, len(allDependencies)-len(gatheredDependencies))
+		for _, ksDep := range allDependencies {
+			if _, ok := gatheredDependencies[ksDep]; !ok {
+				remainingDependencies = append(remainingDependencies, ksDep)
+			}
+		}
+
+		// If an existing lookup result returns missing
+		// dependencies that overlap with the remaining
+		// dependencies of the current evaluation, reduce it to
+		// the overlapping ones. If there is no overlap or the
+		// lookup result is of a different kind, overwrite it.
+		additionalDependencies, needsUpdate := remainingDependencies, true
+		existingLookupResult, _, found, err := rc.readLookupResult(ctx, tagKeyHash)
+		if err != nil {
+			return badReference, false, err
+		}
+		if found {
+			if missingDependencies, ok := existingLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_MissingDependencies_); ok {
+				existingKeyReferences, ok, err := rc.getCachedKeyReferences(
+					ctx,
+					model_core.Nested(existingLookupResult, missingDependencies.MissingDependencies.AdditionalVariableDependencyKeys),
+				)
+				if err != nil {
+					return badReference, false, err
+				}
+				if ok {
+					if intersection := filterKeyStatesByReference(remainingDependencies, existingKeyReferences); len(intersection) > 0 {
+						additionalDependencies = intersection
+						needsUpdate = len(intersection) != len(existingKeyReferences)
+					}
+				}
+			}
+		}
+		if needsUpdate {
+			if err := rc.storeMissingDependenciesLookupResult(ctx, tagKeyHash, additionalDependencies); err != nil {
+				return badReference, false, err
+			}
+		}
+
+		containsIndirection = true
+		gatherDependencies(additionalDependencies)
+	}
+}
+
+// newKeysInlineCandidate creates an inlinedtree.Candidate for a list of
+// keys, which is either inlined into the parent message or stored in
+// a separate object.
+func newKeysInlineCandidate[TParentMessage any, TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
+	rc *RecursiveComputer[TReference, TMetadata],
+	keyStates []*KeyState[TReference, TMetadata],
+	setKeys func(parent TParentMessage, keys []*model_evaluation_pb.Keys),
+) (inlinedtree.Candidate[TParentMessage, TMetadata], error) {
+	keysParentNodeComputer := rc.getKeysParentNodeComputer(ctx)
+	keysList, err := rc.getKeysForSortedList(ctx, keyStates)
+	if err != nil {
+		return inlinedtree.Candidate[TParentMessage, TMetadata]{}, err
+	}
+	return inlinedtree.Candidate[TParentMessage, TMetadata]{
+		ExternalMessage: model_core.ProtoListToBinaryMarshaler(keysList),
+		Encoder:         rc.cacheDeterministicEncoder,
+		ParentAppender: func(
+			parent model_core.PatchedMessage[TParentMessage, TMetadata],
+			externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+		) error {
+			keys, err := btree.MaybeMergeNodes(
+				keysList.Message,
+				externalObject,
+				parent.Patcher,
+				keysParentNodeComputer,
+			)
+			if err != nil {
+				return err
+			}
+			setKeys(parent.Message, keys)
+			return nil
+		},
+	}, nil
+}
+
+// storeInitialLookupResult stores a LookupResult message containing
+// the expected sets of dependencies of a key's graphlet and value.
+func (rc *RecursiveComputer[TReference, TMetadata]) storeInitialLookupResult(
+	ctx context.Context,
+	tagKeyHash model_tag.DecodableKeyHash,
+	graphletVariableDependencies []*KeyState[TReference, TMetadata],
+	valueVariableDependencies []*KeyState[TReference, TMetadata],
+	containsIndirectionSince *timestamppb.Timestamp,
+) error {
+	inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_cache_pb.LookupResult_Initial, TMetadata], 0, 2)
+	defer inlineCandidates.Discard()
+
+	graphletCandidate, err := newKeysInlineCandidate(
+		ctx,
+		rc,
+		graphletVariableDependencies,
+		func(initial *model_evaluation_cache_pb.LookupResult_Initial, keys []*model_evaluation_pb.Keys) {
+			initial.GraphletVariableDependencyKeys = keys
+		},
+	)
+	if err != nil {
+		return err
+	}
+	inlineCandidates = append(inlineCandidates, graphletCandidate)
+
+	valueCandidate, err := newKeysInlineCandidate(
+		ctx,
+		rc,
+		valueVariableDependencies,
+		func(initial *model_evaluation_cache_pb.LookupResult_Initial, keys []*model_evaluation_pb.Keys) {
+			initial.ValueVariableDependencyKeys = keys
+		},
+	)
+	if err != nil {
+		return err
+	}
+	inlineCandidates = append(inlineCandidates, valueCandidate)
+
+	lookupResultInitial, err := inlinedtree.Build(
+		inlineCandidates,
+		&inlinedtree.Options{
+			ReferenceFormat:  rc.referenceFormat,
+			MaximumSizeBytes: 1 << 16,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	lookupResultInitial.Message.ContainsIndirectionSince = containsIndirectionSince
+
+	_, err = rc.storeLookupResult(
+		ctx,
+		tagKeyHash,
+		model_core.MustBuildPatchedMessage(
+			func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
+				return &model_evaluation_cache_pb.LookupResult{
+					Result: &model_evaluation_cache_pb.LookupResult_Initial_{
+						Initial: lookupResultInitial.Merge(patcher),
+					},
+				}
+			},
+		),
+	)
+	return err
+}
+
+// storeMissingDependenciesLookupResult stores a LookupResult message
+// indicating that a subsequent lookup needs to be performed, taking
+// the values of additional dependencies into account.
+func (rc *RecursiveComputer[TReference, TMetadata]) storeMissingDependenciesLookupResult(
+	ctx context.Context,
+	tagKeyHash model_tag.DecodableKeyHash,
+	additionalVariableDependencies []*KeyState[TReference, TMetadata],
+) error {
+	keysCandidate, err := newKeysInlineCandidate(
+		ctx,
+		rc,
+		additionalVariableDependencies,
+		func(missingDependencies *model_evaluation_cache_pb.LookupResult_MissingDependencies, keys []*model_evaluation_pb.Keys) {
+			missingDependencies.AdditionalVariableDependencyKeys = keys
+		},
+	)
+	if err != nil {
+		return err
+	}
+	lookupResultMissingDependencies, err := inlinedtree.Build(
+		inlinedtree.CandidateList[*model_evaluation_cache_pb.LookupResult_MissingDependencies, TMetadata]{keysCandidate},
+		&inlinedtree.Options{
+			ReferenceFormat:  rc.referenceFormat,
+			MaximumSizeBytes: 1 << 16,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rc.storeLookupResult(
+		ctx,
+		tagKeyHash,
+		model_core.MustBuildPatchedMessage(
+			func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
+				return &model_evaluation_cache_pb.LookupResult{
+					Result: &model_evaluation_cache_pb.LookupResult_MissingDependencies_{
+						MissingDependencies: lookupResultMissingDependencies.Merge(patcher),
+					},
+				}
+			},
+		),
+	)
+	return err
 }
 
 func (vs *variableDependenciesMarshaledMessageValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {

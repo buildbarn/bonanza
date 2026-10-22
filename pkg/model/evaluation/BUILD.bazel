@@ -55,12 +55,14 @@ go_test(
     srcs = [
         "mocks_encoding_test.go",
         "mocks_evaluation_test.go",
+        "recursive_computer_cache_test.go",
         "recursive_computer_test.go",
     ],
     embed = [":evaluation"],
     deps = [
         "//pkg/model/core",
         "//pkg/model/encoding",
+        "//pkg/model/parser",
         "//pkg/proto/model/core",
         "//pkg/proto/model/evaluation",
         "//pkg/proto/model/evaluation/cache",

@@ -9,6 +9,13 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/evaluation/cache";
 
+// TODO: The homomorphic hashes in this file are computed using
+// pkg/crypto/lthash. However, only the SHA3-256 digest of its internal
+// state is stored, meaning that the homomorphic property is never
+// exploited. Revisit whether plain SHA-256 hashes of sorted lists of
+// references would suffice. This would invalidate existing cache
+// entries.
+
 message ActionTagKeyData {
   // Common parameters that need to be considered when computing a tag
   // key hash.
