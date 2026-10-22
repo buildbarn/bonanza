@@ -71,6 +71,14 @@ service Uploader {
   // UploadDagsRequest.ProvideObjectContents messages. The reference
   // that is part of the very first UploadDagsRequest.InitiateDag
   // message will always have reference index zero.
+  //
+  // Reference indices are used instead of references themselves, so
+  // that the server can only refer to objects that the client
+  // introduced as part of this call. This prevents a server from
+  // requesting the contents of arbitrary objects that happen to be
+  // accessible to the client. They also force clients to recognize
+  // when multiple reference indices refer to the same object, as
+  // FinalizeObject may finalize several of them at once.
   rpc UploadDags(stream UploadDagsRequest) returns (stream UploadDagsResponse);
 }
 
@@ -179,8 +187,11 @@ message UploadDagsResponse {
     //
     // Because of overlap between parts of DAGs, multiple reference
     // indices may refer to the same object. In that case, this field
-    // MUST be set to the lowest index that is known to the server which
-    // has not yet been requested.
+    // MUST be set to the lowest of these indices that has not yet been
+    // finalized. The server only sends a single RequestObjectContents
+    // message for a set of reference indices referring to the same
+    // object, unless some of these indices have been finalized in the
+    // meantime (see FinalizeObject.additional_reference_indices).
     uint64 lowest_reference_index = 1;
   }
 
@@ -189,15 +200,25 @@ message UploadDagsResponse {
     //
     // Because of overlap between parts of DAGs, multiple reference
     // indices may refer to the same object. In that case, this field
-    // MUST be set to the lowest index that is known to the server which
-    // has not yet been requested.
+    // MUST be set to the lowest of these indices that has not yet been
+    // finalized.
     uint64 lowest_reference_index = 1;
 
-    // The number of additional reference indices that the server knows
-    // refer to the same object. This can be used by the server to
-    // collapse uploads of identical parts of DAGs. For these parts the
-    // server no longer needs to send additional
-    // UploadDagsResponse.FinalizeObject messages.
+    // The number of additional reference indices referring to the same
+    // object that are finalized by this message. These are the
+    // 'additional_reference_indices' lowest indices referring to the
+    // same object that are greater than 'lowest_reference_index' and
+    // have not yet been finalized. This allows the server to collapse
+    // uploads of identical parts of DAGs, without sending a separate
+    // FinalizeObject message for each of them.
+    //
+    // The client may be aware of more reference indices referring to
+    // the same object than the server, as the server may not have
+    // processed all ProvideObjectContents messages yet. Any remaining
+    // indices are finalized by subsequent FinalizeObject messages, in
+    // which 'lowest_reference_index' is set to the lowest remaining
+    // index. The server MAY send another RequestObjectContents message
+    // for that index before doing so.
     uint32 additional_reference_indices = 2;
 
     // Status that indicates whether writing the object succeeded. Upon
