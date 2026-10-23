@@ -68,12 +68,8 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 				h ^= uint64(c)
 				h *= 1099511628211
 			}
-			attempt := k.Attempt
-			for i := 0; i < 4; i++ {
-				h ^= uint64(attempt & 0xff)
-				h *= 1099511628211
-				attempt >>= 8
-			}
+			h ^= uint64(k.Attempt)
+			h *= 1099511628211
 			return h
 		},
 		/* valueComparator = */ func(a, b *uint64) int {
