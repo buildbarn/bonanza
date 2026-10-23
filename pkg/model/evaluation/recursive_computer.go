@@ -3,6 +3,7 @@ package evaluation
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"maps"
@@ -10,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"bonanza.build/pkg/crypto/lthash"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/core/inlinedtree"
@@ -786,7 +786,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) forEachCachedKey(
 			return false, nil
 		}
 		rawKeyReference := keyReference.GetRawReference()
-		if previousKeyReference != nil && bytes.Compare(previousKeyReference, rawKeyReference) >= 0 {
+		if bytes.Compare(previousKeyReference, rawKeyReference) >= 0 {
 			return false, nil
 		}
 		previousKeyReference = rawKeyReference
@@ -1248,6 +1248,24 @@ func sortedKeyStates[TReference object.BasicReference, TMetadata model_core.Refe
 			return bytes.Compare(a.keyReference.GetRawReference(), b.keyReference.GetRawReference())
 		},
 	)
+}
+
+// computeDependenciesHash computes a hash of the keys and values of a
+// list of dependencies that is sorted by key reference. As the
+// references of DependenciesHashRecord messages already incorporate
+// both the key and value of each dependency, it suffices to hash those.
+// All references have the same length, as they use the same reference
+// format.
+//
+// This function must be called with the RecursiveComputer's lock held,
+// and may only be called against dependencies that have been evaluated
+// successfully and are variable.
+func computeDependenciesHash[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](dependencies []*KeyState[TReference, TMetadata]) [sha256.Size]byte {
+	hasher := sha256.New()
+	for _, ksDep := range dependencies {
+		hasher.Write(ksDep.valueState.getDependenciesHashRecordReference().GetRawReference())
+	}
+	return [sha256.Size]byte(hasher.Sum(nil))
 }
 
 // mergeSortedKeyStates merges two lists of KeyStates that are sorted
@@ -1753,10 +1771,10 @@ func (initialMessageValueState[TReference, TMetadata]) getHoistedDependencies() 
 // value of the key.
 //
 // The lookup proceeds by waiting for all dependencies to be evaluated,
-// computing a homomorphic hash of their keys and values, and resolving
-// the tag corresponding to that hash. This either yields a hit, or
-// returns a set of additional dependencies whose values need to be
-// incorporated into the hash.
+// computing a hash of their keys and values, and resolving the tag
+// corresponding to that hash. This either yields a hit, or returns a
+// set of additional dependencies whose values need to be incorporated
+// into the hash.
 type lookingUpMessageValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	unevaluatedValueState[TReference, TMetadata]
 
@@ -1782,8 +1800,8 @@ func (vs *lookingUpMessageValueState[TReference, TMetadata]) evaluate(ctx contex
 		// turns out to be constant, the cache entry is not
 		// applicable.
 		var unevaluatedDependencies []*KeyState[TReference, TMetadata]
-		dependenciesHasher := lthash.NewHasher()
 		usable := true
+		var dependenciesHash [sha256.Size]byte
 		rc.lock.RLock()
 		for _, ksDep := range dependencies {
 			if vsDep := ksDep.valueState; !vsDep.isEvaluated() {
@@ -1791,9 +1809,10 @@ func (vs *lookingUpMessageValueState[TReference, TMetadata]) evaluate(ctx contex
 			} else if vsDep.getError() != nil || !vsDep.isVariableDependency() {
 				usable = false
 				break
-			} else {
-				dependenciesHasher.Add(vsDep.getDependenciesHashRecordReference().GetRawReference())
 			}
+		}
+		if usable && len(unevaluatedDependencies) == 0 {
+			dependenciesHash = computeDependenciesHash(dependencies)
 		}
 		rc.lock.RUnlock()
 		if !usable {
@@ -1807,7 +1826,6 @@ func (vs *lookingUpMessageValueState[TReference, TMetadata]) evaluate(ctx contex
 			}, unevaluatedDependencies
 		}
 
-		dependenciesHash := dependenciesHasher.Sum()
 		tagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
 			Scope:            vs.scope,
 			DependenciesHash: dependenciesHash[:],
@@ -2342,20 +2360,24 @@ func (rc *RecursiveComputer[TReference, TMetadata]) uploadLookupResultChain(
 ) (model_core.Decodable[TReference], bool, error) {
 	var badReference model_core.Decodable[TReference]
 	gatheredDependencies := make(map[*KeyState[TReference, TMetadata]]struct{}, len(allDependencies))
-	dependenciesHasher := lthash.NewHasher()
-	gatherDependencies := func(dependencies []*KeyState[TReference, TMetadata]) {
-		rc.lock.RLock()
-		for _, ksDep := range dependencies {
-			gatheredDependencies[ksDep] = struct{}{}
-			dependenciesHasher.Add(ksDep.valueState.getDependenciesHashRecordReference().GetRawReference())
-		}
-		rc.lock.RUnlock()
+	for _, ksDep := range initialDependencies {
+		gatheredDependencies[ksDep] = struct{}{}
 	}
-	gatherDependencies(initialDependencies)
 
 	containsIndirection := false
 	for {
-		dependenciesHash := dependenciesHasher.Sum()
+		// Hash the dependencies gathered up to this point.
+		// Obtain them from allDependencies to ensure they are
+		// processed in sorted order.
+		sortedGatheredDependencies := make([]*KeyState[TReference, TMetadata], 0, len(gatheredDependencies))
+		for _, ksDep := range allDependencies {
+			if _, ok := gatheredDependencies[ksDep]; ok {
+				sortedGatheredDependencies = append(sortedGatheredDependencies, ksDep)
+			}
+		}
+		rc.lock.RLock()
+		dependenciesHash := computeDependenciesHash(sortedGatheredDependencies)
+		rc.lock.RUnlock()
 		tagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
 			Scope:            scope,
 			DependenciesHash: dependenciesHash[:],
@@ -2419,7 +2441,9 @@ func (rc *RecursiveComputer[TReference, TMetadata]) uploadLookupResultChain(
 		}
 
 		containsIndirection = true
-		gatherDependencies(additionalDependencies)
+		for _, ksDep := range additionalDependencies {
+			gatheredDependencies[ksDep] = struct{}{}
+		}
 	}
 }
 
@@ -2758,13 +2782,9 @@ func (vs *computingNativeValueState[TReference, TMetadata]) evaluate(ctx context
 		}, nil
 	}
 
-	dependenciesHasher := lthash.NewHasher()
 	rc.lock.RLock()
-	for ksDep := range e.directVariableDependencies {
-		dependenciesHasher.Add(ksDep.valueState.getDependenciesHashRecordReference().GetRawReference())
-	}
+	dependenciesHash := computeDependenciesHash(sortedKeyStates(e.directVariableDependencies))
 	rc.lock.RUnlock()
-	dependenciesHash := dependenciesHasher.Sum()
 	dependenciesHashRecord, _ := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.DependenciesHashRecord {
 		return &model_evaluation_cache_pb.DependenciesHashRecord{
 			KeyReference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{

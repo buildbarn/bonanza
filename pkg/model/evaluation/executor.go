@@ -1,13 +1,14 @@
 package evaluation
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
+	"crypto/sha256"
 	"crypto/x509"
 	"errors"
 	"time"
 
-	"bonanza.build/pkg/crypto/lthash"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/core/buffered"
@@ -218,7 +219,8 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 		// build graph. This hash needs to be included in the
 		// hashes of cache tags.
 		var errIterOverrideKeys error
-		keyReferencesWithOverridesHasher := lthash.NewHasher()
+		keyReferencesWithOverridesHasher := sha256.New()
+		var previousKeyReferenceWithOverride []byte
 		for override := range btree.AllLeaves(
 			ctx,
 			evaluationsReader,
@@ -242,7 +244,15 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 				}
 				return &result
 			}
-			keyReferencesWithOverridesHasher.Add(keyReference.GetRawReference())
+			rawKeyReference := keyReference.GetRawReference()
+			if bytes.Compare(previousKeyReferenceWithOverride, rawKeyReference) >= 0 {
+				result.Failure = &model_evaluation_pb.Result_Failure{
+					Status: status.New(codes.InvalidArgument, "Overrides are not sorted by key reference, or contain duplicates").Proto(),
+				}
+				return &result
+			}
+			previousKeyReferenceWithOverride = rawKeyReference
+			keyReferencesWithOverridesHasher.Write(rawKeyReference)
 		}
 		if errIterOverrideKeys != nil {
 			result.Failure = &model_evaluation_pb.Result_Failure{
@@ -262,14 +272,14 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 
 		actionTagKeyData, _ := model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.ActionTagKeyData {
-				keyReferencesWithOverridesHash := keyReferencesWithOverridesHasher.Sum()
+				keyReferencesWithOverridesHash := keyReferencesWithOverridesHasher.Sum(nil)
 				return &model_evaluation_cache_pb.ActionTagKeyData{
 					CommonTagKeyData: &model_tag_pb.CommonKeyData{
 						SignaturePublicKey: cacheTagSignaturePKIXPublicKey,
 						ReferenceFormat:    referenceFormat.ToProto(),
 						ObjectEncoders:     action.Encoders,
 					},
-					KeyReferencesWithOverridesHash: keyReferencesWithOverridesHash[:],
+					KeyReferencesWithOverridesHash: keyReferencesWithOverridesHash,
 				}
 			},
 		).SortAndSetReferences()

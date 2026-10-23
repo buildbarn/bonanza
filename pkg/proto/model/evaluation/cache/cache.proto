@@ -9,20 +9,15 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/evaluation/cache";
 
-// TODO: The homomorphic hashes in this file are computed using
-// pkg/crypto/lthash. However, only the SHA3-256 digest of its internal
-// state is stored, meaning that the homomorphic property is never
-// exploited. Revisit whether plain SHA-256 hashes of sorted lists of
-// references would suffice. This would invalidate existing cache
-// entries.
-
 message ActionTagKeyData {
   // Common parameters that need to be considered when computing a tag
   // key hash.
   bonanza.model.tag.CommonKeyData common_tag_key_data = 1;
 
-  // Homomorphic hash of the references of keys for which overrides were
-  // specified in the bonanza.model.evaluation.Action message.
+  // SHA-256 hash of the concatenated references of keys for which
+  // overrides were specified in the bonanza.model.evaluation.Action
+  // message, in the order in which they are stored (i.e., sorted by
+  // key reference).
   bytes key_references_with_overrides_hash = 2;
 }
 
@@ -36,8 +31,9 @@ message DependenciesHashRecord {
     bonanza.model.core.Any message_value = 2;
 
     // In case evaluation of the function yielded a native value, the
-    // homomorphic hash of the keys and values of all dependencies that
-    // were accessed during evaluation.
+    // SHA-256 hash of the concatenated references of the
+    // DependenciesHashRecord messages of all dependencies that were
+    // accessed during evaluation, sorted by key reference.
     bytes native_value_dependencies_hash = 3;
   }
 }
@@ -69,8 +65,10 @@ message LookupTagKeyData {
     // performed.
     Scope scope = 1;
 
-    // Homomorphic hash of the keys and values of all dependencies of
-    // the key that have been gathered up to this point.
+    // SHA-256 hash of the concatenated references of the
+    // DependenciesHashRecord messages of all dependencies of the key
+    // that have been gathered up to this point, sorted by key
+    // reference.
     bytes dependencies_hash = 2;
   }
 

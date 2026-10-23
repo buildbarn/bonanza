@@ -130,6 +130,9 @@ message Action {
   //
   // Note that overrides are only installed for keys that are provided
   // directly in this list. Evaluations of dependencies are ignored.
+  //
+  // Overrides must be sorted by key reference, and may not contain
+  // duplicates. Actions violating this requirement are rejected.
   bonanza.model.core.DecodableReference overrides_reference = 1
       [(bonanza.model.core.object_format) = {
         proto_list_type_name:
