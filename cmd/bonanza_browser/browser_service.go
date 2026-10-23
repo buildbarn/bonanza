@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
+	"net/url"
 	"path"
 	"slices"
 	"strconv"
@@ -546,7 +547,9 @@ func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObserv
 func renderEvaluationPage(
 	w http.ResponseWriter,
 	evaluationsListReference model_core.Decodable[object.GlobalReference],
-	keyJSONNodes []g.Node,
+	formatTabs [][]g.Node,
+	currentFormatIndex int,
+	keyNodes []g.Node,
 	valueNodes []g.Node,
 	dependenciesNodes []g.Node,
 	currentEncoderConfiguration string,
@@ -565,12 +568,10 @@ func renderEvaluationPage(
 			h.Class("text-xl my-2"),
 			g.Text("Key"),
 		),
-		h.Div(append(
-			[]g.Node{
-				h.Class("card my-2 p-4 bg-neutral text-neutral-content font-mono h-auto! overflow-x-auto"),
-			},
-			keyJSONNodes...,
-		)...),
+		h.Div(
+			h.Class("my-2"),
+			renderTabsLiftWithNeutralContent(formatTabs, currentFormatIndex, keyNodes),
+		),
 
 		h.H2(
 			h.Class("text-xl my-2"),
@@ -603,6 +604,21 @@ func renderEvaluationPage(
 			h.Div(evaluationCard...),
 		),
 	})
+}
+
+// evaluationFormat is a format in which keys and values can be
+// displayed on the evaluation page.
+type evaluationFormat struct {
+	queryParameter string
+	name           string
+	customRenderer JSONCustomRenderer
+}
+
+// evaluationFormats lists the formats in which keys and values can be
+// displayed on the evaluation page. The last format is the default.
+var evaluationFormats = []evaluationFormat{
+	{queryParameter: "json", name: "JSON", customRenderer: stubCustomRenderer},
+	{queryParameter: "pretty", name: "Pretty", customRenderer: renderMessagePretty},
 }
 
 func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g.Node, error) {
@@ -643,6 +659,24 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		return nil, err
 	}
 
+	// Keys, values and dependencies can either be rendered as JSON,
+	// or pretty printed. The choice applies to all of them.
+	currentFormatIndex := len(evaluationFormats) - 1
+	formatParameter := r.URL.Query().Get("format")
+	for i, format := range evaluationFormats {
+		if format.queryParameter == formatParameter {
+			currentFormatIndex = i
+			break
+		}
+	}
+	formatTabs := make([][]g.Node, 0, len(evaluationFormats))
+	for _, format := range evaluationFormats {
+		formatTabs = append(formatTabs, []g.Node{
+			h.Href("?format=" + format.queryParameter),
+			g.Text(format.name),
+		})
+	}
+
 	jsonRenderer := messageJSONRenderer{
 		basePath: path.Join(
 			strings.Repeat("../", len(parentKeyReferences))+"../../../../object",
@@ -650,10 +684,10 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			referenceFormat.ToProto().String(),
 		),
 		referenceFormat: &referenceFormat,
-		customRenderer:  stubCustomRenderer,
+		customRenderer:  evaluationFormats[currentFormatIndex].customRenderer,
 		now:             time.Now(),
 	}
-	keyJSONNodes := jsonRenderer.renderTopLevelMessage(
+	keyNodes := jsonRenderer.renderTopLevelMessage(
 		model_core.NewTopLevelMessage(keyAny.Message.ProtoReflect(), keyAny.OutgoingReferences),
 	)
 
@@ -663,7 +697,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		return renderEvaluationPage(
 			w,
 			evaluationsListReference,
-			keyJSONNodes,
+			formatTabs,
+			currentFormatIndex,
+			keyNodes,
 			errNodes,
 			errNodes,
 			currentEncoderConfigurationStr,
@@ -680,7 +716,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		return renderEvaluationPage(
 			w,
 			evaluationsListReference,
-			keyJSONNodes,
+			formatTabs,
+			currentFormatIndex,
+			keyNodes,
 			errNodes,
 			errNodes,
 			currentEncoderConfigurationStr,
@@ -725,7 +763,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		return renderEvaluationPage(
 			w,
 			evaluationsListReference,
-			keyJSONNodes,
+			formatTabs,
+			currentFormatIndex,
+			keyNodes,
 			errNodes,
 			errNodes,
 			currentEncoderConfigurationStr,
@@ -756,7 +796,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			return renderEvaluationPage(
 				w,
 				evaluationsListReference,
-				keyJSONNodes,
+				formatTabs,
+				currentFormatIndex,
+				keyNodes,
 				errNodes,
 				errNodes,
 				currentEncoderConfigurationStr,
@@ -769,7 +811,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			return renderEvaluationPage(
 				w,
 				evaluationsListReference,
-				keyJSONNodes,
+				formatTabs,
+				currentFormatIndex,
+				keyNodes,
 				errNodes,
 				errNodes,
 				currentEncoderConfigurationStr,
@@ -782,7 +826,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			return renderEvaluationPage(
 				w,
 				evaluationsListReference,
-				keyJSONNodes,
+				formatTabs,
+				currentFormatIndex,
+				keyNodes,
 				errNodes,
 				errNodes,
 				currentEncoderConfigurationStr,
@@ -812,7 +858,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		return renderEvaluationPage(
 			w,
 			evaluationsListReference,
-			keyJSONNodes,
+			formatTabs,
+			currentFormatIndex,
+			keyNodes,
 			errNodes,
 			errNodes,
 			currentEncoderConfigurationStr,
@@ -829,7 +877,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			return renderEvaluationPage(
 				w,
 				evaluationsListReference,
-				keyJSONNodes,
+				formatTabs,
+				currentFormatIndex,
+				keyNodes,
 				errNodes,
 				errNodes,
 				currentEncoderConfigurationStr,
@@ -844,7 +894,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			return renderEvaluationPage(
 				w,
 				evaluationsListReference,
-				keyJSONNodes,
+				formatTabs,
+				currentFormatIndex,
+				keyNodes,
 				errNodes,
 				errNodes,
 				currentEncoderConfigurationStr,
@@ -855,12 +907,12 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		if v := evaluation.Message.Value; v != nil {
 			valueNodes = []g.Node{
 				h.Div(
-					append(
-						[]g.Node{
-							h.Class("card my-2 p-4 bg-neutral text-neutral-content font-mono h-auto! overflow-x-auto"),
-						},
-						jsonRenderer.renderMessage(model_core.Nested(evaluation, v.ProtoReflect()))...,
-					)...,
+					h.Class("my-2"),
+					renderTabsLiftWithNeutralContent(
+						formatTabs,
+						currentFormatIndex,
+						jsonRenderer.renderMessage(model_core.Nested(evaluation, v.ProtoReflect())),
+					),
 				),
 			}
 		}
@@ -882,13 +934,24 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				}
 				if dependencyKey, err := model_core.FlattenAny(model_core.Nested(dependency, dependencyLeaf.Leaf)); err == nil {
 					if marshaledDependencyKey, err := model_core.MarshalTopLevelMessage(dependencyKey); err == nil {
-						cardNodes = append(cardNodes, h.Form(
-							h.Action(base64.RawURLEncoding.EncodeToString(keyReference.GetRawReference())+"/"+base64.RawURLEncoding.EncodeToString(marshaledDependencyKey)),
+						formNodes := []g.Node{
+							h.Action(base64.RawURLEncoding.EncodeToString(keyReference.GetRawReference()) + "/" + base64.RawURLEncoding.EncodeToString(marshaledDependencyKey)),
 							h.Button(
 								h.Class("btn btn-primary btn-square float-right inline-block"),
 								g.Text("↗"),
 							),
-						))
+						}
+						if formatParameter != "" {
+							// Submitting a form discards the
+							// query of the action URL. Pass the
+							// format along explicitly.
+							formNodes = append(formNodes, h.Input(
+								h.Type("hidden"),
+								h.Name("format"),
+								h.Value(formatParameter),
+							))
+						}
+						cardNodes = append(cardNodes, h.Form(formNodes...))
 					}
 				}
 				cardNodes = append(
@@ -908,7 +971,11 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		// graphlet. However, it may be the case that it's
 		// present in one of its parents. Perform a redirect to
 		// the same key within the parent graphlet.
-		http.Redirect(w, r, "../"+base64.RawURLEncoding.EncodeToString(keyBytes), http.StatusMovedPermanently)
+		redirectURL := url.URL{
+			Path:     "../" + base64.RawURLEncoding.EncodeToString(keyBytes),
+			RawQuery: r.URL.RawQuery,
+		}
+		http.Redirect(w, r, redirectURL.String(), http.StatusMovedPermanently)
 		return nil, nil
 	}
 
@@ -925,7 +992,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	return renderEvaluationPage(
 		w,
 		evaluationsListReference,
-		keyJSONNodes,
+		formatTabs,
+		currentFormatIndex,
+		keyNodes,
 		valueNodes,
 		dependenciesNodes,
 		currentEncoderConfigurationStr,

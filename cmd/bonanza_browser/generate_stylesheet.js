@@ -119,6 +119,7 @@ async function main() {
     'text-primary-content',
     'text-red-600',
     'text-right',
+    'text-sky-300',
     'text-sm',
     'text-xl',
     'text-xs',
