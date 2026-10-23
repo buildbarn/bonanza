@@ -2193,10 +2193,10 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 	if err := unpack.Attrs(
 		func(thread *starlark.Thread, fields *filesToRunProviderFields) []unpack.AttrUnpacker {
 			return []unpack.AttrUnpacker{
-				{"executable", unpack.Bind(thread, &fields.executable, unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))},
-				{"_runfiles_files", unpack.Bind(thread, &fields.runfilesFiles, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
-				{"_runfiles_symlinks", unpack.Bind(thread, &fields.runfilesSymlinks, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
-				{"_runfiles_root_symlinks", unpack.Bind(thread, &fields.runfilesRootSymlinks, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
+				{Name: "executable", Unpacker: unpack.Bind(thread, &fields.executable, unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))},
+				{Name: "_runfiles_files", Unpacker: unpack.Bind(thread, &fields.runfilesFiles, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
+				{Name: "_runfiles_symlinks", Unpacker: unpack.Bind(thread, &fields.runfilesSymlinks, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
+				{Name: "_runfiles_root_symlinks", Unpacker: unpack.Bind(thread, &fields.runfilesRootSymlinks, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
 			}
 		},
 	).UnpackInto(thread, s, &fields); err != nil {
