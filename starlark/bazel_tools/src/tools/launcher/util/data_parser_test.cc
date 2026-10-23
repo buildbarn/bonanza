@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "src/tools/launcher/util/data_parser.h"
+
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <vector>
 
-#include "src/main/cpp/util/strings.h"
-#include "src/tools/launcher/util/data_parser.h"
 #include "gtest/gtest.h"
+#include "src/main/cpp/util/strings.h"
 #include "src/tools/launcher/util/launcher_util.h"
 
 namespace bazel {
@@ -91,7 +92,7 @@ class LaunchDataParserTest : public ::testing::Test {
       const string& binary_file,
       LaunchDataParser::LaunchInfo* parsed_launch_info) {
     if (LaunchDataParser::GetLaunchInfo(
-        blaze_util::CstringToWstring(binary_file), parsed_launch_info)) {
+            blaze_util::CstringToWstring(binary_file), parsed_launch_info)) {
       return true;
     }
     exit(-1);

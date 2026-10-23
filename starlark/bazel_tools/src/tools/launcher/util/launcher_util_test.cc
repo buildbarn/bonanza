@@ -26,10 +26,10 @@
 #include <string>
 #include <vector>
 
+#include "gtest/gtest.h"
 #include "src/main/cpp/util/path_platform.h"
 #include "src/main/cpp/util/strings.h"
 #include "src/main/native/windows/util.h"
-#include "gtest/gtest.h"
 
 namespace bazel {
 namespace launcher {

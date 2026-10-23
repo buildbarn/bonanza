@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "src/tools/launcher/util/data_parser.h"
+
 #include <fstream>
 #include <memory>
 #include <string>
@@ -19,7 +21,6 @@
 
 #include "src/main/cpp/util/path_platform.h"
 #include "src/main/cpp/util/strings.h"
-#include "src/tools/launcher/util/data_parser.h"
 #include "src/tools/launcher/util/launcher_util.h"
 
 namespace bazel {

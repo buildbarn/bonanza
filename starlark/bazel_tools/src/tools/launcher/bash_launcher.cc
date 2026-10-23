@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "src/tools/launcher/bash_launcher.h"
+
 #include <sstream>
 #include <string>
 #include <vector>
 
-#include "src/tools/launcher/bash_launcher.h"
 #include "src/tools/launcher/util/launcher_util.h"
 
 namespace bazel {

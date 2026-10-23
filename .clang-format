@@ -1,2 +1,6 @@
+---
 Language: Proto
+BasedOnStyle: Google
+---
+Language: Cpp
 BasedOnStyle: Google
