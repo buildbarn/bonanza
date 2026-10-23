@@ -3,6 +3,7 @@ package leaserenewing
 import (
 	"container/heap"
 	"context"
+	"fmt"
 	"math/bits"
 	"sync"
 
@@ -21,6 +22,7 @@ import (
 // by Uploader.
 type Reference[T any] interface {
 	comparable
+	fmt.Stringer
 	object.BasicReference
 
 	WithLocalReference(localReference object.LocalReference) T
