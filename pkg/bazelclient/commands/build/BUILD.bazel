@@ -1,10 +1,11 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "build",
     srcs = [
         "do_build.go",
         "local_path_extracting_module_dot_bazel_handler.go",
+        "render.go",
     ],
     importpath = "bonanza.build/pkg/bazelclient/commands/build",
     visibility = ["//visibility:public"],
@@ -20,6 +21,7 @@ go_library(
         "//pkg/model/executewithstorage",
         "//pkg/model/filesystem",
         "//pkg/model/parser",
+        "//pkg/model/render",
         "//pkg/proto/encryptedaction",
         "//pkg/proto/model/analysis",
         "//pkg/proto/model/core",
@@ -47,14 +49,22 @@ go_library(
         "@org_golang_google_grpc//credentials/insecure",
         "@org_golang_google_grpc//status",
         "@org_golang_google_grpc_security_advancedtls//:advancedtls",
-        "@org_golang_google_protobuf//encoding/protojson",
-        "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//reflect/protoreflect",
-        "@org_golang_google_protobuf//types/descriptorpb",
         "@org_golang_google_protobuf//types/known/durationpb",
         "@org_golang_google_protobuf//types/known/emptypb",
         "@org_golang_x_sync//errgroup",
         "@org_golang_x_sync//semaphore",
         "@org_golang_x_term//:term",
+    ],
+)
+
+go_test(
+    name = "build_test",
+    srcs = ["render_test.go"],
+    embed = [":build"],
+    deps = [
+        "//pkg/bazelclient/formatted",
+        "//pkg/model/render",
+        "@com_github_stretchr_testify//require",
     ],
 )

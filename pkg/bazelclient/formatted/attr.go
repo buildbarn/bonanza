@@ -66,6 +66,16 @@ func Yellow(base Node) Node {
 	}
 }
 
+// Blue renders text with a blue foreground color.
+func Blue(base Node) Node {
+	return &foregroundColor{
+		attr: attr{
+			base: base,
+		},
+		color: 34,
+	}
+}
+
 // Magenta renders text with a magenta foreground color.
 func Magenta(base Node) Node {
 	return &foregroundColor{
@@ -83,6 +93,16 @@ func Cyan(base Node) Node {
 			base: base,
 		},
 		color: 36,
+	}
+}
+
+// Gray renders text with a gray ("bright black") foreground color.
+func Gray(base Node) Node {
+	return &foregroundColor{
+		attr: attr{
+			base: base,
+		},
+		color: 90,
 	}
 }
 

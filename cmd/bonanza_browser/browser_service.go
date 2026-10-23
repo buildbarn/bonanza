@@ -23,7 +23,6 @@ import (
 	"bonanza.build/pkg/crypto"
 	"bonanza.build/pkg/encoding/varint"
 	"bonanza.build/pkg/encryptedaction"
-	"bonanza.build/pkg/model/core"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	model_encoding "bonanza.build/pkg/model/encoding"
@@ -52,9 +51,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
-	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -611,14 +608,14 @@ func renderEvaluationPage(
 type evaluationFormat struct {
 	queryParameter string
 	name           string
-	customRenderer JSONCustomRenderer
+	pretty         bool
 }
 
 // evaluationFormats lists the formats in which keys and values can be
 // displayed on the evaluation page. The last format is the default.
 var evaluationFormats = []evaluationFormat{
-	{queryParameter: "json", name: "JSON", customRenderer: stubCustomRenderer},
-	{queryParameter: "pretty", name: "Pretty", customRenderer: renderMessagePretty},
+	{queryParameter: "json", name: "JSON", pretty: false},
+	{queryParameter: "pretty", name: "Pretty", pretty: true},
 }
 
 func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g.Node, error) {
@@ -677,16 +674,15 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		})
 	}
 
-	jsonRenderer := messageJSONRenderer{
-		basePath: path.Join(
+	jsonRenderer := newMessageRenderer(
+		path.Join(
 			strings.Repeat("../", len(parentKeyReferences))+"../../../../object",
 			evaluationsListReference.Value.InstanceName.AsURLSafeComponent(),
 			referenceFormat.ToProto().String(),
 		),
-		referenceFormat: &referenceFormat,
-		customRenderer:  evaluationFormats[currentFormatIndex].customRenderer,
-		now:             time.Now(),
-	}
+		&referenceFormat,
+		evaluationFormats[currentFormatIndex].pretty,
+	)
 	keyNodes := jsonRenderer.renderTopLevelMessage(
 		model_core.NewTopLevelMessage(keyAny.Message.ProtoReflect(), keyAny.OutgoingReferences),
 	)
@@ -1163,14 +1159,8 @@ func (s *BrowserService) doProtoObject(w http.ResponseWriter, r *http.Request) (
 	payloadRenderers := []payloadRenderer{
 		rawPayloadRenderer{},
 		decodedPayloadRenderer{},
-		messageJSONPayloadRenderer{
-			CustomRenderer: stubCustomRenderer,
-		},
-		messagePrettyRenderer{
-			jsonRenderer: messageJSONPayloadRenderer{
-				CustomRenderer: renderMessagePretty,
-			},
-		},
+		messagePayloadRenderer{pretty: false},
+		messagePayloadRenderer{pretty: true},
 	}
 	return s.doObject(
 		w,
@@ -1185,14 +1175,8 @@ func (s *BrowserService) doProtoListObject(w http.ResponseWriter, r *http.Reques
 	payloadRenderers := []payloadRenderer{
 		rawPayloadRenderer{},
 		decodedPayloadRenderer{},
-		messageListJSONPayloadRenderer{
-			CustomRenderer: stubCustomRenderer,
-		},
-		messageListPrettyRenderer{
-			jsonRenderer: messageListJSONPayloadRenderer{
-				CustomRenderer: renderMessagePretty,
-			},
-		},
+		messageListPayloadRenderer{pretty: false},
+		messageListPayloadRenderer{pretty: true},
 	}
 	return s.doObject(
 		w,
@@ -1639,10 +1623,8 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 		// "executewithstorage" protocol. For these we can
 		// extract the storage namespace and object format,
 		// allowing us to make the action reference clickable.
-		jsonRenderer := messageJSONRenderer{
-			now:            now,
-			customRenderer: stubCustomRenderer,
-		}
+		jsonRenderer := newMessageRenderer("", nil, false)
+		jsonRenderer.now = now
 		var executeWithStorageAction model_executewithstorage_pb.Action
 		if actionMessage.UnmarshalTo(&executeWithStorageAction) == nil {
 			namespace, err := object.NewNamespace(executeWithStorageAction.Namespace)
@@ -1654,8 +1636,8 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 				namespace.InstanceName.AsURLSafeComponent(),
 				namespace.ReferenceFormat.ToProto().String(),
 			)
-			jsonRenderer.fallbackObjectFormat = executeWithStorageAction.ActionFormat
-			jsonRenderer.referenceFormat = &namespace.ReferenceFormat
+			jsonRenderer.renderer.FallbackObjectFormat = executeWithStorageAction.ActionFormat
+			jsonRenderer.renderer.ReferenceFormat = &namespace.ReferenceFormat
 		}
 
 		actionNode = h.Div(
@@ -2207,386 +2189,35 @@ func (textPayloadRenderer) render(r *http.Request, o model_core.Decodable[*objec
 	return []g.Node{h.Pre(g.Text(sb.String()))}, usedEncoderIndex, nil
 }
 
-// messageJSONRenderer is capable of rendering Protobuf messages as JSON
-// with syntax highlighting applied. Any references to other objects
-// contained in these messages are rendered as clickable links.
-type messageJSONRenderer struct {
-	basePath             string
-	fallbackObjectFormat *model_core_pb.ObjectFormat
-	referenceFormat      *object.ReferenceFormat
-	now                  time.Time
-	customRenderer       JSONCustomRenderer
-
-	observedEncoders []*browser_pb.RecentlyObservedEncoder
+// messagePayloadRenderer renders the decoded payload of an object,
+// assuming it is a Protobuf message. The message is either rendered as
+// JSON, or pretty printed.
+type messagePayloadRenderer struct {
+	pretty bool
 }
 
-// JSONCustomRenderer is a function that can provide custom rendering
-// for a particular message. If it is set and returns a nonempty slice,
-// the returned rendering is used.
-type JSONCustomRenderer func(d *messageJSONRenderer, m model_core.Message[protoreflect.Message, object.LocalReference], fields map[string][]g.Node) []g.Node
+var _ payloadRenderer = messagePayloadRenderer{}
 
-func stubCustomRenderer(d *messageJSONRenderer, m model_core.Message[protoreflect.Message, object.LocalReference], fields map[string][]g.Node) []g.Node {
-	return nil
+func payloadRendererQueryParameter(pretty bool) string {
+	if pretty {
+		return "pretty"
+	}
+	return "json"
 }
 
-func (d *messageJSONRenderer) renderReferenceField(fieldDescriptor protoreflect.FieldDescriptor, reference model_core.Decodable[object.LocalReference]) []g.Node {
-	fieldOptions := fieldDescriptor.Options().(*descriptorpb.FieldOptions)
-	objectFormat := proto.GetExtension(fieldOptions, model_core_pb.E_ObjectFormat).(*model_core_pb.ObjectFormat)
-	if objectFormat == nil {
-		objectFormat = d.fallbackObjectFormat
+func payloadRendererName(pretty bool) string {
+	if pretty {
+		return "Pretty"
 	}
-
-	rawReference := model_core.DecodableLocalReferenceToString(reference)
-	if objectFormat == nil {
-		// Field is a valid reference, but there is no type
-		// information. Just show the reference without turning
-		// it into a link.
-		return []g.Node{
-			h.Span(
-				h.Class("whitespace-nowrap"),
-				g.Textf("%#v", rawReference),
-			),
-		}
-	}
-
-	// Field is a valid reference for which we have type information
-	// in the field options. Emit a link to the object.
-	segments, ok := core.ObjectFormatToPath(objectFormat)
-	if !ok {
-		return []g.Node{
-			h.Span(
-				h.Class("text-red-600"),
-				g.Text("[ Reference field with unknown object format type ]"),
-			),
-		}
-	}
-
-	link := path.Join(append([]string{d.basePath, rawReference}, segments...)...)
-	return []g.Node{
-		h.A(
-			h.Class("link link-accent whitespace-nowrap"),
-			h.Href(link),
-			g.Textf("%#v", rawReference),
-		),
-	}
+	return "JSON"
 }
 
-func (d *messageJSONRenderer) renderField(fieldDescriptor protoreflect.FieldDescriptor, value model_core.Message[protoreflect.Value, object.LocalReference]) []g.Node {
-	var v any
-	switch fieldDescriptor.Kind() {
-	// Simple scalar types for which we can just call json.Marshal().
-	case protoreflect.BoolKind:
-		v = value.Message.Bool()
-	case protoreflect.Int32Kind, protoreflect.Int64Kind,
-		protoreflect.Sint32Kind, protoreflect.Sint64Kind,
-		protoreflect.Sfixed32Kind, protoreflect.Sfixed64Kind:
-		v = value.Message.Int()
-	case protoreflect.Uint32Kind, protoreflect.Uint64Kind,
-		protoreflect.Fixed32Kind, protoreflect.Fixed64Kind:
-		v = value.Message.Uint()
-	case protoreflect.FloatKind, protoreflect.DoubleKind:
-		v = value.Message.Float()
-	case protoreflect.StringKind:
-		v = value.Message.String()
-	case protoreflect.BytesKind:
-		v = value.Message.Bytes()
-
-	case protoreflect.GroupKind, protoreflect.MessageKind:
-		if d.basePath != "" {
-			switch r := value.Message.Message().Interface().(type) {
-			case *model_core_pb.DecodableReference:
-				if reference, err := model_core.FlattenDecodableReference(model_core.Nested(value, r)); err == nil {
-					return d.renderReferenceField(fieldDescriptor, reference)
-				}
-			case *model_core_pb.WeakDecodableReference:
-				if d.referenceFormat != nil {
-					if reference, err := model_core.NewDecodableLocalReferenceFromWeakProto(*d.referenceFormat, r); err == nil {
-						return d.renderReferenceField(fieldDescriptor, reference)
-					}
-				}
-			}
-		}
-
-		// Recurse into message.
-		return d.renderMessage(model_core.Nested(value, value.Message.Message()))
-
-	case protoreflect.EnumKind:
-		// Render an enum value as a string or integer,
-		// depending on whether it corresponds to a known value.
-		number := value.Message.Enum()
-		if enumValueDescriptor := fieldDescriptor.Enum().Values().ByNumber(number); enumValueDescriptor != nil {
-			v = string(enumValueDescriptor.Name())
-		} else {
-			v = number
-		}
-
-	default:
-		return []g.Node{
-			h.Span(
-				h.Class("text-red-600"),
-				g.Text("[ Unknown field kind ]"),
-			),
-		}
-	}
-
-	return renderJSONValue(v)
+func (s messagePayloadRenderer) queryParameter() string {
+	return payloadRendererQueryParameter(s.pretty)
 }
+func (s messagePayloadRenderer) name() string { return payloadRendererName(s.pretty) }
 
-func renderJSONValue(v any) []g.Node {
-	jsonValue, err := json.Marshal(v)
-	if err != nil {
-		return []g.Node{
-			h.Span(
-				h.Class("text-red-600"),
-				g.Textf("[ %s ]", err),
-			),
-		}
-	}
-	return []g.Node{
-		h.Span(
-			h.Class("text-fuchsia-300"),
-			g.Text(string(jsonValue)),
-		),
-	}
-}
-
-var binaryEncoderDescriptor = (&model_encoding_pb.BinaryEncoder{}).ProtoReflect().Descriptor()
-
-func (d *messageJSONRenderer) renderTopLevelMessage(m model_core.TopLevelMessage[protoreflect.Message, object.LocalReference]) []g.Node {
-	switch message := m.Message.Interface().(type) {
-	case *anypb.Any:
-		anyValue, err := model_core.UnmarshalTopLevelAnyNew(model_core.NewTopLevelMessage(message, m.OutgoingReferences))
-		if err != nil {
-			return []g.Node{
-				h.Span(
-					h.Class("text-red-600"),
-					g.Textf("[ %s ]", err),
-				),
-			}
-		}
-		return d.renderMessageCommon(
-			model_core.Nested(anyValue.Decay(), anyValue.Message.ProtoReflect()),
-			map[string][]g.Node{
-				"@type": renderJSONValue(message.TypeUrl),
-			},
-		)
-	case *model_core_pb.Any:
-		// If the provided message is a model_core_pb.Any,
-		// render it similar to how protojson renders an
-		// anypb.Any. Namely, render the payload message with an
-		// added "@type" field containing the type URL.
-		anyValue, err := model_core.UnmarshalAnyNew(model_core.Nested(m.Decay(), message))
-		if err != nil {
-			return []g.Node{
-				h.Span(
-					h.Class("text-red-600"),
-					g.Textf("[ %s ]", err),
-				),
-			}
-		}
-		return d.renderMessageCommon(
-			model_core.Nested(anyValue.Decay(), anyValue.Message.ProtoReflect()),
-			map[string][]g.Node{
-				"@type": renderJSONValue(message.Value.TypeUrl),
-			},
-		)
-	default:
-		return d.renderMessageCommon(m.Decay(), map[string][]g.Node{})
-	}
-}
-
-func (d *messageJSONRenderer) renderMessage(m model_core.Message[protoreflect.Message, object.LocalReference]) []g.Node {
-	switch message := m.Message.Interface().(type) {
-	case *model_core_pb.Any:
-		// If the provided message is a model_core_pb.Any,
-		// render it similar to how protojson renders an
-		// anypb.Any. Namely, render the payload message with an
-		// added "@type" field containing the type URL.
-		anyValue, err := model_core.UnmarshalAnyNew(model_core.Nested(m, message))
-		if err != nil {
-			return []g.Node{
-				h.Span(
-					h.Class("text-red-600"),
-					g.Textf("[ %s ]", err),
-				),
-			}
-		}
-		return d.renderMessageCommon(
-			model_core.Nested(anyValue.Decay(), anyValue.Message.ProtoReflect()),
-			map[string][]g.Node{
-				"@type": renderJSONValue(message.Value.TypeUrl),
-			},
-		)
-	default:
-		return d.renderMessageCommon(m, map[string][]g.Node{})
-	}
-}
-
-func (d *messageJSONRenderer) renderMessageCommon(m model_core.Message[protoreflect.Message, object.LocalReference], fields map[string][]g.Node) []g.Node {
-	if r := d.customRenderer(d, m, fields); len(r) > 0 {
-		return r
-	}
-
-	switch v := m.Message.Interface().(type) {
-	case *durationpb.Duration:
-		if jsonValue, err := protojson.Marshal(v); err == nil {
-			return []g.Node{
-				h.Span(
-					h.Class("text-fuchsia-300"),
-					g.Text(string(jsonValue)),
-				),
-			}
-		}
-	}
-
-	// Iterate over all message fields and render their values.
-	m.Message.Range(func(fieldDescriptor protoreflect.FieldDescriptor, value protoreflect.Value) bool {
-		var valueNodes []g.Node
-		if fieldDescriptor.IsList() {
-			// Repeated fields should be rendered as JSON lists.
-			list := value.List()
-			listLength := list.Len()
-			if listLength == 0 {
-				valueNodes = []g.Node{
-					g.Text("[]"),
-				}
-			} else {
-				listParts := make([]g.Node, 0, listLength)
-				for i := 0; i < listLength; i++ {
-					elementNodes := d.renderField(fieldDescriptor, model_core.Nested(m, list.Get(i)))
-					if i != listLength-1 {
-						elementNodes = append(elementNodes, g.Text(","))
-					}
-					listParts = append(listParts, h.Li(elementNodes...))
-				}
-				valueNodes = []g.Node{
-					g.Text("["),
-					h.Ul(listParts...),
-					g.Text("]"),
-				}
-			}
-
-			if fieldDescriptor.Message() == binaryEncoderDescriptor {
-				configuration := make([]*model_encoding_pb.BinaryEncoder, 0, listLength)
-				for i := 0; i < listLength; i++ {
-					configuration = append(
-						configuration,
-						list.Get(i).Message().Interface().(*model_encoding_pb.BinaryEncoder),
-					)
-				}
-				d.observedEncoders = append(
-					d.observedEncoders,
-					&browser_pb.RecentlyObservedEncoder{
-						Configuration: configuration,
-						LastObservation: &browser_pb.RecentlyObservedEncoder_LastObservation{
-							Time:        timestamppb.New(d.now),
-							MessageType: string(m.Message.Descriptor().Name()),
-							FieldName:   fieldDescriptor.TextName(),
-						},
-					},
-				)
-			}
-		} else if fieldDescriptor.IsMap() {
-			mapField := value.Map()
-			mapLength := mapField.Len()
-			if mapLength == 0 {
-				valueNodes = []g.Node{
-					g.Text("{}"),
-				}
-			} else {
-				mapParts := make([]g.Node, 0, len(fields))
-				mapField.Range(func(entryKey protoreflect.MapKey, entryValue protoreflect.Value) bool {
-					entryNodes := append(
-						append(
-							d.renderField(fieldDescriptor.MapKey(), model_core.Nested(m, entryKey.Value())),
-							g.Text(": "),
-						),
-						d.renderField(fieldDescriptor.MapValue(), model_core.Nested(m, entryValue))...,
-					)
-					if len(mapParts) != mapLength-1 {
-						entryNodes = append(entryNodes, g.Text(","))
-					}
-					mapParts = append(mapParts, h.Li(entryNodes...))
-					return true
-				})
-				valueNodes = []g.Node{
-					g.Text("{"),
-					h.Ul(mapParts...),
-					g.Text("}"),
-				}
-			}
-		} else {
-			valueNodes = d.renderField(fieldDescriptor, model_core.Nested(m, value))
-		}
-		name := fieldDescriptor.JSONName()
-		fields[name] = valueNodes
-		return true
-	})
-
-	// Sort fields by name and join them together in a single JSON object.
-	if len(fields) == 0 {
-		return []g.Node{g.Text("{}")}
-	}
-
-	sortedFields := make([]g.Node, 0, len(fields))
-	for i, name := range slices.Sorted(maps.Keys(fields)) {
-		entryNodes := []g.Node{
-			h.Span(
-				h.Class("text-amber-200"),
-				g.Textf("%#v", name),
-			),
-			g.Text(": "),
-		}
-		entryNodes = append(entryNodes, fields[name]...)
-		if i != len(fields)-1 {
-			entryNodes = append(entryNodes, g.Text(","))
-		}
-		sortedFields = append(sortedFields, h.Li(entryNodes...))
-	}
-
-	return []g.Node{
-		g.Text("{"),
-		h.Ul(sortedFields...),
-		g.Text("}"),
-	}
-}
-
-func (d *messageJSONRenderer) renderMessageList(list model_core.Message[[]protoreflect.Message, object.LocalReference]) []g.Node {
-	listLength := len(list.Message)
-	if listLength == 0 {
-		return []g.Node{
-			g.Text("[]"),
-		}
-	}
-
-	listParts := make([]g.Node, 0, listLength)
-	for i, element := range list.Message {
-		elementNodes := d.renderMessage(model_core.Nested(list, element))
-		if i != listLength-1 {
-			elementNodes = append(elementNodes, g.Text(","))
-		}
-		listParts = append(listParts, h.Li(elementNodes...))
-	}
-
-	return []g.Node{
-		g.Text("["),
-		h.Ul(listParts...),
-		g.Text("]"),
-	}
-}
-
-// messageJSONPayloadRenderer renders the decoded payload of an object,
-// assuming it is a Protobuf message that can be converted to JSON.
-type messageJSONPayloadRenderer struct {
-	CustomRenderer JSONCustomRenderer
-}
-
-var _ payloadRenderer = messageJSONPayloadRenderer{}
-
-func (messageJSONPayloadRenderer) queryParameter() string { return "json" }
-func (messageJSONPayloadRenderer) name() string           { return "JSON" }
-
-func (s messageJSONPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
+func (s messagePayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
 	decodedObject, usedEncoderIndex, err := decodeObject(o, recentlyObservedEncoders)
 	if err != nil {
 		return renderErrorAlert(err), 0, nil
@@ -2603,29 +2234,26 @@ func (s messageJSONPayloadRenderer) render(r *http.Request, o model_core.Decodab
 		return renderErrorAlert(fmt.Errorf("failed to unmarshal message: %w", err)), usedEncoderIndex, nil
 	}
 	referenceFormat := o.Value.GetReferenceFormat()
-	d := messageJSONRenderer{
-		basePath:        "../..",
-		referenceFormat: &referenceFormat,
-		customRenderer:  s.CustomRenderer,
-		now:             time.Now(),
-	}
-	rendered := d.renderTopLevelMessage(model_core.NewTopLevelMessage(message, o.Value))
-	return rendered, usedEncoderIndex, d.observedEncoders
+	mr := newMessageRenderer("../..", &referenceFormat, s.pretty)
+	rendered := mr.renderTopLevelMessage(model_core.NewTopLevelMessage(message, o.Value))
+	return rendered, usedEncoderIndex, mr.observedEncoders
 }
 
-// messageListJSONPayloadRenderer renders the decoded payload of an
-// object, assuming it is a varint separated list of Protobuf messages
-// that can be converted to JSON.
-type messageListJSONPayloadRenderer struct {
-	CustomRenderer JSONCustomRenderer
+// messageListPayloadRenderer renders the decoded payload of an object,
+// assuming it is a varint separated list of Protobuf messages. The
+// messages are either rendered as JSON, or pretty printed.
+type messageListPayloadRenderer struct {
+	pretty bool
 }
 
-var _ payloadRenderer = messageListJSONPayloadRenderer{}
+var _ payloadRenderer = messageListPayloadRenderer{}
 
-func (messageListJSONPayloadRenderer) queryParameter() string { return "json" }
-func (messageListJSONPayloadRenderer) name() string           { return "JSON" }
+func (s messageListPayloadRenderer) queryParameter() string {
+	return payloadRendererQueryParameter(s.pretty)
+}
+func (s messageListPayloadRenderer) name() string { return payloadRendererName(s.pretty) }
 
-func (s messageListJSONPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
+func (s messageListPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]g.Node, int, []*browser_pb.RecentlyObservedEncoder) {
 	decodedObject, usedEncoderIndex, err := decodeObject(o, recentlyObservedEncoders)
 	if err != nil {
 		return renderErrorAlert(err), 0, nil
@@ -2663,12 +2291,7 @@ func (s messageListJSONPayloadRenderer) render(r *http.Request, o model_core.Dec
 	}
 
 	referenceFormat := o.Value.GetReferenceFormat()
-	d := messageJSONRenderer{
-		basePath:        "../..",
-		referenceFormat: &referenceFormat,
-		customRenderer:  s.CustomRenderer,
-		now:             time.Now(),
-	}
-	rendered := d.renderMessageList(model_core.NewMessage(elements, o.Value))
-	return rendered, usedEncoderIndex, d.observedEncoders
+	mr := newMessageRenderer("../..", &referenceFormat, s.pretty)
+	rendered := mr.renderMessageList(model_core.NewMessage(elements, o.Value))
+	return rendered, usedEncoderIndex, mr.observedEncoders
 }

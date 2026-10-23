@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -22,12 +21,12 @@ import (
 	"bonanza.build/pkg/bazelclient/logging"
 	"bonanza.build/pkg/crypto"
 	"bonanza.build/pkg/label"
-	"bonanza.build/pkg/model/core"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
+	"bonanza.build/pkg/model/render"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -59,10 +58,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/security/advancedtls"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -685,7 +680,12 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		),
 	)
 
-	var jsonFormatter messageJSONFormatter
+	messageFormatter := messageFormatter{
+		renderer: render.Renderer{
+			Pretty:          args.CommonFlags.MessageFormat == arguments.MessageFormat_Pretty,
+			ReferenceFormat: &referenceFormat,
+		},
+	}
 	if browserURL != "" {
 		if baseURL, err := url.JoinPath(
 			browserURL,
@@ -693,7 +693,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			instanceName.AsURLSafeComponent(),
 			referenceFormat.ToProto().String(),
 		); err == nil {
-			jsonFormatter.baseURL = baseURL
+			messageFormatter.objectBaseURL = baseURL
 		}
 	}
 
@@ -783,7 +783,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 					formatKey(
 						namespace,
 						model_core.Nested(progress, evaluatingKey.Key),
-						&jsonFormatter,
+						&messageFormatter,
 						browserURL,
 						/* outcomesReference = */ nil,
 						longestType,
@@ -829,7 +829,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 
 	if f := result.Message.Failure; f != nil {
-		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, &jsonFormatter, browserURL, outcomesReference)
+		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, &messageFormatter, browserURL, outcomesReference)
 		logger.Fatal(formatted.Textf("Failed to perform build: %s", status.FromProto(f.Status)))
 	} else if outcomesReference != nil {
 		outcomesReferenceNode := formatted.Text(model_core.DecodableLocalReferenceToString(*outcomesReference))
@@ -854,7 +854,9 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 }
 
-func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core_pb.Any, object.LocalReference], jsonFormatter *messageJSONFormatter, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference], longestType int) formatted.Node {
+// formatKey formats an evaluation key on a single line, prefixed with
+// its abbreviated type.
+func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core_pb.Any, object.LocalReference], messageFormatter *messageFormatter, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference], longestType int) formatted.Node {
 	abbreviatedType := getAbbreviatedTypeURL(keyAny.Message.GetValue().GetTypeUrl())
 	abbreviatedTypeNode := formatted.Text(abbreviatedType)
 	var body formatted.Node
@@ -877,7 +879,9 @@ func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core
 				}
 			}
 		}
-		body = jsonFormatter.formatJSONMessage(model_core.Nested(key.Decay(), key.Message.ProtoReflect()))
+		body = messageFormatter.formatSingleLine(
+			messageFormatter.message(model_core.Nested(key.Decay(), key.Message.ProtoReflect())),
+		)
 	}
 	return formatted.Join(
 		formatted.Text("  "),
@@ -888,7 +892,7 @@ func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core
 	)
 }
 
-func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Message[[]*model_core_pb.Any, object.LocalReference], logger logging.Logger, jsonFormatter *messageJSONFormatter, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference]) {
+func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Message[[]*model_core_pb.Any, object.LocalReference], logger logging.Logger, messageFormatter *messageFormatter, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference]) {
 	if len(stackTraceKeys.Message) > 0 {
 		logger.Error(formatted.Text("Traceback (most recent key last):"))
 
@@ -904,7 +908,7 @@ func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Messa
 				formatKey(
 					namespace,
 					model_core.Nested(stackTraceKeys, keyAny),
-					jsonFormatter,
+					messageFormatter,
 					browserURL,
 					outcomesReference,
 					longestType,
@@ -920,144 +924,4 @@ func getAbbreviatedTypeURL(typeURL string) string {
 		return typeURL[dot+1:]
 	}
 	return typeURL
-}
-
-type messageJSONFormatter struct {
-	baseURL string
-}
-
-func formatReferenceLink(link, rawReference string) formatted.Node {
-	if len(rawReference) > 8+3 {
-		rawReference = rawReference[:8] + "..."
-	}
-	return formatted.Link(link, formatted.Cyan(formatted.Textf("%#v", rawReference)))
-}
-
-func (f *messageJSONFormatter) formatJSONField(fieldDescriptor protoreflect.FieldDescriptor, value model_core.Message[protoreflect.Value, object.LocalReference]) formatted.Node {
-	var v any
-	switch fieldDescriptor.Kind() {
-	// Simple scalar types for which we can just call json.Marshal().
-	case protoreflect.BoolKind:
-		v = value.Message.Bool()
-	case protoreflect.Int32Kind, protoreflect.Int64Kind,
-		protoreflect.Sint32Kind, protoreflect.Sint64Kind,
-		protoreflect.Sfixed32Kind, protoreflect.Sfixed64Kind:
-		v = value.Message.Int()
-	case protoreflect.Uint32Kind, protoreflect.Uint64Kind,
-		protoreflect.Fixed32Kind, protoreflect.Fixed64Kind:
-		v = value.Message.Uint()
-	case protoreflect.FloatKind, protoreflect.DoubleKind:
-		v = value.Message.Float()
-	case protoreflect.StringKind:
-		v = value.Message.String()
-	case protoreflect.BytesKind:
-		v = value.Message.Bytes()
-
-	case protoreflect.GroupKind, protoreflect.MessageKind:
-		if r, ok := value.Message.Message().Interface().(*model_core_pb.DecodableReference); ok {
-			if reference, err := model_core.FlattenDecodableReference(model_core.Nested(value, r)); err == nil {
-				rawReference := model_core.DecodableLocalReferenceToString(reference)
-				if f.baseURL != "" {
-					if fieldOptions, ok := fieldDescriptor.Options().(*descriptorpb.FieldOptions); ok {
-						// Field is a valid reference for
-						// which we have type information in
-						// the field options. Emit a link to
-						// the object.
-						objectFormat := proto.GetExtension(fieldOptions, model_core_pb.E_ObjectFormat).(*model_core_pb.ObjectFormat)
-						segments, ok := core.ObjectFormatToPath(objectFormat)
-						if ok {
-							if link, err := url.JoinPath(f.baseURL, append([]string{rawReference}, segments...)...); err == nil {
-								return formatReferenceLink(link, rawReference)
-							}
-						}
-					}
-				}
-				return formatted.Cyan(formatted.Textf("%#v", rawReference))
-			}
-		}
-
-		// Recurse into message.
-		return f.formatJSONMessage(model_core.Nested(value, value.Message.Message()))
-
-	case protoreflect.EnumKind:
-		// Render an enum value as a string or integer,
-		// depending on whether it corresponds to a known value.
-		number := value.Message.Enum()
-		if enumValueDescriptor := fieldDescriptor.Enum().Values().ByNumber(number); enumValueDescriptor != nil {
-			v = string(enumValueDescriptor.Name())
-		} else {
-			v = number
-		}
-
-	default:
-		return formatted.Bold(formatted.Red(formatted.Text("[ Unknown field kind ]")))
-	}
-
-	return f.formatJSONValue(v)
-}
-
-func (messageJSONFormatter) formatJSONValue(v any) formatted.Node {
-	jsonValue, err := json.Marshal(v)
-	if err != nil {
-		return formatted.Bold(formatted.Red(formatted.Textf("[ %s ]", err)))
-	}
-	return formatted.Magenta(formatted.Text(string(jsonValue)))
-}
-
-func (f *messageJSONFormatter) formatJSONMessage(m model_core.Message[protoreflect.Message, object.LocalReference]) formatted.Node {
-	switch v := m.Message.Interface().(type) {
-	case *durationpb.Duration:
-		if jsonValue, err := protojson.Marshal(v); err == nil {
-			return formatted.Magenta(formatted.Text(string(jsonValue)))
-		}
-	}
-
-	fields := map[string]formatted.Node{}
-	m.Message.Range(func(fieldDescriptor protoreflect.FieldDescriptor, value protoreflect.Value) bool {
-		var valueNode formatted.Node
-		if fieldDescriptor.IsList() {
-			// Repeated fields should be rendered as JSON lists.
-			list := value.List()
-			listLength := list.Len()
-			if listLength == 0 {
-				valueNode = formatted.Text("[]")
-			} else {
-				listParts := make([]formatted.Node, 0, 2*listLength+1)
-				separator := "["
-				for i := 0; i < listLength; i++ {
-					listParts = append(
-						listParts,
-						formatted.Text(separator),
-						f.formatJSONField(fieldDescriptor, model_core.Nested(m, list.Get(i))),
-					)
-					separator = ", "
-				}
-				valueNode = formatted.Join(append(listParts, formatted.Text("]"))...)
-			}
-		} else {
-			valueNode = f.formatJSONField(fieldDescriptor, model_core.Nested(m, value))
-		}
-		name := fieldDescriptor.JSONName()
-		fields[name] = valueNode
-		return true
-	})
-
-	// Sort fields by name and join them together in a single JSON object.
-	if len(fields) == 0 {
-		return formatted.Text("{}")
-	}
-
-	messageParts := make([]formatted.Node, 0, 4*len(fields)+1)
-	separator := "{"
-	for _, key := range slices.Sorted(maps.Keys(fields)) {
-		messageParts = append(
-			messageParts,
-			formatted.Text(separator),
-			formatted.Yellow(formatted.Textf("%#v", key)),
-			formatted.Text(": "),
-			fields[key],
-		)
-		separator = ", "
-	}
-	return formatted.Join(append(messageParts, formatted.Text("}"))...)
 }

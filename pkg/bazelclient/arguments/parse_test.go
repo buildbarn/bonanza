@@ -37,6 +37,7 @@ func TestParse(t *testing.T) {
 			CommonFlags: arguments.CommonFlags{
 				Color:                  arguments.Color_Auto,
 				LockfileMode:           arguments.LockfileMode_Update,
+				MessageFormat:          arguments.MessageFormat_Pretty,
 				RemoteCacheCompression: true,
 			},
 			BuildFlags: arguments.BuildFlags{

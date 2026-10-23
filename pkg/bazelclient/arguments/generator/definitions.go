@@ -30,6 +30,10 @@ var enumTypes = map[string][]string{
 		"refresh",
 		"error",
 	},
+	"MessageFormat": {
+		"pretty",
+		"json",
+	},
 }
 
 var startupFlags = []flag{
@@ -110,6 +114,14 @@ var commonFlags = []flag{
 		flagType: enumFlagType{
 			enumType:     "LockfileMode",
 			defaultValue: "update",
+		},
+	},
+	{
+		longName:    "message_format",
+		description: "Format in which messages, such as evaluation keys, are displayed. Valid values are `pretty` to display messages using a syntax that is specific to their type where possible (e.g., Starlark values are displayed using Starlark syntax), or `json` to always display them as JSON.",
+		flagType: enumFlagType{
+			enumType:     "MessageFormat",
+			defaultValue: "pretty",
 		},
 	},
 	{
