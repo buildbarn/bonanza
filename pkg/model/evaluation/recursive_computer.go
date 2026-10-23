@@ -1113,7 +1113,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getVariableDepe
 // a key whose value has been obtained, and has a non-empty set of
 // direct variable dependencies. The list of direct variable
 // dependencies must be sorted by key reference.
-func (RecursiveComputer[TReference, TMetadata]) newVariableDependenciesComputedValueState(ks *KeyState[TReference, TMetadata], directVariableDependencies []*KeyState[TReference, TMetadata], dependenciesHashRecordReference object.LocalReference) variableDependenciesComputedValueState[TReference, TMetadata] {
+func (*RecursiveComputer[TReference, TMetadata]) newVariableDependenciesComputedValueState(ks *KeyState[TReference, TMetadata], directVariableDependencies []*KeyState[TReference, TMetadata], dependenciesHashRecordReference object.LocalReference) variableDependenciesComputedValueState[TReference, TMetadata] {
 	if len(directVariableDependencies) == 0 {
 		panic("key does not have any direct variable dependencies")
 	}

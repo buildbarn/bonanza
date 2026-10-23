@@ -55,11 +55,11 @@ func (s *cacheTestStorage) CaptureCreatedObject(ctx context.Context, createdObje
 	return cacheTestMetadata{}, nil
 }
 
-func (cacheTestStorage) CaptureExistingObject(reference object.LocalReference) model_core.ReferenceMetadata {
+func (*cacheTestStorage) CaptureExistingObject(reference object.LocalReference) model_core.ReferenceMetadata {
 	return cacheTestMetadata{}
 }
 
-func (cacheTestStorage) ReferenceObject(capturedObject model_core.MetadataEntry[model_core.ReferenceMetadata]) object.LocalReference {
+func (*cacheTestStorage) ReferenceObject(capturedObject model_core.MetadataEntry[model_core.ReferenceMetadata]) object.LocalReference {
 	return capturedObject.LocalReference
 }
 
@@ -122,7 +122,7 @@ type cacheTestComputer struct {
 
 var cacheTestStringValueTypeURL = "type.googleapis.com/google.protobuf.StringValue"
 
-func (cacheTestComputer) getValue(e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata], key uint32) (uint32, bool) {
+func (*cacheTestComputer) getValue(e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata], key uint32) (uint32, bool) {
 	value := e.GetMessageValue(
 		model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
 			&wrapperspb.UInt32Value{Value: key},
@@ -162,11 +162,11 @@ func (c *cacheTestComputer) ComputeNativeValue(ctx context.Context, key model_co
 	return v, nil
 }
 
-func (cacheTestComputer) IsLookup(typeURL string) bool {
+func (*cacheTestComputer) IsLookup(typeURL string) bool {
 	return false
 }
 
-func (cacheTestComputer) ReturnsNativeValue(typeURL string) bool {
+func (*cacheTestComputer) ReturnsNativeValue(typeURL string) bool {
 	return typeURL == cacheTestStringValueTypeURL
 }
 
