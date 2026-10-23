@@ -136,7 +136,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		apparentTargetPlatform,
 	)
 	if err != nil {
-		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("failed to resolve target platform %#v: %w", err)
+		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("failed to resolve target platform %#v: %w", apparentTargetPlatform.String(), err)
 	}
 
 	// Obtain the identifier of the Starlark transition that is used

@@ -126,7 +126,7 @@ func (df *ObjectBackedDirectoryFactory) resolveHandle(r io.ByteReader) (virtual.
 	ctx := context.Background()
 	cluster, err := df.directoryClusterReader.ReadObject(ctx, clusterReference)
 	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch directory cluster with reference %s", clusterReference))
+		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch directory cluster with reference %s", model_core.DecodableLocalReferenceToString(clusterReference)))
 		return virtual.DirectoryChild{}, virtual.StatusErrIO
 	}
 	if directoryIndex > uint(len(cluster.Message)) {
@@ -139,7 +139,7 @@ func (df *ObjectBackedDirectoryFactory) resolveHandle(r io.ByteReader) (virtual.
 		model_core.Nested(cluster, cluster.Message[directoryIndex].Directory),
 	)
 	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", clusterReference))
+		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", model_core.DecodableLocalReferenceToString(clusterReference)))
 		return virtual.DirectoryChild{}, virtual.StatusErrIO
 	}
 
@@ -233,11 +233,11 @@ func (d *objectBackedDirectory) getDirectory(ctx context.Context) (model_core.Me
 	df := d.factory
 	cluster, err := df.directoryClusterReader.ReadObject(ctx, d.clusterReference)
 	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch directory cluster with reference %s", d.clusterReference))
+		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch directory cluster with reference %s", model_core.DecodableLocalReferenceToString(d.clusterReference)))
 		return model_core.Message[*model_filesystem.Directory, object.LocalReference]{}, virtual.StatusErrIO
 	}
 	if d.directoryIndex >= uint(len(cluster.Message)) {
-		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "Directory index %d is out of range, as directory cluster with reference %s only contains %d directories", d.directoryIndex, len(cluster.Message), d.clusterReference))
+		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "Directory index %d is out of range, as directory cluster with reference %s only contains %d directories", d.directoryIndex, model_core.DecodableLocalReferenceToString(d.clusterReference), len(cluster.Message)))
 		return model_core.Message[*model_filesystem.Directory, object.LocalReference]{}, virtual.StatusErrIO
 	}
 	return model_core.Nested(cluster, &cluster.Message[d.directoryIndex]), virtual.StatusOK
@@ -249,14 +249,14 @@ func (d objectBackedDirectory) lookupDirectoryNode(directoryNode model_core.Mess
 	case *model_filesystem_pb.Directory_ContentsExternal:
 		childReference, err := model_core.FlattenDecodableReference(model_core.Nested(directoryNode, contents.ContentsExternal.Reference))
 		if err != nil {
-			df.errorLogger.Log(util.StatusWrapf(err, "Invalid reference for directory with name %#v in directory %d in directory cluster with reference %s", directoryNode.Message.Name, d.directoryIndex, d.clusterReference))
+			df.errorLogger.Log(util.StatusWrapf(err, "Invalid reference for directory with name %#v in directory %d in directory cluster with reference %s", directoryNode.Message.Name, d.directoryIndex, model_core.DecodableLocalReferenceToString(d.clusterReference)))
 			return nil, virtual.StatusErrIO
 		}
 		return df.LookupDirectory(childReference, 0, contents.ContentsExternal.DirectoriesCount), virtual.StatusOK
 	case *model_filesystem_pb.Directory_ContentsInline:
 		return df.LookupDirectory(d.clusterReference, uint(childDirectoryIndex), uint32(len(contents.ContentsInline.Directories))), virtual.StatusOK
 	default:
-		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "Invalid contents for directory with name %#v in directory %d in directory cluster with reference %s", directoryNode.Message.Name, d.directoryIndex, d.clusterReference))
+		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "Invalid contents for directory with name %#v in directory %d in directory cluster with reference %s", directoryNode.Message.Name, d.directoryIndex, model_core.DecodableLocalReferenceToString(d.clusterReference)))
 		return nil, virtual.StatusErrIO
 	}
 }
@@ -287,7 +287,7 @@ func (d *objectBackedDirectory) VirtualLookup(ctx context.Context, name path.Com
 
 	leaves, err := model_filesystem.DirectoryGetLeaves(ctx, df.leavesReader, model_core.Nested(directory, directory.Message.Directory))
 	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", d.clusterReference))
+		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", model_core.DecodableLocalReferenceToString(d.clusterReference)))
 		return virtual.DirectoryChild{}, virtual.StatusErrIO
 	}
 
@@ -343,7 +343,7 @@ func (d *objectBackedDirectory) VirtualOpenChild(ctx context.Context, name path.
 		model_core.Nested(directory, directory.Message.Directory),
 	)
 	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", d.clusterReference))
+		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", model_core.DecodableLocalReferenceToString(d.clusterReference)))
 		return nil, 0, virtual.ChangeInfo{}, virtual.StatusErrIO
 	}
 
@@ -412,7 +412,7 @@ func (d *objectBackedDirectory) VirtualReadDir(ctx context.Context, firstCookie 
 		model_core.Nested(directory, directory.Message.Directory),
 	)
 	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", d.clusterReference))
+		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", model_core.DecodableLocalReferenceToString(d.clusterReference)))
 		return virtual.StatusErrIO
 	}
 

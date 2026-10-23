@@ -186,7 +186,7 @@ func main() {
 			workerInvocationStickinessLimits := make([]time.Duration, 0, len(platformQueue.WorkerInvocationStickinessLimits))
 			for i, d := range platformQueue.WorkerInvocationStickinessLimits {
 				if err := d.CheckValid(); err != nil {
-					return util.StatusWrapf(err, "Invalid worker invocation stickiness limit at index %d: %s", i)
+					return util.StatusWrapf(err, "Invalid worker invocation stickiness limit at index %d of predeclared platform queue at index %d", i, platformQueueIndex)
 				}
 				workerInvocationStickinessLimits = append(workerInvocationStickinessLimits, d.AsDuration())
 			}

@@ -156,7 +156,7 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) setContents(contents mo
 		}
 		f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(leaves, file.Properties))
 		if err != nil {
-			return fmt.Errorf("file %#v: %w", file.Name)
+			return fmt.Errorf("file %#v: %w", file.Name, err)
 		}
 		d.files[name] = f
 	}
@@ -225,7 +225,7 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) mergeContents(contents 
 		} else {
 			f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(leaves, file.Properties))
 			if err != nil {
-				return fmt.Errorf("file %#v: %w", file.Name)
+				return fmt.Errorf("file %#v: %w", file.Name, err)
 			}
 			d.setFileSimple(name, f)
 		}
@@ -1023,7 +1023,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	for _, patchLabelStr := range singleVersionOverridePatchLabels {
 		patchLabel, err := label.NewCanonicalLabel(patchLabelStr)
 		if err != nil {
-			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid single version override patch label %#v: %w", patchLabelStr)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid single version override patch label %#v: %w", patchLabelStr, err)
 		}
 		patchPropertiesValue := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
 			CanonicalRepo: patchLabel.GetCanonicalPackage().GetCanonicalRepo().String(),
@@ -1500,7 +1500,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeAddExternalRep
 			return fmt.Errorf("Failed to create directory %#v: %w", model_starlark.ComponentStrExternal, err)
 		}
 		if err := externalDirectory.maybeLoadContents(mrc.directoryLoadOptions); err != nil {
-			return fmt.Errorf("failed to load contents of %#v directory: %w", err)
+			return fmt.Errorf("failed to load contents of %#v directory: %w", model_starlark.ComponentStrExternal, err)
 		}
 
 		if _, ok := externalDirectory.directories[repoName]; !ok {

@@ -78,7 +78,7 @@ func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx 
 			case "constraint":
 				constraintSettingInfoProvider, ok := value.Message.Kind.(*model_starlark_pb.Value_Struct)
 				if !ok {
-					return nil, fmt.Errorf("field \"constraint\" of ConstraintValueInfo provider of target %#v is not a struct")
+					return nil, fmt.Errorf("field \"constraint\" of ConstraintValueInfo provider of target %#v is not a struct", constraintValue)
 				}
 				var errIter error
 				for key, value := range model_starlark.AllStructFields(
@@ -94,12 +94,12 @@ func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx 
 							defaultConstraintValue = &v.Label
 						case *model_starlark_pb.Value_None:
 						default:
-							return nil, fmt.Errorf("field \"constraint.default_constraint_value\" of ConstraintValueInfo provider of target %#v is not a Label or None")
+							return nil, fmt.Errorf("field \"constraint.default_constraint_value\" of ConstraintValueInfo provider of target %#v is not a Label or None", constraintValue)
 						}
 					case "label":
 						v, ok := value.Message.Kind.(*model_starlark_pb.Value_Label)
 						if !ok {
-							return nil, fmt.Errorf("field \"constraint.label\" of ConstraintValueInfo provider of target %#v is not a Label")
+							return nil, fmt.Errorf("field \"constraint.label\" of ConstraintValueInfo provider of target %#v is not a Label", constraintValue)
 						}
 						actualConstraintSetting = &v.Label
 					}
@@ -110,7 +110,7 @@ func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx 
 			case "label":
 				v, ok := value.Message.Kind.(*model_starlark_pb.Value_Label)
 				if !ok {
-					return nil, fmt.Errorf("field \"label\" of ConstraintValueInfo provider of target %#v is not a Label")
+					return nil, fmt.Errorf("field \"label\" of ConstraintValueInfo provider of target %#v is not a Label", constraintValue)
 				}
 				actualConstraintValue = &v.Label
 			}
@@ -119,10 +119,10 @@ func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx 
 			return nil, errIter
 		}
 		if actualConstraintSetting == nil {
-			return nil, fmt.Errorf("ConstraintValueInfo provider of target %#v does not contain field \"constraint.label\"")
+			return nil, fmt.Errorf("ConstraintValueInfo provider of target %#v does not contain field \"constraint.label\"", constraintValue)
 		}
 		if actualConstraintValue == nil {
-			return nil, fmt.Errorf("ConstraintValueInfo provider of target %#v does not contain field \"label\"")
+			return nil, fmt.Errorf("ConstraintValueInfo provider of target %#v does not contain field \"label\"", constraintValue)
 		}
 		effectiveConstraintValue := *actualConstraintValue
 		if defaultConstraintValue != nil && effectiveConstraintValue == *defaultConstraintValue {
@@ -810,7 +810,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 							}
 							f, err := outputRegistrar.registerOutput(canonicalLabel.GetTargetName(), nil, model_starlark_pb.File_Owner_FILE)
 							if err != nil {
-								return nil, fmt.Errorf("output attr %#v: %w", err)
+								return nil, fmt.Errorf("output attr %#v: %w", namedAttr.Name, err)
 							}
 							attrOutputs = append(attrOutputs, f)
 							return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
@@ -1631,7 +1631,7 @@ func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename 
 		siblingLabelStr := sibling.GetDefinition().Message.Label
 		siblingLabel, err := label.NewCanonicalLabel(siblingLabelStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid label for sibling %#v: %w", siblingLabelStr)
+			return nil, fmt.Errorf("invalid label for sibling %#v: %w", siblingLabelStr, err)
 		}
 		if siblingLabel.GetCanonicalPackage() != or.targetLabel.GetCanonicalPackage() {
 			return nil, fmt.Errorf("sibling %#v is not declared in the same package", siblingLabel.String())

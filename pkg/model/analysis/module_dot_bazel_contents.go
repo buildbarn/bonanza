@@ -293,7 +293,7 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 		if !hasVersion || expectedVersion.Compare(foundVersion) == 0 {
 			moduleFileURL, err := getModuleDotBazelURL(foundModule.RegistryUrl, expectedName, foundVersion)
 			if err != nil {
-				return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %s", foundModule.Name, foundModule.Version, foundModule.RegistryUrl)
+				return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", foundModule.Name, foundModule.Version, foundModule.RegistryUrl, err)
 			}
 
 			fileContentsValue := e.GetHTTPFileContentsValue(

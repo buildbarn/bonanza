@@ -655,7 +655,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 						if binDirectory, ok := configurationDirectory.directories[model_starlark.ComponentBin]; ok {
 							if configurationExternalDirectory, ok := binDirectory.directories[model_starlark.ComponentExternal]; ok {
 								if err := externalDirectory.mergeDirectory(configurationExternalDirectory, loadOptions); err != nil {
-									return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("failed to merge outputs of configuration %#v: %w", configurationName.String())
+									return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("failed to merge outputs of configuration %#v: %w", configurationName.String(), err)
 								}
 							}
 						}

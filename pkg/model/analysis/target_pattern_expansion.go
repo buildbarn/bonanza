@@ -172,7 +172,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetPatternExpansionValue
 		for _, packagePath := range packagesAtAndBelow.Message.PackagesBelowBasePackage {
 			childTargetPattern, err := basePackage.ToRecursiveTargetPatternBelow(packagePath, includeFileTargets)
 			if err != nil {
-				return PatchedTargetPatternExpansionValue[TMetadata]{}, fmt.Errorf("invalid package path %#v: %w", packagePath)
+				return PatchedTargetPatternExpansionValue[TMetadata]{}, fmt.Errorf("invalid package path %#v: %w", packagePath, err)
 			}
 			childTargetPatternExpansion := e.GetTargetPatternExpansionValue(&model_analysis_pb.TargetPatternExpansion_Key{
 				TargetPattern:        childTargetPattern.String(),

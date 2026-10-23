@@ -123,7 +123,7 @@ func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, 
 					case "constraints":
 						constraints, err = h.computer.extractFromPlatformInfoConstraints(h.context, value)
 						if err != nil {
-							return fmt.Errorf("failed to extract constraints from execution platform %#v: %w", err)
+							return fmt.Errorf("failed to extract constraints from execution platform %#v: %w", canonicalPlatformLabelStr, err)
 						}
 					case "exec_pkix_public_key":
 						str, ok := value.Message.Kind.(*model_starlark_pb.Value_Str)

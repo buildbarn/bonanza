@@ -94,7 +94,7 @@ CheckConditions:
 		}
 		configSettingLabel, err := label.NewCanonicalLabel(configSettingLabelStr)
 		if err != nil {
-			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("invalid condition identifier %#v: %w", configSettingLabel)
+			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("invalid condition identifier %#v: %w", configSettingLabelStr, err)
 		}
 		var errIter error
 		for key, value := range model_starlark.AllDictLeafEntries(

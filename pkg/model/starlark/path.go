@@ -232,13 +232,13 @@ func (p *path) doGetChild(thread *starlark.Thread, b *starlark.Builtin, args sta
 	for i, relativePath := range args {
 		relativePathStr, ok := starlark.AsString(relativePath)
 		if !ok {
-			return nil, fmt.Errorf("at index %d: got %d, want string", i, relativePath.Type())
+			return nil, fmt.Errorf("at index %d: got %s, want string", i, relativePath.Type())
 		}
 		if err := bb_path.Resolve(
 			bb_path.UNIXFormat.NewParser(relativePathStr),
 			bb_path.NewRelativeScopeWalker(&resolver),
 		); err != nil {
-			return nil, fmt.Errorf("failed to resolve path %#v: %w", relativePathStr)
+			return nil, fmt.Errorf("failed to resolve path %#v: %w", relativePathStr, err)
 		}
 	}
 
