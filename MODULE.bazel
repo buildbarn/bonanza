@@ -1,45 +1,45 @@
 module(name = "build_bonanza")
 
 bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
-bazel_dep(name = "aspect_rules_js", version = "3.1.2")
+bazel_dep(name = "aspect_rules_js", version = "3.5.1")
 bazel_dep(name = "bazel_remote_apis", version = "0")
-bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "bazel_skylib", version = "1.9.2")
 bazel_dep(name = "com_github_buildbarn_bb_remote_execution")
 bazel_dep(name = "com_github_buildbarn_bb_storage")
 bazel_dep(name = "com_github_buildbarn_go_xdr")
-bazel_dep(name = "cel-spec", version = "0.25.1")
-bazel_dep(name = "gazelle", version = "0.51.0")
-bazel_dep(name = "googleapis", version = "0.0.0-20260525-ef19b7b7")
+bazel_dep(name = "cel-spec", version = "0.25.3")
+bazel_dep(name = "gazelle", version = "0.54.0")
+bazel_dep(name = "googleapis", version = "0.0.0-20261020-14a161a9")
 bazel_dep(name = "jsonnet_go", version = "0.22.0")
-bazel_dep(name = "platforms", version = "1.0.0")
-bazel_dep(name = "protobuf", version = "35.0")
-bazel_dep(name = "rules_go", version = "0.60.0")
+bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "protobuf", version = "36.2")
+bazel_dep(name = "rules_go", version = "0.65.0")
 bazel_dep(name = "rules_jsonnet", version = "0.7.2")
 bazel_dep(name = "rules_shell", version = "0.8.0")
-bazel_dep(name = "toolchains_llvm", version = "1.7.0")
+bazel_dep(name = "toolchains_llvm", version = "1.12.0")
 
 git_override(
     module_name = "bazel_remote_apis",
-    commit = "becdd8f9ff811df88a22d3eadd6341753d51d167",
+    commit = "c2c07e3d718d3d490a4958344d9c3e47de0bfaf3",
     patches = ["//:patches/bazel_remote_apis/upstream-pr-378.diff"],
     remote = "https://github.com/bazelbuild/remote-apis.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_bb_remote_execution",
-    commit = "ca3fedba831b0d922b9528b38c3daf50a058ae7f",
+    commit = "1fbffdc417797f6afdb7f67b1f0d5cc27352db43",
     remote = "https://github.com/buildbarn/bb-remote-execution.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_bb_storage",
-    commit = "3991d6ebefb4cfc7c1956caaba5a28d1b2eca927",
+    commit = "a00415f5b9ce54e98217174d254a3afd56b8e271",
     remote = "https://github.com/buildbarn/bb-storage.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_go_xdr",
-    commit = "236788cf9e8948a1e8875c7dd243e2be180cdfd7",
+    commit = "a2095890273efee7f8bb2b0007914f8b66398c57",
     remote = "https://github.com/buildbarn/go-xdr.git",
 )
 
@@ -120,10 +120,6 @@ go_deps_dev.module_override(
 go_deps_dev.module_override(
     patches = ["//:patches/org_golang_x_lint/generic.diff"],
     path = "golang.org/x/lint",
-)
-go_deps_dev.module_override(
-    patches = ["@com_github_buildbarn_bb_storage//:patches/org_golang_x_sys/o-search.diff"],
-    path = "golang.org/x/sys",
 )
 go_deps_dev.module_override(
     patches = ["@com_github_buildbarn_bb_storage//:patches/cc_mvdan_gofumpt/unused-receiver-idents.diff"],

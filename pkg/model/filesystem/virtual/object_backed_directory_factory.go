@@ -56,10 +56,10 @@ func NewObjectBackedDirectoryFactory(
 	df := &ObjectBackedDirectoryFactory{
 		directoryClusterReader:                      directoryClusterReader,
 		directoryClusterDecodingParametersSizeBytes: directoryClusterReader.GetDecodingParametersSizeBytes(),
-		leavesReader:   leavesReader,
-		fileFactory:    fileFactory,
-		symlinkFactory: symlinkFactory,
-		errorLogger:    errorLogger,
+		leavesReader:                                leavesReader,
+		fileFactory:                                 fileFactory,
+		symlinkFactory:                              symlinkFactory,
+		errorLogger:                                 errorLogger,
 	}
 	df.handleAllocator = handleAllocation.AsResolvableAllocator(df.resolveHandle)
 	return df

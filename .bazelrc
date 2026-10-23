@@ -1,4 +1,5 @@
 run --workspace_status_command="bash tools/workspace-status.sh"
 common --@protobuf//bazel/toolchains:prefer_prebuilt_protoc
 common --protocopt=--fatal_warnings
+common --repo_env=DO_NOT_TRACK=1
 test --enable_runfiles
