@@ -3,11 +3,13 @@ package filesystem
 import (
 	"context"
 	"io"
+	"sort"
 
 	model_core "bonanza.build/pkg/model/core"
 	model_parser "bonanza.build/pkg/model/parser"
 	"bonanza.build/pkg/storage/object"
 
+	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"golang.org/x/sync/errgroup"
@@ -190,6 +192,96 @@ func (fr *FileReader[TReference]) FileReadAt(ctx context.Context, fileContents F
 		return 0, err
 	}
 	return len(p), nil
+}
+
+// FileSeek returns the offset of the first byte at or after offsetBytes
+// that belongs to a region of the provided type. This can be used to
+// implement lseek()'s SEEK_DATA and SEEK_HOLE. The provided offset MUST
+// be less than the size of the file.
+//
+// Files are considered to have an implicit hole at the end. This means
+// that seeking for a hole always yields an offset. Seeking for data
+// yields nil if the file only contains a hole at or after the provided
+// offset.
+//
+// File contents lists that are not sparse consist entirely of data,
+// meaning that they don't need to be read. The cost of this function
+// is thus proportional to the number of holes in the file, as opposed
+// to its size.
+func (fr *FileReader[TReference]) FileSeek(ctx context.Context, fileContents FileContentsEntry[TReference], offsetBytes uint64, regionType filesystem.RegionType) (*uint64, error) {
+	endBytes := fileContents.GetEndBytes()
+	nextOffsetBytes, err := fr.seekInPart(ctx, &fileContents, 0, endBytes, offsetBytes, regionType)
+	if err != nil {
+		return nil, err
+	}
+	if nextOffsetBytes == nil && regionType == filesystem.Hole {
+		return &endBytes, nil
+	}
+	return nextOffsetBytes, nil
+}
+
+// seekInPart is used by FileSeek() to search for a region of a given
+// type within a single part of a file. The part spans the range
+// [startBytes, endBytes) within the file, and searching starts at
+// offsetBytes, which lies within this range. If no region of the
+// requested type exists in the remainder of the part, nil is returned.
+func (fr *FileReader[TReference]) seekInPart(ctx context.Context, part *FileContentsEntry[TReference], startBytes, endBytes, offsetBytes uint64, regionType filesystem.RegionType) (*uint64, error) {
+	reference := part.GetReference()
+	if reference == nil {
+		// Part is a hole.
+		if regionType == filesystem.Hole {
+			return &offsetBytes, nil
+		}
+		return nil, nil
+	}
+	if reference.Value.GetHeight() == 0 || part.contiguousCount > 0 {
+		// Part is a chunk, or a file contents list that does
+		// not contain any holes. Both consist entirely of data.
+		if regionType == filesystem.Data {
+			return &offsetBytes, nil
+		}
+		return nil, nil
+	}
+
+	// Part is a file contents list containing one or more holes.
+	// Descend into it, starting at the part containing the offset.
+	list, err := fr.fileContentsListReader.ReadObject(ctx, *reference)
+	if err != nil {
+		return nil, util.StatusWrapf(err, "Failed to read file contents list with reference %s", model_core.DecodableLocalReferenceToString(*reference))
+	}
+	if actualSizeBytes, expectedSizeBytes := list[len(list)-1].GetEndBytes(), endBytes-startBytes; actualSizeBytes != expectedSizeBytes {
+		return nil, status.Errorf(codes.InvalidArgument, "Parts in the file contents list with reference %s have a total size of %d bytes, while %d bytes were expected", model_core.DecodableLocalReferenceToString(*reference), actualSizeBytes, expectedSizeBytes)
+	}
+	relativeOffsetBytes := offsetBytes - startBytes
+	for i := sort.Search(len(list), func(i int) bool {
+		return relativeOffsetBytes < list[i].GetEndBytes()
+	}); i < len(list); {
+		childPart := &list[i]
+		if regionType == filesystem.Hole && childPart.contiguousCount > 0 {
+			// This part and the ones that follow it don't
+			// contain any holes. Skip to the next part that
+			// may contain a hole.
+			i += childPart.contiguousCount
+			continue
+		}
+		childStartBytes := startBytes
+		if i > 0 {
+			childStartBytes += list[i-1].GetEndBytes()
+		}
+		nextOffsetBytes, err := fr.seekInPart(
+			ctx,
+			childPart,
+			childStartBytes,
+			startBytes+childPart.GetEndBytes(),
+			max(offsetBytes, childStartBytes),
+			regionType,
+		)
+		if err != nil || nextOffsetBytes != nil {
+			return nextOffsetBytes, err
+		}
+		i++
+	}
+	return nil, nil
 }
 
 // FileOpenRead opens a file that has been written to storage, returning

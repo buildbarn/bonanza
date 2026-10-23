@@ -98,22 +98,16 @@ func (f *objectBackedFile) VirtualRead(ctx context.Context, buf []byte, offsetBy
 }
 
 func (f *objectBackedFile) VirtualSeek(ctx context.Context, offset uint64, regionType filesystem.RegionType) (*uint64, virtual.Status) {
-	// TODO: Actually report holes contained in files.
-	endBytes := f.fileContents.GetEndBytes()
-	switch regionType {
-	case filesystem.Data:
-		if offset >= endBytes {
-			return nil, virtual.StatusErrNXIO
-		}
-		return &offset, virtual.StatusOK
-	case filesystem.Hole:
-		if offset >= endBytes {
-			return nil, virtual.StatusErrNXIO
-		}
-		return &endBytes, virtual.StatusOK
-	default:
-		panic("requests for other seek modes should have been intercepted")
+	if offset >= f.fileContents.GetEndBytes() {
+		return nil, virtual.StatusErrNXIO
 	}
+	ff := f.factory
+	nextOffset, err := ff.fileReader.FileSeek(ff.context, f.fileContents, offset, regionType)
+	if err != nil {
+		ff.errorLogger.Log(util.StatusWrapf(err, "Failed to seek at offset %d", offset))
+		return nil, virtual.StatusErrIO
+	}
+	return nextOffset, virtual.StatusOK
 }
 
 func (f *objectBackedFile) VirtualSetAttributes(ctx context.Context, in *virtual.Attributes, requested virtual.AttributesMask, out *virtual.Attributes) virtual.Status {

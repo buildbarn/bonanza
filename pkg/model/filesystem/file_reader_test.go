@@ -9,6 +9,7 @@ import (
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
+	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
@@ -16,6 +17,7 @@ import (
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"go.uber.org/mock/gomock"
 )
@@ -184,4 +186,200 @@ func TestFileReader(t *testing.T) {
 	})
 
 	// TODO: Add more testing coverage.
+}
+
+func TestFileReaderFileSeek(t *testing.T) {
+	ctrl, ctx := gomock.WithContext(t.Context(), t)
+
+	fileContentsListReader := NewMockFileContentsListReaderForTesting(ctrl)
+	chunkReader := NewMockFileChunkReaderForTesting(ctrl)
+	fileReader := model_filesystem.NewFileReader(
+		fileContentsListReader,
+		chunkReader,
+		semaphore.NewWeighted(1),
+	)
+
+	// Helpers for constructing FileContents messages.
+	newChunk := func(sizeBytes uint64) *model_filesystem_pb.FileContents {
+		return &model_filesystem_pb.FileContents{
+			Level: &model_filesystem_pb.FileContents_ChunkReference{
+				ChunkReference: &model_core_pb.DecodableReference{
+					Reference: &model_core_pb.Reference{Index: 1},
+				},
+			},
+			TotalSizeBytes: sizeBytes,
+		}
+	}
+	newHole := func(sizeBytes uint64) *model_filesystem_pb.FileContents {
+		return &model_filesystem_pb.FileContents{
+			Level: &model_filesystem_pb.FileContents_Hole{
+				Hole: &emptypb.Empty{},
+			},
+			TotalSizeBytes: sizeBytes,
+		}
+	}
+	newList := func(sizeBytes uint64, index uint32, sparse bool) *model_filesystem_pb.FileContents {
+		return &model_filesystem_pb.FileContents{
+			Level: &model_filesystem_pb.FileContents_List_{
+				List: &model_filesystem_pb.FileContents_List{
+					Reference: &model_core_pb.DecodableReference{
+						Reference: &model_core_pb.Reference{Index: index},
+					},
+					Sparse: sparse,
+				},
+			},
+			TotalSizeBytes: sizeBytes,
+		}
+	}
+	chunkReference := object.MustNewSHA256V1LocalReference("8e2c2ef4fd0f1d5e1bd7ad5d65c4f6e2a6c3a3e9b4f4e9d2b5f0e1f7a3c2d1b0", 10, 0, 0, 0)
+	sparseListReference := object.MustNewSHA256V1LocalReference("1b5d7c8a3e2f4d6b9a0c1e3f5d7b9a2c4e6f8a0b2d4f6a8c0e2a4c6e8a0c2e4f", 200, 1, 3, 0)
+	nonSparseListReference := object.MustNewSHA256V1LocalReference("7f3e1d9b5c2a8e4f6d0b3a9c7e5f1d2b8a4c6e0f9d3b7a5c1e8f2d6b4a0c9e3f", 200, 1, 2, 0)
+	nestedSparseListReference := object.MustNewSHA256V1LocalReference("c4a2e8f6d1b3a9c5e7f0d2b4a6c8e1f3d5b7a9c0e2f4d6b8a1c3e5f7d9b0a2c4", 200, 1, 1, 0)
+	newEntry := func(fileContents *model_filesystem_pb.FileContents, reference object.LocalReference) model_filesystem.FileContentsEntry[object.LocalReference] {
+		return util.Must(model_filesystem.NewFileContentsEntryFromProto(
+			model_core.NewMessage(fileContents, object.OutgoingReferencesList[object.LocalReference]{reference}),
+		))
+	}
+	newDecodable := func(reference object.LocalReference) model_core.Decodable[object.LocalReference] {
+		return util.Must(model_core.NewDecodable(reference, nil))
+	}
+
+	// A 100 byte file with the following layout:
+	//
+	//     [0, 10)    Chunk
+	//     [10, 30)   Hole
+	//     [30, 40)   Chunk
+	//     [40, 70)   File contents list without any holes
+	//     [70, 100)  File contents list containing:
+	//                [70, 75)   Chunk
+	//                [75, 100)  Hole
+	sparseFile := newEntry(newList(100, 1, true), sparseListReference)
+	sparseList := util.Must(model_filesystem.NewFileContentsListFromProto(
+		model_core.NewMessage(
+			[]*model_filesystem_pb.FileContents{
+				newChunk(10),
+				newHole(20),
+				newChunk(10),
+				newList(30, 2, false),
+				newList(30, 3, true),
+			},
+			object.OutgoingReferencesList[object.LocalReference]{
+				chunkReference,
+				nonSparseListReference,
+				nestedSparseListReference,
+			},
+		),
+	))
+	nestedSparseList := util.Must(model_filesystem.NewFileContentsListFromProto(
+		model_core.NewMessage(
+			[]*model_filesystem_pb.FileContents{
+				newChunk(5),
+				newHole(25),
+			},
+			object.OutgoingReferencesList[object.LocalReference]{
+				chunkReference,
+			},
+		),
+	))
+
+	for _, tc := range []struct {
+		name                string
+		offsetBytes         uint64
+		regionType          filesystem.RegionType
+		readsNestedList     bool
+		expectedOffsetBytes *uint64
+	}{
+		// Seeking for holes. The list without any holes may
+		// never be read, as it is not sparse.
+		{name: "HoleInChunk", offsetBytes: 0, regionType: filesystem.Hole, expectedOffsetBytes: ptr(10)},
+		{name: "HoleInHole", offsetBytes: 15, regionType: filesystem.Hole, expectedOffsetBytes: ptr(15)},
+		{name: "HoleSkippingNonSparseList", offsetBytes: 30, regionType: filesystem.Hole, readsNestedList: true, expectedOffsetBytes: ptr(75)},
+		{name: "HoleInNonSparseList", offsetBytes: 45, regionType: filesystem.Hole, readsNestedList: true, expectedOffsetBytes: ptr(75)},
+		{name: "HoleInNestedList", offsetBytes: 99, regionType: filesystem.Hole, readsNestedList: true, expectedOffsetBytes: ptr(99)},
+
+		// Seeking for data.
+		{name: "DataInChunk", offsetBytes: 5, regionType: filesystem.Data, expectedOffsetBytes: ptr(5)},
+		{name: "DataAfterHole", offsetBytes: 15, regionType: filesystem.Data, expectedOffsetBytes: ptr(30)},
+		{name: "DataInNonSparseList", offsetBytes: 45, regionType: filesystem.Data, expectedOffsetBytes: ptr(45)},
+		{name: "DataInNestedList", offsetBytes: 72, regionType: filesystem.Data, readsNestedList: true, expectedOffsetBytes: ptr(72)},
+		// The file ends with a hole, meaning there is no more
+		// data to be found.
+		{name: "DataInTrailingHole", offsetBytes: 80, regionType: filesystem.Data, readsNestedList: true, expectedOffsetBytes: nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fileContentsListReader.EXPECT().ReadObject(gomock.Any(), newDecodable(sparseListReference)).Return(sparseList, nil)
+			if tc.readsNestedList {
+				fileContentsListReader.EXPECT().ReadObject(gomock.Any(), newDecodable(nestedSparseListReference)).Return(nestedSparseList, nil)
+			}
+
+			offsetBytes, err := fileReader.FileSeek(ctx, sparseFile, tc.offsetBytes, tc.regionType)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedOffsetBytes, offsetBytes)
+		})
+	}
+
+	t.Run("Chunk", func(t *testing.T) {
+		// Files consisting of a single chunk only have a hole
+		// at the end.
+		file := newEntry(newChunk(10), chunkReference)
+
+		offsetBytes, err := fileReader.FileSeek(ctx, file, 3, filesystem.Data)
+		require.NoError(t, err)
+		require.Equal(t, ptr(3), offsetBytes)
+
+		offsetBytes, err = fileReader.FileSeek(ctx, file, 3, filesystem.Hole)
+		require.NoError(t, err)
+		require.Equal(t, ptr(10), offsetBytes)
+	})
+
+	t.Run("Hole", func(t *testing.T) {
+		// Files consisting entirely of a hole don't have any
+		// data.
+		file := util.Must(model_filesystem.NewFileContentsEntryFromProto(
+			model_core.NewSimpleMessage[object.LocalReference](newHole(10)),
+		))
+
+		offsetBytes, err := fileReader.FileSeek(ctx, file, 3, filesystem.Data)
+		require.NoError(t, err)
+		require.Nil(t, offsetBytes)
+
+		offsetBytes, err = fileReader.FileSeek(ctx, file, 3, filesystem.Hole)
+		require.NoError(t, err)
+		require.Equal(t, ptr(3), offsetBytes)
+	})
+
+	t.Run("NonSparseList", func(t *testing.T) {
+		// Lists that are not sparse don't need to be read, as
+		// they consist entirely of data.
+		file := newEntry(newList(30, 1, false), nonSparseListReference)
+
+		offsetBytes, err := fileReader.FileSeek(ctx, file, 12, filesystem.Data)
+		require.NoError(t, err)
+		require.Equal(t, ptr(12), offsetBytes)
+
+		offsetBytes, err = fileReader.FileSeek(ctx, file, 12, filesystem.Hole)
+		require.NoError(t, err)
+		require.Equal(t, ptr(30), offsetBytes)
+	})
+
+	t.Run("ListReadFailure", func(t *testing.T) {
+		fileContentsListReader.EXPECT().ReadObject(gomock.Any(), newDecodable(sparseListReference)).
+			Return(nil, status.Error(codes.Internal, "Server offline"))
+
+		_, err := fileReader.FileSeek(ctx, sparseFile, 0, filesystem.Hole)
+		testutil.RequireEqualStatus(t, status.Error(codes.Internal, "Failed to read file contents list with reference "+model_core.DecodableLocalReferenceToString(newDecodable(sparseListReference))+": Server offline"), err)
+	})
+
+	t.Run("ListSizeMismatch", func(t *testing.T) {
+		// The sizes of the parts in a file contents list must
+		// add up to the size of the list.
+		fileContentsListReader.EXPECT().ReadObject(gomock.Any(), newDecodable(sparseListReference)).Return(nestedSparseList, nil)
+
+		_, err := fileReader.FileSeek(ctx, sparseFile, 0, filesystem.Hole)
+		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Parts in the file contents list with reference "+model_core.DecodableLocalReferenceToString(newDecodable(sparseListReference))+" have a total size of 30 bytes, while 100 bytes were expected"), err)
+	})
+}
+
+func ptr(v uint64) *uint64 {
+	return &v
 }
