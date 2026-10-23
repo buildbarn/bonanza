@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	model_core "bonanza.build/pkg/model/core"
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
@@ -25,12 +26,12 @@ type FileCreationParameters struct {
 // NewFileCreationParametersFromProto converts the file creation
 // parameters that are stored in a Protobuf message to its native
 // counterpart. It also validates that the provided sizes are in bounds.
-func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParameters, referenceFormat object.ReferenceFormat) (*FileCreationParameters, error) {
+func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParameters, referenceFormat object.ReferenceFormat, binaryEncoderFactory model_encoding.BinaryEncoderFactory) (*FileCreationParameters, error) {
 	if m == nil {
 		return nil, status.Error(codes.InvalidArgument, "No file creation parameters provided")
 	}
 
-	accessParameters, err := NewFileAccessParametersFromProto(m.Access, referenceFormat)
+	accessParameters, err := NewFileAccessParametersFromProto(m.Access, referenceFormat, binaryEncoderFactory)
 	if err != nil {
 		return nil, err
 	}

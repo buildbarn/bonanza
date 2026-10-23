@@ -24,17 +24,17 @@ type FileAccessParameters struct {
 // FileAccessParameters that matches the configuration stored in a
 // Protobuf message. This, for example, permits a server to access files
 // that were uploaded by a client.
-func NewFileAccessParametersFromProto(m *model_filesystem_pb.FileAccessParameters, referenceFormat object.ReferenceFormat) (*FileAccessParameters, error) {
+func NewFileAccessParametersFromProto(m *model_filesystem_pb.FileAccessParameters, referenceFormat object.ReferenceFormat, binaryEncoderFactory model_encoding.BinaryEncoderFactory) (*FileAccessParameters, error) {
 	if m == nil {
 		return nil, status.Error(codes.InvalidArgument, "No file access parameters provided")
 	}
 
 	maximumObjectSizeBytes := uint32(referenceFormat.GetMaximumObjectSizeBytes())
-	chunkEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(m.ChunkEncoders, maximumObjectSizeBytes)
+	chunkEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(m.ChunkEncoders, maximumObjectSizeBytes)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid chunk encoder")
 	}
-	fileContentsListEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(m.FileContentsListEncoders, maximumObjectSizeBytes)
+	fileContentsListEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(m.FileContentsListEncoders, maximumObjectSizeBytes)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid file contents list encoder")
 	}

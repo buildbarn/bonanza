@@ -62,6 +62,7 @@ type executor struct {
 	cacheTagSignaturePrivateKey            ed25519.PrivateKey
 	uploadConcurrency                      uint32
 	cacheLookupResultIndirectionMaximumAge time.Duration
+	binaryEncoderFactory                   model_encoding.BinaryEncoderFactory
 	clock                                  clock.Clock
 }
 
@@ -79,6 +80,7 @@ func NewExecutor(
 	cacheTagSignaturePrivateKey ed25519.PrivateKey,
 	uploadConcurrency uint32,
 	cacheLookupResultIndirectionMaximumAge time.Duration,
+	binaryEncoderFactory model_encoding.BinaryEncoderFactory,
 	clock clock.Clock,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &executor{
@@ -93,6 +95,7 @@ func NewExecutor(
 		cacheTagSignaturePrivateKey:            cacheTagSignaturePrivateKey,
 		uploadConcurrency:                      uploadConcurrency,
 		cacheLookupResultIndirectionMaximumAge: cacheLookupResultIndirectionMaximumAge,
+		binaryEncoderFactory:                   binaryEncoderFactory,
 		clock:                                  clock,
 	}
 }
@@ -143,7 +146,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 	instanceName := actionGlobalReference.InstanceName
 	referenceFormat := action.Reference.Value.GetReferenceFormat()
 
-	deterministicActionEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
+	deterministicActionEncoder, err := e.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
 		action.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
@@ -151,7 +154,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 		var badReference model_core.Decodable[object.LocalReference]
 		return badReference, 0, util.StatusWrap(err, "Failed to create deterministic action encoder")
 	}
-	keyedActionEncoder, err := model_encoding.NewKeyedBinaryEncoderFromProto(
+	keyedActionEncoder, err := e.binaryEncoderFactory.NewKeyedBinaryEncoderFromProto(
 		action.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)

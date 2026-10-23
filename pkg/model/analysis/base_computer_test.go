@@ -62,6 +62,7 @@ func newBaseComputerTester(ctrl *gomock.Controller) *baseComputerTester {
 			bzlFileBuiltins,
 			buildFileBuiltins,
 			semaphore.NewWeighted(1),
+			model_encoding.NewBinaryEncoderFactory(true),
 		),
 		parsedObjectPoolIngester: parsedObjectPoolIngester,
 		filePool:                 filePool,
@@ -98,6 +99,7 @@ func (baseComputerTester) expectGetDirectoryCreationParametersObjectValue(t *tes
 			DirectoryMaximumSizeBytes: 1 << 16,
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+		model_encoding.NewBinaryEncoderFactory(true),
 	)), true)
 }
 
@@ -116,6 +118,7 @@ func (baseComputerTester) expectGetFileCreationParametersObjectValue(t *testing.
 			FileContentsListMaximumSizeBytes: 1 << 18,
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+		model_encoding.NewBinaryEncoderFactory(true),
 	)), true)
 }
 

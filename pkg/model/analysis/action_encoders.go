@@ -24,7 +24,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeActionEncoderObjectValue(ct
 	if !encoders.IsSet() {
 		return nil, evaluation.ErrMissingDependency
 	}
-	return model_encoding.NewDeterministicBinaryEncoderFromProto(
+	return c.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
 		encoders.Message.ActionEncoders,
 		uint32(c.referenceFormat.GetMaximumObjectSizeBytes()),
 	)

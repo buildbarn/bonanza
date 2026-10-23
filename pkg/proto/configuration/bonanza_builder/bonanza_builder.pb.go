@@ -52,6 +52,7 @@ type ApplicationConfiguration struct {
 	BufferedObjectsLimit                   *object.Limit                                `protobuf:"bytes,21,opt,name=buffered_objects_limit,json=bufferedObjectsLimit,proto3" json:"buffered_objects_limit,omitempty"`
 	BufferedObjectsCacheReplacementPolicy  eviction.CacheReplacementPolicy              `protobuf:"varint,22,opt,name=buffered_objects_cache_replacement_policy,json=bufferedObjectsCacheReplacementPolicy,proto3,enum=buildbarn.configuration.eviction.CacheReplacementPolicy" json:"buffered_objects_cache_replacement_policy,omitempty"`
 	CacheLookupResultIndirectionMaximumAge *durationpb.Duration                         `protobuf:"bytes,23,opt,name=cache_lookup_result_indirection_maximum_age,json=cacheLookupResultIndirectionMaximumAge,proto3" json:"cache_lookup_result_indirection_maximum_age,omitempty"`
+	PermitUnencryptedBinaryEncoders        bool                                         `protobuf:"varint,24,opt,name=permit_unencrypted_binary_encoders,json=permitUnencryptedBinaryEncoders,proto3" json:"permit_unencrypted_binary_encoders,omitempty"`
 	unknownFields                          protoimpl.UnknownFields
 	sizeCache                              protoimpl.SizeCache
 }
@@ -226,11 +227,18 @@ func (x *ApplicationConfiguration) GetCacheLookupResultIndirectionMaximumAge() *
 	return nil
 }
 
+func (x *ApplicationConfiguration) GetPermitUnencryptedBinaryEncoders() bool {
+	if x != nil {
+		return x.PermitUnencryptedBinaryEncoders
+	}
+	return false
+}
+
 var File_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDesc = "" +
 	"\n" +
-	"Kbonanza.build/pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aOgithub.com/buildbarn/bb-storage/pkg/proto/configuration/eviction/eviction.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\x1a\x1egoogle/protobuf/duration.proto\"\xcc\x0e\n" +
+	"Kbonanza.build/pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aOgithub.com/buildbarn/bb-storage/pkg/proto/configuration/eviction/eviction.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\x1a\x1egoogle/protobuf/duration.proto\"\x99\x0f\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x03 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12V\n" +
@@ -252,7 +260,8 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder
 	"\x1fcache_tag_signature_private_key\x18\x13 \x01(\tR\x1bcacheTagSignaturePrivateKey\x12S\n" +
 	"\x16buffered_objects_limit\x18\x15 \x01(\v2\x1d.bonanza.storage.object.LimitR\x14bufferedObjectsLimit\x12\x92\x01\n" +
 	")buffered_objects_cache_replacement_policy\x18\x16 \x01(\x0e28.buildbarn.configuration.eviction.CacheReplacementPolicyR%bufferedObjectsCacheReplacementPolicy\x12v\n" +
-	"+cache_lookup_result_indirection_maximum_age\x18\x17 \x01(\v2\x19.google.protobuf.DurationR&cacheLookupResultIndirectionMaximumAge\x1a;\n" +
+	"+cache_lookup_result_indirection_maximum_age\x18\x17 \x01(\v2\x19.google.protobuf.DurationR&cacheLookupResultIndirectionMaximumAge\x12K\n" +
+	"\"permit_unencrypted_binary_encoders\x18\x18 \x01(\bR\x1fpermitUnencryptedBinaryEncoders\x1a;\n" +
 	"\rWorkerIdEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B7Z5bonanza.build/pkg/proto/configuration/bonanza_builderb\x06proto3"

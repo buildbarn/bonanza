@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
@@ -33,6 +34,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 			FileContentsListMaximumSizeBytes: 1 << 14,
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+		model_encoding.NewBinaryEncoderFactory(true),
 	)
 	require.NoError(t, err)
 

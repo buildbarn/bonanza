@@ -675,7 +675,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		), nil
 	}
 
-	binaryEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
+	binaryEncoder, err := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
 		cookie.RecentlyObservedEncoders[0].Configuration,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
@@ -2054,10 +2054,15 @@ func (rawPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object
 	}, 0, nil
 }
 
+// The browser only decodes objects, using encoders that the user
+// explicitly selected or recently observed. There is thus no need to
+// enforce the use of encryption.
+var browserBinaryEncoderFactory = model_encoding.NewBinaryEncoderFactory(true)
+
 func decodeObject(o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]byte, int, error) {
 	for i, recentlyObservedEncoder := range recentlyObservedEncoders {
 		objectReference := o.Value.GetLocalReference()
-		binaryEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
+		binaryEncoder, err := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
 			recentlyObservedEncoder.Configuration,
 			uint32(objectReference.GetReferenceFormat().GetMaximumObjectSizeBytes()),
 		)

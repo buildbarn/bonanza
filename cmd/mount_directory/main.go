@@ -63,16 +63,19 @@ func main() {
 			return util.StatusWrap(err, "Failed to create gRPC client")
 		}
 
+		// Encoders are provided by the operator, meaning there
+		// is no need to enforce the use of encryption.
+		binaryEncoderFactory := encoding.NewBinaryEncoderFactory(true)
 		maximumObjectSizeBytes := uint32(namespace.GetMaximumObjectSizeBytes())
-		directoryEncoder, err := encoding.NewDeterministicBinaryEncoderFromProto(configuration.DirectoryEncoders, maximumObjectSizeBytes)
+		directoryEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(configuration.DirectoryEncoders, maximumObjectSizeBytes)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create directory encoder")
 		}
-		smallFileEncoder, err := encoding.NewDeterministicBinaryEncoderFromProto(configuration.SmallFileEncoders, maximumObjectSizeBytes)
+		smallFileEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(configuration.SmallFileEncoders, maximumObjectSizeBytes)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create small file encoder")
 		}
-		concatenatedFileEncoder, err := encoding.NewDeterministicBinaryEncoderFromProto(configuration.ConcatenatedFileEncoders, maximumObjectSizeBytes)
+		concatenatedFileEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(configuration.ConcatenatedFileEncoders, maximumObjectSizeBytes)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create concatenated file encoder")
 		}

@@ -27,5 +27,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryCreationParameters
 	return model_filesystem.NewDirectoryCreationParametersFromProto(
 		directoryCreationParameters.Message.DirectoryCreationParameters,
 		c.referenceFormat,
+		c.binaryEncoderFactory,
 	)
 }

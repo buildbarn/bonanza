@@ -79,7 +79,9 @@ func main() {
 			}
 
 			referenceFormat := namespace.ReferenceFormat
-			objectEncoder, err := model_encoding.NewKeyedBinaryEncoderFromProto(
+			// Encoders are provided by the operator, meaning
+			// there is no need to enforce the use of encryption.
+			objectEncoder, err := model_encoding.NewBinaryEncoderFactory(true).NewKeyedBinaryEncoderFromProto(
 				storeConfiguration.ObjectEncoders,
 				uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 			)

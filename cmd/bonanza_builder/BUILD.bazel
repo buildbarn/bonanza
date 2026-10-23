@@ -11,6 +11,7 @@ go_library(
         "//pkg/model/analysis",
         "//pkg/model/core",
         "//pkg/model/core/buffered",
+        "//pkg/model/encoding",
         "//pkg/model/evaluation",
         "//pkg/model/executewithstorage",
         "//pkg/model/parser",

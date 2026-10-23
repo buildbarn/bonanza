@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_fetch "bonanza.build/pkg/model/fetch"
 	model_parser "bonanza.build/pkg/model/parser"
@@ -142,6 +143,7 @@ func main() {
 							dagUploader,
 							model_fetch.NewSchemeDemultiplexingFetcher(fetchersByScheme),
 							filePool,
+							model_encoding.NewBinaryEncoderFactory(configuration.PermitUnencryptedBinaryEncoders),
 						),
 					),
 				),

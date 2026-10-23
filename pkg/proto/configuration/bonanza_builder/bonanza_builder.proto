@@ -138,4 +138,10 @@ message ApplicationConfiguration {
   // evaluation, ensuring that the amount of indirection does not
   // continue to grow over time.
   google.protobuf.Duration cache_lookup_result_indirection_maximum_age = 23;
+
+  // If set, permit clients to submit actions that use binary encoders
+  // that don't perform encryption. By default such actions are
+  // rejected, ensuring that this process only reads and writes
+  // encrypted objects on behalf of clients.
+  bool permit_unencrypted_binary_encoders = 24;
 }

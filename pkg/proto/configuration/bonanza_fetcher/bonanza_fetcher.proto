@@ -63,4 +63,10 @@ message ApplicationConfiguration {
   // been decoded and parsed. When not set, each object will always be
   // read from storage.
   bonanza.configuration.model.parser.ParsedObjectPool parsed_object_pool = 11;
+
+  // If set, permit clients to submit actions that use binary encoders
+  // that don't perform encryption. By default such actions are
+  // rejected, ensuring that this process only reads and writes
+  // encrypted objects on behalf of clients.
+  bool permit_unencrypted_binary_encoders = 13;
 }

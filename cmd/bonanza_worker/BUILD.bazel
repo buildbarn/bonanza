@@ -8,6 +8,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//pkg/model/command",
+        "//pkg/model/encoding",
         "//pkg/model/executewithstorage",
         "//pkg/model/filesystem/virtual",
         "//pkg/model/parser",

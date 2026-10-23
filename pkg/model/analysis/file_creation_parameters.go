@@ -27,5 +27,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileCreationParametersObjec
 	return model_filesystem.NewFileCreationParametersFromProto(
 		fileCreationParameters.Message.FileCreationParameters,
 		c.referenceFormat,
+		c.binaryEncoderFactory,
 	)
 }

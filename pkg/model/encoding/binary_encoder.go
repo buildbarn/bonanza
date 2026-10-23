@@ -28,7 +28,30 @@ type BinaryDecoder interface {
 	GetDecodingParametersSizeBytes() int
 }
 
+// BinaryEncoderFactory creates binary encoders according to
+// configurations provided in the form of Protobuf messages.
+//
+// Configurations are often provided by clients, as part of the actions
+// they submit. Servers that are expected to only store encrypted data
+// can use BinaryEncoderFactory to reject configurations that don't
+// perform encryption. The zero value of BinaryEncoderFactory does
+// exactly that. Use NewBinaryEncoderFactory() to create an instance
+// that also permits unencrypted configurations.
+type BinaryEncoderFactory struct {
+	permitUnencryptedBinaryEncoders bool
+}
+
+// NewBinaryEncoderFactory creates a BinaryEncoderFactory. If
+// permitUnencryptedBinaryEncoders is false, only configurations that
+// contain at least one encrypting step are accepted.
+func NewBinaryEncoderFactory(permitUnencryptedBinaryEncoders bool) BinaryEncoderFactory {
+	return BinaryEncoderFactory{
+		permitUnencryptedBinaryEncoders: permitUnencryptedBinaryEncoders,
+	}
+}
+
 func newBinaryEncoderFromProto[T any](
+	f BinaryEncoderFactory,
 	configurations []*model_encoding_pb.BinaryEncoder,
 	maximumDecodedSizeBytes uint32,
 	encodingMode model_encoding_pb.EncodingMode,
@@ -37,6 +60,7 @@ func newBinaryEncoderFromProto[T any](
 	newChainedBinaryEncoder func([]T) T,
 ) (T, error) {
 	encoders := make([]T, 0, len(configurations))
+	isEncrypting := false
 	for i, configuration := range configurations {
 		switch encoderConfiguration := configuration.Encoder.(type) {
 		case *model_encoding_pb.BinaryEncoder_LzwCompressing:
@@ -70,10 +94,18 @@ func newBinaryEncoderFromProto[T any](
 				return badBinaryEncoder, err
 			}
 			encoders = append(encoders, encoder)
+			isEncrypting = true
 		default:
 			var badBinaryEncoder T
 			return badBinaryEncoder, status.Error(codes.InvalidArgument, "Unknown binary encoder type")
 		}
+	}
+	// Any steps applied after encryption only process ciphertext.
+	// This means it is sufficient for any of the steps to perform
+	// encryption.
+	if !isEncrypting && !f.permitUnencryptedBinaryEncoders {
+		var badBinaryEncoder T
+		return badBinaryEncoder, status.Error(codes.InvalidArgument, "Binary encoders do not perform encryption, which is required by this server")
 	}
 	return newChainedBinaryEncoder(encoders), nil
 }
@@ -96,8 +128,9 @@ type DeterministicBinaryEncoder interface {
 // NewDeterministicBinaryEncoderFromProto creates a
 // DeterministicBinaryEncoder that behaves according to the
 // specification provided in the form of a Protobuf message.
-func NewDeterministicBinaryEncoderFromProto(configurations []*model_encoding_pb.BinaryEncoder, maximumDecodedSizeBytes uint32) (DeterministicBinaryEncoder, error) {
+func (f BinaryEncoderFactory) NewDeterministicBinaryEncoderFromProto(configurations []*model_encoding_pb.BinaryEncoder, maximumDecodedSizeBytes uint32) (DeterministicBinaryEncoder, error) {
 	return newBinaryEncoderFromProto(
+		f,
 		configurations,
 		maximumDecodedSizeBytes,
 		model_encoding_pb.EncodingMode_DETERMINISTIC,
@@ -131,8 +164,9 @@ type KeyedBinaryEncoder interface {
 // NewKeyedBinaryEncoderFromProto creates a KeyedBinaryEncoder that
 // behaves according to the specification provided in the form of a
 // Protobuf message.
-func NewKeyedBinaryEncoderFromProto(configurations []*model_encoding_pb.BinaryEncoder, maximumDecodedSizeBytes uint32) (KeyedBinaryEncoder, error) {
+func (f BinaryEncoderFactory) NewKeyedBinaryEncoderFromProto(configurations []*model_encoding_pb.BinaryEncoder, maximumDecodedSizeBytes uint32) (KeyedBinaryEncoder, error) {
 	return newBinaryEncoderFromProto(
+		f,
 		configurations,
 		maximumDecodedSizeBytes,
 		model_encoding_pb.EncodingMode_KEYED,

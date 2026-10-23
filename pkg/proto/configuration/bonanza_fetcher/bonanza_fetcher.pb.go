@@ -29,20 +29,21 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                     protoimpl.MessageState                       `protogen:"open.v1"`
-	Global                    *global.Configuration                        `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	StorageGrpcClient         *grpc.ClientConfiguration                    `protobuf:"bytes,2,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
-	HttpClient                *client.Configuration                        `protobuf:"bytes,3,opt,name=http_client,json=httpClient,proto3" json:"http_client,omitempty"`
-	FilePool                  *filesystem.FilePoolConfiguration            `protobuf:"bytes,4,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
-	RemoteWorkerGrpcClient    *grpc.ClientConfiguration                    `protobuf:"bytes,6,opt,name=remote_worker_grpc_client,json=remoteWorkerGrpcClient,proto3" json:"remote_worker_grpc_client,omitempty"`
-	PlatformPrivateKeys       []string                                     `protobuf:"bytes,7,rep,name=platform_private_keys,json=platformPrivateKeys,proto3" json:"platform_private_keys,omitempty"`
-	ClientCertificateVerifier *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,8,opt,name=client_certificate_verifier,json=clientCertificateVerifier,proto3" json:"client_certificate_verifier,omitempty"`
-	WorkerId                  map[string]string                            `protobuf:"bytes,9,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Concurrency               uint64                                       `protobuf:"varint,10,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
-	LocalObjectStore          *local.StoreConfiguration                    `protobuf:"bytes,12,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
-	ParsedObjectPool          *parser.ParsedObjectPool                     `protobuf:"bytes,11,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state                           protoimpl.MessageState                       `protogen:"open.v1"`
+	Global                          *global.Configuration                        `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
+	StorageGrpcClient               *grpc.ClientConfiguration                    `protobuf:"bytes,2,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
+	HttpClient                      *client.Configuration                        `protobuf:"bytes,3,opt,name=http_client,json=httpClient,proto3" json:"http_client,omitempty"`
+	FilePool                        *filesystem.FilePoolConfiguration            `protobuf:"bytes,4,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
+	RemoteWorkerGrpcClient          *grpc.ClientConfiguration                    `protobuf:"bytes,6,opt,name=remote_worker_grpc_client,json=remoteWorkerGrpcClient,proto3" json:"remote_worker_grpc_client,omitempty"`
+	PlatformPrivateKeys             []string                                     `protobuf:"bytes,7,rep,name=platform_private_keys,json=platformPrivateKeys,proto3" json:"platform_private_keys,omitempty"`
+	ClientCertificateVerifier       *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,8,opt,name=client_certificate_verifier,json=clientCertificateVerifier,proto3" json:"client_certificate_verifier,omitempty"`
+	WorkerId                        map[string]string                            `protobuf:"bytes,9,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Concurrency                     uint64                                       `protobuf:"varint,10,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
+	LocalObjectStore                *local.StoreConfiguration                    `protobuf:"bytes,12,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
+	ParsedObjectPool                *parser.ParsedObjectPool                     `protobuf:"bytes,11,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
+	PermitUnencryptedBinaryEncoders bool                                         `protobuf:"varint,13,opt,name=permit_unencrypted_binary_encoders,json=permitUnencryptedBinaryEncoders,proto3" json:"permit_unencrypted_binary_encoders,omitempty"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -152,11 +153,18 @@ func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPoo
 	return nil
 }
 
+func (x *ApplicationConfiguration) GetPermitUnencryptedBinaryEncoders() bool {
+	if x != nil {
+		return x.PermitUnencryptedBinaryEncoders
+	}
+	return false
+}
+
 var File_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc = "" +
 	"\n" +
-	"Kbonanza.build/pkg/proto/configuration/bonanza_fetcher/bonanza_fetcher.proto\x12%bonanza.configuration.bonanza_fetcher\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aPgithub.com/buildbarn/bb-storage/pkg/proto/configuration/http/client/client.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\xb7\b\n" +
+	"Kbonanza.build/pkg/proto/configuration/bonanza_fetcher/bonanza_fetcher.proto\x12%bonanza.configuration.bonanza_fetcher\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aPgithub.com/buildbarn/bb-storage/pkg/proto/configuration/http/client/client.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\x84\t\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x02 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12S\n" +
@@ -170,7 +178,8 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher
 	"\vconcurrency\x18\n" +
 	" \x01(\x04R\vconcurrency\x12l\n" +
 	"\x12local_object_store\x18\f \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x12b\n" +
-	"\x12parsed_object_pool\x18\v \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\x1a;\n" +
+	"\x12parsed_object_pool\x18\v \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\x12K\n" +
+	"\"permit_unencrypted_binary_encoders\x18\r \x01(\bR\x1fpermitUnencryptedBinaryEncoders\x1a;\n" +
 	"\rWorkerIdEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B7Z5bonanza.build/pkg/proto/configuration/bonanza_fetcherb\x06proto3"

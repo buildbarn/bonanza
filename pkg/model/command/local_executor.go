@@ -117,6 +117,7 @@ type localExecutor struct {
 	readinessCheckingDirectory          virtual.Directory
 	maximumExecutionTimeoutCompensation time.Duration
 	workerID                            map[string]string
+	binaryEncoderFactory                model_encoding.BinaryEncoderFactory
 }
 
 // NewLocalExecutor creates an executor of command actions, running them
@@ -143,6 +144,7 @@ func NewLocalExecutor(
 	defaultAttributesSetter virtual.DefaultAttributesSetter,
 	maximumExecutionTimeoutCompensation time.Duration,
 	workerID map[string]string,
+	binaryEncoderFactory model_encoding.BinaryEncoderFactory,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &localExecutor{
 		objectDownloader:               objectDownloader,
@@ -170,6 +172,7 @@ func NewLocalExecutor(
 		),
 		maximumExecutionTimeoutCompensation: maximumExecutionTimeoutCompensation,
 		workerID:                            workerID,
+		binaryEncoderFactory:                binaryEncoderFactory,
 	}
 }
 
@@ -249,13 +252,13 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	)
 
 	referenceFormat := action.Reference.Value.GetReferenceFormat()
-	actionEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
+	actionEncoder, err := e.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
 		action.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, status.Error(codes.InvalidArgument, "Invalid action encoders")
+		return badReference, 0, 0, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid action encoders")
 	}
 
 	var virtualExecutionDuration time.Duration
@@ -362,6 +365,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(
 			command.Message.FileCreationParameters,
 			referenceFormat,
+			e.binaryEncoderFactory,
 		)
 		if err != nil {
 			result.Status = status.Convert(util.StatusWrap(err, "Invalid file creation parameters")).Proto()
@@ -370,6 +374,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		directoryCreationParameters, err := model_filesystem.NewDirectoryCreationParametersFromProto(
 			command.Message.DirectoryCreationParameters,
 			referenceFormat,
+			e.binaryEncoderFactory,
 		)
 		if err != nil {
 			result.Status = status.Convert(util.StatusWrap(err, "Invalid directory creation parameters")).Proto()

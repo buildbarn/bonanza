@@ -26,6 +26,7 @@ go_library(
 go_test(
     name = "encoding_test",
     srcs = [
+        "binary_encoder_test.go",
         "chained_binary_encoder_test.go",
         "encrypting_deterministic_binary_encoder_test.go",
         "lzw_compressing_binary_encoder_test.go",
@@ -33,11 +34,13 @@ go_test(
     ],
     embed = [":encoding"],
     deps = [
+        "//pkg/proto/model/encoding",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/emptypb",
         "@org_uber_go_mock//gomock",
     ],
 )

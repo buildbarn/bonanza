@@ -37,6 +37,8 @@ type localExecutor struct {
 	dagUploader      dag.Uploader[object.InstanceName, object.GlobalReference]
 	fetcher          Fetcher
 	filePool         pool.FilePool
+
+	binaryEncoderFactory model_encoding.BinaryEncoderFactory
 }
 
 // NewLocalExecutor creates a remote worker protocol executor that is
@@ -49,6 +51,7 @@ func NewLocalExecutor(
 	dagUploader dag.Uploader[object.InstanceName, object.GlobalReference],
 	fetcher Fetcher,
 	filePool pool.FilePool,
+	binaryEncoderFactory model_encoding.BinaryEncoderFactory,
 ) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
 	return &localExecutor{
 		objectDownloader: objectDownloader,
@@ -56,6 +59,8 @@ func NewLocalExecutor(
 		dagUploader:      dagUploader,
 		fetcher:          fetcher,
 		filePool:         filePool,
+
+		binaryEncoderFactory: binaryEncoderFactory,
 	}
 }
 
@@ -71,13 +76,13 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		return badReference, 0, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
 	}
 	referenceFormat := action.Reference.Value.GetReferenceFormat()
-	actionEncoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(
+	actionEncoder, err := e.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
 		action.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
 	if err != nil {
 		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, status.Error(codes.InvalidArgument, "Invalid action encoders")
+		return badReference, 0, 0, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid action encoders")
 	}
 
 	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester(
@@ -105,7 +110,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			return &result
 		}
 
-		fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(action.Message.FileCreationParameters, referenceFormat)
+		fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(action.Message.FileCreationParameters, referenceFormat, e.binaryEncoderFactory)
 		if err != nil {
 			result.Outcome = &model_fetch_pb.Result_Failure{
 				Failure: status.Convert(util.StatusWrap(err, "Invalid file creation parameters")).Proto(),

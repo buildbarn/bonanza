@@ -34,6 +34,7 @@ type baseComputerFactory[TReference object.BasicReference, TMetadata model_core.
 	bzlFileBuiltins      starlark.StringDict
 	buildFileBuiltins    starlark.StringDict
 	objectStoreSemaphore *semaphore.Weighted
+	binaryEncoderFactory model_encoding.BinaryEncoderFactory
 }
 
 // NewBaseComputerFactory creates a factory that can be provided
@@ -45,6 +46,7 @@ func NewBaseComputerFactory[TReference object.BasicReference, TMetadata model_co
 	bzlFileBuiltins starlark.StringDict,
 	buildFileBuiltins starlark.StringDict,
 	objectStoreSemaphore *semaphore.Weighted,
+	binaryEncoderFactory model_encoding.BinaryEncoderFactory,
 ) evaluation.ComputerFactory[TReference, TMetadata] {
 	return &baseComputerFactory[TReference, TMetadata]{
 		filePool:             filePool,
@@ -52,6 +54,7 @@ func NewBaseComputerFactory[TReference object.BasicReference, TMetadata model_co
 		bzlFileBuiltins:      bzlFileBuiltins,
 		buildFileBuiltins:    buildFileBuiltins,
 		objectStoreSemaphore: objectStoreSemaphore,
+		binaryEncoderFactory: binaryEncoderFactory,
 	}
 }
 
@@ -71,6 +74,7 @@ func (cf *baseComputerFactory[TReference, TMetadata]) NewComputer(namespace obje
 			cf.bzlFileBuiltins,
 			cf.buildFileBuiltins,
 			cf.objectStoreSemaphore,
+			cf.binaryEncoderFactory,
 		),
 	)
 }
@@ -84,6 +88,7 @@ type baseComputer[TReference object.BasicReference, TMetadata model_core.Referen
 	buildFileBuiltins        starlark.StringDict
 	discardingObjectCapturer model_core.ObjectCapturer[TReference, model_core.NoopReferenceMetadata]
 	objectStoreSemaphore     *semaphore.Weighted
+	binaryEncoderFactory     model_encoding.BinaryEncoderFactory
 
 	// Readers for various message types.
 	// TODO: These should likely be removed and instantiated later
@@ -111,6 +116,7 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 	bzlFileBuiltins starlark.StringDict,
 	buildFileBuiltins starlark.StringDict,
 	objectStoreSemaphore *semaphore.Weighted,
+	binaryEncoderFactory model_encoding.BinaryEncoderFactory,
 ) Computer[TReference, TMetadata] {
 	return &baseComputer[TReference, TMetadata]{
 		parsedObjectPoolIngester: parsedObjectPoolIngester,
@@ -121,6 +127,7 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 		buildFileBuiltins:        buildFileBuiltins,
 		discardingObjectCapturer: model_core.NewDiscardingObjectCapturer[TReference](),
 		objectStoreSemaphore:     objectStoreSemaphore,
+		binaryEncoderFactory:     binaryEncoderFactory,
 
 		// TODO: Set up encoding!
 		valueReaders: model_starlark.ValueReaders[TReference]{

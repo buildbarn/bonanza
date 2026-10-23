@@ -28,6 +28,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryReadersValue(ctx c
 	directoryAccessParameters, err := model_filesystem.NewDirectoryAccessParametersFromProto(
 		directoryAccessParametersValue.Message.DirectoryAccessParameters,
 		c.referenceFormat,
+		c.binaryEncoderFactory,
 	)
 	if err != nil {
 		return nil, err

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	model_command "bonanza.build/pkg/model/command"
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_filesystem_virtual "bonanza.build/pkg/model/filesystem/virtual"
 	model_parser "bonanza.build/pkg/model/parser"
@@ -236,6 +237,7 @@ func main() {
 						defaultAttributesSetter,
 						maximumExecutionTimeoutCompensation,
 						workerID,
+						model_encoding.NewBinaryEncoderFactory(configuration.PermitUnencryptedBinaryEncoders),
 					)
 
 					client, err := remoteworker.NewClient(

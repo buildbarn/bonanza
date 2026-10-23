@@ -9,6 +9,7 @@ import (
 	model_analysis "bonanza.build/pkg/model/analysis"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/buffered"
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_evaluation "bonanza.build/pkg/model/evaluation"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_parser "bonanza.build/pkg/model/parser"
@@ -135,6 +136,7 @@ func main() {
 		if err := cacheLookupResultIndirectionMaximumAge.CheckValid(); err != nil {
 			return util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid cache lookup result indirection maximum age")
 		}
+		binaryEncoderFactory := model_encoding.NewBinaryEncoderFactory(configuration.PermitUnencryptedBinaryEncoders)
 
 		bzlFileBuiltins, buildFileBuiltins := model_starlark.GetBuiltins[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]()
 		client, err := remoteworker.NewClient(
@@ -157,6 +159,7 @@ func main() {
 							bzlFileBuiltins,
 							buildFileBuiltins,
 							semaphore.NewWeighted(configuration.ObjectStoreConcurrency),
+							binaryEncoderFactory,
 						),
 						&queuesFactory[buffered.Reference, buffered.ReferenceMetadata]{
 							local:  model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.LocalEvaluationConcurrency),
@@ -172,6 +175,7 @@ func main() {
 						cacheTagSignaturePrivateKey,
 						configuration.UploadConcurrency,
 						cacheLookupResultIndirectionMaximumAge.AsDuration(),
+						binaryEncoderFactory,
 						clock.SystemClock,
 					),
 				),

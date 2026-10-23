@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
@@ -21,12 +22,12 @@ type DirectoryCreationParameters struct {
 // creation parameters that are stored in a Protobuf message to its
 // native counterpart. It also validates that the provided sizes are in
 // bounds.
-func NewDirectoryCreationParametersFromProto(m *model_filesystem_pb.DirectoryCreationParameters, referenceFormat object.ReferenceFormat) (*DirectoryCreationParameters, error) {
+func NewDirectoryCreationParametersFromProto(m *model_filesystem_pb.DirectoryCreationParameters, referenceFormat object.ReferenceFormat, binaryEncoderFactory model_encoding.BinaryEncoderFactory) (*DirectoryCreationParameters, error) {
 	if m == nil {
 		return nil, status.Error(codes.InvalidArgument, "No directory creation parameters provided")
 	}
 
-	accessParameters, err := NewDirectoryAccessParametersFromProto(m.Access, referenceFormat)
+	accessParameters, err := NewDirectoryAccessParametersFromProto(m.Access, referenceFormat, binaryEncoderFactory)
 	if err != nil {
 		return nil, err
 	}

@@ -18,6 +18,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileReaderValue(ctx context
 	fileAccessParameters, err := model_filesystem.NewFileAccessParametersFromProto(
 		fileAccessParametersValue.Message.FileAccessParameters,
 		c.referenceFormat,
+		c.binaryEncoderFactory,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("invalid directory access parameters: %w", err)

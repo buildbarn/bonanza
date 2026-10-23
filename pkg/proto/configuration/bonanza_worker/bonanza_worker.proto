@@ -45,6 +45,12 @@ message ApplicationConfiguration {
   // The maximum number of concurrent read operations this process
   // should issue against object storage.
   int64 object_store_concurrency = 8;
+
+  // If set, permit clients to submit actions that use binary encoders
+  // that don't perform encryption. By default such actions are
+  // rejected, ensuring that this process only reads and writes
+  // encrypted objects on behalf of clients.
+  bool permit_unencrypted_binary_encoders = 9;
 }
 
 message BuildDirectoryConfiguration {

@@ -23,13 +23,13 @@ type DirectoryAccessParameters struct {
 // DirectoryAccessParameters that matches the configuration stored in a
 // Protobuf message. This, for example, permits a server to access files
 // that were uploaded by a client.
-func NewDirectoryAccessParametersFromProto(m *model_filesystem_pb.DirectoryAccessParameters, referenceFormat object.ReferenceFormat) (*DirectoryAccessParameters, error) {
+func NewDirectoryAccessParametersFromProto(m *model_filesystem_pb.DirectoryAccessParameters, referenceFormat object.ReferenceFormat, binaryEncoderFactory model_encoding.BinaryEncoderFactory) (*DirectoryAccessParameters, error) {
 	if m == nil {
 		return nil, status.Error(codes.InvalidArgument, "No directory access parameters provided")
 	}
 
 	maximumObjectSizeBytes := uint32(referenceFormat.GetMaximumObjectSizeBytes())
-	encoder, err := model_encoding.NewDeterministicBinaryEncoderFromProto(m.Encoders, maximumObjectSizeBytes)
+	encoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(m.Encoders, maximumObjectSizeBytes)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid encoder")
 	}
