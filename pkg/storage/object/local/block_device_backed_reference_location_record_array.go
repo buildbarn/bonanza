@@ -3,11 +3,11 @@ package local
 import (
 	"encoding/binary"
 
-	"bonanza.build/pkg/ds/lossymap"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/blockdevice"
+	"github.com/buildbarn/bb-storage/pkg/lossymap"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/grpc/codes"

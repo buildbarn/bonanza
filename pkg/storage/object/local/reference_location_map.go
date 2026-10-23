@@ -1,8 +1,9 @@
 package local
 
 import (
-	"bonanza.build/pkg/ds/lossymap"
 	"bonanza.build/pkg/storage/object"
+
+	"github.com/buildbarn/bb-storage/pkg/lossymap"
 )
 
 // ReferenceLocationMap is used by the local object store to keep track

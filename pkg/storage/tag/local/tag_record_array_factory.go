@@ -1,10 +1,10 @@
 package local
 
 import (
-	"bonanza.build/pkg/ds/lossymap"
 	"bonanza.build/pkg/storage/tag"
 
 	"github.com/buildbarn/bb-storage/pkg/blockdevice"
+	"github.com/buildbarn/bb-storage/pkg/lossymap"
 )
 
 type tagRecordArrayFactory struct{}

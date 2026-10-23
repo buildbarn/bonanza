@@ -5,7 +5,6 @@ import (
 	"context"
 	"os"
 
-	"bonanza.build/pkg/ds/lossymap"
 	"bonanza.build/pkg/proto/configuration/bonanza_storage_shard"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	tag_pb "bonanza.build/pkg/proto/storage/tag"
@@ -21,6 +20,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/global"
 	bb_grpc "github.com/buildbarn/bb-storage/pkg/grpc"
+	"github.com/buildbarn/bb-storage/pkg/lossymap"
 	"github.com/buildbarn/bb-storage/pkg/program"
 	"github.com/buildbarn/bb-storage/pkg/util"
 

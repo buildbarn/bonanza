@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package bonanza.configuration.storage.object.local;
 
-import "bonanza.build/pkg/proto/configuration/ds/lossymap/lossymap.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/blockdevice/blockdevice.proto";
+import "github.com/buildbarn/bb-storage/pkg/proto/configuration/lossymap/lossymap.proto";
 import "google/protobuf/duration.proto";
 
 option go_package = "bonanza.build/pkg/proto/configuration/storage/object/local";
@@ -43,8 +43,8 @@ message StoreConfiguration {
   // Configuration for the reference-location map. The
   // reference-location map is a hash table that is used by this storage
   // backend to resolve references to locations where data is stored.
-  bonanza.configuration.ds.lossymap.HashMapConfiguration
-      reference_location_map = 1;
+  buildbarn.configuration.lossymap.HashMapConfiguration reference_location_map =
+      1;
 
   message LocationBlobMapInMemory {
     // The total size of the location-blob map, in bytes.

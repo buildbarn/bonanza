@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"bonanza.build/pkg/ds/lossymap"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
+	"github.com/buildbarn/bb-storage/pkg/lossymap"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/grpc/codes"

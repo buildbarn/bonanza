@@ -1,7 +1,7 @@
 package local
 
 import (
-	"bonanza.build/pkg/ds/lossymap"
+	"github.com/buildbarn/bb-storage/pkg/lossymap"
 )
 
 type inMemoryReferenceLocationRecord struct {

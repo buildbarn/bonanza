@@ -7,10 +7,10 @@
 package bonanza_storage_shard
 
 import (
-	lossymap "bonanza.build/pkg/proto/configuration/ds/lossymap"
 	local "bonanza.build/pkg/proto/configuration/storage/object/local"
 	global "github.com/buildbarn/bb-storage/pkg/proto/configuration/global"
 	grpc "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc"
+	lossymap "github.com/buildbarn/bb-storage/pkg/proto/configuration/lossymap"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
@@ -114,14 +114,14 @@ var File_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_sto
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDesc = "" +
 	"\n" +
-	"Wbonanza.build/pkg/proto/configuration/bonanza_storage_shard/bonanza_storage_shard.proto\x12+bonanza.configuration.bonanza_storage_shard\x1a@bonanza.build/pkg/proto/configuration/ds/lossymap/lossymap.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1a\x1egoogle/protobuf/duration.proto\"\xc0\x04\n" +
+	"Wbonanza.build/pkg/proto/configuration/bonanza_storage_shard/bonanza_storage_shard.proto\x12+bonanza.configuration.bonanza_storage_shard\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aOgithub.com/buildbarn/bb-storage/pkg/proto/configuration/lossymap/lossymap.proto\x1a\x1egoogle/protobuf/duration.proto\"\xbe\x04\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12T\n" +
 	"\fgrpc_servers\x18\x02 \x03(\v21.buildbarn.configuration.grpc.ServerConfigurationR\vgrpcServers\x12l\n" +
-	"\x12local_object_store\x18\x03 \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x12R\n" +
-	"\btags_map\x18\x04 \x01(\v27.bonanza.configuration.ds.lossymap.HashMapConfigurationR\atagsMap\x12V\n" +
+	"\x12local_object_store\x18\x03 \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x12Q\n" +
+	"\btags_map\x18\x04 \x01(\v26.buildbarn.configuration.lossymap.HashMapConfigurationR\atagsMap\x12U\n" +
 	"\n" +
-	"leases_map\x18\x05 \x01(\v27.bonanza.configuration.ds.lossymap.HashMapConfigurationR\tleasesMap\x12m\n" +
+	"leases_map\x18\x05 \x01(\v26.buildbarn.configuration.lossymap.HashMapConfigurationR\tleasesMap\x12m\n" +
 	"&leases_map_lease_completeness_duration\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\"leasesMapLeaseCompletenessDurationB=Z;bonanza.build/pkg/proto/configuration/bonanza_storage_shardb\x06proto3"
 
 var (
@@ -142,15 +142,15 @@ var file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_sto
 	(*global.Configuration)(nil),          // 1: buildbarn.configuration.global.Configuration
 	(*grpc.ServerConfiguration)(nil),      // 2: buildbarn.configuration.grpc.ServerConfiguration
 	(*local.StoreConfiguration)(nil),      // 3: bonanza.configuration.storage.object.local.StoreConfiguration
-	(*lossymap.HashMapConfiguration)(nil), // 4: bonanza.configuration.ds.lossymap.HashMapConfiguration
+	(*lossymap.HashMapConfiguration)(nil), // 4: buildbarn.configuration.lossymap.HashMapConfiguration
 	(*durationpb.Duration)(nil),           // 5: google.protobuf.Duration
 }
 var file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_depIdxs = []int32{
 	1, // 0: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.global:type_name -> buildbarn.configuration.global.Configuration
 	2, // 1: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.grpc_servers:type_name -> buildbarn.configuration.grpc.ServerConfiguration
 	3, // 2: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.local_object_store:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration
-	4, // 3: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.tags_map:type_name -> bonanza.configuration.ds.lossymap.HashMapConfiguration
-	4, // 4: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.leases_map:type_name -> bonanza.configuration.ds.lossymap.HashMapConfiguration
+	4, // 3: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.tags_map:type_name -> buildbarn.configuration.lossymap.HashMapConfiguration
+	4, // 4: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.leases_map:type_name -> buildbarn.configuration.lossymap.HashMapConfiguration
 	5, // 5: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.leases_map_lease_completeness_duration:type_name -> google.protobuf.Duration
 	6, // [6:6] is the sub-list for method output_type
 	6, // [6:6] is the sub-list for method input_type

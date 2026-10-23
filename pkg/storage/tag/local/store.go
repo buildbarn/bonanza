@@ -5,12 +5,12 @@ import (
 	"sync"
 	"time"
 
-	"bonanza.build/pkg/ds/lossymap"
 	"bonanza.build/pkg/storage/object"
 	object_flatbacked "bonanza.build/pkg/storage/object/flatbacked"
 	"bonanza.build/pkg/storage/tag"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
+	"github.com/buildbarn/bb-storage/pkg/lossymap"
 )
 
 type store struct {

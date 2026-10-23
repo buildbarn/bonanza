@@ -3,10 +3,10 @@ package flatbacked
 import (
 	"cmp"
 
-	"bonanza.build/pkg/ds/lossymap"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/blockdevice"
+	"github.com/buildbarn/bb-storage/pkg/lossymap"
 )
 
 type leaseRecordArrayFactory struct{}

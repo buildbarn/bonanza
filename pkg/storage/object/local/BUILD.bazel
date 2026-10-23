@@ -25,7 +25,6 @@ go_library(
     importpath = "bonanza.build/pkg/storage/object/local",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/ds/lossymap",
         "//pkg/proto/configuration/storage/object/local",
         "//pkg/proto/storage/object",
         "//pkg/proto/storage/object/local",
@@ -34,6 +33,7 @@ go_library(
         "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/filesystem",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
+        "@com_github_buildbarn_bb_storage//pkg/lossymap",
         "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/random",
         "@com_github_buildbarn_bb_storage//pkg/util",
@@ -59,13 +59,13 @@ go_test(
     ],
     embed = [":local"],
     deps = [
-        "//pkg/ds/lossymap",
         "//pkg/proto/storage/object",
         "//pkg/proto/storage/object/local",
         "//pkg/storage/object",
         "@com_github_buildbarn_bb_storage//pkg/clock",  # keep
         "@com_github_buildbarn_bb_storage//pkg/filesystem",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
+        "@com_github_buildbarn_bb_storage//pkg/lossymap",
         "@com_github_buildbarn_bb_storage//pkg/random",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",

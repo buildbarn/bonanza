@@ -7,8 +7,8 @@
 package local
 
 import (
-	lossymap "bonanza.build/pkg/proto/configuration/ds/lossymap"
 	blockdevice "github.com/buildbarn/bb-storage/pkg/proto/configuration/blockdevice"
+	lossymap "github.com/buildbarn/bb-storage/pkg/proto/configuration/lossymap"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
@@ -247,9 +247,9 @@ var File_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto 
 
 const file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDesc = "" +
 	"\n" +
-	"Fbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x12*bonanza.configuration.storage.object.local\x1a@bonanza.build/pkg/proto/configuration/ds/lossymap/lossymap.proto\x1aUgithub.com/buildbarn/bb-storage/pkg/proto/configuration/blockdevice/blockdevice.proto\x1a\x1egoogle/protobuf/duration.proto\"\x90\a\n" +
-	"\x12StoreConfiguration\x12m\n" +
-	"\x16reference_location_map\x18\x01 \x01(\v27.bonanza.configuration.ds.lossymap.HashMapConfigurationR\x14referenceLocationMap\x12\x96\x01\n" +
+	"Fbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x12*bonanza.configuration.storage.object.local\x1aUgithub.com/buildbarn/bb-storage/pkg/proto/configuration/blockdevice/blockdevice.proto\x1aOgithub.com/buildbarn/bb-storage/pkg/proto/configuration/lossymap/lossymap.proto\x1a\x1egoogle/protobuf/duration.proto\"\x8f\a\n" +
+	"\x12StoreConfiguration\x12l\n" +
+	"\x16reference_location_map\x18\x01 \x01(\v26.buildbarn.configuration.lossymap.HashMapConfigurationR\x14referenceLocationMap\x12\x96\x01\n" +
 	"\x1blocation_blob_map_in_memory\x18\x02 \x01(\v2V.bonanza.configuration.storage.object.local.StoreConfiguration.LocationBlobMapInMemoryH\x00R\x17locationBlobMapInMemory\x12}\n" +
 	"!location_blob_map_on_block_device\x18\x03 \x01(\v22.buildbarn.configuration.blockdevice.ConfigurationH\x00R\x1clocationBlobMapOnBlockDevice\x121\n" +
 	"\x15old_region_size_ratio\x18\x04 \x01(\rR\x12oldRegionSizeRatio\x129\n" +
@@ -284,12 +284,12 @@ var file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_
 	(*StoreConfiguration)(nil),                         // 0: bonanza.configuration.storage.object.local.StoreConfiguration
 	(*StoreConfiguration_LocationBlobMapInMemory)(nil), // 1: bonanza.configuration.storage.object.local.StoreConfiguration.LocationBlobMapInMemory
 	(*StoreConfiguration_Persistent)(nil),              // 2: bonanza.configuration.storage.object.local.StoreConfiguration.Persistent
-	(*lossymap.HashMapConfiguration)(nil),              // 3: bonanza.configuration.ds.lossymap.HashMapConfiguration
+	(*lossymap.HashMapConfiguration)(nil),              // 3: buildbarn.configuration.lossymap.HashMapConfiguration
 	(*blockdevice.Configuration)(nil),                  // 4: buildbarn.configuration.blockdevice.Configuration
 	(*durationpb.Duration)(nil),                        // 5: google.protobuf.Duration
 }
 var file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_depIdxs = []int32{
-	3, // 0: bonanza.configuration.storage.object.local.StoreConfiguration.reference_location_map:type_name -> bonanza.configuration.ds.lossymap.HashMapConfiguration
+	3, // 0: bonanza.configuration.storage.object.local.StoreConfiguration.reference_location_map:type_name -> buildbarn.configuration.lossymap.HashMapConfiguration
 	1, // 1: bonanza.configuration.storage.object.local.StoreConfiguration.location_blob_map_in_memory:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration.LocationBlobMapInMemory
 	4, // 2: bonanza.configuration.storage.object.local.StoreConfiguration.location_blob_map_on_block_device:type_name -> buildbarn.configuration.blockdevice.Configuration
 	2, // 3: bonanza.configuration.storage.object.local.StoreConfiguration.persistent:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration.Persistent

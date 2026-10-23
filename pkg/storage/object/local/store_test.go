@@ -6,11 +6,11 @@ import (
 	"sync"
 	"testing"
 
-	"bonanza.build/pkg/ds/lossymap"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
 	object_local "bonanza.build/pkg/storage/object/local"
 
+	"github.com/buildbarn/bb-storage/pkg/lossymap"
 	"github.com/buildbarn/bb-storage/pkg/random"
 	"github.com/stretchr/testify/require"
 )

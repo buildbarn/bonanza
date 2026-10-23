@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"bonanza.build/pkg/ds/lossymap"
 	configuration_pb "bonanza.build/pkg/proto/configuration/storage/object/local"
 	pb "bonanza.build/pkg/proto/storage/object/local"
 	"bonanza.build/pkg/storage/object"
@@ -16,6 +15,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
+	"github.com/buildbarn/bb-storage/pkg/lossymap"
 	"github.com/buildbarn/bb-storage/pkg/program"
 	"github.com/buildbarn/bb-storage/pkg/random"
 	"github.com/buildbarn/bb-storage/pkg/util"

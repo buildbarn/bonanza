@@ -7,7 +7,6 @@ go_library(
     importpath = "bonanza.build/cmd/bonanza_storage_shard",
     visibility = ["//visibility:private"],
     deps = [
-        "//pkg/ds/lossymap",
         "//pkg/proto/configuration/bonanza_storage_shard",
         "//pkg/proto/storage/object",
         "//pkg/proto/storage/tag",
@@ -22,6 +21,7 @@ go_library(
         "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/global",
         "@com_github_buildbarn_bb_storage//pkg/grpc",
+        "@com_github_buildbarn_bb_storage//pkg/lossymap",
         "@com_github_buildbarn_bb_storage//pkg/program",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//:grpc",
