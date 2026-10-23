@@ -109,21 +109,21 @@ func (d *WorkerTopLevelDirectory) VirtualLookup(ctx context.Context, name path.C
 // VirtualOpenChild creates or opens a regular file contained in a
 // worker top-level directory. As this directory can only contain
 // subdirectories and not files, this always fails.
-func (WorkerTopLevelDirectory) VirtualOpenChild(ctx context.Context, name path.Component, shareAccess virtual.ShareMask, createAttributes *virtual.Attributes, existingOptions *virtual.OpenExistingOptions, requested virtual.AttributesMask, openedFileAttributes *virtual.Attributes) (virtual.Leaf, virtual.AttributesMask, virtual.ChangeInfo, virtual.Status) {
+func (*WorkerTopLevelDirectory) VirtualOpenChild(ctx context.Context, name path.Component, shareAccess virtual.ShareMask, createAttributes *virtual.Attributes, existingOptions *virtual.OpenExistingOptions, requested virtual.AttributesMask, openedFileAttributes *virtual.Attributes) (virtual.Leaf, virtual.AttributesMask, virtual.ChangeInfo, virtual.Status) {
 	return virtual.ReadOnlyDirectoryOpenChildDoesntExist(createAttributes)
 }
 
 // VirtualReadDir returns a list of directories contained in the worker
 // top-level directory. These intentionally fail with EACCES, so that
 // actions can't see build directories belonging to other actions.
-func (WorkerTopLevelDirectory) VirtualReadDir(ctx context.Context, firstCookie uint64, requested virtual.AttributesMask, reporter virtual.DirectoryEntryReporter) virtual.Status {
+func (*WorkerTopLevelDirectory) VirtualReadDir(ctx context.Context, firstCookie uint64, requested virtual.AttributesMask, reporter virtual.DirectoryEntryReporter) virtual.Status {
 	return virtual.StatusErrAccess
 }
 
 // VirtualApply can be used to perform custom operations against the
 // worker top-level directory. This directory type does not provide any
 // custom operations.
-func (WorkerTopLevelDirectory) VirtualApply(data any) bool {
+func (*WorkerTopLevelDirectory) VirtualApply(data any) bool {
 	return false
 }
 
@@ -131,7 +131,7 @@ func (WorkerTopLevelDirectory) VirtualApply(data any) bool {
 // the worker top-level directory. This directory type is immutable and
 // does not provide any named attributes of its own, meaning this method
 // always fails.
-func (WorkerTopLevelDirectory) VirtualOpenNamedAttributes(ctx context.Context, createDirectory bool, requested virtual.AttributesMask, attributes *virtual.Attributes) (virtual.Directory, virtual.Status) {
+func (*WorkerTopLevelDirectory) VirtualOpenNamedAttributes(ctx context.Context, createDirectory bool, requested virtual.AttributesMask, attributes *virtual.Attributes) (virtual.Directory, virtual.Status) {
 	if createDirectory {
 		return nil, virtual.StatusErrAccess
 	}

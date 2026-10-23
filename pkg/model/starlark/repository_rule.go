@@ -283,7 +283,7 @@ func NewProtoRepositoryRuleDefinition[TReference object.BasicReference, TMetadat
 	}
 }
 
-func (protoRepositoryRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.RepositoryRule_Definition, TMetadata], bool, error) {
+func (*protoRepositoryRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.RepositoryRule_Definition, TMetadata], bool, error) {
 	panic("rule definition was already encoded previously")
 }
 

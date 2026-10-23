@@ -623,7 +623,7 @@ func NewProtoRuleDefinition[TReference object.BasicReference, TMetadata model_co
 	}
 }
 
-func (protoRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
+func (*protoRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
 	panic("rule definition was already encoded previously")
 }
 
@@ -684,7 +684,7 @@ func NewReloadingRuleDefinition[TReference object.BasicReference, TMetadata mode
 	}
 }
 
-func (reloadingRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
+func (*reloadingRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
 	panic("rule definition was already encoded previously")
 }
 

@@ -723,7 +723,7 @@ func (d *prepopulatedCapturableDirectory) getPatternChildren() (model_core.Messa
 	return patternChildren, nil
 }
 
-func (prepopulatedCapturableDirectory) Close() error {
+func (*prepopulatedCapturableDirectory) Close() error {
 	return nil
 }
 
