@@ -110,14 +110,6 @@ go_deps_dev.module_override(
     path = "github.com/grpc-ecosystem/go-grpc-prometheus",
 )
 go_deps_dev.module_override(
-    patches = [
-        "@com_github_buildbarn_bb_remote_execution//:patches/com_github_hanwen_go_fuse_v2/direntrylist-offsets-and-testability.diff",
-        "@com_github_buildbarn_bb_remote_execution//:patches/com_github_hanwen_go_fuse_v2/writeback-cache.diff",
-        "@com_github_buildbarn_bb_remote_execution//:patches/com_github_hanwen_go_fuse_v2/notify-testability.diff",
-    ],
-    path = "github.com/hanwen/go-fuse/v2",
-)
-go_deps_dev.module_override(
     patches = ["//:patches/org_golang_x_lint/generic.diff"],
     path = "golang.org/x/lint",
 )

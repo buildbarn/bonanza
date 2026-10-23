@@ -5,8 +5,8 @@ go 1.27.3
 // rules_go doesn't support gomock's package mode.
 replace go.uber.org/mock => go.uber.org/mock v0.4.0
 
-// Existing patches don't apply against newer go-fuse.
-replace github.com/hanwen/go-fuse/v2 => github.com/hanwen/go-fuse/v2 v2.5.1
+// The latest version of go-fuse added a new method that we don't support.
+replace github.com/hanwen/go-fuse/v2 => github.com/hanwen/go-fuse/v2 v2.10.1
 
 // Stick to a very specific version of Go Starlark to make patches apply.
 replace go.starlark.net => go.starlark.net v0.0.0-20250225190231-0d3f41d403af
