@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "query",
+    srcs = ["do_query.go"],
+    importpath = "bonanza.build/pkg/bazelclient/commands/query",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/bazelclient/arguments",
+        "//pkg/bazelclient/commands",
+        "//pkg/bazelclient/commands/build",
+        "//pkg/bazelclient/formatted",
+        "//pkg/bazelclient/logging",
+        "//pkg/label",
+        "//pkg/model/core",
+        "//pkg/model/core/btree",
+        "//pkg/model/encoding",
+        "//pkg/model/parser",
+        "//pkg/model/render",
+        "//pkg/model/starlark",
+        "//pkg/proto/model/analysis",
+        "//pkg/proto/model/core",
+        "//pkg/proto/model/starlark",
+        "//pkg/storage/object",
+        "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_x_term//:term",
+    ],
+)

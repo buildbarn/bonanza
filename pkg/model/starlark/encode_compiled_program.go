@@ -8,7 +8,6 @@ import (
 	"iter"
 	"maps"
 	"math"
-	"math/big"
 	"math/bits"
 	"slices"
 	"strings"
@@ -295,13 +294,9 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](value s
 		return NewNamedFunction(NewStarlarkNamedFunctionDefinition[TReference, TMetadata](typedValue)).
 			EncodeValue(path, currentIdentifier, options)
 	case starlark.Int:
-		bigInt := typedValue.BigInt()
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_Int{
-				Int: &model_starlark_pb.Int{
-					AbsoluteValue: bigInt.Bytes(),
-					Negative:      bigInt.Sign() < 0,
-				},
+				Int: EncodeInt(typedValue.BigInt()),
 			},
 		}), false, nil
 	case *starlark.List:
@@ -578,12 +573,7 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 			model_core.Nested(encodedValue, typedValue.Function),
 		)), nil
 	case *model_starlark_pb.Value_Int:
-		var i big.Int
-		i.SetBytes(typedValue.Int.AbsoluteValue)
-		if typedValue.Int.Negative {
-			i.Neg(&i)
-		}
-		return starlark.MakeBigInt(&i), nil
+		return starlark.MakeBigInt(DecodeInt(typedValue.Int)), nil
 	case *model_starlark_pb.Value_Label:
 		resolvedLabel, err := pg_label.NewResolvedLabel(typedValue.Label)
 		if err != nil {

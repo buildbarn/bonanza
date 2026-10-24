@@ -67,6 +67,10 @@ func TestNewQuery(t *testing.T) {
 			"executables(@@a+//...)":                 "executables(@@a+//...)",
 			"buildfiles(deps(@@a+//x))":              "buildfiles(deps(@@a+//x))",
 			"loadfiles(@@a+//x)":                     "loadfiles(@@a+//x)",
+			"tag(manual, @@a+//...)":                 "tag(manual, @@a+//...)",
+			"tag('a b', @@a+//...)":                  `tag("a b", @@a+//...)`,
+			"packages(@@a+//...)":                    "packages(@@a+//...)",
+			"rules(@@a+//x:*)":                       "rules(@@a+//x:*)",
 
 			// Expressions that are used once are written
 			// inline. Expressions that are used multiple times
@@ -125,6 +129,7 @@ func TestNewQuery(t *testing.T) {
 			"deps(@@a+//x, y)":                  "column 15: invalid depth \"y\"",
 			"deps(@@a+//x, 1, 2)":               "column 16: expected \")\", but found \",\"",
 			"kind(@@a+//x)":                     "column 13: expected \",\", but found \")\"",
+			"tag(@@a+//x)":                      "column 12: expected \",\", but found \")\"",
 			"some(@@a+//x, 0)":                  "column 15: count must be positive",
 			"allrdeps(@@a+//x)":                 "column 1: function \"allrdeps\" requires Sky Query, which is not supported",
 			"rbuildfiles(foo/BUILD)":            "column 1: function \"rbuildfiles\" requires Sky Query, which is not supported",
@@ -326,5 +331,195 @@ func TestCanonicalizeQuery(t *testing.T) {
 			util.Must(label.NewQuery("kind(rule, @broken//foo)", label.NewApparentTargetPattern)),
 		)
 		require.EqualError(t, err, "failed to resolve apparent repo \"broken\": repo mapping unavailable")
+	})
+}
+
+func TestMapQueryTargetPatterns(t *testing.T) {
+	replace := func(query string, replacements map[string]string) string {
+		q, err := label.MapQueryTargetPatterns(
+			util.Must(label.NewQuery(query, label.NewCanonicalTargetPattern)),
+			func(targetPattern label.CanonicalTargetPattern) (label.CanonicalTargetPattern, error) {
+				if replacement, ok := replacements[targetPattern.String()]; ok {
+					return label.NewCanonicalTargetPattern(replacement)
+				}
+				return targetPattern, nil
+			},
+		)
+		require.NoError(t, err)
+		return label.QueryToString(q)
+	}
+
+	t.Run("MergeExpressions", func(t *testing.T) {
+		// Replacing target patterns may cause expressions to
+		// become identical.
+		require.Equal(
+			t,
+			"let v0 = kind(rule, @@a+//z) in $v0 + $v0",
+			replace("kind(rule, @@a+//x) + kind(rule, @@a+//y)", map[string]string{
+				"@@a+//x": "@@a+//z",
+				"@@a+//y": "@@a+//z",
+			}),
+		)
+	})
+
+	t.Run("SortSets", func(t *testing.T) {
+		// Sets should remain sorted and deduplicated.
+		require.Equal(
+			t,
+			"set(@@a+//a @@a+//y)",
+			replace("set(@@a+//x @@a+//y @@a+//z)", map[string]string{
+				"@@a+//x": "@@a+//y",
+				"@@a+//z": "@@a+//a",
+			}),
+		)
+	})
+}
+
+func TestCombineQueries(t *testing.T) {
+	combine := func(left, right string) string {
+		q := label.CombineQueries(
+			label.QuerySetOperatorExcept,
+			util.Must(label.NewQuery(left, label.NewCanonicalTargetPattern)),
+			util.Must(label.NewQuery(right, label.NewCanonicalTargetPattern)),
+		)
+
+		// The resulting query should be in normal form.
+		s := label.QueryToString(q)
+		require.Equal(t, util.Must(label.NewQuery(s, label.NewCanonicalTargetPattern)), q)
+		return s
+	}
+
+	require.Equal(t, "@@a+//x/... - @@a+//x/y/...", combine("@@a+//x/...", "@@a+//x/y/..."))
+	require.Equal(t, "@@a+//x/... - @@a+//x/y/... - @@a+//x/z/...", combine("@@a+//x/... - @@a+//x/y/...", "@@a+//x/z/..."))
+
+	// Expressions that are shared between both queries should be
+	// merged.
+	require.Equal(
+		t,
+		"let v0 = @@a+//x/... in $v0 - tag(manual, $v0) - $v0",
+		combine("@@a+//x/... - tag(manual, @@a+//x/...)", "@@a+//x/..."),
+	)
+}
+
+func TestReplaceQuerySets(t *testing.T) {
+	replace := func(query string, replacements map[string]string) string {
+		q, err := label.ReplaceQuerySets(
+			util.Must(label.NewQuery(query, label.NewCanonicalTargetPattern)),
+			func(targetPatterns []label.CanonicalTargetPattern) (label.Query[label.CanonicalTargetPattern], bool) {
+				if len(targetPatterns) == 1 {
+					if replacement, ok := replacements[targetPatterns[0].String()]; ok {
+						return util.Must(label.NewQuery(replacement, label.NewCanonicalTargetPattern)), true
+					}
+				}
+				return label.Query[label.CanonicalTargetPattern]{}, false
+			},
+		)
+		require.NoError(t, err)
+
+		// The resulting query should be in normal form.
+		s := label.QueryToString(q)
+		require.Equal(t, util.Must(label.NewQuery(s, label.NewCanonicalTargetPattern)), q)
+		return s
+	}
+
+	t.Run("SharedOperand", func(t *testing.T) {
+		// Replacements of sets that are used multiple times
+		// should be shared.
+		require.Equal(
+			t,
+			"let v0 = rules(siblings(@@a+//x:*)) in $v0 - tag(manual, $v0)",
+			replace("@@a+//x/... - tag(manual, @@a+//x/...)", map[string]string{
+				"@@a+//x/...": "rules(siblings(@@a+//x:*))",
+			}),
+		)
+	})
+
+	t.Run("MergeExpressions", func(t *testing.T) {
+		// Replacing sets may cause expressions to become
+		// identical, including ones contained in the
+		// replacements.
+		require.Equal(
+			t,
+			"let v0 = siblings(@@a+//z:*) in let v1 = kind(rule, $v0) in $v1 + $v1 - $v0",
+			replace("kind(rule, @@a+//x) + kind(rule, @@a+//y) - @@a+//w", map[string]string{
+				"@@a+//w": "siblings(@@a+//z:*)",
+				"@@a+//x": "siblings(@@a+//z:*)",
+				"@@a+//y": "siblings(@@a+//z:*)",
+			}),
+		)
+	})
+
+	t.Run("KeepSets", func(t *testing.T) {
+		// Sets that are not replaced should be retained.
+		require.Equal(
+			t,
+			"set(@@a+//x @@a+//y) + packages(@@a+//z:*)",
+			replace("set(@@a+//y @@a+//x) + packages(@@a+//z)", map[string]string{
+				"@@a+//z": "@@a+//z:*",
+			}),
+		)
+	})
+}
+
+func TestNewQueryFromTargetPatternArguments(t *testing.T) {
+	newQuery := func(arguments []string, tagFilters ...string) (string, error) {
+		query, err := label.NewQueryFromTargetPatternArguments(arguments, tagFilters, label.NewCanonicalTargetPattern)
+		if err != nil {
+			return "", err
+		}
+		return label.QueryToString(query), nil
+	}
+
+	t.Run("Success", func(t *testing.T) {
+		for _, testCase := range []struct {
+			arguments  []string
+			tagFilters []string
+			query      string
+		}{
+			// No target patterns yield no targets.
+			{nil, nil, "set()"},
+			{nil, []string{"a"}, "set()"},
+			// Target patterns referring to a single target
+			// match it, even if it has tag "manual".
+			{[]string{"@@a+//x"}, nil, "@@a+//x"},
+			{[]string{"@@a+//x", "@@a+//y"}, nil, "@@a+//x + @@a+//y"},
+			// Target patterns containing wildcards exclude
+			// targets having tag "manual".
+			{[]string{"@@a+//..."}, nil, "let v0 = @@a+//... in $v0 - tag(manual, $v0)"},
+			// Target patterns prefixed with "-" remove
+			// targets from the results of the target
+			// patterns preceding them. There is no need to
+			// filter the targets they match.
+			{[]string{"@@a+//x", "-@@a+//y"}, nil, "@@a+//x - @@a+//y"},
+			{[]string{"@@a+//...", "-@@a+//b/..."}, nil, "let v0 = @@a+//... in $v0 - tag(manual, $v0) - @@a+//b/..."},
+			{[]string{"@@a+//x", "-@@a+//y", "@@a+//z"}, nil, "@@a+//x - @@a+//y + @@a+//z"},
+			// Removing targets from an empty set is a no-op.
+			{[]string{"-@@a+//x", "@@a+//y"}, nil, "@@a+//y"},
+			{[]string{"-@@a+//x"}, nil, "set()"},
+			// Tag filters are applied to each target
+			// pattern individually. Their order does not
+			// affect the resulting query, and empty tag
+			// filters are ignored.
+			{[]string{"@@a+//x"}, []string{"", "-"}, "@@a+//x"},
+			{[]string{"@@a+//x"}, []string{"b", "a", "b"}, "let v0 = @@a+//x in tag(a, $v0) + tag(b, $v0)"},
+			{[]string{"@@a+//x"}, []string{"-d", "-c"}, "let v0 = @@a+//x in $v0 - tag(c, $v0) - tag(d, $v0)"},
+			{
+				[]string{"@@a+//...", "-@@a+//b:all", "@@a+//c"},
+				[]string{"a", "-b"},
+				"let v0 = @@a+//... in let v1 = @@a+//c in tag(a, $v0) - tag(b, $v0) - tag(manual, $v0) - @@a+//b:all + (tag(a, $v1) - tag(b, $v1))",
+			},
+			// An explicit "-manual" tag filter should not
+			// cause the tag to be excluded twice.
+			{[]string{"@@a+//..."}, []string{"-manual"}, "let v0 = @@a+//... in $v0 - tag(manual, $v0)"},
+		} {
+			query, err := newQuery(testCase.arguments, testCase.tagFilters...)
+			require.NoError(t, err, testCase.arguments)
+			require.Equal(t, testCase.query, query, testCase.arguments)
+		}
+	})
+
+	t.Run("InvalidTargetPattern", func(t *testing.T) {
+		_, err := newQuery([]string{"@@a+//x", "-foo"})
+		require.ErrorContains(t, err, "invalid target pattern \"-foo\": ")
 	})
 }

@@ -206,9 +206,15 @@ message BuildResult {
     // Configurations for which builds should take place.
     repeated Configuration configurations = 1;
 
-    // Apparent patterns of targets that should be built. Repo names are
-    // resolved from the perspective of the root module.
-    repeated string target_patterns = 2;
+    // Query expression yielding the targets that should be built.
+    // Target patterns contained in the query expression MUST either be
+    // canonical or be prefixed with an apparent repo name. Apparent
+    // repo names are resolved from the perspective of the root module.
+    //
+    // Clients can use label.NewQueryFromTargetPatternArguments() to
+    // convert target patterns provided on the command line (e.g.,
+    // "//... -//foo/...") to a query expression.
+    string query = 2;
   }
 
   message Value {}
@@ -1397,6 +1403,163 @@ message PackagesAtAndBelow {
   }
 }
 
+// QueryExpansion evaluates a query expression, as done by "bazel
+// query", and returns the labels of the targets yielded by it. As any
+// target pattern is also a valid query expression, this is also used
+// to expand target patterns (e.g., as part of "bazel build").
+//
+// Operands of the query expression are evaluated using separate keys,
+// so that their results can be reused. Recursive target patterns are
+// expanded by evaluating the target pattern for each subpackage
+// separately.
+message QueryExpansion {
+  message Key {
+    // The query expression to evaluate, in normal form. All target
+    // patterns contained in the query expression MUST be canonical.
+    //
+    // As is the case for "bazel query", target patterns containing
+    // wildcards match targets that have tag "manual". Commands like
+    // "bazel build" exclude these targets by rewriting target
+    // patterns to queries of shape "p - tag(manual, p)".
+    string query = 1;
+
+    // Whether to follow dependencies on targets that are not
+    // explicitly declared in BUILD files, such as ones that are
+    // introduced by private attributes and attribute default values.
+    // This MUST NOT be set if the query expression does not follow
+    // any dependencies, as it does not affect the results.
+    bool include_implicit_deps = 2;
+  }
+
+  message Value {
+    // Canonical labels of the targets yielded by the query expression.
+    repeated TargetLabel target_labels = 1;
+  }
+}
+
+// QueryResult evaluates a query expression, as done by "bazel query",
+// and returns the targets yielded by it. As opposed to QueryExpansion,
+// the query expression may contain apparent target patterns, and the
+// definitions of the targets are returned as well, so that clients can
+// display them. Target patterns containing wildcards match targets
+// having tag "manual".
+//
+// Definitions of targets are obtained by requesting QueryTargets for
+// each object of the B-tree of labels returned by QueryExpansion, so
+// that results can be reused if the query yields different targets.
+message QueryResult {
+  message Key {
+    // The query expression to evaluate. Target patterns contained in
+    // the query expression MUST either be canonical or be prefixed with
+    // an apparent repo name. Apparent repo names are resolved from the
+    // perspective of the root module.
+    string query = 1;
+
+    // Whether to follow dependencies on targets that are not
+    // explicitly declared in BUILD files, such as ones that are
+    // introduced by private attributes and attribute default values.
+    bool include_implicit_deps = 2;
+
+    // The amount of detail with which definitions of targets should
+    // be returned. Returning less detail significantly reduces the
+    // size of the results.
+    QueryTarget.DefinitionDetail definition_detail = 3;
+  }
+
+  message Value {
+    // Targets yielded by the query expression, in the order defined by
+    // label.CanonicalLabel.Compare().
+    repeated QueryTarget targets = 1;
+  }
+}
+
+// QueryTarget is an element of a B-tree containing targets yielded by
+// a query expression, as returned by QueryResult and QueryTargets.
+message QueryTarget {
+  // The amount of detail with which definitions of targets are
+  // returned.
+  enum DefinitionDetail {
+    // Don't return definitions of targets, only their labels. This
+    // suffices for displaying the results of queries as a list of
+    // labels or packages.
+    NONE = 0;
+
+    // Only return the parts of the definitions of targets that are
+    // needed to determine their kind (e.g., "cc_library rule" or
+    // "source file"). This suffices for displaying the results of
+    // queries as a list of labels and kinds.
+    KIND = 1;
+
+    // Return the full definitions of targets.
+    FULL = 2;
+  }
+
+  message Leaf {
+    // The canonical label of the target.
+    string label = 1;
+
+    // The definition of the target, containing the amount of detail
+    // that was requested. Not set if no definitions were requested.
+    bonanza.model.starlark.Target.Definition definition = 2;
+
+    // If full definitions were requested and the target is a rule
+    // target, the names of the public attributes of the rule, in the
+    // order in which their values are stored in
+    // definition.rule_target.public_attr_values. This allows clients
+    // to display the attributes of the target, without needing to
+    // obtain the definition of the rule.
+    repeated string public_attr_names = 3;
+  }
+
+  message Parent {
+    // Reference to an object of type QueryTargetList that contains
+    // additional targets.
+    bonanza.model.core.DecodableReference reference = 1
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.QueryTarget";
+        }];
+  }
+
+  oneof level {
+    // A target yielded by the query expression.
+    Leaf leaf = 1;
+
+    // More targets are stored in another object.
+    Parent parent = 2;
+  }
+}
+
+// QueryTargets obtains the definitions of the targets contained in an
+// object of a B-tree of labels, as returned by QueryExpansion. Labels
+// contained in child objects are processed by requesting QueryTargets
+// for them as well, meaning that the resulting B-tree follows the
+// structure of the B-tree of labels.
+//
+// As objects are content addressed, this allows results to be reused
+// if parts of the B-tree of labels remain unchanged. It also bounds the
+// amount of memory needed to process each object.
+message QueryTargets {
+  message Key {
+    // Reference to an object containing labels of targets.
+    bonanza.model.core.DecodableReference target_labels_reference = 1
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.TargetLabel";
+        }];
+
+    // The amount of detail with which definitions of targets should
+    // be returned.
+    QueryTarget.DefinitionDetail definition_detail = 2;
+  }
+
+  message Value {
+    // Targets whose labels are contained in the object, in the same
+    // order.
+    repeated QueryTarget targets = 1;
+  }
+}
+
 message RawActionResult {
   message Key {
     ExecuteRequest execute_request = 1;
@@ -1847,43 +2010,54 @@ message TargetCompletion {
   message Value {}
 }
 
-message TargetPatternExpansion {
+// TargetDirectDependencies returns the labels of the targets on which
+// a target depends directly, without applying any configuration. For
+// rule targets with attributes using select(), the dependencies of all
+// branches are returned, including the labels of the conditions.
+message TargetDirectDependencies {
   message Key {
-    // The target pattern that needs to be expanded to a set of targets.
-    // The target pattern MUST include a canonical repo name.
-    string target_pattern = 1;
+    // The canonical label of the target whose dependencies to obtain.
+    string label = 1;
 
-    // Whether to include targets that have tag "manual". These should
-    // be excluded as part of "bazel build", but included as part of
-    // "bazel query".
-    bool include_manual_targets = 2;
+    // Whether to include dependencies on targets that are not
+    // explicitly declared in BUILD files, such as ones that are
+    // introduced by private attributes and attribute default values.
+    bool include_implicit_deps = 2;
   }
 
   message Value {
-    message TargetLabel {
-      message Parent {
-        // Reference to an object of type TargetLabelList that
-        // contains a list of labels of targets matched by the
-        // target pattern.
-        bonanza.model.core.DecodableReference
-            reference = 1 [(bonanza.model.core.object_format) = {
-          proto_list_type_name:
-            "bonanza.model.analysis.TargetPatternExpansion.Value.TargetLabel";
-        }];
-      }
-
-      oneof level {
-        // Label of a single target matched by the target pattern.
-        string leaf = 1;
-
-        // More labels of targets are stored in another object.
-        Parent parent = 2;
-      }
-    }
-
-    // Successfully processed the target pattern, and extracted the
-    // labels of targets matched by the target pattern.
+    // Canonical labels of the targets on which the target depends.
     repeated TargetLabel target_labels = 1;
+  }
+}
+
+// TargetLabel is an element of a B-tree containing canonical labels of
+// targets. Labels are stored in the order defined by
+// label.CanonicalLabel.Compare(), and are deduplicated.
+message TargetLabel {
+  message Parent {
+    // Reference to an object of type TargetLabelList that contains
+    // additional labels.
+    bonanza.model.core.DecodableReference reference = 1
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.TargetLabel";
+        }];
+
+    // The first and last label contained in this B-tree. These
+    // fields can be used to efficiently merge B-trees of labels,
+    // without loading objects whose labels don't overlap with those
+    // of other B-trees.
+    string first_label = 2;
+    string last_label = 3;
+  }
+
+  oneof level {
+    // The canonical label of a target.
+    string leaf = 1;
+
+    // More labels are stored in another object.
+    Parent parent = 2;
   }
 }
 

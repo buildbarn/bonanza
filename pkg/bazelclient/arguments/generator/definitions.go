@@ -34,6 +34,12 @@ var enumTypes = map[string][]string{
 		"pretty",
 		"json",
 	},
+	"QueryOutput": {
+		"build",
+		"label",
+		"label_kind",
+		"package",
+	},
 }
 
 var startupFlags = []flag{
@@ -208,6 +214,11 @@ var commands = map[string]command{
 		ancestor: "common",
 		flags: []flag{
 			{
+				longName:    "build_tag_filters",
+				description: "Specifies a comma-separated list of tags. Each tag can be optionally preceded with '-' to specify excluded tags. Only those targets will be built that contain at least one included tag and do not contain any excluded tags.",
+				flagType:    stringFlagType{},
+			},
+			{
 				longName:    "keep_going",
 				shortName:   "k",
 				description: "Continue as much as possible after an error. While the target that failed and those that depend on it cannot be analyzed, other prerequisites of these targets can be.",
@@ -277,6 +288,27 @@ var commands = map[string]command{
 	},
 	"license": {
 		ancestor: "common",
+	},
+	"query": {
+		ancestor: "common",
+		flags: []flag{
+			{
+				longName:    "implicit_deps",
+				description: "If enabled, implicit dependencies will be included in the dependency graph over which the query operates. An implicit dependency is one that is not explicitly specified in the BUILD file but added by Bazel.",
+				flagType: boolFlagType{
+					defaultValue: true,
+				},
+			},
+			{
+				longName:    "output",
+				description: "The format in which the query results should be printed. Allowed values for query are: build, label, label_kind and package.",
+				flagType: enumFlagType{
+					enumType:     "QueryOutput",
+					defaultValue: "label",
+				},
+			},
+		},
+		takesArguments: true,
 	},
 	"run": {
 		ancestor: "build",

@@ -93,17 +93,17 @@ type baseComputer[TReference object.BasicReference, TMetadata model_core.Referen
 	// Readers for various message types.
 	// TODO: These should likely be removed and instantiated later
 	// on, so that we can encrypt all data in storage.
-	valueReaders                                 model_starlark.ValueReaders[TReference]
-	argsReader                                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args]
-	argsAddReader                                model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args_Leaf_Add]
-	buildSettingOverrideReader                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.BuildSettingOverride]
-	commandOutputsReader                         model_parser.MessageObjectReader[TReference, *model_command_pb.Outputs]
-	configuredTargetActionReader                 model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Action]
-	configuredTargetOutputReader                 model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Output]
-	filesToRunProviderReader                     model_parser.MessageObjectReader[TReference, []*model_analysis_pb.FilesToRunProvider]
-	moduleExtensionReposValueRepoReader          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ModuleExtensionRepos_Value_Repo]
-	packageValueTargetReader                     model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Package_Value_Target]
-	targetPatternExpansionValueTargetLabelReader model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetPatternExpansion_Value_TargetLabel]
+	valueReaders                        model_starlark.ValueReaders[TReference]
+	argsReader                          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args]
+	argsAddReader                       model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args_Leaf_Add]
+	buildSettingOverrideReader          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.BuildSettingOverride]
+	commandOutputsReader                model_parser.MessageObjectReader[TReference, *model_command_pb.Outputs]
+	configuredTargetActionReader        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Action]
+	configuredTargetOutputReader        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Output]
+	filesToRunProviderReader            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.FilesToRunProvider]
+	moduleExtensionReposValueRepoReader model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ModuleExtensionRepos_Value_Repo]
+	packageValueTargetReader            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Package_Value_Target]
+	targetLabelReader                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetLabel]
 }
 
 // NewBaseComputer constructs a computer that is capable of performing
@@ -176,9 +176,9 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 			parsedObjectPoolIngester,
 			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Package_Value_Target](),
 		),
-		targetPatternExpansionValueTargetLabelReader: model_parser.LookupParsedObjectReader(
+		targetLabelReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.TargetPatternExpansion_Value_TargetLabel](),
+			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.TargetLabel](),
 		),
 	}
 }
@@ -332,7 +332,19 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 
 	thread := c.newStarlarkThread(ctx, e, buildSpecification.BuiltinsModuleNames)
 	missingDependencies := false
-	labelResolver := newLabelResolver(e)
+
+	// Determine which targets to build. The query is only expanded
+	// after creating the configurations, so that the dependencies
+	// of both are requested together.
+	canonicalQuery, err := parseRootModuleQuery(e, key.Query)
+	gotCanonicalQuery := err == nil
+	if !gotCanonicalQuery {
+		if !errors.Is(err, evaluation.ErrMissingDependency) {
+			return PatchedBuildResultValue[TMetadata]{}, err
+		}
+		missingDependencies = true
+	}
+
 	for i, configuration := range key.Configurations {
 		targetPlatformConfigurationReference, err := c.createInitialConfiguration(ctx, e, thread, rootPackage, configuration)
 		if err != nil {
@@ -347,56 +359,47 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 			targetPlatformConfigurationReference,
 		).Decay()
 
-		for _, targetPattern := range key.TargetPatterns {
-			apparentTargetPattern, err := label.NewApparentTargetPattern(targetPattern)
-			if err != nil {
-				return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("invalid target pattern %#v: %w", targetPattern, err)
-			}
-			canonicalTargetPattern, err := label.Canonicalize(labelResolver, rootRepo, apparentTargetPattern)
-			if err != nil {
-				return PatchedBuildResultValue[TMetadata]{}, err
+		if !gotCanonicalQuery {
+			continue
+		}
+		var iterErr error
+		for canonicalTargetLabel := range c.allQueryLabels(
+			ctx,
+			e,
+			canonicalQuery,
+			&iterErr,
+		) {
+			visibleTargetValue := e.GetVisibleTargetValue(
+				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.VisibleTarget_Key {
+					return &model_analysis_pb.VisibleTarget_Key{
+						FromPackage:            canonicalTargetLabel.GetCanonicalPackage().String(),
+						ToLabel:                canonicalTargetLabel.String(),
+						ConfigurationReference: model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
+					}
+				}),
+			)
+			if !visibleTargetValue.IsSet() {
+				missingDependencies = true
+				continue
 			}
 
-			var iterErr error
-			for canonicalTargetLabel := range c.expandCanonicalTargetPattern(
-				ctx,
-				e,
-				canonicalTargetPattern,
-				/* includeManualTargets = */ false,
-				&iterErr,
-			) {
-				visibleTargetValue := e.GetVisibleTargetValue(
-					model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.VisibleTarget_Key {
-						return &model_analysis_pb.VisibleTarget_Key{
-							FromPackage:            canonicalTargetLabel.GetCanonicalPackage().String(),
-							ToLabel:                canonicalTargetLabel.String(),
-							ConfigurationReference: model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
-						}
-					}),
-				)
-				if !visibleTargetValue.IsSet() {
-					missingDependencies = true
-					continue
-				}
-
-				targetCompletionValue := e.GetTargetCompletionValue(
-					model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetCompletion_Key {
-						return &model_analysis_pb.TargetCompletion_Key{
-							Label:                  visibleTargetValue.Message.Label,
-							ConfigurationReference: model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
-						}
-					}),
-				)
-				if !targetCompletionValue.IsSet() {
-					missingDependencies = true
-				}
-			}
-			if iterErr != nil {
-				if !errors.Is(iterErr, evaluation.ErrMissingDependency) {
-					return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("failed to iterate target pattern %#v: %w", targetPattern, iterErr)
-				}
+			targetCompletionValue := e.GetTargetCompletionValue(
+				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetCompletion_Key {
+					return &model_analysis_pb.TargetCompletion_Key{
+						Label:                  visibleTargetValue.Message.Label,
+						ConfigurationReference: model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
+					}
+				}),
+			)
+			if !targetCompletionValue.IsSet() {
 				missingDependencies = true
 			}
+		}
+		if iterErr != nil {
+			if !errors.Is(iterErr, evaluation.ErrMissingDependency) {
+				return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("failed to expand query: %w", iterErr)
+			}
+			missingDependencies = true
 		}
 	}
 	if missingDependencies {

@@ -343,6 +343,12 @@ func (p *queryParser[TTargetPattern]) parseFunctionCall(name queryToken) (QueryE
 			return nil, err
 		}
 		return &QueryLoadFiles[TTargetPattern]{Expression: expressions[0]}, nil
+	case "packages":
+		expressions, err := p.parseCall(nil, 1)
+		if err != nil {
+			return nil, err
+		}
+		return &QueryPackages[TTargetPattern]{Expression: expressions[0]}, nil
 	case "rdeps":
 		expressions, err := p.parseArguments(nil, 2)
 		if err != nil {
@@ -353,6 +359,12 @@ func (p *queryParser[TTargetPattern]) parseFunctionCall(name queryToken) (QueryE
 			return nil, err
 		}
 		return &QueryReverseDeps[TTargetPattern]{Universe: expressions[0], Expression: expressions[1], MaximumDepth: maximumDepth}, nil
+	case "rules":
+		expressions, err := p.parseCall(nil, 1)
+		if err != nil {
+			return nil, err
+		}
+		return &QueryRules[TTargetPattern]{Expression: expressions[0]}, nil
 	case "same_pkg_direct_rdeps":
 		expressions, err := p.parseCall(nil, 1)
 		if err != nil {
@@ -387,6 +399,13 @@ func (p *queryParser[TTargetPattern]) parseFunctionCall(name queryToken) (QueryE
 			return nil, err
 		}
 		return &QuerySomePath[TTargetPattern]{Start: expressions[0], End: expressions[1]}, nil
+	case "tag":
+		var tag string
+		expressions, err := p.parseCall([]*string{&tag}, 1)
+		if err != nil {
+			return nil, err
+		}
+		return &QueryTag[TTargetPattern]{Tag: tag, Expression: expressions[0]}, nil
 	case "tests":
 		expressions, err := p.parseCall(nil, 1)
 		if err != nil {
@@ -561,5 +580,5 @@ func NewQuery[TTargetPattern interface {
 	// removes expressions of unused variables.
 	return buildQuery(p.builder.expressions, root, func(targetPattern TTargetPattern) (TTargetPattern, error) {
 		return targetPattern, nil
-	}, compareQueryTargetPatterns[TTargetPattern])
+	}, compareQueryTargetPatterns[TTargetPattern], nil)
 }

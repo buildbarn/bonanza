@@ -10,6 +10,7 @@ go_library(
         "//pkg/bazelclient/commands/build",
         "//pkg/bazelclient/commands/info",
         "//pkg/bazelclient/commands/license",
+        "//pkg/bazelclient/commands/query",
         "//pkg/bazelclient/commands/version",
         "//pkg/bazelclient/formatted",
         "//pkg/bazelclient/logging",

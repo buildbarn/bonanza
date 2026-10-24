@@ -13,6 +13,7 @@ go_library(
         "encode_compiled_program.go",
         "exec_group.go",
         "file.go",
+        "int.go",
         "label.go",
         "list.go",
         "macro.go",
@@ -31,6 +32,7 @@ go_library(
         "struct.go",
         "subrule.go",
         "tag_class.go",
+        "target_kind.go",
         "target_reference.go",
         "target_registrar.go",
         "toolchain_type.go",
@@ -64,7 +66,9 @@ go_library(
 go_test(
     name = "starlark_test",
     srcs = [
+        "attr_test.go",
         "dict_test.go",
+        "int_test.go",
         "list_test.go",
         "mocks_encoding_test.go",
         "mocks_label_test.go",
@@ -72,6 +76,7 @@ go_test(
         "package_group_test.go",
         "parse_repo_dot_bazel_test.go",
         "struct_test.go",
+        "target_kind_test.go",
     ],
     embed = [":starlark"],
     deps = [

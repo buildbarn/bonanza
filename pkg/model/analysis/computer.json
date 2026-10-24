@@ -40,10 +40,10 @@
             "CompiledBzlFileDecodedGlobals",
             "CompiledBzlFileFunctionFactory",
             "CompiledBzlFileGlobal",
+            "QueryExpansion",
             "RootModule",
             "Target",
             "TargetCompletion",
-            "TargetPatternExpansion",
             "VisibleTarget"
          ]
       },
@@ -423,6 +423,34 @@
             "Repo"
          ]
       },
+      "QueryExpansion": {
+         "dependsOn": [
+            "CompiledBzlFileGlobal",
+            "Package",
+            "PackagesAtAndBelow",
+            "QueryExpansion",
+            "Target",
+            "TargetDirectDependencies"
+         ]
+      },
+      "QueryResult": {
+         "dependsOn": [
+            "CompiledBzlFileGlobal",
+            "CanonicalRepoName",
+            "QueryExpansion",
+            "QueryTargets",
+            "RootModule",
+            "Target"
+         ]
+      },
+      "QueryTargets": {
+         "dependsOn": [
+            "CompiledBzlFileGlobal",
+            "QueryTargets",
+            "Target"
+         ],
+         "keyContainsReferences": true
+      },
       "RawActionResult": {
          "dependsOn": [
             "ActionEncoders",
@@ -437,8 +465,8 @@
             "FileReader",
             "ModuleDotBazelContents",
             "ModulesWithMultipleVersionsObject",
+            "QueryExpansion",
             "RootModule",
-            "TargetPatternExpansion",
             "TargetProvider"
          ]
       },
@@ -462,10 +490,10 @@
             "FileReader",
             "ModuleDotBazelContents",
             "ModulesWithMultipleVersionsObject",
+            "QueryExpansion",
             "RootModule",
             "Select",
             "Target",
-            "TargetPatternExpansion",
             "TargetProvider",
             "VisibleTarget"
          ]
@@ -655,18 +683,17 @@
          ],
          "keyContainsReferences": true
       },
+      "TargetDirectDependencies": {
+         "dependsOn": [
+            "CompiledBzlFileGlobal",
+            "Target"
+         ]
+      },
       "TargetOutput": {
          "dependsOn": [
             "ConfiguredTarget"
          ],
          "keyContainsReferences": true
-      },
-      "TargetPatternExpansion": {
-         "dependsOn": [
-            "Package",
-            "PackagesAtAndBelow",
-            "TargetPatternExpansion"
-         ]
       },
       "TargetProvider": {
          "dependsOn": [

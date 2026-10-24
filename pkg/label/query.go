@@ -44,7 +44,7 @@ func (q Query[TTargetPattern]) GetSubquery(index int) Query[TTargetPattern] {
 	// need to sort the contents of sets.
 	subquery, err := buildQuery(q.expressions, index, func(targetPattern TTargetPattern) (TTargetPattern, error) {
 		return targetPattern, nil
-	}, nil)
+	}, nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -75,9 +75,217 @@ func CanonicalizeQuery[
 		Canonicalizable[TCanonical]
 	},
 ](resolver Resolver, fromRepo CanonicalRepo, toApparent Query[TApparent]) (Query[TCanonical], error) {
-	return buildQuery(toApparent.expressions, len(toApparent.expressions)-1, func(targetPattern TApparent) (TCanonical, error) {
+	return MapQueryTargetPatterns(toApparent, func(targetPattern TApparent) (TCanonical, error) {
 		return Canonicalize(resolver, fromRepo, targetPattern)
-	}, compareQueryTargetPatterns[TCanonical])
+	})
+}
+
+// MapQueryTargetPatterns converts all target patterns contained in a
+// query, yielding a new query in normal form. This can, for example, be
+// used to replace target patterns contained in a query.
+func MapQueryTargetPatterns[
+	TFrom comparable,
+	TTo interface {
+		comparable
+		fmt.Stringer
+	},
+](query Query[TFrom], mapTargetPattern func(TFrom) (TTo, error)) (Query[TTo], error) {
+	return buildQuery(query.expressions, len(query.expressions)-1, mapTargetPattern, compareQueryTargetPatterns[TTo], nil)
+}
+
+// CombineQueries returns a query in normal form that applies a set
+// operation to the results of two queries (e.g., "a - b").
+func CombineQueries[
+	TTargetPattern interface {
+		comparable
+		fmt.Stringer
+	},
+](operator QuerySetOperator, left, right Query[TTargetPattern]) Query[TTargetPattern] {
+	b := newQueryBuilder[TTargetPattern]()
+	identity := func(targetPattern TTargetPattern) (TTargetPattern, error) {
+		return targetPattern, nil
+	}
+	leftIndex, err := convertQueryExpressions(b, left.expressions, len(left.expressions)-1, identity, nil, nil)
+	if err != nil {
+		panic(err)
+	}
+	rightIndex, err := convertQueryExpressions(b, right.expressions, len(right.expressions)-1, identity, nil, nil)
+	if err != nil {
+		panic(err)
+	}
+	root := b.add(&QuerySetOperation[TTargetPattern]{
+		Operator: operator,
+		Left:     leftIndex,
+		Right:    rightIndex,
+	})
+	query, err := buildQuery(b.expressions, root, identity, compareQueryTargetPatterns[TTargetPattern], nil)
+	if err != nil {
+		panic(err)
+	}
+	return query
+}
+
+// ReplaceQuerySets replaces sets of target patterns contained in a
+// query with subqueries, yielding a new query in normal form. The
+// provided function is called for each set, and returns whether the
+// set should be replaced. This can, for example, be used to rewrite a
+// query that is evaluated against a recursive target pattern into one
+// that is evaluated against a single package.
+func ReplaceQuerySets[
+	TTargetPattern interface {
+		comparable
+		fmt.Stringer
+	},
+](query Query[TTargetPattern], replaceSet func(targetPatterns []TTargetPattern) (Query[TTargetPattern], bool)) (Query[TTargetPattern], error) {
+	return buildQuery(
+		query.expressions,
+		len(query.expressions)-1,
+		func(targetPattern TTargetPattern) (TTargetPattern, error) {
+			return targetPattern, nil
+		},
+		compareQueryTargetPatterns[TTargetPattern],
+		replaceSet,
+	)
+}
+
+// NewQueryFromTargetPatternArguments creates a query that yields the
+// targets matched by a sequence of target patterns, as provided as
+// arguments to commands like "bazel build". Target patterns are
+// processed from left to right. Target patterns prefixed with "-"
+// remove the targets they match from the results of the target
+// patterns preceding them.
+//
+// Targets are filtered using a list of tag filters, using the syntax
+// of flags like "bazel build --build_tag_filters". Each tag filter
+// consists of a tag, optionally prefixed with "-" to exclude targets
+// having that tag. If any tags are not prefixed with "-", targets need
+// to have at least one of them. As targets other than rule targets have
+// no tags, they are excluded in that case. In addition to that, target
+// patterns containing wildcards don't match targets having tag
+// "manual".
+//
+// Tag filters are applied to each target pattern individually, as
+// opposed to the results of all target patterns combined. This ensures
+// that results of individual target patterns can be reused, and that
+// recursive target patterns can be evaluated for each package
+// separately. For example, arguments "//... -//foo:all" with tag
+// filters "a,-b" are converted to query:
+//
+//	tag(a, //...) - tag(b, //...) - tag(manual, //...) - //foo:all
+//
+// Target patterns prefixed with "-" are not filtered, as removing
+// targets that are not yielded by the preceding target patterns has
+// no effect.
+func NewQueryFromTargetPatternArguments[
+	TTargetPattern interface {
+		comparable
+		fmt.Stringer
+	},
+](arguments, tagFilters []string, parseTargetPattern func(string) (TTargetPattern, error)) (Query[TTargetPattern], error) {
+	var includedTags, excludedTags []string
+	for _, tagFilter := range tagFilters {
+		if tag, ok := strings.CutPrefix(tagFilter, "-"); ok {
+			if tag != "" {
+				excludedTags = append(excludedTags, tag)
+			}
+		} else if tagFilter != "" {
+			includedTags = append(includedTags, tagFilter)
+		}
+	}
+	slices.Sort(includedTags)
+	includedTags = slices.Compact(includedTags)
+	slices.Sort(excludedTags)
+	excludedTags = slices.Compact(excludedTags)
+
+	// Target patterns containing wildcards should also exclude
+	// targets having tag "manual".
+	excludedTagsWithManual := excludedTags
+	if i, found := slices.BinarySearch(excludedTags, "manual"); !found {
+		excludedTagsWithManual = slices.Insert(slices.Clone(excludedTags), i, "manual")
+	}
+
+	var expressions []QueryExpression[TTargetPattern]
+	addExpression := func(expression QueryExpression[TTargetPattern]) int {
+		expressions = append(expressions, expression)
+		return len(expressions) - 1
+	}
+
+	result := -1
+	for _, argument := range arguments {
+		value, exclude := strings.CutPrefix(argument, "-")
+		targetPattern, err := parseTargetPattern(value)
+		if err != nil {
+			return Query[TTargetPattern]{}, fmt.Errorf("invalid target pattern %#v: %w", argument, err)
+		}
+		if exclude && result < 0 {
+			// Nothing to remove targets from.
+			continue
+		}
+
+		set := addExpression(&QuerySet[TTargetPattern]{
+			TargetPatterns: []TTargetPattern{targetPattern},
+		})
+		if exclude {
+			result = addExpression(&QuerySetOperation[TTargetPattern]{
+				Operator: QuerySetOperatorExcept,
+				Left:     result,
+				Right:    set,
+			})
+			continue
+		}
+
+		// Apply tag filters to the target pattern.
+		expression := -1
+		for _, tag := range includedTags {
+			tagExpression := addExpression(&QueryTag[TTargetPattern]{
+				Tag:        tag,
+				Expression: set,
+			})
+			if expression < 0 {
+				expression = tagExpression
+			} else {
+				expression = addExpression(&QuerySetOperation[TTargetPattern]{
+					Operator: QuerySetOperatorUnion,
+					Left:     expression,
+					Right:    tagExpression,
+				})
+			}
+		}
+		if expression < 0 {
+			expression = set
+		}
+		currentExcludedTags := excludedTags
+		if targetPatternHasWildcard(targetPattern.String()) {
+			currentExcludedTags = excludedTagsWithManual
+		}
+		for _, tag := range currentExcludedTags {
+			expression = addExpression(&QuerySetOperation[TTargetPattern]{
+				Operator: QuerySetOperatorExcept,
+				Left:     expression,
+				Right: addExpression(&QueryTag[TTargetPattern]{
+					Tag:        tag,
+					Expression: set,
+				}),
+			})
+		}
+
+		if result < 0 {
+			result = expression
+		} else {
+			result = addExpression(&QuerySetOperation[TTargetPattern]{
+				Operator: QuerySetOperatorUnion,
+				Left:     result,
+				Right:    expression,
+			})
+		}
+	}
+	if result < 0 {
+		// No target patterns provided. Yield an empty set.
+		result = addExpression(&QuerySet[TTargetPattern]{})
+	}
+	return buildQuery(expressions, result, func(targetPattern TTargetPattern) (TTargetPattern, error) {
+		return targetPattern, nil
+	}, compareQueryTargetPatterns[TTargetPattern], nil)
 }
 
 // compareQueryTargetPatterns compares target patterns by their string
@@ -252,6 +460,26 @@ func (e *QueryTests[TTargetPattern]) writeTo(f *queryFormatter[TTargetPattern], 
 	f.writeCall("tests", nil, []int{e.Expression}, nil)
 }
 
+// QueryRules is a query expression that yields the targets in a set
+// that are rules, written as "rules(x)". In addition to rule targets,
+// this includes targets declared using built-in functions that behave
+// like rules, such as alias(), label_flag() and label_setting(). This
+// corresponds to the targets that are matched by target patterns like
+// "//foo:all", and is equivalent to "kind(' rule$', x)".
+//
+// This function is specific to Bonanza, and is not supported by Bazel.
+// It allows filtering targets by type without depending on the
+// strings returned by kind(), and without performing regular
+// expression matching.
+type QueryRules[TTargetPattern any] struct {
+	// Index of the operand in the list of expressions.
+	Expression int
+}
+
+func (e *QueryRules[TTargetPattern]) writeTo(f *queryFormatter[TTargetPattern], _ queryPrecedence) {
+	f.writeCall("rules", nil, []int{e.Expression}, nil)
+}
+
 // QuerySome is a query expression that yields an arbitrary subset of
 // a set, written as "some(x)" or "some(x, count)". It is an error for
 // the set to be empty.
@@ -280,6 +508,43 @@ type QuerySiblings[TTargetPattern any] struct {
 
 func (e *QuerySiblings[TTargetPattern]) writeTo(f *queryFormatter[TTargetPattern], _ queryPrecedence) {
 	f.writeCall("siblings", nil, []int{e.Expression}, nil)
+}
+
+// QueryTag is a query expression that yields the rule targets of a set
+// that have a given tag, written as "tag(name, x)". The tag is matched
+// exactly, as opposed to being a regular expression.
+//
+// This function is specific to Bonanza, and is not supported by Bazel.
+// It can be used to filter targets by tag efficiently and precisely,
+// which is not possible using attr().
+type QueryTag[TTargetPattern any] struct {
+	Tag string
+	// Index of the operand in the list of expressions.
+	Expression int
+}
+
+func (e *QueryTag[TTargetPattern]) writeTo(f *queryFormatter[TTargetPattern], _ queryPrecedence) {
+	f.writeCall("tag", []string{e.Tag}, []int{e.Expression}, nil)
+}
+
+// QueryPackages is a query expression that yields the labels of the
+// packages of the targets in a set, written as "packages(x)". The
+// label of a package is the label whose target name is identical to
+// the last component of the package path (e.g., "//a" for "//a:b"),
+// or the canonical repo name for the root package of a repo.
+//
+// This function is specific to Bonanza, and is not supported by
+// Bazel. It can be used to efficiently compute the packages containing
+// a large number of targets, as done by "bazel query --output=package".
+// Similar to buildfiles(), the resulting labels don't necessarily
+// refer to existing targets.
+type QueryPackages[TTargetPattern any] struct {
+	// Index of the operand in the list of expressions.
+	Expression int
+}
+
+func (e *QueryPackages[TTargetPattern]) writeTo(f *queryFormatter[TTargetPattern], _ queryPrecedence) {
+	f.writeCall("packages", nil, []int{e.Expression}, nil)
 }
 
 // QuerySomePath is a query expression that yields the targets on an
@@ -533,22 +798,26 @@ func (b *queryBuilder[TTargetPattern]) add(expression QueryExpression[TTargetPat
 // The contents of sets are sorted using the provided comparison
 // function. It may be nil if the contents of sets are known to already
 // be sorted and deduplicated.
-func buildQuery[TFrom, TTo comparable](expressions []QueryExpression[TFrom], root int, convertTargetPattern func(TFrom) (TTo, error), compareTargetPatterns func(a, b TTo) int) (Query[TTo], error) {
+//
+// If provided, replaceSet is called for each set, prior to converting
+// its target patterns. If it returns true, the set is replaced by the
+// query that is returned, which must be in normal form.
+func buildQuery[TFrom, TTo comparable](expressions []QueryExpression[TFrom], root int, convertTargetPattern func(TFrom) (TTo, error), compareTargetPatterns func(a, b TTo) int, replaceSet func([]TFrom) (Query[TTo], bool)) (Query[TTo], error) {
 	b := newQueryBuilder[TTo]()
-	if err := convertQueryExpressions(b, expressions, root, convertTargetPattern, compareTargetPatterns); err != nil {
+	if _, err := convertQueryExpressions(b, expressions, root, convertTargetPattern, compareTargetPatterns, replaceSet); err != nil {
 		return Query[TTo]{}, err
 	}
 
-	// Converting target patterns and sorting the contents of sets
-	// may have caused expressions to become identical. Because
-	// these are deduplicated, the order of the remaining
-	// expressions may not match the order of a traversal. Perform
-	// another pass to fix up the order.
-	if len(b.expressions) < len(expressions) {
+	// Converting target patterns, sorting the contents of sets and
+	// replacing sets may have caused expressions to become
+	// identical. Because these are deduplicated, the order of the
+	// remaining expressions may not match the order of a
+	// traversal. Perform another pass to fix up the order.
+	if len(b.expressions) < len(expressions) || replaceSet != nil {
 		b2 := newQueryBuilder[TTo]()
-		if err := convertQueryExpressions(b2, b.expressions, len(b.expressions)-1, func(targetPattern TTo) (TTo, error) {
+		if _, err := convertQueryExpressions(b2, b.expressions, len(b.expressions)-1, func(targetPattern TTo) (TTo, error) {
 			return targetPattern, nil
-		}, nil); err != nil {
+		}, nil, nil); err != nil {
 			return Query[TTo]{}, err
 		}
 		b = b2
@@ -559,8 +828,10 @@ func buildQuery[TFrom, TTo comparable](expressions []QueryExpression[TFrom], roo
 // convertQueryExpressions adds expressions that are reachable from a
 // top-level expression to a query builder, converting the target
 // patterns contained within. If a comparison function is provided, the
-// contents of sets are sorted and deduplicated.
-func convertQueryExpressions[TFrom, TTo comparable](b *queryBuilder[TTo], expressions []QueryExpression[TFrom], root int, convertTargetPattern func(TFrom) (TTo, error), compareTargetPatterns func(a, b TTo) int) error {
+// contents of sets are sorted and deduplicated. If a replacement
+// function is provided, sets may be replaced by subqueries. It returns
+// the index of the top-level expression in the query builder.
+func convertQueryExpressions[TFrom, TTo comparable](b *queryBuilder[TTo], expressions []QueryExpression[TFrom], root int, convertTargetPattern func(TFrom) (TTo, error), compareTargetPatterns func(a, b TTo) int, replaceSet func([]TFrom) (Query[TTo], bool)) (int, error) {
 	newIndices := map[int]int{}
 	var visit func(index int) (int, error)
 	visit = func(index int) (int, error) {
@@ -570,6 +841,18 @@ func convertQueryExpressions[TFrom, TTo comparable](b *queryBuilder[TTo], expres
 		var newExpression QueryExpression[TTo]
 		switch e := expressions[index].(type) {
 		case *QuerySet[TFrom]:
+			if replaceSet != nil {
+				if subquery, ok := replaceSet(e.TargetPatterns); ok {
+					newIndex, err := convertQueryExpressions(b, subquery.expressions, len(subquery.expressions)-1, func(targetPattern TTo) (TTo, error) {
+						return targetPattern, nil
+					}, nil, nil)
+					if err != nil {
+						return 0, err
+					}
+					newIndices[index] = newIndex
+					return newIndex, nil
+				}
+			}
 			targetPatterns := make([]TTo, 0, len(e.TargetPatterns))
 			for _, targetPattern := range e.TargetPatterns {
 				newTargetPattern, err := convertTargetPattern(targetPattern)
@@ -641,6 +924,12 @@ func convertQueryExpressions[TFrom, TTo comparable](b *queryBuilder[TTo], expres
 				return 0, err
 			}
 			newExpression = &QueryTests[TTo]{Expression: expression}
+		case *QueryRules[TFrom]:
+			expression, err := visit(e.Expression)
+			if err != nil {
+				return 0, err
+			}
+			newExpression = &QueryRules[TTo]{Expression: expression}
 		case *QuerySome[TFrom]:
 			expression, err := visit(e.Expression)
 			if err != nil {
@@ -653,6 +942,18 @@ func convertQueryExpressions[TFrom, TTo comparable](b *queryBuilder[TTo], expres
 				return 0, err
 			}
 			newExpression = &QuerySiblings[TTo]{Expression: expression}
+		case *QueryTag[TFrom]:
+			expression, err := visit(e.Expression)
+			if err != nil {
+				return 0, err
+			}
+			newExpression = &QueryTag[TTo]{Tag: e.Tag, Expression: expression}
+		case *QueryPackages[TFrom]:
+			expression, err := visit(e.Expression)
+			if err != nil {
+				return 0, err
+			}
+			newExpression = &QueryPackages[TTo]{Expression: expression}
 		case *QuerySomePath[TFrom]:
 			start, err := visit(e.Start)
 			if err != nil {
@@ -714,8 +1015,7 @@ func convertQueryExpressions[TFrom, TTo comparable](b *queryBuilder[TTo], expres
 		newIndices[index] = newIndex
 		return newIndex, nil
 	}
-	_, err := visit(root)
-	return err
+	return visit(root)
 }
 
 // quoteQueryWord converts a string to a word of the query language,

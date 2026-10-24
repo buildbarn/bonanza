@@ -58,6 +58,19 @@ func TestCanonicalPackage(t *testing.T) {
 		}
 	})
 
+	t.Run("AsCanonicalLabel", func(t *testing.T) {
+		for input, targetName := range map[string]string{
+			"@@com_github_buildbarn_bb_storage+":                  "com_github_buildbarn_bb_storage+",
+			"@@com_github_buildbarn_bb_storage+//cmd":             "cmd",
+			"@@com_github_buildbarn_bb_storage+//cmd/hello_world": "hello_world",
+		} {
+			canonicalLabel := util.Must(label.NewCanonicalPackage(input)).AsCanonicalLabel()
+			assert.Equal(t, input, canonicalLabel.String())
+			assert.Equal(t, input, canonicalLabel.GetCanonicalPackage().String())
+			assert.Equal(t, targetName, canonicalLabel.GetTargetName().String())
+		}
+	})
+
 	t.Run("GetPackagePath", func(t *testing.T) {
 		for input, output := range map[string]string{
 			"@@com_github_buildbarn_bb_storage+":                  "",
@@ -191,7 +204,7 @@ func TestCanonicalPackage(t *testing.T) {
 		}
 	})
 
-	t.Run("ToRecursiveTargetPatternBelow", func(t *testing.T) {
+	t.Run("AppendPackagePath", func(t *testing.T) {
 		t.Run("Invalid", func(t *testing.T) {
 			base := util.Must(label.NewCanonicalPackage("@@repo+"))
 			for _, input := range []string{
@@ -200,21 +213,92 @@ func TestCanonicalPackage(t *testing.T) {
 				"./foo",
 				"foo/",
 			} {
-				_, err := base.ToRecursiveTargetPatternBelow(input, false)
+				_, err := base.AppendPackagePath(input)
 				assert.ErrorContains(t, err, "non-empty package name must match ", input)
 			}
 		})
 
 		t.Run("Valid", func(t *testing.T) {
-			canonicalTargetPattern, err := util.Must(label.NewCanonicalPackage("@@repo+")).
-				ToRecursiveTargetPatternBelow("foo/bar", false)
+			canonicalPackage, err := util.Must(label.NewCanonicalPackage("@@repo+")).AppendPackagePath("foo/bar")
 			require.NoError(t, err)
-			assert.Equal(t, "@@repo+//foo/bar/...", canonicalTargetPattern.String())
+			assert.Equal(t, "@@repo+//foo/bar", canonicalPackage.String())
 
-			canonicalTargetPattern, err = util.Must(label.NewCanonicalPackage("@@repo+//foo")).
-				ToRecursiveTargetPatternBelow("bar", true)
+			canonicalPackage, err = util.Must(label.NewCanonicalPackage("@@repo+//foo")).AppendPackagePath("bar")
 			require.NoError(t, err)
-			assert.Equal(t, "@@repo+//foo/bar/...:*", canonicalTargetPattern.String())
+			assert.Equal(t, "@@repo+//foo/bar", canonicalPackage.String())
 		})
+	})
+
+	t.Run("IsAtOrBelow", func(t *testing.T) {
+		for _, testCase := range []struct {
+			p, other string
+			expected bool
+		}{
+			{"@@repo+", "@@repo+", true},
+			{"@@repo+//foo", "@@repo+", true},
+			{"@@repo+//foo/bar", "@@repo+", true},
+			{"@@repo+//foo", "@@repo+//foo", true},
+			{"@@repo+//foo/bar", "@@repo+//foo", true},
+			{"@@repo+", "@@repo+//foo", false},
+			{"@@repo+//foobar", "@@repo+//foo", false},
+			{"@@repo+//bar", "@@repo+//foo", false},
+			{"@@repo+x", "@@repo+", false},
+			{"@@repo+x//foo", "@@repo+", false},
+		} {
+			assert.Equal(
+				t,
+				testCase.expected,
+				util.Must(label.NewCanonicalPackage(testCase.p)).IsAtOrBelow(util.Must(label.NewCanonicalPackage(testCase.other))),
+				"%s at or below %s", testCase.p, testCase.other,
+			)
+		}
+	})
+
+	t.Run("ToRecursiveTargetPattern", func(t *testing.T) {
+		// Target patterns should be convertible back to the
+		// package from which they were created.
+		for _, input := range []string{
+			"@@repo+",
+			"@@repo+//foo",
+			"@@repo+//foo/bar",
+		} {
+			t.Run(input, func(t *testing.T) {
+				canonicalPackage := util.Must(label.NewCanonicalPackage(input))
+				for _, includeFileTargets := range []bool{false, true} {
+					basePackage, gotIncludeFileTargets, ok := canonicalPackage.ToRecursiveTargetPattern(includeFileTargets).AsRecursiveTargetPattern()
+					require.True(t, ok)
+					assert.Equal(t, input, basePackage.String())
+					assert.Equal(t, includeFileTargets, gotIncludeFileTargets)
+				}
+			})
+		}
+
+		canonicalPackage := util.Must(label.NewCanonicalPackage("@@repo+"))
+		assert.Equal(t, "@@repo+//...", canonicalPackage.ToRecursiveTargetPattern(false).String())
+		assert.Equal(t, "@@repo+//...:*", canonicalPackage.ToRecursiveTargetPattern(true).String())
+
+		canonicalPackage = util.Must(label.NewCanonicalPackage("@@repo+//foo"))
+		assert.Equal(t, "@@repo+//foo/...", canonicalPackage.ToRecursiveTargetPattern(false).String())
+		assert.Equal(t, "@@repo+//foo/...:*", canonicalPackage.ToRecursiveTargetPattern(true).String())
+	})
+
+	t.Run("ToTargetsQuery", func(t *testing.T) {
+		for input, expected := range map[string][2]string{
+			"@@repo+":          {"rules(siblings(@@repo+//:*))", "siblings(@@repo+//:*)"},
+			"@@repo+//foo/bar": {"rules(siblings(@@repo+//foo/bar:*))", "siblings(@@repo+//foo/bar:*)"},
+		} {
+			t.Run(input, func(t *testing.T) {
+				canonicalPackage := util.Must(label.NewCanonicalPackage(input))
+				for i, includeFileTargets := range []bool{false, true} {
+					query := canonicalPackage.ToTargetsQuery(includeFileTargets)
+					assert.Equal(t, expected[i], label.QueryToString(query))
+
+					// The query should be in normal form.
+					parsed, err := label.NewQuery(expected[i], label.NewCanonicalTargetPattern)
+					require.NoError(t, err)
+					assert.Equal(t, parsed, query)
+				}
+			})
+		}
 	})
 }

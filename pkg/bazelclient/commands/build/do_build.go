@@ -58,6 +58,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/security/advancedtls"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -162,9 +163,78 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	logger := logging.NewLoggerFromFlags(&args.CommonFlags)
 	commands.ValidateInsideWorkspace(logger, "build", workspacePath)
 
-	remoteCacheClient, err := newGRPCClient(args.CommonFlags.RemoteCache, &args.CommonFlags)
+	evaluation := Evaluate(logger, &args.CommonFlags, workspacePath, "build", func(currentPackage label.CanonicalPackage) proto.Message {
+		// Convert the target patterns and tag filters to a
+		// query. This allows target patterns prefixed with "-"
+		// to exclude targets (e.g., "bazel build -- //...
+		// -//foo/...").
+		query, err := label.NewQueryFromTargetPatternArguments(
+			args.Arguments,
+			strings.Split(args.BuildFlags.BuildTagFilters, ","),
+			currentPackage.AppendTargetPattern,
+		)
+		if err != nil {
+			logger.Fatal(formatted.Textf("Invalid target patterns: %s", err))
+		}
+
+		// Determine the configurations for which to build. The Bazel
+		// CLI only supports specifying build setting overrides and a
+		// single list of platforms. However, there is no way to pick
+		// different build setting overrides depending on the platform.
+		commonBuildSettingOverrides := make([]*model_analysis_pb.BuildResult_Key_BuildSettingOverride, 0, len(args.BuildSettingOverrides))
+		for _, override := range args.BuildSettingOverrides {
+			apparentLabel, err := currentPackage.AppendTargetPattern(override.Label)
+			if err != nil {
+				logger.Fatal(formatted.Textf("Invalid build setting override --%s=%#v: %s", override.Label, override.Value, err))
+			}
+			commonBuildSettingOverrides = append(
+				commonBuildSettingOverrides,
+				&model_analysis_pb.BuildResult_Key_BuildSettingOverride{
+					Label: apparentLabel.String(),
+					Value: override.Value,
+				},
+			)
+		}
+		targetPlatforms := strings.FieldsFunc(args.BuildFlags.Platforms, func(r rune) bool { return r == ',' })
+		if len(targetPlatforms) == 0 {
+			targetPlatforms = []string{"@platforms//host"}
+		}
+		configurations := make([]*model_analysis_pb.BuildResult_Key_Configuration, 0, len(targetPlatforms))
+		for _, targetPlatform := range targetPlatforms {
+			configurations = append(configurations, &model_analysis_pb.BuildResult_Key_Configuration{
+				BuildSettingOverrides: append(
+					[]*model_analysis_pb.BuildResult_Key_BuildSettingOverride{{
+						Label: "@bazel_tools//command_line_option:platforms",
+						Value: targetPlatform,
+					}},
+					commonBuildSettingOverrides...,
+				),
+			})
+		}
+
+		return &model_analysis_pb.BuildResult_Key{
+			Query:          label.QueryToString(query),
+			Configurations: configurations,
+		}
+	})
+	if outcomesLink, ok := evaluation.GetOutcomesLink(); ok {
+		logger.Info(formatted.Join(formatted.Text("Got build results "), outcomesLink))
+	}
+}
+
+// Evaluate the value of a key remotely, using the modules contained in
+// the current workspace. This function provides the logic that is
+// shared by commands like "bazel build" and "bazel query". If
+// evaluation fails, the program is terminated.
+//
+// The key to evaluate is obtained by calling getRequestedKey, which is
+// provided the canonical package corresponding to the current working
+// directory. It can be used to resolve relative labels and target
+// patterns.
+func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspacePath path.Parser, commandName string, getRequestedKey func(currentPackage label.CanonicalPackage) proto.Message) *Evaluation {
+	remoteCacheClient, err := newGRPCClient(commonFlags.RemoteCache, commonFlags)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to create gRPC client for --remote_cache=%#v: %s", args.CommonFlags.RemoteCache, err))
+		logger.Fatal(formatted.Textf("Failed to create gRPC client for --remote_cache=%#v: %s", commonFlags.RemoteCache, err))
 	}
 
 	// Determine the names and paths of all modules that are present
@@ -201,7 +271,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 
 	// Augment results with modules provided to --override_module.
-	for _, overrideModule := range args.CommonFlags.OverrideModule {
+	for _, overrideModule := range commonFlags.OverrideModule {
 		fields := strings.SplitN(overrideModule, "=", 2)
 		if len(fields) != 2 {
 			logger.Fatal(formatted.Text("Module overrides must use the format ${module_name}=${path}"))
@@ -223,7 +293,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	// resulting objects, and whether they are compressed and
 	// encrypted.
 	referenceFormat := util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1))
-	encryptionKeyBytes, err := base64.StdEncoding.DecodeString(args.CommonFlags.RemoteEncryptionKey)
+	encryptionKeyBytes, err := base64.StdEncoding.DecodeString(commonFlags.RemoteEncryptionKey)
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to base64 decode value of --remote_encryption_key: %s", err))
 	}
@@ -235,7 +305,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		},
 	}}
 	var chunkEncoders []*model_encoding_pb.BinaryEncoder
-	if args.CommonFlags.RemoteCacheCompression {
+	if commonFlags.RemoteCacheCompression {
 		chunkEncoders = append(chunkEncoders, &model_encoding_pb.BinaryEncoder{
 			Encoder: &model_encoding_pb.BinaryEncoder_LzwCompressing{
 				LzwCompressing: &emptypb.Empty{},
@@ -315,7 +385,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		logger.Fatal(formatted.Text(err.Error()))
 	}
 
-	fetcherPKIXPublicKey, err := base64.StdEncoding.DecodeString(args.CommonFlags.RemoteExecutorFetcherPkixPublicKey)
+	fetcherPKIXPublicKey, err := base64.StdEncoding.DecodeString(commonFlags.RemoteExecutorFetcherPkixPublicKey)
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to base64 decode --remote_executor_fetcher_pkix_public_key: %s", err))
 	}
@@ -331,15 +401,15 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		RootModuleName:                         rootModuleName.String(),
 		DirectoryCreationParameters:            directoryParametersMessage,
 		FileCreationParameters:                 fileParametersMessage,
-		IgnoreRootModuleDevDependencies:        args.CommonFlags.IgnoreDevDependency,
-		BuiltinsModuleNames:                    args.CommonFlags.BuiltinsModule,
-		RepoPlatform:                           args.CommonFlags.RepoPlatform,
+		IgnoreRootModuleDevDependencies:        commonFlags.IgnoreDevDependency,
+		BuiltinsModuleNames:                    commonFlags.BuiltinsModule,
+		RepoPlatform:                           commonFlags.RepoPlatform,
 		FetchPlatformPkixPublicKey:             fetcherPKIXPublicKey,
 		ActionEncoders:                         defaultEncoders,
-		RuleImplementationWrapperIdentifier:    args.CommonFlags.RuleImplementationWrapperIdentifier,
-		SubruleImplementationWrapperIdentifier: args.CommonFlags.SubruleImplementationWrapperIdentifier,
+		RuleImplementationWrapperIdentifier:    commonFlags.RuleImplementationWrapperIdentifier,
+		SubruleImplementationWrapperIdentifier: commonFlags.SubruleImplementationWrapperIdentifier,
 	}
-	switch args.CommonFlags.LockfileMode {
+	switch commonFlags.LockfileMode {
 	case arguments.LockfileMode_Off:
 	case arguments.LockfileMode_Update:
 		buildSpecification.UseLockfile = &model_analysis_pb.BuildSpecification_Value_UseLockfile{}
@@ -354,8 +424,8 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	default:
 		panic("unknown lockfile mode")
 	}
-	if len(args.CommonFlags.Registry) > 0 {
-		buildSpecification.ModuleRegistryUrls = args.CommonFlags.Registry
+	if len(commonFlags.Registry) > 0 {
+		buildSpecification.ModuleRegistryUrls = commonFlags.Registry
 	} else {
 		buildSpecification.ModuleRegistryUrls = []string{"https://bcr.bazel.build/"}
 	}
@@ -413,7 +483,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	// TODO: Should these be moved into special overrides?
 	/*
 		var invocationID uuid.UUID
-		if v := args.CommonFlags.InvocationId; v == "" {
+		if v := commonFlags.InvocationId; v == "" {
 			invocationID = util.Must(uuid.NewRandom())
 		} else {
 			invocationID, err = uuid.Parse(v)
@@ -422,7 +492,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			}
 		}
 		var buildRequestID uuid.UUID
-		if v := args.CommonFlags.BuildRequestId; v == "" {
+		if v := commonFlags.BuildRequestId; v == "" {
 			buildRequestID = util.Must(uuid.NewRandom())
 		} else {
 			buildRequestID, err = uuid.Parse(v)
@@ -476,67 +546,20 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		logger.Fatal(formatted.Textf("Failed to create overrides list object: %s", err))
 	}
 
-	targetPatterns := make([]string, 0, len(args.Arguments))
-	for _, targetPattern := range args.Arguments {
-		apparentTargetPattern, err := currentPackage.AppendTargetPattern(targetPattern)
-		if err != nil {
-			logger.Fatal(formatted.Textf("Invalid target pattern %#v: %s", targetPattern, err))
-		}
-		targetPatterns = append(targetPatterns, apparentTargetPattern.String())
-	}
-
-	// Determine the configurations for which to build. The Bazel
-	// CLI only supports specifying build setting overrides and a
-	// single list of platforms. However, there is no way to pick
-	// different build setting overrides depending on the platform.
-	commonBuildSettingOverrides := make([]*model_analysis_pb.BuildResult_Key_BuildSettingOverride, 0, len(args.BuildSettingOverrides))
-	for _, override := range args.BuildSettingOverrides {
-		apparentLabel, err := currentPackage.AppendTargetPattern(override.Label)
-		if err != nil {
-			logger.Fatal(formatted.Textf("Invalid build setting override --%s=%#v: %s", override.Label, override.Value, err))
-		}
-		commonBuildSettingOverrides = append(
-			commonBuildSettingOverrides,
-			&model_analysis_pb.BuildResult_Key_BuildSettingOverride{
-				Label: apparentLabel.String(),
-				Value: override.Value,
-			},
-		)
-	}
-	targetPlatforms := strings.FieldsFunc(args.BuildFlags.Platforms, func(r rune) bool { return r == ',' })
-	if len(targetPlatforms) == 0 {
-		targetPlatforms = []string{"@platforms//host"}
-	}
-	configurations := make([]*model_analysis_pb.BuildResult_Key_Configuration, 0, len(targetPlatforms))
-	for _, targetPlatform := range targetPlatforms {
-		configurations = append(configurations, &model_analysis_pb.BuildResult_Key_Configuration{
-			BuildSettingOverrides: append(
-				[]*model_analysis_pb.BuildResult_Key_BuildSettingOverride{{
-					Label: "@bazel_tools//command_line_option:platforms",
-					Value: targetPlatform,
-				}},
-				commonBuildSettingOverrides...,
-			),
-		})
-	}
-
-	// The evaluation key that this build requests. Also create a
-	// marshaled copy of it, as we need to embed that into the
-	// bonanza_browser URL to link to the results.
-	patchedBuildResultKey := model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
-		&model_analysis_pb.BuildResult_Key{
-			TargetPatterns: targetPatterns,
-			Configurations: configurations,
-		},
+	// The evaluation key that is requested. Also create a marshaled
+	// copy of it, as we need to embed that into the bonanza_browser
+	// URL to link to the results.
+	patchedRequestedKey := model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+		getRequestedKey(currentPackage),
 	)
-	buildResultKey, _ := patchedBuildResultKey.SortAndSetReferences()
-	buildResultKeyAny, err := model_core.MarshalTopLevelAny(buildResultKey)
+	requestedKey, _ := patchedRequestedKey.SortAndSetReferences()
+	requestedKeyAny, err := model_core.MarshalTopLevelAny(requestedKey)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to marshal build result key: %s", err))
+		logger.Fatal(formatted.Textf("Failed to marshal requested key: %s", err))
 	}
-	marshaledBuildResultKey, err := model_core.MarshalTopLevelMessage(buildResultKeyAny)
+	marshaledRequestedKey, err := model_core.MarshalTopLevelMessage(requestedKeyAny)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to marshal build result key: %s", err))
+		logger.Fatal(formatted.Textf("Failed to marshal requested key: %s", err))
 	}
 
 	// Construct an Action message.
@@ -550,7 +573,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			return nil, err
 		}
 
-		patchedBuildResultKeyAny, err := model_core.MarshalAny(patchedBuildResultKey)
+		patchedRequestedKeyAny, err := model_core.MarshalAny(patchedRequestedKey)
 		if err != nil {
 			return nil, err
 		}
@@ -559,7 +582,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			OverridesReference: overridesReference,
 			RequestedKeys: []*model_evaluation_pb.Keys{{
 				Level: &model_evaluation_pb.Keys_Leaf{
-					Leaf: patchedBuildResultKeyAny.Merge(patcher),
+					Leaf: patchedRequestedKeyAny.Merge(patcher),
 				},
 			}},
 		}), nil
@@ -573,9 +596,9 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 
 	logger.Info(formatted.Text("Uploading module sources"))
-	instanceName, err := object.NewInstanceName(args.CommonFlags.RemoteInstanceName)
+	instanceName, err := object.NewInstanceName(commonFlags.RemoteInstanceName)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Invalid --remote_instance_name=%#v: %s", args.CommonFlags.RemoteInstanceName, err))
+		logger.Fatal(formatted.Textf("Invalid --remote_instance_name=%#v: %s", commonFlags.RemoteInstanceName, err))
 	}
 	actionReference := createdAction.Value.GetLocalReference()
 	actionGlobalReference := instanceName.WithLocalReference(actionReference)
@@ -598,27 +621,27 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		logger.Fatal(formatted.Textf("Failed to upload workspace directory: %s", err))
 	}
 
-	clientPrivateKeyData, err := os.ReadFile(args.CommonFlags.RemoteExecutorClientPrivateKey)
+	clientPrivateKeyData, err := os.ReadFile(commonFlags.RemoteExecutorClientPrivateKey)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to read --remote_executor_client_private_key=%#v: %s", args.CommonFlags.RemoteExecutorClientPrivateKey, err))
+		logger.Fatal(formatted.Textf("Failed to read --remote_executor_client_private_key=%#v: %s", commonFlags.RemoteExecutorClientPrivateKey, err))
 	}
 	clientPrivateKey, err := crypto.ParsePEMWithPKCS8ECDHPrivateKey(clientPrivateKeyData)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to parse --remote_executor_client_private_key=%#v: %s", args.CommonFlags.RemoteExecutorClientPrivateKey, err))
+		logger.Fatal(formatted.Textf("Failed to parse --remote_executor_client_private_key=%#v: %s", commonFlags.RemoteExecutorClientPrivateKey, err))
 	}
 
-	clientCertificateChainData, err := os.ReadFile(args.CommonFlags.RemoteExecutorClientCertificateChain)
+	clientCertificateChainData, err := os.ReadFile(commonFlags.RemoteExecutorClientCertificateChain)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to read --remote_executor_client_certificate_chain=%#v: %s", args.CommonFlags.RemoteExecutorClientCertificateChain, err))
+		logger.Fatal(formatted.Textf("Failed to read --remote_executor_client_certificate_chain=%#v: %s", commonFlags.RemoteExecutorClientCertificateChain, err))
 	}
 	clientCertificateChain, err := crypto.ParsePEMWithCertificateChain(clientCertificateChainData)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to parse --remote_executor_client_certificate_chain=%#v: %s", args.CommonFlags.RemoteExecutorClientCertificateChain, err))
+		logger.Fatal(formatted.Textf("Failed to parse --remote_executor_client_certificate_chain=%#v: %s", commonFlags.RemoteExecutorClientCertificateChain, err))
 	}
 
-	remoteExecutorClient, err := newGRPCClient(args.CommonFlags.RemoteExecutor, &args.CommonFlags)
+	remoteExecutorClient, err := newGRPCClient(commonFlags.RemoteExecutor, commonFlags)
 	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to create gRPC client for --remote_executor=%#v: %s", args.CommonFlags.RemoteExecutor, err))
+		logger.Fatal(formatted.Textf("Failed to create gRPC client for --remote_executor=%#v: %s", commonFlags.RemoteExecutor, err))
 	}
 	builderClient := model_executewithstorage.NewNamespaceAddingClient(
 		model_executewithstorage.NewProtoClient(
@@ -633,7 +656,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		instanceName,
 	)
 
-	builderPKIXPublicKey, err := base64.StdEncoding.DecodeString(args.CommonFlags.RemoteExecutorBuilderPkixPublicKey)
+	builderPKIXPublicKey, err := base64.StdEncoding.DecodeString(commonFlags.RemoteExecutorBuilderPkixPublicKey)
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to base64 decode --remote_executor_builder_pkix_public_key: %s", err))
 	}
@@ -645,7 +668,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	decodableActionReference := model_core.CopyDecodable(createdAction, actionReference)
 	actionReferenceStr := model_core.DecodableLocalReferenceToString(decodableActionReference)
 	actionLink := formatted.Text(actionReferenceStr)
-	browserURL := args.CommonFlags.BrowserUrl
+	browserURL := commonFlags.BrowserUrl
 	evaluationActionObjectFormat := model_core.NewProtoObjectFormat(&model_evaluation_pb.Action{})
 	evaluationActionPathComponents, _ := model_core.ObjectFormatToPath(evaluationActionObjectFormat)
 	if browserURL != "" {
@@ -682,7 +705,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 
 	messageFormatter := messageFormatter{
 		renderer: render.Renderer{
-			Pretty:          args.CommonFlags.MessageFormat == arguments.MessageFormat_Pretty,
+			Pretty:          commonFlags.MessageFormat == arguments.MessageFormat_Pretty,
 			ReferenceFormat: &referenceFormat,
 		},
 	}
@@ -697,7 +720,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		}
 	}
 
-	logger.Info(formatted.Join(formatted.Text("Performing build "), actionLink))
+	logger.Info(formatted.Join(formatted.Text("Performing "+commandName+" "), actionLink))
 	var resultReference model_core.Decodable[object.LocalReference]
 	var errBuild error
 	namespace := object.Namespace{
@@ -799,7 +822,7 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		}
 	}
 	if errBuild != nil {
-		logger.Fatal(formatted.Textf("Failed to perform build: %s", errBuild))
+		logger.Fatal(formatted.Textf("Failed to perform %s: %s", commandName, errBuild))
 	}
 	logger.RemovePreviousLines(progressLinesWritten)
 
@@ -830,27 +853,18 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 
 	if f := result.Message.Failure; f != nil {
 		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, &messageFormatter, browserURL, outcomesReference)
-		logger.Fatal(formatted.Textf("Failed to perform build: %s", status.FromProto(f.Status)))
-	} else if outcomesReference != nil {
-		outcomesReferenceNode := formatted.Text(model_core.DecodableLocalReferenceToString(*outcomesReference))
-		if browserURL != "" {
-			if evaluationURL, err := url.JoinPath(
-				browserURL,
-				"evaluation",
-				namespace.InstanceName.AsURLSafeComponent(),
-				namespace.ReferenceFormat.ToProto().String(),
-				model_core.DecodableLocalReferenceToString(*outcomesReference),
-				base64.RawURLEncoding.EncodeToString(marshaledBuildResultKey),
-			); err == nil {
-				outcomesReferenceNode = formatted.Link(evaluationURL, outcomesReferenceNode)
-			}
-		}
-		logger.Info(
-			formatted.Join(
-				formatted.Text("Got build results "),
-				outcomesReferenceNode,
-			),
-		)
+		logger.Fatal(formatted.Textf("Failed to perform %s: %s", commandName, status.FromProto(f.Status)))
+	}
+
+	return &Evaluation{
+		namespace:                namespace,
+		browserURL:               browserURL,
+		referenceFormat:          referenceFormat,
+		parsedObjectPoolIngester: parsedObjectPoolIngester,
+		actionEncoder:            actionEncoder,
+		requestedKey:             requestedKeyAny,
+		marshaledRequestedKey:    marshaledRequestedKey,
+		outcomesReference:        outcomesReference,
 	}
 }
 

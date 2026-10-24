@@ -172,7 +172,7 @@ func (l Label[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 // Visiting of label values is performed when a rule is invoked, as it
 // is needed to register predeclared output and implicit source file
 // targets.
-func (l Label[TReference, TMetadata]) VisitLabels(thread *starlark.Thread, path map[starlark.Value]struct{}, visitor func(pg_label.ResolvedLabel) error) error {
+func (l Label[TReference, TMetadata]) VisitLabels(thread *starlark.Thread, path map[starlark.Value]struct{}, visitor LabelVisitor) error {
 	if err := visitor(l.value); err != nil {
 		return fmt.Errorf("label %#v: %w", l.value.String(), err)
 	}

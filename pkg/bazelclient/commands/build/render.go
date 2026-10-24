@@ -54,6 +54,43 @@ func (mf *messageFormatter) formatSingleLine(doc render.Doc) formatted.Node {
 	return formatted.Join(parts...)
 }
 
+// FormatDoc lays out a document across multiple lines of a given
+// width, and converts it to formatted text that can be written to the
+// terminal. Syntax highlighting is applied based on the roles of the
+// segments of text. Each line is terminated with a newline character.
+func FormatDoc(doc render.Doc, width int, indentation string) formatted.Node {
+	var mf messageFormatter
+	blocks := render.Layout(doc, render.LayoutOptions{
+		Width:       width,
+		IndentWidth: len(indentation),
+	})
+	var parts []formatted.Node
+	writeIndentation := func(indent int) {
+		parts = append(parts, formatted.Text(strings.Repeat(indentation, indent)))
+	}
+	for _, block := range blocks {
+		if block.Table == nil {
+			if len(block.Segments) > 0 {
+				writeIndentation(block.Indent)
+			}
+			parts = append(parts, mf.formatSegments(block.Segments), formatted.Text("\n"))
+		} else {
+			// Display tables with tab separated columns.
+			for _, row := range block.Table.Rows {
+				writeIndentation(block.Indent)
+				for k, cell := range row {
+					if k > 0 {
+						parts = append(parts, formatted.Text("\t"))
+					}
+					parts = append(parts, mf.formatSegments(cell))
+				}
+				parts = append(parts, formatted.Text("\n"))
+			}
+		}
+	}
+	return formatted.Join(parts...)
+}
+
 func (mf *messageFormatter) formatSegments(segments []render.Segment) formatted.Node {
 	parts := make([]formatted.Node, 0, len(segments))
 	for _, segment := range segments {

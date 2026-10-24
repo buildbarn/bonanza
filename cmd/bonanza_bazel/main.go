@@ -10,6 +10,7 @@ import (
 	commands_build "bonanza.build/pkg/bazelclient/commands/build"
 	commands_info "bonanza.build/pkg/bazelclient/commands/info"
 	commands_license "bonanza.build/pkg/bazelclient/commands/license"
+	commands_query "bonanza.build/pkg/bazelclient/commands/query"
 	commands_version "bonanza.build/pkg/bazelclient/commands/version"
 	"bonanza.build/pkg/bazelclient/formatted"
 	"bonanza.build/pkg/bazelclient/logging"
@@ -76,6 +77,8 @@ func main() {
 		commands_info.DoInfo(typedCmd, workspacePath)
 	case *arguments.LicenseCommand:
 		commands_license.DoLicense()
+	case *arguments.QueryCommand:
+		commands_query.DoQuery(typedCmd, workspacePath)
 	case *arguments.VersionCommand:
 		commands_version.DoVersion(typedCmd)
 	default:

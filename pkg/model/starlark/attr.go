@@ -1,6 +1,7 @@
 package starlark
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"slices"
@@ -621,4 +622,43 @@ func encodeNamedAttrs[TReference any, TMetadata model_core.ReferenceMetadata](at
 		needsCode = needsCode || attrNeedsCode
 	}
 	return model_core.NewPatchedMessage(encodedAttrs, patcher), needsCode, nil
+}
+
+// VisitAttrValueLabels calls a function for each label contained in
+// the value of an attribute, as stored in a rule target, or as the
+// default value of an attribute. As values of attributes are
+// canonicalized to match the type of the attribute, only labels, lists
+// and dicts can contain labels. Values that are functions (e.g.,
+// computed default values of attributes) are ignored, as they cannot
+// be evaluated without a configuration.
+func VisitAttrValueLabels[TReference object.BasicReference](ctx context.Context, readers *ValueReaders[TReference], value model_core.Message[*model_starlark_pb.Value, TReference], visitor LabelVisitor) error {
+	switch kind := value.Message.GetKind().(type) {
+	case *model_starlark_pb.Value_Label:
+		resolvedLabel, err := pg_label.NewResolvedLabel(kind.Label)
+		if err != nil {
+			return fmt.Errorf("invalid label %#v: %w", kind.Label, err)
+		}
+		return visitor(resolvedLabel)
+	case *model_starlark_pb.Value_List:
+		var errIter error
+		for element := range AllListLeafElements(ctx, readers.List, model_core.Nested(value, kind.List.Elements), &errIter) {
+			if err := VisitAttrValueLabels(ctx, readers, element, visitor); err != nil {
+				return err
+			}
+		}
+		return errIter
+	case *model_starlark_pb.Value_Dict:
+		var errIter error
+		for key, value := range AllDictLeafEntries(ctx, readers.Dict, model_core.Nested(value, kind.Dict), &errIter) {
+			if err := VisitAttrValueLabels(ctx, readers, key, visitor); err != nil {
+				return err
+			}
+			if err := VisitAttrValueLabels(ctx, readers, value, visitor); err != nil {
+				return err
+			}
+		}
+		return errIter
+	default:
+		return nil
+	}
 }

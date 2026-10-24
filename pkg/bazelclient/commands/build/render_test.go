@@ -37,4 +37,19 @@ func TestMessageFormatter(t *testing.T) {
 			plainText(t, mf.formatSingleLine(doc)),
 		)
 	})
+
+	t.Run("MultiLine", func(t *testing.T) {
+		// Sequences that don't fit should be spread across
+		// multiple lines, using the provided indentation.
+		require.Equal(
+			t,
+			"struct(\n  a = \"xxxxxxxxxx\",\n  b = \"01234567...\",\n)\n",
+			plainText(t, FormatDoc(doc, 20, "  ")),
+		)
+		require.Equal(
+			t,
+			"struct(a = \"xxxxxxxxxx\", b = \"01234567...\")\n",
+			plainText(t, FormatDoc(doc, 80, "  ")),
+		)
+	})
 }

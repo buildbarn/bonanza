@@ -253,7 +253,7 @@ func (s *Select[TReference, TMetadata]) EncodeValue(path map[starlark.Value]stru
 // VisitLabels visits all labels contained within the Starlark select()
 // object. This includes identifiers of conditions and labels contained
 // within condition values.
-func (s *Select[TReference, TMetadata]) VisitLabels(thread *starlark.Thread, path map[starlark.Value]struct{}, visitor func(pg_label.ResolvedLabel) error) error {
+func (s *Select[TReference, TMetadata]) VisitLabels(thread *starlark.Thread, path map[starlark.Value]struct{}, visitor LabelVisitor) error {
 	for _, sg := range s.groups {
 		for conditionIdentifier, conditionValue := range sg.conditions {
 			visitor(conditionIdentifier)

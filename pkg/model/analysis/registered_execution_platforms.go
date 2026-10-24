@@ -87,11 +87,10 @@ func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, 
 				return err
 			}
 			var iterErr error
-			for canonicalPlatformLabel := range h.computer.expandCanonicalTargetPattern(
+			for canonicalPlatformLabel := range h.computer.allQueryLabels(
 				h.context,
 				h.environment,
-				canonicalPlatformTargetPattern,
-				/* includeManualTargets = */ true,
+				canonicalPlatformTargetPattern.ToQuery(),
 				&iterErr,
 			) {
 				canonicalPlatformLabelStr := canonicalPlatformLabel.String()

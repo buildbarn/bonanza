@@ -176,6 +176,43 @@ func (l CanonicalLabel) String() string {
 	return l.value
 }
 
+// Compare two canonical labels, returning -1, 0 or 1 if the first label
+// is respectively smaller than, equal to or greater than the second.
+//
+// Labels are ordered by canonical repo name, followed by the components
+// of the package path, followed by the target name. This corresponds to
+// the order in which targets are encountered when traversing the
+// directory hierarchy of a repo depth first, where the targets in a
+// package precede the targets in its subpackages.
+func (l CanonicalLabel) Compare(other CanonicalLabel) int {
+	if c := strings.Compare(l.GetCanonicalRepo().value, other.GetCanonicalRepo().value); c != 0 {
+		return c
+	}
+	if c := comparePackagePaths(l.GetCanonicalPackage().GetPackagePath(), other.GetCanonicalPackage().GetPackagePath()); c != 0 {
+		return c
+	}
+	return strings.Compare(l.GetTargetName().value, other.GetTargetName().value)
+}
+
+// comparePackagePaths compares two package paths by their components.
+func comparePackagePaths(a, b string) int {
+	for a != b {
+		if a == "" {
+			return -1
+		}
+		if b == "" {
+			return 1
+		}
+		aFirst, aRest, _ := strings.Cut(a, "/")
+		bFirst, bRest, _ := strings.Cut(b, "/")
+		if c := strings.Compare(aFirst, bFirst); c != 0 {
+			return c
+		}
+		a, b = aRest, bRest
+	}
+	return 0
+}
+
 // AppendStarlarkIdentifier appends a Starlark identifier to a label,
 // resulting in the canonical name of a Starlark identifier.
 func (l CanonicalLabel) AppendStarlarkIdentifier(identifier StarlarkIdentifier) CanonicalStarlarkIdentifier {

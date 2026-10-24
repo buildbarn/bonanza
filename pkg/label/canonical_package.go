@@ -162,26 +162,90 @@ var validNonEmptyPackageNameRegexp = regexp.MustCompile("^" + validNonEmptyPacka
 
 var errInvalidNonEmptyPackageName = errors.New("non-empty package name must match " + validNonEmptyPackageNamePattern)
 
-// ToRecursiveTargetPatternBelow appends a relative package path to a
-// canonical package name, and subsequently converts it to a recursive
-// target pattern.
+// isRootPackage returns whether the package is the root package of a
+// repo (e.g., "@@a+"), as opposed to a package inside of it (e.g.,
+// "@@a+//b").
+func (p CanonicalPackage) isRootPackage() bool {
+	return strings.IndexByte(p.value, '/') < 0
+}
+
+// IsAtOrBelow returns true if the package is identical to another
+// package, or is located in a directory below it within the same repo.
+func (p CanonicalPackage) IsAtOrBelow(other CanonicalPackage) bool {
+	// For the root package of a repo (e.g., "@@a+"), the next
+	// character is the first slash of "//".
+	return strings.HasPrefix(p.value, other.value) &&
+		(len(p.value) == len(other.value) || p.value[len(other.value)] == '/')
+}
+
+// AppendPackagePath appends a relative package path to a canonical
+// package name, yielding the name of a package below it.
 //
 // This method can be used during expansion of recursive target patterns
 // to split up work, so that subpackages can be traversed in parallel.
-func (p CanonicalPackage) ToRecursiveTargetPatternBelow(pathBelow string, includeFileTargets bool) (CanonicalTargetPattern, error) {
+func (p CanonicalPackage) AppendPackagePath(pathBelow string) (CanonicalPackage, error) {
 	if !validNonEmptyPackageNameRegexp.MatchString(pathBelow) {
-		return CanonicalTargetPattern{}, errInvalidNonEmptyPackageName
+		return CanonicalPackage{}, errInvalidNonEmptyPackageName
 	}
+	if p.isRootPackage() {
+		return CanonicalPackage{value: p.value + "//" + pathBelow}, nil
+	}
+	return CanonicalPackage{value: p.value + "/" + pathBelow}, nil
+}
 
-	midfix := "/"
-	if strings.IndexByte(p.value, '/') < 0 {
-		midfix = "//"
+// ToRecursiveTargetPattern returns a target pattern that matches all
+// rule targets in the package and the packages below it ("/..."), or
+// all targets including file targets ("/...:*").
+//
+// This method is the inverse of
+// CanonicalTargetPattern.AsRecursiveTargetPattern().
+func (p CanonicalPackage) ToRecursiveTargetPattern(includeFileTargets bool) CanonicalTargetPattern {
+	targetPattern := p.value
+	if p.isRootPackage() {
+		targetPattern += "//..."
+	} else {
+		targetPattern += "/..."
 	}
-	suffix := "/..."
 	if includeFileTargets {
-		suffix = "/...:*"
+		targetPattern += ":*"
 	}
-	return CanonicalTargetPattern{value: p.value + midfix + pathBelow + suffix}, nil
+	return CanonicalTargetPattern{value: targetPattern}
+}
+
+// ToTargetsQuery returns a query that yields all rule targets in the
+// package, or all targets including file targets. This is used to
+// evaluate queries containing recursive target patterns for each
+// package separately.
+//
+// The query is of shape "siblings(//foo:*)" or "rules(siblings(//foo:*))".
+// Target patterns like "//foo:all" and "//foo:*" cannot be used
+// directly, as they only match a single target if the package contains
+// a target named "all" or "*". siblings() does not suffer from this
+// problem, as any target matched by "//foo:*" yields all targets in
+// the package.
+func (p CanonicalPackage) ToTargetsQuery(includeFileTargets bool) Query[CanonicalTargetPattern] {
+	targetPattern := p.value
+	if p.isRootPackage() {
+		targetPattern += "//"
+	}
+	expressions := []QueryExpression[CanonicalTargetPattern]{
+		&QuerySet[CanonicalTargetPattern]{
+			TargetPatterns: []CanonicalTargetPattern{{value: targetPattern + ":*"}},
+		},
+		&QuerySiblings[CanonicalTargetPattern]{Expression: 0},
+	}
+	if !includeFileTargets {
+		expressions = append(expressions, &QueryRules[CanonicalTargetPattern]{Expression: 1})
+	}
+	return Query[CanonicalTargetPattern]{expressions: expressions}
+}
+
+// AsCanonicalLabel returns the label of the package, being the label
+// whose target name is identical to the last component of the package
+// path (e.g., "@@a+//b" for "@@a+//b:b"), or the canonical repo name
+// for the root package of a repo (e.g., "@@a+" for "@@a+//:a+").
+func (p CanonicalPackage) AsCanonicalLabel() CanonicalLabel {
+	return CanonicalLabel{value: p.value}
 }
 
 func (p CanonicalPackage) String() string {

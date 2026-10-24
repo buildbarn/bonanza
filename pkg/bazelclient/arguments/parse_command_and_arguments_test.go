@@ -34,6 +34,19 @@ func TestParseCommandAndArguments(t *testing.T) {
 	})
 
 	t.Run("Build", func(t *testing.T) {
+		t.Run("BuildTagFilters", func(t *testing.T) {
+			command, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{},
+				[]string{
+					"build",
+					"--build_tag_filters=a,-b",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, "a,-b", command.(*arguments.BuildCommand).BuildFlags.BuildTagFilters)
+		})
+
 		t.Run("KeepGoingLong", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},

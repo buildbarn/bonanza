@@ -88,11 +88,17 @@ func (tp CanonicalTargetPattern) String() string {
 	return tp.value
 }
 
+// targetPatternHasWildcard returns whether a target pattern contains a
+// wildcard, meaning that it may refer to more than one target.
+func targetPatternHasWildcard(targetPattern string) bool {
+	return strings.HasSuffix(targetPattern, "/...") || strings.HasSuffix(targetPattern, ":all") || strings.HasSuffix(targetPattern, ":all-targets") || strings.HasSuffix(targetPattern, ":*")
+}
+
 // AsCanonicalLabel converts a canonical target pattern to a canonical
 // label. Conversion only succeeds if the pattern is guaranteed to refer
 // to a single target.
 func (tp CanonicalTargetPattern) AsCanonicalLabel() (CanonicalLabel, bool) {
-	if strings.HasSuffix(tp.value, "/...") || strings.HasSuffix(tp.value, ":all") || strings.HasSuffix(tp.value, ":all-targets") || strings.HasSuffix(tp.value, ":*") {
+	if targetPatternHasWildcard(tp.value) {
 		return CanonicalLabel{}, false
 	}
 	return CanonicalLabel{value: tp.value}, true
@@ -147,4 +153,47 @@ func (tp CanonicalTargetPattern) AsRecursiveTargetPattern() (basePackage Canonic
 		includeFileTargets = true
 	}
 	return CanonicalPackage{value: strings.TrimSuffix(packageName, "/")}, includeFileTargets, true
+}
+
+// ToQuery returns a query that yields the targets matched by the target
+// pattern.
+func (tp CanonicalTargetPattern) ToQuery() Query[CanonicalTargetPattern] {
+	return Query[CanonicalTargetPattern]{
+		expressions: []QueryExpression[CanonicalTargetPattern]{
+			&QuerySet[CanonicalTargetPattern]{
+				TargetPatterns: []CanonicalTargetPattern{tp},
+			},
+		},
+	}
+}
+
+// ToQueryExcludingManualTargets returns a query that yields the targets
+// matched by the target pattern, excluding targets having tag "manual"
+// if the target pattern contains wildcards. This matches the behavior
+// of target patterns provided to commands like "bazel build". Target
+// patterns that refer to a single target are left unmodified, as such
+// targets should always be included.
+//
+// Target patterns containing wildcards are rewritten to queries of
+// shape "p - tag(manual, p)".
+func (tp CanonicalTargetPattern) ToQueryExcludingManualTargets() Query[CanonicalTargetPattern] {
+	if _, ok := tp.AsCanonicalLabel(); ok {
+		return tp.ToQuery()
+	}
+	return Query[CanonicalTargetPattern]{
+		expressions: []QueryExpression[CanonicalTargetPattern]{
+			&QuerySet[CanonicalTargetPattern]{
+				TargetPatterns: []CanonicalTargetPattern{tp},
+			},
+			&QueryTag[CanonicalTargetPattern]{
+				Tag:        "manual",
+				Expression: 0,
+			},
+			&QuerySetOperation[CanonicalTargetPattern]{
+				Operator: QuerySetOperatorExcept,
+				Left:     0,
+				Right:    1,
+			},
+		},
+	}
 }

@@ -63,11 +63,10 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				return err
 			}
 			var iterErr error
-			for canonicalToolchainLabel := range h.computer.expandCanonicalTargetPattern(
+			for canonicalToolchainLabel := range h.computer.allQueryLabels(
 				h.context,
 				h.environment,
-				canonicalToolchainTargetPattern,
-				/* includeManualTargets = */ true,
+				canonicalToolchainTargetPattern.ToQuery(),
 				&iterErr,
 			) {
 				visibleTargetValue := h.environment.GetVisibleTargetValue(

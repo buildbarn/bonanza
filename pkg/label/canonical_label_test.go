@@ -1,6 +1,7 @@
 package label_test
 
 import (
+	"cmp"
 	"testing"
 
 	"bonanza.build/pkg/label"
@@ -111,4 +112,35 @@ func TestCanonicalLabel(t *testing.T) {
 			assert.Equal(t, output, canonicalLabel.GetRepoRelativePath())
 		}
 	})
+}
+
+func TestCanonicalLabelCompare(t *testing.T) {
+	// Labels in sorted order. Package paths are compared by their
+	// components, and targets in a package precede the targets in
+	// its subpackages. Labels with redundant target names (e.g.,
+	// "@@a+//foo" for "@@a+//foo:foo") are ordered by their target
+	// name.
+	labels := []string{
+		"@@a+//:z",
+		"@@a+//foo:a",
+		"@@a+//foo",
+		"@@a+//foo:z",
+		"@@a+//foo/bar:x",
+		"@@a+//foo/bar/baz:x",
+		"@@a+//foo/bar-x:x",
+		"@@a+//foo/bar2:x",
+		"@@a+//foo2:x",
+		"@@b+//:a",
+	}
+	for i, a := range labels {
+		for j, b := range labels {
+			t.Run(a+" "+b, func(t *testing.T) {
+				assert.Equal(
+					t,
+					cmp.Compare(i, j),
+					util.Must(label.NewCanonicalLabel(a)).Compare(util.Must(label.NewCanonicalLabel(b))),
+				)
+			})
+		}
+	}
 }

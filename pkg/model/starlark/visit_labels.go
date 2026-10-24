@@ -8,18 +8,23 @@ import (
 	"go.starlark.net/starlark"
 )
 
+// LabelVisitor is called for each label contained in a value, as
+// done by VisitLabels() for Starlark values and VisitAttrValueLabels()
+// for encoded attribute values.
+type LabelVisitor func(pg_label.ResolvedLabel) error
+
 // HasLabels can be implemented by Starlark values that potentially
 // contain label values. This allows the labels contained within to be
 // visited by calling VisitLabels().
 type HasLabels interface {
-	VisitLabels(thread *starlark.Thread, path map[starlark.Value]struct{}, visitor func(pg_label.ResolvedLabel) error) error
+	VisitLabels(thread *starlark.Thread, path map[starlark.Value]struct{}, visitor LabelVisitor) error
 }
 
 // VisitLabels recursively visits a Starlark value and reports any
 // labels that are contained within. This method can, for example, be
 // used to walk all labels contained in rule attributes to determine
 // their dependencies.
-func VisitLabels(thread *starlark.Thread, v starlark.Value, path map[starlark.Value]struct{}, visitor func(pg_label.ResolvedLabel) error) error {
+func VisitLabels(thread *starlark.Thread, v starlark.Value, path map[starlark.Value]struct{}, visitor LabelVisitor) error {
 	if _, ok := path[v]; !ok {
 		path[v] = struct{}{}
 		switch typedV := v.(type) {

@@ -1,11 +1,14 @@
 package render
 
 import (
+	"context"
 	"fmt"
-	"math/big"
 	"strings"
 
 	model_core "bonanza.build/pkg/model/core"
+	"bonanza.build/pkg/model/core/btree"
+	model_parser "bonanza.build/pkg/model/parser"
+	model_starlark "bonanza.build/pkg/model/starlark"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
@@ -96,19 +99,31 @@ func starlarkOpaqueIdentifier(kind, identifier string) Doc {
 	return Title(identifier, starlarkOpaque(kind+" "+starlarkIdentifierName(identifier)))
 }
 
-// starlarkRenderer renders messages that are part of the
+// StarlarkRenderer renders messages that are part of the
 // pkg/proto/model/starlark package using Starlark syntax.
-type starlarkRenderer struct{}
+type StarlarkRenderer struct {
+	// If set, lists and dicts whose contents are partially stored
+	// in other objects are rendered in full, by reading these
+	// objects. Otherwise, links to these objects are rendered.
+	Context    context.Context
+	ListReader model_parser.MessageObjectReader[object.LocalReference, []*model_starlark_pb.List_Element]
+	DictReader model_parser.MessageObjectReader[object.LocalReference, []*model_starlark_pb.Dict_Entry]
+}
+
+// Value renders a Starlark value.
+func (sr *StarlarkRenderer) Value(value model_core.Message[*model_starlark_pb.Value, object.LocalReference]) Doc {
+	return sr.renderValue(value)
+}
 
 // renderReference renders a link to an object containing additional
 // list elements, dict entries or struct fields. As these have no
 // Starlark representation, the link is displayed in the same style as
 // opaque values.
-func (*starlarkRenderer) renderReference(reference model_core.Message[*model_core_pb.DecodableReference, object.LocalReference], outerMessage proto.Message, description string) Doc {
+func (*StarlarkRenderer) renderReference(reference model_core.Message[*model_core_pb.DecodableReference, object.LocalReference], outerMessage proto.Message, description string) Doc {
 	return fieldReferenceLink(reference, outerMessage, "reference", Styled(RoleDim, "<"+description+">"))
 }
 
-func (sr *starlarkRenderer) renderValue(value model_core.Message[*model_starlark_pb.Value, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderValue(value model_core.Message[*model_starlark_pb.Value, object.LocalReference]) Doc {
 	switch kind := value.Message.GetKind().(type) {
 	case *model_starlark_pb.Value_Aspect:
 		return starlarkOpaqueIdentifier("aspect", kind.Aspect.GetReference())
@@ -182,7 +197,7 @@ func (sr *starlarkRenderer) renderValue(value model_core.Message[*model_starlark
 	}
 }
 
-func (sr *starlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_pb.Attr, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_pb.Attr, object.LocalReference]) Doc {
 	typeField := attr.Message.ProtoReflect().WhichOneof(
 		(&model_starlark_pb.Attr{}).ProtoReflect().Descriptor().Oneofs().ByName("type"),
 	)
@@ -245,7 +260,7 @@ func (sr *starlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_p
 	return starlarkCall(starlarkCallee("attr."+string(typeField.Name()), ""), arguments)
 }
 
-func (sr *starlarkRenderer) renderDepset(depset model_core.Message[*model_starlark_pb.Depset, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderDepset(depset model_core.Message[*model_starlark_pb.Depset, object.LocalReference]) Doc {
 	arguments := []Doc{
 		sr.renderListElements(Text("["), Text("]"), model_core.Nested(depset, depset.Message.GetElements()), false),
 	}
@@ -255,7 +270,7 @@ func (sr *starlarkRenderer) renderDepset(depset model_core.Message[*model_starla
 	return starlarkCall(starlarkCallee("depset", ""), arguments)
 }
 
-func (sr *starlarkRenderer) renderDictEntry(entry model_core.Message[*model_starlark_pb.Dict_Entry, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderDictEntry(entry model_core.Message[*model_starlark_pb.Dict_Entry, object.LocalReference]) Doc {
 	switch level := entry.Message.GetLevel().(type) {
 	case *model_starlark_pb.Dict_Entry_Leaf_:
 		return Concat(
@@ -270,15 +285,34 @@ func (sr *starlarkRenderer) renderDictEntry(entry model_core.Message[*model_star
 	}
 }
 
-func (sr *starlarkRenderer) renderDictEntries(entries model_core.Message[[]*model_starlark_pb.Dict_Entry, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderDictEntries(entries model_core.Message[[]*model_starlark_pb.Dict_Entry, object.LocalReference]) Doc {
 	elements := make([]Doc, 0, len(entries.Message))
-	for _, entry := range entries.Message {
-		elements = append(elements, sr.renderDictEntry(model_core.Nested(entries, entry)))
+	if sr.DictReader != nil {
+		// Load entries that are stored in other objects.
+		var errIter error
+		for entry := range btree.AllLeaves(
+			sr.Context,
+			sr.DictReader,
+			entries,
+			func(entry model_core.Message[*model_starlark_pb.Dict_Entry, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
+				return entry.Message.GetParent().GetReference(), nil
+			},
+			&errIter,
+		) {
+			elements = append(elements, sr.renderDictEntry(entry))
+		}
+		if errIter != nil {
+			elements = append(elements, starlarkErrorf("Failed to read dict entries: %s", errIter))
+		}
+	} else {
+		for _, entry := range entries.Message {
+			elements = append(elements, sr.renderDictEntry(model_core.Nested(entries, entry)))
+		}
 	}
 	return Sequence(Text("{"), Text("}"), elements, true, false)
 }
 
-func (sr *starlarkRenderer) renderExecGroup(execGroup *model_starlark_pb.ExecGroup) Doc {
+func (sr *StarlarkRenderer) renderExecGroup(execGroup *model_starlark_pb.ExecGroup) Doc {
 	var arguments []Doc
 	if len(execGroup.GetExecCompatibleWith()) > 0 {
 		arguments = append(arguments, starlarkKeywordArgument("exec_compatible_with", starlarkStringList(execGroup.GetExecCompatibleWith())))
@@ -293,7 +327,7 @@ func (sr *starlarkRenderer) renderExecGroup(execGroup *model_starlark_pb.ExecGro
 	return starlarkCall(starlarkCallee("exec_group", ""), arguments)
 }
 
-func (*starlarkRenderer) renderFile(file model_core.Message[*model_starlark_pb.File, object.LocalReference]) Doc {
+func (*StarlarkRenderer) renderFile(file model_core.Message[*model_starlark_pb.File, object.LocalReference]) Doc {
 	owner := file.Message.GetOwner()
 	if owner == nil {
 		return starlarkOpaque("source file " + file.Message.GetLabel())
@@ -321,23 +355,18 @@ func (*starlarkRenderer) renderFile(file model_core.Message[*model_starlark_pb.F
 	return Concat(description, Styled(RoleDim, ">"))
 }
 
-func (*starlarkRenderer) renderFunction(function *model_starlark_pb.Function) Doc {
+func (*StarlarkRenderer) renderFunction(function *model_starlark_pb.Function) Doc {
 	return Title(
 		fmt.Sprintf("%s:%d:%d", function.GetFilename(), function.GetLine(), function.GetColumn()),
 		starlarkOpaque("function "+function.GetName()),
 	)
 }
 
-func (*starlarkRenderer) renderInt(v *model_starlark_pb.Int) Doc {
-	var i big.Int
-	i.SetBytes(v.GetAbsoluteValue())
-	if v.GetNegative() {
-		i.Neg(&i)
-	}
-	return starlarkLiteral(i.String())
+func (*StarlarkRenderer) renderInt(v *model_starlark_pb.Int) Doc {
+	return starlarkLiteral(model_starlark.DecodeInt(v).String())
 }
 
-func (sr *starlarkRenderer) renderListElement(element model_core.Message[*model_starlark_pb.List_Element, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderListElement(element model_core.Message[*model_starlark_pb.List_Element, object.LocalReference]) Doc {
 	switch level := element.Message.GetLevel().(type) {
 	case *model_starlark_pb.List_Element_Leaf:
 		return sr.renderValue(model_core.Nested(element, level.Leaf))
@@ -348,7 +377,7 @@ func (sr *starlarkRenderer) renderListElement(element model_core.Message[*model_
 	}
 }
 
-func (sr *starlarkRenderer) renderListElementParent(parent model_core.Message[*model_starlark_pb.List_Element_Parent, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderListElementParent(parent model_core.Message[*model_starlark_pb.List_Element_Parent, object.LocalReference]) Doc {
 	description := fmt.Sprintf("%d more elements", parent.Message.Count)
 	if parent.Message.Count == 1 {
 		description = "1 more element"
@@ -356,15 +385,34 @@ func (sr *starlarkRenderer) renderListElementParent(parent model_core.Message[*m
 	return sr.renderReference(model_core.Nested(parent, parent.Message.Reference), parent.Message, description)
 }
 
-func (sr *starlarkRenderer) renderListElements(open, close Doc, elements model_core.Message[[]*model_starlark_pb.List_Element, object.LocalReference], singleElementNeedsComma bool) Doc {
+func (sr *StarlarkRenderer) renderListElements(open, close Doc, elements model_core.Message[[]*model_starlark_pb.List_Element, object.LocalReference], singleElementNeedsComma bool) Doc {
 	renderedElements := make([]Doc, 0, len(elements.Message))
-	for _, element := range elements.Message {
-		renderedElements = append(renderedElements, sr.renderListElement(model_core.Nested(elements, element)))
+	if sr.ListReader != nil {
+		// Load elements that are stored in other objects.
+		var errIter error
+		for element := range btree.AllLeaves(
+			sr.Context,
+			sr.ListReader,
+			elements,
+			func(element model_core.Message[*model_starlark_pb.List_Element, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
+				return element.Message.GetParent().GetReference(), nil
+			},
+			&errIter,
+		) {
+			renderedElements = append(renderedElements, sr.renderListElement(element))
+		}
+		if errIter != nil {
+			renderedElements = append(renderedElements, starlarkErrorf("Failed to read list elements: %s", errIter))
+		}
+	} else {
+		for _, element := range elements.Message {
+			renderedElements = append(renderedElements, sr.renderListElement(model_core.Nested(elements, element)))
+		}
 	}
 	return Sequence(open, close, renderedElements, true, singleElementNeedsComma)
 }
 
-func (sr *starlarkRenderer) renderSelectGroup(group model_core.Message[*model_starlark_pb.Select_Group, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderSelectGroup(group model_core.Message[*model_starlark_pb.Select_Group, object.LocalReference]) Doc {
 	conditions := group.Message.GetConditions()
 	if len(conditions) == 0 {
 		if noMatchValue, ok := group.Message.GetNoMatch().(*model_starlark_pb.Select_Group_NoMatchValue); ok {
@@ -409,7 +457,7 @@ func (sr *starlarkRenderer) renderSelectGroup(group model_core.Message[*model_st
 	return starlarkCall(starlarkCallee("select", ""), arguments)
 }
 
-func (sr *starlarkRenderer) renderSelect(selectValue model_core.Message[*model_starlark_pb.Select, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderSelect(selectValue model_core.Message[*model_starlark_pb.Select, object.LocalReference]) Doc {
 	operator := "+"
 	if selectValue.Message.GetConcatenationOperator() == model_starlark_pb.Select_PIPE {
 		operator = "|"
@@ -443,7 +491,7 @@ func (sr *starlarkRenderer) renderSelect(selectValue model_core.Message[*model_s
 	)
 }
 
-func (sr *starlarkRenderer) renderStructFields(callee Doc, fields model_core.Message[*model_starlark_pb.Struct_Fields, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderStructFields(callee Doc, fields model_core.Message[*model_starlark_pb.Struct_Fields, object.LocalReference]) Doc {
 	keys := fields.Message.GetKeys()
 	values := fields.Message.GetValues()
 	arguments := make([]Doc, 0, len(values))
@@ -481,7 +529,7 @@ func (sr *starlarkRenderer) renderStructFields(callee Doc, fields model_core.Mes
 	return starlarkCall(callee, arguments)
 }
 
-func (sr *starlarkRenderer) renderStruct(structValue model_core.Message[*model_starlark_pb.Struct, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderStruct(structValue model_core.Message[*model_starlark_pb.Struct, object.LocalReference]) Doc {
 	callee := starlarkCallee("struct", "")
 	if properties := structValue.Message.GetProviderInstanceProperties(); properties != nil {
 		// Instance of a provider. Use the name of the provider
@@ -491,7 +539,7 @@ func (sr *starlarkRenderer) renderStruct(structValue model_core.Message[*model_s
 	return sr.renderStructFields(callee, model_core.Nested(structValue, structValue.Message.GetFields()))
 }
 
-func (sr *starlarkRenderer) renderTargetReference(targetReference model_core.Message[*model_starlark_pb.TargetReference, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderTargetReference(targetReference model_core.Message[*model_starlark_pb.TargetReference, object.LocalReference]) Doc {
 	configured := targetReference.Message.GetConfigured()
 	if configured == nil {
 		return starlarkOpaque("unconfigured target " + targetReference.Message.GetOriginalLabel())
@@ -515,7 +563,7 @@ func (sr *starlarkRenderer) renderTargetReference(targetReference model_core.Mes
 	)
 }
 
-func (*starlarkRenderer) renderToolchainType(toolchainType *model_starlark_pb.ToolchainType) Doc {
+func (*StarlarkRenderer) renderToolchainType(toolchainType *model_starlark_pb.ToolchainType) Doc {
 	arguments := []Doc{starlarkString(toolchainType.GetToolchainType())}
 	if !toolchainType.GetMandatory() {
 		arguments = append(arguments, starlarkKeywordArgument("mandatory", starlarkBool(false)))
@@ -523,7 +571,7 @@ func (*starlarkRenderer) renderToolchainType(toolchainType *model_starlark_pb.To
 	return starlarkCall(starlarkCallee("config_common.toolchain_type", ""), arguments)
 }
 
-func (sr *starlarkRenderer) renderTransition(transition *model_starlark_pb.Transition) Doc {
+func (sr *StarlarkRenderer) renderTransition(transition *model_starlark_pb.Transition) Doc {
 	switch kind := transition.GetKind().(type) {
 	case *model_starlark_pb.Transition_ExecGroup:
 		var arguments []Doc
@@ -566,7 +614,7 @@ func starlarkDefinitionCall(function, identifier string, arguments []Doc) Doc {
 // renderNamedAttrs renders the attributes of a rule, repository rule,
 // subrule or tag class as a dict, as would be passed to the attrs
 // argument of rule(), repository_rule(), etc.
-func (sr *starlarkRenderer) renderNamedAttrs(attrs model_core.Message[[]*model_starlark_pb.NamedAttr, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderNamedAttrs(attrs model_core.Message[[]*model_starlark_pb.NamedAttr, object.LocalReference]) Doc {
 	entries := make([]Doc, 0, len(attrs.Message))
 	for _, namedAttr := range attrs.Message {
 		entries = append(
@@ -581,7 +629,7 @@ func (sr *starlarkRenderer) renderNamedAttrs(attrs model_core.Message[[]*model_s
 	return Sequence(Text("{"), Text("}"), entries, true, false)
 }
 
-func (*starlarkRenderer) renderBuildSetting(buildSetting *model_starlark_pb.BuildSetting) Doc {
+func (*StarlarkRenderer) renderBuildSetting(buildSetting *model_starlark_pb.BuildSetting) Doc {
 	typeField := buildSetting.ProtoReflect().WhichOneof(
 		(&model_starlark_pb.BuildSetting{}).ProtoReflect().Descriptor().Oneofs().ByName("type"),
 	)
@@ -605,7 +653,7 @@ func (*starlarkRenderer) renderBuildSetting(buildSetting *model_starlark_pb.Buil
 	return starlarkCall(starlarkCallee("config."+string(typeField.Name()), ""), arguments)
 }
 
-func (sr *starlarkRenderer) renderModuleExtension(moduleExtension model_core.Message[*model_starlark_pb.ModuleExtension, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderModuleExtension(moduleExtension model_core.Message[*model_starlark_pb.ModuleExtension, object.LocalReference]) Doc {
 	var arguments []Doc
 	if implementation := moduleExtension.Message.GetImplementation(); implementation != nil {
 		arguments = append(arguments, starlarkKeywordArgument("implementation", sr.renderFunction(implementation)))
@@ -627,7 +675,7 @@ func (sr *starlarkRenderer) renderModuleExtension(moduleExtension model_core.Mes
 	return starlarkDefinitionCall("module_extension", "", arguments)
 }
 
-func (sr *starlarkRenderer) renderProvider(provider model_core.Message[*model_starlark_pb.Provider, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderProvider(provider model_core.Message[*model_starlark_pb.Provider, object.LocalReference]) Doc {
 	properties := provider.Message.GetInstanceProperties()
 	var arguments []Doc
 	if fields := provider.Message.GetFields(); len(fields) > 0 {
@@ -663,7 +711,7 @@ func (sr *starlarkRenderer) renderProvider(provider model_core.Message[*model_st
 	return starlarkDefinitionCall("provider", properties.GetProviderIdentifier(), arguments)
 }
 
-func (sr *starlarkRenderer) renderRepositoryRule(repositoryRule model_core.Message[*model_starlark_pb.RepositoryRule, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderRepositoryRule(repositoryRule model_core.Message[*model_starlark_pb.RepositoryRule, object.LocalReference]) Doc {
 	switch kind := repositoryRule.Message.GetKind().(type) {
 	case *model_starlark_pb.RepositoryRule_Reference:
 		return starlarkOpaqueIdentifier("repository_rule", kind.Reference)
@@ -682,7 +730,7 @@ func (sr *starlarkRenderer) renderRepositoryRule(repositoryRule model_core.Messa
 	}
 }
 
-func (sr *starlarkRenderer) renderRule(rule model_core.Message[*model_starlark_pb.Rule, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderRule(rule model_core.Message[*model_starlark_pb.Rule, object.LocalReference]) Doc {
 	switch kind := rule.Message.GetKind().(type) {
 	case *model_starlark_pb.Rule_Reference:
 		return starlarkOpaqueIdentifier("rule", kind.Reference)
@@ -733,7 +781,7 @@ func (sr *starlarkRenderer) renderRule(rule model_core.Message[*model_starlark_p
 	}
 }
 
-func (sr *starlarkRenderer) renderSubrule(subrule model_core.Message[*model_starlark_pb.Subrule, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderSubrule(subrule model_core.Message[*model_starlark_pb.Subrule, object.LocalReference]) Doc {
 	switch kind := subrule.Message.GetKind().(type) {
 	case *model_starlark_pb.Subrule_Reference:
 		return starlarkOpaqueIdentifier("subrule", kind.Reference)
@@ -755,7 +803,7 @@ func (sr *starlarkRenderer) renderSubrule(subrule model_core.Message[*model_star
 	}
 }
 
-func (sr *starlarkRenderer) renderTagClass(tagClass model_core.Message[*model_starlark_pb.TagClass, object.LocalReference]) Doc {
+func (sr *StarlarkRenderer) renderTagClass(tagClass model_core.Message[*model_starlark_pb.TagClass, object.LocalReference]) Doc {
 	var arguments []Doc
 	if attrs := tagClass.Message.GetAttrs(); len(attrs) > 0 {
 		arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(tagClass, attrs))))
@@ -763,7 +811,7 @@ func (sr *starlarkRenderer) renderTagClass(tagClass model_core.Message[*model_st
 	return starlarkDefinitionCall("tag_class", "", arguments)
 }
 
-func (sr *starlarkRenderer) renderUserDefinedTransition(transition *model_starlark_pb.Transition_UserDefined) Doc {
+func (sr *StarlarkRenderer) renderUserDefinedTransition(transition *model_starlark_pb.Transition_UserDefined) Doc {
 	switch kind := transition.GetKind().(type) {
 	case *model_starlark_pb.Transition_UserDefined_Identifier:
 		return starlarkOpaqueIdentifier("transition", kind.Identifier)
@@ -788,7 +836,7 @@ func (sr *starlarkRenderer) renderUserDefinedTransition(transition *model_starla
 // using Starlark syntax. It returns nil if the message is not one that
 // has a sensible Starlark representation.
 func renderStarlark(m model_core.Message[proto.Message, object.LocalReference]) Doc {
-	var sr starlarkRenderer
+	var sr StarlarkRenderer
 	switch v := m.Message.(type) {
 	case *model_starlark_pb.Attr:
 		return sr.renderAttr(model_core.Nested(m, v))
