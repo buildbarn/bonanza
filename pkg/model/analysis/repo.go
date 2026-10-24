@@ -2097,24 +2097,15 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *s
 		return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
 
-	stdoutEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-		model_core.Nested(outputs, outputs.Message.GetStdout()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("invalid standard output entry: %w", err)
-	}
-	stdout, err := mrc.fileReader.FileReadAll(mrc.context, stdoutEntry, 1<<22)
+	// If the command failed to launch, standard output and
+	// standard error may not have been captured. As Starlark code
+	// expects these to be present, treat them as being empty.
+	stdout, err := model_command.MaybeReadLogByName(mrc.context, mrc.fileReader, outputs, model_command.StdoutLogName, 1<<22)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read standard output: %w", err)
 	}
 
-	stderrEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-		model_core.Nested(outputs, outputs.Message.GetStderr()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("invalid standard error entry: %w", err)
-	}
-	stderr, err := mrc.fileReader.FileReadAll(mrc.context, stderrEntry, 1<<20)
+	stderr, err := model_command.MaybeReadLogByName(mrc.context, mrc.fileReader, outputs, model_command.StderrLogName, 1<<20)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read standard error: %w", err)
 	}
@@ -2435,13 +2426,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *star
 		return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
 
-	stdoutEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-		model_core.Nested(outputs, outputs.Message.GetStdout()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("invalid standard output entry: %w", err)
-	}
-	stdout, err := mrc.fileReader.FileReadAll(mrc.context, stdoutEntry, 1<<22)
+	stdout, err := model_command.ReadLogByName(mrc.context, mrc.fileReader, outputs, model_command.StdoutLogName, 1<<22)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read standard output: %w", err)
 	}
@@ -2630,13 +2615,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *sta
 		return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
 
-	stdoutEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-		model_core.Nested(outputs, outputs.Message.GetStdout()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("invalid standard output entry: %w", err)
-	}
-	stdout, err := mrc.fileReader.FileReadAll(mrc.context, stdoutEntry, 1<<20)
+	stdout, err := model_command.ReadLogByName(mrc.context, mrc.fileReader, outputs, model_command.StdoutLogName, 1<<20)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read standard output: %w", err)
 	}
@@ -2966,13 +2945,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
-	stdoutEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-		model_core.Nested(outputs, outputs.Message.GetStdout()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("invalid standard output entry: %w", err)
-	}
-	stdout, err := mrc.fileReader.FileReadAll(mrc.context, stdoutEntry, 1<<20)
+	stdout, err := model_command.ReadLogByName(mrc.context, mrc.fileReader, outputs, model_command.StdoutLogName, 1<<20)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read standard output: %w", err)
 	}

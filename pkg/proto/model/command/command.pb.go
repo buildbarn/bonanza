@@ -13,6 +13,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -297,9 +298,8 @@ func (x *EnvironmentVariableList) GetElements() []*EnvironmentVariableList_Eleme
 
 type Outputs struct {
 	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Stdout        *filesystem.FileContents      `protobuf:"bytes,1,opt,name=stdout,proto3" json:"stdout,omitempty"`
-	Stderr        *filesystem.FileContents      `protobuf:"bytes,2,opt,name=stderr,proto3" json:"stderr,omitempty"`
-	OutputRoot    *filesystem.DirectoryContents `protobuf:"bytes,3,opt,name=output_root,json=outputRoot,proto3" json:"output_root,omitempty"`
+	Logs          []*Log                        `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
+	OutputRoot    *filesystem.DirectoryContents `protobuf:"bytes,2,opt,name=output_root,json=outputRoot,proto3" json:"output_root,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -334,16 +334,9 @@ func (*Outputs) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *Outputs) GetStdout() *filesystem.FileContents {
+func (x *Outputs) GetLogs() []*Log {
 	if x != nil {
-		return x.Stdout
-	}
-	return nil
-}
-
-func (x *Outputs) GetStderr() *filesystem.FileContents {
-	if x != nil {
-		return x.Stderr
+		return x.Logs
 	}
 	return nil
 }
@@ -351,6 +344,118 @@ func (x *Outputs) GetStderr() *filesystem.FileContents {
 func (x *Outputs) GetOutputRoot() *filesystem.DirectoryContents {
 	if x != nil {
 		return x.OutputRoot
+	}
+	return nil
+}
+
+type Log struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Name          string                   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Contents      *filesystem.FileContents `protobuf:"bytes,2,opt,name=contents,proto3" json:"contents,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Log) Reset() {
+	*x = Log{}
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Log) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Log) ProtoMessage() {}
+
+func (x *Log) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Log.ProtoReflect.Descriptor instead.
+func (*Log) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Log) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Log) GetContents() *filesystem.FileContents {
+	if x != nil {
+		return x.Contents
+	}
+	return nil
+}
+
+type LogTiming struct {
+	state           protoimpl.MessageState   `protogen:"open.v1"`
+	TotalDelay      *durationpb.Duration     `protobuf:"bytes,1,opt,name=total_delay,json=totalDelay,proto3" json:"total_delay,omitempty"`
+	LogSizesBytes   []uint64                 `protobuf:"varint,2,rep,packed,name=log_sizes_bytes,json=logSizesBytes,proto3" json:"log_sizes_bytes,omitempty"`
+	ParentReference *core.DecodableReference `protobuf:"bytes,3,opt,name=parent_reference,json=parentReference,proto3" json:"parent_reference,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *LogTiming) Reset() {
+	*x = LogTiming{}
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogTiming) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogTiming) ProtoMessage() {}
+
+func (x *LogTiming) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogTiming.ProtoReflect.Descriptor instead.
+func (*LogTiming) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *LogTiming) GetTotalDelay() *durationpb.Duration {
+	if x != nil {
+		return x.TotalDelay
+	}
+	return nil
+}
+
+func (x *LogTiming) GetLogSizesBytes() []uint64 {
+	if x != nil {
+		return x.LogSizesBytes
+	}
+	return nil
+}
+
+func (x *LogTiming) GetParentReference() *core.DecodableReference {
+	if x != nil {
+		return x.ParentReference
 	}
 	return nil
 }
@@ -365,7 +470,7 @@ type Action struct {
 
 func (x *Action) Reset() {
 	*x = Action{}
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -377,7 +482,7 @@ func (x *Action) String() string {
 func (*Action) ProtoMessage() {}
 
 func (x *Action) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -390,7 +495,7 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Action.ProtoReflect.Descriptor instead.
 func (*Action) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{5}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Action) GetCommandReference() *core.DecodableReference {
@@ -414,13 +519,14 @@ type Result struct {
 	OutputsReference  *core.DecodableReference `protobuf:"bytes,3,opt,name=outputs_reference,json=outputsReference,proto3" json:"outputs_reference,omitempty"`
 	AuxiliaryMetadata []*anypb.Any             `protobuf:"bytes,4,rep,name=auxiliary_metadata,json=auxiliaryMetadata,proto3" json:"auxiliary_metadata,omitempty"`
 	WorkerId          map[string]string        `protobuf:"bytes,5,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	LogTimings        []*LogTiming             `protobuf:"bytes,6,rep,name=log_timings,json=logTimings,proto3" json:"log_timings,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Result) Reset() {
 	*x = Result{}
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -432,7 +538,7 @@ func (x *Result) String() string {
 func (*Result) ProtoMessage() {}
 
 func (x *Result) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -445,7 +551,7 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result.ProtoReflect.Descriptor instead.
 func (*Result) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{6}
+	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Result) GetStatus() *status.Status {
@@ -483,6 +589,13 @@ func (x *Result) GetWorkerId() map[string]string {
 	return nil
 }
 
+func (x *Result) GetLogTimings() []*LogTiming {
+	if x != nil {
+		return x.LogTimings
+	}
+	return nil
+}
+
 type PathPattern_Child struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -493,7 +606,7 @@ type PathPattern_Child struct {
 
 func (x *PathPattern_Child) Reset() {
 	*x = PathPattern_Child{}
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -505,7 +618,7 @@ func (x *PathPattern_Child) String() string {
 func (*PathPattern_Child) ProtoMessage() {}
 
 func (x *PathPattern_Child) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -544,7 +657,7 @@ type PathPattern_Children struct {
 
 func (x *PathPattern_Children) Reset() {
 	*x = PathPattern_Children{}
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -556,7 +669,7 @@ func (x *PathPattern_Children) String() string {
 func (*PathPattern_Children) ProtoMessage() {}
 
 func (x *PathPattern_Children) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -592,7 +705,7 @@ type ArgumentList_Element struct {
 
 func (x *ArgumentList_Element) Reset() {
 	*x = ArgumentList_Element{}
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -604,7 +717,7 @@ func (x *ArgumentList_Element) String() string {
 func (*ArgumentList_Element) ProtoMessage() {}
 
 func (x *ArgumentList_Element) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -674,7 +787,7 @@ type EnvironmentVariableList_Element struct {
 
 func (x *EnvironmentVariableList_Element) Reset() {
 	*x = EnvironmentVariableList_Element{}
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -686,7 +799,7 @@ func (x *EnvironmentVariableList_Element) String() string {
 func (*EnvironmentVariableList_Element) ProtoMessage() {}
 
 func (x *EnvironmentVariableList_Element) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -753,7 +866,7 @@ type EnvironmentVariableList_Element_Leaf struct {
 
 func (x *EnvironmentVariableList_Element_Leaf) Reset() {
 	*x = EnvironmentVariableList_Element_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[11]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -765,7 +878,7 @@ func (x *EnvironmentVariableList_Element_Leaf) String() string {
 func (*EnvironmentVariableList_Element_Leaf) ProtoMessage() {}
 
 func (x *EnvironmentVariableList_Element_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[11]
+	mi := &file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -799,7 +912,7 @@ var File_bonanza_build_pkg_proto_model_command_command_proto protoreflect.FileDe
 
 const file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc = "" +
 	"\n" +
-	"3bonanza.build/pkg/proto/model/command/command.proto\x12\x15bonanza.model.command\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x1a\x19google/protobuf/any.proto\x1a\x17google/rpc/status.proto\"\xa4\x05\n" +
+	"3bonanza.build/pkg/proto/model/command/command.proto\x12\x15bonanza.model.command\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x17google/rpc/status.proto\"\xa4\x05\n" +
 	"\aCommand\x12I\n" +
 	"\targuments\x18\x01 \x03(\v2+.bonanza.model.command.ArgumentList.ElementR\targuments\x12k\n" +
 	"\x15environment_variables\x18\x02 \x03(\v26.bonanza.model.command.EnvironmentVariableList.ElementR\x14environmentVariables\x12y\n" +
@@ -833,21 +946,30 @@ const file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc = "" +
 	"\x04Leaf\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05valueB\a\n" +
-	"\x05level\"\xd7\x01\n" +
-	"\aOutputs\x12>\n" +
-	"\x06stdout\x18\x01 \x01(\v2&.bonanza.model.filesystem.FileContentsR\x06stdout\x12>\n" +
-	"\x06stderr\x18\x02 \x01(\v2&.bonanza.model.filesystem.FileContentsR\x06stderr\x12L\n" +
-	"\voutput_root\x18\x03 \x01(\v2+.bonanza.model.filesystem.DirectoryContentsR\n" +
-	"outputRoot\"\xe2\x01\n" +
+	"\x05level\"\x87\x01\n" +
+	"\aOutputs\x12.\n" +
+	"\x04logs\x18\x01 \x03(\v2\x1a.bonanza.model.command.LogR\x04logs\x12L\n" +
+	"\voutput_root\x18\x02 \x01(\v2+.bonanza.model.filesystem.DirectoryContentsR\n" +
+	"outputRoot\"]\n" +
+	"\x03Log\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12B\n" +
+	"\bcontents\x18\x02 \x01(\v2&.bonanza.model.filesystem.FileContentsR\bcontents\"\xe9\x01\n" +
+	"\tLogTiming\x12:\n" +
+	"\vtotal_delay\x18\x01 \x01(\v2\x19.google.protobuf.DurationR\n" +
+	"totalDelay\x12&\n" +
+	"\x0flog_sizes_bytes\x18\x02 \x03(\x04R\rlogSizesBytes\x12x\n" +
+	"\x10parent_reference\x18\x03 \x01(\v2&.bonanza.model.core.DecodableReferenceB%\xea\xd7 !\x1a\x1fbonanza.model.command.LogTimingR\x0fparentReference\"\xe2\x01\n" +
 	"\x06Action\x12x\n" +
 	"\x11command_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.CommandR\x10commandReference\x12^\n" +
-	"\x14input_root_reference\x18\x02 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x12inputRootReference\"\x97\x03\n" +
+	"\x14input_root_reference\x18\x02 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x12inputRootReference\"\xda\x03\n" +
 	"\x06Result\x12*\n" +
 	"\x06status\x18\x01 \x01(\v2\x12.google.rpc.StatusR\x06status\x12\x1b\n" +
 	"\texit_code\x18\x02 \x01(\x03R\bexitCode\x12x\n" +
 	"\x11outputs_reference\x18\x03 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.OutputsR\x10outputsReference\x12C\n" +
 	"\x12auxiliary_metadata\x18\x04 \x03(\v2\x14.google.protobuf.AnyR\x11auxiliaryMetadata\x12H\n" +
-	"\tworker_id\x18\x05 \x03(\v2+.bonanza.model.command.Result.WorkerIdEntryR\bworkerId\x1a;\n" +
+	"\tworker_id\x18\x05 \x03(\v2+.bonanza.model.command.Result.WorkerIdEntryR\bworkerId\x12A\n" +
+	"\vlog_timings\x18\x06 \x03(\v2 .bonanza.model.command.LogTimingR\n" +
+	"logTimings\x1a;\n" +
 	"\rWorkerIdEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B'Z%bonanza.build/pkg/proto/model/commandb\x06proto3"
@@ -864,59 +986,65 @@ func file_bonanza_build_pkg_proto_model_command_command_proto_rawDescGZIP() []by
 	return file_bonanza_build_pkg_proto_model_command_command_proto_rawDescData
 }
 
-var file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_bonanza_build_pkg_proto_model_command_command_proto_goTypes = []any{
 	(*Command)(nil),                              // 0: bonanza.model.command.Command
 	(*PathPattern)(nil),                          // 1: bonanza.model.command.PathPattern
 	(*ArgumentList)(nil),                         // 2: bonanza.model.command.ArgumentList
 	(*EnvironmentVariableList)(nil),              // 3: bonanza.model.command.EnvironmentVariableList
 	(*Outputs)(nil),                              // 4: bonanza.model.command.Outputs
-	(*Action)(nil),                               // 5: bonanza.model.command.Action
-	(*Result)(nil),                               // 6: bonanza.model.command.Result
-	(*PathPattern_Child)(nil),                    // 7: bonanza.model.command.PathPattern.Child
-	(*PathPattern_Children)(nil),                 // 8: bonanza.model.command.PathPattern.Children
-	(*ArgumentList_Element)(nil),                 // 9: bonanza.model.command.ArgumentList.Element
-	(*EnvironmentVariableList_Element)(nil),      // 10: bonanza.model.command.EnvironmentVariableList.Element
-	(*EnvironmentVariableList_Element_Leaf)(nil), // 11: bonanza.model.command.EnvironmentVariableList.Element.Leaf
-	nil, // 12: bonanza.model.command.Result.WorkerIdEntry
-	(*filesystem.DirectoryCreationParameters)(nil), // 13: bonanza.model.filesystem.DirectoryCreationParameters
-	(*filesystem.FileCreationParameters)(nil),      // 14: bonanza.model.filesystem.FileCreationParameters
-	(*core.DecodableReference)(nil),                // 15: bonanza.model.core.DecodableReference
-	(*filesystem.FileContents)(nil),                // 16: bonanza.model.filesystem.FileContents
-	(*filesystem.DirectoryContents)(nil),           // 17: bonanza.model.filesystem.DirectoryContents
-	(*filesystem.DirectoryReference)(nil),          // 18: bonanza.model.filesystem.DirectoryReference
-	(*status.Status)(nil),                          // 19: google.rpc.Status
-	(*anypb.Any)(nil),                              // 20: google.protobuf.Any
+	(*Log)(nil),                                  // 5: bonanza.model.command.Log
+	(*LogTiming)(nil),                            // 6: bonanza.model.command.LogTiming
+	(*Action)(nil),                               // 7: bonanza.model.command.Action
+	(*Result)(nil),                               // 8: bonanza.model.command.Result
+	(*PathPattern_Child)(nil),                    // 9: bonanza.model.command.PathPattern.Child
+	(*PathPattern_Children)(nil),                 // 10: bonanza.model.command.PathPattern.Children
+	(*ArgumentList_Element)(nil),                 // 11: bonanza.model.command.ArgumentList.Element
+	(*EnvironmentVariableList_Element)(nil),      // 12: bonanza.model.command.EnvironmentVariableList.Element
+	(*EnvironmentVariableList_Element_Leaf)(nil), // 13: bonanza.model.command.EnvironmentVariableList.Element.Leaf
+	nil, // 14: bonanza.model.command.Result.WorkerIdEntry
+	(*filesystem.DirectoryCreationParameters)(nil), // 15: bonanza.model.filesystem.DirectoryCreationParameters
+	(*filesystem.FileCreationParameters)(nil),      // 16: bonanza.model.filesystem.FileCreationParameters
+	(*core.DecodableReference)(nil),                // 17: bonanza.model.core.DecodableReference
+	(*filesystem.DirectoryContents)(nil),           // 18: bonanza.model.filesystem.DirectoryContents
+	(*filesystem.FileContents)(nil),                // 19: bonanza.model.filesystem.FileContents
+	(*durationpb.Duration)(nil),                    // 20: google.protobuf.Duration
+	(*filesystem.DirectoryReference)(nil),          // 21: bonanza.model.filesystem.DirectoryReference
+	(*status.Status)(nil),                          // 22: google.rpc.Status
+	(*anypb.Any)(nil),                              // 23: google.protobuf.Any
 }
 var file_bonanza_build_pkg_proto_model_command_command_proto_depIdxs = []int32{
-	9,  // 0: bonanza.model.command.Command.arguments:type_name -> bonanza.model.command.ArgumentList.Element
-	10, // 1: bonanza.model.command.Command.environment_variables:type_name -> bonanza.model.command.EnvironmentVariableList.Element
-	13, // 2: bonanza.model.command.Command.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
-	14, // 3: bonanza.model.command.Command.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
+	11, // 0: bonanza.model.command.Command.arguments:type_name -> bonanza.model.command.ArgumentList.Element
+	12, // 1: bonanza.model.command.Command.environment_variables:type_name -> bonanza.model.command.EnvironmentVariableList.Element
+	15, // 2: bonanza.model.command.Command.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
+	16, // 3: bonanza.model.command.Command.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
 	1,  // 4: bonanza.model.command.Command.output_path_pattern:type_name -> bonanza.model.command.PathPattern
-	15, // 5: bonanza.model.command.PathPattern.children_external:type_name -> bonanza.model.core.DecodableReference
-	8,  // 6: bonanza.model.command.PathPattern.children_inline:type_name -> bonanza.model.command.PathPattern.Children
-	9,  // 7: bonanza.model.command.ArgumentList.elements:type_name -> bonanza.model.command.ArgumentList.Element
-	10, // 8: bonanza.model.command.EnvironmentVariableList.elements:type_name -> bonanza.model.command.EnvironmentVariableList.Element
-	16, // 9: bonanza.model.command.Outputs.stdout:type_name -> bonanza.model.filesystem.FileContents
-	16, // 10: bonanza.model.command.Outputs.stderr:type_name -> bonanza.model.filesystem.FileContents
-	17, // 11: bonanza.model.command.Outputs.output_root:type_name -> bonanza.model.filesystem.DirectoryContents
-	15, // 12: bonanza.model.command.Action.command_reference:type_name -> bonanza.model.core.DecodableReference
-	18, // 13: bonanza.model.command.Action.input_root_reference:type_name -> bonanza.model.filesystem.DirectoryReference
-	19, // 14: bonanza.model.command.Result.status:type_name -> google.rpc.Status
-	15, // 15: bonanza.model.command.Result.outputs_reference:type_name -> bonanza.model.core.DecodableReference
-	20, // 16: bonanza.model.command.Result.auxiliary_metadata:type_name -> google.protobuf.Any
-	12, // 17: bonanza.model.command.Result.worker_id:type_name -> bonanza.model.command.Result.WorkerIdEntry
-	1,  // 18: bonanza.model.command.PathPattern.Child.pattern:type_name -> bonanza.model.command.PathPattern
-	7,  // 19: bonanza.model.command.PathPattern.Children.children:type_name -> bonanza.model.command.PathPattern.Child
-	15, // 20: bonanza.model.command.ArgumentList.Element.parent:type_name -> bonanza.model.core.DecodableReference
-	11, // 21: bonanza.model.command.EnvironmentVariableList.Element.leaf:type_name -> bonanza.model.command.EnvironmentVariableList.Element.Leaf
-	15, // 22: bonanza.model.command.EnvironmentVariableList.Element.parent:type_name -> bonanza.model.core.DecodableReference
-	23, // [23:23] is the sub-list for method output_type
-	23, // [23:23] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	17, // 5: bonanza.model.command.PathPattern.children_external:type_name -> bonanza.model.core.DecodableReference
+	10, // 6: bonanza.model.command.PathPattern.children_inline:type_name -> bonanza.model.command.PathPattern.Children
+	11, // 7: bonanza.model.command.ArgumentList.elements:type_name -> bonanza.model.command.ArgumentList.Element
+	12, // 8: bonanza.model.command.EnvironmentVariableList.elements:type_name -> bonanza.model.command.EnvironmentVariableList.Element
+	5,  // 9: bonanza.model.command.Outputs.logs:type_name -> bonanza.model.command.Log
+	18, // 10: bonanza.model.command.Outputs.output_root:type_name -> bonanza.model.filesystem.DirectoryContents
+	19, // 11: bonanza.model.command.Log.contents:type_name -> bonanza.model.filesystem.FileContents
+	20, // 12: bonanza.model.command.LogTiming.total_delay:type_name -> google.protobuf.Duration
+	17, // 13: bonanza.model.command.LogTiming.parent_reference:type_name -> bonanza.model.core.DecodableReference
+	17, // 14: bonanza.model.command.Action.command_reference:type_name -> bonanza.model.core.DecodableReference
+	21, // 15: bonanza.model.command.Action.input_root_reference:type_name -> bonanza.model.filesystem.DirectoryReference
+	22, // 16: bonanza.model.command.Result.status:type_name -> google.rpc.Status
+	17, // 17: bonanza.model.command.Result.outputs_reference:type_name -> bonanza.model.core.DecodableReference
+	23, // 18: bonanza.model.command.Result.auxiliary_metadata:type_name -> google.protobuf.Any
+	14, // 19: bonanza.model.command.Result.worker_id:type_name -> bonanza.model.command.Result.WorkerIdEntry
+	6,  // 20: bonanza.model.command.Result.log_timings:type_name -> bonanza.model.command.LogTiming
+	1,  // 21: bonanza.model.command.PathPattern.Child.pattern:type_name -> bonanza.model.command.PathPattern
+	9,  // 22: bonanza.model.command.PathPattern.Children.children:type_name -> bonanza.model.command.PathPattern.Child
+	17, // 23: bonanza.model.command.ArgumentList.Element.parent:type_name -> bonanza.model.core.DecodableReference
+	13, // 24: bonanza.model.command.EnvironmentVariableList.Element.leaf:type_name -> bonanza.model.command.EnvironmentVariableList.Element.Leaf
+	17, // 25: bonanza.model.command.EnvironmentVariableList.Element.parent:type_name -> bonanza.model.core.DecodableReference
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_command_command_proto_init() }
@@ -928,11 +1056,11 @@ func file_bonanza_build_pkg_proto_model_command_command_proto_init() {
 		(*PathPattern_ChildrenExternal)(nil),
 		(*PathPattern_ChildrenInline)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[9].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[11].OneofWrappers = []any{
 		(*ArgumentList_Element_Leaf)(nil),
 		(*ArgumentList_Element_Parent)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[10].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_command_command_proto_msgTypes[12].OneofWrappers = []any{
 		(*EnvironmentVariableList_Element_Leaf_)(nil),
 		(*EnvironmentVariableList_Element_Parent)(nil),
 	}
@@ -942,7 +1070,7 @@ func file_bonanza_build_pkg_proto_model_command_command_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

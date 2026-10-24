@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
+	model_command "bonanza.build/pkg/model/command"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
-	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
@@ -152,13 +152,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
 
-	stdoutEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-		model_core.Nested(outputs, outputs.Message.GetStdout()),
-	)
-	if err != nil {
-		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("invalid standard output entry: %w", err)
-	}
-	stdout, err := fileReader.FileReadAll(ctx, stdoutEntry, 1<<20)
+	stdout, err := model_command.ReadLogByName(ctx, fileReader, outputs, model_command.StdoutLogName, 1<<20)
 	if err != nil {
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to read standard output: %w", err)
 	}

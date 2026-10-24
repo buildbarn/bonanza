@@ -2,9 +2,8 @@ package command
 
 import (
 	"context"
-	"errors"
-	"io/fs"
 	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -44,6 +43,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 // Filenames of objects to be created inside the build directory.
@@ -195,30 +195,24 @@ func (e *localExecutor) CheckReadiness(ctx context.Context) error {
 	return err
 }
 
-func captureLog(ctx context.Context, buildDirectory virtual.PrepopulatedDirectory, name path.Component, writableFileUploadDelay <-chan struct{}, fileCreationParameters *model_filesystem.FileCreationParameters) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker], error) {
-	stdoutFile, err := buildDirectory.LookupChild(name)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker]((*model_filesystem_pb.FileContents)(nil)), nil
-		}
-		return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, util.StatusWrap(err, "Failed to look up file")
-	}
-
+// captureLog captures the contents of a file in the server logs
+// directory, so that it can be stored as a log in the outputs of the
+// command. If the file is not a regular file, false is returned.
+func captureLog(ctx context.Context, file virtual.LinkableLeaf, writableFileUploadDelay <-chan struct{}, fileCreationParameters *model_filesystem.FileCreationParameters) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker], bool, error) {
 	openReadFrozen := virtual.ApplyOpenReadFrozen{
 		WritableFileDelay: writableFileUploadDelay,
 	}
-	if stdoutFile.GetNode().VirtualApply(&openReadFrozen) {
-		if openReadFrozen.Err != nil {
-			return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, util.StatusWrap(openReadFrozen.Err, "Failed to open file")
-		}
-		fileContents, err := model_filesystem.CreateChunkDiscardingFileMerkleTree(ctx, fileCreationParameters, openReadFrozen.Reader)
-		if err != nil {
-			return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, util.StatusWrap(err, "Failed to create file Merkle tree")
-		}
-		return fileContents, nil
+	if !file.VirtualApply(&openReadFrozen) {
+		return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, false, nil
 	}
-
-	return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, status.Error(codes.InvalidArgument, "File is of an incorrect type")
+	if openReadFrozen.Err != nil {
+		return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, false, util.StatusWrap(openReadFrozen.Err, "Failed to open file")
+	}
+	fileContents, err := model_filesystem.CreateChunkDiscardingFileMerkleTree(ctx, fileCreationParameters, openReadFrozen.Reader)
+	if err != nil {
+		return model_core.PatchedMessage[*model_filesystem_pb.FileContents, dag.ObjectContentsWalker]{}, false, util.StatusWrap(err, "Failed to create file Merkle tree")
+	}
+	return fileContents, true, nil
 }
 
 var actionObjectFormat = model_core.NewProtoObjectFormat(&model_command_pb.Action{})
@@ -529,18 +523,22 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			time.Sleep(1)
 		}
 
-		// Invoke the command.
+		// Invoke the command. Standard output and standard
+		// error are written into the server logs directory, so
+		// that they are captured together with any other logs
+		// the runner chooses to write.
 		buildDirectoryPath := (*path.Trace)(nil).Append(buildDirectoryName)
+		serverLogsDirectoryPath := buildDirectoryPath.Append(serverLogsDirectoryComponent)
 		ctxWithTimeout, cancelTimeout := suspendableClock.NewContextWithTimeout(ctxWithIOError, executionTimeout)
 		runResponse, runErr := e.runner.Run(ctxWithTimeout, &runner_pb.RunRequest{
 			Arguments:            arguments,
 			EnvironmentVariables: environmentVariables,
 			WorkingDirectory:     command.Message.WorkingDirectory,
-			StdoutPath:           buildDirectoryPath.Append(stdoutComponent).GetUNIXString(),
-			StderrPath:           buildDirectoryPath.Append(stderrComponent).GetUNIXString(),
+			StdoutPath:           serverLogsDirectoryPath.Append(stdoutComponent).GetUNIXString(),
+			StderrPath:           serverLogsDirectoryPath.Append(stderrComponent).GetUNIXString(),
 			InputRootDirectory:   buildDirectoryPath.Append(inputRootDirectoryComponent).GetUNIXString(),
 			TemporaryDirectory:   buildDirectoryPath.Append(temporaryDirectoryComponent).GetUNIXString(),
-			ServerLogsDirectory:  buildDirectoryPath.Append(serverLogsDirectoryComponent).GetUNIXString(),
+			ServerLogsDirectory:  serverLogsDirectoryPath.GetUNIXString(),
 		})
 
 		// Determine the amount of time the action ran, minus the time
@@ -576,20 +574,38 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		defer writableFileUploadDelayCancel()
 		writableFileUploadDelayChan := writableFileUploadDelayCtx.Done()
 
-		// Capture output files.
+		// Capture logs and output files.
 		var outputs model_command_pb.Outputs
 		outputsPatcher := model_core.NewReferenceMessagePatcher[dag.ObjectContentsWalker]()
 
-		if stdoutContents, err := captureLog(ctx, buildDirectory, stdoutComponent, writableFileUploadDelayChan, fileCreationParameters); err == nil {
-			outputs.Stdout = stdoutContents.Merge(outputsPatcher)
+		var logSizesBytes []uint64
+		if serverLogs, err := buildDirectory.LookupChild(serverLogsDirectoryComponent); err != nil {
+			setError(util.StatusWrap(err, "Failed to look up server logs directory"))
+		} else if serverLogsDirectory, _ := serverLogs.GetPair(); serverLogsDirectory == nil {
+			setError(status.Error(codes.InvalidArgument, "Server logs directory is not a directory"))
+		} else if _, serverLogsFiles, err := serverLogsDirectory.LookupAllChildren(); err != nil {
+			setError(util.StatusWrap(err, "Failed to look up files in server logs directory"))
 		} else {
-			setError(util.StatusWrap(err, "Failed to capture standard output"))
-		}
-
-		if stderrContents, err := captureLog(ctx, buildDirectory, stderrComponent, writableFileUploadDelayChan, fileCreationParameters); err == nil {
-			outputs.Stderr = stderrContents.Merge(outputsPatcher)
-		} else {
-			setError(util.StatusWrap(err, "Failed to capture standard error"))
+			// Capture all regular files in the server logs
+			// directory as logs. LookupAllChildren() returns
+			// files in alphabetical order, which is the order
+			// in which logs need to be stored.
+			for _, file := range serverLogsFiles {
+				name := file.Name.String()
+				contents, isRegularFile, err := captureLog(ctx, file.Child, writableFileUploadDelayChan, fileCreationParameters)
+				if err != nil {
+					setError(util.StatusWrapf(err, "Failed to capture log %#v", name))
+					continue
+				}
+				if !isRegularFile {
+					continue
+				}
+				logSizesBytes = append(logSizesBytes, contents.Message.GetTotalSizeBytes())
+				outputs.Logs = append(outputs.Logs, &model_command_pb.Log{
+					Name:     name,
+					Contents: contents.Merge(outputsPatcher),
+				})
+			}
 		}
 
 		if pattern := command.Message.OutputPathPattern; pattern != nil {
@@ -654,6 +670,20 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 				setError(util.StatusWrap(err, "Failed to capture outputs"))
 			} else {
 				result.OutputsReference = createdObjectReference
+
+				// The runner does not report when data
+				// was written to the logs. Emit a single
+				// segment containing all data written to
+				// the logs.
+				//
+				// TODO: Capture timing information if
+				// supported by the runner.
+				if slices.ContainsFunc(logSizesBytes, func(sizeBytes uint64) bool { return sizeBytes > 0 }) {
+					result.LogTimings = []*model_command_pb.LogTiming{{
+						TotalDelay:    &durationpb.Duration{},
+						LogSizesBytes: logSizesBytes,
+					}}
+				}
 			}
 		}
 		return &result
