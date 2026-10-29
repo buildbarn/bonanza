@@ -224,8 +224,8 @@ func (c *baseComputer[TReference, TMetadata]) getInlinedTreeOptions() *inlinedtr
 type loadBzlGlobalsEnvironment[TReference any] interface {
 	labelResolverEnvironment[TReference]
 
-	GetBuiltinsModuleNamesValue(key *model_analysis_pb.BuiltinsModuleNames_Key) model_core.Message[*model_analysis_pb.BuiltinsModuleNames_Value, TReference]
-	GetCompiledBzlFileDecodedGlobalsValue(key *model_analysis_pb.CompiledBzlFileDecodedGlobals_Key) (starlark.StringDict, bool)
+	BuiltinsModuleNamesValueGetter[TReference]
+	CompiledBzlFileDecodedGlobalsValueGetter
 }
 
 func (baseComputer[TReference, TMetadata]) loadBzlGlobals(e loadBzlGlobalsEnvironment[TReference], canonicalPackage label.CanonicalPackage, loadLabelStr string, builtinsModuleNames []string) (starlark.StringDict, error) {
@@ -272,7 +272,7 @@ func (c *baseComputer[TReference, TMetadata]) preloadBzlGlobals(e loadBzlGlobals
 
 type starlarkThreadEnvironment[TReference any] interface {
 	loadBzlGlobalsEnvironment[TReference]
-	GetCompiledBzlFileFunctionFactoryValue(*model_analysis_pb.CompiledBzlFileFunctionFactory_Key) (*starlark.FunctionFactory, bool)
+	CompiledBzlFileFunctionFactoryValueGetter
 }
 
 // trimBuiltinModuleNames truncates the list of built-in module names up

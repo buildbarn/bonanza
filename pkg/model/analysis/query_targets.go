@@ -98,9 +98,9 @@ func (c *baseComputer[TReference, TMetadata]) newQueryTargetTreeBuilder(ctx cont
 
 type newQueryTargetLeafEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
-	getQueryRuleTargetEnvironment[TReference]
+	CompiledBzlFileGlobalValueGetter[TReference]
 
-	GetTargetValue(*model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, TReference]
+	TargetValueGetter[TReference]
 }
 
 // newQueryTargetLeaf creates a QueryTarget message for a single target,
@@ -177,7 +177,7 @@ type buildQueryTargetsEnvironment[TReference any, TMetadata model_core.Reference
 	model_core.CreatedObjectCapturer[TMetadata]
 	newQueryTargetLeafEnvironment[TReference, TMetadata]
 
-	GetQueryTargetsValue(key model_core.PatchedMessage[*model_analysis_pb.QueryTargets_Key, TMetadata]) model_core.Message[*model_analysis_pb.QueryTargets_Value, TReference]
+	QueryTargetsValueGetter[TReference, TMetadata]
 }
 
 // buildQueryTargets creates a B-tree of QueryTarget messages that

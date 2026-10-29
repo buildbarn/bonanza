@@ -250,11 +250,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(
 
 var exportsBzlTargetName = util.Must(label.NewTargetName("exports.bzl"))
 
-type getBzlFileBuiltinsEnvironment[TReference any] interface {
-	GetCompiledBzlFileDecodedGlobalsValue(key *model_analysis_pb.CompiledBzlFileDecodedGlobals_Key) (starlark.StringDict, bool)
-}
-
-func (c *baseComputer[TReference, TMetadata]) getBzlFileBuiltins(thread *starlark.Thread, e getBzlFileBuiltinsEnvironment[TReference], builtinsModuleNames []string) (starlark.StringDict, error) {
+func (c *baseComputer[TReference, TMetadata]) getBzlFileBuiltins(thread *starlark.Thread, e CompiledBzlFileDecodedGlobalsValueGetter, builtinsModuleNames []string) (starlark.StringDict, error) {
 	allToplevels := starlark.StringDict{}
 	for name, value := range c.bzlFileBuiltins {
 		allToplevels[name] = value
@@ -323,7 +319,7 @@ func (c *baseComputer[TReference, TMetadata]) getBzlFileBuiltins(thread *starlar
 	return allToplevels, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) getBuildFileBuiltins(thread *starlark.Thread, e getBzlFileBuiltinsEnvironment[TReference], builtinsModuleNames []string) (starlark.StringDict, error) {
+func (c *baseComputer[TReference, TMetadata]) getBuildFileBuiltins(thread *starlark.Thread, e CompiledBzlFileDecodedGlobalsValueGetter, builtinsModuleNames []string) (starlark.StringDict, error) {
 	allRules := starlark.StringDict{}
 	for name, value := range c.buildFileBuiltins {
 		allRules[name] = value

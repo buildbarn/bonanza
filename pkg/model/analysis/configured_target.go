@@ -3202,13 +3202,9 @@ type ruleContextExecGroupState struct {
 	toolchainInfos        []starlark.Value
 }
 
-type getProviderFromConfiguredTargetEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	GetTargetProviderValue(key model_core.PatchedMessage[*model_analysis_pb.TargetProvider_Key, TMetadata]) model_core.Message[*model_analysis_pb.TargetProvider_Value, TReference]
-}
-
 // getProviderFromConfiguredTarget looks up a single provider that is
 // provided by a configured target.
-func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.ReferenceMetadata](e getProviderFromConfiguredTargetEnvironment[TReference, TMetadata], targetLabel string, configurationReference model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], providerIdentifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Struct_Fields, TReference], error) {
+func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.ReferenceMetadata](e TargetProviderValueGetter[TReference, TMetadata], targetLabel string, configurationReference model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], providerIdentifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Struct_Fields, TReference], error) {
 	providerIdentifierStr := providerIdentifier.String()
 	targetProvider := e.GetTargetProviderValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Key {
@@ -3231,8 +3227,8 @@ func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.Refere
 
 type getProviderFromVisibleConfiguredTargetEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ObjectManager[TReference, TMetadata]
-	getProviderFromConfiguredTargetEnvironment[TReference, TMetadata]
-	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
+	TargetProviderValueGetter[TReference, TMetadata]
+	VisibleTargetValueGetter[TReference, TMetadata]
 }
 
 func getProviderFromVisibleConfiguredTarget[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](

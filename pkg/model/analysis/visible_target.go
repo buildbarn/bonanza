@@ -21,7 +21,7 @@ import (
 type getValueFromSelectGroupEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
 
-	GetSelectValue(model_core.PatchedMessage[*model_analysis_pb.Select_Key, TMetadata]) model_core.Message[*model_analysis_pb.Select_Value, TReference]
+	SelectValueGetter[TReference, TMetadata]
 }
 
 func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
@@ -90,7 +90,7 @@ func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_c
 	}
 }
 
-func (c *baseComputer[TReference, TMetadata]) checkVisibility(ctx context.Context, e packageGroupContainsEnvironment[TReference], fromPackage label.CanonicalPackage, toLabel label.CanonicalLabel, toLabelVisibility model_core.Message[*model_starlark_pb.PackageGroup, TReference]) error {
+func (c *baseComputer[TReference, TMetadata]) checkVisibility(ctx context.Context, e PackageGroupContainsValueGetter[TReference], fromPackage label.CanonicalPackage, toLabel label.CanonicalLabel, toLabelVisibility model_core.Message[*model_starlark_pb.PackageGroup, TReference]) error {
 	// Always permit access from within the same package.
 	if fromPackage == toLabel.GetCanonicalPackage() {
 		return nil
@@ -116,16 +116,12 @@ func getRuleTargetVisibility[TReference any](ruleTargetLabel label.CanonicalLabe
 	return model_core.Nested(ruleTarget, inheritableAttrs.Visibility), true, nil
 }
 
-type getTargetVisibilityEnvironment[TReference any] interface {
-	GetTargetValue(*model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, TReference]
-}
-
 // getTargetVisibility returns the package group that controls which
 // packages may reference a target. Aliases and label settings are not
 // followed, meaning that the visibility of the target itself is
 // returned. If the target is visible to all packages, false is
 // returned.
-func getTargetVisibility[TReference any](e getTargetVisibilityEnvironment[TReference], targetLabel label.CanonicalLabel, definition model_core.Message[*model_starlark_pb.Target_Definition, TReference]) (model_core.Message[*model_starlark_pb.PackageGroup, TReference], bool, error) {
+func getTargetVisibility[TReference any](e TargetValueGetter[TReference], targetLabel label.CanonicalLabel, definition model_core.Message[*model_starlark_pb.Target_Definition, TReference]) (model_core.Message[*model_starlark_pb.PackageGroup, TReference], bool, error) {
 	switch kind := definition.Message.GetKind().(type) {
 	case *model_starlark_pb.Target_Definition_Alias:
 		return model_core.Nested(definition, kind.Alias.Visibility), true, nil

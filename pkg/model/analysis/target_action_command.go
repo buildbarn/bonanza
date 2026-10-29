@@ -177,7 +177,7 @@ func (r *filesUnderDirectoryReporter[TReference, TMetadata]) yieldFilesUnderCurr
 type expandFileIfDirectoryEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
 
-	GetFileRootValue(key model_core.PatchedMessage[*model_analysis_pb.FileRoot_Key, TMetadata]) model_core.Message[*model_analysis_pb.FileRoot_Value, TReference]
+	FileRootValueGetter[TReference, TMetadata]
 }
 
 // expandFileIfDirectory checks whether a File provided to Args.add*()

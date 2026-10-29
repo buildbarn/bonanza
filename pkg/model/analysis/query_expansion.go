@@ -133,14 +133,10 @@ func (t *queryRuleTarget[TReference]) getAttr(name string) (*queryAttr[TReferenc
 	return nil, false
 }
 
-type getQueryRuleTargetEnvironment[TReference any] interface {
-	GetCompiledBzlFileGlobalValue(*model_analysis_pb.CompiledBzlFileGlobal_Key) model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, TReference]
-}
-
 // getQueryRuleDefinition obtains the definition of the rule used by a
 // rule target.
 func getQueryRuleDefinition[TReference any](
-	e getQueryRuleTargetEnvironment[TReference],
+	e CompiledBzlFileGlobalValueGetter[TReference],
 	ruleIdentifier label.CanonicalStarlarkIdentifier,
 ) (model_core.Message[*model_starlark_pb.Rule_Definition, TReference], error) {
 	ruleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
@@ -164,7 +160,7 @@ func getQueryRuleDefinition[TReference any](
 // using the definition of the rule to determine which attributes are
 // present and what their default values are.
 func getQueryRuleTarget[TReference any](
-	e getQueryRuleTargetEnvironment[TReference],
+	e CompiledBzlFileGlobalValueGetter[TReference],
 	targetLabel label.CanonicalLabel,
 	ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference],
 ) (*queryRuleTarget[TReference], error) {
@@ -485,7 +481,7 @@ func newQueryExpansionKey(query label.Query[label.CanonicalTargetPattern], inclu
 
 // getQueryLabels returns the labels of the targets yielded by a query
 // expression.
-func (c *baseComputer[TReference, TMetadata]) getQueryLabels(ctx context.Context, e queryExpansionEnvironment[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) ([]label.CanonicalLabel, error) {
+func (c *baseComputer[TReference, TMetadata]) getQueryLabels(ctx context.Context, e QueryExpansionValueGetter[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) ([]label.CanonicalLabel, error) {
 	value := e.GetQueryExpansionValue(newQueryExpansionKey(query, includeImplicitDeps))
 	if !value.IsSet() {
 		return nil, evaluation.ErrMissingDependency
@@ -503,7 +499,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryLabels(ctx context.Context
 // list of expressions of the query. All operands are requested before
 // returning ErrMissingDependency, so that they can be evaluated
 // concurrently.
-func (c *baseComputer[TReference, TMetadata]) getQueryLabelsOfOperands(ctx context.Context, e queryExpansionEnvironment[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool, operands ...int) ([][]label.CanonicalLabel, error) {
+func (c *baseComputer[TReference, TMetadata]) getQueryLabelsOfOperands(ctx context.Context, e QueryExpansionValueGetter[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool, operands ...int) ([][]label.CanonicalLabel, error) {
 	results := make([][]label.CanonicalLabel, 0, len(operands))
 	missingDependencies := false
 	for _, operand := range operands {
@@ -522,13 +518,9 @@ func (c *baseComputer[TReference, TMetadata]) getQueryLabelsOfOperands(ctx conte
 	return results, nil
 }
 
-type getQueryTargetDefinitionsEnvironment[TReference any] interface {
-	GetTargetValue(*model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, TReference]
-}
-
 // getQueryTargetDefinitions returns the definitions of a list of
 // targets. This can also be used to check that targets exist.
-func getQueryTargetDefinitions[TReference any](e getQueryTargetDefinitionsEnvironment[TReference], labels []label.CanonicalLabel) ([]model_core.Message[*model_starlark_pb.Target_Definition, TReference], error) {
+func getQueryTargetDefinitions[TReference any](e TargetValueGetter[TReference], labels []label.CanonicalLabel) ([]model_core.Message[*model_starlark_pb.Target_Definition, TReference], error) {
 	definitions := make([]model_core.Message[*model_starlark_pb.Target_Definition, TReference], 0, len(labels))
 	missingDependencies := false
 	for _, l := range labels {
@@ -545,14 +537,10 @@ func getQueryTargetDefinitions[TReference any](e getQueryTargetDefinitionsEnviro
 	return definitions, nil
 }
 
-type getQueryDirectDependenciesEnvironment[TReference any] interface {
-	GetTargetDirectDependenciesValue(*model_analysis_pb.TargetDirectDependencies_Key) model_core.Message[*model_analysis_pb.TargetDirectDependencies_Value, TReference]
-}
-
 // getQueryDirectDependencies returns the direct dependencies of a set
 // of targets, as a map from the label of each target to the labels of
 // its dependencies.
-func (c *baseComputer[TReference, TMetadata]) getQueryDirectDependencies(ctx context.Context, e getQueryDirectDependenciesEnvironment[TReference], labels []label.CanonicalLabel, includeImplicitDeps bool) (map[label.CanonicalLabel][]label.CanonicalLabel, error) {
+func (c *baseComputer[TReference, TMetadata]) getQueryDirectDependencies(ctx context.Context, e TargetDirectDependenciesValueGetter[TReference], labels []label.CanonicalLabel, includeImplicitDeps bool) (map[label.CanonicalLabel][]label.CanonicalLabel, error) {
 	dependencies := make(map[label.CanonicalLabel][]label.CanonicalLabel, len(labels))
 	missingDependencies := false
 	for _, l := range labels {
@@ -578,7 +566,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryDirectDependencies(ctx con
 
 // queryDeps computes the transitive closure of the dependencies of a
 // set of targets, optionally limiting the search depth.
-func (c *baseComputer[TReference, TMetadata]) queryDeps(ctx context.Context, e getQueryDirectDependenciesEnvironment[TReference], labels []label.CanonicalLabel, maximumDepth *uint32, includeImplicitDeps bool) (labelSet, error) {
+func (c *baseComputer[TReference, TMetadata]) queryDeps(ctx context.Context, e TargetDirectDependenciesValueGetter[TReference], labels []label.CanonicalLabel, maximumDepth *uint32, includeImplicitDeps bool) (labelSet, error) {
 	// Perform a breadth-first search, requesting the dependencies
 	// of all targets at the same depth at once.
 	seen := newLabelSet(labels)
@@ -1270,8 +1258,8 @@ func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context,
 }
 
 type forEachQueryRuleTargetAttrEnvironment[TReference any] interface {
-	getQueryRuleTargetEnvironment[TReference]
-	getQueryTargetDefinitionsEnvironment[TReference]
+	CompiledBzlFileGlobalValueGetter[TReference]
+	TargetValueGetter[TReference]
 }
 
 // forEachQueryRuleTargetAttr calls a function for each rule target in
@@ -1405,10 +1393,6 @@ func (c *baseComputer[TReference, TMetadata]) allTargetLabels(ctx context.Contex
 			}
 		}
 	}
-}
-
-type queryExpansionEnvironment[TReference any] interface {
-	GetQueryExpansionValue(*model_analysis_pb.QueryExpansion_Key) model_core.Message[*model_analysis_pb.QueryExpansion_Value, TReference]
 }
 
 // targetLabelsMergeCursor keeps track of the position in a B-tree of
@@ -1736,7 +1720,7 @@ func (c *baseComputer[TReference, TMetadata]) intersectOrSubtractTargetLabels(ct
 // CanonicalTargetPattern.ToQueryExcludingManualTargets().
 func (c *baseComputer[TReference, TMetadata]) allQueryLabels(
 	ctx context.Context,
-	e queryExpansionEnvironment[TReference],
+	e QueryExpansionValueGetter[TReference],
 	query label.Query[label.CanonicalTargetPattern],
 	errOut *error,
 ) iter.Seq[label.CanonicalLabel] {

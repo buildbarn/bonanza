@@ -15,14 +15,10 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )
 
-type packageGroupContainsEnvironment[TReference any] interface {
-	GetPackageGroupContainsValue(key *model_analysis_pb.PackageGroupContains_Key) model_core.Message[*model_analysis_pb.PackageGroupContains_Value, TReference]
-}
-
 // packageGroupContains returns whether a package is contained in a
 // package group, either directly or through one of the package groups
 // that it includes.
-func (c *baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Context, e packageGroupContainsEnvironment[TReference], packageGroup model_core.Message[*model_starlark_pb.PackageGroup, TReference], fromPackage label.CanonicalPackage) (bool, error) {
+func (c *baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Context, e PackageGroupContainsValueGetter[TReference], packageGroup model_core.Message[*model_starlark_pb.PackageGroup, TReference], fromPackage label.CanonicalPackage) (bool, error) {
 	// Check whether the provided package is directly contained in
 	// this package group.
 	subpackages := model_core.Nested(packageGroup, packageGroup.Message.Tree)

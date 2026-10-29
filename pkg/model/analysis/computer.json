@@ -235,6 +235,7 @@
             "imports": {
                "model_filesystem": "bonanza.build/pkg/model/filesystem"
             },
+            "referenceConstraint": "object.BasicReference",
             "type": "*model_filesystem.FileReader[TReference]"
          }
       },

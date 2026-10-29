@@ -66,8 +66,8 @@ func (baseComputer[TReference, TMetadata]) ComputeCanonicalRepoNameValue(ctx con
 }
 
 type labelResolverEnvironment[TReference any] interface {
-	GetCanonicalRepoNameValue(*model_analysis_pb.CanonicalRepoName_Key) model_core.Message[*model_analysis_pb.CanonicalRepoName_Value, TReference]
-	GetRootModuleValue(*model_analysis_pb.RootModule_Key) model_core.Message[*model_analysis_pb.RootModule_Value, TReference]
+	CanonicalRepoNameValueGetter[TReference]
+	RootModuleValueGetter[TReference]
 }
 
 // labelResolver is an implementation of label.Resolver that is built on

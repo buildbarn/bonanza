@@ -20,8 +20,8 @@ import (
 type addFilesToChangeTrackingDirectoryEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
 
-	GetFilesRootValue(key model_core.PatchedMessage[*model_analysis_pb.FilesRoot_Key, TMetadata]) model_core.Message[*model_analysis_pb.FilesRoot_Value, TReference]
-	GetFileRootValue(key model_core.PatchedMessage[*model_analysis_pb.FileRoot_Key, TMetadata]) model_core.Message[*model_analysis_pb.FileRoot_Value, TReference]
+	FilesRootValueGetter[TReference, TMetadata]
+	FileRootValueGetter[TReference, TMetadata]
 }
 
 func addFilesToChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](

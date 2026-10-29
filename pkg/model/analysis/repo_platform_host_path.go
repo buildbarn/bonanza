@@ -335,17 +335,13 @@ func (r *changeTrackingDirectoryNormalizingPathResolver[TReference, TMetadata]) 
 	return r, nil
 }
 
-type changeTrackingDirectorySymlinksRelativizerEnvironment[TReference any] interface {
-	GetRepoPlatformHostPathValue(*model_analysis_pb.RepoPlatformHostPath_Key) model_core.Message[*model_analysis_pb.RepoPlatformHostPath_Value, TReference]
-}
-
 // changeTrackingDirectorySymlinksRelativizer is a helper that is used
 // by ComputeRepoPlatformHostPath() that recursively traverses a
 // directory and replaces all symlinks to refer to relative paths, or
 // replace them with the object that is referenced.
 type changeTrackingDirectorySymlinksRelativizer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	context                       context.Context
-	environment                   changeTrackingDirectorySymlinksRelativizerEnvironment[TReference]
+	environment                   RepoPlatformHostPathValueGetter[TReference]
 	directoryLoadOptions          *changeTrackingDirectoryLoadOptions[TReference]
 	virtualRootScopeWalkerFactory *path.VirtualRootScopeWalkerFactory
 }

@@ -18,13 +18,9 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 )
 
-type getPackageDirectoryEnvironment[TReference any] interface {
-	GetRepoValue(*model_analysis_pb.Repo_Key) model_core.Message[*model_analysis_pb.Repo_Value, TReference]
-}
-
 func (baseComputer[TReference, TMetadata]) getPackageDirectory(
 	ctx context.Context,
-	e getPackageDirectoryEnvironment[TReference],
+	e RepoValueGetter[TReference],
 	directoryContentsReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents],
 	canonicalPackageStr string,
 ) (model_core.Message[*model_filesystem_pb.DirectoryContents, TReference], error) {

@@ -1078,10 +1078,10 @@ type patchToApply[TReference object.BasicReference] struct {
 type applyPatchesEnvironment[TReference object.BasicReference, TMetadata any] interface {
 	model_core.ObjectCapturer[TReference, TMetadata]
 
-	GetDirectoryCreationParametersObjectValue(key *model_analysis_pb.DirectoryCreationParametersObject_Key) (*model_filesystem.DirectoryCreationParameters, bool)
-	GetDirectoryReadersValue(key *model_analysis_pb.DirectoryReaders_Key) (*DirectoryReaders[TReference], bool)
-	GetFileCreationParametersObjectValue(key *model_analysis_pb.FileCreationParametersObject_Key) (*model_filesystem.FileCreationParameters, bool)
-	GetFileReaderValue(key *model_analysis_pb.FileReader_Key) (*model_filesystem.FileReader[TReference], bool)
+	DirectoryCreationParametersObjectValueGetter
+	DirectoryReadersValueGetter[TReference]
+	FileCreationParametersObjectValueGetter
+	FileReaderValueGetter[TReference]
 }
 
 func (c *baseComputer[TReference, TMetadata]) applyPatches(
@@ -1302,22 +1302,22 @@ func newRepositoryOS[TReference object.BasicReference, TMetadata model_core.Refe
 type moduleOrRepositoryContextEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ObjectCapturer[TReference, TMetadata]
 
-	GetActionEncoderObjectValue(*model_analysis_pb.ActionEncoderObject_Key) (model_encoding.DeterministicBinaryEncoder, bool)
-	GetActionResultValue(model_core.PatchedMessage[*model_analysis_pb.ActionResult_Key, TMetadata]) model_core.Message[*model_analysis_pb.ActionResult_Value, TReference]
-	GetDirectoryCreationParametersObjectValue(*model_analysis_pb.DirectoryCreationParametersObject_Key) (*model_filesystem.DirectoryCreationParameters, bool)
-	GetDirectoryCreationParametersValue(*model_analysis_pb.DirectoryCreationParameters_Key) model_core.Message[*model_analysis_pb.DirectoryCreationParameters_Value, TReference]
-	GetDirectoryReadersValue(key *model_analysis_pb.DirectoryReaders_Key) (*DirectoryReaders[TReference], bool)
-	GetFileCreationParametersObjectValue(*model_analysis_pb.FileCreationParametersObject_Key) (*model_filesystem.FileCreationParameters, bool)
-	GetFileCreationParametersValue(*model_analysis_pb.FileCreationParameters_Key) model_core.Message[*model_analysis_pb.FileCreationParameters_Value, TReference]
-	GetFileReaderValue(*model_analysis_pb.FileReader_Key) (*model_filesystem.FileReader[TReference], bool)
-	GetHTTPArchiveContentsValue(*model_analysis_pb.HttpArchiveContents_Key) model_core.Message[*model_analysis_pb.HttpArchiveContents_Value, TReference]
-	GetHTTPFileContentsValue(*model_analysis_pb.HttpFileContents_Key) model_core.Message[*model_analysis_pb.HttpFileContents_Value, TReference]
-	GetRegisteredRepoPlatformValue(*model_analysis_pb.RegisteredRepoPlatform_Key) model_core.Message[*model_analysis_pb.RegisteredRepoPlatform_Value, TReference]
-	GetRepoPlatformHostPathValue(*model_analysis_pb.RepoPlatformHostPath_Key) model_core.Message[*model_analysis_pb.RepoPlatformHostPath_Value, TReference]
-	GetRepoValue(*model_analysis_pb.Repo_Key) model_core.Message[*model_analysis_pb.Repo_Value, TReference]
-	GetRootModuleValue(*model_analysis_pb.RootModule_Key) model_core.Message[*model_analysis_pb.RootModule_Value, TReference]
-	GetStableInputRootPathObjectValue(*model_analysis_pb.StableInputRootPathObject_Key) (*model_starlark.BarePath, bool)
-	GetSuccessfulActionResultValue(model_core.PatchedMessage[*model_analysis_pb.SuccessfulActionResult_Key, TMetadata]) model_core.Message[*model_analysis_pb.SuccessfulActionResult_Value, TReference]
+	ActionEncoderObjectValueGetter
+	ActionResultValueGetter[TReference, TMetadata]
+	DirectoryCreationParametersObjectValueGetter
+	DirectoryCreationParametersValueGetter[TReference]
+	DirectoryReadersValueGetter[TReference]
+	FileCreationParametersObjectValueGetter
+	FileCreationParametersValueGetter[TReference]
+	FileReaderValueGetter[TReference]
+	HTTPArchiveContentsValueGetter[TReference]
+	HTTPFileContentsValueGetter[TReference]
+	RegisteredRepoPlatformValueGetter[TReference]
+	RepoPlatformHostPathValueGetter[TReference]
+	RepoValueGetter[TReference]
+	RootModuleValueGetter[TReference]
+	StableInputRootPathObjectValueGetter
+	SuccessfulActionResultValueGetter[TReference, TMetadata]
 }
 
 type moduleOrRepositoryContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {

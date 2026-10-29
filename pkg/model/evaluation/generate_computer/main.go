@@ -53,6 +53,57 @@ func (fd functionDefinition) typedKeyToArgument(functionName string) string {
 type nativeValueTypeDefinition struct {
 	Imports map[string]string `json:"imports"`
 	Type    string            `json:"type"`
+
+	// Constraint that the type places on TReference, if any. This is
+	// used to declare the type parameters of getter interfaces.
+	ReferenceConstraint string `json:"referenceConstraint"`
+}
+
+// getGetterMethod returns the signature of the method that is used to
+// obtain the value of a function.
+func (fd functionDefinition) getGetterMethod(functionName string) string {
+	if nativeValueType := fd.NativeValueType; nativeValueType != nil {
+		return fmt.Sprintf(
+			"Get%sValue(key %s) (%s, bool)",
+			functionName,
+			fd.getKeyType(functionName, true),
+			nativeValueType.Type,
+		)
+	}
+	return fmt.Sprintf(
+		"Get%sValue(key %s) model_core.Message[*pb.%s_Value, TReference]",
+		functionName,
+		fd.getKeyType(functionName, true),
+		getMessageName(functionName),
+	)
+}
+
+// getGetterTypeParameters returns the type parameters of the getter
+// interface of a function, both in the form used to declare the
+// interface (e.g., "[TReference any]") and to instantiate it (e.g.,
+// "[TReference]"). Only type parameters that are used by the method
+// are included. Constraints are as liberal as possible, so that the
+// interfaces can also be used by helper functions that are not specific
+// to a type of reference.
+func (fd functionDefinition) getGetterTypeParameters(functionName string) (declaration, arguments string) {
+	referenceConstraint := "any"
+	if nativeValueType := fd.NativeValueType; nativeValueType != nil && nativeValueType.ReferenceConstraint != "" {
+		referenceConstraint = nativeValueType.ReferenceConstraint
+	}
+	method := fd.getGetterMethod(functionName)
+	var declarations, names []string
+	if strings.Contains(method, "TReference") {
+		declarations = append(declarations, "TReference "+referenceConstraint)
+		names = append(names, "TReference")
+	}
+	if strings.Contains(method, "TMetadata") {
+		declarations = append(declarations, "TMetadata model_core.ReferenceMetadata")
+		names = append(names, "TMetadata")
+	}
+	if len(names) == 0 {
+		return "", ""
+	}
+	return "[" + strings.Join(declarations, ", ") + "]", "[" + strings.Join(names, ", ") + "]"
 }
 
 func main() {
@@ -172,26 +223,23 @@ func main() {
 	}
 	fmt.Printf("}\n")
 
+	// Interfaces containing a single method for obtaining the value
+	// of a function. These can be used by helper functions that
+	// only depend on a small number of functions.
+	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
+		functionDefinition := computerDefinition.Functions[functionName]
+		typeParametersDeclaration, _ := functionDefinition.getGetterTypeParameters(functionName)
+		fmt.Printf("type %sValueGetter%s interface {\n", functionName, typeParametersDeclaration)
+		fmt.Printf("\t%s\n", functionDefinition.getGetterMethod(functionName))
+		fmt.Printf("}\n")
+	}
+
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		fmt.Printf("type %sEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {\n", functionName)
 		functionDefinition := computerDefinition.Functions[functionName]
 		for _, dependencyName := range slices.Sorted(slices.Values(functionDefinition.DependsOn)) {
-			dependencyDefinition := computerDefinition.Functions[dependencyName]
-			if nativeValueType := dependencyDefinition.NativeValueType; nativeValueType == nil {
-				fmt.Printf(
-					"\tGet%sValue(key %s) model_core.Message[*pb.%s_Value, TReference]\n",
-					dependencyName,
-					dependencyDefinition.getKeyType(dependencyName, true),
-					getMessageName(dependencyName),
-				)
-			} else {
-				fmt.Printf(
-					"\tGet%sValue(key %s) (%s, bool)\n",
-					dependencyName,
-					dependencyDefinition.getKeyType(dependencyName, true),
-					nativeValueType.Type,
-				)
-			}
+			_, typeArguments := computerDefinition.Functions[dependencyName].getGetterTypeParameters(dependencyName)
+			fmt.Printf("\t%sValueGetter%s\n", dependencyName, typeArguments)
 		}
 		fmt.Printf("\tmodel_core.ObjectManager[TReference, TMetadata]\n")
 		fmt.Printf("}\n")

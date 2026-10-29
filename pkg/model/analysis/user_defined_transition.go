@@ -43,9 +43,9 @@ type expectedTransitionOutput[TReference any] struct {
 type getExpectedTransitionOutputEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	labelResolverEnvironment[TReference]
 
-	GetCompiledBzlFileGlobalValue(*model_analysis_pb.CompiledBzlFileGlobal_Key) model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, TReference]
-	GetTargetValue(*model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, TReference]
-	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
+	CompiledBzlFileGlobalValueGetter[TReference]
+	TargetValueGetter[TReference]
+	VisibleTargetValueGetter[TReference, TMetadata]
 }
 
 // stringToStarlarkLabelOrNone converts a string containing a resolved
@@ -362,9 +362,9 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 
 type getBuildSettingValueEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
-	GetTargetProviderValue(model_core.PatchedMessage[*model_analysis_pb.TargetProvider_Key, TMetadata]) model_core.Message[*model_analysis_pb.TargetProvider_Value, TReference]
-	GetTargetValue(*model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, TReference]
-	GetVisibleTargetValue(model_core.PatchedMessage[*model_analysis_pb.VisibleTarget_Key, TMetadata]) model_core.Message[*model_analysis_pb.VisibleTarget_Value, TReference]
+	TargetProviderValueGetter[TReference, TMetadata]
+	TargetValueGetter[TReference]
+	VisibleTargetValueGetter[TReference, TMetadata]
 }
 
 var featureFlagInfoProviderIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%FeatureFlagInfo"))
@@ -753,7 +753,7 @@ func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransiti
 type performUserDefinedTransitionCachedEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	performUserDefinedTransitionEnvironment[TReference, TMetadata]
 
-	GetUserDefinedTransitionValue(model_core.PatchedMessage[*model_analysis_pb.UserDefinedTransition_Key, TMetadata]) model_core.Message[*model_analysis_pb.UserDefinedTransition_Value, TReference]
+	UserDefinedTransitionValueGetter[TReference, TMetadata]
 }
 
 func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached(
@@ -813,7 +813,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached
 type performTransitionEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	performUserDefinedTransitionCachedEnvironment[TReference, TMetadata]
 
-	GetExecTransitionValue(model_core.PatchedMessage[*model_analysis_pb.ExecTransition_Key, TMetadata]) model_core.Message[*model_analysis_pb.ExecTransition_Value, TReference]
+	ExecTransitionValueGetter[TReference, TMetadata]
 }
 
 func (c *baseComputer[TReference, TMetadata]) performTransition(
