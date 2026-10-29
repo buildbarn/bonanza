@@ -64,6 +64,8 @@ go_library(
 go_test(
     name = "starlark_test",
     srcs = [
+        "dict_test.go",
+        "list_test.go",
         "mocks_encoding_test.go",
         "mocks_label_test.go",
         "mocks_starlark_test.go",

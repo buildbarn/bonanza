@@ -32,6 +32,7 @@ go_library(
 go_test(
     name = "btree_test",
     srcs = [
+        "all_leaves_test.go",
         "height_aware_builder_test.go",
         "mocks_btree_test.go",
         "mocks_core_test.go",

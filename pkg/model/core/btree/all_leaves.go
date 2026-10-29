@@ -17,6 +17,12 @@ import (
 type Traverser[TMessage, TReference any] func(model_core.Message[TMessage, TReference]) (*model_core_pb.DecodableReference, error)
 
 // AllLeaves can be used to iterate all leaf entries contained in a B-tree.
+//
+// If an error occurs during iteration, it is stored in errOut. errOut is
+// not modified otherwise, not even when iteration is stopped early. This
+// allows callers to wrap the resulting iterator, and store errors in
+// errOut that are raised while processing leaf entries. Callers should
+// therefore initialize errOut to nil prior to iteration.
 func AllLeaves[
 	TMessage any,
 	TMessagePtr interface {
@@ -46,7 +52,6 @@ func AllLeaves[
 				} else if childReference == nil {
 					// Traverser wants us to yield a leaf.
 					if !yield(model_core.Nested(*lastList, entry)) {
-						*errOut = nil
 						return
 					}
 				} else {
