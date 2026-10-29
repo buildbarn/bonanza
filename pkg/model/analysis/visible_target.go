@@ -90,13 +90,13 @@ func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_c
 	}
 }
 
-func checkVisibility[TReference any](e packageGroupContainsEnvironment[TReference], fromPackage label.CanonicalPackage, toLabel label.CanonicalLabel, toLabelVisibility model_core.Message[*model_starlark_pb.PackageGroup, TReference]) error {
+func (c *baseComputer[TReference, TMetadata]) checkVisibility(ctx context.Context, e packageGroupContainsEnvironment[TReference], fromPackage label.CanonicalPackage, toLabel label.CanonicalLabel, toLabelVisibility model_core.Message[*model_starlark_pb.PackageGroup, TReference]) error {
 	// Always permit access from within the same package.
 	if fromPackage == toLabel.GetCanonicalPackage() {
 		return nil
 	}
 
-	contains, err := packageGroupContains(e, toLabelVisibility, fromPackage)
+	contains, err := c.packageGroupContains(ctx, e, toLabelVisibility, fromPackage)
 	if err != nil {
 		return err
 	}
@@ -106,12 +106,13 @@ func checkVisibility[TReference any](e packageGroupContainsEnvironment[TReferenc
 	return nil
 }
 
-func checkRuleTargetVisibility[TReference any](e packageGroupContainsEnvironment[TReference], fromPackage label.CanonicalPackage, ruleTargetLabel label.CanonicalLabel, ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference]) error {
+func (c *baseComputer[TReference, TMetadata]) checkRuleTargetVisibility(ctx context.Context, e packageGroupContainsEnvironment[TReference], fromPackage label.CanonicalPackage, ruleTargetLabel label.CanonicalLabel, ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference]) error {
 	inheritableAttrs := ruleTarget.Message.InheritableAttrs
 	if inheritableAttrs == nil {
 		return fmt.Errorf("rule target %#v has no inheritable attrs", ruleTargetLabel)
 	}
-	return checkVisibility(
+	return c.checkVisibility(
+		ctx,
 		e,
 		fromPackage,
 		ruleTargetLabel,
@@ -140,7 +141,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 
 	switch definition := targetValue.Message.Definition.GetKind().(type) {
 	case *model_starlark_pb.Target_Definition_Alias:
-		if err := checkVisibility(
+		if err := c.checkVisibility(
+			ctx,
 			e,
 			fromPackage,
 			toLabel,
@@ -339,7 +341,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		if !ok {
 			return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("owner %#v is not a rule target", ownerLabelStr)
 		}
-		if err := checkRuleTargetVisibility(
+		if err := c.checkRuleTargetVisibility(
+			ctx,
 			e,
 			fromPackage,
 			ownerLabel,
@@ -355,7 +358,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			},
 		), nil
 	case *model_starlark_pb.Target_Definition_RuleTarget:
-		if err := checkRuleTargetVisibility(
+		if err := c.checkRuleTargetVisibility(
+			ctx,
 			e,
 			fromPackage,
 			toLabel,
@@ -371,7 +375,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			},
 		), nil
 	case *model_starlark_pb.Target_Definition_SourceFileTarget:
-		if err := checkVisibility(
+		if err := c.checkVisibility(
+			ctx,
 			e,
 			fromPackage,
 			toLabel,

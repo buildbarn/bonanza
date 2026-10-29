@@ -10,6 +10,7 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )
@@ -18,7 +19,10 @@ type packageGroupContainsEnvironment[TReference any] interface {
 	GetPackageGroupContainsValue(key *model_analysis_pb.PackageGroupContains_Key) model_core.Message[*model_analysis_pb.PackageGroupContains_Value, TReference]
 }
 
-func packageGroupContains[TReference any](e packageGroupContainsEnvironment[TReference], packageGroup model_core.Message[*model_starlark_pb.PackageGroup, TReference], fromPackage label.CanonicalPackage) (bool, error) {
+// packageGroupContains returns whether a package is contained in a
+// package group, either directly or through one of the package groups
+// that it includes.
+func (c *baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Context, e packageGroupContainsEnvironment[TReference], packageGroup model_core.Message[*model_starlark_pb.PackageGroup, TReference], fromPackage label.CanonicalPackage) (bool, error) {
 	// Check whether the provided package is directly contained in
 	// this package group.
 	subpackages := model_core.Nested(packageGroup, packageGroup.Message.Tree)
@@ -32,8 +36,12 @@ func packageGroupContains[TReference any](e packageGroupContainsEnvironment[TRef
 		case *model_starlark_pb.PackageGroup_Subpackages_OverridesInline:
 			overrides = model_core.Nested(subpackages, o.OverridesInline)
 		case *model_starlark_pb.PackageGroup_Subpackages_OverridesExternal:
-			// TODO: Implement!
-			return false, errors.New("loading external overrides from an external object has not been implemented yet")
+			// Overrides were too large to be stored inline.
+			var err error
+			overrides, err = model_parser.Dereference(ctx, c.packageGroupOverridesReader, model_core.Nested(subpackages, o.OverridesExternal))
+			if err != nil {
+				return false, fmt.Errorf("failed to load overrides: %w", err)
+			}
 		case nil:
 			// No overrides present.
 		default:
@@ -95,7 +103,7 @@ func packageGroupContains[TReference any](e packageGroupContainsEnvironment[TRef
 	return false, nil
 }
 
-func (baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(ctx context.Context, key *model_analysis_pb.PackageGroupContains_Key, e PackageGroupContainsEnvironment[TReference, TMetadata]) (PatchedPackageGroupContainsValue[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(ctx context.Context, key *model_analysis_pb.PackageGroupContains_Key, e PackageGroupContainsEnvironment[TReference, TMetadata]) (PatchedPackageGroupContainsValue[TMetadata], error) {
 	fromPackage, err := label.NewCanonicalPackage(key.Package)
 	if err != nil {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, fmt.Errorf("invalid from package: %w", err)
@@ -112,7 +120,7 @@ func (baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(ctx 
 		return PatchedPackageGroupContainsValue[TMetadata]{}, errors.New("target is not a package group")
 	}
 
-	contains, err := packageGroupContains(e, model_core.Nested(targetValue, definition.PackageGroup), fromPackage)
+	contains, err := c.packageGroupContains(ctx, e, model_core.Nested(targetValue, definition.PackageGroup), fromPackage)
 	if err != nil {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, err
 	}

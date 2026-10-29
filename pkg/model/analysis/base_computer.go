@@ -102,6 +102,7 @@ type baseComputer[TReference object.BasicReference, TMetadata model_core.Referen
 	configuredTargetOutputReader        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Output]
 	filesToRunProviderReader            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.FilesToRunProvider]
 	moduleExtensionReposValueRepoReader model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ModuleExtensionRepos_Value_Repo]
+	packageGroupOverridesReader         model_parser.MessageObjectReader[TReference, *model_starlark_pb.PackageGroup_Subpackages_Overrides]
 	packageValueTargetReader            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Package_Value_Target]
 	targetLabelReader                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetLabel]
 }
@@ -171,6 +172,10 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 		moduleExtensionReposValueRepoReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ModuleExtensionRepos_Value_Repo](),
+		),
+		packageGroupOverridesReader: model_parser.LookupParsedObjectReader(
+			parsedObjectPoolIngester,
+			model_parser.NewProtoObjectParser[TReference, model_starlark_pb.PackageGroup_Subpackages_Overrides](),
 		),
 		packageValueTargetReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,

@@ -144,6 +144,7 @@ go_test(
         "mocks_encoding_test.go",
         "mocks_filesystem_pool_test.go",
         "mocks_filesystem_test.go",
+        "package_group_contains_test.go",
         "query_expansion_test.go",
         "query_result_test.go",
         "query_targets_test.go",
