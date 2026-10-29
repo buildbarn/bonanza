@@ -71,6 +71,7 @@ go_test(
         "mocks_starlark_test.go",
         "package_group_test.go",
         "parse_repo_dot_bazel_test.go",
+        "struct_test.go",
     ],
     embed = [":starlark"],
     deps = [
