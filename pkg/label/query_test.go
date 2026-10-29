@@ -401,6 +401,20 @@ func TestCombineQueries(t *testing.T) {
 	)
 }
 
+func TestNewPackagesQuery(t *testing.T) {
+	newPackagesQuery := func(query string) string {
+		q := label.NewPackagesQuery(util.Must(label.NewQuery(query, label.NewCanonicalTargetPattern)))
+
+		// The resulting query should be in normal form.
+		s := label.QueryToString(q)
+		require.Equal(t, util.Must(label.NewQuery(s, label.NewCanonicalTargetPattern)), q)
+		return s
+	}
+
+	require.Equal(t, "packages(@@a+//x/...)", newPackagesQuery("@@a+//x/..."))
+	require.Equal(t, "let v0 = @@a+//x in packages($v0 + deps($v0))", newPackagesQuery("@@a+//x + deps(@@a+//x)"))
+}
+
 func TestReplaceQuerySets(t *testing.T) {
 	replace := func(query string, replacements map[string]string) string {
 		q, err := label.ReplaceQuerySets(

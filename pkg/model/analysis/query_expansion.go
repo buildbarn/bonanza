@@ -889,11 +889,81 @@ func (c *baseComputer[TReference, TMetadata]) getQueryPackageTargets(ctx context
 	return allTargets, ruleTargets, nil
 }
 
+// getQueryPredicatePackages returns the packages of the targets
+// yielded by the predicate of visible(), by requesting the results of
+// packages() applied to the predicate.
+func (c *baseComputer[TReference, TMetadata]) getQueryPredicatePackages(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], predicate label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) ([]label.CanonicalPackage, error) {
+	queryExpansion := e.GetQueryExpansionValue(newQueryExpansionKey(label.NewPackagesQuery(predicate), includeImplicitDeps))
+	if !queryExpansion.IsSet() {
+		return nil, evaluation.ErrMissingDependency
+	}
+	var packages []label.CanonicalPackage
+	var errIter error
+	for l := range c.allTargetLabels(ctx, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter) {
+		packages = append(packages, l.GetCanonicalPackage())
+	}
+	if errIter != nil {
+		return nil, errIter
+	}
+	return packages, nil
+}
+
+// applyQueryVisible returns the targets in a list of targets that are
+// visible to all of the provided packages, as done by visible(). Targets
+// are always visible to the package containing them.
+func (c *baseComputer[TReference, TMetadata]) applyQueryVisible(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], predicatePackages []label.CanonicalPackage, labels []label.CanonicalLabel) (labelSet, error) {
+	definitions, err := getQueryTargetDefinitions(e, labels)
+	if err != nil {
+		return nil, err
+	}
+	results := labelSet{}
+	missingDependencies := false
+	for i, definition := range definitions {
+		l := labels[i]
+		visibility, restricted, err := getTargetVisibility(e, l, definition)
+		if err != nil {
+			if !errors.Is(err, evaluation.ErrMissingDependency) {
+				return nil, fmt.Errorf("failed to obtain visibility of target %#v: %w", l.String(), err)
+			}
+			missingDependencies = true
+			continue
+		}
+		isVisible := true
+		if restricted {
+			for _, predicatePackage := range predicatePackages {
+				if predicatePackage == l.GetCanonicalPackage() {
+					continue
+				}
+				contains, err := c.packageGroupContains(ctx, e, visibility, predicatePackage)
+				if err != nil {
+					if !errors.Is(err, evaluation.ErrMissingDependency) {
+						return nil, fmt.Errorf("failed to determine whether target %#v is visible from package %#v: %w", l.String(), predicatePackage.String(), err)
+					}
+					missingDependencies = true
+					isVisible = false
+					break
+				}
+				if !contains {
+					isVisible = false
+					break
+				}
+			}
+		}
+		if isVisible {
+			results[l] = struct{}{}
+		}
+	}
+	if missingDependencies {
+		return nil, evaluation.ErrMissingDependency
+	}
+	return results, nil
+}
+
 // isStreamingQueryExpression returns whether an expression can be
 // evaluated by expandQueryStreaming().
 func isStreamingQueryExpression(expression label.QueryExpression[label.CanonicalTargetPattern]) bool {
 	switch expression.(type) {
-	case *label.QuerySome[label.CanonicalTargetPattern], *label.QuerySiblings[label.CanonicalTargetPattern]:
+	case *label.QuerySome[label.CanonicalTargetPattern], *label.QuerySiblings[label.CanonicalTargetPattern], *label.QueryVisible[label.CanonicalTargetPattern]:
 		return true
 	default:
 		_, ok := getPerTargetQueryOperand(expression)
@@ -910,8 +980,8 @@ const queryStreamingBatchSize = 1000
 // by iterating over the results of its operand, without loading them
 // into memory. This is possible for expressions whose results are
 // sorted if the results of their operands are sorted, such as
-// expressions that process targets individually, some() and
-// siblings().
+// expressions that process targets individually, some(), siblings()
+// and visible().
 func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	expressions := query.GetExpressions()
 	expression := expressions[len(expressions)-1]
@@ -952,22 +1022,44 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 	}
 
 	var operand int
+	applyToBatch := func(batch []label.CanonicalLabel) (labelSet, error) {
+		return c.applyPerTargetQueryExpression(ctx, e, expression, batch)
+	}
+	missingDependencies := false
 	switch expr := expression.(type) {
 	case *label.QuerySome[label.CanonicalTargetPattern]:
 		operand = expr.Expression
 	case *label.QuerySiblings[label.CanonicalTargetPattern]:
 		operand = expr.Expression
+	case *label.QueryVisible[label.CanonicalTargetPattern]:
+		// Visibility is determined at the package level,
+		// meaning that only the packages of the targets in
+		// the predicate are needed. Request these through a
+		// separate key, so that they don't need to be computed
+		// for each batch.
+		operand = expr.Expression
+		predicatePackages, err := c.getQueryPredicatePackages(ctx, e, query.GetSubquery(expr.Predicate), includeImplicitDeps)
+		if err != nil {
+			if !errors.Is(err, evaluation.ErrMissingDependency) {
+				return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
+			}
+			// Still request the operand, so that it can
+			// be evaluated concurrently.
+			missingDependencies = true
+		}
+		applyToBatch = func(batch []label.CanonicalLabel) (labelSet, error) {
+			return c.applyQueryVisible(ctx, e, predicatePackages, batch)
+		}
 	default:
 		operand, _ = getPerTargetQueryOperand(expression)
 	}
 	queryExpansion := e.GetQueryExpansionValue(newQueryExpansionKey(query.GetSubquery(operand), includeImplicitDeps))
-	if !queryExpansion.IsSet() {
+	if missingDependencies || !queryExpansion.IsSet() {
 		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	var errIter error
 	labels := c.allTargetLabels(ctx, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter)
 
-	missingDependencies := false
 	switch expr := expression.(type) {
 	case *label.QuerySome[label.CanonicalTargetPattern]:
 		if expr.Count == 0 {
@@ -1014,14 +1106,14 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 		}
 
 	default:
-		// Expressions that process targets individually are
-		// applied to batches of labels. Their results are
-		// sorted and follow the results of previous batches,
-		// though packages() may yield the same package for
-		// adjacent batches.
+		// Expressions that process targets individually,
+		// including visible(), are applied to batches of
+		// labels. Their results are sorted and follow the
+		// results of previous batches, though packages() may
+		// yield the same package for adjacent batches.
 		batch := make([]label.CanonicalLabel, 0, queryStreamingBatchSize)
 		flushBatch := func() error {
-			results, err := c.applyPerTargetQueryExpression(ctx, e, expression, batch)
+			results, err := applyToBatch(batch)
 			batch = batch[:0]
 			if err != nil {
 				if !errors.Is(err, evaluation.ErrMissingDependency) {
@@ -1166,8 +1258,6 @@ func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context,
 		return nil, errors.New("somepath() is not supported yet")
 	case *label.QueryAllPaths[label.CanonicalTargetPattern]:
 		return nil, errors.New("allpaths() is not supported yet")
-	case *label.QueryVisible[label.CanonicalTargetPattern]:
-		return nil, errors.New("visible() is not supported yet")
 	case *label.QuerySamePackageDirectReverseDeps[label.CanonicalTargetPattern]:
 		return nil, errors.New("same_pkg_direct_rdeps() is not supported yet")
 	case *label.QueryBuildFiles[label.CanonicalTargetPattern]:

@@ -106,18 +106,62 @@ func (c *baseComputer[TReference, TMetadata]) checkVisibility(ctx context.Contex
 	return nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) checkRuleTargetVisibility(ctx context.Context, e packageGroupContainsEnvironment[TReference], fromPackage label.CanonicalPackage, ruleTargetLabel label.CanonicalLabel, ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference]) error {
+// getRuleTargetVisibility returns the package group that controls
+// which packages may reference a rule target.
+func getRuleTargetVisibility[TReference any](ruleTargetLabel label.CanonicalLabel, ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference]) (model_core.Message[*model_starlark_pb.PackageGroup, TReference], bool, error) {
 	inheritableAttrs := ruleTarget.Message.InheritableAttrs
 	if inheritableAttrs == nil {
-		return fmt.Errorf("rule target %#v has no inheritable attrs", ruleTargetLabel)
+		return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, fmt.Errorf("rule target %#v has no inheritable attrs", ruleTargetLabel.String())
 	}
-	return c.checkVisibility(
-		ctx,
-		e,
-		fromPackage,
-		ruleTargetLabel,
-		model_core.Nested(ruleTarget, inheritableAttrs.Visibility),
-	)
+	return model_core.Nested(ruleTarget, inheritableAttrs.Visibility), true, nil
+}
+
+type getTargetVisibilityEnvironment[TReference any] interface {
+	GetTargetValue(*model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, TReference]
+}
+
+// getTargetVisibility returns the package group that controls which
+// packages may reference a target. Aliases and label settings are not
+// followed, meaning that the visibility of the target itself is
+// returned. If the target is visible to all packages, false is
+// returned.
+func getTargetVisibility[TReference any](e getTargetVisibilityEnvironment[TReference], targetLabel label.CanonicalLabel, definition model_core.Message[*model_starlark_pb.Target_Definition, TReference]) (model_core.Message[*model_starlark_pb.PackageGroup, TReference], bool, error) {
+	switch kind := definition.Message.GetKind().(type) {
+	case *model_starlark_pb.Target_Definition_Alias:
+		return model_core.Nested(definition, kind.Alias.Visibility), true, nil
+	case *model_starlark_pb.Target_Definition_LabelSetting:
+		return model_core.Nested(definition, kind.LabelSetting.Visibility), true, nil
+	case *model_starlark_pb.Target_Definition_PackageGroup:
+		// Package groups don't have a visibility of their own.
+		// Any target is allowed to reference them.
+		return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, nil
+	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
+		// The visibility of predeclared output files is
+		// controlled by the rule target that owns them.
+		ownerTargetNameStr := kind.PredeclaredOutputFileTarget.OwnerTargetName
+		ownerTargetName, err := label.NewTargetName(ownerTargetNameStr)
+		if err != nil {
+			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, fmt.Errorf("invalid owner target name %#v: %w", ownerTargetNameStr, err)
+		}
+		ownerLabel := targetLabel.GetCanonicalPackage().AppendTargetName(ownerTargetName)
+		ownerTargetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+			Label: ownerLabel.String(),
+		})
+		if !ownerTargetValue.IsSet() {
+			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, evaluation.ErrMissingDependency
+		}
+		ownerRuleTarget, ok := ownerTargetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget)
+		if !ok {
+			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, fmt.Errorf("owner %#v is not a rule target", ownerLabel.String())
+		}
+		return getRuleTargetVisibility(ownerLabel, model_core.Nested(ownerTargetValue, ownerRuleTarget.RuleTarget))
+	case *model_starlark_pb.Target_Definition_RuleTarget:
+		return getRuleTargetVisibility(targetLabel, model_core.Nested(definition, kind.RuleTarget))
+	case *model_starlark_pb.Target_Definition_SourceFileTarget:
+		return model_core.Nested(definition, kind.SourceFileTarget.Visibility), true, nil
+	default:
+		return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, errors.New("invalid target type")
+	}
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.VisibleTarget_Key, TReference], e VisibleTargetEnvironment[TReference, TMetadata]) (PatchedVisibleTargetValue[TMetadata], error) {
@@ -312,86 +356,21 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		return model_core.NewSimplePatchedMessage[TMetadata](actualVisibleTargetValue.Message), nil
-	case *model_starlark_pb.Target_Definition_PackageGroup:
-		// Package groups don't have a visibility of their own.
-		// Any target is allowed to reference them.
-		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_analysis_pb.VisibleTarget_Value{
-				Label: toLabel.String(),
-			},
-		), nil
-	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
-		// The visibility of predeclared output files is
-		// controlled by the rule target that owns them.
-		ownerTargetNameStr := definition.PredeclaredOutputFileTarget.OwnerTargetName
-		ownerTargetName, err := label.NewTargetName(ownerTargetNameStr)
-		if err != nil {
-			return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid owner target name %#v: %w", ownerTargetNameStr, err)
-		}
-
-		ownerLabel := toLabel.GetCanonicalPackage().AppendTargetName(ownerTargetName)
-		ownerLabelStr := ownerLabel.String()
-		ownerTargetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
-			Label: ownerLabelStr,
-		})
-		if !ownerTargetValue.IsSet() {
-			return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
-		}
-		ruleDefinition, ok := ownerTargetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget)
-		if !ok {
-			return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("owner %#v is not a rule target", ownerLabelStr)
-		}
-		if err := c.checkRuleTargetVisibility(
-			ctx,
-			e,
-			fromPackage,
-			ownerLabel,
-			model_core.Nested(ownerTargetValue, ruleDefinition.RuleTarget),
-		); err != nil {
-			return PatchedVisibleTargetValue[TMetadata]{}, err
-		}
-
-		// Found the definitive target.
-		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_analysis_pb.VisibleTarget_Value{
-				Label: toLabel.String(),
-			},
-		), nil
-	case *model_starlark_pb.Target_Definition_RuleTarget:
-		if err := c.checkRuleTargetVisibility(
-			ctx,
-			e,
-			fromPackage,
-			toLabel,
-			model_core.Nested(targetValue, definition.RuleTarget),
-		); err != nil {
-			return PatchedVisibleTargetValue[TMetadata]{}, err
-		}
-
-		// Found the definitive target.
-		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_analysis_pb.VisibleTarget_Value{
-				Label: toLabel.String(),
-			},
-		), nil
-	case *model_starlark_pb.Target_Definition_SourceFileTarget:
-		if err := c.checkVisibility(
-			ctx,
-			e,
-			fromPackage,
-			toLabel,
-			model_core.Nested(targetValue, definition.SourceFileTarget.Visibility),
-		); err != nil {
-			return PatchedVisibleTargetValue[TMetadata]{}, err
-		}
-
-		// Found the definitive target.
-		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_analysis_pb.VisibleTarget_Value{
-				Label: toLabel.String(),
-			},
-		), nil
 	default:
-		return PatchedVisibleTargetValue[TMetadata]{}, errors.New("invalid target type")
+		// Found the definitive target.
+		visibility, restricted, err := getTargetVisibility(e, toLabel, model_core.Nested(targetValue, targetValue.Message.Definition))
+		if err != nil {
+			return PatchedVisibleTargetValue[TMetadata]{}, err
+		}
+		if restricted {
+			if err := c.checkVisibility(ctx, e, fromPackage, toLabel, visibility); err != nil {
+				return PatchedVisibleTargetValue[TMetadata]{}, err
+			}
+		}
+		return model_core.NewSimplePatchedMessage[TMetadata](
+			&model_analysis_pb.VisibleTarget_Value{
+				Label: toLabel.String(),
+			},
+		), nil
 	}
 }

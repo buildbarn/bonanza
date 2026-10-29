@@ -14,17 +14,6 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// packageGroupContainsEnvironment implements PackageGroupContainsEnvironment
-// on top of the mock that is used for testing QueryExpansion, which
-// provides all other methods that are needed.
-type packageGroupContainsEnvironment struct {
-	*MockQueryExpansionEnvironmentForTesting
-}
-
-func (packageGroupContainsEnvironment) GetPackageGroupContainsValue(key *model_analysis_pb.PackageGroupContains_Key) model_core.Message[*model_analysis_pb.PackageGroupContains_Value, model_core.CreatedObjectTree] {
-	panic("package groups don't include other package groups")
-}
-
 func TestPackageGroupContains(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(t.Context(), t)
 	bct := newBaseComputerTester(ctrl)
@@ -42,7 +31,9 @@ func TestPackageGroupContains(t *testing.T) {
 		// stored in separate objects, which may be nested. This
 		// package group contains @@main+//foo and everything
 		// below it.
-		e := packageGroupContainsEnvironment{NewMockQueryExpansionEnvironmentForTesting(ctrl)}
+		// QueryExpansionEnvironment provides all of the
+		// functions needed by PackageGroupContains.
+		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:group"}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Target_Value {

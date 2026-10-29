@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding"
 	"fmt"
+	"maps"
 	"math/rand/v2"
+	"slices"
 	"strings"
 	"testing"
 
@@ -1350,6 +1352,105 @@ func TestQueryExpansion(t *testing.T) {
 		labels, err := computeQueryExpansion(e, "tests(@@main+//:*)")
 		require.NoError(t, err)
 		require.Equal(t, []string{"@@main+//:a"}, labels)
+	})
+
+	t.Run("Visible", func(t *testing.T) {
+		// visibleTo returns a package group containing a set of
+		// packages in the main repo.
+		visibleTo := func(packages ...string) *model_starlark_pb.PackageGroup {
+			var overrides []*model_starlark_pb.PackageGroup_Package
+			for _, p := range packages {
+				overrides = append(overrides, &model_starlark_pb.PackageGroup_Package{
+					Component:      p,
+					IncludePackage: true,
+					Subpackages:    &model_starlark_pb.PackageGroup_Subpackages{},
+				})
+			}
+			return &model_starlark_pb.PackageGroup{
+				Tree: &model_starlark_pb.PackageGroup_Subpackages{
+					Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
+						OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
+							Packages: []*model_starlark_pb.PackageGroup_Package{{
+								Component: "main+",
+								Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
+									Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
+										OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
+											Packages: overrides,
+										},
+									},
+								},
+							}},
+						},
+					},
+				},
+			}
+		}
+		ruleTargetVisibleTo := func(packages ...string) *model_starlark_pb.Target_Definition {
+			return &model_starlark_pb.Target_Definition{
+				Kind: &model_starlark_pb.Target_Definition_RuleTarget{
+					RuleTarget: &model_starlark_pb.RuleTarget{
+						RuleIdentifier:   "@@rules+//:defs.bzl%my_rule",
+						InheritableAttrs: &model_starlark_pb.InheritableAttrs{Visibility: visibleTo(packages...)},
+					},
+				},
+			}
+		}
+		// All targets in the input are part of the root package.
+		definitions := map[string]*model_starlark_pb.Target_Definition{
+			"@@main+//:p":      ruleTargetVisibleTo("p"),
+			"@@main+//:pq":     ruleTargetVisibleTo("p", "q"),
+			"@@main+//:none":   ruleTargetVisibleTo(),
+			"@@main+//:source": {Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{SourceFileTarget: &model_starlark_pb.SourceFileTarget{Visibility: visibleTo("q")}}},
+			"@@main+//:group":  {Kind: &model_starlark_pb.Target_Definition_PackageGroup{PackageGroup: visibleTo()}},
+			"@@main+//:output": {Kind: &model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget{PredeclaredOutputFileTarget: &model_starlark_pb.PredeclaredOutputFileTarget{OwnerTargetName: "p"}}},
+			// Aliases should not be followed, meaning only
+			// the visibility of the alias itself is considered.
+			"@@main+//:alias": {Kind: &model_starlark_pb.Target_Definition_Alias{Alias: &model_starlark_pb.Alias{Visibility: visibleTo("q")}}},
+		}
+		inputLabels := slices.Sorted(maps.Keys(definitions))
+		computeVisible := func(t *testing.T, predicate string, predicatePackages ...string) []string {
+			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			expectQueryExpansion(e, normalizeCanonicalQuery("packages("+predicate+")"), newQueryExpansionValue(predicatePackages...))
+			expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue(inputLabels...))
+			for l, definition := range definitions {
+				e.EXPECT().GetTargetValue(
+					testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: l}),
+				).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+					Definition: definition,
+				})).AnyTimes()
+			}
+			labels, err := computeQueryExpansion(e, "visible("+predicate+", @@main+//:*)")
+			require.NoError(t, err)
+			return labels
+		}
+
+		t.Run("SinglePackage", func(t *testing.T) {
+			require.Equal(t, []string{
+				"@@main+//:group",
+				"@@main+//:output",
+				"@@main+//:p",
+				"@@main+//:pq",
+			}, computeVisible(t, "@@main+//p:x", "@@main+//p"))
+		})
+
+		t.Run("AllPackages", func(t *testing.T) {
+			// Targets need to be visible to all packages in
+			// the predicate.
+			require.Equal(t, []string{
+				"@@main+//:group",
+				"@@main+//:pq",
+			}, computeVisible(t, "set(@@main+//p:x @@main+//q:x)", "@@main+//p", "@@main+//q"))
+		})
+
+		t.Run("SamePackage", func(t *testing.T) {
+			// Targets are always visible within the same
+			// package.
+			require.Equal(t, inputLabels, computeVisible(t, "@@main+//:x", "@@main+"))
+		})
+
+		t.Run("EmptyPredicate", func(t *testing.T) {
+			require.Equal(t, inputLabels, computeVisible(t, "@@main+//p:*"))
+		})
 	})
 
 	t.Run("Executables", func(t *testing.T) {

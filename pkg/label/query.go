@@ -125,6 +125,31 @@ func CombineQueries[
 	return query
 }
 
+// NewPackagesQuery returns a query in normal form that yields the
+// labels of the packages of the targets yielded by another query,
+// written as "packages(x)".
+func NewPackagesQuery[
+	TTargetPattern interface {
+		comparable
+		fmt.Stringer
+	},
+](query Query[TTargetPattern]) Query[TTargetPattern] {
+	b := newQueryBuilder[TTargetPattern]()
+	identity := func(targetPattern TTargetPattern) (TTargetPattern, error) {
+		return targetPattern, nil
+	}
+	operand, err := convertQueryExpressions(b, query.expressions, len(query.expressions)-1, identity, nil, nil)
+	if err != nil {
+		panic(err)
+	}
+	root := b.add(&QueryPackages[TTargetPattern]{Expression: operand})
+	packagesQuery, err := buildQuery(b.expressions, root, identity, compareQueryTargetPatterns[TTargetPattern], nil)
+	if err != nil {
+		panic(err)
+	}
+	return packagesQuery
+}
+
 // ReplaceQuerySets replaces sets of target patterns contained in a
 // query with subqueries, yielding a new query in normal form. The
 // provided function is called for each set, and returns whether the
