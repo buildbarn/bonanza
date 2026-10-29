@@ -155,6 +155,55 @@ func TestTargetDirectDependencies(t *testing.T) {
 		})
 	})
 
+	t.Run("Test", func(t *testing.T) {
+		// Conditions of select() expressions in attributes that
+		// are specific to tests are dependencies as well.
+		e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)
+		e.EXPECT().GetTargetValue(
+			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:t"}),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			Definition: &model_starlark_pb.Target_Definition{
+				Kind: &model_starlark_pb.Target_Definition_RuleTarget{
+					RuleTarget: &model_starlark_pb.RuleTarget{
+						RuleIdentifier: "@@rules+//:defs.bzl%my_test",
+						Test: &model_starlark_pb.RuleTarget_Test{
+							ShardCount: []*model_starlark_pb.Select_Group{{
+								Conditions: []*model_starlark_pb.Select_Condition{{
+									ConditionIdentifier: "@@main+//:many_shards",
+									Value:               &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: &model_starlark_pb.Int{AbsoluteValue: []byte{8}}}},
+								}},
+								NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
+									NoMatchValue: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: &model_starlark_pb.Int{AbsoluteValue: []byte{1}}}},
+								},
+							}},
+							Args: []*model_starlark_pb.Select_Group{{
+								Conditions: []*model_starlark_pb.Select_Condition{{
+									ConditionIdentifier: "@@main+//:verbose",
+									Value:               &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}}},
+								}},
+								NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
+									NoMatchValue: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}}},
+								},
+							}},
+						},
+					},
+				},
+			},
+		}))
+		e.EXPECT().GetCompiledBzlFileGlobalValue(
+			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_test"}),
+		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_TEST))
+
+		value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
+			Label: "@@main+//:t",
+		}, e)
+		require.NoError(t, err)
+		require.Equal(t, []string{
+			"@@main+//:many_shards",
+			"@@main+//:verbose",
+		}, getTargetLabels(t, value.Message.TargetLabels))
+	})
+
 	t.Run("PredeclaredOutputFileTarget", func(t *testing.T) {
 		// Output files depend on the rule that generates them.
 		e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)

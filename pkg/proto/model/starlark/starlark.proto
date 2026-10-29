@@ -793,6 +793,55 @@ message RuleTarget {
   // default value if the build setting is not set explicitly is
   // provided.
   Value build_setting_default = 7;
+
+  message Test {
+    // The size of the test, corresponding to the "size" attribute.
+    TestSize size = 1;
+
+    // The timeout of the test, corresponding to the "timeout"
+    // attribute. If the attribute is not set, this field contains
+    // the timeout that corresponds to the size of the test.
+    TestTimeout timeout = 2;
+
+    // Whether the test is flaky, corresponding to the "flaky"
+    // attribute.
+    bool flaky = 3;
+
+    // Whether the test needs to run locally, corresponding to the
+    // "local" attribute.
+    bool local = 4;
+
+    // The number of shards to use to run the test, corresponding to
+    // the "shard_count" attribute. The value of each group is an int.
+    // No bounds checking is performed on it.
+    repeated Select.Group shard_count = 5;
+
+    // Command line arguments to pass to the test, corresponding to
+    // the "args" attribute. The value of each group is a list of
+    // strings.
+    repeated Select.Group args = 6;
+  }
+
+  // If set, the rule used by this target provides a test, and the
+  // values of attributes that are specific to tests are provided.
+  Test test = 8;
+}
+
+// The size of a test, which is used to determine its default timeout,
+// and can be used to select tests to run.
+enum TestSize {
+  SMALL = 0;
+  MEDIUM = 1;
+  LARGE = 2;
+  ENORMOUS = 3;
+}
+
+// The maximum amount of time a test is permitted to run.
+enum TestTimeout {
+  SHORT = 0;
+  MODERATE = 1;
+  LONG = 2;
+  ETERNAL = 3;
 }
 
 message Select {

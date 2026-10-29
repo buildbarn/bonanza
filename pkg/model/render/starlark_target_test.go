@@ -1,11 +1,13 @@
 package render_test
 
 import (
+	"math/big"
 	"testing"
 
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/render"
+	model_starlark "bonanza.build/pkg/model/starlark"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
 
@@ -148,6 +150,73 @@ func TestStarlarkRendererTarget(t *testing.T) {
 				},
 			}, nil, 0))
 		}
+	})
+
+	t.Run("Test", func(t *testing.T) {
+		// Attributes that are common to all tests should only
+		// be displayed if their values differ from the default.
+		intValue := func(i int64) *model_starlark_pb.Value {
+			return &model_starlark_pb.Value{
+				Kind: &model_starlark_pb.Value_Int{Int: model_starlark.EncodeInt(big.NewInt(i))},
+			}
+		}
+		strList := func(values ...string) *model_starlark_pb.Value {
+			elements := make([]*model_starlark_pb.List_Element, 0, len(values))
+			for _, v := range values {
+				elements = append(elements, &model_starlark_pb.List_Element{
+					Level: &model_starlark_pb.List_Element_Leaf{Leaf: str(v)},
+				})
+			}
+			return &model_starlark_pb.Value{
+				Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{Elements: elements}},
+			}
+		}
+		renderTest := func(test *model_starlark_pb.RuleTarget_Test) string {
+			return renderTarget("@@main+//foo:bar", &model_starlark_pb.Target_Definition{
+				Kind: &model_starlark_pb.Target_Definition_RuleTarget{
+					RuleTarget: &model_starlark_pb.RuleTarget{
+						RuleIdentifier: "@@rules_go+//go:def.bzl%go_test",
+						Test:           test,
+					},
+				},
+			}, nil, 0)
+		}
+
+		require.Equal(t, "go_test(\n    name = \"bar\",\n)", renderTest(&model_starlark_pb.RuleTarget_Test{
+			Size:       model_starlark_pb.TestSize_MEDIUM,
+			Timeout:    model_starlark_pb.TestTimeout_MODERATE,
+			ShardCount: []*model_starlark_pb.Select_Group{valueGroup(intValue(1))},
+			Args:       []*model_starlark_pb.Select_Group{valueGroup(strList())},
+		}))
+
+		// The timeout should only be displayed if it differs
+		// from the one corresponding to the size of the test.
+		require.Equal(t, `go_test(
+    name = "bar",
+    args = ["--foo"],
+    flaky = True,
+    size = "small",
+)`, renderTest(&model_starlark_pb.RuleTarget_Test{
+			Size:       model_starlark_pb.TestSize_SMALL,
+			Timeout:    model_starlark_pb.TestTimeout_SHORT,
+			Flaky:      true,
+			ShardCount: []*model_starlark_pb.Select_Group{valueGroup(intValue(1))},
+			Args:       []*model_starlark_pb.Select_Group{valueGroup(strList("--foo"))},
+		}))
+
+		require.Equal(t, `go_test(
+    name = "bar",
+    local = True,
+    shard_count = 3,
+    size = "large",
+    timeout = "short",
+)`, renderTest(&model_starlark_pb.RuleTarget_Test{
+			Size:       model_starlark_pb.TestSize_LARGE,
+			Timeout:    model_starlark_pb.TestTimeout_SHORT,
+			Local:      true,
+			ShardCount: []*model_starlark_pb.Select_Group{valueGroup(intValue(3))},
+			Args:       []*model_starlark_pb.Select_Group{valueGroup(strList())},
+		}))
 	})
 
 	t.Run("MismatchingAttrNames", func(t *testing.T) {

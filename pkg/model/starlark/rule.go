@@ -200,27 +200,28 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		optionalUnpackers = append(optionalUnpackers, "help?", unpack.Bind(thread, &help, unpack.String))
 	}
 
+	// Attributes that are specific to tests.
+	var testArgs *Select[TReference, TMetadata]
+	testFlaky := false
+	testLocal := false
+	var testShardCount *Select[TReference, TMetadata]
+	testSize := "medium"
+	var testTimeout string
 	if test {
-		var args []string
-		flaky := false
-		local := false
-		shardCount := 1
-		size := "medium"
-		var timeout string
 		optionalUnpackers = append(
 			optionalUnpackers,
 			"args?",
-			unpack.Bind(thread, &args, unpack.List(unpack.String)),
+			unpack.Bind(thread, &testArgs, NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String)))),
 			"flaky?",
-			unpack.Bind(thread, &flaky, sloppyBoolUnpackerInto{}),
+			unpack.Bind(thread, &testFlaky, sloppyBoolUnpackerInto{}),
 			"local?",
-			unpack.Bind(thread, &local, sloppyBoolUnpackerInto{}),
+			unpack.Bind(thread, &testLocal, sloppyBoolUnpackerInto{}),
 			"shard_count?",
-			unpack.Bind(thread, &shardCount, unpack.Int[int]()),
+			unpack.Bind(thread, &testShardCount, NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.Int[int]()))),
 			"size?",
-			unpack.Bind(thread, &size, unpack.String),
+			unpack.Bind(thread, &testSize, unpack.String),
 			"timeout?",
-			unpack.Bind(thread, &timeout, unpack.String),
+			unpack.Bind(thread, &testTimeout, unpack.String),
 		)
 	}
 
@@ -410,6 +411,46 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	}
 	patcher.Merge(visibilityPackageGroup.Patcher)
 
+	var testMessage *model_starlark_pb.RuleTarget_Test
+	if test {
+		// Encode configurable attributes, using defaults if
+		// they are not provided.
+		if testArgs == nil {
+			testArgs = NewSelect[TReference, TMetadata](
+				[]SelectGroup{NewSelectGroup(nil, starlark.NewList(nil), "")},
+				/* concatenationOperator = */ 0,
+			)
+		}
+		testArgsGroups, _, err := testArgs.EncodeGroups(
+			/* path = */ map[starlark.Value]struct{}{},
+			valueEncodingOptions,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("attribute \"args\": %w", err)
+		}
+		patcher.Merge(testArgsGroups.Patcher)
+
+		if testShardCount == nil {
+			testShardCount = NewSelect[TReference, TMetadata](
+				[]SelectGroup{NewSelectGroup(nil, starlark.MakeInt(1), "")},
+				/* concatenationOperator = */ 0,
+			)
+		}
+		testShardCountGroups, _, err := testShardCount.EncodeGroups(
+			/* path = */ map[starlark.Value]struct{}{},
+			valueEncodingOptions,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("attribute \"shard_count\": %w", err)
+		}
+		patcher.Merge(testShardCountGroups.Patcher)
+
+		testMessage, err = newRuleTargetTest(testSize, testTimeout, testFlaky, testLocal, testShardCountGroups.Message, testArgsGroups.Message)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return starlark.None, targetRegistrar.registerExplicitTarget(
 		name,
 		model_core.NewPatchedMessage(
@@ -431,6 +472,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 							Visibility:      visibilityPackageGroup.Message,
 						},
 						BuildSettingDefault: encodedBuildSettingDefault.Message,
+						Test:                testMessage,
 					},
 				},
 			},

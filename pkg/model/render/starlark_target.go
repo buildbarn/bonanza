@@ -6,6 +6,7 @@ import (
 
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
+	model_starlark "bonanza.build/pkg/model/starlark"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
 )
@@ -68,6 +69,26 @@ func isEmptyListAttrValue(groups []*model_starlark_pb.Select_Group) bool {
 	return true
 }
 
+// isIntAttrValue returns true if the value of an attribute consists of
+// a single int that is not wrapped in a select() expression, having a
+// given value. This is used to omit attributes like shard_count, which
+// are always set, but have a default value in the common case.
+func isIntAttrValue(groups []*model_starlark_pb.Select_Group, expected int64) bool {
+	if len(groups) != 1 || len(groups[0].Conditions) > 0 {
+		return false
+	}
+	noMatch, ok := groups[0].NoMatch.(*model_starlark_pb.Select_Group_NoMatchValue)
+	if !ok {
+		return false
+	}
+	i, ok := noMatch.NoMatchValue.GetKind().(*model_starlark_pb.Value_Int)
+	if !ok {
+		return false
+	}
+	value := model_starlark.DecodeInt(i.Int)
+	return value.IsInt64() && value.Int64() == expected
+}
+
 // renderRuleTargetArguments renders the arguments of a call to a rule
 // whose values have been provided explicitly. As rule targets only
 // store the values of public attributes, their names need to be
@@ -124,6 +145,47 @@ func (sr *StarlarkRenderer) renderRuleTargetArguments(ruleTarget model_core.Mess
 			name:  "build_setting_default",
 			value: sr.renderValue(model_core.Nested(ruleTarget, v)),
 		})
+	}
+
+	// Attributes that are common to all tests. Only render the ones
+	// whose values differ from the defaults.
+	if test := ruleTarget.Message.Test; test != nil {
+		if l := test.Args; !isEmptyListAttrValue(l) {
+			arguments = append(arguments, starlarkTargetArgument{
+				name:  "args",
+				value: sr.renderSelectGroups(model_core.Nested(ruleTarget, l)),
+			})
+		}
+		if test.Flaky {
+			arguments = append(arguments, starlarkTargetArgument{
+				name:  "flaky",
+				value: starlarkBool(true),
+			})
+		}
+		if test.Local {
+			arguments = append(arguments, starlarkTargetArgument{
+				name:  "local",
+				value: starlarkBool(true),
+			})
+		}
+		if l := test.ShardCount; !isIntAttrValue(l, 1) {
+			arguments = append(arguments, starlarkTargetArgument{
+				name:  "shard_count",
+				value: sr.renderSelectGroups(model_core.Nested(ruleTarget, l)),
+			})
+		}
+		if test.Size != model_starlark_pb.TestSize_MEDIUM {
+			arguments = append(arguments, starlarkTargetArgument{
+				name:  "size",
+				value: starlarkString(model_starlark.FormatTestSize(test.Size)),
+			})
+		}
+		if test.Timeout != model_starlark.GetDefaultTestTimeout(test.Size) {
+			arguments = append(arguments, starlarkTargetArgument{
+				name:  "timeout",
+				value: starlarkString(model_starlark.FormatTestTimeout(test.Timeout)),
+			})
+		}
 	}
 	return arguments
 }

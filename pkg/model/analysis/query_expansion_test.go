@@ -5,6 +5,7 @@ import (
 	"encoding"
 	"fmt"
 	"maps"
+	"math/big"
 	"math/rand/v2"
 	"slices"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
 	model_parser "bonanza.build/pkg/model/parser"
+	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
@@ -1266,6 +1268,70 @@ func TestQueryExpansion(t *testing.T) {
 		labels, err = computeQueryExpansion(e, "attr(env, 'B: 2', @@main+//:t)")
 		require.NoError(t, err)
 		require.Empty(t, labels)
+	})
+
+	t.Run("AttrTest", func(t *testing.T) {
+		// Attributes that are common to all tests should be
+		// matchable. shard_count and args are configurable.
+		intValue := func(i int64) *model_starlark_pb.Value {
+			return &model_starlark_pb.Value{
+				Kind: &model_starlark_pb.Value_Int{Int: model_starlark.EncodeInt(big.NewInt(i))},
+			}
+		}
+		newTestTarget := func(test *model_starlark_pb.RuleTarget_Test) model_core.Message[*model_analysis_pb.Target_Value, model_core.CreatedObjectTree] {
+			test.Args = []*model_starlark_pb.Select_Group{valueSelectGroup(&model_starlark_pb.Value{
+				Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}},
+			})}
+			return model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+				Definition: &model_starlark_pb.Target_Definition{
+					Kind: &model_starlark_pb.Target_Definition_RuleTarget{
+						RuleTarget: &model_starlark_pb.RuleTarget{
+							RuleIdentifier: "@@rules+//:defs.bzl%my_test",
+							Test:           test,
+						},
+					},
+				},
+			})
+		}
+		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b")).AnyTimes()
+		e.EXPECT().GetTargetValue(
+			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:a"}),
+		).Return(newTestTarget(&model_starlark_pb.RuleTarget_Test{
+			Size:    model_starlark_pb.TestSize_SMALL,
+			Timeout: model_starlark_pb.TestTimeout_SHORT,
+			ShardCount: []*model_starlark_pb.Select_Group{{
+				Conditions: []*model_starlark_pb.Select_Condition{{
+					ConditionIdentifier: "@@main+//:cond",
+					Value:               intValue(4),
+				}},
+				NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: intValue(2)},
+			}},
+		})).AnyTimes()
+		e.EXPECT().GetTargetValue(
+			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:b"}),
+		).Return(newTestTarget(&model_starlark_pb.RuleTarget_Test{
+			Size:       model_starlark_pb.TestSize_MEDIUM,
+			Timeout:    model_starlark_pb.TestTimeout_MODERATE,
+			Flaky:      true,
+			ShardCount: []*model_starlark_pb.Select_Group{valueSelectGroup(intValue(1))},
+		})).AnyTimes()
+		e.EXPECT().GetCompiledBzlFileGlobalValue(
+			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_test"}),
+		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_TEST)).AnyTimes()
+
+		for query, expectedLabels := range map[string][]string{
+			"attr(size, '^small$', @@main+//:*)":       {"@@main+//:a"},
+			"attr(timeout, '^moderate$', @@main+//:*)": {"@@main+//:b"},
+			"attr(flaky, '^1$', @@main+//:*)":          {"@@main+//:b"},
+			"attr(shard_count, '^4$', @@main+//:*)":    {"@@main+//:a"},
+			"attr(shard_count, '^[12]$', @@main+//:*)": {"@@main+//:a", "@@main+//:b"},
+			"attr(local, '^1$', @@main+//:*)":          {},
+		} {
+			labels, err := computeQueryExpansion(e, query)
+			require.NoError(t, err, query)
+			require.Equal(t, expectedLabels, labels, query)
+		}
 	})
 
 	t.Run("AttrTooManyValues", func(t *testing.T) {

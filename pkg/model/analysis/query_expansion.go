@@ -248,6 +248,43 @@ func getQueryRuleTarget[TReference any](
 			}},
 		})
 	}
+	if test := ruleTarget.Message.Test; test != nil {
+		// Attributes that are common to all tests.
+		newSimpleAttr := func(name string, value *model_starlark_pb.Value) queryAttr[TReference] {
+			return queryAttr[TReference]{
+				name:       name,
+				isExplicit: true,
+				parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
+					model_core.NewSimpleMessage[TReference](value),
+				}},
+			}
+		}
+		args := queryAttr[TReference]{name: "args", isExplicit: true}
+		for _, selectGroup := range test.Args {
+			args.appendSelectGroup(model_core.Nested(ruleTarget, selectGroup))
+		}
+		shardCount := queryAttr[TReference]{name: "shard_count", isExplicit: true}
+		for _, selectGroup := range test.ShardCount {
+			shardCount.appendSelectGroup(model_core.Nested(ruleTarget, selectGroup))
+		}
+		t.attrs = append(
+			t.attrs,
+			args,
+			newSimpleAttr("flaky", &model_starlark_pb.Value{
+				Kind: &model_starlark_pb.Value_Bool{Bool: test.Flaky},
+			}),
+			newSimpleAttr("local", &model_starlark_pb.Value{
+				Kind: &model_starlark_pb.Value_Bool{Bool: test.Local},
+			}),
+			shardCount,
+			newSimpleAttr("size", &model_starlark_pb.Value{
+				Kind: &model_starlark_pb.Value_Str{Str: model_starlark.FormatTestSize(test.Size)},
+			}),
+			newSimpleAttr("timeout", &model_starlark_pb.Value{
+				Kind: &model_starlark_pb.Value_Str{Str: model_starlark.FormatTestTimeout(test.Timeout)},
+			}),
+		)
+	}
 
 	// Attributes declared by the rule. Values of public attributes
 	// are stored in the rule target, in the same order as the

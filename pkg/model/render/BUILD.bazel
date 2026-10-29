@@ -43,6 +43,7 @@ go_test(
         ":render",
         "//pkg/label",
         "//pkg/model/core",
+        "//pkg/model/starlark",
         "//pkg/proto/model/filesystem",
         "//pkg/proto/model/starlark",
         "//pkg/storage/object",
