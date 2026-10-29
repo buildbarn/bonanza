@@ -600,8 +600,10 @@ func (e *QuerySamePackageDirectReverseDeps[TTargetPattern]) writeTo(f *queryForm
 	f.writeCall("same_pkg_direct_rdeps", nil, []int{e.Expression}, nil)
 }
 
-// QueryExecutables is a query expression that yields the executable
-// targets in a set, written as "executables(x)".
+// QueryExecutables is a query expression that yields the targets in a
+// set whose rules are executable, meaning they can be run using "bazel
+// run", written as "executables(x)". Test targets are not included,
+// even though they are executable as well.
 type QueryExecutables[TTargetPattern any] struct {
 	// Index of the operand in the list of expressions.
 	Expression int

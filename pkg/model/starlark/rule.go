@@ -494,7 +494,7 @@ type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_co
 	implementation NamedFunction[TReference, TMetadata]
 	initializer    *NamedFunction[TReference, TMetadata]
 	provides       []*Provider[TReference, TMetadata]
-	test           bool
+	ruleType       model_starlark_pb.Rule_Definition_Type
 	subrules       []*Subrule[TReference, TMetadata]
 }
 
@@ -509,7 +509,7 @@ func NewStarlarkRuleDefinition[TReference object.BasicReference, TMetadata model
 	implementation NamedFunction[TReference, TMetadata],
 	initializer *NamedFunction[TReference, TMetadata],
 	provides []*Provider[TReference, TMetadata],
-	test bool,
+	ruleType model_starlark_pb.Rule_Definition_Type,
 	subrules []*Subrule[TReference, TMetadata],
 ) RuleDefinition[TReference, TMetadata] {
 	return &starlarkRuleDefinition[TReference, TMetadata]{
@@ -520,7 +520,7 @@ func NewStarlarkRuleDefinition[TReference object.BasicReference, TMetadata model
 		implementation: implementation,
 		initializer:    initializer,
 		provides:       provides,
-		test:           test,
+		ruleType:       ruleType,
 		subrules:       subrules,
 	}
 }
@@ -584,7 +584,7 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlar
 			ExecGroups:         execGroups,
 			Implementation:     implementation.Merge(patcher),
 			Initializer:        initializerMessage,
-			Test:               rd.test,
+			Type:               rd.ruleType,
 			SubruleIdentifiers: slices.Compact(subruleIdentifiers),
 		},
 		patcher,
@@ -604,7 +604,7 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetInitializer(thread *
 }
 
 func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetTest(thread *starlark.Thread) (bool, error) {
-	return rd.test, nil
+	return rd.ruleType == model_starlark_pb.Rule_Definition_TEST, nil
 }
 
 type protoRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -652,7 +652,7 @@ func (rd *protoRuleDefinition[TReference, TMetadata]) GetInitializer(thread *sta
 }
 
 func (rd *protoRuleDefinition[TReference, TMetadata]) GetTest(thread *starlark.Thread) (bool, error) {
-	return rd.message.Message.Test, nil
+	return rd.message.Message.Type == model_starlark_pb.Rule_Definition_TEST, nil
 }
 
 // GlobalResolver is called into by RuleDefinitions created using

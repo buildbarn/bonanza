@@ -89,7 +89,7 @@ func stringValue(s string) *model_starlark_pb.Value {
 
 // newRuleDefinitionValue returns the value of a CompiledBzlFileGlobal
 // key that refers to a rule having a given set of attributes.
-func newRuleDefinitionValue(test bool, attrs ...*model_starlark_pb.NamedAttr) model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, model_core.CreatedObjectTree] {
+func newRuleDefinitionValue(ruleType model_starlark_pb.Rule_Definition_Type, attrs ...*model_starlark_pb.NamedAttr) model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, model_core.CreatedObjectTree] {
 	return model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
 		Global: &model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_Rule{
@@ -97,7 +97,7 @@ func newRuleDefinitionValue(test bool, attrs ...*model_starlark_pb.NamedAttr) mo
 					Kind: &model_starlark_pb.Rule_Definition_{
 						Definition: &model_starlark_pb.Rule_Definition{
 							Attrs: attrs,
-							Test:  test,
+							Type:  ruleType,
 						},
 					},
 				},
@@ -498,7 +498,7 @@ func TestQueryExpansion(t *testing.T) {
 			expectTarget(e, y)
 			e.EXPECT().GetCompiledBzlFileGlobalValue(
 				testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
-			).Return(newRuleDefinitionValue(true))
+			).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_TEST))
 
 			labels, err := computeQueryExpansion(e, "tests(siblings(@@main+//foo:*))")
 			require.NoError(t, err)
@@ -1250,7 +1250,7 @@ func TestQueryExpansion(t *testing.T) {
 		})).Times(2)
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
-		).Return(newRuleDefinitionValue(false, &model_starlark_pb.NamedAttr{
+		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_NON_EXECUTABLE, &model_starlark_pb.NamedAttr{
 			Name: "env",
 			Attr: &model_starlark_pb.Attr{
 				Type: &model_starlark_pb.Attr_StringDict{StringDict: &model_starlark_pb.Attr_StringDictType{}},
@@ -1307,7 +1307,7 @@ func TestQueryExpansion(t *testing.T) {
 		}))
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
-		).Return(newRuleDefinitionValue(false, &model_starlark_pb.NamedAttr{
+		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_NON_EXECUTABLE, &model_starlark_pb.NamedAttr{
 			Name: "copts",
 			Attr: &model_starlark_pb.Attr{
 				Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
@@ -1342,12 +1342,59 @@ func TestQueryExpansion(t *testing.T) {
 		expectTarget("@@main+//:c", sourceFileTarget("c").Definition)
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_test"}),
-		).Return(newRuleDefinitionValue(true))
+		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_TEST))
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
-		).Return(newRuleDefinitionValue(false))
+		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_NON_EXECUTABLE))
 
 		labels, err := computeQueryExpansion(e, "tests(@@main+//:*)")
+		require.NoError(t, err)
+		require.Equal(t, []string{"@@main+//:a"}, labels)
+	})
+
+	t.Run("Executables", func(t *testing.T) {
+		// Only targets whose rule is executable should be
+		// yielded. Tests are executable as well, but should only
+		// be yielded by tests().
+		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b", "@@main+//:c", "@@main+//:d"))
+		expectTarget := func(l, ruleIdentifier string) {
+			definition := sourceFileTarget("").Definition
+			if ruleIdentifier != "" {
+				definition = &model_starlark_pb.Target_Definition{
+					Kind: &model_starlark_pb.Target_Definition_RuleTarget{
+						RuleTarget: &model_starlark_pb.RuleTarget{RuleIdentifier: ruleIdentifier},
+					},
+				}
+			}
+			e.EXPECT().GetTargetValue(
+				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: l}),
+			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+				Definition: definition,
+			}))
+		}
+		expectRuleDefinition := func(ruleIdentifier string, definition *model_starlark_pb.Rule_Definition) {
+			e.EXPECT().GetCompiledBzlFileGlobalValue(
+				testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: ruleIdentifier}),
+			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
+				Global: &model_starlark_pb.Value{
+					Kind: &model_starlark_pb.Value_Rule{
+						Rule: &model_starlark_pb.Rule{
+							Kind: &model_starlark_pb.Rule_Definition_{Definition: definition},
+						},
+					},
+				},
+			}))
+		}
+		expectTarget("@@main+//:a", "@@rules+//:defs.bzl%my_binary")
+		expectTarget("@@main+//:b", "@@rules+//:defs.bzl%my_test")
+		expectTarget("@@main+//:c", "@@rules+//:defs.bzl%my_library")
+		expectTarget("@@main+//:d", "")
+		expectRuleDefinition("@@rules+//:defs.bzl%my_binary", &model_starlark_pb.Rule_Definition{Type: model_starlark_pb.Rule_Definition_EXECUTABLE})
+		expectRuleDefinition("@@rules+//:defs.bzl%my_test", &model_starlark_pb.Rule_Definition{Type: model_starlark_pb.Rule_Definition_TEST})
+		expectRuleDefinition("@@rules+//:defs.bzl%my_library", &model_starlark_pb.Rule_Definition{Type: model_starlark_pb.Rule_Definition_NON_EXECUTABLE})
+
+		labels, err := computeQueryExpansion(e, "executables(@@main+//:*)")
 		require.NoError(t, err)
 		require.Equal(t, []string{"@@main+//:a"}, labels)
 	})

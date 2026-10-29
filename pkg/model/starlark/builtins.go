@@ -1536,6 +1536,14 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					attrs[targetPlatformAttrIdentifier] = targetPlatformAttr
 				}
 
+				// Test rules are executable as well, meaning
+				// that executable=True is redundant for them.
+				ruleType := model_starlark_pb.Rule_Definition_NON_EXECUTABLE
+				if test {
+					ruleType = model_starlark_pb.Rule_Definition_TEST
+				} else if executable {
+					ruleType = model_starlark_pb.Rule_Definition_EXECUTABLE
+				}
 				return NewRule(nil, NewStarlarkRuleDefinition(
 					attrs,
 					buildSetting,
@@ -1544,7 +1552,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					implementation,
 					initializer,
 					provides,
-					test,
+					ruleType,
 					subrules,
 				)), nil
 			},

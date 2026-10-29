@@ -740,7 +740,10 @@ func (sr *StarlarkRenderer) renderRule(rule model_core.Message[*model_starlark_p
 		if implementation := definition.Implementation; implementation != nil {
 			arguments = append(arguments, starlarkKeywordArgument("implementation", sr.renderFunction(implementation)))
 		}
-		if definition.Test {
+		switch definition.Type {
+		case model_starlark_pb.Rule_Definition_EXECUTABLE:
+			arguments = append(arguments, starlarkKeywordArgument("executable", starlarkBool(true)))
+		case model_starlark_pb.Rule_Definition_TEST:
 			arguments = append(arguments, starlarkKeywordArgument("test", starlarkBool(true)))
 		}
 		if len(definition.Attrs) > 0 {

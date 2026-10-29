@@ -723,8 +723,24 @@ message Rule {
     // sorted by name.
     repeated string provides = 7;
 
-    // If set to true, the rule provides a test.
-    bool test = 8;
+    enum Type {
+      // Targets of this rule cannot be run (e.g., libraries).
+      NON_EXECUTABLE = 0;
+
+      // Targets of this rule can be run using "bazel run" (e.g.,
+      // binaries). This corresponds to calling rule() with
+      // executable=True.
+      EXECUTABLE = 1;
+
+      // Targets of this rule are tests, which can be run using
+      // "bazel test" or "bazel run". This corresponds to calling
+      // rule() with test=True. Such rules are executable as well,
+      // regardless of whether executable=True is provided.
+      TEST = 2;
+    }
+
+    // Whether targets of this rule can be run.
+    Type type = 8;
 
     // Identifiers of subrules that may be invoked by the implementation
     // function of this rule, sorted alphabetically.

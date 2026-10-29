@@ -215,7 +215,7 @@ func TestRendererStarlarkRule(t *testing.T) {
 			},
 		}},
 		Provides: []string{"@@//foo:defs.bzl%FooInfo"},
-		Test:     true,
+		Type:     model_starlark_pb.Rule_Definition_TEST,
 	}}}}}
 
 	require.Equal(
@@ -239,6 +239,19 @@ func TestRendererStarlarkRule(t *testing.T) {
 			"    ),\n"+
 			"    provides = [<provider FooInfo>],\n"+
 			")",
+		renderMessage(value, true, render.LayoutOptions{Width: 100}),
+	)
+}
+
+func TestRendererStarlarkExecutableRule(t *testing.T) {
+	value := &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Rule{Rule: &model_starlark_pb.Rule{Kind: &model_starlark_pb.Rule_Definition_{Definition: &model_starlark_pb.Rule_Definition{
+		Implementation: function("_impl"),
+		Type:           model_starlark_pb.Rule_Definition_EXECUTABLE,
+	}}}}}
+
+	require.Equal(
+		t,
+		"rule(implementation = <function _impl>, executable = True)",
 		renderMessage(value, true, render.LayoutOptions{Width: 100}),
 	)
 }

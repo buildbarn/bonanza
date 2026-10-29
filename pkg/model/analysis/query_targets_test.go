@@ -103,7 +103,7 @@ func TestQueryTargets(t *testing.T) {
 				Identifier: "@@rules_cc+//cc:defs.bzl%cc_library",
 			}),
 		).Return(newRuleDefinitionValue(
-			false,
+			model_starlark_pb.Rule_Definition_NON_EXECUTABLE,
 			&model_starlark_pb.NamedAttr{Name: "_compiler", Attr: &model_starlark_pb.Attr{}},
 			&model_starlark_pb.NamedAttr{Name: "deps", Attr: &model_starlark_pb.Attr{}},
 			&model_starlark_pb.NamedAttr{Name: "srcs", Attr: &model_starlark_pb.Attr{}},

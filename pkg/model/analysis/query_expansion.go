@@ -644,6 +644,8 @@ func getPerTargetQueryOperand(expression label.QueryExpression[label.CanonicalTa
 		return e.Expression, true
 	case *label.QueryRules[label.CanonicalTargetPattern]:
 		return e.Expression, true
+	case *label.QueryExecutables[label.CanonicalTargetPattern]:
+		return e.Expression, true
 	default:
 		return 0, false
 	}
@@ -745,7 +747,15 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 		}
 		return results, nil
 
-	case *label.QueryTests[label.CanonicalTargetPattern]:
+	case *label.QueryTests[label.CanonicalTargetPattern], *label.QueryExecutables[label.CanonicalTargetPattern]:
+		// Both tests() and executables() select rule targets
+		// based on the type of their rule definitions. Tests
+		// are executable, but are only yielded by tests(), as
+		// is the case for Bazel.
+		wantType := model_starlark_pb.Rule_Definition_EXECUTABLE
+		if _, ok := expression.(*label.QueryTests[label.CanonicalTargetPattern]); ok {
+			wantType = model_starlark_pb.Rule_Definition_TEST
+		}
 		definitions, err := getQueryTargetDefinitions(e, labels)
 		if err != nil {
 			return nil, err
@@ -769,7 +779,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 				}
 				return nil, err
 			}
-			if ruleDefinition.Message.Test {
+			if ruleDefinition.Message.Type == wantType {
 				results[labels[i]] = struct{}{}
 			}
 		}
@@ -1160,8 +1170,6 @@ func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context,
 		return nil, errors.New("visible() is not supported yet")
 	case *label.QuerySamePackageDirectReverseDeps[label.CanonicalTargetPattern]:
 		return nil, errors.New("same_pkg_direct_rdeps() is not supported yet")
-	case *label.QueryExecutables[label.CanonicalTargetPattern]:
-		return nil, errors.New("executables() is not supported yet")
 	case *label.QueryBuildFiles[label.CanonicalTargetPattern]:
 		return nil, errors.New("buildfiles() is not supported yet")
 	case *label.QueryLoadFiles[label.CanonicalTargetPattern]:
