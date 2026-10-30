@@ -145,14 +145,14 @@ func TestQueryExpansion(t *testing.T) {
 	}
 
 	expectPackage := func(e *MockQueryExpansionEnvironmentForTesting, canonicalPackage string, targets ...*model_starlark_pb.Target) {
-		value := &model_analysis_pb.Package_Value{}
+		value := &model_analysis_pb.PackageTargets_Value{}
 		for _, target := range targets {
 			value.Targets = append(value.Targets, &model_analysis_pb.Package_Value_Target{
 				Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: target},
 			})
 		}
-		e.EXPECT().GetPackageValue(
-			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: canonicalPackage}),
+		e.EXPECT().GetPackageTargetsValue(
+			testutil.EqProto(t, &model_analysis_pb.PackageTargets_Key{Package: canonicalPackage}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](value)).AnyTimes()
 	}
 	ruleTarget := func(name string, tags ...string) *model_starlark_pb.Target {
@@ -524,9 +524,9 @@ func TestQueryExpansion(t *testing.T) {
 
 		t.Run("MissingPackage", func(t *testing.T) {
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
-			e.EXPECT().GetPackageValue(
-				testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo"}),
-			).Return(model_core.Message[*model_analysis_pb.Package_Value, model_core.CreatedObjectTree]{})
+			e.EXPECT().GetPackageTargetsValue(
+				testutil.EqProto(t, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo"}),
+			).Return(model_core.Message[*model_analysis_pb.PackageTargets_Value, model_core.CreatedObjectTree]{})
 
 			_, err := computeQueryExpansion(e, "rules(siblings(@@main+//foo:*))")
 			require.ErrorIs(t, err, evaluation.ErrMissingDependency)
@@ -1753,14 +1753,14 @@ func TestQueryExpansion(t *testing.T) {
 				"@@main+//a": {ruleTarget("x"), ruleTarget("y"), sourceFileTarget("z")},
 				"@@main+//b": {sourceFileTarget("w"), ruleTarget("z")},
 			} {
-				value := &model_analysis_pb.Package_Value{}
+				value := &model_analysis_pb.PackageTargets_Value{}
 				for _, target := range targets {
 					value.Targets = append(value.Targets, &model_analysis_pb.Package_Value_Target{
 						Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: target},
 					})
 				}
-				e.EXPECT().GetPackageValue(
-					testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: canonicalPackage}),
+				e.EXPECT().GetPackageTargetsValue(
+					testutil.EqProto(t, &model_analysis_pb.PackageTargets_Key{Package: canonicalPackage}),
 				).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](value))
 			}
 

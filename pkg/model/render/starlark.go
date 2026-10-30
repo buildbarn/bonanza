@@ -153,7 +153,7 @@ func (sr *StarlarkRenderer) renderValue(value model_core.Message[*model_starlark
 	case *model_starlark_pb.Value_List:
 		return sr.renderListElements(Text("["), Text("]"), model_core.Nested(value, kind.List.GetElements()), false)
 	case *model_starlark_pb.Value_Macro:
-		return starlarkOpaque("macro")
+		return sr.renderMacro(model_core.Nested(value, kind.Macro))
 	case *model_starlark_pb.Value_ModuleExtension:
 		return sr.renderModuleExtension(model_core.Nested(value, kind.ModuleExtension))
 	case *model_starlark_pb.Value_None:
@@ -768,6 +768,28 @@ func (sr *StarlarkRenderer) renderRepositoryRule(repositoryRule model_core.Messa
 		return starlarkDefinitionCall("repository_rule", "", arguments)
 	default:
 		return starlarkOpaque("repository_rule")
+	}
+}
+
+func (sr *StarlarkRenderer) renderMacro(macro model_core.Message[*model_starlark_pb.Macro, object.LocalReference]) Doc {
+	switch kind := macro.Message.GetKind().(type) {
+	case *model_starlark_pb.Macro_Reference:
+		return starlarkOpaqueIdentifier("macro", kind.Reference)
+	case *model_starlark_pb.Macro_Definition_:
+		definition := kind.Definition
+		var arguments []Doc
+		if implementation := definition.Implementation; implementation != nil {
+			arguments = append(arguments, starlarkKeywordArgument("implementation", sr.renderFunction(implementation)))
+		}
+		if len(definition.Attrs) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(macro, definition.Attrs))))
+		}
+		if definition.Finalizer {
+			arguments = append(arguments, starlarkKeywordArgument("finalizer", starlarkBool(true)))
+		}
+		return starlarkCall(starlarkCallee("macro", ""), arguments)
+	default:
+		return starlarkErrorf("Unknown macro kind")
 	}
 }
 

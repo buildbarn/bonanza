@@ -28,7 +28,7 @@ message Value {
     Int int = 11;
     string label = 12;
     List list = 13;
-    google.protobuf.Empty macro = 30;
+    Macro macro = 30;
     ModuleExtension module_extension = 14;
     google.protobuf.Empty none = 15;
     Provider provider = 16;
@@ -471,6 +471,202 @@ message List {
   }
 
   repeated Element elements = 1;
+}
+
+message Macro {
+  message Definition {
+    // Attributes of the macro, sorted by name. The "name" and
+    // "visibility" attributes are implicit, and are not listed.
+    repeated NamedAttr attrs = 1;
+
+    // Starlark function that implements this macro.
+    Function implementation = 2;
+
+    // Whether the macro is a finalizer, meaning it is evaluated after
+    // all other targets in the package have been declared.
+    //
+    // TODO: Add support for finalizers. Invoking such macros currently
+    // fails.
+    bool finalizer = 3;
+
+    // Whether macro() was called with "inherit_attrs" set.
+    //
+    // TODO: Add support for inheriting attributes. Invoking such
+    // macros currently fails.
+    bool inherit_attrs = 4;
+  }
+
+  oneof kind {
+    // Canonical identifier of a macro that is declared elsewhere.
+    string reference = 1;
+
+    // Definition of the macro, if the value is the canonical location
+    // of the macro.
+    Definition definition = 2;
+  }
+}
+
+// MacroExpansionContext contains all of the information that is needed
+// to expand a macro instance, meaning its implementation function can
+// be invoked to obtain the targets and macro instances that it
+// declares.
+message MacroExpansionContext {
+  // The suffix that needs to be appended to the name of the macro
+  // instance whose expansion yielded this macro expansion context to
+  // obtain the name of the macro instance to expand. For macro
+  // expansion contexts yielded by the top level of a package, this is
+  // equal to the name of the macro instance.
+  //
+  // All targets and macro instances declared by the macro instance
+  // have a name that is equal to its name, or is prefixed by it,
+  // followed by "_", "-" or ".".
+  string name_suffix = 1;
+
+  message Definition {
+    // The arguments with which the macro instance to expand was
+    // invoked.
+    MacroInstance.Definition root_macro_instance_definition = 1;
+
+    // The fields below contain names in the namespace of the macro
+    // instance. A name is said to be part of a namespace if it is
+    // equal to the namespace's name, or prefixed by it, followed by
+    // "_", "-" or ".". Names are stored without the name of the macro
+    // instance as a prefix (e.g., "_gen.h" for target "foo_gen.h" in
+    // the namespace of macro instance "foo").
+
+    // Targets in the namespace of the macro instance that are
+    // referenced outside of the macro instance, but are not declared
+    // outside of it. The macro instance may declare these targets. If
+    // it doesn't, they are source files. This field is sorted
+    // alphabetically, free of duplicates, and disjoint with
+    // forbidden_target_name_suffixes.
+    repeated string referenced_target_name_suffixes = 2;
+
+    // Names of targets that are declared outside of the macro
+    // instance, but are part of its namespace. Lookups of these
+    // targets don't expand the macro instance, meaning that it may not
+    // declare targets having these names. This field is sorted
+    // alphabetically and free of duplicates.
+    repeated string forbidden_target_name_suffixes = 3;
+
+    // Macro instances that are declared outside of the macro instance,
+    // and whose namespace is contained within the namespace of the
+    // macro instance. When expanding the macro instance, these are
+    // treated as if the macro instance declared them. This ensures
+    // that the namespaces of the macro expansion contexts yielded by a
+    // single expansion are disjoint, meaning that targets can be
+    // looked up by expanding at most a single macro instance at every
+    // level.
+    //
+    // As a consequence, the macro instance may declare targets that
+    // are part of the namespaces of these macro instances. If it does,
+    // these macro instances may not declare targets having the same
+    // names. The macro instance may not declare macro instances having
+    // the same names as these macro instances.
+    //
+    // The name suffixes of these macro instances are relative to the
+    // name of the macro instance to expand.
+    repeated MacroInstance.Entry nested_macro_instances = 4;
+  }
+
+  // The information that is needed to expand the macro instance.
+  Definition definition = 2;
+
+  // Entry is an element of a B-tree containing macro expansion
+  // contexts, sorted by name suffix. Prior to comparing name suffixes
+  // byte by byte, "-", ".", and "_" are mapped to 0, 1, and 2,
+  // respectively, while all other bytes are mapped to 3 to 255,
+  // retaining their relative order.
+  //
+  // This order causes the namespace of a macro instance to be a
+  // contiguous range of names, starting at the name of the macro
+  // instance. As the namespaces of the macro instances in the B-tree
+  // are disjoint, the macro instance whose namespace contains a given
+  // name can be found by looking up the macro instance whose name
+  // suffix precedes the name.
+  message Entry {
+    message Parent {
+      // Reference to an object containing additional macro expansion
+      // contexts.
+      bonanza.model.core.DecodableReference reference = 1
+          [(bonanza.model.core.object_format) = {
+            proto_list_type_name:
+              "bonanza.model.starlark.MacroExpansionContext.Entry";
+          }];
+
+      // The name suffix of the first macro expansion context contained
+      // in this B-tree. This field can be used to efficiently look up
+      // macro expansion contexts contained in the B-tree.
+      string first_name_suffix = 2;
+    }
+
+    oneof level {
+      // A single macro expansion context.
+      MacroExpansionContext leaf = 1;
+
+      // More macro expansion contexts are stored in another object.
+      Parent parent = 2;
+    }
+  }
+}
+
+// MacroInstance contains the arguments with which a symbolic macro was
+// invoked. Macro instances are expanded lazily. Their implementation
+// function is only invoked when one of the targets declared by them is
+// requested.
+message MacroInstance {
+  message Definition {
+    // Canonical identifier of the macro.
+    string macro_identifier = 1;
+
+    // Values of the public attributes of the macro whose values were
+    // provided explicitly or were set to None, in the same order as the
+    // attributes of the macro definition. Values are stored as a
+    // sequence of select() expressions whose values need to be
+    // summed/concatenated.
+    repeated RuleTarget.PublicAttrValue public_attr_values = 2;
+
+    // Values of attributes that should be inherited by targets declared
+    // by the macro, as declared by the package.
+    //
+    // Field "visibility" contains the visibility of the macro instance,
+    // which is provided to the macro's implementation function through
+    // the "visibility" argument. In addition to the packages that were
+    // provided explicitly, it includes the location from which the macro
+    // was invoked. Unlike the other fields, it is not inherited by the
+    // targets declared by the macro, as these are only visible to the
+    // package containing the macro's definition by default.
+    InheritableAttrs inheritable_attrs = 3;
+  }
+
+  // The suffix that needs to be appended to the name of the macro
+  // instance whose macro expansion context contains this macro
+  // instance to obtain its name.
+  string name_suffix = 1;
+
+  // The arguments with which the macro was invoked.
+  Definition definition = 2;
+
+  // Entry is an element of a B-tree containing macro instances,
+  // sorted alphabetically by name suffix.
+  message Entry {
+    message Parent {
+      // Reference to an object containing additional macro instances.
+      bonanza.model.core.DecodableReference reference = 1
+          [(bonanza.model.core.object_format) = {
+            proto_list_type_name:
+              "bonanza.model.starlark.MacroInstance.Entry";
+          }];
+    }
+
+    oneof level {
+      // The arguments of a single macro instance.
+      MacroInstance leaf = 1;
+
+      // More macro instances are stored in another object.
+      Parent parent = 2;
+    }
+  }
 }
 
 message ModuleExtension {

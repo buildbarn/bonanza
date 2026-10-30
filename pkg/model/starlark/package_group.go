@@ -3,6 +3,7 @@ package starlark
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"slices"
 	"sort"
@@ -12,6 +13,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
 )
@@ -197,6 +199,87 @@ func NewPackageGroupFromVisibility[TMetadata model_core.ReferenceMetadata](ctx c
 		&model_starlark_pb.PackageGroup{
 			Tree:                 treeProto.Message,
 			IncludePackageGroups: slices.Compact(includePackageGroups),
+		},
+		treeProto.Patcher,
+	), nil
+}
+
+// decodePackageGroupNode converts a tree of packages stored in a
+// PackageGroup message back to a tree of packageGroupNode, so that it
+// can be modified.
+func decodePackageGroupNode[TReference any](
+	ctx context.Context,
+	overridesReader model_parser.MessageObjectReader[TReference, *model_starlark_pb.PackageGroup_Subpackages_Overrides],
+	subpackages model_core.Message[*model_starlark_pb.PackageGroup_Subpackages, TReference],
+	includePackage bool,
+) (*packageGroupNode, error) {
+	n := &packageGroupNode{
+		includePackage:     includePackage,
+		includeSubpackages: subpackages.Message.GetIncludeSubpackages(),
+		subpackages:        map[string]*packageGroupNode{},
+	}
+
+	var overrides model_core.Message[*model_starlark_pb.PackageGroup_Subpackages_Overrides, TReference]
+	switch o := subpackages.Message.GetOverrides().(type) {
+	case *model_starlark_pb.PackageGroup_Subpackages_OverridesInline:
+		overrides = model_core.Nested(subpackages, o.OverridesInline)
+	case *model_starlark_pb.PackageGroup_Subpackages_OverridesExternal:
+		var err error
+		overrides, err = model_parser.Dereference(ctx, overridesReader, model_core.Nested(subpackages, o.OverridesExternal))
+		if err != nil {
+			return nil, fmt.Errorf("failed to load overrides: %w", err)
+		}
+	case nil:
+		return n, nil
+	default:
+		return nil, errors.New("invalid overrides type")
+	}
+
+	for _, p := range overrides.Message.Packages {
+		child, err := decodePackageGroupNode(ctx, overridesReader, model_core.Nested(overrides, p.Subpackages), p.IncludePackage)
+		if err != nil {
+			return nil, fmt.Errorf("package %#v: %w", p.Component, err)
+		}
+		n.subpackages[p.Component] = child
+	}
+	return n, nil
+}
+
+// AddPackageToPackageGroup returns a copy of a PackageGroup message to
+// which a single package has been added. If the package is already
+// part of the package group, the original message is returned.
+func AddPackageToPackageGroup[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
+	overridesReader model_parser.MessageObjectReader[TReference, *model_starlark_pb.PackageGroup_Subpackages_Overrides],
+	packageGroup model_core.Message[*model_starlark_pb.PackageGroup, TReference],
+	canonicalPackage pg_label.CanonicalPackage,
+	encoder model_encoding.DeterministicBinaryEncoder,
+	inlinedTreeOptions *inlinedtree.Options,
+	objectManager model_core.ObjectManager[TReference, TMetadata],
+) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
+	tree, err := decodePackageGroupNode(ctx, overridesReader, model_core.Nested(packageGroup, packageGroup.Message.GetTree()), false)
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata]{}, err
+	}
+	if tree.includeSubpackages {
+		// Package group is public.
+		return model_core.Patch(objectManager, packageGroup), nil
+	}
+	n := tree.lookupPackage(canonicalPackage)
+	if n == nil || n.includePackage {
+		// Package is already part of the package group.
+		return model_core.Patch(objectManager, packageGroup), nil
+	}
+	n.includePackage = true
+
+	treeProto, err := packageGroupNodeToProto[TMetadata](ctx, tree, encoder, inlinedTreeOptions, objectManager)
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata]{}, err
+	}
+	return model_core.NewPatchedMessage(
+		&model_starlark_pb.PackageGroup{
+			Tree:                 treeProto.Message,
+			IncludePackageGroups: packageGroup.Message.GetIncludePackageGroups(),
 		},
 		treeProto.Patcher,
 	), nil

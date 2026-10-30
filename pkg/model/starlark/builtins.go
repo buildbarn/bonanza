@@ -93,7 +93,7 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 	var buildSettingDefault string
 	var help string
 	singletonList := false
-	var visibility []pg_label.ResolvedLabel
+	visibility := targetRegistrar.getOmittedVisibility()
 	labelOrStringUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
 	if err := starlark.UnpackArgs(
 		b.Name(), args, kwargs,
@@ -108,12 +108,12 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 		// time during analysis. As part of transitions it still
 		// needs to be set to a singleton list.
 		"singleton_list?", unpack.Bind(thread, &singletonList, unpack.Bool),
-		"visibility?", unpack.Bind(thread, &visibility, unpack.IfNotNone(unpack.List(labelOrStringUnpackerInto))),
+		"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 	); err != nil {
 		return nil, err
 	}
 
-	visibilityPackageGroup, err := targetRegistrar.getVisibilityPackageGroup(visibility)
+	visibilityPackageGroup, err := visibility.getTargetVisibility(targetRegistrar, thread, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -987,8 +987,8 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				var implementation NamedFunction[TReference, TMetadata]
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				doc := ""
-				var finalizer starlark.Value
-				var inheritAttrs starlark.Value
+				finalizer := false
+				var inheritAttrs starlark.Value = starlark.None
 				if err := starlark.UnpackArgs(
 					b.Name(), args, kwargs,
 					// Positional arguments.
@@ -996,12 +996,26 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					// Keyword arguments.
 					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.IfNotNone(unpack.Type[*Attr[TReference, TMetadata]]("attr.*")))),
 					"doc?", unpack.Bind(thread, &doc, unpack.String),
-					"finalizer?", &finalizer,
+					"finalizer?", unpack.Bind(thread, &finalizer, unpack.Bool),
 					"inherit_attrs?", &inheritAttrs,
 				); err != nil {
 					return nil, err
 				}
-				return NewMacro[TReference, TMetadata](), nil
+				// Attributes whose value is None are only
+				// meaningful in combination with
+				// inherit_attrs, which is not supported yet.
+				maps.DeleteFunc(attrs, func(_ pg_label.StarlarkIdentifier, attr *Attr[TReference, TMetadata]) bool {
+					return attr == nil
+				})
+				return NewMacro(
+					nil,
+					NewStarlarkMacroDefinition(
+						attrs,
+						implementation,
+						finalizer,
+						inheritAttrs != starlark.None,
+					),
+				), nil
 			},
 		),
 		"module_extension": starlark.NewBuiltin(
@@ -1046,7 +1060,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var actual *Select[TReference, TMetadata]
 					deprecation := ""
 					var tags []string
-					var visibility []pg_label.ResolvedLabel
+					visibility := targetRegistrar.getOmittedVisibility()
 					labelOrStringUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
 					if err := starlark.UnpackArgs(
 						b.Name(), args, kwargs,
@@ -1054,12 +1068,12 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						"actual", unpack.Bind(thread, &actual, NewSelectUnpackerInto[TReference, TMetadata](unpack.IfNotNone(labelOrStringUnpackerInto))),
 						"deprecation?", unpack.Bind(thread, &deprecation, unpack.String),
 						"tags?", unpack.Bind(thread, &tags, unpack.List(unpack.String)),
-						"visibility?", unpack.Bind(thread, &visibility, unpack.IfNotNone(unpack.List(labelOrStringUnpackerInto))),
+						"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 					); err != nil {
 						return nil, err
 					}
 
-					visibilityPackageGroup, err := targetRegistrar.getVisibilityPackageGroup(visibility)
+					visibilityPackageGroup, err := visibility.getTargetVisibility(targetRegistrar, thread, nil)
 					if err != nil {
 						return nil, err
 					}
@@ -1136,35 +1150,33 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
 					}
 					var srcs []string
-					var visibility []pg_label.ResolvedLabel
+					visibility := targetRegistrar.getOmittedVisibility()
 					if err := starlark.UnpackArgs(
 						b.Name(), args, kwargs,
 						// Positional arguments.
 						"srcs", unpack.Bind(thread, &srcs, unpack.List(unpack.Stringer(unpack.TargetName))),
 						// Keyword arguments.
-						"visibility?", unpack.Bind(thread, &visibility, unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage))),
+						"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 					); err != nil {
 						return nil, err
 					}
 
 					for _, src := range srcs {
-						var visibilityPackageGroup model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata]
-						if len(visibility) == 0 {
-							// Unlike rule targets, exports_files()
-							// defaults to public visibility.
-							visibilityPackageGroup = model_core.NewSimplePatchedMessage[TMetadata](
-								&model_starlark_pb.PackageGroup{
-									Tree: &model_starlark_pb.PackageGroup_Subpackages{
-										IncludeSubpackages: true,
-									},
+						// Unlike rule targets, exports_files()
+						// defaults to public visibility, except
+						// when called from within a symbolic
+						// macro.
+						visibilityPackageGroup, err := visibility.getTargetVisibility(
+							targetRegistrar,
+							thread,
+							&model_starlark_pb.PackageGroup{
+								Tree: &model_starlark_pb.PackageGroup_Subpackages{
+									IncludeSubpackages: true,
 								},
-							)
-						} else {
-							var err error
-							visibilityPackageGroup, err = targetRegistrar.getVisibilityPackageGroup(visibility)
-							if err != nil {
-								return nil, err
-							}
+							},
+						)
+						if err != nil {
+							return nil, err
 						}
 
 						if err := targetRegistrar.registerExplicitTarget(
@@ -1329,14 +1341,14 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var name string
 					var tests []pg_label.ResolvedLabel
 					var tags []string
-					var visibility []pg_label.ResolvedLabel
+					visibility := targetRegistrar.getOmittedVisibility()
 					labelOrStringUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
 					if err := starlark.UnpackArgs(
 						b.Name(), args, kwargs,
 						"name", unpack.Bind(thread, &name, unpack.Stringer(unpack.TargetName)),
 						"tags?", unpack.Bind(thread, &tags, unpack.List(unpack.String)),
 						"tests?", unpack.Bind(thread, &tests, unpack.List(labelOrStringUnpackerInto)),
-						"visibility?", unpack.Bind(thread, &visibility, unpack.IfNotNone(unpack.List(labelOrStringUnpackerInto))),
+						"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 					); err != nil {
 						return nil, err
 					}
@@ -1358,7 +1370,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if err != nil {
 						return nil, fmt.Errorf("attribute \"tests\": %w", err)
 					}
-					visibilityPackageGroup, err := targetRegistrar.getVisibilityPackageGroup(visibility)
+					visibilityPackageGroup, err := visibility.getTargetVisibility(targetRegistrar, thread, nil)
 					if err != nil {
 						testsList.Discard()
 						return nil, err

@@ -949,10 +949,10 @@ func getQuerySiblingsPackages(query label.Query[label.CanonicalTargetPattern], s
 // matched by rules(). These can be computed without loading the targets
 // individually, as their definitions are contained in the package.
 func (c *baseComputer[TReference, TMetadata]) getQueryPackageTargets(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], canonicalPackage label.CanonicalPackage) (labelSet, labelSet, error) {
-	packageValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
-		Label: canonicalPackage.String(),
+	packageTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+		Package: canonicalPackage.String(),
 	})
-	if !packageValue.IsSet() {
+	if !packageTargets.IsSet() {
 		return nil, nil, evaluation.ErrMissingDependency
 	}
 	allTargets, ruleTargets := labelSet{}, labelSet{}
@@ -963,7 +963,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryPackageTargets(ctx context
 		{true, allTargets},
 		{false, ruleTargets},
 	} {
-		if err := c.forEachPackageTargetLabel(ctx, canonicalPackage, packageValue, entry.includeFileTargets, func(l label.CanonicalLabel) error {
+		if err := c.forEachPackageTargetLabel(ctx, canonicalPackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), entry.includeFileTargets, func(l label.CanonicalLabel) error {
 			entry.results[l] = struct{}{}
 			return nil
 		}); err != nil {
@@ -1244,13 +1244,13 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 // pushQueryPackageTargets calls a function for the labels of all
 // targets in a package, including file targets, in sorted order.
 func (c *baseComputer[TReference, TMetadata]) pushQueryPackageTargets(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], canonicalPackage label.CanonicalPackage, yield func(label.CanonicalLabel) error) error {
-	packageValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
-		Label: canonicalPackage.String(),
+	packageTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+		Package: canonicalPackage.String(),
 	})
-	if !packageValue.IsSet() {
+	if !packageTargets.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
-	return c.forEachPackageTargetLabel(ctx, canonicalPackage, packageValue, true, yield)
+	return c.forEachPackageTargetLabel(ctx, canonicalPackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), true, yield)
 }
 
 // evaluateQuery evaluates the top-level expression of a query. Its
@@ -2488,16 +2488,17 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 		// Target pattern of shape "@@a+//b:all",
 		// "@@a+//b:all-targets" or "@@a+//b:*".
 		canonicalPackage := initialTarget.GetCanonicalPackage()
-		packageValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
-			Label: canonicalPackage.String(),
+		packageTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+			Package: canonicalPackage.String(),
 		})
-		if !packageValue.IsSet() {
+		if !packageTargets.IsSet() {
 			return evaluation.ErrMissingDependency
 		}
+		targets := model_core.Nested(packageTargets, packageTargets.Message.Targets)
 
 		definition, err := c.lookupTargetDefinitionInTargetList(
 			ctx,
-			model_core.Nested(packageValue, packageValue.Message.Targets),
+			targets,
 			initialTarget.GetTargetName(),
 		)
 		if err != nil {
@@ -2510,7 +2511,7 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 			// performing actual wildcard expansion.
 			return pushTargetLabel(treeBuilder, initialTarget)
 		}
-		return c.forEachPackageTargetLabel(ctx, canonicalPackage, packageValue, includeFileTargets, func(l label.CanonicalLabel) error {
+		return c.forEachPackageTargetLabel(ctx, canonicalPackage, targets, includeFileTargets, func(l label.CanonicalLabel) error {
 			return pushTargetLabel(treeBuilder, l)
 		})
 	}
@@ -2533,10 +2534,11 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 	// remain sorted.
 	missingDependencies := false
 	if packagesAtAndBelow.Message.PackageAtBasePackage {
-		if packageValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
-			Label: basePackage.String(),
-		}); packageValue.IsSet() {
-			if err := c.forEachPackageTargetLabel(ctx, basePackage, packageValue, includeFileTargets, func(l label.CanonicalLabel) error {
+		packageTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+			Package: basePackage.String(),
+		})
+		if packageTargets.IsSet() {
+			if err := c.forEachPackageTargetLabel(ctx, basePackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), includeFileTargets, func(l label.CanonicalLabel) error {
 				return pushTargetLabel(treeBuilder, l)
 			}); err != nil {
 				return err
@@ -2583,7 +2585,7 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 func (c *baseComputer[TReference, TMetadata]) forEachPackageTargetLabel(
 	ctx context.Context,
 	canonicalPackage label.CanonicalPackage,
-	packageValue model_core.Message[*model_analysis_pb.Package_Value, TReference],
+	targets model_core.Message[[]*model_analysis_pb.Package_Value_Target, TReference],
 	includeFileTargets bool,
 	yield func(label.CanonicalLabel) error,
 ) error {
@@ -2591,7 +2593,7 @@ func (c *baseComputer[TReference, TMetadata]) forEachPackageTargetLabel(
 	for entry := range btree.AllLeaves(
 		ctx,
 		c.packageValueTargetReader,
-		model_core.Nested(packageValue, packageValue.Message.Targets),
+		targets,
 		func(entry model_core.Message[*model_analysis_pb.Package_Value_Target, TReference]) (*model_core_pb.DecodableReference, error) {
 			if level, ok := entry.Message.Level.(*model_analysis_pb.Package_Value_Target_Parent_); ok {
 				return level.Parent.Reference, nil

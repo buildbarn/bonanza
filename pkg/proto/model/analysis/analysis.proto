@@ -1097,6 +1097,32 @@ message HttpFileContents {
   }
 }
 
+message MacroExpansionContext {
+  message Key {
+    // The name of the package in which the macro instance is declared.
+    // The package name MUST include a canonical repo name.
+    string package = 1;
+
+    // The name of the macro instance, using the same format as
+    // Package.Key.macro_instance_name. This list MUST NOT be empty.
+    repeated string macro_instance_name = 2;
+  }
+
+  message Value {
+    // The information that is needed to expand the macro instance,
+    // containing the arguments with which the macro was invoked, and
+    // the names in its namespace that are referenced or declared
+    // outside of it.
+    //
+    // Expanding a macro instance only depends on this value, as
+    // opposed to the declarations of the package or macro instance in
+    // which it is declared. This ensures that changes to these
+    // declarations that don't affect the macro instance don't cause it
+    // to be expanded again.
+    bonanza.model.starlark.MacroExpansionContext.Definition definition = 1;
+  }
+}
+
 message ModuleDotBazelContents {
   message Key {
     // The module instance whose MODULE.bazel file needs to be obtained.
@@ -1334,6 +1360,20 @@ message Package {
     // The label of the package. The label MUST include a canonical repo
     // name, and MUST NOT include a target name.
     string label = 1;
+
+    // If empty, obtain the targets and macro instances declared at the
+    // top level of the package, by evaluating its BUILD.bazel file.
+    // Otherwise, obtain the targets and macro instances declared by a
+    // macro instance, by invoking the implementation function of the
+    // macro.
+    //
+    // The name of the macro instance is equal to the concatenation of
+    // all elements. Each element is the name suffix of a macro
+    // expansion context, as stored in MacroExpansionContext.name_suffix,
+    // starting at the top level of the package. This identifies the
+    // chain of macro instances whose namespaces contain the macro
+    // instance.
+    repeated string macro_instance_name = 2;
   }
 
   message Value {
@@ -1351,6 +1391,11 @@ message Package {
         // This field can be used to efficiently look up targets
         // contained in the B-tree.
         string first_name = 2;
+
+        // The name of the last target contained in this B-tree.
+        // This field can be used to efficiently merge B-trees of
+        // targets, as is done by PackageTargets.
+        string last_name = 3;
       }
 
       oneof level {
@@ -1362,9 +1407,24 @@ message Package {
       }
     }
 
-    // Successfully processed the package's BUILD.bazel file, and
-    // extracted the targets contained within.
+    // The targets declared at the top level of the package or by the
+    // macro instance, sorted by name.
     repeated Target targets = 1;
+
+    // Contexts for expanding the macro instances declared at the top
+    // level of the package or by the macro instance. Macro instances
+    // whose namespace is contained within the namespace of another
+    // macro instance are stored in the context of the latter, meaning
+    // that the namespaces of the macro instances in this list are
+    // disjoint. The targets and macro instances declared by these
+    // macro instances are obtained by requesting the Package key with
+    // macro_instance_name set.
+    //
+    // Macro instances have a namespace that is separate from that of
+    // targets. A target may therefore have the same name as a macro
+    // instance.
+    repeated bonanza.model.starlark.MacroExpansionContext.Entry
+        macro_expansion_contexts = 2;
   }
 }
 
@@ -1381,6 +1441,28 @@ message PackageGroupContains {
   message Value {
     // If set, the package is part of the package group.
     bool contains = 1;
+  }
+}
+
+// PackageTargets returns the targets in a package after all macro
+// instances have been expanded. Unlike the value of Package, the
+// resulting list only contains targets.
+message PackageTargets {
+  message Key {
+    // The name of the package. The package name MUST include a
+    // canonical repo name.
+    string package = 1;
+
+    // If empty, obtain all targets in the package. Otherwise, obtain
+    // all targets declared by a macro instance, either directly or
+    // through the macro instances it declares. The name of the macro
+    // instance uses the same format as Package.Key.macro_instance_name.
+    repeated string macro_instance_name = 2;
+  }
+
+  message Value {
+    // The targets in the package or macro instance, sorted by name.
+    repeated Package.Value.Target targets = 1;
   }
 }
 

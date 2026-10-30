@@ -448,8 +448,9 @@ const ValueDecodingOptionsKey = "value_decoding_options"
 // ValueReaders contains all of the message object readers that are
 // needed to decode any type of Starlark value object.
 type ValueReaders[TReference any] struct {
-	Dict model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry]
-	List model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
+	Dict                  model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry]
+	List                  model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
+	PackageGroupOverrides model_parser.MessageObjectReader[TReference, *model_starlark_pb.PackageGroup_Subpackages_Overrides]
 }
 
 // ValueDecodingOptions contains parameters that always need to be
@@ -595,7 +596,23 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 		}
 		return list, nil
 	case *model_starlark_pb.Value_Macro:
-		return NewMacro[TReference, TMetadata](), nil
+		switch macroKind := typedValue.Macro.Kind.(type) {
+		case *model_starlark_pb.Macro_Reference:
+			identifier, err := pg_label.NewCanonicalStarlarkIdentifier(macroKind.Reference)
+			if err != nil {
+				return nil, err
+			}
+			return NewMacro(&identifier, NewReloadingMacroDefinition[TReference, TMetadata](identifier)), nil
+		case *model_starlark_pb.Macro_Definition_:
+			if currentIdentifier == nil {
+				return nil, errors.New("encoded macro does not have a name")
+			}
+			return NewMacro(currentIdentifier, NewProtoMacroDefinition[TReference, TMetadata](
+				model_core.Nested(encodedValue, macroKind.Definition),
+			)), nil
+		default:
+			return nil, errors.New("encoded macro does not have a reference or definition")
+		}
 	case *model_starlark_pb.Value_ModuleExtension:
 		return NewModuleExtension(NewProtoModuleExtensionDefinition[TReference, TMetadata](
 			model_core.Nested(encodedValue, typedValue.ModuleExtension),

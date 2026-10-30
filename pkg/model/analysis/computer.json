@@ -294,6 +294,11 @@
          ],
          "isLookup": false
       },
+      "MacroExpansionContext": {
+         "dependsOn": [
+            "Package"
+         ]
+      },
       "ModuleDotBazelContents": {
          "dependsOn": [
             "FileProperties",
@@ -405,9 +410,11 @@
             "CompiledBzlFile",
             "CompiledBzlFileDecodedGlobals",
             "CompiledBzlFileFunctionFactory",
+            "CompiledBzlFileGlobal",
             "FileProperties",
             "FileReader",
             "Glob",
+            "MacroExpansionContext",
             "RepoDefaultAttrs",
             "RootModule"
          ]
@@ -416,6 +423,12 @@
          "dependsOn": [
             "PackageGroupContains",
             "Target"
+         ]
+      },
+      "PackageTargets": {
+         "dependsOn": [
+            "Package",
+            "PackageTargets"
          ]
       },
       "PackagesAtAndBelow": {
@@ -427,8 +440,8 @@
       "QueryExpansion": {
          "dependsOn": [
             "CompiledBzlFileGlobal",
-            "Package",
             "PackageGroupContains",
+            "PackageTargets",
             "PackagesAtAndBelow",
             "QueryExpansion",
             "Target",

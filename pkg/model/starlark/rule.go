@@ -168,7 +168,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	var tags []string
 	var targetCompatibleWith *Select[TReference, TMetadata]
 	testOnly := defaultInheritableAttrs.Testonly
-	var visibility []pg_label.ResolvedLabel
+	visibility := targetRegistrar.getOmittedVisibility()
 	labelUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
 	labelStringListUnpackerInto := unpack.List(unpack.Stringer(labelUnpackerInto))
 	optionalUnpackers = append(
@@ -182,7 +182,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		"tags?", unpack.Bind(thread, &tags, unpack.IfNotNone(unpack.List(unpack.String))),
 		"target_compatible_with?", unpack.Bind(thread, &targetCompatibleWith, NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(labelUnpackerInto)))),
 		"testonly?", unpack.Bind(thread, &testOnly, unpack.IfNotNone(sloppyBoolUnpackerInto{})),
-		"visibility?", unpack.Bind(thread, &visibility, unpack.IfNotNone(unpack.List(labelUnpackerInto))),
+		"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 	)
 
 	var buildSettingDefault starlark.Value
@@ -405,7 +405,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	sort.Strings(execCompatibleWith)
 	sort.Strings(tags)
 
-	visibilityPackageGroup, err := targetRegistrar.getVisibilityPackageGroup(visibility)
+	visibilityPackageGroup, err := visibility.getTargetVisibility(targetRegistrar, thread, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -1,11 +1,15 @@
 package starlark_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"bonanza.build/pkg/label"
+	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
@@ -264,5 +268,145 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 				"@@packagegroups+//:group4",
 			},
 		}, packageGroup.Message)
+	})
+}
+
+// fakeOverridesReader is a reader of PackageGroup.Subpackages.Overrides
+// objects that always returns the same object.
+type fakeOverridesReader struct {
+	overrides *model_starlark_pb.PackageGroup_Subpackages_Overrides
+	err       error
+}
+
+func (r *fakeOverridesReader) ReadObject(ctx context.Context, reference model_core.Decodable[object.LocalReference]) (model_core.Message[*model_starlark_pb.PackageGroup_Subpackages_Overrides, object.LocalReference], error) {
+	if r.err != nil {
+		return model_core.Message[*model_starlark_pb.PackageGroup_Subpackages_Overrides, object.LocalReference]{}, r.err
+	}
+	return model_core.NewSimpleMessage[object.LocalReference](r.overrides), nil
+}
+
+func (fakeOverridesReader) GetDecodingParametersSizeBytes() int {
+	return 0
+}
+
+func TestAddPackageToPackageGroup(t *testing.T) {
+	ctrl, ctx := gomock.WithContext(t.Context(), t)
+
+	encoder := NewMockDeterministicBinaryEncoder(ctrl)
+	encoder.EXPECT().GetDecodingParametersSizeBytes().Return(0).AnyTimes()
+	inlinedTreeOptions := &inlinedtree.Options{
+		ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+		MaximumSizeBytes: 1 << 20,
+	}
+	newPackageGroup := func(labels ...string) *model_starlark_pb.PackageGroup {
+		resolvedLabels := make([]label.ResolvedLabel, 0, len(labels))
+		for _, l := range labels {
+			resolvedLabels = append(resolvedLabels, util.Must(label.NewResolvedLabel(l)))
+		}
+		packageGroup, err := model_starlark.NewPackageGroupFromVisibility(ctx, resolvedLabels, encoder, inlinedTreeOptions, NewMockObjectManagerForTesting(ctrl))
+		require.NoError(t, err)
+		return packageGroup.Message
+	}
+
+	t.Run("Inline", func(t *testing.T) {
+		for name, testCase := range map[string]struct {
+			labels           []string
+			canonicalPackage string
+			expectedLabels   []string
+		}{
+			"Added": {
+				labels:           []string{"@@a+//x:__pkg__", "@@a+//:group"},
+				canonicalPackage: "@@a+//y",
+				expectedLabels:   []string{"@@a+//x:__pkg__", "@@a+//y:__pkg__", "@@a+//:group"},
+			},
+			"AddedToEmpty": {
+				labels:           []string{"@@a+//visibility:private"},
+				canonicalPackage: "@@a+//x/y",
+				expectedLabels:   []string{"@@a+//x/y:__pkg__"},
+			},
+			"AddedToParent": {
+				labels:           []string{"@@a+//x/y:__pkg__"},
+				canonicalPackage: "@@a+//x",
+				expectedLabels:   []string{"@@a+//x:__pkg__", "@@a+//x/y:__pkg__"},
+			},
+			"AlreadyIncluded": {
+				labels:           []string{"@@a+//x:__pkg__"},
+				canonicalPackage: "@@a+//x",
+				expectedLabels:   []string{"@@a+//x:__pkg__"},
+			},
+			"CoveredBySubpackages": {
+				labels:           []string{"@@a+//x:__subpackages__"},
+				canonicalPackage: "@@a+//x/y",
+				expectedLabels:   []string{"@@a+//x:__subpackages__"},
+			},
+			"Public": {
+				labels:           []string{"@@a+//visibility:public"},
+				canonicalPackage: "@@a+//x",
+				expectedLabels:   []string{"@@a+//visibility:public"},
+			},
+		} {
+			t.Run(name, func(t *testing.T) {
+				packageGroup, err := model_starlark.AddPackageToPackageGroup(
+					ctx,
+					/* overridesReader = */ nil,
+					model_core.NewSimpleMessage[object.LocalReference](newPackageGroup(testCase.labels...)),
+					util.Must(label.NewCanonicalPackage(testCase.canonicalPackage)),
+					encoder,
+					inlinedTreeOptions,
+					NewMockObjectManagerForTesting(ctrl),
+				)
+				require.NoError(t, err)
+				testutil.RequireEqualProto(t, newPackageGroup(testCase.expectedLabels...), packageGroup.Message)
+			})
+		}
+	})
+
+	t.Run("ExternalOverrides", func(t *testing.T) {
+		// Overrides that are stored in separate objects should
+		// be loaded, so that the package can be added to them.
+		packageGroup := model_core.NewMessage(
+			&model_starlark_pb.PackageGroup{
+				Tree: &model_starlark_pb.PackageGroup_Subpackages{
+					Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesExternal{
+						OverridesExternal: &model_core_pb.DecodableReference{
+							Reference: &model_core_pb.Reference{Index: 1},
+						},
+					},
+				},
+				IncludePackageGroups: []string{"@@a+//:group"},
+			},
+			object.OutgoingReferencesList[object.LocalReference]{
+				object.MustNewSHA256V1LocalReference("629db2c2c2a8ae9445ffed22cbf2f3b5a89d7062a7eb4cbdf369217b10e99838", 1337, 0, 0, 0),
+			},
+		)
+		overrides := newPackageGroup("@@a+//x:__pkg__").Tree.GetOverridesInline()
+		require.NotNil(t, overrides)
+
+		t.Run("Success", func(t *testing.T) {
+			result, err := model_starlark.AddPackageToPackageGroup(
+				ctx,
+				&fakeOverridesReader{overrides: overrides},
+				packageGroup,
+				util.Must(label.NewCanonicalPackage("@@a+//y")),
+				encoder,
+				inlinedTreeOptions,
+				NewMockObjectManagerForTesting(ctrl),
+			)
+			require.NoError(t, err)
+			testutil.RequireEqualProto(t, newPackageGroup("@@a+//x:__pkg__", "@@a+//y:__pkg__", "@@a+//:group"), result.Message)
+		})
+
+		t.Run("ReadFailure", func(t *testing.T) {
+			_, err := model_starlark.AddPackageToPackageGroup(
+				ctx,
+				&fakeOverridesReader{err: errors.New("server offline")},
+				packageGroup,
+				util.Must(label.NewCanonicalPackage("@@a+//y")),
+				encoder,
+				inlinedTreeOptions,
+				NewMockObjectManagerForTesting(ctrl),
+			)
+			require.EqualError(t, err, "failed to load overrides: server offline")
+		})
 	})
 }

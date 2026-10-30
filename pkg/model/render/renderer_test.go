@@ -122,6 +122,19 @@ func TestRendererStarlarkValues(t *testing.T) {
 			expected: "<rule foo_rule>",
 		},
 		{
+			name:     "MacroReference",
+			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Macro{Macro: &model_starlark_pb.Macro{Kind: &model_starlark_pb.Macro_Reference{Reference: "@@//foo:defs.bzl%foo_macro"}}}},
+			expected: "<macro foo_macro>",
+		},
+		{
+			name: "MacroDefinition",
+			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Macro{Macro: &model_starlark_pb.Macro{Kind: &model_starlark_pb.Macro_Definition_{Definition: &model_starlark_pb.Macro_Definition{
+				Implementation: function("_impl"),
+				Finalizer:      true,
+			}}}}},
+			expected: "macro(implementation = <function _impl>, finalizer = True)",
+		},
+		{
 			name: "Provider",
 			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Provider{Provider: &model_starlark_pb.Provider{
 				InstanceProperties: &model_starlark_pb.Provider_InstanceProperties{ProviderIdentifier: "@@//foo:defs.bzl%FooInfo", TypeName: "Foo"},
