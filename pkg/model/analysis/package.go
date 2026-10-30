@@ -92,7 +92,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 		}
 
 		thread.SetLocal(model_starlark.CanonicalPackageKey, canonicalPackage)
-		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, c.getValueEncodingOptions(ctx, e, nil))
+		valueEncodingOptions := c.getValueEncodingOptions(ctx, e, nil)
+		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, valueEncodingOptions)
 		thread.SetLocal(model_starlark.GlobExpanderKey, func(includePatterns, excludePatterns []string, includeDirectories bool) ([]string, error) {
 			nfa, err := glob.NewNFAFromPatterns(includePatterns, excludePatterns)
 			if err != nil {
@@ -143,6 +144,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 			if !errors.Is(err, evaluation.ErrMissingDependency) && errors.As(err, &evalErr) {
 				return PatchedPackageValue[TMetadata]{}, errors.New(evalErr.Backtrace())
 			}
+			return PatchedPackageValue[TMetadata]{}, err
+		}
+
+		if err := targetRegistrar.Finalize(canonicalPackage, valueEncodingOptions); err != nil {
 			return PatchedPackageValue[TMetadata]{}, err
 		}
 

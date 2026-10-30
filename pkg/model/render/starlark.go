@@ -105,9 +105,10 @@ type StarlarkRenderer struct {
 	// If set, lists and dicts whose contents are partially stored
 	// in other objects are rendered in full, by reading these
 	// objects. Otherwise, links to these objects are rendered.
-	Context    context.Context
-	ListReader model_parser.MessageObjectReader[object.LocalReference, []*model_starlark_pb.List_Element]
-	DictReader model_parser.MessageObjectReader[object.LocalReference, []*model_starlark_pb.Dict_Entry]
+	Context             context.Context
+	ListReader          model_parser.MessageObjectReader[object.LocalReference, []*model_starlark_pb.List_Element]
+	DictReader          model_parser.MessageObjectReader[object.LocalReference, []*model_starlark_pb.Dict_Entry]
+	TestSuiteTestReader model_parser.MessageObjectReader[object.LocalReference, []*model_starlark_pb.TestSuite_Test]
 }
 
 // Value renders a Starlark value.
@@ -410,6 +411,46 @@ func (sr *StarlarkRenderer) renderListElements(open, close Doc, elements model_c
 		}
 	}
 	return Sequence(open, close, renderedElements, true, singleElementNeedsComma)
+}
+
+func (sr *StarlarkRenderer) renderTestSuiteTest(test model_core.Message[*model_starlark_pb.TestSuite_Test, object.LocalReference]) Doc {
+	switch level := test.Message.GetLevel().(type) {
+	case *model_starlark_pb.TestSuite_Test_Leaf:
+		return starlarkString(level.Leaf)
+	case *model_starlark_pb.TestSuite_Test_Parent_:
+		return sr.renderReference(model_core.Nested(test, level.Parent.Reference), level.Parent, "more tests")
+	default:
+		return starlarkErrorf("Unknown test level")
+	}
+}
+
+// renderTestSuiteTests renders the B-tree containing the labels of the
+// tests that are part of a test suite as a list of strings.
+func (sr *StarlarkRenderer) renderTestSuiteTests(tests model_core.Message[[]*model_starlark_pb.TestSuite_Test, object.LocalReference]) Doc {
+	renderedTests := make([]Doc, 0, len(tests.Message))
+	if sr.TestSuiteTestReader != nil {
+		// Load labels that are stored in other objects.
+		var errIter error
+		for test := range btree.AllLeaves(
+			sr.Context,
+			sr.TestSuiteTestReader,
+			tests,
+			func(test model_core.Message[*model_starlark_pb.TestSuite_Test, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
+				return test.Message.GetParent().GetReference(), nil
+			},
+			&errIter,
+		) {
+			renderedTests = append(renderedTests, sr.renderTestSuiteTest(test))
+		}
+		if errIter != nil {
+			renderedTests = append(renderedTests, starlarkErrorf("Failed to read tests: %s", errIter))
+		}
+	} else {
+		for _, test := range tests.Message {
+			renderedTests = append(renderedTests, sr.renderTestSuiteTest(model_core.Nested(tests, test)))
+		}
+	}
+	return Sequence(Text("["), Text("]"), renderedTests, true, false)
 }
 
 func (sr *StarlarkRenderer) renderSelectGroup(group model_core.Message[*model_starlark_pb.Select_Group, object.LocalReference]) Doc {

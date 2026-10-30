@@ -61,6 +61,12 @@ func pruneQueryTargetDefinition(definition *model_starlark_pb.Target_Definition)
 				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
 			},
 		}, nil
+	case *model_starlark_pb.Target_Definition_TestSuite:
+		return &model_starlark_pb.Target_Definition{
+			Kind: &model_starlark_pb.Target_Definition_TestSuite{
+				TestSuite: &model_starlark_pb.TestSuite{},
+			},
+		}, nil
 	default:
 		return nil, errors.New("unknown target kind")
 	}

@@ -79,6 +79,7 @@ go_library(
         "target_output.go",
         "target_provider.go",
         "target_providers.go",
+        "test_suite_tests.go",
         "used_module_extension.go",
         "used_module_extensions.go",
         "user_defined_transition.go",
@@ -149,6 +150,7 @@ go_test(
         "query_result_test.go",
         "query_targets_test.go",
         "target_direct_dependencies_test.go",
+        "test_suite_tests_test.go",
     ],
     embed = [":analysis"],
     deps = [
@@ -188,6 +190,7 @@ gomock(
         "QueryResultEnvironmentForTesting",
         "QueryTargetsEnvironmentForTesting",
         "TargetDirectDependenciesEnvironmentForTesting",
+        "TestSuiteTestsEnvironmentForTesting",
     ],
     library = "//pkg/model/analysis",
     mockgen_model_library = "@org_uber_go_mock//mockgen/model",

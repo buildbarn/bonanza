@@ -844,6 +844,75 @@ enum TestTimeout {
   ETERNAL = 3;
 }
 
+// A group of tests, declared using test_suite().
+message TestSuite {
+  // Test is an element of a B-tree containing the labels of the tests
+  // and test suites that are part of a test suite.
+  message Test {
+    message Parent {
+      // Reference to an object containing additional labels.
+      bonanza.model.core.DecodableReference reference = 1
+          [(bonanza.model.core.object_format) = {
+            proto_list_type_name:
+              "bonanza.model.starlark.TestSuite.Test";
+          }];
+    }
+
+    oneof level {
+      // The resolved label of a test or test suite.
+      string leaf = 1;
+
+      // More labels are stored in another object.
+      Parent parent = 2;
+    }
+  }
+
+  // Labels of the tests and test suites that are part of this test
+  // suite, as provided through the "tests" attribute. If no tests
+  // are provided, this field contains all tests in the current
+  // package that are not tagged "manual" and pass the filters of the
+  // test suite.
+  //
+  // As this list may be large, it is stored as a B-tree. Labels are
+  // sorted alphabetically and deduplicated.
+  repeated Test tests = 1;
+
+  // Tags that tests need to have to be part of this test suite,
+  // corresponding to tags of the test suite that are not prefixed
+  // with "-". Tags corresponding to test sizes and the "manual" tag
+  // are stored separately.
+  //
+  // Tags are sorted alphabetically and deduplicated, and MUST NOT
+  // overlap with negative_tags.
+  repeated string positive_tags = 2;
+
+  // Tags that tests MUST NOT have to be part of this test suite,
+  // corresponding to tags of the test suite that are prefixed with
+  // "-". Tags corresponding to test sizes are stored separately.
+  //
+  // Tags are sorted alphabetically and deduplicated, and MUST NOT
+  // overlap with positive_tags.
+  repeated string negative_tags = 3;
+
+  // Sizes that tests need to have to be part of this test suite. Like
+  // Bazel, test sizes are treated as tags of tests. If the tags of the
+  // test suite contain a test size, only tests of that size are
+  // included. Sizes prefixed with "-" are excluded.
+  //
+  // Sizes are sorted and deduplicated. This list MUST NOT be empty. If
+  // no restrictions on test sizes are in place, all sizes are listed.
+  repeated TestSize sizes = 4;
+
+  // Which targets in other packages are permitted to depend on this
+  // test suite.
+  PackageGroup visibility = 5;
+
+  // Whether the test suite is tagged "manual", meaning that it is not
+  // matched by wildcard target patterns. This has no effect on which
+  // tests are part of the test suite.
+  bool manual = 6;
+}
+
 message Select {
   message Condition {
     string condition_identifier = 1;
@@ -932,6 +1001,9 @@ message Target {
       // File exposed via exports_files() or referenced by a rule
       // target's attribute.
       SourceFileTarget source_file_target = 6;
+
+      // Group of tests, declared using test_suite().
+      TestSuite test_suite = 7;
     }
   }
 

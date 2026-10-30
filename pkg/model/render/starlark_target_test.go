@@ -241,6 +241,49 @@ func TestStarlarkRendererTarget(t *testing.T) {
 		}, nil, 0))
 	})
 
+	t.Run("TestSuite", func(t *testing.T) {
+		// Tags should be reconstructed from the positive and
+		// negative tags, sizes and the "manual" tag.
+		require.Equal(t, `test_suite(
+    name = "bar",
+    tags = ["+manual", "-enormous", "-flaky", "-medium", "manual"],
+    tests = ["@@main+//foo:a", "@@main+//foo:b"],
+)`, renderTarget("@@main+//foo:bar", &model_starlark_pb.Target_Definition{
+			Kind: &model_starlark_pb.Target_Definition_TestSuite{
+				TestSuite: &model_starlark_pb.TestSuite{
+					Tests: []*model_starlark_pb.TestSuite_Test{
+						{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:a"}},
+						{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:b"}},
+					},
+					PositiveTags: []string{"manual"},
+					NegativeTags: []string{"flaky"},
+					Sizes: []model_starlark_pb.TestSize{
+						model_starlark_pb.TestSize_SMALL,
+						model_starlark_pb.TestSize_LARGE,
+					},
+					Manual: true,
+				},
+			},
+		}, nil, 0))
+
+		// Test suites without any tags or tests should only
+		// have a name.
+		require.Equal(t, `test_suite(
+    name = "bar",
+)`, renderTarget("@@main+//foo:bar", &model_starlark_pb.Target_Definition{
+			Kind: &model_starlark_pb.Target_Definition_TestSuite{
+				TestSuite: &model_starlark_pb.TestSuite{
+					Sizes: []model_starlark_pb.TestSize{
+						model_starlark_pb.TestSize_SMALL,
+						model_starlark_pb.TestSize_MEDIUM,
+						model_starlark_pb.TestSize_LARGE,
+						model_starlark_pb.TestSize_ENORMOUS,
+					},
+				},
+			},
+		}, nil, 0))
+	})
+
 	t.Run("SourceFile", func(t *testing.T) {
 		// Targets that are not declared by calling a function
 		// should be rendered as comments.

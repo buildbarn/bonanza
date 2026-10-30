@@ -338,6 +338,67 @@ func getQueryRuleTarget[TReference any](
 	return t, nil
 }
 
+// getQueryTestSuiteTarget obtains the attribute values of a test
+// suite. As with Bazel, the "tags" attribute only contains the positive
+// tags of the test suite and the "manual" tag.
+//
+// As the list of tests of a test suite is stored as a B-tree, it needs
+// to be loaded into memory to provide it as the value of the "tests"
+// attribute.
+func (c *baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx context.Context, targetLabel label.CanonicalLabel, testSuite model_core.Message[*model_starlark_pb.TestSuite, TReference]) (*queryRuleTarget[TReference], error) {
+	var tests []string
+	var errIter error
+	for test := range c.allTestSuiteTests(ctx, model_core.Nested(testSuite, testSuite.Message.Tests), &errIter) {
+		tests = append(tests, test)
+	}
+	if errIter != nil {
+		return nil, fmt.Errorf("failed to read tests: %w", errIter)
+	}
+
+	tags := model_starlark.GetTestSuiteQueryTags(testSuite.Message)
+	tagElements := make([]*model_starlark_pb.List_Element, 0, len(tags))
+	for _, tag := range tags {
+		tagElements = append(tagElements, &model_starlark_pb.List_Element{
+			Level: &model_starlark_pb.List_Element_Leaf{
+				Leaf: &model_starlark_pb.Value{
+					Kind: &model_starlark_pb.Value_Str{Str: tag},
+				},
+			},
+		})
+	}
+	return &queryRuleTarget[TReference]{
+		attrs: []queryAttr[TReference]{
+			{
+				name:       "name",
+				isExplicit: true,
+				parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
+					model_core.NewSimpleMessage[TReference](&model_starlark_pb.Value{
+						Kind: &model_starlark_pb.Value_Str{Str: targetLabel.GetTargetName().String()},
+					}),
+				}},
+			},
+			{
+				name:       "tags",
+				isExplicit: true,
+				parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
+					model_core.NewSimpleMessage[TReference](&model_starlark_pb.Value{
+						Kind: &model_starlark_pb.Value_List{
+							List: &model_starlark_pb.List{Elements: tagElements},
+						},
+					}),
+				}},
+			},
+			{
+				name:       "tests",
+				isExplicit: true,
+				parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
+					newQueryLabelListValue[TReference](tests),
+				}},
+			},
+		},
+	}, nil
+}
+
 // visitQueryAttrLabels calls a function for each label contained in
 // all possible values of an attribute, and optionally the labels of
 // the conditions of select() expressions.
@@ -635,7 +696,8 @@ func isQueryRuleTarget(definition *model_starlark_pb.Target_Definition) bool {
 	switch definition.GetKind().(type) {
 	case *model_starlark_pb.Target_Definition_Alias,
 		*model_starlark_pb.Target_Definition_LabelSetting,
-		*model_starlark_pb.Target_Definition_RuleTarget:
+		*model_starlark_pb.Target_Definition_RuleTarget,
+		*model_starlark_pb.Target_Definition_TestSuite:
 		return true
 	default:
 		return false
@@ -648,11 +710,8 @@ func isQueryRuleTarget(definition *model_starlark_pb.Target_Definition) bool {
 // expressions can be evaluated for each package separately, as the
 // result for any target does not depend on other targets.
 //
-// TODO: tests() is only part of this list because test_suite() is not
-// yet supported, meaning that tests(x) merely yields the test targets
-// contained in x. Once test_suite() is implemented as a built-in,
-// tests() needs to expand test suites, which may refer to targets in
-// other packages.
+// tests() is not part of this list, as test suites contained in its
+// operand may refer to tests in other packages.
 func getPerTargetQueryOperand(expression label.QueryExpression[label.CanonicalTargetPattern]) (int, bool) {
 	switch e := expression.(type) {
 	case *label.QueryFilter[label.CanonicalTargetPattern]:
@@ -664,8 +723,6 @@ func getPerTargetQueryOperand(expression label.QueryExpression[label.CanonicalTa
 	case *label.QueryTag[label.CanonicalTargetPattern]:
 		return e.Expression, true
 	case *label.QueryPackages[label.CanonicalTargetPattern]:
-		return e.Expression, true
-	case *label.QueryTests[label.CanonicalTargetPattern]:
 		return e.Expression, true
 	case *label.QueryRules[label.CanonicalTargetPattern]:
 		return e.Expression, true
@@ -721,7 +778,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 			return nil, fmt.Errorf("invalid regular expression %#v: %w", expression.Pattern, err)
 		}
 		results := labelSet{}
-		if err := forEachQueryRuleTargetAttr(e, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
+		if err := c.forEachQueryRuleTargetAttr(ctx, e, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
 			attrStrings, err := c.stringifyQueryAttr(ctx, attr)
 			if err != nil {
 				return err
@@ -742,12 +799,18 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 		}
 		results := labelSet{}
 		for i, definition := range definitions {
-			// Tags of rule targets are sorted alphabetically.
-			// Other kinds of targets don't have any tags.
-			if ruleTarget, ok := definition.Message.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget); ok {
-				if _, found := slices.BinarySearch(ruleTarget.RuleTarget.Tags, expression.Tag); found {
-					results[labels[i]] = struct{}{}
-				}
+			// Tags of rule targets and test suites are
+			// sorted alphabetically. Other kinds of targets
+			// don't have any tags.
+			var tags []string
+			switch kind := definition.Message.GetKind().(type) {
+			case *model_starlark_pb.Target_Definition_RuleTarget:
+				tags = kind.RuleTarget.Tags
+			case *model_starlark_pb.Target_Definition_TestSuite:
+				tags = model_starlark.GetTestSuiteQueryTags(kind.TestSuite)
+			}
+			if _, found := slices.BinarySearch(tags, expression.Tag); found {
+				results[labels[i]] = struct{}{}
 			}
 		}
 		return results, nil
@@ -772,15 +835,11 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 		}
 		return results, nil
 
-	case *label.QueryTests[label.CanonicalTargetPattern], *label.QueryExecutables[label.CanonicalTargetPattern]:
-		// Both tests() and executables() select rule targets
-		// based on the type of their rule definitions. Tests
-		// are executable, but are only yielded by tests(), as
-		// is the case for Bazel.
-		wantType := model_starlark_pb.Rule_Definition_EXECUTABLE
-		if _, ok := expression.(*label.QueryTests[label.CanonicalTargetPattern]); ok {
-			wantType = model_starlark_pb.Rule_Definition_TEST
-		}
+	case *label.QueryExecutables[label.CanonicalTargetPattern]:
+		// executables() selects rule targets based on the type
+		// of their rule definitions. Tests are executable, but
+		// are only yielded by tests(), as is the case for
+		// Bazel.
 		definitions, err := getQueryTargetDefinitions(e, labels)
 		if err != nil {
 			return nil, err
@@ -804,7 +863,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 				}
 				return nil, err
 			}
-			if ruleDefinition.Message.Type == wantType {
+			if ruleDefinition.Message.Type == model_starlark_pb.Rule_Definition_EXECUTABLE {
 				results[labels[i]] = struct{}{}
 			}
 		}
@@ -1265,7 +1324,7 @@ func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context,
 			return nil, err
 		}
 		results := labelSet{}
-		if err := forEachQueryRuleTargetAttr(e, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
+		if err := c.forEachQueryRuleTargetAttr(ctx, e, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
 			return c.visitQueryAttrLabels(ctx, attr, false, func(attrLabel label.ResolvedLabel) error {
 				canonicalLabel, err := canonicalizeResolvedQueryLabel(attrLabel)
 				if err != nil {
@@ -1301,18 +1360,23 @@ type forEachQueryRuleTargetAttrEnvironment[TReference any] interface {
 
 // forEachQueryRuleTargetAttr calls a function for each rule target in
 // a set of targets that has an attribute with a given name.
-func forEachQueryRuleTargetAttr[TReference any](e forEachQueryRuleTargetAttrEnvironment[TReference], labels []label.CanonicalLabel, attrName string, f func(l label.CanonicalLabel, attr *queryAttr[TReference]) error) error {
+func (c *baseComputer[TReference, TMetadata]) forEachQueryRuleTargetAttr(ctx context.Context, e forEachQueryRuleTargetAttrEnvironment[TReference], labels []label.CanonicalLabel, attrName string, f func(l label.CanonicalLabel, attr *queryAttr[TReference]) error) error {
 	definitions, err := getQueryTargetDefinitions(e, labels)
 	if err != nil {
 		return err
 	}
 	missingDependencies := false
 	for i, definition := range definitions {
-		ruleTarget, ok := definition.Message.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget)
-		if !ok {
+		var t *queryRuleTarget[TReference]
+		var err error
+		switch kind := definition.Message.GetKind().(type) {
+		case *model_starlark_pb.Target_Definition_RuleTarget:
+			t, err = getQueryRuleTarget(e, labels[i], model_core.Nested(definition, kind.RuleTarget))
+		case *model_starlark_pb.Target_Definition_TestSuite:
+			t, err = c.getQueryTestSuiteTarget(ctx, labels[i], model_core.Nested(definition, kind.TestSuite))
+		default:
 			continue
 		}
-		t, err := getQueryRuleTarget(e, labels[i], model_core.Nested(definition, ruleTarget.RuleTarget))
 		if err != nil {
 			if errors.Is(err, evaluation.ErrMissingDependency) {
 				missingDependencies = true
@@ -1558,7 +1622,7 @@ func (mc *targetLabelsMergeCursor[TReference]) getHeight() int {
 // balanced, this ensures that merging B-trees whose labels don't
 // overlap is cheap, and that the resulting B-tree shares most of its
 // objects with the B-trees being merged.
-func (c *baseComputer[TReference, TMetadata]) mergeTargetLabels(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], lists []model_core.Message[[]*model_analysis_pb.TargetLabel, TReference]) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) mergeTargetLabels(ctx context.Context, e model_core.ObjectCapturer[TReference, TMetadata], lists []model_core.Message[[]*model_analysis_pb.TargetLabel, TReference]) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	treeBuilder := c.newTargetLabelTreeBuilder(ctx, e)
 	defer treeBuilder.Discard()
 
@@ -1787,6 +1851,77 @@ func (c *baseComputer[TReference, TMetadata]) allQueryLabels(
 	}
 }
 
+// expandQueryTests evaluates tests(x), yielding the tests contained in
+// x, and the tests that are part of test suites contained in x. As
+// test suites may refer to tests in other packages, the expanded test
+// suites are merged with the tests contained in x.
+func (c *baseComputer[TReference, TMetadata]) expandQueryTests(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], operand label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+	queryExpansion := e.GetQueryExpansionValue(newQueryExpansionKey(operand, includeImplicitDeps))
+	if !queryExpansion.IsSet() {
+		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, evaluation.ErrMissingDependency
+	}
+
+	// Load the targets in batches, so that the number of targets
+	// that is loaded into memory at once is bounded.
+	tests := labelSet{}
+	var testSuites []model_core.Message[[]*model_analysis_pb.TargetLabel, TReference]
+	missingDependencies := false
+	batch := make([]label.CanonicalLabel, 0, queryStreamingBatchSize)
+	flushBatch := func() error {
+		definitions, err := getQueryTargetDefinitions(e, batch)
+		if err != nil {
+			if !errors.Is(err, evaluation.ErrMissingDependency) {
+				return err
+			}
+			// Continue processing other batches, so that
+			// all dependencies are requested.
+			missingDependencies = true
+			batch = batch[:0]
+			return nil
+		}
+		for i, definition := range definitions {
+			switch kind := definition.Message.GetKind().(type) {
+			case *model_starlark_pb.Target_Definition_RuleTarget:
+				if kind.RuleTarget.Test != nil {
+					tests[batch[i]] = struct{}{}
+				}
+			case *model_starlark_pb.Target_Definition_TestSuite:
+				testSuiteTests := e.GetTestSuiteTestsValue(&model_analysis_pb.TestSuiteTests_Key{
+					Label: batch[i].String(),
+				})
+				if !testSuiteTests.IsSet() {
+					missingDependencies = true
+					continue
+				}
+				testSuites = append(testSuites, model_core.Nested(testSuiteTests, testSuiteTests.Message.TargetLabels))
+			}
+		}
+		batch = batch[:0]
+		return nil
+	}
+	var errIter error
+	for l := range c.allTargetLabels(ctx, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter) {
+		batch = append(batch, l)
+		if len(batch) == queryStreamingBatchSize {
+			if err := flushBatch(); err != nil {
+				return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
+			}
+		}
+	}
+	if errIter != nil {
+		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, errIter
+	}
+	if len(batch) > 0 {
+		if err := flushBatch(); err != nil {
+			return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
+		}
+	}
+	if missingDependencies {
+		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, evaluation.ErrMissingDependency
+	}
+	return c.mergeTargetLabels(ctx, e, append(testSuites, newTargetLabelLeaves[TReference](tests)))
+}
+
 func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx context.Context, key *model_analysis_pb.QueryExpansion_Key, e QueryExpansionEnvironment[TReference, TMetadata]) (PatchedQueryExpansionValue[TMetadata], error) {
 	query, err := label.NewQuery(key.Query, label.NewCanonicalTargetPattern)
 	if err != nil {
@@ -1823,6 +1958,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx con
 		}
 	} else if setOperation, ok := expressions[len(expressions)-1].(*label.QuerySetOperation[label.CanonicalTargetPattern]); ok {
 		targetLabels, err = c.expandQuerySetOperation(ctx, e, query, setOperation, key.IncludeImplicitDeps)
+	} else if tests, ok := expressions[len(expressions)-1].(*label.QueryTests[label.CanonicalTargetPattern]); ok {
+		targetLabels, err = c.expandQueryTests(ctx, e, query.GetSubquery(tests.Expression), key.IncludeImplicitDeps)
 	} else if isStreamingQueryExpression(expressions[len(expressions)-1]) {
 		targetLabels, err = c.expandQueryStreaming(ctx, e, query, key.IncludeImplicitDeps)
 	} else {

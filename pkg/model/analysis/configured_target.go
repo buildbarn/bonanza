@@ -1594,6 +1594,23 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			),
 			identifierGenerator,
 		)
+	case *model_starlark_pb.Target_Definition_TestSuite:
+		// Test suites don't produce any files. They are only
+		// used to select tests to run.
+		//
+		// TODO: Bazel expands test suites in target patterns
+		// provided on the command line, meaning that building
+		// a test suite causes the tests it contains to be
+		// built. Add support for this.
+		patchedDefaultInfo := model_core.Patch(e, emptyDefaultInfo)
+		return model_core.NewPatchedMessage(
+			&model_analysis_pb.ConfiguredTarget_Value{
+				ProviderInstances: []*model_starlark_pb.Struct{
+					patchedDefaultInfo.Message,
+				},
+			},
+			patchedDefaultInfo.Patcher,
+		), nil
 	default:
 		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("only source file targets and rule targets can be configured")
 	}

@@ -432,7 +432,8 @@
             "PackagesAtAndBelow",
             "QueryExpansion",
             "Target",
-            "TargetDirectDependencies"
+            "TargetDirectDependencies",
+            "TestSuiteTests"
          ]
       },
       "QueryResult": {
@@ -708,6 +709,12 @@
             "ConfiguredTarget"
          ],
          "keyContainsReferences": true
+      },
+      "TestSuiteTests": {
+         "dependsOn": [
+            "Target",
+            "TestSuiteTests"
+         ]
       },
       "UsedModuleExtension": {
          "dependsOn": [

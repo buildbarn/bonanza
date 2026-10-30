@@ -106,6 +106,66 @@ func (tr *TargetRegistrar[TReference, TMetadata]) registerExplicitTarget(name st
 	return nil
 }
 
+// Finalize the targets that are registered against the
+// TargetRegistrar. This needs to be called after all targets in the
+// package have been declared, and before the targets are extracted
+// using GetAndRemoveTarget().
+//
+// Test suites that don't list any tests explicitly are filled in with
+// the tests in the package that are not tagged "manual" and pass the
+// test suite's filters. This makes such test suites equivalent to ones
+// listing these tests explicitly.
+func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_label.CanonicalPackage, valueEncodingOptions *ValueEncodingOptions[TReference, TMetadata]) error {
+	type packageTest struct {
+		label      string
+		ruleTarget *model_starlark_pb.RuleTarget
+	}
+	var packageTests []packageTest
+	var testSuiteNames []string
+	for _, name := range tr.GetTargetNames() {
+		switch kind := tr.targets[name].Message.GetKind().(type) {
+		case *model_starlark_pb.Target_Definition_RuleTarget:
+			ruleTarget := kind.RuleTarget
+			if ruleTarget.Test == nil {
+				continue
+			}
+			if _, isManual := slices.BinarySearch(ruleTarget.Tags, "manual"); isManual {
+				continue
+			}
+			targetName, err := pg_label.NewTargetName(name)
+			if err != nil {
+				return fmt.Errorf("invalid target name %#v: %w", name, err)
+			}
+			packageTests = append(packageTests, packageTest{
+				label:      canonicalPackage.AppendTargetName(targetName).String(),
+				ruleTarget: ruleTarget,
+			})
+		case *model_starlark_pb.Target_Definition_TestSuite:
+			if len(kind.TestSuite.Tests) == 0 {
+				testSuiteNames = append(testSuiteNames, name)
+			}
+		}
+	}
+
+	for _, name := range testSuiteNames {
+		target := tr.targets[name]
+		testSuite := target.Message.GetTestSuite()
+		var tests []string
+		for _, packageTest := range packageTests {
+			if TestSuiteMatchesTest(testSuite, packageTest.ruleTarget.Tags, packageTest.ruleTarget.Test.Size) {
+				tests = append(tests, packageTest.label)
+			}
+		}
+		testsList, err := buildTestSuiteTests(tests, valueEncodingOptions)
+		if err != nil {
+			return fmt.Errorf("failed to build list of tests of test suite %#v: %w", name, err)
+		}
+		testSuite.Tests = testsList.Message
+		target.Patcher.Merge(testsList.Patcher)
+	}
+	return nil
+}
+
 func (tr *TargetRegistrar[TReference, TMetadata]) registerImplicitTarget(name string) {
 	if _, ok := tr.targets[name]; !ok {
 		tr.targets[name] = model_core.PatchedMessage[*model_starlark_pb.Target_Definition, TMetadata]{}

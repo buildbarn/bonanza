@@ -495,14 +495,16 @@ func TestQueryExpansion(t *testing.T) {
 		})
 
 		t.Run("Tests", func(t *testing.T) {
+			// tests() can't be evaluated in memory, as test
+			// suites may refer to tests in other packages.
+			// The results of its operand should be
+			// requested separately.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
 			x, y := ruleTarget("x"), sourceFileTarget("y")
-			expectPackage(e, "@@main+//foo", x, y)
+			x.Definition.GetRuleTarget().Test = &model_starlark_pb.RuleTarget_Test{}
+			expectQueryExpansion(e, "siblings(@@main+//foo:*)", newQueryExpansionValue("@@main+//foo:x", "@@main+//foo:y"))
 			expectTarget(e, x)
 			expectTarget(e, y)
-			e.EXPECT().GetCompiledBzlFileGlobalValue(
-				testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
-			).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_TEST))
 
 			labels, err := computeQueryExpansion(e, "tests(siblings(@@main+//foo:*))")
 			require.NoError(t, err)
@@ -1387,11 +1389,12 @@ func TestQueryExpansion(t *testing.T) {
 	})
 
 	t.Run("Tests", func(t *testing.T) {
-		// Only targets whose rule is a test rule should be
-		// yielded. As test_suite() is not supported yet, test
-		// suites are not expanded.
+		// Only tests and the tests contained in test suites
+		// should be yielded. Test suites may refer to tests in
+		// other packages, and the results should be
+		// deduplicated.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
-		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b", "@@main+//:c"))
+		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b", "@@main+//:c", "@@main+//:d"))
 		expectTarget := func(l string, definition *model_starlark_pb.Target_Definition) {
 			e.EXPECT().GetTargetValue(
 				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: l}),
@@ -1403,21 +1406,65 @@ func TestQueryExpansion(t *testing.T) {
 			Kind: &model_starlark_pb.Target_Definition_RuleTarget{
 				RuleTarget: &model_starlark_pb.RuleTarget{
 					RuleIdentifier: "@@rules+//:defs.bzl%my_test",
+					Test:           &model_starlark_pb.RuleTarget_Test{},
 				},
 			},
 		})
 		expectTarget("@@main+//:b", ruleTarget("b").Definition)
 		expectTarget("@@main+//:c", sourceFileTarget("c").Definition)
-		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_test"}),
-		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_TEST))
-		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
-		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_NON_EXECUTABLE))
+		expectTarget("@@main+//:d", &model_starlark_pb.Target_Definition{
+			Kind: &model_starlark_pb.Target_Definition_TestSuite{
+				TestSuite: &model_starlark_pb.TestSuite{
+					Tests: newTestSuiteTests("@@main+//:a", "@@other+//:x"),
+				},
+			},
+		})
+		e.EXPECT().GetTestSuiteTestsValue(
+			testutil.EqProto(t, &model_analysis_pb.TestSuiteTests_Key{Label: "@@main+//:d"}),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.TestSuiteTests_Value{
+			TargetLabels: newTargetLabels("@@main+//:a", "@@other+//:x"),
+		}))
 
 		labels, err := computeQueryExpansion(e, "tests(@@main+//:*)")
 		require.NoError(t, err)
-		require.Equal(t, []string{"@@main+//:a"}, labels)
+		require.Equal(t, []string{"@@main+//:a", "@@other+//:x"}, labels)
+	})
+
+	t.Run("TestSuiteAttrs", func(t *testing.T) {
+		// tag() and attr(tags, ...) should only consider the
+		// positive tags of test suites and "manual". Negative
+		// tags and sizes are only used to filter tests.
+		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		expectQueryExpansion(e, "@@main+//:suite", newQueryExpansionValue("@@main+//:suite")).AnyTimes()
+		e.EXPECT().GetTargetValue(
+			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:suite"}),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			Definition: &model_starlark_pb.Target_Definition{
+				Kind: &model_starlark_pb.Target_Definition_TestSuite{
+					TestSuite: &model_starlark_pb.TestSuite{
+						Tests:        newTestSuiteTests("@@main+//:a"),
+						PositiveTags: []string{"integration"},
+						NegativeTags: []string{"flaky"},
+						Sizes:        []model_starlark_pb.TestSize{model_starlark_pb.TestSize_SMALL},
+						Manual:       true,
+					},
+				},
+			},
+		})).AnyTimes()
+
+		for query, expected := range map[string][]string{
+			"tag(integration, @@main+//:suite)":                          {"@@main+//:suite"},
+			"tag(manual, @@main+//:suite)":                               {"@@main+//:suite"},
+			"tag(flaky, @@main+//:suite)":                                {},
+			"tag(small, @@main+//:suite)":                                {},
+			"attr(tags, \"\\[integration, manual\\]\", @@main+//:suite)": {"@@main+//:suite"},
+			"attr(tests, \"\\[@@main\\+//:a\\]\", @@main+//:suite)":      {"@@main+//:suite"},
+			"kind(\"test_suite rule\", @@main+//:suite)":                 {"@@main+//:suite"},
+		} {
+			labels, err := computeQueryExpansion(e, query)
+			require.NoError(t, err, query)
+			require.Equal(t, expected, labels, query)
+		}
 	})
 
 	t.Run("Visible", func(t *testing.T) {

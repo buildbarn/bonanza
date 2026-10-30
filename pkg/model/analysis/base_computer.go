@@ -105,6 +105,7 @@ type baseComputer[TReference object.BasicReference, TMetadata model_core.Referen
 	packageGroupOverridesReader         model_parser.MessageObjectReader[TReference, *model_starlark_pb.PackageGroup_Subpackages_Overrides]
 	packageValueTargetReader            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Package_Value_Target]
 	targetLabelReader                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetLabel]
+	testSuiteTestReader                 model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
 }
 
 // NewBaseComputer constructs a computer that is capable of performing
@@ -184,6 +185,10 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 		targetLabelReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.TargetLabel](),
+		),
+		testSuiteTestReader: model_parser.LookupParsedObjectReader(
+			parsedObjectPoolIngester,
+			model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.TestSuite_Test](),
 		),
 	}
 }

@@ -244,6 +244,21 @@ func (sr *StarlarkRenderer) Target(targetLabel label.CanonicalLabel, definition 
 		)
 	case *model_starlark_pb.Target_Definition_SourceFileTarget:
 		return Styled(RoleDim, "# "+targetLabel.String()+" (source file)")
+	case *model_starlark_pb.Target_Definition_TestSuite:
+		var arguments []starlarkTargetArgument
+		if l := model_starlark.GetTestSuiteTags(kind.TestSuite); len(l) > 0 {
+			arguments = append(arguments, starlarkTargetArgument{
+				name:  "tags",
+				value: starlarkStringList(l),
+			})
+		}
+		if l := kind.TestSuite.Tests; len(l) > 0 {
+			arguments = append(arguments, starlarkTargetArgument{
+				name:  "tests",
+				value: sr.renderTestSuiteTests(model_core.Nested(definition, l)),
+			})
+		}
+		return starlarkTargetCall(starlarkCallee("test_suite", ""), name, arguments)
 	default:
 		return starlarkErrorf("Unknown target kind")
 	}

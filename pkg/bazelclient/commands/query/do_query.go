@@ -170,6 +170,13 @@ func printQueryResult(ctx context.Context, evaluation *build.Evaluation, output 
 				model_parser.NewProtoListObjectParser[object.LocalReference, model_starlark_pb.List_Element](),
 			),
 		),
+		TestSuiteTestReader: model_parser.LookupParsedObjectReader(
+			parsedObjectPoolIngester,
+			model_parser.NewChainedObjectParser(
+				model_parser.NewEncodedObjectParser[object.LocalReference](valueObjectEncoder),
+				model_parser.NewProtoListObjectParser[object.LocalReference, model_starlark_pb.TestSuite_Test](),
+			),
+		),
 	}
 
 	count := 0

@@ -82,6 +82,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 		}
 	case *model_starlark_pb.Target_Definition_SourceFileTarget:
 		// Source files have no dependencies.
+	case *model_starlark_pb.Target_Definition_TestSuite:
+		testSuite := kind.TestSuite
+		var errIter error
+		for l := range c.allTestSuiteTests(ctx, model_core.Nested(target, testSuite.Tests), &errIter) {
+			if err := addDependencyString(l); err != nil {
+				return PatchedTargetDirectDependenciesValue[TMetadata]{}, err
+			}
+		}
+		if errIter != nil {
+			return PatchedTargetDirectDependenciesValue[TMetadata]{}, fmt.Errorf("failed to read tests: %w", errIter)
+		}
 	default:
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, errors.New("unknown target kind")
 	}

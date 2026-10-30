@@ -155,6 +155,8 @@ func getTargetVisibility[TReference any](e TargetValueGetter[TReference], target
 		return getRuleTargetVisibility(targetLabel, model_core.Nested(definition, kind.RuleTarget))
 	case *model_starlark_pb.Target_Definition_SourceFileTarget:
 		return model_core.Nested(definition, kind.SourceFileTarget.Visibility), true, nil
+	case *model_starlark_pb.Target_Definition_TestSuite:
+		return model_core.Nested(definition, kind.TestSuite.Visibility), true, nil
 	default:
 		return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, errors.New("invalid target type")
 	}

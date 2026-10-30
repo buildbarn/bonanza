@@ -1317,6 +1317,69 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewLabel[TReference, TMetadata](input), nil
 				},
 			),
+			"test_suite": starlark.NewBuiltin(
+				"native.test_suite",
+				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
+					if targetRegistrar == nil {
+						return nil, errors.New("targets cannot be registered from within this context")
+					}
+					currentPackage := thread.Local(CanonicalPackageKey).(pg_label.CanonicalPackage)
+
+					var name string
+					var tests []pg_label.ResolvedLabel
+					var tags []string
+					var visibility []pg_label.ResolvedLabel
+					labelOrStringUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
+					if err := starlark.UnpackArgs(
+						b.Name(), args, kwargs,
+						"name", unpack.Bind(thread, &name, unpack.Stringer(unpack.TargetName)),
+						"tags?", unpack.Bind(thread, &tags, unpack.List(unpack.String)),
+						"tests?", unpack.Bind(thread, &tests, unpack.List(labelOrStringUnpackerInto)),
+						"visibility?", unpack.Bind(thread, &visibility, unpack.IfNotNone(unpack.List(labelOrStringUnpackerInto))),
+					); err != nil {
+						return nil, err
+					}
+
+					testStrings := make([]string, 0, len(tests))
+					for _, l := range tests {
+						if canonicalLabel, err := l.AsCanonical(); err == nil && canonicalLabel.GetCanonicalPackage() == currentPackage {
+							targetRegistrar.registerImplicitTarget(l.GetTargetName().String())
+						}
+						testStrings = append(testStrings, l.String())
+					}
+
+					testSuite, err := newTestSuite(tags)
+					if err != nil {
+						return nil, err
+					}
+					valueEncodingOptions := thread.Local(ValueEncodingOptionsKey).(*ValueEncodingOptions[TReference, TMetadata])
+					testsList, err := buildTestSuiteTests(testStrings, valueEncodingOptions)
+					if err != nil {
+						return nil, fmt.Errorf("attribute \"tests\": %w", err)
+					}
+					visibilityPackageGroup, err := targetRegistrar.getVisibilityPackageGroup(visibility)
+					if err != nil {
+						testsList.Discard()
+						return nil, err
+					}
+					testSuite.Tests = testsList.Message
+					testSuite.Visibility = visibilityPackageGroup.Message
+					testsList.Patcher.Merge(visibilityPackageGroup.Patcher)
+					target := model_core.NewPatchedMessage(
+						&model_starlark_pb.Target_Definition{
+							Kind: &model_starlark_pb.Target_Definition_TestSuite{
+								TestSuite: testSuite,
+							},
+						},
+						testsList.Patcher,
+					)
+					// If no tests are listed, the tests
+					// in the current package are filled
+					// in by TargetRegistrar.Finalize().
+					return starlark.None, targetRegistrar.registerExplicitTarget(name, target)
+				},
+			),
 		}),
 		"provider": starlark.NewBuiltin(
 			"provider",

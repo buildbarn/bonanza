@@ -244,4 +244,31 @@ func TestTargetDirectDependencies(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, []string{"@@main+//:actual"}, getTargetLabels(t, value.Message.TargetLabels))
 	})
+
+	t.Run("TestSuite", func(t *testing.T) {
+		// Tests listed by a test suite are explicit
+		// dependencies, regardless of the test suite's filters.
+		for _, includeImplicitDeps := range []bool{false, true} {
+			e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)
+			e.EXPECT().GetTargetValue(
+				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:suite"}),
+			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+				Definition: &model_starlark_pb.Target_Definition{
+					Kind: &model_starlark_pb.Target_Definition_TestSuite{
+						TestSuite: &model_starlark_pb.TestSuite{
+							Tests:        newTestSuiteTests("@@main+//bar:nested_suite", "@@main+//foo:test"),
+							PositiveTags: []string{"integration"},
+							Sizes:        []model_starlark_pb.TestSize{model_starlark_pb.TestSize_SMALL},
+						},
+					},
+				},
+			}))
+			value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
+				Label:               "@@main+//foo:suite",
+				IncludeImplicitDeps: includeImplicitDeps,
+			}, e)
+			require.NoError(t, err)
+			require.Equal(t, []string{"@@main+//bar:nested_suite", "@@main+//foo:test"}, getTargetLabels(t, value.Message.TargetLabels))
+		}
+	})
 }

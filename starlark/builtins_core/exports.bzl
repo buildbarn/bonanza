@@ -569,17 +569,6 @@ starlark_doc_extract = rule(
     needs = [],
 )
 
-def _test_suite_impl(ctx):
-    fail("TODO: implement")
-
-test_suite = rule(
-    _test_suite_impl,
-    attrs = {
-        "tests": attr.string_list(),
-    },
-    needs = [],
-)
-
 def _toolchain_impl(ctx):
     return [DeclaredToolchainInfo(
         target_settings = [
@@ -1590,7 +1579,7 @@ exported_rules = {
     "package_group": native.package_group,
     "platform": platform,
     "starlark_doc_extract": starlark_doc_extract,
-    "test_suite": test_suite,
+    "test_suite": native.test_suite,
     "toolchain": toolchain,
     "toolchain_type": toolchain_type,
 }

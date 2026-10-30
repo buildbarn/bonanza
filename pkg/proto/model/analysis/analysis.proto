@@ -2115,6 +2115,21 @@ message TargetProviders {
   }
 }
 
+// TestSuiteTests returns the labels of the tests that are part of a
+// test suite, after recursively expanding any test suites contained
+// within, and applying the test suite's filters on tags and sizes.
+message TestSuiteTests {
+  message Key {
+    // The canonical label of the test suite.
+    string label = 1;
+  }
+
+  message Value {
+    // Canonical labels of the tests that are part of the test suite.
+    repeated TargetLabel target_labels = 1;
+  }
+}
+
 message ModuleExtension {
   message User {
     // The module instance that uses the module extension.

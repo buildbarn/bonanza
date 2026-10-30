@@ -33,6 +33,8 @@ func GetTargetKind(definition *model_starlark_pb.Target_Definition) (string, err
 		return ruleIdentifier.GetStarlarkIdentifier().String() + " rule", nil
 	case *model_starlark_pb.Target_Definition_SourceFileTarget:
 		return "source file", nil
+	case *model_starlark_pb.Target_Definition_TestSuite:
+		return "test_suite rule", nil
 	default:
 		return "", errors.New("unknown target kind")
 	}

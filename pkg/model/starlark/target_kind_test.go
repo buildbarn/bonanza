@@ -48,6 +48,11 @@ func TestGetTargetKind(t *testing.T) {
 				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
 			},
 		},
+		"test_suite rule": {
+			Kind: &model_starlark_pb.Target_Definition_TestSuite{
+				TestSuite: &model_starlark_pb.TestSuite{},
+			},
+		},
 	} {
 		t.Run(kind, func(t *testing.T) {
 			got, err := model_starlark.GetTargetKind(definition)

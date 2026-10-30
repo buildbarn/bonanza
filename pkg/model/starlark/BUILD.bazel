@@ -79,6 +79,7 @@ go_test(
         "rule_test.go",
         "struct_test.go",
         "target_kind_test.go",
+        "test_suite_test.go",
     ],
     embed = [":starlark"],
     deps = [
