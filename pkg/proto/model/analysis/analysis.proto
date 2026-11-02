@@ -1458,6 +1458,11 @@ message PackageTargets {
     // through the macro instances it declares. The name of the macro
     // instance uses the same format as Package.Key.macro_instance_name.
     repeated string macro_instance_name = 2;
+
+    // If set, omit targets declared by finalizers, either directly or
+    // through the macro instances they declare. This yields the
+    // targets that finalizers may observe.
+    bool exclude_finalizers = 3;
   }
 
   message Value {

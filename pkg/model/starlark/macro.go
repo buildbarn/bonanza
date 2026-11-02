@@ -87,6 +87,10 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 	if err := m.definition.CheckSupported(thread); err != nil {
 		return nil, err
 	}
+	finalizer, err := m.definition.IsFinalizer(thread)
+	if err != nil {
+		return nil, err
+	}
 	attrs, err := m.definition.GetAttrsCheap(thread)
 	if err != nil {
 		return nil, err
@@ -211,6 +215,7 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 			&model_starlark_pb.MacroInstance_Definition{
 				MacroIdentifier:  m.Identifier.String(),
 				PublicAttrValues: publicAttrValues,
+				Finalizer:        finalizer,
 				InheritableAttrs: &model_starlark_pb.InheritableAttrs{
 					Deprecation:     defaultInheritableAttrs.GetDeprecation(),
 					PackageMetadata: defaultInheritableAttrs.GetPackageMetadata(),
@@ -266,14 +271,12 @@ type MacroDefinition[TReference any, TMetadata model_core.ReferenceMetadata] int
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata], bool, error)
 	GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
 	CheckSupported(thread *starlark.Thread) error
+	IsFinalizer(thread *starlark.Thread) (bool, error)
 }
 
 // checkMacroSupported returns an error if a macro uses features that
 // are not supported yet.
-func checkMacroSupported(finalizer, inheritAttrs bool) error {
-	if finalizer {
-		return errors.New("macros that are finalizers are not supported yet")
-	}
+func checkMacroSupported(inheritAttrs bool) error {
 	if inheritAttrs {
 		return errors.New("macros that inherit attributes are not supported yet")
 	}
@@ -331,7 +334,11 @@ func (md *starlarkMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *
 }
 
 func (md *starlarkMacroDefinition[TReference, TMetadata]) CheckSupported(thread *starlark.Thread) error {
-	return checkMacroSupported(md.finalizer, md.inheritAttrs)
+	return checkMacroSupported(md.inheritAttrs)
+}
+
+func (md *starlarkMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *starlark.Thread) (bool, error) {
+	return md.finalizer, nil
 }
 
 type protoMacroDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -359,7 +366,11 @@ func (md *protoMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *sta
 }
 
 func (md *protoMacroDefinition[TReference, TMetadata]) CheckSupported(thread *starlark.Thread) error {
-	return checkMacroSupported(md.message.Message.Finalizer, md.message.Message.InheritAttrs)
+	return checkMacroSupported(md.message.Message.InheritAttrs)
+}
+
+func (md *protoMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *starlark.Thread) (bool, error) {
+	return md.message.Message.Finalizer, nil
 }
 
 type reloadingMacroDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -413,6 +424,14 @@ func (md *reloadingMacroDefinition[TReference, TMetadata]) CheckSupported(thread
 		return err
 	}
 	return base.CheckSupported(thread)
+}
+
+func (md *reloadingMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *starlark.Thread) (bool, error) {
+	base, err := md.getBase(thread)
+	if err != nil {
+		return false, err
+	}
+	return base.IsFinalizer(thread)
 }
 
 // GetMacroDefinition extracts the definition of a macro from a

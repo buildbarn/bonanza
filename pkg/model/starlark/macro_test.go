@@ -101,6 +101,7 @@ func TestMacro(t *testing.T) {
 			starlark.NewList(nil),
 		),
 	}, false)
+	exampleFinalizer := newMacro(nil, true)
 	call := func(thread *starlark.Thread, callee starlark.Value, args starlark.Tuple, kwargs ...starlark.Tuple) error {
 		_, err := starlark.Call(thread, callee, args, kwargs)
 		return err
@@ -207,6 +208,16 @@ func TestMacro(t *testing.T) {
 				},
 			},
 		}, getMacroInstance(t, thread, targetRegistrar, "m"))
+	})
+
+	t.Run("TopLevelFinalizer", func(t *testing.T) {
+		// Finalizers may be instantiated at the top level of a
+		// package. Whether a macro instance is a finalizer
+		// should be recorded, so that it can be omitted from
+		// the targets that finalizers observe.
+		thread, targetRegistrar := newTopLevel(t)
+		require.NoError(t, call(thread, exampleFinalizer, nil, kwarg("name", starlark.String("f"))))
+		require.True(t, getMacroInstance(t, thread, targetRegistrar, "f").Definition.Finalizer)
 	})
 
 	t.Run("TopLevelVisibility", func(t *testing.T) {
@@ -330,11 +341,6 @@ func TestMacro(t *testing.T) {
 				}, false),
 				kwargs:        []starlark.Tuple{kwarg("name", starlark.String("m"))},
 				expectedError: "macro uses attribute with reserved name \"visibility\"",
-			},
-			"Finalizer": {
-				macro:         newMacro(nil, true),
-				kwargs:        []starlark.Tuple{kwarg("name", starlark.String("m"))},
-				expectedError: "macros that are finalizers are not supported yet",
 			},
 		} {
 			t.Run(name, func(t *testing.T) {
@@ -554,6 +560,54 @@ func TestMacro(t *testing.T) {
 			}
 		})
 
+		t.Run("Finalizers", func(t *testing.T) {
+			// Finalizers are expanded after all targets
+			// declared by non-finalizer macro instances.
+			// Outside of finalizers, they may therefore not
+			// contain non-finalizer macro instances in their
+			// namespace. Other combinations are permitted.
+			for name, testCase := range map[string]struct {
+				finalizerNames []string
+				otherNames     []string
+				expectedError  string
+			}{
+				"FinalizerContainsFinalizer":       {[]string{"f", "f_x"}, nil, ""},
+				"NonFinalizerContainsFinalizer":    {[]string{"m_f"}, []string{"m"}, ""},
+				"FinalizerContainsNonFinalizer":    {[]string{"f"}, []string{"f_x"}, "non-finalizer macro instance \"f_x\" cannot be part of the namespace of finalizer \"f\""},
+				"FinalizerWithSimilarNonFinalizer": {[]string{"f"}, []string{"fx"}, ""},
+			} {
+				t.Run(name, func(t *testing.T) {
+					thread, targetRegistrar := newTopLevel(t)
+					for _, name := range testCase.finalizerNames {
+						require.NoError(t, call(thread, exampleFinalizer, nil, kwarg("name", starlark.String(name))))
+					}
+					for _, name := range testCase.otherNames {
+						require.NoError(t, callMacro(thread, name))
+					}
+					if testCase.expectedError == "" {
+						require.NoError(t, finalize(thread, targetRegistrar))
+					} else {
+						require.EqualError(t, finalize(thread, targetRegistrar), testCase.expectedError)
+					}
+				})
+			}
+
+			t.Run("WithinFinalizer", func(t *testing.T) {
+				// Within finalizers, any combination is
+				// permitted, as none of the targets they
+				// declare are observed by finalizers.
+				thread, targetRegistrar := newExpansion(t, &model_starlark_pb.MacroExpansionContext_Definition{
+					RootMacroInstanceDefinition: &model_starlark_pb.MacroInstance_Definition{
+						Finalizer: true,
+					},
+				})
+				require.NoError(t, call(thread, exampleFinalizer, nil, kwarg("name", starlark.String("m_f"))))
+				require.NoError(t, callMacro(thread, "m_f_x"))
+				require.NoError(t, finalize(thread, targetRegistrar))
+				require.Equal(t, []string{"m_f"}, targetRegistrar.GetMacroExpansionContextNames())
+			})
+		})
+
 		t.Run("NestedWithinMacro", func(t *testing.T) {
 			// Macro instances that are nested inside the
 			// current macro instance should be treated as
@@ -617,6 +671,17 @@ func TestMacro(t *testing.T) {
 			}
 			require.NoError(t, finalize(thread, targetRegistrar))
 			require.Equal(t, []string{"m_nested"}, targetRegistrar.GetMacroExpansionContextNames())
+		})
+
+		t.Run("Finalizer", func(t *testing.T) {
+			// Unlike Bazel, finalizers may also be
+			// instantiated by non-finalizer macros. This is
+			// equivalent to finalizers declared at the top
+			// level whose namespace is contained within the
+			// namespace of a non-finalizer macro instance.
+			thread, targetRegistrar := newWithinMacro(t)
+			require.NoError(t, call(thread, exampleFinalizer, nil, kwarg("name", starlark.String("m_f"))))
+			require.True(t, getMacroInstance(t, thread, targetRegistrar, "m_f").Definition.Finalizer)
 		})
 
 		t.Run("SameNameAsMacro", func(t *testing.T) {
@@ -698,6 +763,7 @@ func TestMacro(t *testing.T) {
 		// callable as well, both if they contain their own
 		// definition and if they refer to another macro.
 		definition := &model_starlark_pb.Macro_Definition{
+			Finalizer: true,
 			Attrs: []*model_starlark_pb.NamedAttr{{
 				Name: "value",
 				Attr: &model_starlark_pb.Attr{
@@ -748,6 +814,7 @@ func TestMacro(t *testing.T) {
 				require.NoError(t, call(thread, decodedMacro, nil, kwarg("name", starlark.String("m")), kwarg("value", starlark.String("hello"))))
 				macroInstance := getMacroInstance(t, thread, targetRegistrar, "m")
 				require.Equal(t, "@@rules+//:defs.bzl%my_macro", macroInstance.Definition.MacroIdentifier)
+				require.True(t, macroInstance.Definition.Finalizer)
 				require.Len(t, macroInstance.Definition.PublicAttrValues, 1)
 			})
 		}

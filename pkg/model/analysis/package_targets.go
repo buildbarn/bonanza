@@ -135,9 +135,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx con
 		if !ok {
 			return PatchedPackageTargetsValue[TMetadata]{}, errors.New("not a valid leaf entry")
 		}
+		if key.ExcludeFinalizers && level.Leaf.Definition.GetRootMacroInstanceDefinition().GetFinalizer() {
+			continue
+		}
 		macroInstanceTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
 			Package:           key.Package,
 			MacroInstanceName: append(slices.Clip(key.MacroInstanceName), level.Leaf.NameSuffix),
+			ExcludeFinalizers: key.ExcludeFinalizers,
 		})
 		if !macroInstanceTargets.IsSet() {
 			missingDependencies = true

@@ -484,9 +484,6 @@ message Macro {
 
     // Whether the macro is a finalizer, meaning it is evaluated after
     // all other targets in the package have been declared.
-    //
-    // TODO: Add support for finalizers. Invoking such macros currently
-    // fails.
     bool finalizer = 3;
 
     // Whether macro() was called with "inherit_attrs" set.
@@ -637,6 +634,13 @@ message MacroInstance {
     // targets declared by the macro, as these are only visible to the
     // package containing the macro's definition by default.
     InheritableAttrs inheritable_attrs = 3;
+
+    // Whether the macro is a finalizer. Finalizers are expanded after
+    // all targets declared by non-finalizer macro instances in the
+    // package have been declared. This means that outside of
+    // finalizers, the namespace of a finalizer may not contain
+    // non-finalizer macro instances.
+    bool finalizer = 4;
   }
 
   // The suffix that needs to be appended to the name of the macro

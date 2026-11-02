@@ -5011,6 +5011,7 @@ type MacroInstance_Definition struct {
 	MacroIdentifier  string                        `protobuf:"bytes,1,opt,name=macro_identifier,json=macroIdentifier,proto3" json:"macro_identifier,omitempty"`
 	PublicAttrValues []*RuleTarget_PublicAttrValue `protobuf:"bytes,2,rep,name=public_attr_values,json=publicAttrValues,proto3" json:"public_attr_values,omitempty"`
 	InheritableAttrs *InheritableAttrs             `protobuf:"bytes,3,opt,name=inheritable_attrs,json=inheritableAttrs,proto3" json:"inheritable_attrs,omitempty"`
+	Finalizer        bool                          `protobuf:"varint,4,opt,name=finalizer,proto3" json:"finalizer,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -5064,6 +5065,13 @@ func (x *MacroInstance_Definition) GetInheritableAttrs() *InheritableAttrs {
 		return x.InheritableAttrs
 	}
 	return nil
+}
+
+func (x *MacroInstance_Definition) GetFinalizer() bool {
+	if x != nil {
+		return x.Finalizer
+	}
+	return false
 }
 
 type MacroInstance_Entry struct {
@@ -6884,18 +6892,19 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\x06Parent\x12~\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB8\xea\xd7 4\x1a2bonanza.model.starlark.MacroExpansionContext.EntryR\treference\x12*\n" +
 	"\x11first_name_suffix\x18\x02 \x01(\tR\x0ffirstNameSuffixB\a\n" +
-	"\x05level\"\x96\x05\n" +
+	"\x05level\"\xb4\x05\n" +
 	"\rMacroInstance\x12\x1f\n" +
 	"\vname_suffix\x18\x01 \x01(\tR\n" +
 	"nameSuffix\x12P\n" +
 	"\n" +
 	"definition\x18\x02 \x01(\v20.bonanza.model.starlark.MacroInstance.DefinitionR\n" +
-	"definition\x1a\xf0\x01\n" +
+	"definition\x1a\x8e\x02\n" +
 	"\n" +
 	"Definition\x12)\n" +
 	"\x10macro_identifier\x18\x01 \x01(\tR\x0fmacroIdentifier\x12`\n" +
 	"\x12public_attr_values\x18\x02 \x03(\v22.bonanza.model.starlark.RuleTarget.PublicAttrValueR\x10publicAttrValues\x12U\n" +
-	"\x11inheritable_attrs\x18\x03 \x01(\v2(.bonanza.model.starlark.InheritableAttrsR\x10inheritableAttrs\x1a\x9e\x02\n" +
+	"\x11inheritable_attrs\x18\x03 \x01(\v2(.bonanza.model.starlark.InheritableAttrsR\x10inheritableAttrs\x12\x1c\n" +
+	"\tfinalizer\x18\x04 \x01(\bR\tfinalizer\x1a\x9e\x02\n" +
 	"\x05Entry\x12;\n" +
 	"\x04leaf\x18\x01 \x01(\v2%.bonanza.model.starlark.MacroInstanceH\x00R\x04leaf\x12L\n" +
 	"\x06parent\x18\x02 \x01(\v22.bonanza.model.starlark.MacroInstance.Entry.ParentH\x00R\x06parent\x1a\x80\x01\n" +

@@ -10487,6 +10487,7 @@ type PackageTargets_Key struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Package           string                 `protobuf:"bytes,1,opt,name=package,proto3" json:"package,omitempty"`
 	MacroInstanceName []string               `protobuf:"bytes,2,rep,name=macro_instance_name,json=macroInstanceName,proto3" json:"macro_instance_name,omitempty"`
+	ExcludeFinalizers bool                   `protobuf:"varint,3,opt,name=exclude_finalizers,json=excludeFinalizers,proto3" json:"exclude_finalizers,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -10533,6 +10534,13 @@ func (x *PackageTargets_Key) GetMacroInstanceName() []string {
 		return x.MacroInstanceName
 	}
 	return nil
+}
+
+func (x *PackageTargets_Key) GetExcludeFinalizers() bool {
+	if x != nil {
+		return x.ExcludeFinalizers
+	}
+	return false
 }
 
 type PackageTargets_Value struct {
@@ -14752,11 +14760,12 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x13package_group_label\x18\x01 \x01(\tR\x11packageGroupLabel\x12\x18\n" +
 	"\apackage\x18\x02 \x01(\tR\apackage\x1a#\n" +
 	"\x05Value\x12\x1a\n" +
-	"\bcontains\x18\x01 \x01(\bR\bcontains\"\xb2\x01\n" +
-	"\x0ePackageTargets\x1aO\n" +
+	"\bcontains\x18\x01 \x01(\bR\bcontains\"\xe1\x01\n" +
+	"\x0ePackageTargets\x1a~\n" +
 	"\x03Key\x12\x18\n" +
 	"\apackage\x18\x01 \x01(\tR\apackage\x12.\n" +
-	"\x13macro_instance_name\x18\x02 \x03(\tR\x11macroInstanceName\x1aO\n" +
+	"\x13macro_instance_name\x18\x02 \x03(\tR\x11macroInstanceName\x12-\n" +
+	"\x12exclude_finalizers\x18\x03 \x01(\bR\x11excludeFinalizers\x1aO\n" +
 	"\x05Value\x12F\n" +
 	"\atargets\x18\x01 \x03(\v2,.bonanza.model.analysis.Package.Value.TargetR\atargets\"\xbd\x01\n" +
 	"\x12PackagesAtAndBelow\x1a(\n" +

@@ -59,6 +59,9 @@ type registrarMacro[TReference any] struct {
 	// they are declared outside of the macro instance. These are
 	// relative to the name of the macro instance, and sorted.
 	forbiddenTargetNameSuffixes []string
+
+	// Whether the macro instance is a finalizer.
+	finalizer bool
 }
 
 // NewTargetRegistrar creates a TargetRegistrar that at the time of
@@ -106,6 +109,7 @@ func NewMacroTargetRegistrar[TReference object.BasicReference, TMetadata model_c
 		definitionPackage:           macroDefinitionPackage,
 		visibility:                  model_core.Nested(inheritableAttrs, inheritableAttrs.Message.GetVisibility()),
 		forbiddenTargetNameSuffixes: macroExpansionContextDefinition.Message.GetForbiddenTargetNameSuffixes(),
+		finalizer:                   macroExpansionContextDefinition.Message.GetRootMacroInstanceDefinition().GetFinalizer(),
 	}
 	tr.omittedVisibility = macroVisibilityArgument[TReference, TMetadata]{}
 	for _, suffix := range macroExpansionContextDefinition.Message.GetReferencedTargetNameSuffixes() {
@@ -349,7 +353,9 @@ func (tr *TargetRegistrar[TReference, TMetadata]) getForbiddenTargetNameSuffixes
 // disjoint. Targets that are referenced or declared in the namespace
 // of a macro instance are stored in its context, so that they can be
 // processed when the macro instance is expanded. Macro instances may
-// not declare targets that are declared by their callers.
+// not declare targets that are declared by their callers. Outside of
+// finalizers, the namespace of a finalizer may not contain non-finalizer
+// macro instances.
 //
 // Test suites that don't list any tests explicitly are filled in with
 // the tests in the package that are not tagged "manual" and pass the
@@ -370,7 +376,17 @@ func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_l
 	nestedMacroInstanceNames := map[string][]string{}
 	for _, name := range slices.SortedFunc(maps.Keys(tr.macroInstances), CompareMacroInstanceNames) {
 		if n := len(outerMacroInstanceNames); n > 0 && IsValidMacroDeclarationName(outerMacroInstanceNames[n-1], name) {
+			// Finalizers are expanded after all targets
+			// declared by non-finalizer macro instances,
+			// meaning they can't contain such macro
+			// instances. This is only a concern if targets
+			// are not already declared by a finalizer.
 			outerName := outerMacroInstanceNames[n-1]
+			if tr.macroExpansionContexts[outerName].Message.Definition.RootMacroInstanceDefinition.Finalizer &&
+				!tr.macroInstances[name].Message.Finalizer &&
+				(tr.macro == nil || !tr.macro.finalizer) {
+				return fmt.Errorf("non-finalizer macro instance %#v cannot be part of the namespace of finalizer %#v", name, outerName)
+			}
 			nestedMacroInstanceNames[outerName] = append(nestedMacroInstanceNames[outerName], name)
 		} else {
 			outerMacroInstanceNames = append(outerMacroInstanceNames, name)

@@ -324,6 +324,50 @@ func TestPackageTargets(t *testing.T) {
 		require.Contains(t, names, "m_01000x")
 	})
 
+	t.Run("ExcludeFinalizers", func(t *testing.T) {
+		// When computing the targets that finalizers may
+		// observe, targets declared by finalizers should be
+		// omitted. This also applies to finalizers declared
+		// within non-finalizer macro instances.
+		finalizer := newMacroExpansionContextDeclaration("f")
+		finalizer.GetLeaf().Definition.RootMacroInstanceDefinition.Finalizer = true
+		d := newDeclarations(
+			newRuleTargetDeclaration("x", "@@rules+//:defs.bzl%top_level"),
+		).withMacroExpansionContexts("a")
+		d.macroExpansionContexts = append(d.macroExpansionContexts, finalizer)
+
+		for _, excludeFinalizers := range []bool{false, true} {
+			e := NewMockPackageTargetsEnvironmentForTesting(ctrl)
+			expectCaptureObjects(e)
+			expectPackage(e, d)
+			expectedMacroInstanceNames := []string{"a"}
+			if !excludeFinalizers {
+				expectedMacroInstanceNames = append(expectedMacroInstanceNames, "f")
+			}
+			for _, name := range expectedMacroInstanceNames {
+				e.EXPECT().GetPackageTargetsValue(
+					testutil.EqProto(t, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo", MacroInstanceName: []string{name}, ExcludeFinalizers: excludeFinalizers}),
+				).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.PackageTargets_Value{
+					Targets: []*model_analysis_pb.Package_Value_Target{
+						newRuleTargetDeclaration(name+"_1", "@@rules+//:defs.bzl%in_"+name),
+					},
+				}))
+			}
+
+			value, err := bct.computer.ComputePackageTargetsValue(ctx, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo", ExcludeFinalizers: excludeFinalizers}, e)
+			require.NoError(t, err)
+			var targetNames []string
+			for _, target := range value.Message.Targets {
+				targetNames = append(targetNames, target.GetLeaf().GetName())
+			}
+			if excludeFinalizers {
+				require.Equal(t, []string{"a_1", "x"}, targetNames)
+			} else {
+				require.Equal(t, []string{"a_1", "f_1", "x"}, targetNames)
+			}
+		}
+	})
+
 	t.Run("MissingDependencies", func(t *testing.T) {
 		// All macro instances should be requested before
 		// returning ErrMissingDependency.
