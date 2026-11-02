@@ -511,7 +511,7 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 				return nil, err
 			}
 		}
-		return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+		return NewAttr[TReference, TMetadata](attrType, defaultValue, typedValue.Attr.Configurable), nil
 	case *model_starlark_pb.Value_Bool:
 		return starlark.Bool(typedValue.Bool), nil
 	case *model_starlark_pb.Value_Builtin:

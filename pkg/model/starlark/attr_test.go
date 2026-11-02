@@ -1,6 +1,7 @@
 package starlark_test
 
 import (
+	"fmt"
 	"testing"
 
 	"bonanza.build/pkg/label"
@@ -9,8 +10,83 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
 
+	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
+
+	"go.starlark.net/starlark"
+	"go.starlark.net/syntax"
 )
+
+func TestAttrConfigurable(t *testing.T) {
+	bzlFileBuiltins, _ := model_starlark.GetBuiltins[object.LocalReference, model_core.CreatedObjectTree]()
+	execGlobals := func(code string) (starlark.StringDict, error) {
+		return starlark.ExecFileOptions(
+			&syntax.FileOptions{},
+			&starlark.Thread{},
+			"@@rules+//:defs.bzl",
+			"def _impl(ctx):\n    pass\n"+code,
+			bzlFileBuiltins,
+		)
+	}
+	exec := func(code string) error {
+		_, err := execGlobals(code)
+		return err
+	}
+
+	// Only attributes of symbolic macros may be marked as not
+	// being configurable. Explicitly marking attributes as being
+	// configurable is permitted everywhere.
+	for _, call := range []string{
+		"aspect(implementation = _impl, attrs = %s)",
+		"repository_rule(implementation = _impl, attrs = %s)",
+		"rule(implementation = _impl, attrs = %s)",
+		"subrule(implementation = _impl, attrs = %s)",
+		"tag_class(attrs = %s)",
+	} {
+		require.NoError(t, exec(fmt.Sprintf(call, `{"a": attr.string(configurable = True), "b": attr.output()}`)))
+		require.ErrorContains(
+			t,
+			exec(fmt.Sprintf(call, `{"a": attr.string(), "b": attr.string(configurable = False)}`)),
+			"attr \"b\": configurable may only be set to False for attributes of symbolic macros",
+		)
+	}
+	require.NoError(t, exec(`macro(implementation = _impl, attrs = {"a": attr.string(), "b": attr.string(configurable = False)})`))
+
+	t.Run("Output", func(t *testing.T) {
+		// Outputs are never configurable.
+		globals, err := execGlobals("OUTPUT = attr.output()\nOUTPUT_LIST = attr.output_list()\n")
+		require.NoError(t, err)
+		for _, name := range []string{"OUTPUT", "OUTPUT_LIST"} {
+			encodedAttr, _, err := globals[name].(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(map[starlark.Value]struct{}{}, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+			require.NoError(t, err)
+			require.False(t, encodedAttr.Message.GetAttr().Configurable)
+		}
+	})
+
+	t.Run("Encode", func(t *testing.T) {
+		// Whether an attribute is configurable should be
+		// preserved when encoding and decoding it.
+		for _, configurable := range []bool{true, false} {
+			encodedAttr, _, err := model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
+				model_starlark.NewStringAttrType[object.LocalReference, model_core.CreatedObjectTree](nil),
+				/* defaultValue = */ nil,
+				configurable,
+			).EncodeValue(map[starlark.Value]struct{}{}, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+			require.NoError(t, err)
+			require.Equal(t, configurable, encodedAttr.Message.GetAttr().Configurable)
+
+			decodedAttr, err := model_starlark.DecodeValue[object.LocalReference, model_core.CreatedObjectTree](
+				model_core.NewSimpleMessage[object.LocalReference](encodedAttr.Message),
+				nil,
+				&model_starlark.ValueDecodingOptions[object.LocalReference]{},
+			)
+			require.NoError(t, err)
+			reencodedAttr, _, err := decodedAttr.(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(map[starlark.Value]struct{}{}, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+			require.NoError(t, err)
+			testutil.RequireEqualProto(t, encodedAttr.Message, reencodedAttr.Message)
+		}
+	})
+}
 
 func TestVisitAttrValueLabels(t *testing.T) {
 	labelValue := func(l string) *model_starlark_pb.Value {

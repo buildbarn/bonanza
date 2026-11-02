@@ -180,6 +180,7 @@ func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_co
 		attrs[fragmentsAttrIdentifier] = NewAttr[TReference, TMetadata](
 			NewLabelListAttrType[TReference, TMetadata](glob.NFAMatchingNothing.Bytes(), cfg),
 			starlark.NewList(fragmentsLabels),
+			/* configurable = */ true,
 		)
 	}
 	return nil
@@ -209,20 +210,24 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 	configurationAttr := NewAttr[TReference, TMetadata](
 		NewLabelAttrType[TReference, TMetadata](false, false, false, glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
 		NewLabel[TReference, TMetadata](configurationFragmentLabel.AsResolved()),
+		/* configurable = */ true,
 	)
 	defaultToolchainsAttr := NewAttr[TReference, TMetadata](
 		NewLabelListAttrType[TReference, TMetadata](glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
 		starlark.NewList([]starlark.Value{
 			NewLabel[TReference, TMetadata](defaultMakeVariablesLabel.AsResolved()),
 		}),
+		/* configurable = */ true,
 	)
 	toolchainsAttr := NewAttr[TReference, TMetadata](
 		NewLabelListAttrType[TReference, TMetadata](glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
 		starlark.NewList(nil),
+		/* configurable = */ true,
 	)
 	targetPlatformAttr := NewAttr[TReference, TMetadata](
 		NewLabelAttrType[TReference, TMetadata](false, false, false, glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
 		NewLabel[TReference, TMetadata](commandLineOptionPlatformsLabel.AsResolved()),
+		/* configurable = */ true,
 	)
 
 	bzlFileBuiltins := starlark.StringDict{
@@ -274,6 +279,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				); err != nil {
 					return nil, err
 				}
+				if err := checkAttrsConfigurable(attrs); err != nil {
+					return nil, fmt.Errorf("%s: %w", b.Name(), err)
+				}
 				return NewAspect[TReference, TMetadata](nil, &model_starlark_pb.Aspect_Definition{}), nil
 			},
 		),
@@ -310,7 +318,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
 					}
-					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
 			"int": starlark.NewBuiltin(
@@ -347,7 +355,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
 					}
-					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
 			"label": starlark.NewBuiltin(
@@ -412,7 +420,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
 					}
-					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
 			"label_keyed_string_dict": starlark.NewBuiltin(
@@ -459,7 +467,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
 					}
-					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
 			"label_list": starlark.NewBuiltin(
@@ -510,7 +518,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
 					}
-					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
 			"output": starlark.NewBuiltin(
@@ -530,7 +538,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					return NewAttr[TReference, TMetadata](NewOutputAttrType[TReference, TMetadata](""), nil), nil
+					return NewAttr[TReference, TMetadata](NewOutputAttrType[TReference, TMetadata](""), nil, false), nil
 				},
 			),
 			"output_list": starlark.NewBuiltin(
@@ -554,7 +562,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					return NewAttr[TReference, TMetadata](NewOutputListAttrType[TReference, TMetadata](), nil), nil
+					return NewAttr[TReference, TMetadata](NewOutputListAttrType[TReference, TMetadata](), nil, false), nil
 				},
 			),
 			"string": starlark.NewBuiltin(
@@ -591,7 +599,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
 					}
-					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
 			"string_dict": starlark.NewBuiltin(
@@ -630,7 +638,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
 					}
-					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
 			"string_keyed_label_dict": starlark.NewBuiltin(
@@ -677,7 +685,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
 					}
-					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
 			"string_list": starlark.NewBuiltin(
@@ -716,7 +724,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
 					}
-					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
 			"string_list_dict": starlark.NewBuiltin(
@@ -754,7 +762,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
 					}
-					return NewAttr[TReference, TMetadata](attrType, defaultValue), nil
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
 		}),
@@ -1483,6 +1491,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				); err != nil {
 					return nil, err
 				}
+				if err := checkAttrsConfigurable(attrs); err != nil {
+					return nil, fmt.Errorf("%s: %w", b.Name(), err)
+				}
 				return NewRepositoryRule(nil, NewStarlarkRepositoryRuleDefinition(implementation, attrs)), nil
 			},
 		),
@@ -1533,6 +1544,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					"_skylark_testable?", unpack.Bind(thread, &skylarkTestable, unpack.Bool),
 				); err != nil {
 					return nil, err
+				}
+				if err := checkAttrsConfigurable(attrs); err != nil {
+					return nil, fmt.Errorf("%s: %w", b.Name(), err)
 				}
 
 				needsConfiguration := needs == nil
@@ -1585,7 +1599,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if _, ok := attrs[name]; ok {
 						return nil, fmt.Errorf("predeclared output %#v has the same name as existing attr", name)
 					}
-					attrs[name] = NewAttr[TReference, TMetadata](NewOutputAttrType[TReference, TMetadata](template), starlark.String(template))
+					attrs[name] = NewAttr[TReference, TMetadata](NewOutputAttrType[TReference, TMetadata](template), starlark.String(template), false)
 				}
 
 				if err := convertFragmentsToAttr(fragments, attrs, targetTransitionDefinition); err != nil {
@@ -1676,6 +1690,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				); err != nil {
 					return nil, err
 				}
+				if err := checkAttrsConfigurable(attrs); err != nil {
+					return nil, fmt.Errorf("%s: %w", b.Name(), err)
+				}
 
 				if err := convertFragmentsToAttr(fragments, attrs, targetTransitionDefinition); err != nil {
 					return nil, err
@@ -1704,6 +1721,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					"doc?", unpack.Bind(thread, &doc, unpack.String),
 				); err != nil {
 					return nil, err
+				}
+				if err := checkAttrsConfigurable(attrs); err != nil {
+					return nil, fmt.Errorf("%s: %w", b.Name(), err)
 				}
 				return NewTagClass(NewStarlarkTagClassDefinition[TReference, TMetadata](attrs)), nil
 			},

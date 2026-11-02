@@ -179,3 +179,73 @@ func TestRuleCallTest(t *testing.T) {
 		}
 	})
 }
+
+func TestRuleCallOutputAttr(t *testing.T) {
+	ctrl, ctx := gomock.WithContext(t.Context(), t)
+	referenceFormat := util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1))
+	encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
+	valueEncodingOptions := &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
+		Context:                ctx,
+		ObjectEncoder:          encoder,
+		ObjectReferenceFormat:  referenceFormat,
+		ObjectMinimumSizeBytes: 32 * 1024,
+		ObjectMaximumSizeBytes: 128 * 1024,
+	}
+	attr := model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
+		model_starlark.NewOutputAttrType[object.LocalReference, model_core.CreatedObjectTree](""),
+		/* defaultValue = */ nil,
+		/* configurable = */ false,
+	)
+
+	// Outputs are never configurable, meaning they cannot be
+	// provided using select().
+	callRule := func(out starlark.Value) error {
+		objectManager := NewMockObjectManagerForTesting(ctrl)
+		targetRegistrar := model_starlark.NewTargetRegistrar[object.LocalReference, model_core.CreatedObjectTree](
+			ctx,
+			encoder,
+			&inlinedtree.Options{
+				ReferenceFormat:  referenceFormat,
+				MaximumSizeBytes: 32 * 1024,
+			},
+			objectManager,
+			model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.InheritableAttrs{}),
+		)
+		defer targetRegistrar.Discard()
+
+		thread := &starlark.Thread{}
+		thread.SetLocal(model_starlark.TargetRegistrarKey, targetRegistrar)
+		thread.SetLocal(model_starlark.CanonicalPackageKey, util.Must(label.NewCanonicalPackage("@@main+//foo")))
+		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, valueEncodingOptions)
+
+		identifier := util.Must(label.NewCanonicalStarlarkIdentifier("@@rules+//:defs.bzl%my_rule"))
+		rule := model_starlark.NewRule(
+			&identifier,
+			model_starlark.NewStarlarkRuleDefinition[object.LocalReference, model_core.CreatedObjectTree](
+				/* attrs = */ map[label.StarlarkIdentifier]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree]{
+					util.Must(label.NewStarlarkIdentifier("out")): attr,
+				},
+				/* buildSetting = */ nil,
+				/* cfg = */ nil,
+				/* execGroups = */ nil,
+				/* implementation = */ model_starlark.NamedFunction[object.LocalReference, model_core.CreatedObjectTree]{},
+				/* initializer = */ nil,
+				/* provides = */ nil,
+				model_starlark_pb.Rule_Definition_NON_EXECUTABLE,
+				/* subrules = */ nil,
+			),
+		)
+		_, err := starlark.Call(thread, rule, nil, []starlark.Tuple{
+			{starlark.String("name"), starlark.String("t")},
+			{starlark.String("out"), out},
+		})
+		return err
+	}
+
+	outLabel := model_starlark.NewLabel[object.LocalReference, model_core.CreatedObjectTree](util.Must(label.NewResolvedLabel("@@main+//foo:a.txt")))
+	require.NoError(t, callRule(outLabel))
+	require.EqualError(t, callRule(model_starlark.NewSelect[object.LocalReference, model_core.CreatedObjectTree](
+		[]model_starlark.SelectGroup{model_starlark.NewSelectGroup(nil, outLabel, "")},
+		0,
+	)), "invalid argument \"out\": attribute is not configurable, meaning select() cannot be used")
+}

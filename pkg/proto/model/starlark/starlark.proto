@@ -76,6 +76,16 @@ message Attr {
   // If not set, the attribute is mandatory.
   Value default = 1;
 
+  // Whether the value of the attribute may be provided using select(),
+  // corresponding to the "configurable" parameter of attr.*(). Values
+  // of attributes that are not configurable are provided to the
+  // implementation functions of symbolic macros as is, as opposed to
+  // being wrapped in select().
+  //
+  // Apart from outputs, which are never configurable, only attributes
+  // of symbolic macros may set this field to false.
+  bool configurable = 15;
+
   // Options that apply to all attribute types containing labels.
   message LabelOptions {
     repeated string providers = 1;

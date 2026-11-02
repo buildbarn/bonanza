@@ -26,6 +26,7 @@ import (
 type Attr[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	attrType     AttrType[TReference, TMetadata]
 	defaultValue starlark.Value
+	configurable bool
 }
 
 var _ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Attr[object.LocalReference, model_core.ReferenceMetadata])(nil)
@@ -33,12 +34,46 @@ var _ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*At
 // NewAttr creates a new Starlark rule attribute object. Each rule
 // attribute has a certain type, and an optional default value that is
 // used when the rule is called without specifying the attribute. If no
-// default value is given, the attribute is mandatory.
-func NewAttr[TReference any, TMetadata model_core.ReferenceMetadata](attrType AttrType[TReference, TMetadata], defaultValue starlark.Value) *Attr[TReference, TMetadata] {
+// default value is given, the attribute is mandatory. Only attributes
+// of symbolic macros may be marked as not being configurable.
+func NewAttr[TReference any, TMetadata model_core.ReferenceMetadata](attrType AttrType[TReference, TMetadata], defaultValue starlark.Value, configurable bool) *Attr[TReference, TMetadata] {
 	return &Attr[TReference, TMetadata]{
 		attrType:     attrType,
 		defaultValue: defaultValue,
+		configurable: configurable,
 	}
+}
+
+// getSelectUnpackerInto returns an unpacker for values of the
+// attribute, converting them to select() objects. Values of attributes
+// that are not configurable may not be provided using select().
+func (a *Attr[TReference, TMetadata]) getSelectUnpackerInto(currentPackage pg_label.CanonicalPackage) unpack.UnpackerInto[*Select[TReference, TMetadata]] {
+	canonicalizer := a.attrType.GetCanonicalizer(currentPackage)
+	if a.defaultValue != nil {
+		canonicalizer = unpack.IfNotNoneCanonicalizer(canonicalizer)
+	}
+	if !a.configurable {
+		return NewNonConfigurableSelectUnpackerInto[TReference, TMetadata](canonicalizer)
+	}
+	return NewSelectUnpackerInto[TReference, TMetadata](canonicalizer)
+}
+
+// checkAttrsConfigurable returns an error if any of the provided
+// attributes is marked as not being configurable. Apart from outputs,
+// which are never configurable, this is only permitted for attributes
+// of symbolic macros.
+func checkAttrsConfigurable[TReference any, TMetadata model_core.ReferenceMetadata](attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]) error {
+	for _, name := range slices.SortedFunc(
+		maps.Keys(attrs),
+		func(a, b pg_label.StarlarkIdentifier) int { return strings.Compare(a.String(), b.String()) },
+	) {
+		if attr := attrs[name]; !attr.configurable {
+			if _, isOutput := attr.attrType.IsOutput(); !isOutput {
+				return fmt.Errorf("attr %#v: configurable may only be set to False for attributes of symbolic macros", name.String())
+			}
+		}
+	}
+	return nil
 }
 
 func (a *Attr[TReference, TMetadata]) String() string {
@@ -74,7 +109,9 @@ func (a *Attr[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, err
 func (a *Attr[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata], bool, error) {
 	needsCode := false
 	attr, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_starlark_pb.Attr, error) {
-		var attr model_starlark_pb.Attr
+		attr := model_starlark_pb.Attr{
+			Configurable: a.configurable,
+		}
 		if a.defaultValue != nil {
 			defaultValue, defaultValueNeedsCode, err := EncodeValue[TReference, TMetadata](a.defaultValue, path, nil, options)
 			if err != nil {

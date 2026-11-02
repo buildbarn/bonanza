@@ -49,6 +49,7 @@ func TestPackage(t *testing.T) {
 				Type: &model_starlark_pb.Attr_String_{
 					String_: &model_starlark_pb.Attr_StringType{},
 				},
+				Configurable: true,
 			},
 		}
 	}
@@ -103,10 +104,10 @@ func TestPackage(t *testing.T) {
 			Definition: definition,
 		}))
 	}
-	// expectMacroDefinition sets up the expectations for loading
-	// macro "@@rules+//:defs.bzl%my_macro" with a given
-	// implementation function.
-	expectMacroDefinition := func(e *MockPackageEnvironmentForTesting, source string, attrs []*model_starlark_pb.NamedAttr) {
+	// expectMacroGlobal sets up the expectations for loading the
+	// definition of macro "@@rules+//:defs.bzl%my_macro", without
+	// loading its implementation function.
+	expectMacroGlobal := func(e *MockPackageEnvironmentForTesting, attrs []*model_starlark_pb.NamedAttr) {
 		e.EXPECT().GetBuiltinsModuleNamesValue(gomock.Any()).
 			Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.BuiltinsModuleNames_Value{})).
 			AnyTimes()
@@ -129,6 +130,12 @@ func TestPackage(t *testing.T) {
 				},
 			},
 		}))
+	}
+	// expectMacroDefinition sets up the expectations for loading
+	// macro "@@rules+//:defs.bzl%my_macro" with a given
+	// implementation function.
+	expectMacroDefinition := func(e *MockPackageEnvironmentForTesting, source string, attrs []*model_starlark_pb.NamedAttr) {
+		expectMacroGlobal(e, attrs)
 		e.EXPECT().GetCompiledBzlFileFunctionFactoryValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileFunctionFactory_Key{Label: "@@rules+//:defs.bzl"}),
 		).Return(newFunctionFactory(t, source), true)
@@ -238,11 +245,15 @@ def _impl(name, visibility, actual, _private):
 		// implementation function should receive the default
 		// value, wrapped in a select(). If the default value is
 		// None, None should be passed in without wrapping it.
+		// The same holds for mandatory attributes for which None
+		// was provided explicitly.
 		e := NewMockPackageEnvironmentForTesting(ctrl)
 		expectMacro(
 			e,
 			`
-def _impl(name, visibility, with_default, without_default):
+def _impl(name, visibility, mandatory, with_default, without_default):
+    if mandatory != None:
+        fail("mandatory is not None")
     if type(with_default) != "select":
         fail("with_default is not a select()")
     if without_default != None:
@@ -250,11 +261,13 @@ def _impl(name, visibility, with_default, without_default):
     native.alias(name = name, actual = with_default)
 `,
 			[]*model_starlark_pb.NamedAttr{
+				stringAttr("mandatory", nil),
 				stringAttr("with_default", stringValue("//baz:default")),
 				stringAttr("without_default", &model_starlark_pb.Value{
 					Kind: &model_starlark_pb.Value_None{},
 				}),
 			},
+			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{}},
 			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{}},
 			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{}},
 		)
@@ -263,6 +276,79 @@ def _impl(name, visibility, with_default, without_default):
 		require.NoError(t, err)
 		require.Len(t, value.Targets, 1)
 		testutil.RequireEqualProto(t, valueSelectGroup(labelValue("@@main+//baz:default")), value.Targets[0].GetLeaf().GetDefinition().GetAlias().GetActual())
+	})
+
+	t.Run("NonConfigurable", func(t *testing.T) {
+		// Values of attributes that are not configurable
+		// should be provided as is, so that they can be
+		// inspected. This also applies to default values.
+		nonConfigurableAttr := func(name string, defaultValue *model_starlark_pb.Value) *model_starlark_pb.NamedAttr {
+			attr := stringAttr(name, defaultValue)
+			attr.Attr.Configurable = false
+			return attr
+		}
+		e := NewMockPackageEnvironmentForTesting(ctrl)
+		expectMacro(
+			e,
+			`
+def _impl(name, visibility, explicit, with_default):
+    native.alias(name = name + "_" + explicit, actual = "//baz:actual")
+    native.alias(name = name + "_" + with_default, actual = "//baz:actual")
+`,
+			[]*model_starlark_pb.NamedAttr{
+				nonConfigurableAttr("explicit", nil),
+				nonConfigurableAttr("with_default", stringValue("default")),
+			},
+			stringValue("explicit"),
+			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{}},
+		)
+
+		value, err := computeMacroInstance(e, "m")
+		require.NoError(t, err)
+		require.Len(t, value.Targets, 2)
+		require.Equal(t, "m_default", value.Targets[0].GetLeaf().GetName())
+		require.Equal(t, "m_explicit", value.Targets[1].GetLeaf().GetName())
+	})
+
+	t.Run("NonConfigurableWithSelect", func(t *testing.T) {
+		// Values of attributes that are not configurable
+		// cannot depend on select().
+		unconditional := func(value *model_starlark_pb.Value) *model_starlark_pb.Select_Group {
+			return &model_starlark_pb.Select_Group{
+				NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: value},
+			}
+		}
+		for name, valueParts := range map[string][]*model_starlark_pb.Select_Group{
+			"Conditions": {{
+				Conditions: []*model_starlark_pb.Select_Condition{{
+					ConditionIdentifier: "@@main+//:opt",
+					Value:               stringValue("opt"),
+				}},
+				NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: stringValue("default")},
+			}},
+			"MultipleGroups": {
+				unconditional(stringValue("a")),
+				unconditional(stringValue("b")),
+			},
+			"NoMatchError": {{
+				NoMatch: &model_starlark_pb.Select_Group_NoMatchError{NoMatchError: "oops"},
+			}},
+		} {
+			t.Run(name, func(t *testing.T) {
+				e := NewMockPackageEnvironmentForTesting(ctrl)
+				attr := stringAttr("explicit", nil)
+				attr.Attr.Configurable = false
+				expectMacroGlobal(e, []*model_starlark_pb.NamedAttr{attr})
+				definition := newMacroExpansionContextDefinition()
+				definition.RootMacroInstanceDefinition.PublicAttrValues = []*model_starlark_pb.RuleTarget_PublicAttrValue{{
+					ValueParts: valueParts,
+				}}
+				expectMacroExpansionContext(e, definition)
+
+				_, err := computeMacroInstance(e, "m")
+				require.EqualError(t, err, "macro instance \"m\": attr \"explicit\": value of attribute that is not configurable depends on select()")
+			})
+		}
 	})
 
 	t.Run("InvalidDeclarationName", func(t *testing.T) {

@@ -289,36 +289,36 @@ func (c *baseComputer[TReference, TMetadata]) newGlobalResolver(ctx context.Cont
 // instance, so that it can be provided to the macro's implementation
 // function. As with Bazel, values of configurable attributes are
 // provided as select() expressions, even if no select() expression was
-// used to construct the value. None values are not wrapped.
+// used to construct the value. Values of non-configurable attributes
+// and None values are not wrapped.
 func decodeMacroAttrValue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	valueParts model_core.Message[[]*model_starlark_pb.Select_Group, TReference],
+	configurable bool,
 	concatenationOperator syntax.Token,
 	defaultValue model_core.Message[*model_starlark_pb.Value, TReference],
 	options *model_starlark.ValueDecodingOptions[TReference],
 ) (starlark.Value, error) {
-	groups := valueParts.Message
-	if len(groups) == 1 && len(groups[0].Conditions) == 0 {
-		if noMatchValue, ok := groups[0].NoMatch.(*model_starlark_pb.Select_Group_NoMatchValue); ok {
-			if _, ok := noMatchValue.NoMatchValue.Kind.(*model_starlark_pb.Value_None); ok {
-				// No value provided. Use the default
-				// value of the attribute.
-				if !defaultValue.IsSet() {
-					return starlark.None, nil
-				}
-				if _, ok := defaultValue.Message.Kind.(*model_starlark_pb.Value_None); ok {
-					return starlark.None, nil
-				}
-				return model_starlark.DecodeSelectGroups[TReference, TMetadata](
-					model_core.Nested(defaultValue, []*model_starlark_pb.Select_Group{{
-						NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
-							NoMatchValue: defaultValue.Message,
-						},
-					}}),
-					concatenationOperator,
-					options,
-				)
+	if groups := valueParts.Message; len(groups) == 1 && len(groups[0].Conditions) == 0 {
+		if _, ok := groups[0].GetNoMatchValue().GetKind().(*model_starlark_pb.Value_None); ok {
+			// No value provided. Use the default value of
+			// the attribute.
+			if _, ok := defaultValue.Message.GetKind().(*model_starlark_pb.Value_None); ok || !defaultValue.IsSet() {
+				return starlark.None, nil
 			}
+			valueParts = model_core.Nested(defaultValue, []*model_starlark_pb.Select_Group{{
+				NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
+					NoMatchValue: defaultValue.Message,
+				},
+			}})
 		}
+	}
+
+	if !configurable {
+		groups := valueParts.Message
+		if len(groups) != 1 || len(groups[0].Conditions) != 0 || groups[0].GetNoMatchValue() == nil {
+			return nil, errors.New("value of attribute that is not configurable depends on select()")
+		}
+		return model_starlark.DecodeValue[TReference, TMetadata](model_core.Nested(valueParts, groups[0].GetNoMatchValue()), nil, options)
 	}
 	return model_starlark.DecodeSelectGroups[TReference, TMetadata](valueParts, concatenationOperator, options)
 }
@@ -531,6 +531,7 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 			}
 			value, err = decodeMacroAttrValue[TReference, TMetadata](
 				model_core.Nested(rootMacroInstanceDefinition, publicAttrValue.ValueParts),
+				attr.Configurable,
 				attrType.GetCanonicalizer(canonicalPackage).GetConcatenationOperator(),
 				defaultValue,
 				valueDecodingOptions,

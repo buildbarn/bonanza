@@ -162,13 +162,8 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 		if value == nil {
 			value = starlark.None
 		}
-
-		canonicalizer := attr.attrType.GetCanonicalizer(currentPackage)
-		if attr.defaultValue != nil {
-			canonicalizer = unpack.IfNotNoneCanonicalizer(canonicalizer)
-		}
 		var selectValue *Select[TReference, TMetadata]
-		if err := NewSelectUnpackerInto[TReference, TMetadata](canonicalizer).UnpackInto(thread, value, &selectValue); err != nil {
+		if err := attr.getSelectUnpackerInto(currentPackage).UnpackInto(thread, value, &selectValue); err != nil {
 			patcher.Discard()
 			return nil, fmt.Errorf("invalid argument %#v: %w", attrName.String(), err)
 		}

@@ -1076,8 +1076,9 @@ func (*Aspect_Reference) isAspect_Kind() {}
 func (*Aspect_Definition_) isAspect_Kind() {}
 
 type Attr struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	Default *Value                 `protobuf:"bytes,1,opt,name=default,proto3" json:"default,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Default      *Value                 `protobuf:"bytes,1,opt,name=default,proto3" json:"default,omitempty"`
+	Configurable bool                   `protobuf:"varint,15,opt,name=configurable,proto3" json:"configurable,omitempty"`
 	// Types that are valid to be assigned to Type:
 	//
 	//	*Attr_Bool
@@ -1133,6 +1134,13 @@ func (x *Attr) GetDefault() *Value {
 		return x.Default
 	}
 	return nil
+}
+
+func (x *Attr) GetConfigurable() bool {
+	if x != nil {
+		return x.Configurable
+	}
+	return false
 }
 
 func (x *Attr) GetType() isAttr_Type {
@@ -6754,9 +6762,10 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"definition\x1a\f\n" +
 	"\n" +
 	"DefinitionB\x06\n" +
-	"\x04kind\"\x96\x15\n" +
+	"\x04kind\"\xba\x15\n" +
 	"\x04Attr\x127\n" +
-	"\adefault\x18\x01 \x01(\v2\x1d.bonanza.model.starlark.ValueR\adefault\x12,\n" +
+	"\adefault\x18\x01 \x01(\v2\x1d.bonanza.model.starlark.ValueR\adefault\x12\"\n" +
+	"\fconfigurable\x18\x0f \x01(\bR\fconfigurable\x12,\n" +
 	"\x04bool\x18\x02 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x04bool\x128\n" +
 	"\x03int\x18\x03 \x01(\v2$.bonanza.model.starlark.Attr.IntTypeH\x00R\x03int\x12E\n" +
 	"\bint_list\x18\x04 \x01(\v2(.bonanza.model.starlark.Attr.IntListTypeH\x00R\aintList\x12>\n" +

@@ -210,6 +210,14 @@ func (sr *StarlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_p
 	if defaultValue := attr.Message.GetDefault(); defaultValue != nil {
 		arguments = append(arguments, starlarkKeywordArgument("default", sr.renderValue(model_core.Nested(attr, defaultValue))))
 	}
+	if !attr.Message.Configurable {
+		switch attr.Message.Type.(type) {
+		case *model_starlark_pb.Attr_Output, *model_starlark_pb.Attr_OutputList:
+			// Outputs are never configurable.
+		default:
+			arguments = append(arguments, starlarkKeywordArgument("configurable", starlarkBool(false)))
+		}
+	}
 	addLabelOptions := func(labelOptions *model_starlark_pb.Attr_LabelOptions) {
 		if providers := labelOptions.GetProviders(); len(providers) > 0 {
 			elements := make([]Doc, 0, len(providers))

@@ -292,15 +292,11 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 			value = NewLabel[TReference, TMetadata](currentPackage.AppendTargetName(targetName).AsResolved())
 		}
 
-		canonicalizer := attr.attrType.GetCanonicalizer(currentPackage)
-		if attr.defaultValue != nil {
-			canonicalizer = unpack.IfNotNoneCanonicalizer(canonicalizer)
-		}
 		if value == nil {
 			value = starlark.None
 		}
 		var selectValue *Select[TReference, TMetadata]
-		if err := NewSelectUnpackerInto[TReference, TMetadata](canonicalizer).UnpackInto(thread, value, &selectValue); err != nil {
+		if err := attr.getSelectUnpackerInto(currentPackage).UnpackInto(thread, value, &selectValue); err != nil {
 			return nil, fmt.Errorf("invalid argument %#v: %w", attrName.String(), err)
 		}
 
@@ -842,7 +838,7 @@ func (pac *protoAttrsCache[TReference, TMetadata]) getAttrsCheap(thread *starlar
 			defaultValue = bogusValue{}
 		}
 
-		attrs[name] = NewAttr[TReference, TMetadata](attrType, defaultValue)
+		attrs[name] = NewAttr[TReference, TMetadata](attrType, defaultValue, namedAttr.Attr.Configurable)
 	}
 
 	pac.attrsCheap.Store(&attrs)

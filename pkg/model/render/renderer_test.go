@@ -106,10 +106,25 @@ func TestRendererStarlarkValues(t *testing.T) {
 		{
 			name: "Attr",
 			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Attr{Attr: &model_starlark_pb.Attr{
-				Default: str("d"),
-				Type:    &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{Values: []string{"d", "e"}}},
+				Default:      str("d"),
+				Type:         &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{Values: []string{"d", "e"}}},
+				Configurable: true,
 			}}},
 			expected: `attr.string(default = "d", values = ["d", "e"])`,
+		},
+		{
+			name: "AttrNonConfigurable",
+			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Attr{Attr: &model_starlark_pb.Attr{
+				Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
+			}}},
+			expected: `attr.string(configurable = False)`,
+		},
+		{
+			name: "AttrOutput",
+			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Attr{Attr: &model_starlark_pb.Attr{
+				Type: &model_starlark_pb.Attr_Output{Output: &model_starlark_pb.Attr_OutputType{}},
+			}}},
+			expected: `attr.output()`,
 		},
 		{
 			name:     "ToolchainType",
@@ -202,9 +217,12 @@ func TestRendererStarlarkRule(t *testing.T) {
 		Attrs: []*model_starlark_pb.NamedAttr{
 			{
 				Name: "deps",
-				Attr: &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{
-					ListValueOptions: &model_starlark_pb.Attr_LabelOptions{Providers: []string{"@@rules_cc+//cc:defs.bzl%CcInfo"}},
-				}}},
+				Attr: &model_starlark_pb.Attr{
+					Type: &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{
+						ListValueOptions: &model_starlark_pb.Attr_LabelOptions{Providers: []string{"@@rules_cc+//cc:defs.bzl%CcInfo"}},
+					}},
+					Configurable: true,
+				},
 			},
 			{
 				Name: "_tool",
@@ -214,6 +232,7 @@ func TestRendererStarlarkRule(t *testing.T) {
 						Executable:   true,
 						ValueOptions: &model_starlark_pb.Attr_LabelOptions{Cfg: &model_starlark_pb.Transition{Kind: &model_starlark_pb.Transition_ExecGroup{}}},
 					}},
+					Configurable: true,
 				},
 			},
 		},

@@ -91,14 +91,17 @@ func TestMacro(t *testing.T) {
 		util.Must(label.NewStarlarkIdentifier("_private")): model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
 			model_starlark.NewStringAttrType[object.LocalReference, model_core.CreatedObjectTree](nil),
 			starlark.String("default"),
+			/* configurable = */ true,
 		),
 		util.Must(label.NewStarlarkIdentifier("count")): model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
 			model_starlark.NewIntAttrType[object.LocalReference, model_core.CreatedObjectTree](nil),
 			nil,
+			/* configurable = */ true,
 		),
 		util.Must(label.NewStarlarkIdentifier("srcs")): model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
 			model_starlark.NewLabelListAttrType[object.LocalReference, model_core.CreatedObjectTree](glob.NFAMatchingEverything.Bytes(), nil),
 			starlark.NewList(nil),
+			/* configurable = */ true,
 		),
 	}, false)
 	exampleFinalizer := newMacro(nil, true)
@@ -337,10 +340,30 @@ func TestMacro(t *testing.T) {
 					util.Must(label.NewStarlarkIdentifier("visibility")): model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
 						model_starlark.NewStringListAttrType[object.LocalReference, model_core.CreatedObjectTree](),
 						starlark.NewList(nil),
+						/* configurable = */ true,
 					),
 				}, false),
 				kwargs:        []starlark.Tuple{kwarg("name", starlark.String("m"))},
 				expectedError: "macro uses attribute with reserved name \"visibility\"",
+			},
+			"NonConfigurableAttr": {
+				// Attributes that are not configurable
+				// cannot be provided using select().
+				macro: newMacro(map[label.StarlarkIdentifier]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree]{
+					util.Must(label.NewStarlarkIdentifier("srcs")): model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
+						model_starlark.NewStringListAttrType[object.LocalReference, model_core.CreatedObjectTree](),
+						starlark.NewList(nil),
+						/* configurable = */ false,
+					),
+				}, false),
+				kwargs: []starlark.Tuple{
+					kwarg("name", starlark.String("m")),
+					kwarg("srcs", model_starlark.NewSelect[object.LocalReference, model_core.CreatedObjectTree](
+						[]model_starlark.SelectGroup{model_starlark.NewSelectGroup(nil, starlark.NewList(nil), "")},
+						0,
+					)),
+				},
+				expectedError: "invalid argument \"srcs\": attribute is not configurable, meaning select() cannot be used",
 			},
 		} {
 			t.Run(name, func(t *testing.T) {
@@ -826,6 +849,10 @@ func TestMacro(t *testing.T) {
 						},
 					}), nil
 				}))
+				require.ErrorContains(t, call(thread, decodedMacro, nil, kwarg("name", starlark.String("m")), kwarg("value", model_starlark.NewSelect[object.LocalReference, model_core.CreatedObjectTree](
+					[]model_starlark.SelectGroup{model_starlark.NewSelectGroup(nil, starlark.String("hello"), "")},
+					0,
+				))), "attribute is not configurable")
 				require.NoError(t, call(thread, decodedMacro, nil, kwarg("name", starlark.String("m")), kwarg("value", starlark.String("hello"))))
 				macroInstance := getMacroInstance(t, thread, targetRegistrar, "m")
 				require.Equal(t, "@@rules+//:defs.bzl%my_macro", macroInstance.Definition.MacroIdentifier)

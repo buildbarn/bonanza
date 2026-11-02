@@ -348,6 +348,48 @@ func (selectUnpackerInto[TReference, TMetadata]) GetConcatenationOperator() synt
 	return 0
 }
 
+type nonConfigurableSelectUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	valueUnpackerInto unpack.Canonicalizer
+}
+
+// NewNonConfigurableSelectUnpackerInto returns an unpacker for values
+// of attributes that are not configurable. Unlike the unpacker returned
+// by NewSelectUnpackerInto(), it does not accept select() objects. The
+// provided value is converted to a select() object that only has a
+// single group, having a default condition corresponding to the
+// provided value.
+func NewNonConfigurableSelectUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata](valueUnpackerInto unpack.Canonicalizer) unpack.UnpackerInto[*Select[TReference, TMetadata]] {
+	return &nonConfigurableSelectUnpackerInto[TReference, TMetadata]{
+		valueUnpackerInto: valueUnpackerInto,
+	}
+}
+
+func (ui *nonConfigurableSelectUnpackerInto[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst **Select[TReference, TMetadata]) error {
+	if _, ok := v.(*Select[TReference, TMetadata]); ok {
+		return errors.New("attribute is not configurable, meaning select() cannot be used")
+	}
+	canonicalValue, err := ui.valueUnpackerInto.Canonicalize(thread, v)
+	if err != nil {
+		return err
+	}
+	*dst = &Select[TReference, TMetadata]{
+		groups: []SelectGroup{NewSelectGroup(nil, canonicalValue, "")},
+	}
+	return nil
+}
+
+func (ui *nonConfigurableSelectUnpackerInto[TReference, TMetadata]) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+	var s *Select[TReference, TMetadata]
+	if err := ui.UnpackInto(thread, v, &s); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func (nonConfigurableSelectUnpackerInto[TReference, TMetadata]) GetConcatenationOperator() syntax.Token {
+	return 0
+}
+
 // DecodeSelectGroups decodes groups of select() expressions that were
 // previously written to storage, and returns them in the form of a
 // Starlark select() object. The concatenation operator only needs to
