@@ -81,6 +81,26 @@ func TestTestSuiteTests(t *testing.T) {
 		require.EqualError(t, err, "target \"@@main+//foo:t\" is not a test suite")
 	})
 
+	t.Run("DoesNotExist", func(t *testing.T) {
+		// Both the test suite and the tests it contains need
+		// to exist.
+		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
+		expectTarget(e, "@@main+//foo:suite", nil)
+
+		_, err := computeTestSuiteTests(e, "@@main+//foo:suite")
+		require.EqualError(t, err, "target \"@@main+//foo:suite\" does not exist")
+
+		e = NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
+		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
+			Tests: newTestSuiteTests("@@main+//foo:missing"),
+			Sizes: allSizes,
+		}))
+		expectTarget(e, "@@main+//foo:missing", nil)
+
+		_, err = computeTestSuiteTests(e, "@@main+//foo:suite")
+		require.EqualError(t, err, "test \"@@main+//foo:missing\" does not exist")
+	})
+
 	t.Run("NoTests", func(t *testing.T) {
 		// Test suites that don't list any tests explicitly have
 		// the tests in their package filled in when the package

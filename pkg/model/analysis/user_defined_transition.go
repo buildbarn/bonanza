@@ -99,6 +99,9 @@ func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata mod
 	if !targetValue.IsSet() {
 		return expectedTransitionOutput[TReference]{}, evaluation.ErrMissingDependency
 	}
+	if targetValue.Message.Definition == nil {
+		return expectedTransitionOutput[TReference]{}, fmt.Errorf("build setting %#v does not exist", visibleBuildSettingLabel)
+	}
 	switch targetKind := targetValue.Message.Definition.GetKind().(type) {
 	case *model_starlark_pb.Target_Definition_LabelSetting:
 		// Build setting is a label_setting() or label_flag().
@@ -422,6 +425,9 @@ func (c *baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.C
 	})
 	if !targetValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Value, TReference]{}, evaluation.ErrMissingDependency
+	}
+	if targetValue.Message.Definition == nil {
+		return model_core.Message[*model_starlark_pb.Value, TReference]{}, fmt.Errorf("build setting %#v does not exist", visibleBuildSettingLabel)
 	}
 	switch targetKind := targetValue.Message.Definition.GetKind().(type) {
 	case *model_starlark_pb.Target_Definition_LabelSetting:

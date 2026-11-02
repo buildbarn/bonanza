@@ -451,6 +451,7 @@ type ValueReaders[TReference any] struct {
 	Dict                  model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry]
 	List                  model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
 	PackageGroupOverrides model_parser.MessageObjectReader[TReference, *model_starlark_pb.PackageGroup_Subpackages_Overrides]
+	TestSuiteTest         model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
 }
 
 // ValueDecodingOptions contains parameters that always need to be

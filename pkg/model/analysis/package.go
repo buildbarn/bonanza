@@ -308,7 +308,7 @@ func decodeMacroAttrValue[TReference object.BasicReference, TMetadata model_core
 				if _, ok := defaultValue.Message.Kind.(*model_starlark_pb.Value_None); ok {
 					return starlark.None, nil
 				}
-				return decodeMacroSelectValue[TReference, TMetadata](
+				return model_starlark.DecodeSelectGroups[TReference, TMetadata](
 					model_core.Nested(defaultValue, []*model_starlark_pb.Select_Group{{
 						NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
 							NoMatchValue: defaultValue.Message,
@@ -320,36 +320,68 @@ func decodeMacroAttrValue[TReference object.BasicReference, TMetadata model_core
 			}
 		}
 	}
-	return decodeMacroSelectValue[TReference, TMetadata](valueParts, concatenationOperator, options)
+	return model_starlark.DecodeSelectGroups[TReference, TMetadata](valueParts, concatenationOperator, options)
 }
 
-func decodeMacroSelectValue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
-	groups model_core.Message[[]*model_starlark_pb.Select_Group, TReference],
-	concatenationOperator syntax.Token,
-	options *model_starlark.ValueDecodingOptions[TReference],
-) (starlark.Value, error) {
-	encodedSelect := &model_starlark_pb.Select{
-		Groups: groups.Message,
+// existingRulesResolver is used by native.existing_rule() and
+// native.existing_rules() to obtain the targets in a package that
+// finalizers may observe.
+type existingRulesResolver[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	computer         *baseComputer[TReference, TMetadata]
+	context          context.Context
+	environment      PackageEnvironment[TReference, TMetadata]
+	canonicalPackage label.CanonicalPackage
+}
+
+var _ model_starlark.ExistingRulesResolver[object.LocalReference] = (*existingRulesResolver[object.LocalReference, model_core.ReferenceMetadata])(nil)
+
+func (r *existingRulesResolver[TReference, TMetadata]) LookupExistingRule(targetName label.TargetName) (model_core.Message[*model_starlark_pb.Target_Definition, TReference], error) {
+	targetValue := r.environment.GetTargetValue(&model_analysis_pb.Target_Key{
+		Label: r.canonicalPackage.AppendTargetName(targetName).String(),
+	})
+	if !targetValue.IsSet() {
+		return model_core.Message[*model_starlark_pb.Target_Definition, TReference]{}, evaluation.ErrMissingDependency
 	}
-	if len(groups.Message) > 1 {
-		switch concatenationOperator {
-		case syntax.PIPE:
-			encodedSelect.ConcatenationOperator = model_starlark_pb.Select_PIPE
-		case syntax.PLUS:
-			encodedSelect.ConcatenationOperator = model_starlark_pb.Select_PLUS
-		default:
-			return nil, errors.New("value consists of multiple parts, even though the attribute type cannot be concatenated")
+	if targetValue.Message.Definition == nil {
+		return model_core.Message[*model_starlark_pb.Target_Definition, TReference]{}, nil
+	}
+	return model_core.Nested(targetValue, targetValue.Message.Definition), nil
+}
+
+func (r *existingRulesResolver[TReference, TMetadata]) ForEachExistingRule(yield func(targetName label.TargetName, definition model_core.Message[*model_starlark_pb.Target_Definition, TReference]) error) error {
+	packageTargets := r.environment.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+		Package:           r.canonicalPackage.String(),
+		ExcludeFinalizers: true,
+	})
+	if !packageTargets.IsSet() {
+		return evaluation.ErrMissingDependency
+	}
+	var errIter error
+	for entry := range btree.AllLeaves(
+		r.context,
+		r.computer.packageValueTargetReader,
+		model_core.Nested(packageTargets, packageTargets.Message.Targets),
+		func(entry model_core.Message[*model_analysis_pb.Package_Value_Target, TReference]) (*model_core_pb.DecodableReference, error) {
+			if level, ok := entry.Message.Level.(*model_analysis_pb.Package_Value_Target_Parent_); ok {
+				return level.Parent.Reference, nil
+			}
+			return nil, nil
+		},
+		&errIter,
+	) {
+		level, ok := entry.Message.Level.(*model_analysis_pb.Package_Value_Target_Leaf)
+		if !ok {
+			return errors.New("not a valid leaf entry")
+		}
+		targetName, err := label.NewTargetName(level.Leaf.Name)
+		if err != nil {
+			return fmt.Errorf("invalid target name %#v: %w", level.Leaf.Name, err)
+		}
+		if err := yield(targetName, model_core.Nested(entry, level.Leaf.Definition)); err != nil {
+			return err
 		}
 	}
-	return model_starlark.DecodeValue[TReference, TMetadata](
-		model_core.Nested(groups, &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Select{
-				Select: encodedSelect,
-			},
-		}),
-		/* currentIdentifier = */ nil,
-		options,
-	)
+	return errIter
 }
 
 // computeMacroInstancePackageValue computes the value of the Package
@@ -403,6 +435,16 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	valueEncodingOptions := c.getValueEncodingOptions(ctx, e, nil)
 	thread.SetLocal(model_starlark.ValueEncodingOptionsKey, valueEncodingOptions)
 	thread.SetLocal(model_starlark.GlobalResolverKey, c.newGlobalResolver(ctx, e, builtinsModuleNames))
+	if rootMacroInstanceDefinition.Message.Finalizer == model_starlark_pb.MacroInstance_FINALIZER {
+		// Finalizers may observe the targets in the package
+		// that are not declared by finalizers.
+		thread.SetLocal(model_starlark.ExistingRulesResolverKey, &existingRulesResolver[TReference, TMetadata]{
+			computer:         c,
+			context:          ctx,
+			environment:      e,
+			canonicalPackage: canonicalPackage,
+		})
+	}
 
 	// Targets declared by the macro are registered against a
 	// separate TargetRegistrar, which enforces that their names

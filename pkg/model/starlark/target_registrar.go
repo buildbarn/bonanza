@@ -60,8 +60,10 @@ type registrarMacro[TReference any] struct {
 	// relative to the name of the macro instance, and sorted.
 	forbiddenTargetNameSuffixes []string
 
-	// Whether the macro instance is a finalizer.
-	finalizer bool
+	// Whether the macro instance is a finalizer, or is declared
+	// while expanding a finalizer. This determines whether macro
+	// instances declared by it are marked as CALLED_BY_FINALIZER.
+	finalizer model_starlark_pb.MacroInstance_Finalizer
 }
 
 // NewTargetRegistrar creates a TargetRegistrar that at the time of
@@ -353,9 +355,9 @@ func (tr *TargetRegistrar[TReference, TMetadata]) getForbiddenTargetNameSuffixes
 // disjoint. Targets that are referenced or declared in the namespace
 // of a macro instance are stored in its context, so that they can be
 // processed when the macro instance is expanded. Macro instances may
-// not declare targets that are declared by their callers. Outside of
-// finalizers, the namespace of a finalizer may not contain non-finalizer
-// macro instances.
+// not declare targets that are declared by their callers. Unless they
+// are declared while expanding a finalizer, the namespace of a
+// finalizer may not contain non-finalizer macro instances.
 //
 // Test suites that don't list any tests explicitly are filled in with
 // the tests in the package that are not tagged "manual" and pass the
@@ -379,12 +381,12 @@ func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_l
 			// Finalizers are expanded after all targets
 			// declared by non-finalizer macro instances,
 			// meaning they can't contain such macro
-			// instances. This is only a concern if targets
-			// are not already declared by a finalizer.
+			// instances. Macro instances declared while
+			// expanding a finalizer are marked as
+			// CALLED_BY_FINALIZER, and are thus permitted.
 			outerName := outerMacroInstanceNames[n-1]
-			if tr.macroExpansionContexts[outerName].Message.Definition.RootMacroInstanceDefinition.Finalizer &&
-				!tr.macroInstances[name].Message.Finalizer &&
-				(tr.macro == nil || !tr.macro.finalizer) {
+			if tr.macroExpansionContexts[outerName].Message.Definition.RootMacroInstanceDefinition.Finalizer == model_starlark_pb.MacroInstance_FINALIZER &&
+				tr.macroInstances[name].Message.Finalizer == model_starlark_pb.MacroInstance_NOT_A_FINALIZER {
 				return fmt.Errorf("non-finalizer macro instance %#v cannot be part of the namespace of finalizer %#v", name, outerName)
 			}
 			nestedMacroInstanceNames[outerName] = append(nestedMacroInstanceNames[outerName], name)

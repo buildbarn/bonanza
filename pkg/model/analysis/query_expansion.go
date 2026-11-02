@@ -627,6 +627,9 @@ func getQueryTargetDefinitions[TReference any](e TargetValueGetter[TReference], 
 			missingDependencies = true
 			continue
 		}
+		if target.Message.Definition == nil {
+			return nil, fmt.Errorf("target %#v does not exist", l.String())
+		}
 		definitions = append(definitions, model_core.Nested(target, target.Message.Definition))
 	}
 	if missingDependencies {

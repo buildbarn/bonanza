@@ -612,6 +612,20 @@ message MacroExpansionContext {
 // function is only invoked when one of the targets declared by them is
 // requested.
 message MacroInstance {
+  enum Finalizer {
+    // The macro is not a finalizer, and the macro instance is not
+    // declared while expanding a finalizer.
+    NOT_A_FINALIZER = 0;
+
+    // The macro is a finalizer.
+    FINALIZER = 1;
+
+    // The macro is not a finalizer, but the macro instance is declared
+    // while expanding a finalizer, or while expanding another macro
+    // instance that is declared while expanding a finalizer.
+    CALLED_BY_FINALIZER = 2;
+  }
+
   message Definition {
     // Canonical identifier of the macro.
     string macro_identifier = 1;
@@ -635,12 +649,15 @@ message MacroInstance {
     // package containing the macro's definition by default.
     InheritableAttrs inheritable_attrs = 3;
 
-    // Whether the macro is a finalizer. Finalizers are expanded after
-    // all targets declared by non-finalizer macro instances in the
-    // package have been declared. This means that outside of
-    // finalizers, the namespace of a finalizer may not contain
-    // non-finalizer macro instances.
-    bool finalizer = 4;
+    // Whether the macro is a finalizer, or whether the macro instance
+    // is declared while expanding a finalizer. Finalizers are expanded
+    // after all targets declared by non-finalizer macro instances in
+    // the package have been declared. This means that unless they are
+    // declared while expanding a finalizer, the namespace of a
+    // finalizer may not contain non-finalizer macro instances. Only
+    // finalizers may call native.existing_rule() and
+    // native.existing_rules().
+    Finalizer finalizer = 4;
   }
 
   // The suffix that needs to be appended to the name of the macro

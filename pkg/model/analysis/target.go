@@ -125,7 +125,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Con
 			return PatchedTargetValue[TMetadata]{}, err
 		}
 		if precedingNameSuffix == nil || !model_starlark.IsValidMacroDeclarationName(*precedingNameSuffix, nameSuffix) {
-			return PatchedTargetValue[TMetadata]{}, errors.New("target does not exist")
+			// Target does not exist.
+			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.Target_Value{}), nil
 		}
 		ownerNameLength := macroInstanceNameLength + len(*precedingNameSuffix)
 		macroInstanceName = append(macroInstanceName, targetNameStr[macroInstanceNameLength:ownerNameLength])

@@ -135,7 +135,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx con
 		if !ok {
 			return PatchedPackageTargetsValue[TMetadata]{}, errors.New("not a valid leaf entry")
 		}
-		if key.ExcludeFinalizers && level.Leaf.Definition.GetRootMacroInstanceDefinition().GetFinalizer() {
+		if key.ExcludeFinalizers && level.Leaf.Definition.GetRootMacroInstanceDefinition().GetFinalizer() == model_starlark_pb.MacroInstance_FINALIZER {
 			continue
 		}
 		macroInstanceTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{

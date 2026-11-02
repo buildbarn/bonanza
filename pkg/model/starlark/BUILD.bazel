@@ -12,6 +12,7 @@ go_library(
         "dict.go",
         "encode_compiled_program.go",
         "exec_group.go",
+        "existing_rules.go",
         "file.go",
         "int.go",
         "label.go",
@@ -70,6 +71,7 @@ go_test(
     srcs = [
         "attr_test.go",
         "dict_test.go",
+        "existing_rules_test.go",
         "int_test.go",
         "list_test.go",
         "macro_test.go",

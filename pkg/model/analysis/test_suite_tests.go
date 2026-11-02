@@ -23,7 +23,7 @@ func (c *baseComputer[TReference, TMetadata]) allTestSuiteTests(ctx context.Cont
 	return func(yield func(string) bool) {
 		for entry := range btree.AllLeaves(
 			ctx,
-			c.testSuiteTestReader,
+			c.valueReaders.TestSuiteTest,
 			tests,
 			func(entry model_core.Message[*model_starlark_pb.TestSuite_Test, TReference]) (*model_core_pb.DecodableReference, error) {
 				return entry.Message.GetParent().GetReference(), nil
@@ -62,6 +62,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx con
 	if !targetValue.IsSet() {
 		return PatchedTestSuiteTestsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	if targetValue.Message.Definition == nil {
+		return PatchedTestSuiteTestsValue[TMetadata]{}, fmt.Errorf("target %#v does not exist", key.Label)
+	}
 	definition, ok := targetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_TestSuite)
 	if !ok {
 		return PatchedTestSuiteTestsValue[TMetadata]{}, fmt.Errorf("target %#v is not a test suite", key.Label)
@@ -88,6 +91,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx con
 			if !testValue.IsSet() {
 				missingDependencies = true
 				continue
+			}
+			if testValue.Message.Definition == nil {
+				return fmt.Errorf("test %#v does not exist", testLabelStr)
 			}
 			switch testKind := testValue.Message.Definition.GetKind().(type) {
 			case *model_starlark_pb.Target_Definition_RuleTarget:

@@ -146,6 +146,9 @@ func getTargetVisibility[TReference any](e TargetValueGetter[TReference], target
 		if !ownerTargetValue.IsSet() {
 			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, evaluation.ErrMissingDependency
 		}
+		if ownerTargetValue.Message.Definition == nil {
+			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, fmt.Errorf("owner %#v does not exist", ownerLabel.String())
+		}
 		ownerRuleTarget, ok := ownerTargetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget)
 		if !ok {
 			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, fmt.Errorf("owner %#v is not a rule target", ownerLabel.String())
@@ -177,6 +180,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 	})
 	if !targetValue.IsSet() {
 		return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+	if targetValue.Message.Definition == nil {
+		return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("target %#v does not exist", key.Message.ToLabel)
 	}
 
 	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)

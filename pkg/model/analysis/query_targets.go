@@ -132,6 +132,9 @@ func newQueryTargetLeaf[TReference object.BasicReference, TMetadata model_core.R
 	if !target.IsSet() {
 		return model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	if target.Message.Definition == nil {
+		return model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata]{}, fmt.Errorf("target %#v does not exist", targetLabel)
+	}
 	if definitionDetail == model_analysis_pb.QueryTarget_KIND {
 		definition, err := pruneQueryTargetDefinition(target.Message.Definition)
 		if err != nil {

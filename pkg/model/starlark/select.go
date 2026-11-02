@@ -347,3 +347,36 @@ func (ui *selectUnpackerInto[TReference, TMetadata]) Canonicalize(thread *starla
 func (selectUnpackerInto[TReference, TMetadata]) GetConcatenationOperator() syntax.Token {
 	return 0
 }
+
+// DecodeSelectGroups decodes groups of select() expressions that were
+// previously written to storage, and returns them in the form of a
+// Starlark select() object. The concatenation operator only needs to
+// be provided if multiple groups are present.
+func DecodeSelectGroups[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	groups model_core.Message[[]*model_starlark_pb.Select_Group, TReference],
+	concatenationOperator syntax.Token,
+	options *ValueDecodingOptions[TReference],
+) (starlark.Value, error) {
+	encodedSelect := &model_starlark_pb.Select{
+		Groups: groups.Message,
+	}
+	if len(groups.Message) > 1 {
+		switch concatenationOperator {
+		case syntax.PIPE:
+			encodedSelect.ConcatenationOperator = model_starlark_pb.Select_PIPE
+		case syntax.PLUS:
+			encodedSelect.ConcatenationOperator = model_starlark_pb.Select_PLUS
+		default:
+			return nil, errors.New("value consists of multiple parts, even though the attribute type cannot be concatenated")
+		}
+	}
+	return DecodeValue[TReference, TMetadata](
+		model_core.Nested(groups, &model_starlark_pb.Value{
+			Kind: &model_starlark_pb.Value_Select{
+				Select: encodedSelect,
+			},
+		}),
+		/* currentIdentifier = */ nil,
+		options,
+	)
+}

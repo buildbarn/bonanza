@@ -531,6 +531,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 	if !emptyDefaultInfoValue.IsSet() || !targetValue.IsSet() {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	if targetValue.Message.Definition == nil {
+		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("target does not exist")
+	}
 
 	emptyDefaultInfo := model_core.Nested(emptyDefaultInfoValue, emptyDefaultInfoValue.Message.DefaultInfo)
 	switch targetKind := targetValue.Message.Definition.GetKind().(type) {

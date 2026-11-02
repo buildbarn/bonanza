@@ -217,7 +217,7 @@ func TestMacro(t *testing.T) {
 		// the targets that finalizers observe.
 		thread, targetRegistrar := newTopLevel(t)
 		require.NoError(t, call(thread, exampleFinalizer, nil, kwarg("name", starlark.String("f"))))
-		require.True(t, getMacroInstance(t, thread, targetRegistrar, "f").Definition.Finalizer)
+		require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, getMacroInstance(t, thread, targetRegistrar, "f").Definition.Finalizer)
 	})
 
 	t.Run("TopLevelVisibility", func(t *testing.T) {
@@ -593,18 +593,30 @@ func TestMacro(t *testing.T) {
 			}
 
 			t.Run("WithinFinalizer", func(t *testing.T) {
-				// Within finalizers, any combination is
-				// permitted, as none of the targets they
+				// Within finalizers and the macro
+				// instances they declare, any combination
+				// is permitted, as none of the targets they
 				// declare are observed by finalizers.
-				thread, targetRegistrar := newExpansion(t, &model_starlark_pb.MacroExpansionContext_Definition{
-					RootMacroInstanceDefinition: &model_starlark_pb.MacroInstance_Definition{
-						Finalizer: true,
-					},
-				})
-				require.NoError(t, call(thread, exampleFinalizer, nil, kwarg("name", starlark.String("m_f"))))
-				require.NoError(t, callMacro(thread, "m_f_x"))
-				require.NoError(t, finalize(thread, targetRegistrar))
-				require.Equal(t, []string{"m_f"}, targetRegistrar.GetMacroExpansionContextNames())
+				// Non-finalizer macro instances should be
+				// marked as such.
+				for _, finalizer := range []model_starlark_pb.MacroInstance_Finalizer{
+					model_starlark_pb.MacroInstance_FINALIZER,
+					model_starlark_pb.MacroInstance_CALLED_BY_FINALIZER,
+				} {
+					thread, targetRegistrar := newExpansion(t, &model_starlark_pb.MacroExpansionContext_Definition{
+						RootMacroInstanceDefinition: &model_starlark_pb.MacroInstance_Definition{
+							Finalizer: finalizer,
+						},
+					})
+					require.NoError(t, call(thread, exampleFinalizer, nil, kwarg("name", starlark.String("m_f"))))
+					require.NoError(t, callMacro(thread, "m_f_x"))
+					require.NoError(t, finalize(thread, targetRegistrar))
+					require.Equal(t, []string{"m_f"}, targetRegistrar.GetMacroExpansionContextNames())
+					macroExpansionContext := targetRegistrar.GetAndRemoveMacroExpansionContext("m_f").Message
+					require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, macroExpansionContext.Definition.RootMacroInstanceDefinition.Finalizer)
+					require.Len(t, macroExpansionContext.Definition.NestedMacroInstances, 1)
+					require.Equal(t, model_starlark_pb.MacroInstance_CALLED_BY_FINALIZER, macroExpansionContext.Definition.NestedMacroInstances[0].GetLeaf().Definition.Finalizer)
+				}
 			})
 		})
 
@@ -681,7 +693,10 @@ func TestMacro(t *testing.T) {
 			// namespace of a non-finalizer macro instance.
 			thread, targetRegistrar := newWithinMacro(t)
 			require.NoError(t, call(thread, exampleFinalizer, nil, kwarg("name", starlark.String("m_f"))))
-			require.True(t, getMacroInstance(t, thread, targetRegistrar, "m_f").Definition.Finalizer)
+			require.NoError(t, call(thread, exampleMacro, nil, kwarg("name", starlark.String("m_x")), kwarg("count", starlark.MakeInt(1))))
+			require.NoError(t, finalize(thread, targetRegistrar))
+			require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, targetRegistrar.GetAndRemoveMacroExpansionContext("m_f").Message.Definition.RootMacroInstanceDefinition.Finalizer)
+			require.Equal(t, model_starlark_pb.MacroInstance_NOT_A_FINALIZER, targetRegistrar.GetAndRemoveMacroExpansionContext("m_x").Message.Definition.RootMacroInstanceDefinition.Finalizer)
 		})
 
 		t.Run("SameNameAsMacro", func(t *testing.T) {
@@ -814,7 +829,7 @@ func TestMacro(t *testing.T) {
 				require.NoError(t, call(thread, decodedMacro, nil, kwarg("name", starlark.String("m")), kwarg("value", starlark.String("hello"))))
 				macroInstance := getMacroInstance(t, thread, targetRegistrar, "m")
 				require.Equal(t, "@@rules+//:defs.bzl%my_macro", macroInstance.Definition.MacroIdentifier)
-				require.True(t, macroInstance.Definition.Finalizer)
+				require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, macroInstance.Definition.Finalizer)
 				require.Len(t, macroInstance.Definition.PublicAttrValues, 1)
 			})
 		}

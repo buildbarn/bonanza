@@ -2,6 +2,7 @@ package analysis_test
 
 import (
 	"encoding"
+	"errors"
 	"testing"
 
 	model_core "bonanza.build/pkg/model/core"
@@ -109,10 +110,15 @@ func TestTarget(t *testing.T) {
 			MacroExpansionContexts: d.macroExpansionContexts,
 		}))
 	}
+	// getRuleIdentifier returns the identifier of the rule of a
+	// target. Targets that don't exist are reported as an error.
 	getRuleIdentifier := func(t *testing.T, label string, e *MockTargetEnvironmentForTesting) (string, error) {
 		value, err := bct.computer.ComputeTargetValue(ctx, &model_analysis_pb.Target_Key{Label: label}, e)
 		if err != nil {
 			return "", err
+		}
+		if value.Message.Definition == nil {
+			return "", errors.New("target does not exist")
 		}
 		ruleTarget := value.Message.Definition.GetRuleTarget()
 		require.NotNil(t, ruleTarget)
@@ -278,8 +284,11 @@ func TestTarget(t *testing.T) {
 			newRuleTargetDeclaration("bar_other", "@@rules+//:defs.bzl%in_macro"),
 		))
 
-		_, err := getRuleIdentifier(t, "@@main+//foo:bar_out", e)
-		require.EqualError(t, err, "target does not exist")
+		// Targets that don't exist should yield a value
+		// without a definition, as opposed to an error.
+		value, err := bct.computer.ComputeTargetValue(ctx, &model_analysis_pb.Target_Key{Label: "@@main+//foo:bar_out"}, e)
+		require.NoError(t, err)
+		testutil.RequireEqualProto(t, &model_analysis_pb.Target_Value{}, value.Message)
 
 		// Macro instances themselves are not targets.
 		e = NewMockTargetEnvironmentForTesting(ctrl)

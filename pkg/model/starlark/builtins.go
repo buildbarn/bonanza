@@ -1137,6 +1137,14 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return currentCtx.(starlark.Value), nil
 				},
 			),
+			"existing_rule": starlark.NewBuiltin(
+				"native.existing_rule",
+				nativeExistingRule[TReference, TMetadata],
+			),
+			"existing_rules": starlark.NewBuiltin(
+				"native.existing_rules",
+				nativeExistingRules[TReference, TMetadata],
+			),
 			"exports_files": starlark.NewBuiltin(
 				"native.exports_files",
 				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

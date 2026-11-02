@@ -415,8 +415,10 @@
             "FileReader",
             "Glob",
             "MacroExpansionContext",
+            "PackageTargets",
             "RepoDefaultAttrs",
-            "RootModule"
+            "RootModule",
+            "Target"
          ]
       },
       "PackageGroupContains": {

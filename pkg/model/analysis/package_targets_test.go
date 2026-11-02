@@ -330,7 +330,7 @@ func TestPackageTargets(t *testing.T) {
 		// omitted. This also applies to finalizers declared
 		// within non-finalizer macro instances.
 		finalizer := newMacroExpansionContextDeclaration("f")
-		finalizer.GetLeaf().Definition.RootMacroInstanceDefinition.Finalizer = true
+		finalizer.GetLeaf().Definition.RootMacroInstanceDefinition.Finalizer = model_starlark_pb.MacroInstance_FINALIZER
 		d := newDeclarations(
 			newRuleTargetDeclaration("x", "@@rules+//:defs.bzl%top_level"),
 		).withMacroExpansionContexts("a")

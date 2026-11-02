@@ -362,6 +362,89 @@ def _impl(name, visibility):
 		require.EqualError(t, err, "macro instance \"m\": Traceback (most recent call last):\n  @@rules+//:defs.bzl: in _impl\nError in native.alias: target \"m_out\" is already declared outside of this macro instance")
 	})
 
+	t.Run("Finalizer", func(t *testing.T) {
+		// Finalizers may observe all targets in the package,
+		// except for the ones declared by finalizers. Targets
+		// that don't exist should yield None.
+		newAlias := func(name string) *model_analysis_pb.Package_Value_Target {
+			return &model_analysis_pb.Package_Value_Target{
+				Level: &model_analysis_pb.Package_Value_Target_Leaf{
+					Leaf: &model_starlark_pb.Target{
+						Name: name,
+						Definition: &model_starlark_pb.Target_Definition{
+							Kind: &model_starlark_pb.Target_Definition_Alias{
+								Alias: &model_starlark_pb.Alias{
+									Actual: &model_starlark_pb.Select_Group{
+										NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
+											NoMatchValue: &model_starlark_pb.Value{
+												Kind: &model_starlark_pb.Value_Label{Label: "@@main+//baz:actual"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+		}
+
+		e := NewMockPackageEnvironmentForTesting(ctrl)
+		definition := newMacroExpansionContextDefinition()
+		definition.RootMacroInstanceDefinition.Finalizer = model_starlark_pb.MacroInstance_FINALIZER
+		expectMacroExpansionContext(e, definition)
+		expectMacroDefinition(e, `
+def _impl(name, visibility):
+    for n, r in native.existing_rules().items():
+        native.alias(name = name + "_" + n, actual = r["actual"])
+    if native.existing_rule("m_x") == None and native.existing_rule("other_y")["kind"] == "alias":
+        native.alias(name = name + "_checked", actual = "//baz:actual")
+`, nil)
+		e.EXPECT().GetPackageTargetsValue(
+			testutil.EqProto(t, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo", ExcludeFinalizers: true}),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.PackageTargets_Value{
+			Targets: []*model_analysis_pb.Package_Value_Target{newAlias("top")},
+		}))
+		e.EXPECT().GetTargetValue(
+			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:m_x"}),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{}))
+		e.EXPECT().GetTargetValue(
+			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:other_y"}),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			Definition: newAlias("other_y").GetLeaf().Definition,
+		}))
+
+		value, err := computeMacroInstance(e, "m")
+		require.NoError(t, err)
+		var targetNames []string
+		for _, target := range value.Targets {
+			targetNames = append(targetNames, target.GetLeaf().GetName())
+		}
+		require.Equal(t, []string{"m_checked", "m_top"}, targetNames)
+	})
+
+	t.Run("ExistingRulesOutsideFinalizer", func(t *testing.T) {
+		// Like Bazel, non-finalizer macros may not observe
+		// other targets in the package. This also applies to
+		// macros called by finalizers.
+		for _, finalizer := range []model_starlark_pb.MacroInstance_Finalizer{
+			model_starlark_pb.MacroInstance_NOT_A_FINALIZER,
+			model_starlark_pb.MacroInstance_CALLED_BY_FINALIZER,
+		} {
+			e := NewMockPackageEnvironmentForTesting(ctrl)
+			definition := newMacroExpansionContextDefinition()
+			definition.RootMacroInstanceDefinition.Finalizer = finalizer
+			expectMacroExpansionContext(e, definition)
+			expectMacroDefinition(e, `
+def _impl(name, visibility):
+    native.existing_rules()
+`, nil)
+
+			_, err := computeMacroInstance(e, "m")
+			require.EqualError(t, err, "macro instance \"m\": Traceback (most recent call last):\n  @@rules+//:defs.bzl: in _impl\nError in native.existing_rules: existing rules can only be obtained from within finalizers")
+		}
+	})
+
 	t.Run("NestedMacroInstances", func(t *testing.T) {
 		// Macro instances declared by the caller whose
 		// namespace is contained within the namespace of the

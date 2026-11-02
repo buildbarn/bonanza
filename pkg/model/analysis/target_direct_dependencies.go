@@ -21,6 +21,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 	if !target.IsSet() {
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	if target.Message.Definition == nil {
+		return PatchedTargetDirectDependenciesValue[TMetadata]{}, errors.New("target does not exist")
+	}
 
 	dependencies := labelSet{}
 	addDependency := func(l label.ResolvedLabel) error {

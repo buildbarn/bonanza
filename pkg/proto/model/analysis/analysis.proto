@@ -2006,6 +2006,8 @@ message Target {
   }
 
   message Value {
+    // The definition of the target. If the target does not exist,
+    // this field is not set.
     bonanza.model.starlark.Target.Definition definition = 1;
   }
 }

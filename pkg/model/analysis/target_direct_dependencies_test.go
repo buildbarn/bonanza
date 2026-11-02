@@ -245,6 +245,17 @@ func TestTargetDirectDependencies(t *testing.T) {
 		require.Equal(t, []string{"@@main+//:actual"}, getTargetLabels(t, value.Message.TargetLabels))
 	})
 
+	t.Run("DoesNotExist", func(t *testing.T) {
+		e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)
+		e.EXPECT().GetTargetValue(
+			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:missing"}),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{}))
+		_, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
+			Label: "@@main+//:missing",
+		}, e)
+		require.EqualError(t, err, "target does not exist")
+	})
+
 	t.Run("TestSuite", func(t *testing.T) {
 		// Tests listed by a test suite are explicit
 		// dependencies, regardless of the test suite's filters.

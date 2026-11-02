@@ -111,6 +111,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(c
 	if !targetValue.IsSet() {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	if targetValue.Message.Definition == nil {
+		return PatchedPackageGroupContainsValue[TMetadata]{}, errors.New("package group does not exist")
+	}
 	definition, ok := targetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_PackageGroup)
 	if !ok {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, errors.New("target is not a package group")

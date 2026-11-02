@@ -91,6 +91,12 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 	if err != nil {
 		return nil, err
 	}
+	finalizerKind := model_starlark_pb.MacroInstance_NOT_A_FINALIZER
+	if finalizer {
+		finalizerKind = model_starlark_pb.MacroInstance_FINALIZER
+	} else if targetRegistrar.macro != nil && targetRegistrar.macro.finalizer != model_starlark_pb.MacroInstance_NOT_A_FINALIZER {
+		finalizerKind = model_starlark_pb.MacroInstance_CALLED_BY_FINALIZER
+	}
 	attrs, err := m.definition.GetAttrsCheap(thread)
 	if err != nil {
 		return nil, err
@@ -215,7 +221,7 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 			&model_starlark_pb.MacroInstance_Definition{
 				MacroIdentifier:  m.Identifier.String(),
 				PublicAttrValues: publicAttrValues,
-				Finalizer:        finalizer,
+				Finalizer:        finalizerKind,
 				InheritableAttrs: &model_starlark_pb.InheritableAttrs{
 					Deprecation:     defaultInheritableAttrs.GetDeprecation(),
 					PackageMetadata: defaultInheritableAttrs.GetPackageMetadata(),

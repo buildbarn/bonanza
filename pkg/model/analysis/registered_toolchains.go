@@ -101,6 +101,9 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					*h.missingDependencies = true
 					continue
 				}
+				if targetValue.Message.Definition == nil {
+					return fmt.Errorf("toolchain %#v does not exist", toolchainLabelStr)
+				}
 				ruleTarget, ok := targetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget)
 				if !ok {
 					return fmt.Errorf("toolchain %#v is not a rule target", toolchainLabelStr)

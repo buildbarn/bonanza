@@ -141,6 +141,27 @@ func TestQueryTargets(t *testing.T) {
 		}, value.Message)
 	})
 
+	t.Run("DoesNotExist", func(t *testing.T) {
+		e := NewMockQueryTargetsEnvironmentForTesting(ctrl)
+		expectTarget(e, "@@main+//:missing", nil)
+
+		_, err := bct.computer.ComputeQueryTargetsValue(
+			ctx,
+			newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.QueryTargets_Key {
+				return &model_analysis_pb.QueryTargets_Key{
+					TargetLabelsReference: attachObject(patcher, newTargetLabelsObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
+						return []*model_analysis_pb.TargetLabel{
+							leafTargetLabel("@@main+//:missing"),
+						}
+					})),
+					DefinitionDetail: model_analysis_pb.QueryTarget_FULL,
+				}
+			}),
+			e,
+		)
+		require.ErrorContains(t, err, "target \"@@main+//:missing\" does not exist")
+	})
+
 	t.Run("KindsWithChildObject", func(t *testing.T) {
 		// If only kinds are requested, definitions should be
 		// pruned. Labels stored in child objects should be
