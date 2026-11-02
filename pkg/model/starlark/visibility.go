@@ -28,16 +28,23 @@ func (MacroVisibility) String() string {
 	return "<visibility>"
 }
 
+// Type returns the type name of Starlark macro visibility objects.
 func (MacroVisibility) Type() string {
 	return "visibility"
 }
 
+// Freeze a Starlark macro visibility object, so that it cannot be
+// mutated. This has no effect, as these objects are immutable.
 func (MacroVisibility) Freeze() {}
 
+// Truth returns whether a Starlark macro visibility object is "truthy"
+// or "falsy". These objects are always "truthy".
 func (MacroVisibility) Truth() starlark.Bool {
 	return starlark.True
 }
 
+// Hash a Starlark macro visibility object. This is not supported, as
+// these objects can only be forwarded.
 func (MacroVisibility) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, errors.New("visibility cannot be hashed")
 }
