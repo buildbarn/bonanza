@@ -1,0 +1,1106 @@
+# Design: a Starlark interpreter for Bonanza
+
+Status: proposal
+
+## Motivation
+
+Bonanza currently evaluates `.bzl`, `BUILD`, `MODULE.bazel` and
+`REPO.bazel` files using a patched copy of `go.starlark.net`. This has
+the following problems:
+
+1. **Patch burden.** `patches/net_starlark_go/` contains ~2,900 lines of
+   diffs. `thread.diff` alone (~2,450 lines) threads `*Thread` through
+   `Attr()`, `Hash()`, `Binary()`, `CompareSameType()`, `SetKey()`,
+   etc. `function-saving.diff` adds a `FunctionFactory` so functions can
+   be reconstructed by bytecode index. These are core API changes that
+   will never be accepted upstream.
+2. **One implementation per composite type.** `*starlark.List`,
+   `*starlark.Dict`, `starlark.Tuple` and `*starlark.Set` are concrete
+   types that the interpreter type-switches on. A list can't be backed
+   by a B-tree in storage, so `DecodeValue()` reads whole
+   `model_starlark_pb.List` and `Dict` trees into memory, which
+   duplicates data that is already cached as parsed objects.
+3. **Methods that can't fail or take a context.** `String()` has no
+   `*Thread`, so `Struct.String()` prints `field = ...` instead of
+   decoding fields from storage.
+4. **Eager `load()`.** `Thread.Load` must return a complete
+   `StringDict`, so `CompiledBzlFileDecodedGlobals` decodes every
+   global of every loaded file, even when only one symbol is used.
+5. **Native values in the evaluation graph.**
+   `CompiledBzlFileDecodedGlobals` (`starlark.StringDict`) and
+   `CompiledBzlFileFunctionFactory` (`*starlark.FunctionFactory`) are
+   the Starlark-specific reasons `pkg/model/evaluation` has to support
+   `ComputeNativeValue()`. Even worse, building a `FunctionFactory`
+   re-executes the top-level code of a `.bzl` file whenever a function
+   declared in it gets called from another evaluation.
+
+## Goals
+
+- Own the whole pipeline, from the scanner down: no dependency on
+  `go.starlark.net` and no patches.
+- Follow Bazel's Starlark syntax as it evolves, starting with type
+  annotations.
+- Make composite types interfaces with multiple implementations: in
+  memory, or backed by storage, lazy and immutable.
+- Make every operation that may touch storage take a `*Thread` (which
+  carries a `context.Context`) and return an `error`, including
+  `repr()`/`str()`.
+- Make `load()` and global access lazy, per symbol.
+- Make functions plain message values that can be called without
+  re-running the top-level code of their file, so that the
+  Starlark-related native value keys can be removed.
+- Stay compatible with the Bazel Starlark dialect that
+  `go.starlark.net` + patches implements today, including set
+  literals, octal escapes and `dict.get(key=..., default=...)`.
+
+## Non-goals (for now)
+
+- Avoiding restarts when an `ErrMissingDependency` occurs. The design
+  below must not rule this out, though (see
+  [Future work](#future-work)).
+- Concatenating lists, strings or bytes without reading them. This
+  needs canonical concatenation in `pkg/model/core/btree` first (see
+  [Future work](#future-work)).
+- A static type checker. Type annotations are parsed, and get the
+  run-time behaviour the spec gives them, but no types are checked (see
+  [Type annotations](#type-annotations)).
+- JIT compilation or other performance work beyond a reasonable
+  bytecode VM.
+
+## Overview
+
+```
+pkg/starlark/syntax     scanner, parser, AST, quoting  (new)
+pkg/starlark/resolve    scope resolution, dialects     (new)
+pkg/starlark/compile    AST -> bytecode, Funcode proto (new)
+pkg/starlark            Value interfaces, core types,
+                        Thread, VM, error/backtrace    (new)
+pkg/starlark/library    builtins and methods of
+                        str/list/dict/set/..., json    (new)
+pkg/starlark/unpack     argument unpacking             (existing, ported)
+pkg/model/starlark      storage-backed implementations,
+                        Bazel types (Label, depset,
+                        struct, rule, ...)             (existing, ported)
+```
+
+The core interpreter (`pkg/starlark/...`) knows nothing about the object
+store and has no `[TReference, TMetadata]` generics. Storage-backed
+values are implementations of the core interfaces that live in
+`pkg/model/starlark`, just like `Struct` already does today.
+
+### Why write our own scanner and parser
+
+Upstream `syntax` isn't involved in the problems listed under
+Motivation. We write our own anyway, because Bazel's syntax is moving
+and go.starlark.net isn't keeping up:
+
+- **Type annotations.** Bazel's spec change
+  ([bazelbuild/starlark#362](https://github.com/bazelbuild/starlark/pull/362))
+  adds annotation syntax: annotations on parameters (including
+  `*args`/`**kwargs`) and return types, typed assignments, type
+  expressions such as `list[str]` and namespaced names, and `cast()`
+  and `isinstance()` as keywords. bazel-contrib/buildtools already
+  supports it, and Bazel 8.8 parses and ignores it behind
+  `--experimental_starlark_type_syntax`. The only go.starlark.net
+  proposal
+  ([google/starlark-go#439](https://github.com/google/starlark-go/pull/439))
+  covers function annotations only, and has been open since 2022. Once
+  modules on the Bazel Central Registry use annotations, Bonanza has
+  to parse them. Blanking out annotations before parsing doesn't work,
+  because `isinstance(value, type)` has to evaluate at run time.
+- **No patches.** Today's `octal.diff` is needed because upstream
+  rejects `"\377"`-style escapes while scanning, before any of our code
+  runs. With our own scanner, escapes follow Bazel: an octal or `\x`
+  escape is a single byte, even when that makes the string invalid
+  UTF-8. `\u`/`\U` escapes produce UTF-8.
+- **An AST that fits our resolver.** Upstream's AST holds resolver
+  output in `interface{}` slots (`File.Module`, `DefStmt.Function`,
+  `Ident.Binding`). Ours keeps no resolver state at all (see
+  [Resolver](#resolver)), and has nodes for type expressions.
+- **We decide which syntax to accept.** Each dialect has an option for
+  annotations, so we can follow Bazel's spec as it changes, rather
+  than go.starlark.net's.
+
+It isn't much code: upstream `syntax` is ~3,250 lines without tests,
+mostly the scanner and parser (~1,100 lines each). The grammar is
+small and well specified. We keep the AST shape close to upstream's
+where that's reasonable, and port go.starlark.net's scanner and parser
+tests (BSD-3-Clause).
+
+We considered bazel-contrib/buildtools' `build` package, which does
+track Bazel's syntax closely. But it's written for buildifier, a
+formatter: it keeps comments, accepts more than is valid, and its AST
+suits rewriting files, not compiling them.
+
+### Type annotations
+
+Parsing follows the type-expression grammar of bazelbuild/starlark#362,
+which is a subset of value expressions. Type applications such as
+`list[str]` are subscripts, so type expressions reuse the `Expr` nodes,
+parsed in a restricted mode. Parameters, `DefStmt` and assignments get
+an optional `Type Expr` field. Support comes in two steps:
+
+1. **Parse and ignore,** as Bazel 8.8 does. Annotations are kept in the
+   AST and resolved like other names, which catches undefined type
+   names. `cast(x, T)` evaluates to `x`.
+2. **Run-time behaviour,** such as `isinstance(value, type)`, once the
+   spec has settled. It is implemented in the compiler and `library`.
+
+Annotation syntax is a `Dialect` option, off by default until the spec
+is merged. Checking types stays a non-goal.
+
+### Why write our own resolver
+
+Upstream `resolve` gets in the way:
+
+- It treats `load()` bindings as locals of the file. A function that
+  uses a loaded symbol then captures it as a free variable, which
+  defeats [lazy `load()`](#lazy-load).
+- Its dialect options are global flags, linknamed from
+  `syntax.FileOptions`. They can't express Bazel's per-file-type
+  restrictions.
+- Its output (`resolve.Binding`, `resolve.Function`) has no room for
+  the extra information our compiler needs.
+
+As in upstream, our parser accepts the full grammar and leaves all
+dialect checks (e.g. `while`, top-level `if`/`for`, `set`, global
+reassignment, annotations) to the resolver. Everything from the
+compiler down is affected by the value model, so it is new code as
+well.
+
+### Resolver
+
+`pkg/starlark/resolve` takes a `*syntax.File` and a `Dialect`. It
+doesn't write anything into the AST. Instead it returns a `*Module`,
+which maps AST nodes to its results (e.g. `Module.Binding(*syntax.Ident)`
+and `Module.Function(*syntax.DefStmt)`). This keeps the AST immutable,
+so other packages such as `pkg/model/render` can use it without caring
+about resolution:
+
+```go
+type Scope uint8
+
+const (
+	Local       Scope = iota // local to its function
+	Cell                     // local, but captured by a nested function
+	Free                     // captured from an enclosing function
+	Global                   // defined at the top level of this module
+	Import                   // bound by load(); resolved lazily
+	Predeclared              // e.g. rule(), glob(), native
+	Universal                // e.g. len(), str()
+)
+
+type Binding struct {
+	Scope Scope
+	Index int           // into Function.Locals/FreeVars, Module.Globals or Module.Imports
+	First *syntax.Ident
+}
+
+type Import struct {
+	Label  pg_label.CanonicalLabel // resolved at resolve time
+	Symbol string
+}
+
+type Module struct {
+	Globals   []*Binding
+	Imports   []Import
+	Functions []*Function
+}
+
+type Function struct {
+	Locals, FreeVars []*Binding
+	// Globals and imports referenced by this function or any
+	// function nested inside it, so that the compiler knows which
+	// private globals have to be encoded.
+	ReferencedGlobals, ReferencedImports []int
+	// ...
+}
+```
+
+`Import` is a scope of its own, not a captured local. When a function
+references a loaded symbol, the compiler emits an import reference to
+that symbol, not a free variable.
+
+`Dialect` replaces upstream's linknamed `syntax.FileOptions` flags.
+There is one dialect per file type, which can express Bazel
+restrictions that upstream can't:
+
+| Restriction | `.bzl` | `BUILD` | `MODULE.bazel` | `REPO.bazel` |
+|---|---|---|---|---|
+| `def` / `lambda` | ✓ | ✗ | ✗ | ✗ |
+| `*args` / `**kwargs` in calls | ✓ | ✗ | ✗ | ✗ |
+| `load()` | at top of file | at top of file | ✗ (`include()` instead) | ✗ |
+| loading `_private` symbols | ✗ | ✗ | — | — |
+| `while`, recursion | ✗ (allowed for `builtins_core+`) | ✗ | ✗ | ✗ |
+| top-level `if`/`for` | ✗ | ✗ | ✗ | ✗ |
+| type annotations | option | ✗ | ✗ | ✗ |
+
+The exact table should match Bazel's behaviour. Only symbols defined in
+a module are exported, not loaded ones, which matches Bazel. Undefined
+names get "did you mean …?" suggestions from a small spelling helper of
+our own, because upstream's `internal/spell` can't be imported.
+
+The resolver is ~1,000 lines of logic that is easy to get subtly wrong:
+cells, forward references to globals, comprehension scopes and
+redefinition checks. We port upstream's `resolve/testdata` cases
+(BSD-3-Clause) as a starting point for its tests.
+
+## Value model
+
+### Base interface
+
+```go
+package starlark
+
+type Value interface {
+	// Type returns the name reported by type(). It never needs storage.
+	Type() string
+
+	// Truth implements bool(x). For a storage-backed list this needs
+	// only the root node, since parent elements carry counts.
+	Truth(t *Thread) (bool, error)
+
+	// Repr appends repr(x) to the printer. Used by repr(), str(),
+	// print(), "%r"/"%s", and error messages. It may load data.
+	Repr(t *Thread, p *Printer) error
+}
+```
+
+There is no `Freeze()` method. A value is either mutable or immutable
+from the moment it is created (see [Mutability](#mutability)).
+
+Optional capabilities are separate interfaces, as in `go.starlark.net`,
+but all of them take a `*Thread` and can fail:
+
+```go
+type Hashable   interface { Value; Hash(t *Thread) (uint32, error) }
+type Comparable interface { Value; CompareSameType(t *Thread, op syntax.Token, y Value, depth int) (bool, error) }
+type HasAttrs   interface { Value; Attr(t *Thread, name string) (Value, error); AttrNames(t *Thread) ([]string, error) }
+type HasBinary  interface { Value; Binary(t *Thread, op syntax.Token, y Value, side Side) (Value, error) }
+type Indexable  interface { Value; Len(t *Thread) (int, error); Index(t *Thread, i int) (Value, error) }
+type Iterable   interface { Value; Iterate(t *Thread, errOut *error) iter.Seq[Value] }
+type Mapping    interface { Value; Get(t *Thread, k Value) (Value, bool, error) }
+type Callable   interface { Value; Name() string; CallInternal(t *Thread, args Args) (Value, error) }
+```
+
+`Iterate` follows the `errOut *error` + `iter.Seq` style already used
+by `btree.AllLeaves()` and `AllListLeafElements()`.
+
+`Attr` reports a missing attribute by returning `NoSuchAttrError`, not
+`(nil, nil)`. `getattr(x, name, default)` and `hasattr()` only fall
+back to the default for that error, and propagate all others (including
+`ErrMissingDependency`). This replaces `getattr-error-checking.diff`.
+
+### Composite kinds are interfaces
+
+The VM and library never type-switch on concrete composite types.
+Instead each kind is an interface:
+
+```go
+type List interface {
+	Indexable
+	Iterable
+	isList()
+	// Mutation methods return an error on immutable lists.
+	Append(t *Thread, v Value) error
+	SetIndex(t *Thread, i int, v Value) error
+	// ...
+}
+
+type Dict interface { Mapping; Iterable; isDict(); Len(t *Thread) (int, error); SetKey(t *Thread, k, v Value) error; Items(t *Thread, errOut *error) iter.Seq2[Value, Value]; ... }
+type Tuple interface { Indexable; Iterable; isTuple() }
+type Set   interface { Iterable; isSet(); Has(t *Thread, v Value) (bool, error); ... }
+```
+
+The unexported marker methods keep `type(x) == "list"` meaningful: any
+`List` implementation reports `"list"`, and arbitrary types can't
+pretend to be lists by accident.
+
+Implementations:
+
+| Kind | In-memory (`pkg/starlark`) | Storage-backed (`pkg/model/starlark`) |
+|---|---|---|
+| list | `*memList`: `[]Value`, mutable unless created immutable | `*storedList`: root `[]*List_Element`, decodes nodes on demand through the parsed object pool |
+| dict | `*memDict`: insertion-ordered hash table | `*storedDict`: entries sorted by key, plus insertion order, see [Stored dicts and sets](#stored-dicts-and-sets) |
+| tuple | `memTuple` | `storedTuple` |
+| set | `*memSet` | `*storedSet`: same layout as dicts, without values |
+| struct / provider instance | — | `*Struct` (already lazy per field) |
+| depset | — | `*Depset` (already list-backed) |
+
+The VM has fast paths for the in-memory implementations (`if l, ok :=
+x.(*memList)`) and falls back to the interface otherwise. That keeps
+the common case of locally built lists cheap.
+
+Scalars stay as concrete value types: `NoneType`, `Bool`, `Int` (int64
+fast path, `*big.Int` for overflow), `Float`, `String`, `Bytes`.
+Strings are Go byte strings. That matches how Bazel behaves in
+practice, since Bazel reads source files as Latin-1, so a "char" in
+Bazel is a byte. Like Bazel, we allow strings that aren't valid UTF-8,
+and an escape like `"\377"` is the single byte 0xFF. (The current
+`octal.diff` instead writes U+00FF as UTF-8, i.e. the two bytes C3 BF,
+which is not what Bazel does.) Strings and bytes that are too large to store inline
+have storage-backed implementations as well (see
+[Large strings and bytes](#large-strings-and-bytes)).
+
+### Storage-backed values
+
+A storage-backed value wraps a
+`model_core.Message[*model_starlark_pb.X, TReference]` and decodes as
+little as possible:
+
+- `len()` on a stored list sums the counts of the root's elements
+  without reading children. `l[i]` descends the B-tree using the
+  counts.
+- Iteration reads nodes one at a time. Prefetching is left for later
+  (see [Future work](#future-work)).
+- Element values are decoded when they're accessed. Decoding a nested
+  list/dict/struct yields another storage-backed value, never a deep
+  copy.
+- Parsed nodes are shared through `model_parser`'s
+  `ParsedObjectPool`. The per-thread `Value` wrappers point into them,
+  so no second copy of the data exists.
+
+Storage-backed values are immutable. The `Value` objects that wrap
+them still belong to a single `Thread`, though (see
+[Memoization and dependency tracking](#memoization-and-dependency-tracking)).
+What is shared between evaluations is the parsed objects underneath.
+
+### Memoization and dependency tracking
+
+An evaluation records which other keys it depends on through the
+lookups it makes on its `Environment`. A value that memoizes the
+result of such a lookup, and is shared with another evaluation, hides
+that lookup from the second evaluation. The second evaluation then
+loses that dependency edge, or not, depending on which evaluation ran
+first. That makes the dependency graph unstable. Today this happens
+in three places, two of which are already marked with a `TODO`:
+
+- `protoNamedFunctionDefinition.getFunction()`
+  (`named_function.go`) caches the `*starlark.Function` it obtained
+  through `CompiledBzlFileFunctionFactory`;
+- `reloadingRuleDefinition.getBase()` (`rule.go`) caches the rule
+  definition it obtained through the `GlobalResolver`;
+- `reloadingMacroDefinition.getBase()` (`macro.go`) does the same for
+  macros.
+
+They can be shared because they are reachable from native values
+(`CompiledBzlFileDecodedGlobals`, `CompiledBzlFileFunctionFactory`)
+that the `RecursiveComputer` keeps around. The new design avoids this
+in general, not just for these three:
+
+1. **Only results that depend purely on storage contents are shared
+   between evaluations.** These are parsed objects in the
+   `ParsedObjectPool`, keyed by reference, and things derived from
+   them alone, such as a parsed `Funcode`, the attrs cache of
+   `protoAttrsCache`, or a decoded B-tree node. Reading objects
+   reachable from a value an evaluation already depends on doesn't
+   need an extra dependency edge, just like reading the children of a
+   B-tree.
+2. **Anything obtained through the `Environment` is looked up again in
+   every evaluation.** Examples are a global resolved through
+   `CompiledBzlFileGlobal`, an import, or the definition behind a rule
+   or macro that is referenced by identifier. Within one evaluation it
+   may be cached on the `Thread`. Within a single evaluation that's
+   harmless, because the edge has been recorded on first use, and the
+   `Environment` already deduplicates repeated lookups.
+3. **`Value` objects never outlive their `Thread`.** Storage-backed
+   values are created per thread, as cheap wrappers around parsed
+   messages. Values cross evaluation boundaries only as messages (see
+   [Mutability](#mutability)), and the Starlark-related native value
+   keys are gone. So there is no shared `Value` object that something
+   could be memoized into, and per-value memoization such as
+   `Struct.decodedValues` is per-evaluation automatically.
+4. **Shared state never captures per-evaluation state.** That includes
+   the `Thread`, `context.Context`, `Environment` and encoding/decoding
+   options. Today `Struct.fieldAtIndex()` decodes with the options of
+   whichever thread first accessed the field. Under rule 3 that is
+   always the current thread.
+
+The function design follows these rules. A `Function` message refers to
+its `Funcode` by reference, so loading the code needs no `Environment`
+lookup and can be shared. The module's globals and imports are
+resolved through `CompiledBzlFileGlobal` by every evaluation that uses
+them. Rules and macros that are referenced by identifier become
+storage-backed values that resolve their definition per thread, the
+same way.
+
+To keep this from regressing, `pkg/model/evaluation` gets a test mode
+that evaluates the same keys in different orders, and with cold and
+warm caches. It then checks that every key ends up with the same set
+of dependencies. This can sit alongside the existing leak-checking
+computer.
+
+### Mutability
+
+In `go.starlark.net`, values start out mutable and are frozen later by
+`Freeze()`, which walks everything reachable from them. That is how
+the globals of a module become immutable once it has been loaded, and
+how values can be shared between threads safely. Here, values never
+cross an evaluation boundary in memory. They are always written to
+storage and read back as storage-backed values, which have no way to
+mutate. So the state change, and the graph walk that comes with it,
+aren't needed. The rules:
+
+1. **Mutability is fixed when a value is created; it never changes
+   later.** Storage-backed values are immutable. In-memory values are
+   mutable, unless Go code creates them with an immutable constructor.
+2. **Decoding never produces a mutable value.** Decoding a nested
+   list, dict or struct yields another storage-backed value.
+3. **Values cross Thread and evaluation boundaries only by being
+   encoded.** In-memory values are confined to the thread that created
+   them and need no locking. A compute function that runs more than one
+   Starlark thread doesn't share in-memory values between them.
+4. **Builtins that keep a reference to an argument see later
+   mutations**, e.g. `s = struct(x = L)` followed by `L.append(...)`
+   changes `s.x`. That matches Starlark semantics. The value is encoded
+   in its final state when it leaves the thread, which is also what
+   Bazel ends up with.
+5. **Mutating a container while iterating over it is an error.** This
+   check is a separate mechanism, as it is in `go.starlark.net`.
+
+This matches Bazel's behaviour. While a `.bzl` file's top-level code
+runs, its globals and the default values of its functions are mutable
+in memory. Once another evaluation loads the file, they are
+storage-backed and immutable, so `FOO.append(1)` fails with the same
+"frozen list" error as before.
+
+**Immutable values created by Go code.** Some values are built by Go
+code and handed to Starlark within the same evaluation, and Starlark
+must not be able to mutate them. Today these are made immutable by
+calling `Freeze()`:
+
+- `ctx.attr` values, built by concatenating decoded parts
+  (`configured_target.go`);
+- split attributes and `ctx.files` lists (`configured_target.go`);
+- the `settings` dict passed to transitions
+  (`user_defined_transition.go`);
+- the result of `native.existing_rules()` (`existing_rules.go`);
+- `module_ctx` (`module_extension_repos.go`).
+
+Writing these to storage just to read them back would be a wasteful
+round trip, especially for `ctx.files`. Instead, the core provides
+immutable constructors for the in-memory implementations:
+
+```go
+func NewImmutableList(elements []Value) List
+func NewImmutableDict(entries ...KeyValue) Dict
+func NewImmutableTuple(elements []Value) Tuple
+```
+
+An immutable in-memory value is only safe if its elements are
+immutable too. That already holds at the call sites above, because
+they assemble decoded values, labels and files. In debug builds the
+constructors check this with `IsImmutable(v Value) bool`.
+
+What follows from this:
+
+- The `frozen` tracking in `Struct`, `Select` and other types in
+  `pkg/model/starlark` goes away. So does the freezing of decoded
+  values in `Struct.fieldAtIndex` and `DecodeGlobals`.
+- Whether a value is hashable never depends on whether it is mutable.
+  As in `go.starlark.net` today, lists, dicts and sets are never
+  hashable, whatever their implementation.
+
+### Encoding is structural sharing
+
+Every value that leaves a thread has to be encodable, because values
+returned from an evaluation are messages. The encode interface stays close to
+today's `EncodableValue`:
+
+```go
+type EncodableValue[TReference any, TMetadata model_core.ReferenceMetadata] interface {
+	EncodeValue(t *Thread, path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error)
+}
+```
+
+A storage-backed value encodes by returning its original message,
+patched through `options.ObjectCapturer` (as
+`protoNamedFunctionDefinition.Encode()` already does), **without
+reading any children**. So passing a large provider field from a
+dependency through to your own providers costs O(1) instead of a full
+decode/re-encode round trip.
+
+The `needsCode` return value goes away (see [Functions](#functions)).
+
+### Equality and hashing
+
+`Equal(t, x, y)` and `Compare(t, op, x, y)` live in the core. Values of
+the same kind compare by content regardless of implementation (a
+`*memList` equals a `*storedList` with the same elements). Two
+storage-backed values pointing at the same object (same reference and
+same message within it) are equal without being read. This makes
+comparing unchanged providers or attribute values cheap.
+
+There are two separate hash functions, with different requirements:
+
+1. **The internal hash used by dicts and sets** (`Hashable.Hash()`).
+   Starlark code can't observe it: dicts and sets iterate in insertion
+   order, and stored dicts and sets are ordered by
+   [key ordering](#key-ordering), not by hash. So it may differ between
+   processes and change between releases. Use
+   `hash/maphash` with a process-wide seed for strings, and cache the
+   hash of immutable composite values (e.g. `Struct.Hash()`, which
+   today assumes that any hashable struct is immutable).
+2. **The `hash()` builtin.** Its result is visible to Starlark code,
+   which may store it in a global or a provider, so it ends up in
+   storage. It must therefore be deterministic and never change. It is
+   a fixed function, implemented independently of `Hashable.Hash()`.
+   As in the Starlark spec and Bazel, it accepts only strings and uses
+   Java's `String.hashCode()`. (go.starlark.net also accepts bytes,
+   hashed with FNV-32.)
+
+   go.starlark.net transcodes the string to UTF-16 before hashing.
+   Bazel stores strings internally as Latin-1 characters, one per byte
+   of the file, so it effectively hashes the bytes. The two only agree
+   on ASCII strings. We hash the bytes, as Bazel does. That also fits
+   strings not having to be valid UTF-8 (see
+   [Composite kinds](#composite-kinds-are-interfaces)). This choice is
+   permanent once values are in storage.
+
+### Stored dicts and sets
+
+Today `Dict.Entry` is stored in insertion order, so a stored dict has
+no index for `d[k]`. Instead, entries are stored sorted by key, with
+the insertion order stored next to them:
+
+```proto
+message Dict {
+  message Entry {
+    message Leaf {
+      Value key = 1;
+      Value value = 2;
+    }
+
+    message Parent {
+      bonanza.model.core.DecodableReference reference = 1;
+      // Number of entries in the subtree, so that the N-th entry can
+      // be found without reading other subtrees.
+      uint64 count = 2;
+      // Smallest key in the subtree, so that lookups can descend
+      // without reading other subtrees.
+      Value first_key = 3;
+    }
+
+    oneof level {
+      Leaf leaf = 1;
+      Parent parent = 2;
+    }
+  }
+
+  // Entries, sorted by key ordering.
+  repeated Entry entries = 1;
+
+  // Insertion order, as positions into `entries`. Left out if the
+  // insertion order equals the sorted order.
+  repeated InsertionOrder.Element insertion_order = 2;
+}
+
+message InsertionOrder {
+  message Element {
+    message Parent {
+      bonanza.model.core.DecodableReference reference = 1;
+      uint64 count = 2;
+    }
+
+    oneof level {
+      // Positions of consecutive entries, as packed varints.
+      Positions leaf = 1;
+      Parent parent = 2;
+    }
+  }
+}
+```
+
+`Set` uses the same layout without values: its elements are sorted, and
+it has an optional `insertion_order`.
+
+What this gets us:
+
+- **Lookups.** `d[k]`, `k in d` and `d.get(k)` take O(log n) object
+  reads by descending through `first_key`. No in-memory index has to be
+  built first.
+- **Equality ignores order.** In Starlark, `{a: 1, b: 2} == {b: 2, a:
+  1}` is true. Comparing two stored dicts or sets is a walk over both
+  sorted lists, and subtrees with the same reference are skipped
+  without being read.
+- **Better deduplication.** Prolly chunking is content-defined, so
+  dicts with the same contents share their sorted subtrees whatever
+  their insertion order. A dict with a few changed entries shares most
+  of its objects with the original.
+- **Merge-based operations.** `d1 | d2`, `set.union()`,
+  `intersection()`, `difference()`, `isdisjoint()` and `issubset()`
+  become linear walks over both sorted inputs.
+- **No insertion-order list in the common case.** It is left out when
+  insertion order already equals sorted order, which should be common
+  for dicts built by Go code or from sorted inputs. This is why entries
+  are sorted by key and not by hash: with hash order, insertion order
+  would essentially never equal sorted order.
+
+What it costs:
+
+- **Insertion-order iteration jumps around.** Each step looks up the
+  next position, at O(log n). Every node is still read only once as
+  long as the parsed object pool holds all of them, so this mainly hurts
+  dicts that are larger than the cache. Code that doesn't care about
+  order walks the sorted entries directly. Examples are equality,
+  `len()`, set operations and the `in` operator.
+- **Encoding sorts.** Turning an in-memory dict or set into a stored
+  one takes O(n log n).
+- **Modified copies rewrite the insertion-order list.** If a copy of a
+  stored dict gets a key inserted in the middle, positions shift and
+  the whole list is rewritten. That is a few bytes per entry. The
+  sorted entries still mostly deduplicate.
+- **Parent nodes repeat a key.** Each parent stores its child's first
+  key. Keys are almost always short strings or labels.
+
+### Key ordering
+
+Stored dicts and sets are sorted with a fixed total order over all
+hashable values. Like `hash()`, this ordering is part of the storage
+format and can never change once dicts are in storage. It is internal
+only: `sorted()`, `min()`, `max()` and `<` keep Starlark's semantics,
+including errors on mixed types.
+
+1. **Rank by type first.** `None` < `bool` < numbers < `str` < `bytes`
+   < `tuple` < `Label` < `struct` < other hashable types, in an order
+   fixed by the implementation.
+2. **Then compare values of the same type.** Numbers compare by value.
+   Strings and bytes compare by bytes. Tuples compare element by
+   element. Labels compare by their canonical string form. Structs
+   compare by their sorted field names, then their field values.
+3. **Consistent with `==`.** Two keys are equal in this ordering
+   exactly when Starlark considers them equal. For example, `1 == 1.0`
+   is true, so ints and floats share one rank and are ordered by
+   numeric value.
+4. **Based on content, never on identity.** Functions order by their
+   message (filename, code reference and closure). Depsets and other
+   reference-equal values order by their reference-equal identifier.
+
+Tuples are stored inline (`repeated Value elements`), so comparing
+tuple keys never reads storage. Only struct keys with fields stored
+out of line might. That is why the comparison takes a `*Thread` and
+can fail:
+
+```go
+func CompareKeys(t *Thread, x, y Value) (int, error)
+```
+
+### Large strings and bytes
+
+Today `Value.str` and `Value.bytes` are always stored inline. That
+puts a lower bound on the maximum object size, and forces arbitrary
+limits on reads, such as the 4 MiB limit on `stdout` in `repo.go`. We
+want to experiment with smaller maximum object sizes, so large strings
+and bytes are stored as trees as well. Rather than adding yet another
+B-tree type, we reuse the encoding that `pkg/model/filesystem` already
+uses for file contents.
+
+Data that is usually small but may be large comes up in other places
+too, e.g. the `stdout`/`stderr` logs of commands (`command.Log`), the
+contents of `MODULE.bazel` files and downloaded files. So instead of a
+Starlark-specific pair of fields, `bonanza.model.filesystem` gets a
+reusable message. It follows the existing `*_inline`/`*_external`
+naming of `DirectoryContents` and `Directory`:
+
+```proto
+// Data that is stored inline if it is small enough, and as file
+// contents in separate objects otherwise. Empty data is represented by
+// leaving the oneof unset, like FileContents fields elsewhere.
+message MaybeInlineFileContents {
+  oneof level {
+    // The data is small enough to be stored inline.
+    bytes contents_inline = 1;
+
+    // The data is too large to be stored inline.
+    FileContents contents_external = 2;
+  }
+}
+```
+
+`Value` then uses it for both kinds:
+
+```proto
+message Value {
+  oneof kind {
+    // ...
+    bonanza.model.filesystem.MaybeInlineFileContents str = 31;
+    bonanza.model.filesystem.MaybeInlineFileContents bytes = 32;
+  }
+}
+```
+
+The old `string str = 22` and `bytes bytes = 5` fields are removed. An
+added benefit: the inline form is `bytes`, not proto3 `string`, which
+the Go protobuf library requires to be valid UTF-8. That's why
+`repo.go` currently has to sanitize data with `bytesToValidString()`
+before it can be stored. With this layout, strings can hold arbitrary
+bytes, as in Bazel, and that sanitizing goes away.
+
+`pkg/model/filesystem` gets the matching helpers, so every user of the
+message gets the same canonical encoding:
+
+- a function that creates a `MaybeInlineFileContents` from data, given
+  the `FileCreationParameters` and the maximum inline size;
+- support in `FileReader` for reading a `MaybeInlineFileContents`, both
+  in full and at an offset (`ReadAt()`).
+
+The maximum inline size is a parameter of each call, not part of
+`FileCreationParameters`, because how much room there is for inline
+data depends on the message it is embedded in. For Starlark values it
+is `ValueEncodingOptions.InlineStringMaximumSizeBytes`. Moving
+`command.Log` and the other places mentioned above over to the new
+message is a separate change.
+
+**Canonical encoding.** Data is stored inline exactly when its length
+is at most the maximum inline size, and as `FileContents` otherwise.
+`FileContents` is chunked with MaxCDC, which is content-defined. So
+for a given set of encoding options, a string has exactly one
+encoding, and equal runs of bytes in different values end up in
+shared chunks. Runs of null bytes become holes, as they would in
+files. Readers already handle those transparently.
+
+**Why `FileContents`.** Besides a canonical chunker and a reader that
+can seek (`FileReader`), it lets strings and files share data without
+copying:
+
+- `repository_ctx.read()`, `module_ctx.read()` and the `stdout`/`stderr`
+  of `repository_ctx.execute()` can return strings backed by the
+  existing `FileContents`. They don't read anything, and they no longer
+  need size limits. The only exception is data within the maximum
+  inline size, which the canonical form requires to be stored inline.
+  It is small, so reading it is cheap.
+- `repository_ctx.file(content = ...)` and
+  `ctx.actions.write(content = ...)` can refer to the chunks of a
+  storage-backed string directly.
+
+In return, `ValueEncodingOptions` gains the `FileCreationParameters`
+(chunk encoders and MaxCDC parameters), and `ValueDecodingOptions`
+gains a `FileReader`.
+
+**In memory.** `String` and `Bytes` stay concrete Go types, so the
+common case has no extra cost. Storage-backed large values implement
+the following interfaces, which the core recognizes as `str` and
+`bytes` respectively:
+
+```go
+type LargeString interface {
+	Value
+	isStr()
+	Len() int64
+	ReadAt(t *Thread, p []byte, off int64) (int, error)
+}
+
+type LargeBytes interface {
+	Value
+	isBytes()
+	Len() int64
+	ReadAt(t *Thread, p []byte, off int64) (int, error)
+}
+```
+
+These operations work on large values without reading all of them
+into memory:
+
+- `len()` and truth, from `total_size_bytes`;
+- encoding, by returning the original message;
+- `==`, key ordering, `in` and `startswith()`/`endswith()`, by
+  streaming. Equal references are equal without being read;
+- `Hashable.Hash()` and `hash()`, by streaming. `maphash` produces the
+  same result whether a string is written in pieces or all at once, so
+  this matches the hash of an equal in-memory `String`;
+- `repr()`/`str()`/`print()`, by streaming into the `Printer`;
+- slicing, by reading only the requested range;
+- passing them to builtins that write files, as described above.
+
+All other operations convert to an in-memory `String`/`Bytes` first.
+Examples are `+`, `%`, `format()`, `split()` and `replace()`. The
+amount of data converted this way is limited per thread, and an
+operation that exceeds the limit fails with an error that says so.
+The other direction needs nothing special: a large `String` built in
+memory (e.g. by `"\n".join(...)`) stays a Go string until it is
+encoded, and is chunked at that point.
+
+`pkg/starlark/unpack` gets the same split. `unpack.String` converts
+large values to in-memory strings, subject to the same limit. Builtins
+that can handle large values without converting them use a separate
+unpacker that leaves them as they are.
+
+## Functions
+
+### Code objects in storage
+
+The compiler emits one `Funcode` per `def`/`lambda`. Each one becomes
+its own message object:
+
+```proto
+message Funcode {
+  string name = 1;
+  int32 line = 2;
+  int32 column = 3;
+  bytes code = 4;               // bytecode, see below
+  bytes line_table = 5;         // pc -> position
+  repeated Constant constants = 6;
+  repeated string names = 7;    // attribute/global names referenced
+  Parameters parameters = 8;
+  repeated string free_variables = 9;
+
+  // Nested functions, referenced by MAKEFUNC <index>.
+  repeated bonanza.model.core.DecodableReference functions = 10;
+}
+```
+
+Since a `Funcode` only refers to the code of its nested functions,
+these objects form a DAG.
+
+`model_starlark_pb.Function` changes from "file + index into the
+file's bytecode" to:
+
+```proto
+message Function {
+  // Module whose globals the code resolves against.
+  string filename = 1;
+  // Reference to the Funcode object.
+  bonanza.model.core.DecodableReference code = 2;
+  Closure closure = 3; // defaults + free variables, as today
+}
+```
+
+The module is referenced by name rather than by object reference
+because a module's globals contain its own functions. Referencing the
+module by content would create a cycle.
+
+### Calling a function
+
+The core defines a function as an interface, so it doesn't need to
+know about storage:
+
+```go
+type Function interface {
+	Callable
+	Code(t *Thread) (*compile.Funcode, error)
+	Module(t *Thread) (Module, error)
+	Defaults() []Value
+	FreeVars() []Value
+}
+
+type Module interface {
+	// Global resolves a global or load() binding by index into
+	// Funcode.names. Results may be cached on the Thread, but never
+	// in anything shared between evaluations (see "Memoization and
+	// dependency tracking").
+	Global(t *Thread, index int) (Value, error)
+}
+```
+
+The storage-backed `Module` resolves names through evaluation keys:
+
+- **Globals of the module** go through `CompiledBzlFileGlobal`. That
+  key already exists and returns one global as a message.
+- **`load()` bindings** are recorded at compile time as
+  `(canonical label, symbol)` pairs. Resolving one is also a
+  `CompiledBzlFileGlobal` lookup on the loaded file.
+
+So calling a function declared in another file adds dependency edges
+only on the globals it actually touches. It never executes the file's
+top-level code again, and `CompiledBzlFileFunctionFactory` goes away.
+
+Private globals (`_foo`) also have to be encoded in `CompiledProgram`
+now, because functions in the same file refer to them. To limit that,
+only private globals that some `Funcode` in the file names need to be
+encoded. The compiler knows this set.
+
+### Lazy `load()`
+
+`load("//x:defs.bzl", "a", b = "c")` produces `Import` bindings in the
+resolver, not code that runs eagerly. During top-level execution of the
+loading file:
+
+- The resolver resolves the apparent label to a canonical one, using
+  the repo mapping that `preloadBzlGlobals()` uses today.
+- `CompiledBzlFile` checks that each loaded symbol exists by looking at
+  the sorted `Struct.Fields.keys` of the loaded file's globals. This
+  keeps Bazel's "symbol not found" error at load time without decoding
+  any values.
+- A value is fetched the first time the binding is read.
+
+## Thread and VM
+
+```go
+type Thread struct {
+	ctx      context.Context
+	frames   []frame       // explicit call stack
+	steps    uint64
+	maxSteps uint64
+	print    func(t *Thread, msg string) error
+	locals   map[any]any   // typed keys instead of string constants
+}
+```
+
+- **Explicit frame stack.** Starlark-to-Starlark calls push a frame on
+  `Thread.frames` instead of recursing in Go. Builtins that call back
+  into Starlark (`sorted(key=...)`, computed provider fields,
+  `Args.add_all(map_each=...)`) still recurse in Go, which is fine.
+  The explicit stack gives cheap backtraces and makes recursion
+  detection trivial. As in Bazel, recursion is never permitted.
+- **Cancellation.** Check `ctx.Err()` every N steps, alongside the step
+  limit.
+- **Errors.** All wrapping uses `%w` (this replaces `unwrap.diff`).
+  `ErrMissingDependency` passes through unchanged and is never turned
+  into an `EvalError`. Callers keep using
+  `errors.Is(err, evaluation.ErrMissingDependency)`.
+- **Bytecode.** A stack-based instruction set similar to
+  `go.starlark.net`'s: proven, simple, and easy to compile to. The
+  format is versioned in `CompiledProgram`, and a version mismatch is
+  rejected rather than misinterpreted.
+- **Determinism.** Anything Starlark code can observe may end up in
+  storage, so all of it must be deterministic across processes and
+  releases:
+  - the output of `hash()` (see [Equality and hashing](#equality-and-hashing));
+  - the [key ordering](#key-ordering) of stored dicts and sets;
+  - the iteration order of all core types;
+  - the order of `dir()`;
+  - float and `%` formatting;
+  - `repr()` of functions and builtins, which never includes addresses;
+  - the order in which builtins produce values from Go maps.
+
+  The reference-equal identifier generator (depsets) becomes a typed
+  thread local. Only internal hash tables may use per-process
+  randomness.
+
+### Builtins
+
+```go
+type Args interface {
+	Positional() []Value
+	Named() []NamedArg
+}
+
+type Builtin struct {
+	name string
+	fn   func(t *Thread, b *Builtin, args Args) (Value, error)
+}
+```
+
+`pkg/starlark/unpack` becomes the one way to unpack arguments, replacing
+`starlark.UnpackArgs`. Its `UnpackerInto`/`Canonicalize` methods
+already take a `*Thread`, so it ports by changing types, and it can
+target `starlark.List` etc. as interfaces.
+
+The standard library (`pkg/starlark/library`) implements the spec plus
+the Bazel-specific behaviour already patched in: `set` with
+`isdisjoint()` and friends, keyword arguments for `dict.get()`/
+`dict.pop()`, `json.encode/decode/indent`, and Bazel's `%`-formatting
+and `str` methods.
+
+## Impact on `pkg/model/evaluation` and `pkg/model/analysis`
+
+| Today | After |
+|---|---|
+| `CompiledBzlFileDecodedGlobals` → `starlark.StringDict` (native) | Removed. Consumers read the globals they need through `CompiledBzlFileGlobal`. |
+| `CompiledBzlFileFunctionFactory` → `*starlark.FunctionFactory` (native) | Removed. Functions are called from their `Funcode` + module. |
+| `getBzlFileBuiltins()` decodes all of `exports.bzl`'s `exported_toplevels`/`exported_rules` into a `StringDict` on every evaluation | A new message-valued key, e.g. `BzlFileBuiltins{builtins_module_names}`, merges them into one `Struct.Fields` message once. The predeclared environment becomes a lazy `Module` over that message. |
+| `CompiledProgram.code` stored only if `needsCode` | Removed. Each function refers to its own `Funcode` object. |
+
+That removes every Starlark-related native value key. The native keys
+that remain (`FileReader`, `ActionReaders`, `*CreationParametersObject`,
+encoder objects, etc.) are derived from message values and could
+become a per-process cache keyed by those messages. That's a separate
+change, but this design removes the last thing that would block it.
+
+## Migration plan
+
+Values can't cross between two interpreters, and all Bazel types in
+`pkg/model/starlark` would have to exist for both. So running both
+interpreters side by side in one binary isn't practical. Instead:
+
+1. **Write `pkg/starlark/syntax` and `pkg/starlark/resolve`**, with
+   ported upstream scanner, parser and resolver tests, plus tests for
+   the Bazel dialects and type annotations. Validate the parser by
+   parsing every `.bzl` and `BUILD` file in the Bazel Central Registry
+   and in Bazel's own repository with both parsers, and comparing the
+   resulting trees. This can land on `main` right away, as unused code.
+2. **Build the core** (`pkg/starlark`, `compile`, `library`) without
+   any storage. Port `go.starlark.net`'s `testdata/*.star` conformance
+   tests (BSD-3-Clause) and add Bazel-dialect cases. This can also land
+   on `main` early, as unused code.
+3. **Port `pkg/starlark/unpack` and `pkg/model/starlark`** on a branch.
+   `thread.diff` already threads `*Thread` through every method, so
+   most type implementations port by changing signatures. The work
+   that's actually new is `storedList`/`storedDict`/`storedTuple`/
+   `storedSet`, the large string and bytes types, `Function` +
+   `Module`, and replacing `DecodeValue()`'s eager decoding with lazy
+   wrappers. The memoization in `protoNamedFunctionDefinition`,
+   `reloadingRuleDefinition` and `reloadingMacroDefinition` goes away,
+   following
+   [Memoization and dependency tracking](#memoization-and-dependency-tracking).
+4. **Port `pkg/model/analysis`** on the same branch. Remove the two
+   native keys, add `BzlFileBuiltins`, and make `load()` lazy. Move
+   the remaining users of `go.starlark.net/syntax` over: `syntax.Token`
+   and `syntax.Position` in value methods, and `syntax.Quote` in
+   `pkg/model/render`. Then drop `go.starlark.net` from
+   `go.mod`/`MODULE.bazel` and delete `patches/net_starlark_go/`.
+5. **Validate** by building a corpus of real workspaces with `main` and
+   the branch and comparing the resulting action digests. Values like
+   `CompiledBzlFile` change by design, but the actions sent to workers
+   should be bit-for-bit identical. Because Bonanza's encoding is
+   deterministic, any difference points straight at a behaviour change.
+
+## Risks
+
+- **Latency of lazy reads.** Data that used to be read in bulk is now
+  read node by node, in the middle of evaluation. Mitigations: the
+  parsed object pool, and measuring on large `deps` graphs. If that
+  isn't enough, prefetching (see [Future work](#future-work)).
+- **Interface dispatch** on hot list/dict operations. Mitigated by the
+  fast paths for in-memory implementations.
+- **Dialect drift.** Users notice small differences in error messages,
+  `%` formatting or float printing. Conformance tests plus action
+  digest comparison should catch most of these.
+- **Stricter dialects break existing code.** Enforcing Bazel's
+  `BUILD`/`.bzl` restrictions that Bonanza doesn't enforce today may
+  reject files that currently load. That's correct behaviour, but it
+  can be rolled out as warnings first.
+- **Keeping up with Bazel's syntax.** We now track the Starlark spec
+  ourselves. The annotation syntax in particular is still changing
+  (bazelbuild/starlark#362 is still open). Gating it behind a `Dialect`
+  option keeps changes contained.
+- **Parser differences.** A new parser may accept or reject files
+  differently from go.starlark.net. Comparing parse trees on the Bazel
+  Central Registry corpus should catch this before the switch.
+
+## Future work
+
+- **Canonical concatenation.** `a + b` on large immutable lists,
+  strings or bytes could reuse the existing subtrees of both operands
+  without reading them, instead of converting to memory and
+  re-encoding. Doing this naively makes the encoding of a value depend
+  on how it was built, which lowers cache hit rates for keys containing
+  it. So it first needs concatenation operations in
+  `pkg/model/core/btree` that produce the same tree as encoding the
+  result from scratch. For `FileContents`, that means re-chunking only
+  around the point where the operands meet. Until then, concatenation
+  converts to memory.
+- **Prefetching.** Reading nodes ahead of time when iterating over
+  stored lists, and fetching the leaves that upcoming insertion-order
+  positions point to when iterating over large stored dicts and sets.
+  Worth investigating once profiles show read latency matters.
+- **Park goroutines instead of restarting.** Today an
+  `ErrMissingDependency` deep inside a rule implementation throws away
+  all work, and the whole evaluation reruns later. Instead,
+  `Environment.Get*Value()` could block the compute function's
+  goroutine until the dependency has been computed. This costs some
+  memory for parked goroutines, which is likely acceptable. It isn't
+  specific to Starlark and needs nothing from the VM, so the explicit
+  frame stack is not a prerequisite. Points to work out in
+  `RecursiveComputer`:
+  - **Dependency cycles.** Parked goroutines must still be detected and
+    reported as cycles, rather than waiting on each other forever.
+  - **Parallelism.** Today, code such as `constraintValuesToConstraints()`
+    collects all missing dependencies in one pass, so they are computed
+    in parallel. Blocking on each `Get` in turn would discover them one
+    at a time. A way to request several keys first and then block once
+    would keep that parallelism.
+  - **Memory.** Bounding the number of parked goroutines, or the memory
+    they hold, with restarting as the fallback.
+- Lint-style checks in the resolver (unused loads, shadowed builtins)
+  at `CompiledBzlFile` time.
