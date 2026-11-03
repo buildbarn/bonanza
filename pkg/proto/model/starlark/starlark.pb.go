@@ -4798,7 +4798,6 @@ type Macro_Definition struct {
 	Attrs          []*NamedAttr           `protobuf:"bytes,1,rep,name=attrs,proto3" json:"attrs,omitempty"`
 	Implementation *Function              `protobuf:"bytes,2,opt,name=implementation,proto3" json:"implementation,omitempty"`
 	Finalizer      bool                   `protobuf:"varint,3,opt,name=finalizer,proto3" json:"finalizer,omitempty"`
-	InheritAttrs   bool                   `protobuf:"varint,4,opt,name=inherit_attrs,json=inheritAttrs,proto3" json:"inherit_attrs,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -4850,13 +4849,6 @@ func (x *Macro_Definition) GetImplementation() *Function {
 func (x *Macro_Definition) GetFinalizer() bool {
 	if x != nil {
 		return x.Finalizer
-	}
-	return false
-}
-
-func (x *Macro_Definition) GetInheritAttrs() bool {
-	if x != nil {
-		return x.InheritAttrs
 	}
 	return false
 }
@@ -6919,18 +6911,17 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\x06Parent\x12o\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.starlark.List.ElementR\treference\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x04R\x05countB\a\n" +
-	"\x05level\"\xd0\x02\n" +
+	"\x05level\"\xab\x02\n" +
 	"\x05Macro\x12\x1e\n" +
 	"\treference\x18\x01 \x01(\tH\x00R\treference\x12J\n" +
 	"\n" +
 	"definition\x18\x02 \x01(\v2(.bonanza.model.starlark.Macro.DefinitionH\x00R\n" +
-	"definition\x1a\xd2\x01\n" +
+	"definition\x1a\xad\x01\n" +
 	"\n" +
 	"Definition\x127\n" +
 	"\x05attrs\x18\x01 \x03(\v2!.bonanza.model.starlark.NamedAttrR\x05attrs\x12H\n" +
 	"\x0eimplementation\x18\x02 \x01(\v2 .bonanza.model.starlark.FunctionR\x0eimplementation\x12\x1c\n" +
-	"\tfinalizer\x18\x03 \x01(\bR\tfinalizer\x12#\n" +
-	"\rinherit_attrs\x18\x04 \x01(\bR\finheritAttrsB\x06\n" +
+	"\tfinalizer\x18\x03 \x01(\bR\tfinalizerB\x06\n" +
 	"\x04kind\"\xec\x06\n" +
 	"\x15MacroExpansionContext\x12\x1f\n" +
 	"\vname_suffix\x18\x01 \x01(\tR\n" +

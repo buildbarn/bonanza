@@ -9,11 +9,14 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"bonanza.build/pkg/glob"
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
+
+	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"go.starlark.net/starlark"
 )
@@ -173,14 +176,14 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	labelStringListUnpackerInto := unpack.List(unpack.Stringer(labelUnpackerInto))
 	optionalUnpackers = append(
 		optionalUnpackers,
-		"applicable_licenses?", unpack.Bind(thread, &applicableLicenses, labelStringListUnpackerInto),
-		"compatible_with?", unpack.Bind(thread, &compatibleWith, labelStringListUnpackerInto),
-		"deprecation?", unpack.Bind(thread, &deprecation, unpack.String),
-		"exec_compatible_with?", unpack.Bind(thread, &execCompatibleWith, labelStringListUnpackerInto),
-		"features?", unpack.Bind(thread, &features, NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String)))),
-		"package_metadata?", unpack.Bind(thread, &packageMetadata, labelStringListUnpackerInto),
+		"applicable_licenses?", unpack.Bind(thread, &applicableLicenses, unpack.IfNotNone(labelStringListUnpackerInto)),
+		"compatible_with?", unpack.Bind(thread, &compatibleWith, unpack.IfNotNone(labelStringListUnpackerInto)),
+		"deprecation?", unpack.Bind(thread, &deprecation, unpack.IfNotNone(unpack.String)),
+		"exec_compatible_with?", unpack.Bind(thread, &execCompatibleWith, unpack.IfNotNone(labelStringListUnpackerInto)),
+		"features?", unpack.Bind(thread, &features, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String))))),
+		"package_metadata?", unpack.Bind(thread, &packageMetadata, unpack.IfNotNone(labelStringListUnpackerInto)),
 		"tags?", unpack.Bind(thread, &tags, unpack.IfNotNone(unpack.List(unpack.String))),
-		"target_compatible_with?", unpack.Bind(thread, &targetCompatibleWith, NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(labelUnpackerInto)))),
+		"target_compatible_with?", unpack.Bind(thread, &targetCompatibleWith, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(labelUnpackerInto))))),
 		"testonly?", unpack.Bind(thread, &testOnly, unpack.IfNotNone(sloppyBoolUnpackerInto{})),
 		"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 	)
@@ -211,17 +214,17 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		optionalUnpackers = append(
 			optionalUnpackers,
 			"args?",
-			unpack.Bind(thread, &testArgs, NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String)))),
+			unpack.Bind(thread, &testArgs, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String))))),
 			"flaky?",
-			unpack.Bind(thread, &testFlaky, sloppyBoolUnpackerInto{}),
+			unpack.Bind(thread, &testFlaky, unpack.IfNotNone(sloppyBoolUnpackerInto{})),
 			"local?",
-			unpack.Bind(thread, &testLocal, sloppyBoolUnpackerInto{}),
+			unpack.Bind(thread, &testLocal, unpack.IfNotNone(sloppyBoolUnpackerInto{})),
 			"shard_count?",
-			unpack.Bind(thread, &testShardCount, NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.Int[int]()))),
+			unpack.Bind(thread, &testShardCount, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.Int[int]())))),
 			"size?",
-			unpack.Bind(thread, &testSize, unpack.String),
+			unpack.Bind(thread, &testSize, unpack.IfNotNone(unpack.String)),
 			"timeout?",
-			unpack.Bind(thread, &testTimeout, unpack.String),
+			unpack.Bind(thread, &testTimeout, unpack.IfNotNone(unpack.String)),
 		)
 	}
 
@@ -691,6 +694,77 @@ func (rd *protoRuleDefinition[TReference, TMetadata]) GetInitializer(thread *sta
 
 func (rd *protoRuleDefinition[TReference, TMetadata]) GetTest(thread *starlark.Thread) (bool, error) {
 	return rd.message.Message.Type == model_starlark_pb.Rule_Definition_TEST, nil
+}
+
+// getImplicitRuleAttrs returns the attributes that are accepted by
+// rules in addition to the ones provided to rule(attrs = ...), with the
+// exception of "name" and "visibility". These are used by
+// macro(inherit_attrs = ...). The types and configurability of these
+// attributes must match how calls to rules process the corresponding
+// keyword arguments. None of them are mandatory.
+func getImplicitRuleAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](test bool) map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata] {
+	configurable := func(attrType AttrType[TReference, TMetadata]) *Attr[TReference, TMetadata] {
+		return NewAttr(attrType, starlark.None, true)
+	}
+	nonConfigurable := func(attrType AttrType[TReference, TMetadata]) *Attr[TReference, TMetadata] {
+		return NewAttr(attrType, starlark.None, false)
+	}
+	boolType := NewBoolAttrType[TReference, TMetadata]()
+	labelListType := NewLabelListAttrType(
+		glob.NFAMatchingNothing.Bytes(),
+		NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
+	)
+	stringType := NewStringAttrType[TReference, TMetadata](nil)
+	stringListType := NewStringListAttrType[TReference, TMetadata]()
+
+	attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{
+		util.Must(pg_label.NewStarlarkIdentifier("applicable_licenses")):    nonConfigurable(labelListType),
+		util.Must(pg_label.NewStarlarkIdentifier("compatible_with")):        nonConfigurable(labelListType),
+		util.Must(pg_label.NewStarlarkIdentifier("deprecation")):            nonConfigurable(stringType),
+		util.Must(pg_label.NewStarlarkIdentifier("exec_compatible_with")):   nonConfigurable(labelListType),
+		util.Must(pg_label.NewStarlarkIdentifier("features")):               configurable(stringListType),
+		util.Must(pg_label.NewStarlarkIdentifier("package_metadata")):       nonConfigurable(labelListType),
+		util.Must(pg_label.NewStarlarkIdentifier("tags")):                   nonConfigurable(stringListType),
+		util.Must(pg_label.NewStarlarkIdentifier("target_compatible_with")): configurable(labelListType),
+		util.Must(pg_label.NewStarlarkIdentifier("testonly")):               nonConfigurable(boolType),
+	}
+	if test {
+		attrs[util.Must(pg_label.NewStarlarkIdentifier("args"))] = configurable(stringListType)
+		attrs[util.Must(pg_label.NewStarlarkIdentifier("flaky"))] = nonConfigurable(boolType)
+		attrs[util.Must(pg_label.NewStarlarkIdentifier("local"))] = nonConfigurable(boolType)
+		attrs[util.Must(pg_label.NewStarlarkIdentifier("shard_count"))] = configurable(NewIntAttrType[TReference, TMetadata](nil))
+		attrs[util.Must(pg_label.NewStarlarkIdentifier("size"))] = nonConfigurable(stringType)
+		attrs[util.Must(pg_label.NewStarlarkIdentifier("timeout"))] = nonConfigurable(stringType)
+	}
+	return attrs
+}
+
+func (r *rule[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+	buildSetting, err := r.definition.GetBuildSetting(thread)
+	if err != nil {
+		return nil, err
+	}
+	if buildSetting != nil {
+		return nil, errors.New("inheriting attributes from build settings is not supported")
+	}
+	test, err := r.definition.GetTest(thread)
+	if err != nil {
+		return nil, err
+	}
+	ruleAttrs, err := r.definition.GetAttrsCheap(thread)
+	if err != nil {
+		return nil, err
+	}
+
+	attrs := getImplicitRuleAttrs[TReference, TMetadata](test)
+	for name, attr := range ruleAttrs {
+		// Predeclared outputs declared using rule(outputs = ...)
+		// cannot be provided by the caller.
+		if filenameTemplate, isOutput := attr.attrType.IsOutput(); name.IsPublic() && (!isOutput || filenameTemplate == "") {
+			attrs[name] = attr
+		}
+	}
+	return attrs, nil
 }
 
 // GlobalResolver is called into by RuleDefinitions created using

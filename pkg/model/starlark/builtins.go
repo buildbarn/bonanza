@@ -996,7 +996,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				doc := ""
 				finalizer := false
-				var inheritAttrs starlark.Value = starlark.None
+				var inheritAttrs inheritableAttrsSource[TReference, TMetadata] = noInheritableAttrs[TReference, TMetadata]{}
 				if err := starlark.UnpackArgs(
 					b.Name(), args, kwargs,
 					// Positional arguments.
@@ -1005,13 +1005,29 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.IfNotNone(unpack.Type[*Attr[TReference, TMetadata]]("attr.*")))),
 					"doc?", unpack.Bind(thread, &doc, unpack.String),
 					"finalizer?", unpack.Bind(thread, &finalizer, unpack.Bool),
-					"inherit_attrs?", &inheritAttrs,
+					"inherit_attrs?", unpack.Bind(thread, &inheritAttrs, unpack.IfNotNone(inheritableAttrsSourceUnpackerInto[TReference, TMetadata]{})),
 				); err != nil {
 					return nil, err
 				}
-				// Attributes whose value is None are only
-				// meaningful in combination with
-				// inherit_attrs, which is not supported yet.
+				inheritedAttrs, err := inheritAttrs.getInheritableAttrs(thread)
+				if err != nil {
+					return nil, fmt.Errorf("%s: for parameter \"inherit_attrs\": %w", b.Name(), err)
+				}
+				for name, attr := range inheritedAttrs {
+					// Attributes that are declared
+					// explicitly take precedence.
+					if _, ok := attrs[name]; !ok {
+						// Let non-mandatory attributes
+						// default to None, so that the
+						// macro's implementation function
+						// can forward them without causing
+						// omitted values to be replaced
+						// with their defaults.
+						attrs[name] = attr.clearDefaultValue()
+					}
+				}
+				// Attributes whose value is None are used to
+				// prevent attributes from being inherited.
 				maps.DeleteFunc(attrs, func(_ pg_label.StarlarkIdentifier, attr *Attr[TReference, TMetadata]) bool {
 					return attr == nil
 				})
@@ -1021,7 +1037,6 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						attrs,
 						implementation,
 						finalizer,
-						inheritAttrs != starlark.None,
 					),
 				), nil
 			},

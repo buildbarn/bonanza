@@ -2,8 +2,10 @@ package starlark_test
 
 import (
 	"fmt"
+	"maps"
 	"math/big"
 	"slices"
+	"strings"
 	"testing"
 
 	"bonanza.build/pkg/glob"
@@ -20,6 +22,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 	"go.starlark.net/starlark"
+	"go.starlark.net/syntax"
 
 	"go.uber.org/mock/gomock"
 )
@@ -83,7 +86,6 @@ func TestMacro(t *testing.T) {
 				attrs,
 				model_starlark.NamedFunction[object.LocalReference, model_core.CreatedObjectTree]{},
 				finalizer,
-				/* inheritAttrs = */ false,
 			),
 		)
 	}
@@ -933,4 +935,284 @@ func TestMacroExpansionContextListBuilder(t *testing.T) {
 	}
 	require.Equal(t, "m00", firstNameSuffixes[0])
 	require.True(t, slices.IsSorted(firstNameSuffixes))
+}
+
+func TestMacroInheritAttrs(t *testing.T) {
+	ctrl, ctx := gomock.WithContext(t.Context(), t)
+	referenceFormat := util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1))
+	encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
+	valueEncodingOptions := &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
+		Context:                ctx,
+		ObjectEncoder:          encoder,
+		ObjectReferenceFormat:  referenceFormat,
+		ObjectMinimumSizeBytes: 32 * 1024,
+		ObjectMaximumSizeBytes: 128 * 1024,
+	}
+	bzlFileBuiltins, _ := model_starlark.GetBuiltins[object.LocalReference, model_core.CreatedObjectTree]()
+	canonicalLabel := util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl"))
+
+	// Rules that are declared in Go, so that they can be called
+	// without needing to compile a .bzl file.
+	newRule := func(name string, attrs map[string]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree], buildSetting *model_starlark.BuildSetting, ruleType model_starlark_pb.Rule_Definition_Type) starlark.Value {
+		identifier := canonicalLabel.AppendStarlarkIdentifier(util.Must(label.NewStarlarkIdentifier(name)))
+		namedAttrs := map[label.StarlarkIdentifier]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree]{}
+		for attrName, attr := range attrs {
+			namedAttrs[util.Must(label.NewStarlarkIdentifier(attrName))] = attr
+		}
+		return model_starlark.NewRule(
+			&identifier,
+			model_starlark.NewStarlarkRuleDefinition(
+				namedAttrs,
+				buildSetting,
+				/* cfg = */ nil,
+				/* execGroups = */ nil,
+				/* implementation = */ model_starlark.NamedFunction[object.LocalReference, model_core.CreatedObjectTree]{},
+				/* initializer = */ nil,
+				/* provides = */ nil,
+				ruleType,
+				/* subrules = */ nil,
+			),
+		)
+	}
+	stringAttr := func(defaultValue starlark.Value) *model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree] {
+		return model_starlark.NewAttr(model_starlark.NewStringAttrType[object.LocalReference, model_core.CreatedObjectTree](nil), defaultValue, true)
+	}
+	myTest := newRule(
+		"my_test",
+		map[string]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree]{
+			"mandatory": stringAttr(nil),
+			"optional":  stringAttr(starlark.String("default")),
+			"_private":  stringAttr(starlark.String("default")),
+			"out": model_starlark.NewAttr(
+				model_starlark.NewOutputAttrType[object.LocalReference, model_core.CreatedObjectTree]("%{name}.out"),
+				starlark.String("%{name}.out"),
+				false,
+			),
+		},
+		/* buildSetting = */ nil,
+		model_starlark_pb.Rule_Definition_TEST,
+	)
+
+	// exec evaluates a .bzl file declaring macros, returning the
+	// attributes of each macro in a compact form.
+	exec := func(t *testing.T, thread *starlark.Thread, code string, predeclared starlark.StringDict) (map[string]map[string]string, error) {
+		builtins := maps.Clone(bzlFileBuiltins)
+		maps.Copy(builtins, predeclared)
+		globals, err := starlark.ExecFileOptions(
+			&syntax.FileOptions{},
+			thread,
+			canonicalLabel.String(),
+			"def _impl(name, visibility, **kwargs):\n    pass\n"+code,
+			builtins,
+		)
+		if err != nil {
+			return nil, err
+		}
+		model_starlark.NameAndExtractGlobals(globals, canonicalLabel)
+
+		macros := map[string]map[string]string{}
+		for name, value := range globals {
+			if value.Type() != "macro" {
+				continue
+			}
+			identifier := canonicalLabel.AppendStarlarkIdentifier(util.Must(label.NewStarlarkIdentifier(name)))
+			encodedMacro, _, err := value.(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(map[starlark.Value]struct{}{}, &identifier, valueEncodingOptions)
+			require.NoError(t, err)
+			attrs := map[string]string{}
+			for _, namedAttr := range encodedMacro.Message.GetMacro().GetDefinition().GetAttrs() {
+				defaultValue := "mandatory"
+				if d := namedAttr.Attr.Default; d != nil {
+					defaultValue = "default=" + strings.TrimPrefix(fmt.Sprintf("%T", d.Kind), "*starlark.Value_")
+				}
+				attrs[namedAttr.Name] = fmt.Sprintf(
+					"%s %s configurable=%t",
+					strings.TrimPrefix(fmt.Sprintf("%T", namedAttr.Attr.Type), "*starlark.Attr_"),
+					defaultValue,
+					namedAttr.Attr.Configurable,
+				)
+			}
+			macros[name] = attrs
+		}
+		return macros, nil
+	}
+
+	commonAttrs := map[string]string{
+		"applicable_licenses":    "LabelList default=None configurable=false",
+		"compatible_with":        "LabelList default=None configurable=false",
+		"deprecation":            "String_ default=None configurable=false",
+		"exec_compatible_with":   "LabelList default=None configurable=false",
+		"features":               "StringList default=None configurable=true",
+		"package_metadata":       "LabelList default=None configurable=false",
+		"tags":                   "StringList default=None configurable=false",
+		"target_compatible_with": "LabelList default=None configurable=true",
+		"testonly":               "Bool default=None configurable=false",
+	}
+
+	t.Run("None", func(t *testing.T) {
+		macros, err := exec(t, &starlark.Thread{}, `m = macro(implementation = _impl, inherit_attrs = None, attrs = {"x": attr.string()})`, nil)
+		require.NoError(t, err)
+		require.Equal(t, map[string]string{
+			"x": "String_ default=Str configurable=true",
+		}, macros["m"])
+	})
+
+	t.Run("Common", func(t *testing.T) {
+		macros, err := exec(t, &starlark.Thread{}, `m = macro(implementation = _impl, inherit_attrs = "common")`, nil)
+		require.NoError(t, err)
+		require.Equal(t, commonAttrs, macros["m"])
+	})
+
+	t.Run("Rule", func(t *testing.T) {
+		// All public attributes of the rule should be inherited,
+		// including the ones that are implicitly added to all
+		// rules and tests. Attributes that are declared by the
+		// macro take precedence, and setting them to None
+		// prevents them from being inherited. Non-mandatory
+		// attributes should have their default set to None.
+		macros, err := exec(t, &starlark.Thread{}, `
+m = macro(
+    implementation = _impl,
+    inherit_attrs = my_test,
+    attrs = {
+        "extra": attr.string(configurable = False),
+        "optional": attr.int(),
+        "size": None,
+    },
+)
+`, starlark.StringDict{"my_test": myTest})
+		require.NoError(t, err)
+		expectedAttrs := maps.Clone(commonAttrs)
+		maps.Copy(expectedAttrs, map[string]string{
+			"args":        "StringList default=None configurable=true",
+			"extra":       "String_ default=Str configurable=false",
+			"flaky":       "Bool default=None configurable=false",
+			"local":       "Bool default=None configurable=false",
+			"mandatory":   "String_ mandatory configurable=true",
+			"optional":    "Int default=Int configurable=true",
+			"shard_count": "Int default=None configurable=true",
+			"timeout":     "String_ default=None configurable=false",
+		})
+		require.Equal(t, expectedAttrs, macros["m"])
+	})
+
+	t.Run("RuleCallWithNone", func(t *testing.T) {
+		// Macros forward inherited attributes to the rule by
+		// calling it with **kwargs. Rules should therefore treat
+		// all of these attributes being None as if they were
+		// omitted.
+		macros, err := exec(t, &starlark.Thread{}, `m = macro(implementation = _impl, inherit_attrs = my_test)`, starlark.StringDict{"my_test": myTest})
+		require.NoError(t, err)
+
+		callRule := func(kwargs []starlark.Tuple) *model_starlark_pb.RuleTarget {
+			objectManager := NewMockObjectManagerForTesting(ctrl)
+			targetRegistrar := model_starlark.NewTargetRegistrar[object.LocalReference, model_core.CreatedObjectTree](
+				ctx,
+				encoder,
+				&inlinedtree.Options{
+					ReferenceFormat:  referenceFormat,
+					MaximumSizeBytes: 32 * 1024,
+				},
+				objectManager,
+				model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.InheritableAttrs{}),
+			)
+			defer targetRegistrar.Discard()
+
+			thread := &starlark.Thread{}
+			thread.SetLocal(model_starlark.TargetRegistrarKey, targetRegistrar)
+			thread.SetLocal(model_starlark.CanonicalPackageKey, util.Must(label.NewCanonicalPackage("@@main+//foo")))
+			thread.SetLocal(model_starlark.ValueEncodingOptionsKey, valueEncodingOptions)
+			_, err := starlark.Call(thread, myTest, nil, append(
+				[]starlark.Tuple{
+					{starlark.String("name"), starlark.String("t")},
+					{starlark.String("mandatory"), starlark.String("value")},
+				},
+				kwargs...,
+			))
+			require.NoError(t, err)
+			return targetRegistrar.GetAndRemoveTarget("t").Message.GetRuleTarget()
+		}
+
+		var noneKwargs []starlark.Tuple
+		for name, attr := range macros["m"] {
+			if name != "mandatory" {
+				require.Contains(t, attr, "default=None")
+				noneKwargs = append(noneKwargs, starlark.Tuple{starlark.String(name), starlark.None})
+			}
+		}
+		require.Len(t, noneKwargs, 16)
+		testutil.RequireEqualProto(t, callRule(nil), callRule(noneKwargs))
+	})
+
+	t.Run("Macro", func(t *testing.T) {
+		// Public attributes of macros can be inherited as well.
+		macros, err := exec(t, &starlark.Thread{}, `
+inner = macro(
+    implementation = _impl,
+    attrs = {
+        "_private": attr.string(),
+        "mandatory": attr.string(mandatory = True),
+        "optional": attr.string(configurable = False),
+    },
+)
+outer = macro(implementation = _impl, inherit_attrs = inner)
+`, nil)
+		require.NoError(t, err)
+		require.Equal(t, map[string]string{
+			"mandatory": "String_ mandatory configurable=true",
+			"optional":  "String_ default=None configurable=false",
+		}, macros["outer"])
+	})
+
+	t.Run("RuleFromOtherFile", func(t *testing.T) {
+		// Rules that are declared in other .bzl files need to
+		// be resolved.
+		identifier := util.Must(label.NewCanonicalStarlarkIdentifier("@@other+//:defs.bzl%other_rule"))
+		thread := &starlark.Thread{}
+		thread.SetLocal(model_starlark.GlobalResolverKey, model_starlark.GlobalResolver[object.LocalReference](func(id label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, object.LocalReference], error) {
+			require.Equal(t, identifier, id)
+			return model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
+				Kind: &model_starlark_pb.Value_Rule{
+					Rule: &model_starlark_pb.Rule{
+						Kind: &model_starlark_pb.Rule_Definition_{
+							Definition: &model_starlark_pb.Rule_Definition{
+								Attrs: []*model_starlark_pb.NamedAttr{{
+									Name: "srcs",
+									Attr: &model_starlark_pb.Attr{
+										Default:      &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}}},
+										Type:         &model_starlark_pb.Attr_StringList{StringList: &model_starlark_pb.Attr_StringListType{}},
+										Configurable: true,
+									},
+								}},
+							},
+						},
+					},
+				},
+			}), nil
+		}))
+		macros, err := exec(t, thread, `m = macro(implementation = _impl, inherit_attrs = other_rule)`, starlark.StringDict{
+			"other_rule": model_starlark.NewRule(&identifier, model_starlark.NewReloadingRuleDefinition[object.LocalReference, model_core.CreatedObjectTree](identifier)),
+		})
+		require.NoError(t, err)
+		expectedAttrs := maps.Clone(commonAttrs)
+		expectedAttrs["srcs"] = "StringList default=None configurable=true"
+		require.Equal(t, expectedAttrs, macros["m"])
+	})
+
+	t.Run("Invalid", func(t *testing.T) {
+		myFlag := newRule(
+			"my_flag",
+			nil,
+			model_starlark.NewBuildSetting(model_starlark.BoolBuildSettingType, true),
+			model_starlark_pb.Rule_Definition_NON_EXECUTABLE,
+		)
+		for value, expectedError := range map[string]string{
+			`"uncommon"`: `macro: for parameter "inherit_attrs": unknown set of attributes "uncommon"`,
+			`42`:         `macro: for parameter "inherit_attrs": got int, want rule, macro or "common"`,
+			`len`:        `macro: for parameter "inherit_attrs": got builtin_function_or_method, want rule, macro or "common"`,
+			`my_flag`:    `macro: for parameter "inherit_attrs": inheriting attributes from build settings is not supported`,
+		} {
+			_, err := exec(t, &starlark.Thread{}, `m = macro(implementation = _impl, inherit_attrs = `+value+`)`, starlark.StringDict{"my_flag": myFlag})
+			require.ErrorContains(t, err, expectedError, value)
+		}
+	})
 }

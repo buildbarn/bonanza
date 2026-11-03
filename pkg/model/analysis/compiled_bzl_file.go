@@ -123,6 +123,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	}
 	thread.SetLocal(model_starlark.ReferenceEqualIdentifierGeneratorKey, identifierGenerator)
 
+	// Permit resolving rules and macros that are declared in other
+	// .bzl files, so that macro(inherit_attrs = ...) can obtain
+	// their attributes.
+	thread.SetLocal(model_starlark.GlobalResolverKey, c.newGlobalResolver(ctx, e, key.BuiltinsModuleNames))
+
 	globals, err := program.Init(thread, bzlFileBuiltins)
 	if err != nil {
 		if !errors.Is(err, evaluation.ErrMissingDependency) {

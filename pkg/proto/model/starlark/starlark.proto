@@ -495,12 +495,6 @@ message Macro {
     // Whether the macro is a finalizer, meaning it is evaluated after
     // all other targets in the package have been declared.
     bool finalizer = 3;
-
-    // Whether macro() was called with "inherit_attrs" set.
-    //
-    // TODO: Add support for inheriting attributes. Invoking such
-    // macros currently fails.
-    bool inherit_attrs = 4;
   }
 
   oneof kind {

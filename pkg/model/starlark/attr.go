@@ -76,6 +76,15 @@ func checkAttrsConfigurable[TReference any, TMetadata model_core.ReferenceMetada
 	return nil
 }
 
+// clearDefaultValue returns a copy of the attribute whose default value
+// is set to None. If the attribute is mandatory, it is returned as is.
+func (a *Attr[TReference, TMetadata]) clearDefaultValue() *Attr[TReference, TMetadata] {
+	if a.defaultValue == nil {
+		return a
+	}
+	return NewAttr(a.attrType, starlark.None, a.configurable)
+}
+
 func (a *Attr[TReference, TMetadata]) String() string {
 	return fmt.Sprintf("<attr.%s>", a.attrType.Type())
 }

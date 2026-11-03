@@ -79,6 +79,7 @@
          "dependsOn": [
             "BuiltinsModuleNames",
             "CanonicalRepoName",
+            "CompiledBzlFile",
             "CompiledBzlFileDecodedGlobals",
             "CompiledBzlFileFunctionFactory",
             "FileProperties",

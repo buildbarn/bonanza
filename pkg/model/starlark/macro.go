@@ -17,6 +17,7 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"go.starlark.net/starlark"
+	"go.starlark.net/syntax"
 )
 
 type macro[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -84,9 +85,6 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 	}
 	targetRegistrar := targetRegistrarValue.(*TargetRegistrar[TReference, TMetadata])
 
-	if err := m.definition.CheckSupported(thread); err != nil {
-		return nil, err
-	}
 	finalizer, err := m.definition.IsFinalizer(thread)
 	if err != nil {
 		return nil, err
@@ -265,30 +263,91 @@ func (m *macro[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struc
 	), needsCode, nil
 }
 
+// inheritableAttrsSource is implemented by values that may be provided
+// to macro(inherit_attrs = ...), namely rules, macros, None, and the
+// string "common".
+type inheritableAttrsSource[TReference any, TMetadata model_core.ReferenceMetadata] interface {
+	// getInheritableAttrs returns the attributes that a symbolic
+	// macro may inherit. Only public attributes are returned.
+	getInheritableAttrs(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
+}
+
+func (m *macro[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+	macroAttrs, err := m.definition.GetAttrsCheap(thread)
+	if err != nil {
+		return nil, err
+	}
+	attrs := make(map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], len(macroAttrs))
+	for name, attr := range macroAttrs {
+		if name.IsPublic() {
+			attrs[name] = attr
+		}
+	}
+	return attrs, nil
+}
+
+// noInheritableAttrs is used if macro() is called without
+// inherit_attrs, or with inherit_attrs set to None, causing no
+// attributes to be inherited.
+type noInheritableAttrs[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
+
+func (noInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+	return nil, nil
+}
+
+// commonInheritableAttrs corresponds to
+// macro(inherit_attrs = "common"), causing the attributes that are
+// common to all rules to be inherited.
+type commonInheritableAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct{}
+
+func (commonInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+	return getImplicitRuleAttrs[TReference, TMetadata](
+		/* test = */ false,
+	), nil
+}
+
+type inheritableAttrsSourceUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct{}
+
+func (inheritableAttrsSourceUnpackerInto[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst *inheritableAttrsSource[TReference, TMetadata]) error {
+	switch typedV := v.(type) {
+	case starlark.String:
+		if typedV != "common" {
+			return fmt.Errorf("unknown set of attributes %#v", string(typedV))
+		}
+		*dst = commonInheritableAttrs[TReference, TMetadata]{}
+	case inheritableAttrsSource[TReference, TMetadata]:
+		*dst = typedV
+	default:
+		return fmt.Errorf("got %s, want rule, macro or \"common\"", v.Type())
+	}
+	return nil
+}
+
+func (ui inheritableAttrsSourceUnpackerInto[TReference, TMetadata]) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+	var source inheritableAttrsSource[TReference, TMetadata]
+	if err := ui.UnpackInto(thread, v, &source); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func (inheritableAttrsSourceUnpackerInto[TReference, TMetadata]) GetConcatenationOperator() syntax.Token {
+	return 0
+}
+
 // MacroDefinition is used by Starlark macro objects to access the
 // parameters that are part of the macro's definition, such as its
 // attributes.
 type MacroDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata], bool, error)
 	GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
-	CheckSupported(thread *starlark.Thread) error
 	IsFinalizer(thread *starlark.Thread) (bool, error)
-}
-
-// checkMacroSupported returns an error if a macro uses features that
-// are not supported yet.
-func checkMacroSupported(inheritAttrs bool) error {
-	if inheritAttrs {
-		return errors.New("macros that inherit attributes are not supported yet")
-	}
-	return nil
 }
 
 type starlarkMacroDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	attrs          map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]
 	implementation NamedFunction[TReference, TMetadata]
 	finalizer      bool
-	inheritAttrs   bool
 }
 
 // NewStarlarkMacroDefinition creates a MacroDefinition object that is
@@ -298,13 +357,11 @@ func NewStarlarkMacroDefinition[TReference object.BasicReference, TMetadata mode
 	attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata],
 	implementation NamedFunction[TReference, TMetadata],
 	finalizer bool,
-	inheritAttrs bool,
 ) MacroDefinition[TReference, TMetadata] {
 	return &starlarkMacroDefinition[TReference, TMetadata]{
 		attrs:          attrs,
 		implementation: implementation,
 		finalizer:      finalizer,
-		inheritAttrs:   inheritAttrs,
 	}
 }
 
@@ -324,7 +381,6 @@ func (md *starlarkMacroDefinition[TReference, TMetadata]) Encode(path map[starla
 			Attrs:          namedAttrs.Merge(patcher),
 			Implementation: implementation.Merge(patcher),
 			Finalizer:      md.finalizer,
-			InheritAttrs:   md.inheritAttrs,
 		},
 		patcher,
 	), needsCode || namedAttrsNeedCode, nil
@@ -332,10 +388,6 @@ func (md *starlarkMacroDefinition[TReference, TMetadata]) Encode(path map[starla
 
 func (md *starlarkMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	return md.attrs, nil
-}
-
-func (md *starlarkMacroDefinition[TReference, TMetadata]) CheckSupported(thread *starlark.Thread) error {
-	return checkMacroSupported(md.inheritAttrs)
 }
 
 func (md *starlarkMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *starlark.Thread) (bool, error) {
@@ -364,10 +416,6 @@ func (*protoMacroDefinition[TReference, TMetadata]) Encode(path map[starlark.Val
 
 func (md *protoMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	return md.protoAttrsCache.getAttrsCheap(thread, model_core.Nested(md.message, md.message.Message.Attrs))
-}
-
-func (md *protoMacroDefinition[TReference, TMetadata]) CheckSupported(thread *starlark.Thread) error {
-	return checkMacroSupported(md.message.Message.InheritAttrs)
 }
 
 func (md *protoMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *starlark.Thread) (bool, error) {
@@ -417,14 +465,6 @@ func (md *reloadingMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread 
 		return nil, err
 	}
 	return base.GetAttrsCheap(thread)
-}
-
-func (md *reloadingMacroDefinition[TReference, TMetadata]) CheckSupported(thread *starlark.Thread) error {
-	base, err := md.getBase(thread)
-	if err != nil {
-		return err
-	}
-	return base.CheckSupported(thread)
 }
 
 func (md *reloadingMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *starlark.Thread) (bool, error) {
