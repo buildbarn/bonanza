@@ -151,6 +151,7 @@ go_test(
         "package_group_contains_test.go",
         "package_targets_test.go",
         "package_test.go",
+        "packages_at_and_below_test.go",
         "query_expansion_test.go",
         "query_result_test.go",
         "query_targets_test.go",
@@ -160,6 +161,7 @@ go_test(
     ],
     embed = [":analysis"],
     deps = [
+        "//pkg/glob",
         "//pkg/label",
         "//pkg/model/core",
         "//pkg/model/core/inlinedtree",
@@ -198,6 +200,7 @@ gomock(
         "MacroExpansionContextEnvironmentForTesting",
         "PackageEnvironmentForTesting",
         "PackageTargetsEnvironmentForTesting",
+        "PackagesAtAndBelowEnvironmentForTesting",
         "QueryExpansionEnvironmentForTesting",
         "QueryResultEnvironmentForTesting",
         "QueryTargetsEnvironmentForTesting",

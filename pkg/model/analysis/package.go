@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"sort"
 	"strings"
 
 	"bonanza.build/pkg/glob"
@@ -124,6 +126,23 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 				return nil, evaluation.ErrMissingDependency
 			}
 			return globValue.Message.MatchedPaths, nil
+		})
+		thread.SetLocal(model_starlark.SubpackagesExpanderKey, func(includePatterns, excludePatterns []string) ([]string, error) {
+			nfa, err := glob.NewNFAFromPatterns(includePatterns, excludePatterns)
+			if err != nil {
+				return nil, err
+			}
+			packagesAtAndBelowValue := e.GetPackagesAtAndBelowValue(&model_analysis_pb.PackagesAtAndBelow_Key{
+				BasePackage: canonicalPackage.String(),
+				Pattern:     nfa.Bytes(),
+			})
+			if !packagesAtAndBelowValue.IsSet() {
+				return nil, evaluation.ErrMissingDependency
+			}
+			// Sort results in the same way as glob().
+			packagePaths := slices.Clone(packagesAtAndBelowValue.Message.PackagesBelowBasePackage)
+			sort.Strings(packagePaths)
+			return packagePaths, nil
 		})
 
 		targetRegistrar := model_starlark.NewTargetRegistrar(

@@ -50,3 +50,53 @@ func TestNativeModuleAndRepoNames(t *testing.T) {
 		}
 	})
 }
+
+func TestNativeSubpackages(t *testing.T) {
+	bzlFileBuiltins, _ := model_starlark.GetBuiltins[object.LocalReference, model_core.CreatedObjectTree]()
+	native := bzlFileBuiltins["native"].(starlark.HasAttrs)
+	subpackages := util.Must(native.Attr(&starlark.Thread{}, "subpackages"))
+
+	// newThread creates a thread that is capable of expanding
+	// subpackages, returning the provided package paths.
+	newThread := func(t *testing.T, expectedIncludes, expectedExcludes, packagePaths []string) *starlark.Thread {
+		thread := &starlark.Thread{}
+		thread.SetLocal(model_starlark.SubpackagesExpanderKey, model_starlark.SubpackagesExpander(func(include, exclude []string) ([]string, error) {
+			require.Equal(t, expectedIncludes, include)
+			require.Equal(t, expectedExcludes, exclude)
+			return packagePaths, nil
+		}))
+		return thread
+	}
+
+	t.Run("Success", func(t *testing.T) {
+		v, err := starlark.Call(
+			newThread(t, []string{"**"}, []string{"b/**"}, []string{"a", "c/d"}),
+			subpackages,
+			starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("**")})},
+			[]starlark.Tuple{{starlark.String("exclude"), starlark.NewList([]starlark.Value{starlark.String("b/**")})}},
+		)
+		require.NoError(t, err)
+		require.Equal(t, "[\"a\", \"c/d\"]", v.String())
+	})
+
+	t.Run("Empty", func(t *testing.T) {
+		// Matching no packages is an error, unless
+		// allow_empty is set.
+		include := starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("x")})}
+		_, err := starlark.Call(newThread(t, []string{"x"}, nil, nil), subpackages, include, nil)
+		require.ErrorContains(t, err, "subpackages does not match any packages")
+
+		v, err := starlark.Call(newThread(t, []string{"x"}, nil, nil), subpackages, include, []starlark.Tuple{
+			{starlark.String("allow_empty"), starlark.True},
+		})
+		require.NoError(t, err)
+		require.Equal(t, "[]", v.String())
+	})
+
+	t.Run("NoContext", func(t *testing.T) {
+		// Subpackages can only be expanded while a BUILD file is
+		// being evaluated, not while expanding symbolic macros.
+		_, err := starlark.Call(&starlark.Thread{}, subpackages, starlark.Tuple{starlark.NewList(nil)}, nil)
+		require.ErrorContains(t, err, "subpackages cannot be expanded within this context")
+	})
+}

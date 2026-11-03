@@ -75,12 +75,22 @@ const (
 	// Starlark thread that is evaluating a BUILD file. It is
 	// invoked when glob() directives are encountered.
 	GlobExpanderKey = "glob_expander"
+	// SubpackagesExpanderKey is the key under which an instance of
+	// SubpackagesExpander is stored in the thread local variables
+	// of a Starlark thread that is evaluating a BUILD file. It is
+	// invoked when native.subpackages() is called.
+	SubpackagesExpanderKey = "subpackages_expander"
 )
 
 // GlobExpander is invoked when a glob directive is encountered in a
 // BUILD file. It is responsible for performing the glob expansion and
 // returning relative pathnames that were matched.
 type GlobExpander = func(include, exclude []string, includeDirectories bool) ([]string, error)
+
+// SubpackagesExpander is invoked when native.subpackages() is called in
+// a BUILD file. It is responsible for returning the relative paths of
+// the nearest packages below the current package that are matched.
+type SubpackagesExpander = func(include, exclude []string) ([]string, error)
 
 func labelSetting[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple, flag bool) (starlark.Value, error) {
 	targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
@@ -1425,6 +1435,41 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					}
 
 					return starlark.String(canonicalPackage.(pg_label.CanonicalPackage).GetCanonicalRepo().String()), nil
+				},
+			),
+			"subpackages": starlark.NewBuiltin(
+				"native.subpackages",
+				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+					subpackagesExpander := thread.Local(SubpackagesExpanderKey)
+					if subpackagesExpander == nil {
+						return nil, errors.New("subpackages cannot be expanded within this context")
+					}
+
+					var include []string
+					var exclude []string
+					allowEmpty := false
+					if err := starlark.UnpackArgs(
+						b.Name(), args, kwargs,
+						"include", unpack.Bind(thread, &include, unpack.List(unpack.String)),
+						"exclude?", unpack.Bind(thread, &exclude, unpack.List(unpack.String)),
+						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+					); err != nil {
+						return nil, err
+					}
+
+					packagePaths, err := subpackagesExpander.(SubpackagesExpander)(include, exclude)
+					if err != nil {
+						return nil, err
+					}
+					if len(packagePaths) == 0 && !allowEmpty {
+						return nil, errors.New("subpackages does not match any packages")
+					}
+
+					values := make([]starlark.Value, 0, len(packagePaths))
+					for _, packagePath := range packagePaths {
+						values = append(values, starlark.String(packagePath))
+					}
+					return starlark.NewList(values), nil
 				},
 			),
 			"test_suite": starlark.NewBuiltin(

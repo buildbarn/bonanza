@@ -1475,6 +1475,17 @@ message PackagesAtAndBelow {
   message Key {
     // Repo and package prefix at which the lookup should start.
     string base_package = 1;
+
+    // Only return packages below the base package whose relative path
+    // is matched by a nondeterministic finite automaton (NFA). The NFA
+    // uses the same encoding as Glob.Key.pattern. Directories are not
+    // traversed if none of the remaining states of the NFA can yield a
+    // match.
+    //
+    // Recursive target patterns use pattern "**" to obtain all
+    // packages, while native.subpackages() uses the patterns provided
+    // by the caller.
+    bytes pattern = 2;
   }
 
   message Value {

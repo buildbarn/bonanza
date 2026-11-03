@@ -2277,6 +2277,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackageWithExclusion
 func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackage(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], query label.Query[label.CanonicalTargetPattern], basePackage label.CanonicalPackage, includeFileTargets bool, excludedPackages []label.CanonicalPackage) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	packagesAtAndBelow := e.GetPackagesAtAndBelowValue(&model_analysis_pb.PackagesAtAndBelow_Key{
 		BasePackage: basePackage.String(),
+		Pattern:     allPackagesPattern,
 	})
 	if !packagesAtAndBelow.IsSet() {
 		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, evaluation.ErrMissingDependency
@@ -2527,6 +2528,7 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 	// Target pattern of shape "@@a+//b/..." or "@@a+//b/...:*".
 	packagesAtAndBelow := e.GetPackagesAtAndBelowValue(&model_analysis_pb.PackagesAtAndBelow_Key{
 		BasePackage: basePackage.String(),
+		Pattern:     allPackagesPattern,
 	})
 	if !packagesAtAndBelow.IsSet() {
 		return evaluation.ErrMissingDependency

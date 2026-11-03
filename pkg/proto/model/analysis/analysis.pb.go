@@ -10590,6 +10590,7 @@ func (x *PackageTargets_Value) GetTargets() []*Package_Value_Target {
 type PackagesAtAndBelow_Key struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BasePackage   string                 `protobuf:"bytes,1,opt,name=base_package,json=basePackage,proto3" json:"base_package,omitempty"`
+	Pattern       []byte                 `protobuf:"bytes,2,opt,name=pattern,proto3" json:"pattern,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -10629,6 +10630,13 @@ func (x *PackagesAtAndBelow_Key) GetBasePackage() string {
 		return x.BasePackage
 	}
 	return ""
+}
+
+func (x *PackagesAtAndBelow_Key) GetPattern() []byte {
+	if x != nil {
+		return x.Pattern
+	}
+	return nil
 }
 
 type PackagesAtAndBelow_Value struct {
@@ -14767,10 +14775,11 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x13macro_instance_name\x18\x02 \x03(\tR\x11macroInstanceName\x12-\n" +
 	"\x12exclude_finalizers\x18\x03 \x01(\bR\x11excludeFinalizers\x1aO\n" +
 	"\x05Value\x12F\n" +
-	"\atargets\x18\x01 \x03(\v2,.bonanza.model.analysis.Package.Value.TargetR\atargets\"\xbd\x01\n" +
-	"\x12PackagesAtAndBelow\x1a(\n" +
+	"\atargets\x18\x01 \x03(\v2,.bonanza.model.analysis.Package.Value.TargetR\atargets\"\xd7\x01\n" +
+	"\x12PackagesAtAndBelow\x1aB\n" +
 	"\x03Key\x12!\n" +
-	"\fbase_package\x18\x01 \x01(\tR\vbasePackage\x1a}\n" +
+	"\fbase_package\x18\x01 \x01(\tR\vbasePackage\x12\x18\n" +
+	"\apattern\x18\x02 \x01(\fR\apattern\x1a}\n" +
 	"\x05Value\x125\n" +
 	"\x17package_at_base_package\x18\x01 \x01(\bR\x14packageAtBasePackage\x12=\n" +
 	"\x1bpackages_below_base_package\x18\x02 \x03(\tR\x18packagesBelowBasePackage\"\xb4\x01\n" +

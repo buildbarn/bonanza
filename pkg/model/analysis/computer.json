@@ -417,6 +417,7 @@
             "Glob",
             "MacroExpansionContext",
             "PackageTargets",
+            "PackagesAtAndBelow",
             "RepoDefaultAttrs",
             "RootModule",
             "Target"

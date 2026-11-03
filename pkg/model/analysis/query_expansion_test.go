@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"bonanza.build/pkg/glob"
 	"bonanza.build/pkg/label"
 	model_analysis "bonanza.build/pkg/model/analysis"
 	model_core "bonanza.build/pkg/model/core"
@@ -31,6 +32,10 @@ import (
 // normalizeCanonicalQuery converts a query expression containing
 // canonical target patterns to normal form, as is done when
 // constructing QueryExpansion keys.
+// allPackagesPattern is the pattern that query expansion provides to
+// PackagesAtAndBelow to obtain all packages below a base package.
+var allPackagesPattern = util.Must(glob.NewNFAFromPatterns([]string{"**"}, nil)).Bytes()
+
 func normalizeCanonicalQuery(query string) string {
 	return label.QueryToString(util.Must(label.NewQuery(query, label.NewCanonicalTargetPattern)))
 }
@@ -322,7 +327,7 @@ func TestQueryExpansion(t *testing.T) {
 		// compared as strings.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
 		e.EXPECT().GetPackagesAtAndBelowValue(
-			testutil.EqProto(t, &model_analysis_pb.PackagesAtAndBelow_Key{BasePackage: "@@main+//foo"}),
+			testutil.EqProto(t, &model_analysis_pb.PackagesAtAndBelow_Key{BasePackage: "@@main+//foo", Pattern: allPackagesPattern}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.PackagesAtAndBelow_Value{
 			PackageAtBasePackage:     true,
 			PackagesBelowBasePackage: []string{"bar", "bar2"},
@@ -375,7 +380,7 @@ func TestQueryExpansion(t *testing.T) {
 		// query yielding the targets in the package.
 		expectPackagesAtAndBelow := func(e *MockQueryExpansionEnvironmentForTesting, packageAtBasePackage bool) {
 			e.EXPECT().GetPackagesAtAndBelowValue(
-				testutil.EqProto(t, &model_analysis_pb.PackagesAtAndBelow_Key{BasePackage: "@@main+//foo"}),
+				testutil.EqProto(t, &model_analysis_pb.PackagesAtAndBelow_Key{BasePackage: "@@main+//foo", Pattern: allPackagesPattern}),
 			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.PackagesAtAndBelow_Value{
 				PackageAtBasePackage:     packageAtBasePackage,
 				PackagesBelowBasePackage: []string{"bar"},
@@ -956,7 +961,7 @@ func TestQueryExpansion(t *testing.T) {
 		// skipped, as opposed to being traversed.
 		expectPackagesAtAndBelow := func(e *MockQueryExpansionEnvironmentForTesting, basePackage string, packageAtBasePackage bool, packagesBelowBasePackage ...string) {
 			e.EXPECT().GetPackagesAtAndBelowValue(
-				testutil.EqProto(t, &model_analysis_pb.PackagesAtAndBelow_Key{BasePackage: basePackage}),
+				testutil.EqProto(t, &model_analysis_pb.PackagesAtAndBelow_Key{BasePackage: basePackage, Pattern: allPackagesPattern}),
 			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.PackagesAtAndBelow_Value{
 				PackageAtBasePackage:     packageAtBasePackage,
 				PackagesBelowBasePackage: packagesBelowBasePackage,

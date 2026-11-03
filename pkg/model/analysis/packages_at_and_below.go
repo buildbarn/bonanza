@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"bonanza.build/pkg/glob"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
@@ -16,7 +17,13 @@ import (
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
+	"github.com/buildbarn/bb-storage/pkg/util"
 )
+
+// allPackagesPattern can be provided to PackagesAtAndBelow.Key.pattern
+// to obtain all packages below the base package. This is used to
+// expand recursive target patterns (e.g., "//foo/...").
+var allPackagesPattern = util.Must(glob.NewNFAFromPatterns([]string{"**"}, nil)).Bytes()
 
 func (baseComputer[TReference, TMetadata]) getPackageDirectory(
 	ctx context.Context,
@@ -82,6 +89,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.PackagesAtAndBelow_Value{}), nil
 	}
 
+	// Only return packages whose relative paths match the pattern.
+	nfa, err := glob.NewNFAFromBytes(key.Pattern)
+	if err != nil {
+		return PatchedPackagesAtAndBelowValue[TMetadata]{}, fmt.Errorf("invalid pattern: %w", err)
+	}
+	var matcher glob.Matcher
+	matcher.Initialize(nfa)
+
 	// Find packages at and below the base package.
 	checker := packageExistenceChecker[TReference]{
 		context:          ctx,
@@ -91,7 +106,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx
 	if err != nil {
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, err
 	}
-	if err := checker.findPackagesBelow(packageDirectory, nil); err != nil {
+	if err := checker.findPackagesBelow(packageDirectory, nil, &matcher); err != nil {
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, err
 	}
 
@@ -101,17 +116,41 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx
 	}), nil
 }
 
+// PackagesAtAndBelowEnvironmentForTesting is used to generate mocks
+// for testing ComputePackagesAtAndBelowValue().
+type PackagesAtAndBelowEnvironmentForTesting PackagesAtAndBelowEnvironment[model_core.CreatedObjectTree, model_core.CreatedObjectTree]
+
 type packageExistenceChecker[TReference any] struct {
 	context                  context.Context
 	directoryReaders         *DirectoryReaders[TReference]
 	packagesBelowBasePackage []string
 }
 
-func (pec *packageExistenceChecker[TReference]) findPackagesBelow(d model_core.Message[*model_filesystem_pb.DirectoryContents, TReference], dTrace *path.Trace) error {
+// findPackagesBelow recursively traverses a directory hierarchy to find
+// packages. Only packages whose relative path is matched are returned,
+// and directories are only traversed if they may contain matching
+// packages.
+func (pec *packageExistenceChecker[TReference]) findPackagesBelow(d model_core.Message[*model_filesystem_pb.DirectoryContents, TReference], dTrace *path.Trace, dMatcher *glob.Matcher) error {
+	var childMatcher glob.Matcher
+
+MatchDirectories:
 	for _, entry := range d.Message.Directories {
 		name, ok := path.NewComponent(entry.Name)
 		if !ok {
 			return fmt.Errorf("invalid directory name %#v in directory %#v", entry.Name, dTrace.GetUNIXString())
+		}
+		childMatcher.CopyFrom(dMatcher)
+		for _, r := range name.String() {
+			if !childMatcher.WriteRune(r) {
+				// Neither this directory nor any of
+				// its children can match.
+				continue MatchDirectories
+			}
+		}
+		isMatch := childMatcher.IsMatch()
+		mayContainMatches := childMatcher.WriteRune('/')
+		if !isMatch && !mayContainMatches {
+			continue MatchDirectories
 		}
 		childTrace := dTrace.Append(name)
 
@@ -129,10 +168,14 @@ func (pec *packageExistenceChecker[TReference]) findPackagesBelow(d model_core.M
 			return fmt.Errorf("failed to determine whether directory %#v is a package: %w", dTrace.GetUNIXString(), err)
 		}
 		if directoryIsPackage {
-			pec.packagesBelowBasePackage = append(pec.packagesBelowBasePackage, childTrace.GetUNIXString())
-		} else {
+			// Don't traverse into packages, as only
+			// the nearest packages are returned.
+			if isMatch {
+				pec.packagesBelowBasePackage = append(pec.packagesBelowBasePackage, childTrace.GetUNIXString())
+			}
+		} else if mayContainMatches {
 			// Not a package. Find packages below.
-			if err := pec.findPackagesBelow(childDirectory, childTrace); err != nil {
+			if err := pec.findPackagesBelow(childDirectory, childTrace, &childMatcher); err != nil {
 				return err
 			}
 		}
