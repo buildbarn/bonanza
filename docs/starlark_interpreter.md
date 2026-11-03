@@ -74,9 +74,8 @@ pkg/starlark/syntax     scanner, parser, AST, quoting  (new)
 pkg/starlark/resolve    scope resolution, dialects     (new)
 pkg/starlark/compile    AST -> bytecode, Funcode proto (new)
 pkg/starlark/eval       Value interfaces, core types,
-                        Thread, VM, error/backtrace    (new)
-pkg/starlark/library    builtins and methods of
-                        str/list/dict/set/..., json    (new)
+                        Thread, VM, error/backtrace,
+                        builtins, methods, json        (new)
 pkg/starlark/unpack     argument unpacking             (existing, ported)
 pkg/model/starlark      storage-backed implementations,
                         Bazel types (Label, depset,
@@ -1052,14 +1051,15 @@ type Thread struct {
 ### Builtins
 
 ```go
-type Args interface {
-	Positional() []Value
-	Named() []NamedArg
+type Args struct {
+	Positional []Value
+	Named      []NamedArg
 }
 
 type Builtin struct {
-	name string
-	fn   func(t *Thread, b *Builtin, args Args) (Value, error)
+	name     string
+	fn       func(t *Thread, b *Builtin, args Args) (Value, error)
+	receiver Value // for methods such as list.append
 }
 ```
 
@@ -1068,11 +1068,46 @@ type Builtin struct {
 already take a `*Thread`, so it ports by changing types, and it can
 target `starlark.List` etc. as interfaces.
 
-The standard library (`pkg/starlark/library`) implements the spec plus
-the Bazel-specific behaviour already patched in: `set` with
-`isdisjoint()` and friends, keyword arguments for `dict.get()`/
-`dict.pop()`, `json.encode/decode/indent`, and Bazel's `%`-formatting
-and `str` methods.
+The standard library lives in `pkg/starlark/eval` itself, rather than
+in a separate package, because the VM looks up the methods of the core
+types (`x.append`) when executing `ATTR`. It implements:
+- the builtins of Bazel's Starlark;
+- the methods of `str`, `list` and `dict`;
+- Bazel 8's `set`;
+- `range`;
+- the `json` module.
+
+This includes the behaviour that `go.starlark.net` previously needed
+patches for, such as keyword arguments for `dict.get()`/`dict.pop()`.
+Decisions follow Bazel where it differs from go.starlark.net:
+
+- **Case and classification are ASCII only.** Strings are byte
+  strings, so `upper()`, `lower()`, `isalpha()` etc. only consider
+  ASCII characters. Bazel treats each byte as a Latin-1 character,
+  which corrupts UTF-8 sequences when changing case. We leave them
+  unchanged instead, which gives the same result as Bazel for most
+  real strings.
+- **Mutation checks come before anything else.** Mutating a frozen
+  set or dict fails even if the operation would have been a no-op
+  (e.g. `discard()` of a missing element).
+- **`hash()` hashes bytes,** as described under
+  [Equality and hashing](#equality-and-hashing).
+- **`repr()` writes non-printable bytes as octal escapes** (e.g.
+  `"\377"`), as Bazel's scanner doesn't support `\x` escapes.
+- **Spelling suggestions use Bazel's threshold:** one edit for every
+  two characters.
+- **Some parts of go.starlark.net don't exist in Bazel, so they are
+  left out:** `chr()`, `ord()`, the code point iteration methods,
+  `%c`, and `b"..."` literals.
+
+`pkg/starlark/unpack` still needs to be ported. Until then, builtins
+in `pkg/starlark/eval` use a small internal helper modelled after
+`starlark.UnpackArgs`.
+
+Conformance is tested using go.starlark.net's `testdata/*.star` files
+(BSD-3-Clause), adapted to Bazel: `assert` is a reserved word in
+Bazel, error messages follow Bazel, and the Unicode-specific tests are
+removed.
 
 ## Impact on `pkg/model/evaluation` and `pkg/model/analysis`
 

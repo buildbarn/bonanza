@@ -17,6 +17,13 @@ type List interface {
 	Append(t *Thread, v Value) error
 	// SetIndex replaces the element at the provided index.
 	SetIndex(t *Thread, i int, v Value) error
+	// Insert inserts an element before the provided index, which
+	// may be equal to the length of the list.
+	Insert(t *Thread, i int, v Value) error
+	// RemoveIndex removes the element at the provided index.
+	RemoveIndex(t *Thread, i int) error
+	// Clear removes all elements from the list.
+	Clear(t *Thread) error
 }
 
 // Tuple is implemented by all Starlark tuples, regardless of whether
@@ -151,6 +158,35 @@ func (l *memList) SetIndex(_ *Thread, i int, v Value) error {
 		return err
 	}
 	l.elements[i] = v
+	return nil
+}
+
+// Insert inserts an element before the provided index.
+func (l *memList) Insert(_ *Thread, i int, v Value) error {
+	if err := l.checkMutable("list"); err != nil {
+		return err
+	}
+	l.elements = append(l.elements, nil)
+	copy(l.elements[i+1:], l.elements[i:])
+	l.elements[i] = v
+	return nil
+}
+
+// RemoveIndex removes the element at the provided index.
+func (l *memList) RemoveIndex(_ *Thread, i int) error {
+	if err := l.checkMutable("list"); err != nil {
+		return err
+	}
+	l.elements = append(l.elements[:i], l.elements[i+1:]...)
+	return nil
+}
+
+// Clear removes all elements from the list.
+func (l *memList) Clear(*Thread) error {
+	if err := l.checkMutable("list"); err != nil {
+		return err
+	}
+	l.elements = nil
 	return nil
 }
 

@@ -2,6 +2,7 @@ package eval
 
 import (
 	"fmt"
+	"hash/maphash"
 	"slices"
 	"strings"
 
@@ -86,6 +87,12 @@ func (f *memFunction) CallInternal(t *Thread, args Args) (Value, error) {
 	return t.callFunction(f, args)
 }
 
+// Hash returns a hash of the function. Functions are only equal to
+// themselves.
+func (f *memFunction) Hash(*Thread) (uint32, error) {
+	return uint32(maphash.String(hashSeed, f.funcode.Name)), nil
+}
+
 func (f *memFunction) Funcode(*Thread) (*compile.Funcode, error) { return f.funcode, nil }
 func (f *memFunction) Module(*Thread) (Module, error)            { return f.module, nil }
 func (f *memFunction) Defaults(*Thread) ([]Value, error)         { return f.defaults, nil }
@@ -140,6 +147,12 @@ func (b *Builtin) Repr(_ *Thread, p *Printer) error {
 		p.WriteString("<built-in function " + b.name + ">")
 	}
 	return nil
+}
+
+// Hash returns a hash of the builtin. Builtins are only equal to
+// themselves.
+func (b *Builtin) Hash(*Thread) (uint32, error) {
+	return uint32(maphash.String(hashSeed, b.name)), nil
 }
 
 // CallInternal calls the Go function.
@@ -263,7 +276,7 @@ func plural(n int) string {
 // nearestName returns the candidate that is most similar to the
 // provided name, for use in error messages.
 func nearestName(name string, candidates []string) string {
-	maximumDistance := max(1, len(name)/3)
+	maximumDistance := (len(name) + 1) / 2
 	best, bestDistance := "", maximumDistance+1
 	for _, candidate := range candidates {
 		if d := levenshtein(strings.ToLower(name), strings.ToLower(candidate)); d < bestDistance {

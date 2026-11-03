@@ -8,8 +8,8 @@ import (
 // name, or the empty string if none of them are similar enough to be a
 // likely misspelling.
 func nearest(name string, candidates []string) string {
-	// Permit one edit for every three characters, and at least one.
-	maximumDistance := max(1, len(name)/3)
+	// Permit one edit for every two characters, as Bazel does.
+	maximumDistance := (len(name) + 1) / 2
 	best, bestDistance := "", maximumDistance+1
 	lowerName := strings.ToLower(name)
 	for _, candidate := range candidates {

@@ -1,0 +1,180 @@
+# Derived from go.starlark.net's starlark/testdata, which is
+# Copyright 2017 The Bazel Authors. All rights reserved. Use of this
+# source code is governed by the BSD-style license that can be found in
+# LICENSE.go-starlark. Modifications have been made to match the
+# behavior of Bazel.
+
+# Tests of json module.
+
+load("assert.star", "asserts")
+
+asserts.eq(dir(json), ["decode", "encode", "encode_indent", "indent"])
+
+# Some of these cases were inspired by github.com/nst/JSONTestSuite.
+
+## json.encode
+
+asserts.eq(json.encode(None), "null")
+asserts.eq(json.encode(True), "true")
+asserts.eq(json.encode(False), "false")
+asserts.eq(json.encode(-123), "-123")
+asserts.eq(json.encode(12345*12345*12345*12345*12345*12345), "3539537889086624823140625")
+asserts.eq(json.encode(float(12345*12345*12345*12345*12345*12345)), "3.539537889086625e+24")
+asserts.eq(json.encode(12.345e67), "1.2345e+68")
+asserts.eq(json.encode("hello"), '"hello"')
+asserts.eq(json.encode([1, 2, 3]), "[1,2,3]")
+asserts.eq(json.encode((1, 2, 3)), "[1,2,3]")
+asserts.eq(json.encode(range(3)), "[0,1,2]") # a built-in iterable
+asserts.eq(json.encode(dict(x = 1, y = "two")), '{"x":1,"y":"two"}')
+asserts.eq(json.encode(dict(y = "two", x = 1)), '{"x":1,"y":"two"}') # key, not insertion, order
+asserts.eq(json.encode(struct(x = 1, y = "two")), '{"x":1,"y":"two"}')  # a user-defined HasAttrs
+asserts.eq(json.encode("😹"[:1]), '"\\ufffd"') # invalid UTF-8 -> replacement char
+
+def encode_error(expr, error):
+    asserts.fails(lambda: json.encode(expr), error)
+
+encode_error(float("NaN"), "json.encode\\(\\): cannot encode non-finite float nan")
+encode_error({1: "two"}, "dict has int key, want string")
+encode_error(len, "cannot encode builtin_function_or_method as JSON")
+encode_error(struct(x=[1, {"x": len}]), # nested failure
+             'in field .x: at list index 1: in dict key "x": cannot encode...')
+encode_error(struct(x=[1, {"x": len}]), # nested failure
+             'in field .x: at list index 1: in dict key "x": cannot encode...')
+encode_error({1: 2}, 'dict has int key, want string')
+
+recursive_map = {}
+recursive_map["r"] = recursive_map
+encode_error(recursive_map, 'json.encode\\(\\): in dict key "r": cycle in JSON structure')
+
+recursive_list = []
+recursive_list.append(recursive_list)
+encode_error(recursive_list, 'json.encode\\(\\): at list index 0: cycle in JSON structure')
+
+recursive_tuple = (1, 2, [])
+recursive_tuple[2].append(recursive_tuple)
+encode_error(recursive_tuple, 'json.encode\\(\\): at tuple index 2: at list index 0: at tuple index 2: cycle in JSON structure')
+
+## json.decode
+
+asserts.eq(json.decode("null"), None)
+asserts.eq(json.decode("true"), True)
+asserts.eq(json.decode("false"), False)
+asserts.eq(json.decode("-123"), -123)
+asserts.eq(json.decode("-0"), -0)
+asserts.eq(json.decode("3539537889086624823140625"), 3539537889086624823140625)
+asserts.eq(json.decode("3539537889086624823140625.0"), float(3539537889086624823140625))
+asserts.eq(json.decode("3.539537889086625e+24"), 3.539537889086625e+24)
+asserts.eq(json.decode("0e+1"), 0)
+asserts.eq(json.decode("-0.0"), -0.0)
+asserts.eq(json.decode(
+    "-0.000000000000000000000000000000000000000000000000000000000000000000000000000001"),
+    -0.000000000000000000000000000000000000000000000000000000000000000000000000000001)
+asserts.eq(json.decode('[]'), [])
+asserts.eq(json.decode('[1]'), [1])
+asserts.eq(json.decode('[1,2,3]'), [1, 2, 3])
+asserts.eq(json.decode('{"one": 1, "two": 2}'), dict(one=1, two=2))
+asserts.eq(json.decode('{"foo\\u0000bar": 42}'), {"foo\000bar": 42})
+asserts.eq(json.decode('"\\ud83d\\ude39\\ud83d\\udc8d"'), "😹💍")
+asserts.eq(json.decode('"\\u0123"'), 'ģ')
+asserts.eq(json.decode('"\177"'), "\177")
+
+def decode_error(expr, error):
+    asserts.fails(lambda: json.decode(expr), error)
+
+decode_error('truefalse',
+             "json.decode\\(\\): at offset 4, unexpected character 'f' after value")
+
+decode_error('"abc', "unclosed string literal")
+decode_error('"ab\\gc"', "invalid character 'g' in string escape code")
+decode_error("'abc'", "unexpected character '\\\\''")
+
+decode_error("1.2.3", "invalid number: 1.2.3")
+decode_error("+1", "unexpected character '\\+'")
+decode_error("-abc", "invalid number: -")
+decode_error("-", "invalid number: -")
+decode_error("-00", "invalid number: -00")
+decode_error("00", "invalid number: 00")
+decode_error("--1", "invalid number: --1")
+decode_error("-+1", "invalid number: -\\+1")
+decode_error("1e1e1", "invalid number: 1e1e1")
+decode_error("0123", "invalid number: 0123")
+decode_error("000.123", "invalid number: 000.123")
+decode_error("-0123", "invalid number: -0123")
+decode_error("-000.123", "invalid number: -000.123")
+decode_error("0x123", "unexpected character 'x' after value")
+
+decode_error('[1, 2 ', "unexpected end of file")
+decode_error('[1, 2, ', "unexpected end of file")
+decode_error('[1, 2, ]', "unexpected character ']'")
+decode_error('[1, 2, }', "unexpected character '}'")
+decode_error('[1, 2}', "got '}', want ',' or ']'")
+
+decode_error('{"one": 1', "unexpected end of file")
+decode_error('{"one" 1', "after object key, got '1', want ':'")
+decode_error('{"one": 1 "two": 2', "in object, got '\"', want ',' or '}'")
+decode_error('{"one": 1,', "unexpected end of file")
+decode_error('{"one": 1, }', "unexpected character '}'")
+decode_error('{"one": 1]', "in object, got ']', want ',' or '}'")
+
+## json.decode with default specified
+
+asserts.eq(json.decode('{"valid": "json"}', default = "default value"), {"valid": "json"})
+asserts.eq(json.decode('{"valid": "json"}', "default value"), {"valid": "json"})
+asserts.eq(json.decode('{"invalid": "json"', default = "default value"), "default value")
+asserts.eq(json.decode('{"invalid": "json"', "default value"), "default value")
+asserts.eq(json.decode('{"invalid": "json"', default = None), None)
+asserts.eq(json.decode('{"invalid": "json"', None), None)
+
+asserts.fails(
+    lambda: json.decode(x = '{"invalid": "json"', default = "default value"),
+    "unexpected keyword argument 'x'"
+)
+
+def codec(x):
+    return json.decode(json.encode(x))
+
+# string round-tripping
+strings = [
+    "😿", # U+1F63F CRYING_CAT_FACE
+    "🐱‍👤", # CAT FACE + ZERO WIDTH JOINER + BUST IN SILHOUETTE
+]
+asserts.eq(codec(strings), strings)
+
+
+# number round-tripping
+numbers = [
+    0, 1, -1, +1, 1.23e45, -1.23e-45,
+    3539537889086624823140625,
+    float(3539537889086624823140625),
+    float(1.0),
+]
+def number_roundtrip():
+    show = lambda n: (n, type(n))
+    for n in numbers:
+      asserts.eq(show(codec(n)), show(n)) # ensure no int/float confusion
+number_roundtrip()
+
+## json.indent
+
+s = json.encode(dict(x = 1, y = ["one", "two"]))
+
+asserts.eq(json.indent(s), '''{
+	"x": 1,
+	"y": [
+		"one",
+		"two"
+	]
+}''')
+
+asserts.eq(json.decode(json.indent(s)), {"x": 1, "y": ["one", "two"]})
+
+asserts.eq(json.indent(s, prefix='¶', indent='–––'), '''{
+¶–––"x": 1,
+¶–––"y": [
+¶––––––"one",
+¶––––––"two"
+¶–––]
+¶}''')
+
+asserts.fails(lambda: json.indent("!@#$%^& this is not json"), 'invalid character')
+---

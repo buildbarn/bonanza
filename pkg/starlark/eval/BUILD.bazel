@@ -3,13 +3,19 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "eval",
     srcs = [
+        "args.go",
         "dict.go",
         "format.go",
         "function.go",
         "interp.go",
+        "json.go",
         "list.go",
+        "methods.go",
         "ops.go",
+        "range.go",
         "scalars.go",
+        "set.go",
+        "strings.go",
         "thread.go",
         "universe.go",
         "value.go",
@@ -19,17 +25,26 @@ go_library(
     deps = [
         "//pkg/starlark/compile",
         "//pkg/starlark/syntax",
+        "@org_golang_x_exp//constraints",
     ],
 )
 
 go_test(
     name = "eval_test",
-    srcs = ["eval_test.go"],
+    srcs = [
+        "args_test.go",
+        "conformance_test.go",
+        "eval_test.go",
+        "export_test.go",
+        "jump_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":eval"],
     deps = [
-        ":eval",
         "//pkg/starlark/compile",
         "//pkg/starlark/resolve",
         "//pkg/starlark/syntax",
         "@com_github_stretchr_testify//require",
+        "@org_golang_x_exp//constraints",
     ],
 )

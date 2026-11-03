@@ -20,6 +20,8 @@ type Dict interface {
 	// Delete removes an entry, returning its value and whether it
 	// was present.
 	Delete(t *Thread, k Value) (Value, bool, error)
+	// Clear removes all entries.
+	Clear(t *Thread) error
 }
 
 type dictEntry struct {
@@ -177,6 +179,17 @@ func (d *memDict) Delete(t *Thread, k Value) (Value, bool, error) {
 		d.compact(t)
 	}
 	return v, true, nil
+}
+
+// Clear removes all entries.
+func (d *memDict) Clear(*Thread) error {
+	if err := d.checkMutable("dict"); err != nil {
+		return err
+	}
+	d.entries = nil
+	d.index = nil
+	d.count = 0
+	return nil
 }
 
 // compact removes entries that have been deleted, and rebuilds the

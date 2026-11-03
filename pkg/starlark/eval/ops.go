@@ -19,10 +19,17 @@ const maximumCompareDepth = 100
 type NoSuchAttrError struct {
 	Value Value
 	Name  string
+	// Name of an existing attribute that is similar to the
+	// requested one, if any.
+	Suggestion string
 }
 
 func (e NoSuchAttrError) Error() string {
-	return fmt.Sprintf("'%s' value has no field or method '%s'", e.Value.Type(), e.Name)
+	msg := fmt.Sprintf("'%s' value has no field or method '%s'", e.Value.Type(), e.Name)
+	if e.Suggestion != "" {
+		msg += fmt.Sprintf(" (did you mean '%s'?)", e.Suggestion)
+	}
+	return msg
 }
 
 func hashValue(t *Thread, v Value) (uint32, error) {
@@ -216,6 +223,9 @@ func Binary(t *Thread, op syntax.Token, x, y Value) (Value, error) {
 		}
 
 	case syntax.MINUS:
+		if xs, ys, ok := bothSets(x, y); ok {
+			return setOperation(t, op, xs, ys)
+		}
 		if xi, yi, ok := bothInts(x, y); ok {
 			return xi.Sub(yi), nil
 		}
@@ -297,9 +307,15 @@ func Binary(t *Thread, op syntax.Token, x, y Value) (Value, error) {
 		if xi, yi, ok := bothInts(x, y); ok {
 			return xi.And(yi), nil
 		}
+		if xs, ys, ok := bothSets(x, y); ok {
+			return setOperation(t, op, xs, ys)
+		}
 	case syntax.PIPE:
 		if xi, yi, ok := bothInts(x, y); ok {
 			return xi.Or(yi), nil
+		}
+		if xs, ys, ok := bothSets(x, y); ok {
+			return setOperation(t, op, xs, ys)
 		}
 		if xd, ok := x.(Dict); ok {
 			if yd, ok := y.(Dict); ok {
@@ -309,6 +325,9 @@ func Binary(t *Thread, op syntax.Token, x, y Value) (Value, error) {
 	case syntax.CIRCUMFLEX:
 		if xi, yi, ok := bothInts(x, y); ok {
 			return xi.Xor(yi), nil
+		}
+		if xs, ys, ok := bothSets(x, y); ok {
+			return setOperation(t, op, xs, ys)
 		}
 	case syntax.LTLT, syntax.GTGT:
 		if xi, yi, ok := bothInts(x, y); ok {
@@ -355,6 +374,15 @@ func Binary(t *Thread, op syntax.Token, x, y Value) (Value, error) {
 		}
 	}
 	return nil, fmt.Errorf("unsupported binary operation: %s %s %s", x.Type(), op, y.Type())
+}
+
+func bothSets(x, y Value) (Set, Set, bool) {
+	xs, ok := x.(Set)
+	if !ok {
+		return nil, nil, false
+	}
+	ys, ok := y.(Set)
+	return xs, ys, ok
 }
 
 func bothInts(x, y Value) (Int, Int, bool) {
@@ -485,6 +513,10 @@ func contains(t *Thread, haystack, needle Value) (bool, error) {
 	case Mapping:
 		_, found, err := h.Get(t, needle)
 		return found, err
+	case Set:
+		return h.Has(t, needle)
+	case rangeValue:
+		return h.contains(needle)
 	case Iterable:
 		var errIter error
 		for element := range h.Iterate(t, &errIter) {
@@ -656,13 +688,30 @@ func slice(t *Thread, x, lo, hi, step Value) (Value, error) {
 
 // getAttr implements x.name.
 func getAttr(t *Thread, x Value, name string) (Value, error) {
+	var err error
 	if xa, ok := x.(HasAttrs); ok {
-		return xa.Attr(t, name)
+		var v Value
+		if v, err = xa.Attr(t, name); err == nil {
+			return v, nil
+		}
+	} else {
+		if method, ok := lookupMethod(x, name); ok {
+			return method, nil
+		}
+		err = NoSuchAttrError{Value: x, Name: name}
 	}
-	if method, ok := lookupMethod(x, name); ok {
-		return method, nil
+
+	// Add a suggestion to errors for missing attributes.
+	var noSuchAttr NoSuchAttrError
+	if errors.As(err, &noSuchAttr) && noSuchAttr.Suggestion == "" {
+		if names, namesErr := AttrNames(t, x); namesErr == nil {
+			if suggestion := nearestName(name, names); suggestion != "" {
+				noSuchAttr.Suggestion = suggestion
+				return nil, noSuchAttr
+			}
+		}
 	}
-	return nil, NoSuchAttrError{Value: x, Name: name}
+	return nil, err
 }
 
 // setField implements x.name = y.

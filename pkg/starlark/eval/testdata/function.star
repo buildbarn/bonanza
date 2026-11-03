@@ -1,0 +1,336 @@
+# Derived from go.starlark.net's starlark/testdata, which is
+# Copyright 2017 The Bazel Authors. All rights reserved. Use of this
+# source code is governed by the BSD-style license that can be found in
+# LICENSE.go-starlark. Modifications have been made to match the
+# behavior of Bazel.
+
+# Tests of Starlark 'function'
+# option:set
+
+# TODO(adonovan):
+# - add some introspection functions for looking at function values
+#   and test that functions have correct position, free vars, names of locals, etc.
+# - move the hard-coded tests of parameter passing from eval_test.go to here.
+
+load("assert.star", "asserts", "freeze")
+
+# Test lexical scope and closures:
+def outer(x):
+   def inner(y):
+     return x + x + y # multiple occurrences of x should create only 1 freevar
+   return inner
+
+z = outer(3)
+asserts.eq(z(5), 11)
+asserts.eq(z(7), 13)
+z2 = outer(4)
+asserts.eq(z2(5), 13)
+asserts.eq(z2(7), 15)
+asserts.eq(z(5), 11)
+asserts.eq(z(7), 13)
+
+# Function name
+asserts.eq(str(outer), '<function outer>')
+asserts.eq(str(z), '<function inner>')
+asserts.eq(str(str), '<built-in function str>')
+asserts.eq(str("".startswith), '<built-in method startswith of string value>')
+
+# Stateful closure
+def squares():
+    x = [0]
+    def f():
+      x[0] += 1
+      return x[0] * x[0]
+    return f
+
+sq = squares()
+asserts.eq(sq(), 1)
+asserts.eq(sq(), 4)
+asserts.eq(sq(), 9)
+asserts.eq(sq(), 16)
+
+# Freezing a closure
+sq2 = freeze(sq)
+asserts.fails(sq2, "frozen list")
+
+# recursion detection, simple
+def fib(x):
+  if x < 2:
+    return x
+  return fib(x-2) + fib(x-1)
+asserts.fails(lambda: fib(10), "function fib called recursively")
+
+# recursion detection, advanced
+#
+# A simplistic recursion check that looks for repeated calls to the
+# same function value will not detect recursion using the Y
+# combinator, which creates a new closure at each step of the
+# recursion.  To truly prohibit recursion, the dynamic check must look
+# for repeated calls of the same syntactic function body.
+Y = lambda f: (lambda x: x(x))(lambda y: f(lambda *args: y(y)(*args)))
+fibgen = lambda fib: lambda x: (x if x<2 else fib(x-1)+fib(x-2))
+fib2 = Y(fibgen)
+asserts.fails(lambda: [fib2(x) for x in range(10)], "function lambda called recursively")
+
+# However, this stricter check outlaws many useful programs
+# that are still bounded, and creates a hazard because
+# helper functions such as map below cannot be used to
+# call functions that themselves use map:
+def map(f, seq): return [f(x) for x in seq]
+def double(x): return x+x
+asserts.eq(map(double, [1, 2, 3]), [2, 4, 6])
+asserts.eq(map(double, ["a", "b", "c"]), ["aa", "bb", "cc"])
+def mapdouble(x): return map(double, x)
+asserts.fails(lambda: map(mapdouble, ([1, 2, 3], ["a", "b", "c"])),
+             'function map called recursively')
+# With the -recursion option it would yield [[2, 4, 6], ["aa", "bb", "cc"]].
+
+# call of function not through its name
+# (regression test for parsing suffixes of primary expressions)
+hf = hasfields()
+hf.x = [len]
+asserts.eq(hf.x[0]("abc"), 3)
+def f():
+   return lambda: 1
+asserts.eq(f()(), 1)
+asserts.eq(["abc"][0][0].upper(), "A")
+
+# functions may be recursively defined,
+# so long as they don't dynamically recur.
+calls = []
+def yin(x):
+  calls.append("yin")
+  if x:
+    yang(False)
+
+def yang(x):
+  calls.append("yang")
+  if x:
+    yin(False)
+
+yin(True)
+asserts.eq(calls, ["yin", "yang"])
+
+calls.clear()
+yang(True)
+asserts.eq(calls, ["yang", "yin"])
+
+
+# builtin_function_or_method use identity equivalence.
+closures = set(["".count for _ in range(10)])
+asserts.eq(len(closures), 10)
+
+---
+# Default values of function parameters are mutable.
+load("assert.star", "asserts", "freeze")
+
+def f(x=[0]):
+  return x
+
+asserts.eq(f(), [0])
+
+f().append(1)
+asserts.eq(f(), [0, 1])
+
+# Freezing a function value freezes its parameter defaults.
+freeze(f)
+asserts.fails(lambda: f().append(2), "trying to mutate a frozen list value")
+
+---
+# This is a well known corner case of parsing in Python.
+load("assert.star", "asserts")
+
+f = lambda x: 1 if x else 0
+asserts.eq(f(True), 1)
+asserts.eq(f(False), 0)
+
+x = True
+f2 = (lambda x: 1) if x else 0
+asserts.eq(f2(123), 1)
+
+tf = lambda: True, lambda: False
+asserts.true(tf[0]())
+asserts.true(not tf[1]())
+
+---
+# Missing parameters are correctly reported
+# in functions of more than 64 parameters.
+# (This tests a corner case of the implementation:
+# we avoid a map allocation for <64 parameters)
+
+load("assert.star", "asserts")
+
+def f(a, b, c, d, e, f, g, h,
+      i, j, k, l, m, n, o, p,
+      q, r, s, t, u, v, w, x,
+      y, z, A, B, C, D, E, F,
+      G, H, I, J, K, L, M, N,
+      O, P, Q, R, S, T, U, V,
+      W, X, Y, Z, aa, bb, cc, dd,
+      ee, ff, gg, hh, ii, jj, kk, ll,
+      mm):
+  pass
+
+asserts.fails(lambda: f(
+    1, 2, 3, 4, 5, 6, 7, 8,
+    9, 10, 11, 12, 13, 14, 15, 16,
+    17, 18, 19, 20, 21, 22, 23, 24,
+    25, 26, 27, 28, 29, 30, 31, 32,
+    33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48,
+    49, 50, 51, 52, 53, 54, 55, 56,
+    57, 58, 59, 60, 61, 62, 63, 64), "missing 1 required positional argument: mm")
+
+asserts.fails(lambda: f(
+    1, 2, 3, 4, 5, 6, 7, 8,
+    9, 10, 11, 12, 13, 14, 15, 16,
+    17, 18, 19, 20, 21, 22, 23, 24,
+    25, 26, 27, 28, 29, 30, 31, 32,
+    33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48,
+    49, 50, 51, 52, 53, 54, 55, 56,
+    57, 58, 59, 60, 61, 62, 63, 64, 65,
+    mm = 100), "multiple values for parameter 'mm'")
+
+---
+# Regression test for github.com/google/starlark-go/issues/21,
+# which concerns dynamic checks.
+# Related: https://github.com/bazelbuild/starlark/issues/21,
+# which concerns static checks.
+
+load("assert.star", "asserts")
+
+def f(*args, **kwargs):
+  return args, kwargs
+
+asserts.eq(f(x=1, y=2), ((), {"x": 1, "y": 2}))
+asserts.fails(lambda: f(x=1, **dict(x=2)), "multiple values for keyword argument 'x'")
+
+def g(x, y):
+  return x, y
+
+asserts.eq(g(1, y=2), (1, 2))
+asserts.fails(lambda: g(1, y=2, **{'y': 3}), "multiple values for keyword argument 'y'")
+
+---
+# Regression test for a bug in CALL_VAR_KW.
+
+load("assert.star", "asserts")
+
+def f(a, b, x, y):
+  return a+b+x+y
+
+asserts.eq(f(*("a", "b"), **dict(y="y", x="x")) + ".", 'abxy.')
+---
+# Order of evaluation of function arguments.
+# Regression test for github.com/google/skylark/issues/135.
+load("assert.star", "asserts")
+
+r = []
+
+def id(x):
+  r.append(x)
+  return x
+
+def f(*args, **kwargs):
+  return (args, kwargs)
+
+y = f(id(1), id(2), x=id(3), *[id(4)], **dict(z=id(5)))
+asserts.eq(y, ((1, 2, 4), dict(x=3, z=5)))
+
+# This matches Python2 and Starlark-in-Java, but not Python3 [1 2 4 3 6].
+# *args and *kwargs are evaluated last.
+# (Python[23] also allows keyword arguments after *args.)
+# See github.com/bazelbuild/starlark#13 for spec change.
+asserts.eq(r, [1, 2, 3, 4, 5])
+
+---
+# See github.com/bazelbuild/starlark#170
+load("assert.star", "asserts")
+
+def a():
+    list = []
+    def b(n):
+        list.append(n)
+        if n > 0:
+            b(n - 1) # recursive reference to b
+
+    b(3)
+    return list
+
+# Nested functions may refer to themselves, but as recursion is not
+# permitted, calling them that way fails.
+asserts.fails(a, "function b called recursively")
+
+def c():
+    list = []
+    x = 1
+    def d():
+      list.append(x) # this use of x observes both assignments
+    d()
+    x = 2
+    d()
+    return list
+
+asserts.eq(c(), [1, 2])
+
+def e():
+    def f():
+      return x # forward reference ok: x is a closure cell
+    x = 1
+    return f()
+
+asserts.eq(e(), 1)
+
+---
+load("assert.star", "asserts")
+
+def e():
+    x = 1
+    def f():
+      print(x) # this reference to x fails
+      x = 3    # because this assignment makes x local to f
+    f()
+
+asserts.fails(e, "local variable x referenced before assignment")
+
+def f():
+    def inner():
+        return x
+    if False:
+        x = 0
+    return x # fails (x is an uninitialized cell of this function)
+
+asserts.fails(f, "local variable x referenced before assignment")
+
+def g():
+    def inner():
+        return x # fails (x is an uninitialized cell of the enclosing function)
+    if False:
+        x = 0
+    return inner()
+
+asserts.fails(g, "local variable x referenced before assignment")
+
+---
+# A trailing comma is allowed in any function definition or call.
+# This reduces the need to edit neighboring lines when editing defs
+# or calls splayed across multiple lines.
+
+def a(x,): pass
+def b(x, y=None, ): pass
+def c(x, y=None, *args, ): pass
+def d(x, y=None, *args, z=None, ): pass
+def e(x, y=None, *args, z=None, **kwargs, ): pass
+
+a(1,)
+b(1, y=2, )
+#c(1, *[], )
+#d(1, *[], z=None, )
+#e(1, *[], z=None, *{}, )
+
+---
+# Unpack provides spell check for argument names.
+load("assert.star", "asserts")
+
+asserts.fails(lambda: min([], keg=1), ".+did you mean 'key'\\?")

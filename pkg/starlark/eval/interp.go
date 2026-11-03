@@ -527,7 +527,13 @@ func (t *Thread) runFrame(base int) (Value, error) {
 			}
 
 		case compile.UNPACK:
-			elements, err := Elements(t, pop())
+			x := pop()
+			if _, ok := x.(Iterable); !ok {
+				if _, ok := x.(Indexable); !ok {
+					return nil, fmt.Errorf("got %s in sequence assignment (want %d-element sequence)", x.Type(), arg)
+				}
+			}
+			elements, err := Elements(t, x)
 			if err != nil {
 				return nil, err
 			}
@@ -630,6 +636,21 @@ func popCallArgs(t *Thread, fr *frame, op compile.Opcode, arg uint32) (Args, Val
 		}
 		if errIter != nil {
 			return Args{}, nil, errIter
+		}
+
+		// Names of explicit keyword arguments are unique, as
+		// this is checked by the resolver. Names provided
+		// through **kwargs may collide with them.
+		seen := make(map[string]struct{}, len(args.Named))
+		for _, arg := range args.Named {
+			if _, ok := seen[arg.Name]; ok {
+				name := "function"
+				if callable, ok := fn.(Callable); ok {
+					name = callable.Name()
+				}
+				return Args{}, nil, fmt.Errorf("%s() got multiple values for keyword argument '%s'", name, arg.Name)
+			}
+			seen[arg.Name] = struct{}{}
 		}
 	}
 	return args, fn, nil

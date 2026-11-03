@@ -104,6 +104,20 @@ func (i Int) Int64() (int64, bool) {
 	return i.small, true
 }
 
+// Uint64 returns the value of the integer as a uint64, if it fits.
+func (i Int) Uint64() (uint64, bool) {
+	if i.big != nil {
+		if !i.big.IsUint64() {
+			return 0, false
+		}
+		return i.big.Uint64(), true
+	}
+	if i.small < 0 {
+		return 0, false
+	}
+	return uint64(i.small), true
+}
+
 // BigInt returns the value of the integer as a *big.Int. The result
 // must not be modified.
 func (i Int) BigInt() *big.Int {

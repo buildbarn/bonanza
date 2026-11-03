@@ -144,13 +144,17 @@ func truncateFloat(f Float) (Int, bool) {
 // formatFloat formats a float using one of the conversions supported
 // by the % operator.
 func formatFloat(f Float, conversion byte) string {
+	if math.IsInf(float64(f), 0) || math.IsNaN(float64(f)) {
+		return f.String()
+	}
 	switch conversion {
 	case 'e', 'E':
 		return strconv.FormatFloat(float64(f), conversion, 6, 64)
 	case 'f', 'F':
 		return strconv.FormatFloat(float64(f), 'f', 6, 64)
 	default:
-		s := strconv.FormatFloat(float64(f), 'g', 6, 64)
+		// %g uses the same representation as str().
+		s := f.String()
 		if conversion == 'G' {
 			s = strings.ToUpper(s)
 		}

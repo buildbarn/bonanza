@@ -19,7 +19,7 @@ func execForTesting(t *testing.T, src string, configure func(*eval.Thread)) (str
 	f, err := syntax.Parse("test.star", []byte(src), syntax.Options{})
 	require.NoError(t, err)
 
-	universe := eval.CoreUniverse()
+	universe := eval.Universe()
 	predeclared := map[string]eval.Value{
 		"predeclared_value": eval.String("predeclared"),
 	}
