@@ -1,0 +1,13 @@
+function <toplevel>() stack=1
+	makelist 0
+	maketuple 1
+	makefunc 0 (f)
+	setglobal 0 (f)
+	none
+	return
+
+function f(x, y) stack=1
+	local 0 (x)
+	setlocal 2 (z)
+	local 2 (z)	@4:12
+	return

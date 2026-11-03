@@ -1,0 +1,21 @@
+function <toplevel>() stack=1
+	maketuple 0
+	makefunc 0 (constants)
+	setglobal 0 (constants)
+	maketuple 0
+	makefunc 1 (shadowed)
+	setglobal 1 (shadowed)
+	none
+	return
+
+function constants() stack=4
+	none
+	true
+	false
+	universal 0 (len)
+	makelist 4
+	return
+
+function shadowed(None) stack=1
+	local 0 (None)
+	return

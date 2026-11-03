@@ -1,0 +1,63 @@
+function <toplevel>() stack=1
+	maketuple 0
+	makefunc 0 (f)
+	setglobal 0 (f)
+	none
+	return
+
+function f(x, y) stack=6
+	local 0 (x)
+	int 0 (0)
+	dup2
+	index	@2:6
+	int 1 (1)
+	inplaceadd	@2:10
+	setindex	@2:6
+	local 1 (y)
+	dup
+	attr 0 (field)	@3:6
+	makedict
+	dup
+	str 0 ("a")
+	int 1 (1)
+	setdictuniq	@3:20
+	inplacepipe	@3:13
+	setfield 0 (field)	@3:6
+	local 0 (x)
+	unpack 2	@4:17
+	setlocal 2 (a)
+	unpack 2	@4:17
+	setlocal 3 (b)
+	unpack 1	@4:17
+	setlocal 4 (c)
+	local 0 (x)
+	none
+	none
+	int 2 (2)
+	slice	@5:16
+	local 1 (y)
+	exch
+	setfield 1 (other)	@5:6
+	local 3 (b)	@6:15
+	cjmp 77
+	local 4 (c)	@6:23
+	tilde	@6:22
+58:
+	setlocal 5 (z)
+	local 5 (z)	@7:12
+	dup
+	cjmp 71
+	pop
+	local 2 (a)	@7:17
+	dup
+	cjmp 72
+71:
+	return
+72:
+	pop
+	local 3 (b)	@7:23
+	jmp 71
+77:
+	local 2 (a)	@6:10
+	uminus	@6:9
+	jmp 58

@@ -1,0 +1,51 @@
+function <toplevel>() stack=1
+	maketuple 0
+	makefunc 0 (outer)
+	setglobal 0 (outer)
+	none
+	return
+
+function outer(a) stack=2
+	cells: a, b
+	int 0 (1)
+	setlocalcell 1 (b)
+	local 0 (a)
+	local 1 (b)	@1:1
+	maketuple 2
+	makefunc 0 (middle)
+	setlocal 2 (middle)
+	localcell 1 (b)	@9:27
+	local 0 (a)
+	maketuple 2
+	makefunc 1 (lambda)
+	setlocal 3 (adder)
+	local 2 (middle)	@10:12
+	local 3 (adder)	@10:20
+	maketuple 2
+	return
+
+function middle() stack=2
+	freevars: a, b
+	free 0 (a)
+	free 1 (b)
+	maketuple 2
+	makefunc 0 (inner)
+	setlocal 0 (inner)
+	local 0 (inner)	@7:16
+	return
+
+function inner() stack=2
+	freevars: a, b
+	freecell 0 (a)	@6:20
+	freecell 1 (b)	@6:24
+	plus	@6:22
+	return
+
+function lambda(x, y) stack=2
+	freevars: a
+	local 0 (x)
+	local 1 (y)
+	plus	@9:32
+	freecell 0 (a)	@9:38
+	plus	@9:36
+	return

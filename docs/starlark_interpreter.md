@@ -881,25 +881,38 @@ unpacker that leaves them as they are.
 
 ### Code objects in storage
 
-The compiler emits one `Funcode` per `def`/`lambda`. Each one becomes
-its own message object:
+`pkg/starlark/compile` emits one `compile.Funcode` per `def`/`lambda`,
+plus one for the top level of the file. A `Funcode` is self-contained.
+Its constants, names, loaded symbols and nested functions are stored in
+tables of its own, rather than in tables shared by the whole file. Each
+one can therefore become its own message object:
 
 ```proto
 message Funcode {
   string name = 1;
   int32 line = 2;
   int32 column = 3;
-  bytes code = 4;               // bytecode, see below
-  bytes line_table = 5;         // pc -> position
-  repeated Constant constants = 6;
-  repeated string names = 7;    // attribute/global names referenced
-  Parameters parameters = 8;
-  repeated string free_variables = 9;
+  string doc = 4;
+  bytes code = 5;               // bytecode, see below
+  bytes line_table = 6;         // pc -> position, delta encoded varints
+  repeated Constant constants = 7;
+  repeated string names = 8;    // attribute, global, predeclared and universal names
+  repeated Import imports = 9;  // (module, name) pairs referenced by IMPORT
+  repeated string locals = 10;  // parameters first
+  repeated uint32 cells = 11;   // indices of locals that are captured
+  repeated string free_variables = 12;
+  Parameters parameters = 13;   // counts, *args, **kwargs
+  uint32 max_stack = 14;
+  uint32 max_iterators = 15;
 
   // Nested functions, referenced by MAKEFUNC <index>.
-  repeated bonanza.model.core.DecodableReference functions = 10;
+  repeated bonanza.model.core.DecodableReference functions = 16;
 }
 ```
+
+The compiler itself only produces Go structs. Converting them to
+messages is the job of `pkg/model/starlark`, so that the compiler
+stays independent of storage.
 
 Since a `Funcode` only refers to the code of its nested functions,
 these objects form a DAG.
@@ -1003,8 +1016,21 @@ type Thread struct {
   `errors.Is(err, evaluation.ErrMissingDependency)`.
 - **Bytecode.** A stack-based instruction set similar to
   `go.starlark.net`'s: proven, simple, and easy to compile to. The
-  format is versioned in `CompiledProgram`, and a version mismatch is
-  rejected rather than misinterpreted.
+  differences are:
+  - `GLOBAL`/`SETGLOBAL` refer to globals by name rather than by
+    index, so that a function can be called without the rest of its
+    file.
+  - `IMPORT` reads a symbol bound by `load()`, loading it on first
+    use, and replaces `LOAD`. In `BUILD` files, where `load()` binds
+    globals, a load statement compiles to `IMPORT` followed by
+    `SETGLOBAL`.
+  - Call instructions encode their positional and named argument
+    counts in 16 bits each, instead of 8.
+  - Type annotations compile to nothing, and `cast(T, x)` compiles to
+    `x`.
+
+  The format is versioned (`compile.Version`), and a version mismatch
+  is rejected rather than misinterpreted.
 - **Determinism.** Anything Starlark code can observe may end up in
   storage, so all of it must be deterministic across processes and
   releases:

@@ -1,0 +1,66 @@
+function <toplevel>() stack=4
+	int 0 (1)
+	int 1 (2)
+	int 2 (3)
+	makelist 3
+	setglobal 0 (x)
+	int 0 (1)
+	mandatory
+	maketuple 2
+	makefunc 0 (f)
+	setglobal 1 (f)
+	makedict
+	predeclared 2 (M)	@14:23
+	attr 3 (items)	@14:24
+	call 0 (0 positional, 0 named)	@14:30
+	iterpush	@14:11
+27:
+	iterjmp 49
+	unpack 2	@14:11
+	setlocal 0 (k)
+	setlocal 1 (v)
+	local 1 (v)	@14:36
+	cjmp 41
+	jmp 27
+41:
+	dup
+	local 0 (k)	@14:6
+	local 1 (v)	@14:9
+	setdict	@14:7
+	jmp 27
+49:
+	iterpop
+	setglobal 4 (y)
+	none
+	return
+
+function f(p, q, k, args, kwargs) keyword_only=1 args=true kwargs=true stack=2
+	int 0 (0)
+	setlocal 5 (total)
+	local 0 (p)
+	iterpush	@8:5
+7:
+	iterjmp 33
+	setlocal 6 (i)
+	local 6 (i)	@9:12
+	int 1 (1)
+	gt	@9:14
+	cjmp 27
+18:
+	local 5 (total)	@11:9
+	local 6 (i)	@11:18
+	inplaceadd	@11:15
+	setlocal 5 (total)
+	jmp 7
+27:
+	local 1 (q)
+	cjmp 18
+	jmp 7
+33:
+	iterpop
+	local 5 (total)	@12:12
+	import 0 ("//a:a.bzl" a)	@12:20
+	plus	@12:18
+	global 0 (x)	@12:24
+	plus	@12:22
+	return

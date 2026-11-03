@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "compile",
+    srcs = [
+        "compile.go",
+        "funcode.go",
+        "opcode.go",
+    ],
+    importpath = "bonanza.build/pkg/starlark/compile",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/encoding/varint",
+        "//pkg/starlark/resolve",
+        "//pkg/starlark/syntax",
+    ],
+)
+
+go_test(
+    name = "compile_test",
+    srcs = [
+        "compile_test.go",
+        "corpus_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    deps = [
+        ":compile",
+        "//pkg/starlark/resolve",
+        "//pkg/starlark/syntax",
+        "@com_github_stretchr_testify//require",
+    ],
+)

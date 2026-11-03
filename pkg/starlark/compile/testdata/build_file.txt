@@ -1,0 +1,13 @@
+function <toplevel>() stack=3
+	predeclared 0 (M)	@2:1
+	str 0 ("name")
+	str 1 ("a")
+	call 2 (0 positional, 1 named)	@2:2
+	pop
+	import 0 ("//a:a.bzl" b)	@6:1
+	str 0 ("name")
+	import 1 ("//a:a.bzl" d)	@6:10
+	call 2 (0 positional, 1 named)	@6:2
+	pop
+	none
+	return

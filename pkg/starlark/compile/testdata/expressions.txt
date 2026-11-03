@@ -1,0 +1,54 @@
+function <toplevel>() stack=1
+	maketuple 0
+	makefunc 0 (f)
+	setglobal 0 (f)
+	none
+	return
+
+function f(x) stack=13
+	local 0 (x)
+	predeclared 0 (M)	@3:18
+	in	@3:15
+	not
+	str 0 ("abc")
+	local 0 (x)
+	plus	@4:25
+	str 1 ("d")
+	plus	@4:29
+	int 0 (1)
+	int 1 (2)
+	maketuple 2
+	int 2 (18446744073709551616)
+	float 0 (1.5)
+	makedict
+	dup
+	str 2 ("a")
+	int 0 (1)
+	setdictuniq	@8:13
+	dup
+	local 0 (x)
+	int 1 (2)
+	setdictuniq	@8:19
+	local 0 (x)
+	attr 1 (method)	@9:10
+	int 0 (1)
+	str 3 ("k")
+	int 1 (2)
+	call 3 (1 positional, 1 named)	@9:17
+	predeclared 0 (M)	@10:9
+	local 0 (x)
+	callargs 0 (0 positional, 0 named)	@10:10
+	predeclared 0 (M)	@11:9
+	local 0 (x)
+	callkw 0 (0 positional, 0 named)	@11:10
+	predeclared 0 (M)	@12:9
+	int 0 (1)
+	local 0 (x)
+	local 0 (x)
+	callargkw 1 (1 positional, 0 named)	@12:10
+	universal 2 (print)
+	local 0 (x)
+	call 1 (1 positional, 0 named)	@13:14
+	universal 3 (len)
+	makelist 12
+	return

@@ -1,0 +1,58 @@
+function <toplevel>() stack=1
+	maketuple 0
+	makefunc 0 (f)
+	setglobal 0 (f)
+	none
+	return
+
+function f(x) stack=3
+	local 0 (x)
+	iterpush	@2:5
+3:
+	iterjmp 32
+	setlocal 1 (i)
+	local 1 (i)	@3:18
+	iterpush	@3:9
+10:
+	iterjmp 29
+	setlocal 2 (j)
+	local 2 (j)	@4:20
+	cjmp 20
+	none
+	return
+20:
+	local 2 (j)	@6:16
+	int 0 (3)
+	eql	@6:18
+	cjmp 29
+	jmp 10
+29:
+	iterpop
+	jmp 3
+32:
+	iterpop
+	makelist 0
+	local 0 (x)
+	iterpush	@8:15
+38:
+	iterjmp 64
+	setlocal 3 (i)
+	local 3 (i)	@8:35
+	iterpush	@8:26
+45:
+	iterjmp 61
+	setlocal 4 (j)
+	local 4 (j)	@8:40
+	cjmp 55
+	jmp 45
+55:
+	dup
+	local 4 (j)	@8:13
+	append
+	jmp 45
+61:
+	iterpop
+	jmp 38
+64:
+	iterpop
+	return
