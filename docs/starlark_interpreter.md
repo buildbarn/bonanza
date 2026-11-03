@@ -188,78 +188,114 @@ well.
 
 `pkg/starlark/resolve` takes a `*syntax.File` and a `Dialect`. It
 doesn't write anything into the AST. Instead it returns a `*Module`,
-which maps AST nodes to its results (e.g. `Module.Binding(*syntax.Ident)`
-and `Module.Function(*syntax.DefStmt)`). This keeps the AST immutable,
-so other packages such as `pkg/model/render` can use it without caring
-about resolution:
+which maps AST nodes to its results (`Module.Binding(*syntax.Ident)`
+and `Module.Function(node)` for a `*syntax.DefStmt` or
+`*syntax.LambdaExpr`). This keeps the AST immutable, so other packages
+such as `pkg/model/render` can use it without caring about resolution:
 
 ```go
 type Scope uint8
 
 const (
-	Local       Scope = iota // local to its function
-	Cell                     // local, but captured by a nested function
-	Free                     // captured from an enclosing function
-	Global                   // defined at the top level of this module
-	Import                   // bound by load(); resolved lazily
-	Predeclared              // e.g. rule(), glob(), native
-	Universal                // e.g. len(), str()
+	Undefined     Scope = iota // could not be resolved; an error is reported
+	Local                      // local to its function or comprehension
+	Cell                       // local, but captured by a nested function
+	Free                       // captured from an enclosing function
+	Global                     // defined at the top level of this module
+	Import                     // bound by load(); resolved lazily
+	Predeclared                // e.g. rule(), glob(), native
+	Universal                  // e.g. len(), str()
+	TypeParameter              // e.g. T in "def f[T](x: T)"
 )
 
 type Binding struct {
 	Scope Scope
-	Index int           // into Function.Locals/FreeVars, Module.Globals or Module.Imports
+	Index int // into Function.Locals/FreeVars, Module.Globals or Module.Imports
 	First *syntax.Ident
 }
 
-type Import struct {
-	Label  pg_label.CanonicalLabel // resolved at resolve time
-	Symbol string
+type LoadedSymbol struct {
+	Module  string   // as written; the caller canonicalizes it
+	Name    string   // name in the loaded module
+	Binding *Binding // Import, or Global if load() binds globally
 }
 
 type Module struct {
-	Globals   []*Binding
-	Imports   []Import
-	Functions []*Function
+	Globals  []*Binding
+	Imports  []*LoadedSymbol
+	Toplevel *Function // its Locals are top-level comprehension variables
 }
 
 type Function struct {
-	Locals, FreeVars []*Binding
+	Name     string
+	Node     syntax.Node // *DefStmt or *LambdaExpr; nil for the top level
+	Params   []*syntax.Param
+	// Parameters first, in runtime order: positional, keyword-only,
+	// *args, **kwargs.
+	Locals   []*Binding
+	FreeVars []*Binding // bindings in the directly enclosing function
+	NumKeywordOnlyParams int
+	HasArgs, HasKwargs   bool
 	// Globals and imports referenced by this function or any
 	// function nested inside it, so that the compiler knows which
 	// private globals have to be encoded.
 	ReferencedGlobals, ReferencedImports []int
-	// ...
 }
 ```
 
 `Import` is a scope of its own, not a captured local. When a function
 references a loaded symbol, the compiler emits an import reference to
-that symbol, not a free variable.
+that symbol, not a free variable. The resolver keeps the module string
+of each `load()` as written. Turning it into a canonical label needs
+the repo mapping, so that is up to the caller.
 
-`Dialect` replaces upstream's linknamed `syntax.FileOptions` flags.
-There is one dialect per file type, which can express Bazel
-restrictions that upstream can't:
+Name resolution follows Bazel's resolver. Before the names used in a
+block are resolved, all bindings in that block are created: the top
+level of the file, a function body, or all loop variables of a
+comprehension. A name that is assigned anywhere at the top level
+therefore refers to that global everywhere in the file, even before
+the assignment and even if a predeclared name of the same name exists.
+Because all enclosing blocks are complete by the time a use is visited,
+each use is resolved immediately. Unlike go.starlark.net, nothing has
+to be deferred to the end of the file.
 
-| Restriction | `.bzl` | `BUILD` | `MODULE.bazel` | `REPO.bazel` |
+`Dialect` replaces upstream's linknamed `syntax.FileOptions` flags. It
+contains the options of Bazel's `FileOptions` that matter here
+(`LoadBindsGlobally`, `AllowToplevelRebinding`,
+`RequireLoadStatementsFirst`, `AllowLoadPrivateSymbols`), plus
+`AllowWhile`, `ResolveTypeSyntax` and an optional `RestrictedSyntax`.
+The latter mirrors Bazel's `DotBazelFileSyntaxChecker`, including its
+error messages. There is one preset per file type, based on Bazel's
+`BzlCompileFunction`, `PackageFunction` and `CompiledModuleFile`:
+
+| | `.bzl` | `BUILD` | `MODULE.bazel` | `REPO.bazel` |
 |---|---|---|---|---|
-| `def` / `lambda` | ✓ | ✗ | ✗ | ✗ |
-| `*args` / `**kwargs` in calls | ✓ | ✗ | ✗ | ✗ |
-| `load()` | at top of file | at top of file | ✗ (`include()` instead) | ✗ |
+| `def` / `lambda`, `if` / `for` | inside functions | ✗ | ✗ | ✗ |
+| `*args` in calls | ✓ | ✗ | ✗ | ✗ |
+| `**kwargs` in calls | ✓ | ✗ | dict literal only | dict literal only |
+| `load()` | before other statements | anywhere, binds globals | ✗ | ✗ |
+| reassigning top-level names | ✗ | ✓ | ✗ | ✗ |
 | loading `_private` symbols | ✗ | ✗ | — | — |
-| `while`, recursion | ✗ (allowed for `builtins_core+`) | ✗ | ✗ | ✗ |
-| top-level `if`/`for` | ✗ | ✗ | ✗ | ✗ |
-| type annotations | option | ✗ | ✗ | ✗ |
+| `while` | ✗ | ✗ | ✗ | ✗ |
 
-The exact table should match Bazel's behaviour. Only symbols defined in
-a module are exported, not loaded ones, which matches Bazel. Undefined
-names get "did you mean …?" suggestions from a small spelling helper of
-our own, because upstream's `internal/spell` can't be imported.
+`if` and `for` are never permitted at the top level, in any file type.
+The `REPO.bazel` column is a best guess, as Bazel's `RepoFileFunction`
+couldn't be checked. Recursion is not a resolver concern; it is
+detected when calls are made. `MODULE.bazel`'s rules for `include()`
+are left to the code that evaluates `MODULE.bazel` files. Type
+annotations are only resolved if `ResolveTypeSyntax` is set. Otherwise
+they are ignored, and type alias statements bind no names. As in Bazel,
+`isinstance()` is parsed but rejected by the resolver for now. Only
+symbols defined in a module are exported, not loaded ones, which
+matches Bazel. Undefined names get "did you mean …?" suggestions from a
+small spelling helper of our own, because upstream's `internal/spell`
+can't be imported.
 
-The resolver is ~1,000 lines of logic that is easy to get subtly wrong:
-cells, forward references to globals, comprehension scopes and
-redefinition checks. We port upstream's `resolve/testdata` cases
-(BSD-3-Clause) as a starting point for its tests.
+The tests include upstream's `resolve/testdata` cases (BSD-3-Clause),
+adapted to Bazel's semantics and error messages. A second test resolves
+a corpus of real files. It checks that they resolve without errors,
+and that the scope of every identifier in `.bzl` files matches what
+go.starlark.net's resolver computes, apart from loaded symbols.
 
 ## Value model
 
@@ -931,8 +967,9 @@ encoded. The compiler knows this set.
 resolver, not code that runs eagerly. During top-level execution of the
 loading file:
 
-- The resolver resolves the apparent label to a canonical one, using
-  the repo mapping that `preloadBzlGlobals()` uses today.
+- The caller resolves the module string of each `LoadedSymbol` to a
+  canonical label, using the repo mapping that `preloadBzlGlobals()`
+  uses today.
 - `CompiledBzlFile` checks that each loaded symbol exists by looking at
   the sorted `Struct.Fields.keys` of the loaded file's globals. This
   keeps Bazel's "symbol not found" error at load time without decoding

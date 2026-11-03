@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "resolve",
+    srcs = [
+        "resolve.go",
+        "resolver.go",
+        "spell.go",
+    ],
+    importpath = "bonanza.build/pkg/starlark/resolve",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/starlark/syntax"],
+)
+
+go_test(
+    name = "resolve_test",
+    srcs = [
+        "resolve_test.go",
+        "upstream_comparison_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    deps = [
+        ":resolve",
+        "//pkg/starlark/syntax",
+        "@com_github_stretchr_testify//require",
+        "@net_starlark_go//resolve",
+        "@net_starlark_go//syntax",
+    ],
+)
