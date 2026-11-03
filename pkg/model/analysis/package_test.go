@@ -592,6 +592,33 @@ def _impl(name, visibility):
 		}
 	})
 
+	t.Run("ModuleAndRepoNames", func(t *testing.T) {
+		// native.repo_name(), native.module_name() and
+		// native.module_version() should be derived from the
+		// canonical name of the repo containing the package.
+		// It does not contain a version number unless multiple
+		// versions of the module are permitted to coexist.
+		e := NewMockPackageEnvironmentForTesting(ctrl)
+		expectMacro(
+			e,
+			`
+def _impl(name, visibility):
+    if native.repo_name() != "main+":
+        fail("unexpected repo name %r" % native.repo_name())
+    if native.module_name() != "main":
+        fail("unexpected module name %r" % native.module_name())
+    if native.module_version() != "":
+        fail("unexpected module version %r" % native.module_version())
+    native.alias(name = name, actual = "//baz:actual")
+`,
+			nil,
+		)
+
+		value, err := computeMacroInstance(e, "m")
+		require.NoError(t, err)
+		require.Len(t, value.Targets, 1)
+	})
+
 	t.Run("MissingDependency", func(t *testing.T) {
 		// Missing dependencies should be propagated as is, and
 		// not be wrapped.

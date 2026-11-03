@@ -1319,6 +1319,58 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					)
 				},
 			),
+			"module_name": starlark.NewBuiltin(
+				"native.module_name",
+				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+					canonicalPackage := thread.Local(CanonicalPackageKey)
+					if canonicalPackage == nil {
+						return nil, errors.New("module name cannot be obtained from within this context")
+					}
+
+					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+						return nil, err
+					}
+
+					// For repos declared by module
+					// extensions, this is the name of the
+					// module hosting the extension.
+					return starlark.String(
+						canonicalPackage.(pg_label.CanonicalPackage).
+							GetCanonicalRepo().
+							GetModuleInstance().
+							GetModule().
+							String(),
+					), nil
+				},
+			),
+			"module_version": starlark.NewBuiltin(
+				"native.module_version",
+				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+					canonicalPackage := thread.Local(CanonicalPackageKey)
+					if canonicalPackage == nil {
+						return nil, errors.New("module version cannot be obtained from within this context")
+					}
+
+					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+						return nil, err
+					}
+
+					// Canonical repo names only contain a
+					// version number if multiple versions
+					// of the module are permitted to
+					// coexist. For repos declared by module
+					// extensions, this is the version of the
+					// module hosting the extension.
+					version, ok := canonicalPackage.(pg_label.CanonicalPackage).
+						GetCanonicalRepo().
+						GetModuleInstance().
+						GetModuleVersion()
+					if !ok {
+						return starlark.String(""), nil
+					}
+					return starlark.String(version.String()), nil
+				},
+			),
 			"package_name": starlark.NewBuiltin(
 				"native.package_name",
 				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -1358,6 +1410,21 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 					return NewLabel[TReference, TMetadata](input), nil
+				},
+			),
+			"repo_name": starlark.NewBuiltin(
+				"native.repo_name",
+				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+					canonicalPackage := thread.Local(CanonicalPackageKey)
+					if canonicalPackage == nil {
+						return nil, errors.New("repo name cannot be obtained from within this context")
+					}
+
+					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+						return nil, err
+					}
+
+					return starlark.String(canonicalPackage.(pg_label.CanonicalPackage).GetCanonicalRepo().String()), nil
 				},
 			),
 			"test_suite": starlark.NewBuiltin(
