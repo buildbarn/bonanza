@@ -953,7 +953,7 @@ func TestMacroInheritAttrs(t *testing.T) {
 
 	// Rules that are declared in Go, so that they can be called
 	// without needing to compile a .bzl file.
-	newRule := func(name string, attrs map[string]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree], buildSetting *model_starlark.BuildSetting, ruleType model_starlark_pb.Rule_Definition_Type) starlark.Value {
+	newRule := func(name string, attrs map[string]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree], buildSetting *model_starlark.BuildSetting[object.LocalReference, model_core.CreatedObjectTree], ruleType model_starlark_pb.Rule_Definition_Type) starlark.Value {
 		identifier := canonicalLabel.AppendStarlarkIdentifier(util.Must(label.NewStarlarkIdentifier(name)))
 		namedAttrs := map[label.StarlarkIdentifier]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree]{}
 		for attrName, attr := range attrs {
@@ -1198,20 +1198,44 @@ outer = macro(implementation = _impl, inherit_attrs = inner)
 		require.Equal(t, expectedAttrs, macros["m"])
 	})
 
+	t.Run("BuildSetting", func(t *testing.T) {
+		// Build settings additionally accept a mandatory
+		// "build_setting_default" attribute whose type matches
+		// that of the build setting, and "help".
+		for buildSettingType, expectedType := range map[model_starlark.BuildSettingType[object.LocalReference, model_core.CreatedObjectTree]]string{
+			model_starlark.NewBoolBuildSettingType[object.LocalReference, model_core.CreatedObjectTree]():           "Bool",
+			model_starlark.NewIntBuildSettingType[object.LocalReference, model_core.CreatedObjectTree]():            "Int",
+			model_starlark.NewLabelListBuildSettingType[object.LocalReference, model_core.CreatedObjectTree](false): "LabelList",
+			model_starlark.NewStringBuildSettingType[object.LocalReference, model_core.CreatedObjectTree]():         "String_",
+			model_starlark.NewStringListBuildSettingType[object.LocalReference, model_core.CreatedObjectTree](true): "StringList",
+		} {
+			myFlag := newRule(
+				"my_flag",
+				map[string]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree]{
+					"extra": stringAttr(starlark.String("default")),
+				},
+				model_starlark.NewBuildSetting(buildSettingType, true),
+				model_starlark_pb.Rule_Definition_NON_EXECUTABLE,
+			)
+			macros, err := exec(t, &starlark.Thread{}, `m = macro(implementation = _impl, inherit_attrs = my_flag)`, starlark.StringDict{"my_flag": myFlag})
+			require.NoError(t, err)
+			expectedAttrs := maps.Clone(commonAttrs)
+			maps.Copy(expectedAttrs, map[string]string{
+				"build_setting_default": expectedType + " mandatory configurable=false",
+				"extra":                 "String_ default=None configurable=true",
+				"help":                  "String_ default=None configurable=false",
+			})
+			require.Equal(t, expectedAttrs, macros["m"], buildSettingType.Type())
+		}
+	})
+
 	t.Run("Invalid", func(t *testing.T) {
-		myFlag := newRule(
-			"my_flag",
-			nil,
-			model_starlark.NewBuildSetting(model_starlark.BoolBuildSettingType, true),
-			model_starlark_pb.Rule_Definition_NON_EXECUTABLE,
-		)
 		for value, expectedError := range map[string]string{
 			`"uncommon"`: `macro: for parameter "inherit_attrs": unknown set of attributes "uncommon"`,
 			`42`:         `macro: for parameter "inherit_attrs": got int, want rule, macro or "common"`,
 			`len`:        `macro: for parameter "inherit_attrs": got builtin_function_or_method, want rule, macro or "common"`,
-			`my_flag`:    `macro: for parameter "inherit_attrs": inheriting attributes from build settings is not supported`,
 		} {
-			_, err := exec(t, &starlark.Thread{}, `m = macro(implementation = _impl, inherit_attrs = `+value+`)`, starlark.StringDict{"my_flag": myFlag})
+			_, err := exec(t, &starlark.Thread{}, `m = macro(implementation = _impl, inherit_attrs = `+value+`)`, nil)
 			require.ErrorContains(t, err, expectedError, value)
 		}
 	})

@@ -6,10 +6,12 @@ import (
 	"strconv"
 	"strings"
 
+	"bonanza.build/pkg/glob"
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/storage/object"
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -19,55 +21,55 @@ import (
 // BuildSetting is a Starlark build setting object that may be provided
 // to rule(build_setting=...) to indicate that targets of the rule
 // behave as user-defined build settings.
-type BuildSetting struct {
-	buildSettingType BuildSettingType
+type BuildSetting[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	buildSettingType BuildSettingType[TReference, TMetadata]
 	flag             bool
 }
 
-var _ starlark.Value = (*BuildSetting)(nil)
+var _ starlark.Value = (*BuildSetting[object.LocalReference, model_core.CreatedObjectTree])(nil)
 
 // NewBuildSetting creates a new Starlark build setting object.
 //
 // When the flag argument is set, it will be possible to override the
 // build setting value of targets of the rule on the command line.
-func NewBuildSetting(buildSettingType BuildSettingType, flag bool) *BuildSetting {
-	return &BuildSetting{
+func NewBuildSetting[TReference any, TMetadata model_core.ReferenceMetadata](buildSettingType BuildSettingType[TReference, TMetadata], flag bool) *BuildSetting[TReference, TMetadata] {
+	return &BuildSetting[TReference, TMetadata]{
 		buildSettingType: buildSettingType,
 		flag:             flag,
 	}
 }
 
-func (bs *BuildSetting) String() string {
+func (bs *BuildSetting[TReference, TMetadata]) String() string {
 	return fmt.Sprintf("<config.%s>", bs.buildSettingType.Type())
 }
 
 // Type returns the type name of a Starlark build setting object in
 // string form.
-func (bs *BuildSetting) Type() string {
+func (bs *BuildSetting[TReference, TMetadata]) Type() string {
 	return "config." + bs.buildSettingType.Type()
 }
 
 // Freeze a Starlark build setting object, so that it can no longer be
 // mutated. Starlark build setting objects do not have any mutable
 // behavior, meaning that calling this method has no effect.
-func (BuildSetting) Freeze() {}
+func (BuildSetting[TReference, TMetadata]) Freeze() {}
 
 // Truth returns whether a Starlark build setting object is a "truthy"
 // or a "falsy". Starlark build setting objects are always "truthy".
-func (BuildSetting) Truth() starlark.Bool {
+func (BuildSetting[TReference, TMetadata]) Truth() starlark.Bool {
 	return starlark.True
 }
 
 // Hash a Starlark build setting object, so that it can be placed in a
 // set or used as a key in a dict. Starlark build setting objects cannot
 // be hashed.
-func (bs *BuildSetting) Hash(thread *starlark.Thread) (uint32, error) {
+func (bs *BuildSetting[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
 	return 0, fmt.Errorf("config.%s cannot be hashed", bs.buildSettingType.Type())
 }
 
 // Encode a Starlark build setting object to a Protobuf message, so that
 // it can be written to storage.
-func (bs *BuildSetting) Encode() *model_starlark_pb.BuildSetting {
+func (bs *BuildSetting[TReference, TMetadata]) Encode() *model_starlark_pb.BuildSetting {
 	buildSetting := model_starlark_pb.BuildSetting{
 		Flag: bs.flag,
 	}
@@ -78,10 +80,16 @@ func (bs *BuildSetting) Encode() *model_starlark_pb.BuildSetting {
 // BuildSettingType represents the type of a build setting that is
 // created by calling one of the functions in config.*(), such as
 // config.bool() or config.string().
-type BuildSettingType interface {
+type BuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Type() string
 	Encode(out *model_starlark_pb.BuildSetting)
 	GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer
+
+	// GetAttrType returns the type of the attribute that
+	// corresponds to this build setting type. This is used to
+	// declare the "build_setting_default" attribute when symbolic
+	// macros inherit the attributes of a build setting rule.
+	GetAttrType() AttrType[TReference, TMetadata]
 }
 
 // BuildSettingCanonicalizer can be used to convert Starlark values to a
@@ -97,26 +105,32 @@ type BuildSettingCanonicalizer interface {
 	CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (starlark.Value, error)
 }
 
-type boolBuildSettingType struct{}
+type boolBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-// BoolBuildSettingType is a Boolean build setting type. These are
+// NewBoolBuildSettingType creates a Boolean build setting type. These are
 // normally constructed by calling config.bool().
-var BoolBuildSettingType BuildSettingType = boolBuildSettingType{}
+func NewBoolBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata]() BuildSettingType[TReference, TMetadata] {
+	return boolBuildSettingType[TReference, TMetadata]{}
+}
 
-func (boolBuildSettingType) Type() string {
+func (boolBuildSettingType[TReference, TMetadata]) Type() string {
 	return "bool"
 }
 
-func (boolBuildSettingType) Encode(out *model_starlark_pb.BuildSetting) {
+func (boolBuildSettingType[TReference, TMetadata]) Encode(out *model_starlark_pb.BuildSetting) {
 	out.Type = &model_starlark_pb.BuildSetting_Bool{
 		Bool: &emptypb.Empty{},
 	}
 }
 
-func (boolBuildSettingType) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
+func (boolBuildSettingType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
 	return &boolBuildSettingCanonicalizer{
 		Canonicalizer: unpack.Bool,
 	}
+}
+
+func (boolBuildSettingType[TReference, TMetadata]) GetAttrType() AttrType[TReference, TMetadata] {
+	return NewBoolAttrType[TReference, TMetadata]()
 }
 
 type boolBuildSettingCanonicalizer struct {
@@ -147,26 +161,32 @@ func (boolBuildSettingCanonicalizer) CanonicalizeStringList(values []string, lab
 	return starlark.Bool(v), nil
 }
 
-type intBuildSettingType struct{}
+type intBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-// IntBuildSettingType is an integer build setting type. These are
+// NewIntBuildSettingType creates an integer build setting type. These are
 // normally constructed by calling config.int().
-var IntBuildSettingType BuildSettingType = intBuildSettingType{}
+func NewIntBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata]() BuildSettingType[TReference, TMetadata] {
+	return intBuildSettingType[TReference, TMetadata]{}
+}
 
-func (intBuildSettingType) Type() string {
+func (intBuildSettingType[TReference, TMetadata]) Type() string {
 	return "int"
 }
 
-func (intBuildSettingType) Encode(out *model_starlark_pb.BuildSetting) {
+func (intBuildSettingType[TReference, TMetadata]) Encode(out *model_starlark_pb.BuildSetting) {
 	out.Type = &model_starlark_pb.BuildSetting_Int{
 		Int: &emptypb.Empty{},
 	}
 }
 
-func (intBuildSettingType) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
+func (intBuildSettingType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
 	return &intBuildSettingCanonicalizer{
 		Canonicalizer: unpack.Int[int32](),
 	}
+}
+
+func (intBuildSettingType[TReference, TMetadata]) GetAttrType() AttrType[TReference, TMetadata] {
+	return NewIntAttrType[TReference, TMetadata](nil)
 }
 
 type intBuildSettingCanonicalizer struct {
@@ -234,14 +254,14 @@ func (bsc *labelBuildSettingCanonicalizer[TReference, TMetadata]) CanonicalizeSt
 	return value, nil
 }
 
-type labelListBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+type labelListBuildSettingType[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	repeatable bool
 }
 
 // NewLabelListBuildSettingType creates a label list build setting type.
 // This is a Bonanza specific extension that's provided so that flags
 // like --extra_execution_platforms can be declared in Starlark.
-func NewLabelListBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata](repeatable bool) BuildSettingType {
+func NewLabelListBuildSettingType[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](repeatable bool) BuildSettingType[TReference, TMetadata] {
 	return labelListBuildSettingType[TReference, TMetadata]{
 		repeatable: repeatable,
 	}
@@ -267,6 +287,13 @@ func (bst labelListBuildSettingType[TReference, TMetadata]) GetCanonicalizer(cur
 	}
 }
 
+func (labelListBuildSettingType[TReference, TMetadata]) GetAttrType() AttrType[TReference, TMetadata] {
+	return NewLabelListAttrType(
+		glob.NFAMatchingNothing.Bytes(),
+		NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
+	)
+}
+
 type labelListBuildSettingCanonicalizer[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	unpack.Canonicalizer
 
@@ -278,26 +305,32 @@ func (labelListBuildSettingCanonicalizer[TReference, TMetadata]) CanonicalizeStr
 	return nil, errors.New("TODO: Implement canonicalization of config.label_list")
 }
 
-type stringBuildSettingType struct{}
+type stringBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-// StringBuildSettingType is a string build setting type. These are
+// NewStringBuildSettingType creates a string build setting type. These are
 // normally constructed by calling config.string().
-var StringBuildSettingType BuildSettingType = stringBuildSettingType{}
+func NewStringBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata]() BuildSettingType[TReference, TMetadata] {
+	return stringBuildSettingType[TReference, TMetadata]{}
+}
 
-func (stringBuildSettingType) Type() string {
+func (stringBuildSettingType[TReference, TMetadata]) Type() string {
 	return "string"
 }
 
-func (stringBuildSettingType) Encode(out *model_starlark_pb.BuildSetting) {
+func (stringBuildSettingType[TReference, TMetadata]) Encode(out *model_starlark_pb.BuildSetting) {
 	out.Type = &model_starlark_pb.BuildSetting_String_{
 		String_: &emptypb.Empty{},
 	}
 }
 
-func (stringBuildSettingType) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
+func (stringBuildSettingType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
 	return &stringBuildSettingCanonicalizer{
 		Canonicalizer: unpack.String,
 	}
+}
+
+func (stringBuildSettingType[TReference, TMetadata]) GetAttrType() AttrType[TReference, TMetadata] {
+	return NewStringAttrType[TReference, TMetadata](nil)
 }
 
 type stringBuildSettingCanonicalizer struct {
@@ -308,23 +341,23 @@ func (stringBuildSettingCanonicalizer) CanonicalizeStringList(values []string, l
 	return starlark.String(values[len(values)-1]), nil
 }
 
-type stringListBuildSettingType struct {
+type stringListBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	repeatable bool
 }
 
 // NewStringListBuildSettingType creates a string list build setting
 // type. These are normally constructed by calling config.string_list().
-func NewStringListBuildSettingType(repeatable bool) BuildSettingType {
-	return stringListBuildSettingType{
+func NewStringListBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata](repeatable bool) BuildSettingType[TReference, TMetadata] {
+	return stringListBuildSettingType[TReference, TMetadata]{
 		repeatable: repeatable,
 	}
 }
 
-func (stringListBuildSettingType) Type() string {
+func (stringListBuildSettingType[TReference, TMetadata]) Type() string {
 	return "string_list"
 }
 
-func (bst stringListBuildSettingType) Encode(out *model_starlark_pb.BuildSetting) {
+func (bst stringListBuildSettingType[TReference, TMetadata]) Encode(out *model_starlark_pb.BuildSetting) {
 	out.Type = &model_starlark_pb.BuildSetting_StringList{
 		StringList: &model_starlark_pb.BuildSetting_ListType{
 			Repeatable: bst.repeatable,
@@ -332,11 +365,15 @@ func (bst stringListBuildSettingType) Encode(out *model_starlark_pb.BuildSetting
 	}
 }
 
-func (bst stringListBuildSettingType) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
+func (bst stringListBuildSettingType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
 	return &stringListBuildSettingCanonicalizer{
 		Canonicalizer: unpack.List(unpack.String),
 		repeatable:    bst.repeatable,
 	}
+}
+
+func (stringListBuildSettingType[TReference, TMetadata]) GetAttrType() AttrType[TReference, TMetadata] {
+	return NewStringListAttrType[TReference, TMetadata]()
 }
 
 type stringListBuildSettingCanonicalizer struct {

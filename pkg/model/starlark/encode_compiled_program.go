@@ -871,24 +871,24 @@ func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.Refer
 
 // DecodeBuildSettingType extracts the type of a build setting from a
 // build setting's Protobuf message.
-func DecodeBuildSettingType[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](buildSetting *model_starlark_pb.BuildSetting) (BuildSettingType, error) {
+func DecodeBuildSettingType[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](buildSetting *model_starlark_pb.BuildSetting) (BuildSettingType[TReference, TMetadata], error) {
 	switch buildSettingTypeInfo := buildSetting.Type.(type) {
 	case *model_starlark_pb.BuildSetting_Bool:
-		return BoolBuildSettingType, nil
+		return NewBoolBuildSettingType[TReference, TMetadata](), nil
 	case *model_starlark_pb.BuildSetting_Int:
-		return IntBuildSettingType, nil
+		return NewIntBuildSettingType[TReference, TMetadata](), nil
 	case *model_starlark_pb.BuildSetting_LabelList:
 		return NewLabelListBuildSettingType[TReference, TMetadata](buildSettingTypeInfo.LabelList.Repeatable), nil
 	case *model_starlark_pb.BuildSetting_String_:
-		return StringBuildSettingType, nil
+		return NewStringBuildSettingType[TReference, TMetadata](), nil
 	case *model_starlark_pb.BuildSetting_StringList:
-		return NewStringListBuildSettingType(buildSettingTypeInfo.StringList.Repeatable), nil
+		return NewStringListBuildSettingType[TReference, TMetadata](buildSettingTypeInfo.StringList.Repeatable), nil
 	default:
 		return nil, errors.New("unknown build setting type")
 	}
 }
 
-func decodeBuildSetting[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](buildSetting *model_starlark_pb.BuildSetting) (*BuildSetting, error) {
+func decodeBuildSetting[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](buildSetting *model_starlark_pb.BuildSetting) (*BuildSetting[TReference, TMetadata], error) {
 	buildSettingType, err := DecodeBuildSettingType[TReference, TMetadata](buildSetting)
 	if err != nil {
 		return nil, err

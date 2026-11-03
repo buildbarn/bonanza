@@ -780,7 +780,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					); err != nil {
 						return nil, err
 					}
-					return NewBuildSetting(BoolBuildSettingType, flag), nil
+					return NewBuildSetting(NewBoolBuildSettingType[TReference, TMetadata](), flag), nil
 				},
 			),
 			"exec": starlark.NewBuiltin(
@@ -819,7 +819,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					); err != nil {
 						return nil, err
 					}
-					return NewBuildSetting(IntBuildSettingType, flag), nil
+					return NewBuildSetting(NewIntBuildSettingType[TReference, TMetadata](), flag), nil
 				},
 			),
 			"label_list": starlark.NewBuiltin(
@@ -862,7 +862,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					); err != nil {
 						return nil, err
 					}
-					return NewBuildSetting(StringBuildSettingType, flag), nil
+					return NewBuildSetting(NewStringBuildSettingType[TReference, TMetadata](), flag), nil
 				},
 			),
 			"string_list": starlark.NewBuiltin(
@@ -880,7 +880,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					); err != nil {
 						return nil, err
 					}
-					return NewBuildSetting(NewStringListBuildSettingType(repeatable), flag), nil
+					return NewBuildSetting(NewStringListBuildSettingType[TReference, TMetadata](repeatable), flag), nil
 				},
 			),
 			"target": starlark.NewBuiltin(
@@ -1521,7 +1521,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				currentFilePackage := CurrentFilePackage(thread, 1)
 				var implementation NamedFunction[TReference, TMetadata]
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
-				var buildSetting *BuildSetting
+				var buildSetting *BuildSetting[TReference, TMetadata]
 				cfg := targetTransitionDefinition
 				doc := ""
 				execGroups := map[string]*ExecGroup[TReference, TMetadata]{}
@@ -1542,7 +1542,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					"implementation", unpack.Bind(thread, &implementation, namedFunctionUnpackerInto),
 					// Keyword arguments.
 					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
-					"build_setting?", unpack.Bind(thread, &buildSetting, unpack.IfNotNone(unpack.Type[*BuildSetting]("config.*"))),
+					"build_setting?", unpack.Bind(thread, &buildSetting, unpack.IfNotNone(unpack.Type[*BuildSetting[TReference, TMetadata]]("config.*"))),
 					"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
 					"doc?", unpack.Bind(thread, &doc, unpack.String),
 					"executable?", unpack.Bind(thread, &executable, unpack.Bool),

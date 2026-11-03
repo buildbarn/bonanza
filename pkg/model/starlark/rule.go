@@ -200,7 +200,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 				unpack.Canonicalize(buildSetting.buildSettingType.GetCanonicalizer(currentPackage)),
 			),
 		)
-		optionalUnpackers = append(optionalUnpackers, "help?", unpack.Bind(thread, &help, unpack.String))
+		optionalUnpackers = append(optionalUnpackers, "help?", unpack.Bind(thread, &help, unpack.IfNotNone(unpack.String)))
 	}
 
 	// Attributes that are specific to tests.
@@ -522,14 +522,14 @@ func (r *rule[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 type RuleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error)
 	GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
-	GetBuildSetting(thread *starlark.Thread) (*BuildSetting, error)
+	GetBuildSetting(thread *starlark.Thread) (*BuildSetting[TReference, TMetadata], error)
 	GetInitializer(thread *starlark.Thread) (*NamedFunction[TReference, TMetadata], error)
 	GetTest(thread *starlark.Thread) (bool, error)
 }
 
 type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	attrs          map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]
-	buildSetting   *BuildSetting
+	buildSetting   *BuildSetting[TReference, TMetadata]
 	cfg            TransitionDefinition[TReference, TMetadata]
 	execGroups     map[string]*ExecGroup[TReference, TMetadata]
 	implementation NamedFunction[TReference, TMetadata]
@@ -544,7 +544,7 @@ type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_co
 // .bzl file.
 func NewStarlarkRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata],
-	buildSetting *BuildSetting,
+	buildSetting *BuildSetting[TReference, TMetadata],
 	cfg TransitionDefinition[TReference, TMetadata],
 	execGroups map[string]*ExecGroup[TReference, TMetadata],
 	implementation NamedFunction[TReference, TMetadata],
@@ -636,7 +636,7 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *s
 	return rd.attrs, nil
 }
 
-func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *starlark.Thread) (*BuildSetting, error) {
+func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *starlark.Thread) (*BuildSetting[TReference, TMetadata], error) {
 	return rd.buildSetting, nil
 }
 
@@ -672,7 +672,7 @@ func (rd *protoRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *star
 	return rd.protoAttrsCache.getAttrsCheap(thread, model_core.Nested(rd.message, rd.message.Message.Attrs))
 }
 
-func (rd *protoRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *starlark.Thread) (*BuildSetting, error) {
+func (rd *protoRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *starlark.Thread) (*BuildSetting[TReference, TMetadata], error) {
 	buildSettingMessage := rd.message.Message.BuildSetting
 	if buildSettingMessage == nil {
 		return nil, nil
@@ -744,9 +744,6 @@ func (r *rule[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Threa
 	if err != nil {
 		return nil, err
 	}
-	if buildSetting != nil {
-		return nil, errors.New("inheriting attributes from build settings is not supported")
-	}
 	test, err := r.definition.GetTest(thread)
 	if err != nil {
 		return nil, err
@@ -757,6 +754,22 @@ func (r *rule[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Threa
 	}
 
 	attrs := getImplicitRuleAttrs[TReference, TMetadata](test)
+	if buildSetting != nil {
+		// Build settings additionally require a default value
+		// whose type matches that of the build setting. It
+		// cannot be configurable, as it is evaluated prior to
+		// configuration.
+		attrs[util.Must(pg_label.NewStarlarkIdentifier("build_setting_default"))] = NewAttr(
+			buildSetting.buildSettingType.GetAttrType(),
+			/* defaultValue = */ nil,
+			/* configurable = */ false,
+		)
+		attrs[util.Must(pg_label.NewStarlarkIdentifier("help"))] = NewAttr(
+			NewStringAttrType[TReference, TMetadata](nil),
+			starlark.None,
+			/* configurable = */ false,
+		)
+	}
 	for name, attr := range ruleAttrs {
 		// Predeclared outputs declared using rule(outputs = ...)
 		// cannot be provided by the caller.
@@ -833,7 +846,7 @@ func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *
 	return base.GetAttrsCheap(thread)
 }
 
-func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *starlark.Thread) (*BuildSetting, error) {
+func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *starlark.Thread) (*BuildSetting[TReference, TMetadata], error) {
 	base, err := rd.getBase(thread)
 	if err != nil {
 		return nil, err
