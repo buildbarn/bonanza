@@ -76,7 +76,9 @@ pkg/starlark/compile    AST -> bytecode, Funcode proto (new)
 pkg/starlark/eval       Value interfaces, core types,
                         Thread, VM, error/backtrace,
                         builtins, methods, json        (new)
-pkg/starlark/unpack     argument unpacking             (existing, ported)
+pkg/starlark/eval/unpack
+                        argument unpacking             (ported from
+                                                        pkg/starlark/unpack)
 pkg/model/starlark      storage-backed implementations,
                         Bazel types (Label, depset,
                         struct, rule, ...)             (existing, ported)
@@ -84,8 +86,10 @@ pkg/model/starlark      storage-backed implementations,
 
 The core interpreter lives in `pkg/starlark/eval` rather than
 `pkg/starlark`, because the latter still contains code that uses
-go.starlark.net (`parse_module_dot_bazel.go`) until the migration is
-done. The core knows nothing about the object store and has no
+go.starlark.net until the migration is done. For the same reason the
+ported unpackers live in `pkg/starlark/eval/unpack`, next to the
+original `pkg/starlark/unpack`, which is removed at the end of the
+migration. The core knows nothing about the object store and has no
 `[TReference, TMetadata]` generics. Storage-backed
 values are implementations of the core interfaces that live in
 `pkg/model/starlark`, just like `Struct` already does today.
@@ -874,7 +878,7 @@ The other direction needs nothing special: a large `String` built in
 memory (e.g. by `"\n".join(...)`) stays a Go string until it is
 encoded, and is chunked at that point.
 
-`pkg/starlark/unpack` gets the same split. `unpack.String` converts
+The unpackers get the same split. `unpack.String` converts
 large values to in-memory strings, subject to the same limit. Builtins
 that can handle large values without converting them use a separate
 unpacker that leaves them as they are.
@@ -1063,10 +1067,16 @@ type Builtin struct {
 }
 ```
 
-`pkg/starlark/unpack` becomes the one way to unpack arguments, replacing
-`starlark.UnpackArgs`. Its `UnpackerInto`/`Canonicalize` methods
-already take a `*Thread`, so it ports by changing types, and it can
-target `starlark.List` etc. as interfaces.
+Arguments are unpacked with `eval.UnpackArgs()`, which is modelled
+after `starlark.UnpackArgs()`. It accepts pointers to variables of the
+core types, or implementations of `eval.Unpacker`. The unpackers of
+`pkg/starlark/unpack` are ported to `pkg/starlark/eval/unpack`, where
+`unpack.Bind()` turns an `UnpackerInto[T]` into an `eval.Unpacker`.
+Their methods already took a `*Thread`, so they port by changing
+types. Unpackers of composite values, such as `unpack.List`, accept
+any implementation of `eval.List`/`eval.Tuple`, so they work for
+storage-backed values as well. So far only the unpackers needed by
+`MODULE.bazel` files have been ported.
 
 The standard library lives in `pkg/starlark/eval` itself, rather than
 in a separate package, because the VM looks up the methods of the core
@@ -1099,10 +1109,6 @@ Decisions follow Bazel where it differs from go.starlark.net:
 - **Some parts of go.starlark.net don't exist in Bazel, so they are
   left out:** `chr()`, `ord()`, the code point iteration methods,
   `%c`, and `b"..."` literals.
-
-`pkg/starlark/unpack` still needs to be ported. Until then, builtins
-in `pkg/starlark/eval` use a small internal helper modelled after
-`starlark.UnpackArgs`.
 
 Conformance is tested using go.starlark.net's `testdata/*.star` files
 (BSD-3-Clause), adapted to Bazel: `assert` is a reserved word in
@@ -1140,7 +1146,17 @@ interpreters side by side in one binary isn't practical. Instead:
    any storage. Port `go.starlark.net`'s `testdata/*.star` conformance
    tests (BSD-3-Clause) and add Bazel-dialect cases. This can also land
    on `main` early, as unused code.
-3. **Port `pkg/starlark/unpack` and `pkg/model/starlark`** on a branch.
+3. **Port `MODULE.bazel` evaluation.** `parse_module_dot_bazel.go`
+   only depends on the core types and a few unpackers, so it can move
+   over first. Its handler interfaces take `eval.Value`s and the
+   calling `*eval.Thread`, and consumers in `pkg/model/analysis`
+   encode attributes with `model_starlark.EncodeEvalStructFields()`,
+   which produces the same messages as `EncodeStructFields()`. This
+   was validated by evaluating every `MODULE.bazel` file in a Bazel
+   output base with both implementations and comparing the calls
+   made to the handler.
+4. **Port the rest of `pkg/starlark/unpack` and `pkg/model/starlark`**
+   on a branch.
    `thread.diff` already threads `*Thread` through every method, so
    most type implementations port by changing signatures. The work
    that's actually new is `storedList`/`storedDict`/`storedTuple`/
@@ -1150,13 +1166,13 @@ interpreters side by side in one binary isn't practical. Instead:
    `reloadingRuleDefinition` and `reloadingMacroDefinition` goes away,
    following
    [Memoization and dependency tracking](#memoization-and-dependency-tracking).
-4. **Port `pkg/model/analysis`** on the same branch. Remove the two
+5. **Port `pkg/model/analysis`** on the same branch. Remove the two
    native keys, add `BzlFileBuiltins`, and make `load()` lazy. Move
    the remaining users of `go.starlark.net/syntax` over: `syntax.Token`
    and `syntax.Position` in value methods, and `syntax.Quote` in
    `pkg/model/render`. Then drop `go.starlark.net` from
    `go.mod`/`MODULE.bazel` and delete `patches/net_starlark_go/`.
-5. **Validate** by building a corpus of real workspaces with `main` and
+6. **Validate** by building a corpus of real workspaces with `main` and
    the branch and comparing the resulting action digests. Values like
    `CompiledBzlFile` change by design, but the actions sent to workers
    should be bit-for-bit identical. Because Bonanza's encoding is

@@ -9,8 +9,6 @@ import (
 	"sort"
 	"strings"
 
-	"go.starlark.net/starlark"
-
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
@@ -18,6 +16,7 @@ import (
 	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -138,16 +137,11 @@ func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) RegisterTo
 	return nil
 }
 
-func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) RepositoryRuleOverride(moduleName label.Module, repositoryRuleIdentifier label.CanonicalStarlarkIdentifier, attrs map[string]starlark.Value) error {
+func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) RepositoryRuleOverride(thread *eval.Thread, moduleName label.Module, repositoryRuleIdentifier label.CanonicalStarlarkIdentifier, attrs map[string]eval.Value) error {
 	attrNames := slices.Collect(maps.Keys(attrs))
 	sort.Strings(attrNames)
 
-	attrsMap := make(map[string]any, len(attrs))
-	for key, value := range attrs {
-		attrsMap[key] = value
-	}
-	fields, _, err := model_starlark.NewStructFromDict[TReference, TMetadata](nil, attrsMap).
-		EncodeStructFields(map[starlark.Value]struct{}{}, h.valueEncodingOptions)
+	fields, err := model_starlark.EncodeEvalStructFields(thread, attrs, h.valueEncodingOptions)
 	if err != nil {
 		return err
 	}
@@ -191,7 +185,7 @@ func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) UseExtensi
 }
 
 func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
-	return func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error {
+	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		return nil
 	}, nil
 }

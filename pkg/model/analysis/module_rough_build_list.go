@@ -16,6 +16,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
+	"bonanza.build/pkg/starlark/eval"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 
@@ -59,7 +60,7 @@ func (bazelDepCapturingModuleDotBazelHandler) UseExtension(extensionBzlFile labe
 }
 
 func (bazelDepCapturingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
-	return func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error {
+	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		return nil
 	}, nil
 }

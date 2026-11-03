@@ -7,10 +7,9 @@ import (
 
 	"bonanza.build/pkg/label"
 	"bonanza.build/pkg/moduledotbazel"
+	"bonanza.build/pkg/starlark/eval"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
-
-	"go.starlark.net/starlark"
 )
 
 // LocalPathExtractingModuleDotBazelHandler is capable of capturing the
@@ -95,7 +94,7 @@ func (LocalPathExtractingModuleDotBazelHandler) RegisterToolchains(toolchainTarg
 // RepositoryRuleOverride can normally be used to capture calls in
 // MODULE.bazel to archive_override() and git_override(). This
 // implementation does not need to do that.
-func (LocalPathExtractingModuleDotBazelHandler) RepositoryRuleOverride(moduleName label.Module, repositoryRuleIdentifier label.CanonicalStarlarkIdentifier, attrs map[string]starlark.Value) error {
+func (LocalPathExtractingModuleDotBazelHandler) RepositoryRuleOverride(thread *eval.Thread, moduleName label.Module, repositoryRuleIdentifier label.CanonicalStarlarkIdentifier, attrs map[string]eval.Value) error {
 	return nil
 }
 
@@ -115,7 +114,7 @@ func (LocalPathExtractingModuleDotBazelHandler) UseExtension(extensionBzlFile la
 // UseRepoRule can normally be used to capture calls in MODULE.bazel to
 // use_repo_rule(). This implementation does not need to do that.
 func (LocalPathExtractingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
-	return func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error {
+	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		return nil
 	}, nil
 }

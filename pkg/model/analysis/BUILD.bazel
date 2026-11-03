@@ -115,6 +115,7 @@ go_library(
         "//pkg/proto/model/starlark",
         "//pkg/remoteexecution",
         "//pkg/search",
+        "//pkg/starlark/eval",
         "//pkg/starlark/unpack",
         "//pkg/storage/object",
         "@com_github_bluekeyes_go_gitdiff//gitdiff",

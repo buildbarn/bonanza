@@ -6,12 +6,11 @@ import (
 
 	"bonanza.build/pkg/label"
 	"bonanza.build/pkg/moduledotbazel"
+	"bonanza.build/pkg/starlark/eval"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
-
-	"go.starlark.net/starlark"
 
 	"go.uber.org/mock/gomock"
 )
@@ -24,24 +23,25 @@ func TestParse(t *testing.T) {
 
 		gomock.InOrder(
 			handler.EXPECT().RepositoryRuleOverride(
+				/* thread = */ gomock.Any(),
 				/* moduleName = */ util.Must(label.NewModule("my_module_name")),
 				/* repositoryRuleIdentifier */ util.Must(label.NewCanonicalStarlarkIdentifier("@@bazel_tools+//tools/build_defs/repo:http.bzl%http_archive")),
-				/* attrs */ map[string]starlark.Value{
-					"urls": starlark.NewList([]starlark.Value{
-						starlark.String("https://example.com/url1"),
-						starlark.String("https://example.com/url2"),
+				/* attrs */ map[string]eval.Value{
+					"urls": eval.NewList([]eval.Value{
+						eval.String("https://example.com/url1"),
+						eval.String("https://example.com/url2"),
 					}),
-					"integrity":    starlark.String("sha384-oqVuAfXRKap7fdgcCY5uykM6+R9GqQ8K/uxy9rx7HNQlGYl1kPzQho1wx4JwY8wC"),
-					"strip_prefix": starlark.String("some/prefix"),
-					"patches": starlark.NewList([]starlark.Value{
-						starlark.String("//:patches/foo1.diff"),
-						starlark.String("//:patches/foo2.diff"),
+					"integrity":    eval.String("sha384-oqVuAfXRKap7fdgcCY5uykM6+R9GqQ8K/uxy9rx7HNQlGYl1kPzQho1wx4JwY8wC"),
+					"strip_prefix": eval.String("some/prefix"),
+					"patches": eval.NewList([]eval.Value{
+						eval.String("//:patches/foo1.diff"),
+						eval.String("//:patches/foo2.diff"),
 					}),
-					"patch_cmds": starlark.NewList([]starlark.Value{
-						starlark.String("ls -l"),
-						starlark.String("rm -rf /"),
+					"patch_cmds": eval.NewList([]eval.Value{
+						eval.String("ls -l"),
+						eval.String("rm -rf /"),
 					}),
-					"patch_strip": starlark.MakeInt(3),
+					"patch_strip": eval.MakeInt(3),
 				},
 			),
 		)
@@ -66,22 +66,23 @@ func TestParse(t *testing.T) {
 		// require.NoError(t, err)
 		gomock.InOrder(
 			handler.EXPECT().RepositoryRuleOverride(
+				/* thread = */ gomock.Any(),
 				/* moduleName = */ util.Must(label.NewModule("my_module_name")),
 				/* repositoryRuleIdentifier */ util.Must(label.NewCanonicalStarlarkIdentifier("@@bazel_tools+//tools/build_defs/repo:git.bzl%git_repository")),
-				/* attrs */ map[string]starlark.Value{
-					"remote": starlark.String("https://github.com/my-project/my-project.git"),
-					"commit": starlark.String("1368bebd5776a80ea3161a07dafe8beb7c8c144c"),
-					"patches": starlark.NewList([]starlark.Value{
-						starlark.String("//:patches/foo1.diff"),
-						starlark.String("//:patches/foo2.diff"),
+				/* attrs */ map[string]eval.Value{
+					"remote": eval.String("https://github.com/my-project/my-project.git"),
+					"commit": eval.String("1368bebd5776a80ea3161a07dafe8beb7c8c144c"),
+					"patches": eval.NewList([]eval.Value{
+						eval.String("//:patches/foo1.diff"),
+						eval.String("//:patches/foo2.diff"),
 					}),
-					"patch_cmds": starlark.NewList([]starlark.Value{
-						starlark.String("ls -l"),
-						starlark.String("rm -rf /"),
+					"patch_cmds": eval.NewList([]eval.Value{
+						eval.String("ls -l"),
+						eval.String("rm -rf /"),
 					}),
-					"patch_strip":     starlark.MakeInt(3),
-					"init_submodules": starlark.True,
-					"strip_prefix":    starlark.String("some/prefix"),
+					"patch_strip":     eval.MakeInt(3),
+					"init_submodules": eval.True,
+					"strip_prefix":    eval.String("some/prefix"),
 				},
 			),
 		)
@@ -217,9 +218,9 @@ func TestParse(t *testing.T) {
 				/* devDependency */ true,
 				/* isolate */ true,
 			).Return(proxy3, nil),
-			proxy3.EXPECT().Tag("foo", map[string]starlark.Value{}),
-			proxy3.EXPECT().Tag("bar", map[string]starlark.Value{
-				"baz": starlark.String("qux"),
+			proxy3.EXPECT().Tag(gomock.Any(), "foo", map[string]eval.Value{}),
+			proxy3.EXPECT().Tag(gomock.Any(), "bar", map[string]eval.Value{
+				"baz": eval.String("qux"),
 			}),
 		)
 
@@ -242,15 +243,17 @@ func TestParse(t *testing.T) {
 				/* repoRuleName = */ util.Must(label.NewStarlarkIdentifier("http_archive")),
 			).Return(proxy4.Call, nil),
 			proxy4.EXPECT().Call(
+				/* thread = */ gomock.Any(),
 				/* name = */ util.Must(label.NewApparentRepo("my_repo_name")),
 				/* devDependency = */ false,
-				/* attrs = */ map[string]starlark.Value{},
+				/* attrs = */ map[string]eval.Value{},
 			).Times(2),
 			proxy4.EXPECT().Call(
+				/* thread = */ gomock.Any(),
 				/* name = */ util.Must(label.NewApparentRepo("my_repo_name")),
 				/* devDependency = */ true,
-				/* attrs = */ map[string]starlark.Value{
-					"sha256": starlark.String("345277dfc4bc0569927c92ee924c7c5483faad42b3004dd9bb5a6806214d44e7"),
+				/* attrs = */ map[string]eval.Value{
+					"sha256": eval.String("345277dfc4bc0569927c92ee924c7c5483faad42b3004dd9bb5a6806214d44e7"),
 				},
 			),
 		)

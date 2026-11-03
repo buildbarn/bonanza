@@ -17,6 +17,7 @@ import (
 	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 
@@ -110,7 +111,7 @@ func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseExten
 }
 
 func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
-	return func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error {
+	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		if devDependency && h.ignoreDevDependencies {
 			return nil
 		}
@@ -120,12 +121,7 @@ func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRe
 			return err
 		}
 
-		attrFields := make(map[string]any, len(attrs))
-		for name, value := range attrs {
-			attrFields[name] = value
-		}
-		attrValues, _, err := model_starlark.NewStructFromDict[TReference, TMetadata](nil, attrFields).
-			EncodeStructFields(map[starlark.Value]struct{}{}, h.valueEncodingOptions)
+		attrValues, err := model_starlark.EncodeEvalStructFields(thread, attrs, h.valueEncodingOptions)
 		if err != nil {
 			return err
 		}

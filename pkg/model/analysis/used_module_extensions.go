@@ -12,9 +12,8 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
-
-	"go.starlark.net/starlark"
 )
 
 type usedModuleExtension struct {
@@ -38,7 +37,7 @@ type usedModuleExtensionProxy[TReference object.BasicReference, TMetadata model_
 	devDependency bool
 }
 
-func (p *usedModuleExtensionProxy[TReference, TMetadata]) Tag(className string, attrs map[string]starlark.Value) error {
+func (p *usedModuleExtensionProxy[TReference, TMetadata]) Tag(thread *eval.Thread, className string, attrs map[string]eval.Value) error {
 	meu := p.user
 	tagClass, ok := meu.tagClasses[className]
 	if !ok {
@@ -48,12 +47,7 @@ func (p *usedModuleExtensionProxy[TReference, TMetadata]) Tag(className string, 
 		meu.tagClasses[className] = tagClass
 	}
 
-	attrsMap := make(map[string]any, len(attrs))
-	for key, value := range attrs {
-		attrsMap[key] = value
-	}
-	fields, _, err := model_starlark.NewStructFromDict[TReference, TMetadata](nil, attrsMap).
-		EncodeStructFields(map[starlark.Value]struct{}{}, p.handler.valueEncodingOptions)
+	fields, err := model_starlark.EncodeEvalStructFields(thread, attrs, p.handler.valueEncodingOptions)
 	if err != nil {
 		return err
 	}
@@ -159,7 +153,7 @@ func (h *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadat
 }
 
 func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
-	return func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error {
+	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		return nil
 	}, nil
 }

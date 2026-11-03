@@ -8,10 +8,13 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/label",
-        "//pkg/starlark/unpack",
+        "//pkg/starlark/compile",
+        "//pkg/starlark/eval",
+        "//pkg/starlark/eval/unpack",
+        "//pkg/starlark/resolve",
+        "//pkg/starlark/syntax",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
         "@com_github_buildbarn_bb_storage//pkg/util",
-        "@net_starlark_go//starlark",
     ],
 )
 
@@ -24,10 +27,10 @@ go_test(
     embed = [":moduledotbazel"],
     deps = [
         "//pkg/label",
+        "//pkg/starlark/eval",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@com_github_stretchr_testify//require",
-        "@net_starlark_go//starlark",
         "@org_uber_go_mock//gomock",
     ],
 )
