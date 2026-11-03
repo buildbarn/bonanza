@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "syntax",
+    srcs = [
+        "ast.go",
+        "parser.go",
+        "position.go",
+        "quote.go",
+        "scanner.go",
+        "token.go",
+        "walk.go",
+    ],
+    importpath = "bonanza.build/pkg/starlark/syntax",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "syntax_test",
+    srcs = [
+        "export_test.go",
+        "parser_test.go",
+        "scanner_test.go",
+        "tree_string_test.go",
+        "upstream_comparison_test.go",
+    ],
+    embed = [":syntax"],
+    deps = [
+        "@com_github_stretchr_testify//require",
+        "@net_starlark_go//syntax",
+    ],
+)

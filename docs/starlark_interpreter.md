@@ -110,9 +110,19 @@ and go.starlark.net isn't keeping up:
   because `isinstance(value, type)` has to evaluate at run time.
 - **No patches.** Today's `octal.diff` is needed because upstream
   rejects `"\377"`-style escapes while scanning, before any of our code
-  runs. With our own scanner, escapes follow Bazel: an octal or `\x`
-  escape is a single byte, even when that makes the string invalid
-  UTF-8. `\u`/`\U` escapes produce UTF-8.
+  runs. Our own scanner follows Bazel's lexer instead:
+  - An octal escape is a single byte, even when that makes the string
+    invalid UTF-8.
+  - `\x`, `\u`, `\U` and `\N` escapes are rejected.
+  - Bytes literals (`b"..."`) don't exist.
+  - Identifiers are ASCII only.
+  - Tabs may not be used for indentation outside brackets.
+  - Carriage returns are ignored outside string literals.
+  - Words such as `class` and `import` are reserved.
+  - Nesting and the depth of the syntax tree are limited, as files may
+    otherwise cause a stack overflow, which terminates the process.
+    Chains such as `a + b + c` are parsed iteratively, but also yield
+    deep trees that later stages process recursively.
 - **An AST that fits our resolver.** Upstream's AST holds resolver
   output in `interface{}` slots (`File.Module`, `DefStmt.Function`,
   `Ident.Binding`). Ours keeps no resolver state at all (see
@@ -135,10 +145,13 @@ suits rewriting files, not compiling them.
 ### Type annotations
 
 Parsing follows the type-expression grammar of bazelbuild/starlark#362,
-which is a subset of value expressions. Type applications such as
-`list[str]` are subscripts, so type expressions reuse the `Expr` nodes,
-parsed in a restricted mode. Parameters, `DefStmt` and assignments get
-an optional `Type Expr` field. Support comes in two steps:
+taking the union of what Bazel's Java parser and bazel-contrib/buildtools
+accept where the two differ. Type expressions reuse the `Expr` nodes
+where possible, parsed in a restricted mode. Type applications such as
+`list[str]` get a dedicated `TypeApplication` node, so that they can't
+be confused with indexing. Parameters, `DefStmt` and assignments get an
+optional type field, and bare declarations (`x: int`) become a
+`VarStmt`. Support comes in two steps:
 
 1. **Parse and ignore,** as Bazel 8.8 does. Annotations are kept in the
    AST and resolved like other names, which catches undefined type
@@ -146,8 +159,10 @@ an optional `Type Expr` field. Support comes in two steps:
 2. **Run-time behaviour,** such as `isinstance(value, type)`, once the
    spec has settled. It is implemented in the compiler and `library`.
 
-Annotation syntax is a `Dialect` option, off by default until the spec
-is merged. Checking types stays a non-goal.
+Annotation syntax is enabled through `syntax.Options.TypeSyntax`, off
+by default until the spec is merged. It has to be a parser option
+rather than a resolver check, because it turns `cast` and `isinstance`
+into keywords. Checking types stays a non-goal.
 
 ### Why write our own resolver
 
@@ -164,7 +179,8 @@ Upstream `resolve` gets in the way:
 
 As in upstream, our parser accepts the full grammar and leaves all
 dialect checks (e.g. `while`, top-level `if`/`for`, `set`, global
-reassignment, annotations) to the resolver. Everything from the
+reassignment) to the resolver. The only exception is type syntax (see
+[Type annotations](#type-annotations)). Everything from the
 compiler down is affected by the value model, so it is new code as
 well.
 
