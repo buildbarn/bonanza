@@ -73,7 +73,7 @@ the following problems:
 pkg/starlark/syntax     scanner, parser, AST, quoting  (new)
 pkg/starlark/resolve    scope resolution, dialects     (new)
 pkg/starlark/compile    AST -> bytecode, Funcode proto (new)
-pkg/starlark            Value interfaces, core types,
+pkg/starlark/eval       Value interfaces, core types,
                         Thread, VM, error/backtrace    (new)
 pkg/starlark/library    builtins and methods of
                         str/list/dict/set/..., json    (new)
@@ -83,8 +83,11 @@ pkg/model/starlark      storage-backed implementations,
                         struct, rule, ...)             (existing, ported)
 ```
 
-The core interpreter (`pkg/starlark/...`) knows nothing about the object
-store and has no `[TReference, TMetadata]` generics. Storage-backed
+The core interpreter lives in `pkg/starlark/eval` rather than
+`pkg/starlark`, because the latter still contains code that uses
+go.starlark.net (`parse_module_dot_bazel.go`) until the migration is
+done. The core knows nothing about the object store and has no
+`[TReference, TMetadata]` generics. Storage-backed
 values are implementations of the core interfaces that live in
 `pkg/model/starlark`, just like `Struct` already does today.
 

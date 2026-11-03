@@ -1,0 +1,35 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "eval",
+    srcs = [
+        "dict.go",
+        "format.go",
+        "function.go",
+        "interp.go",
+        "list.go",
+        "ops.go",
+        "scalars.go",
+        "thread.go",
+        "universe.go",
+        "value.go",
+    ],
+    importpath = "bonanza.build/pkg/starlark/eval",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/starlark/compile",
+        "//pkg/starlark/syntax",
+    ],
+)
+
+go_test(
+    name = "eval_test",
+    srcs = ["eval_test.go"],
+    deps = [
+        ":eval",
+        "//pkg/starlark/compile",
+        "//pkg/starlark/resolve",
+        "//pkg/starlark/syntax",
+        "@com_github_stretchr_testify//require",
+    ],
+)
