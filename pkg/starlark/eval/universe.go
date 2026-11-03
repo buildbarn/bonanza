@@ -72,7 +72,7 @@ func positionalArgs(b *Builtin, args Args, minimum, maximum int) error {
 
 func builtinAbs(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "x", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x); err != nil {
 		return nil, err
 	}
 	switch v := x.(type) {
@@ -89,7 +89,7 @@ func builtinAbs(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinAll(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "elements", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "elements", &x); err != nil {
 		return nil, err
 	}
 	elements, err := Elements(t, x)
@@ -106,7 +106,7 @@ func builtinAll(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinAny(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "elements", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "elements", &x); err != nil {
 		return nil, err
 	}
 	elements, err := Elements(t, x)
@@ -123,7 +123,7 @@ func builtinAny(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinBool(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value = False
-	if err := unpackArgs(b.Name(), args, "x?", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x?", &x); err != nil {
 		return nil, err
 	}
 	truth, err := x.Truth(t)
@@ -204,7 +204,7 @@ func AttrNames(t *Thread, x Value) ([]string, error) {
 
 func builtinDir(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "x", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x); err != nil {
 		return nil, err
 	}
 	names, err := AttrNames(t, x)
@@ -221,7 +221,7 @@ func builtinDir(t *Thread, b *Builtin, args Args) (Value, error) {
 func builtinEnumerate(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
 	start := 0
-	if err := unpackArgs(b.Name(), args, "list", &x, "start?", &start); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "list", &x, "start?", &start); err != nil {
 		return nil, err
 	}
 	elements, err := Elements(t, x)
@@ -281,7 +281,7 @@ func builtinFail(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinFloat(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value = Float(0)
-	if err := unpackArgs(b.Name(), args, "x?", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x?", &x); err != nil {
 		return nil, err
 	}
 	switch v := x.(type) {
@@ -326,7 +326,7 @@ func parseFloat(s string) (Value, error) {
 func builtinGetattr(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x, defaultValue Value
 	var name String
-	if err := unpackArgs(b.Name(), args, "x", &x, "name", &name, "default?", &defaultValue); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x, "name", &name, "default?", &defaultValue); err != nil {
 		return nil, err
 	}
 	v, err := getAttr(t, x, string(name))
@@ -343,7 +343,7 @@ func builtinGetattr(t *Thread, b *Builtin, args Args) (Value, error) {
 func builtinHasattr(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
 	var name String
-	if err := unpackArgs(b.Name(), args, "x", &x, "name", &name); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x, "name", &name); err != nil {
 		return nil, err
 	}
 	if _, err := getAttr(t, x, string(name)); err != nil {
@@ -362,7 +362,7 @@ func builtinHasattr(t *Thread, b *Builtin, args Args) (Value, error) {
 // observe, so it must never change.
 func builtinHash(t *Thread, b *Builtin, args Args) (Value, error) {
 	var s String
-	if err := unpackArgs(b.Name(), args, "value", &s); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "value", &s); err != nil {
 		return nil, err
 	}
 	var h int32
@@ -374,7 +374,7 @@ func builtinHash(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinInt(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x, base Value
-	if err := unpackArgs(b.Name(), args, "x", &x, "base?", &base); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x, "base?", &base); err != nil {
 		return nil, err
 	}
 	s, isString := x.(String)
@@ -459,7 +459,7 @@ func parseInt(s string, base int) (Value, error) {
 
 func builtinLen(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "x", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x); err != nil {
 		return nil, err
 	}
 	switch v := x.(type) {
@@ -475,7 +475,7 @@ func builtinLen(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinList(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "x?", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x?", &x); err != nil {
 		return nil, err
 	}
 	if x == nil {
@@ -622,7 +622,7 @@ func builtinRange(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinRepr(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "x", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x); err != nil {
 		return nil, err
 	}
 	s, err := Repr(t, x)
@@ -631,7 +631,7 @@ func builtinRepr(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinReversed(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "sequence", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "sequence", &x); err != nil {
 		return nil, err
 	}
 	if _, ok := x.(Dict); ok {
@@ -647,7 +647,7 @@ func builtinReversed(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinSet(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "elements?", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "elements?", &x); err != nil {
 		return nil, err
 	}
 	s := NewSet()
@@ -712,7 +712,7 @@ func sortValues(t *Thread, values []Value, key Value, reverse bool) error {
 func builtinSorted(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x, key Value
 	reverse := false
-	if err := unpackArgs(b.Name(), args, "iterable", &x, "key??", &key, "reverse?", &reverse); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "iterable", &x, "key??", &key, "reverse?", &reverse); err != nil {
 		return nil, err
 	}
 	elements, err := Elements(t, x)
@@ -727,7 +727,7 @@ func builtinSorted(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinStr(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "x", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x); err != nil {
 		return nil, err
 	}
 	s, err := Str(t, x)
@@ -736,7 +736,7 @@ func builtinStr(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func builtinTuple(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "x?", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x?", &x); err != nil {
 		return nil, err
 	}
 	if x == nil {
@@ -752,9 +752,9 @@ func builtinTuple(t *Thread, b *Builtin, args Args) (Value, error) {
 	return NewTuple(elements), nil
 }
 
-func builtinType(_ *Thread, b *Builtin, args Args) (Value, error) {
+func builtinType(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "x", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x); err != nil {
 		return nil, err
 	}
 	return String(x.Type()), nil

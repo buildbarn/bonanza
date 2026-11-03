@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "unpack",
+    srcs = [
+        "apparent_label.go",
+        "apparent_repo.go",
+        "apparent_target_pattern.go",
+        "bind.go",
+        "bool.go",
+        "canonicalize.go",
+        "current_package.go",
+        "if_non_empty_string.go",
+        "if_not_none.go",
+        "int.go",
+        "list.go",
+        "module.go",
+        "module_version.go",
+        "path_parser.go",
+        "pointer.go",
+        "starlark_identifier.go",
+        "string.go",
+        "url.go",
+    ],
+    importpath = "bonanza.build/pkg/starlark/eval/unpack",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/label",
+        "//pkg/starlark/eval",
+        "//pkg/starlark/syntax",
+        "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
+        "@org_golang_x_exp//constraints",
+    ],
+)

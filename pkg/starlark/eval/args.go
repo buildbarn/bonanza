@@ -7,9 +7,16 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-// unpackArgs assigns the arguments of a call to a builtin to Go
+// Unpacker is implemented by types that provide custom logic for
+// unpacking arguments of builtins. It can be passed to UnpackArgs()
+// instead of a pointer to a variable.
+type Unpacker interface {
+	Unpack(t *Thread, v Value) error
+}
+
+// UnpackArgs assigns the arguments of a call to a builtin to Go
 // variables. pairs is an alternating list of parameter names and
-// pointers to variables.
+// pointers to variables, or implementations of Unpacker.
 //
 // A parameter name ending in "?" indicates an optional parameter. A
 // name ending in "??" indicates an optional parameter for which None is
@@ -19,7 +26,7 @@ import (
 // The type of each variable determines how the argument is checked:
 // *Value accepts any value, while *String, *Int, *int, *bool, *Callable,
 // *Iterable, *Dict and *Mapping require a value of that type.
-func unpackArgs(fnName string, args Args, pairs ...any) error {
+func UnpackArgs(t *Thread, fnName string, args Args, pairs ...any) error {
 	numParams := len(pairs) / 2
 	names := make([]string, numParams)
 	optional := make([]bool, numParams)
@@ -47,7 +54,7 @@ func unpackArgs(fnName string, args Args, pairs ...any) error {
 		if noneIsAbsent[i] && v == Value(None) {
 			return nil
 		}
-		if err := unpackOneArg(v, pairs[2*i+1]); err != nil {
+		if err := unpackOneArg(t, v, pairs[2*i+1]); err != nil {
 			return fmt.Errorf("%s(): for parameter %s: %w", fnName, names[i], err)
 		}
 		return nil
@@ -88,8 +95,10 @@ named:
 	return nil
 }
 
-func unpackOneArg(v Value, ptr any) error {
+func unpackOneArg(t *Thread, v Value, ptr any) error {
 	switch p := ptr.(type) {
+	case Unpacker:
+		return p.Unpack(t, v)
 	case *Value:
 		*p = v
 	case *String:
@@ -144,6 +153,12 @@ func unpackOneArg(v Value, ptr any) error {
 		panic(fmt.Sprintf("unsupported argument type %T", ptr))
 	}
 	return nil
+}
+
+// AsString returns the contents of a Starlark string.
+func AsString(v Value) (string, bool) {
+	s, ok := v.(String)
+	return string(s), ok
 }
 
 // AsInt converts a Starlark int to a Go integer type of choice, failing

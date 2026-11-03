@@ -222,7 +222,7 @@ func encodeJSONString(buf *bytes.Buffer, s string) {
 
 func jsonEncode(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "x", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x); err != nil {
 		return nil, err
 	}
 	s, err := EncodeJSON(t, x)
@@ -246,7 +246,7 @@ func jsonEncodeIndent(t *Thread, b *Builtin, args Args) (Value, error) {
 	if len(args.Positional) > 1 {
 		return nil, fmt.Errorf("%s() accepts at most 1 positional argument", b.Name())
 	}
-	if err := unpackArgs(b.Name(), args, "x", &x, "prefix?", &prefix, "indent?", &indent); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x, "prefix?", &prefix, "indent?", &indent); err != nil {
 		return nil, err
 	}
 	s, err := EncodeJSON(t, x)
@@ -265,7 +265,7 @@ func jsonIndent(t *Thread, b *Builtin, args Args) (Value, error) {
 	if len(args.Positional) > 1 {
 		return nil, fmt.Errorf("%s() accepts at most 1 positional argument", b.Name())
 	}
-	if err := unpackArgs(b.Name(), args, "s", &s, "prefix?", &prefix, "indent?", &indent); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "s", &s, "prefix?", &prefix, "indent?", &indent); err != nil {
 		return nil, err
 	}
 	indented, err := indentJSON(string(s), string(prefix), string(indent))
@@ -284,7 +284,7 @@ func jsonDecode(t *Thread, b *Builtin, args Args) (Value, error) {
 	}
 	var s String
 	var defaultValue Value
-	if err := unpackArgs(b.Name(), args, "x", &s, "default?", &defaultValue); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &s, "default?", &defaultValue); err != nil {
 		return nil, err
 	}
 	v, err := DecodeJSON(string(s))

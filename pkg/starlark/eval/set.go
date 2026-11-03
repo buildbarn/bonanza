@@ -263,7 +263,7 @@ var setMethods = map[string]*Builtin{
 
 func setAdd(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "element", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "element", &x); err != nil {
 		return nil, err
 	}
 	return None, b.Receiver().(Set).Add(t, x)
@@ -278,7 +278,7 @@ func setClear(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func setDiscard(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "element", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "element", &x); err != nil {
 		return nil, err
 	}
 	_, err := b.Receiver().(Set).Discard(t, x)
@@ -287,7 +287,7 @@ func setDiscard(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func setRemove(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "element", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "element", &x); err != nil {
 		return nil, err
 	}
 	found, err := b.Receiver().(Set).Discard(t, x)
@@ -362,7 +362,7 @@ func setMultiOperation(op syntax.Token, update bool) func(*Thread, *Builtin, Arg
 func setSingleOperation(op syntax.Token, update bool) func(*Thread, *Builtin, Args) (Value, error) {
 	return func(t *Thread, b *Builtin, args Args) (Value, error) {
 		var other Value
-		if err := unpackArgs(b.Name(), args, "other", &other); err != nil {
+		if err := UnpackArgs(t, b.Name(), args, "other", &other); err != nil {
 			return nil, err
 		}
 		s := b.Receiver().(Set)
@@ -388,7 +388,7 @@ func setOfIterable(t *Thread, x Value) (Set, error) {
 
 func setIsdisjoint(t *Thread, b *Builtin, args Args) (Value, error) {
 	var other Value
-	if err := unpackArgs(b.Name(), args, "other", &other); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "other", &other); err != nil {
 		return nil, err
 	}
 	intersection, err := setOperation(t, syntax.AMP, b.Receiver().(Set), other)
@@ -401,7 +401,7 @@ func setIsdisjoint(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func setIssubset(t *Thread, b *Builtin, args Args) (Value, error) {
 	var other Value
-	if err := unpackArgs(b.Name(), args, "other", &other); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "other", &other); err != nil {
 		return nil, err
 	}
 	otherSet, err := setOfIterable(t, other)
@@ -414,7 +414,7 @@ func setIssubset(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func setIssuperset(t *Thread, b *Builtin, args Args) (Value, error) {
 	var other Value
-	if err := unpackArgs(b.Name(), args, "other", &other); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "other", &other); err != nil {
 		return nil, err
 	}
 	otherSet, err := setOfIterable(t, other)

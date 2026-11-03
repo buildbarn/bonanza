@@ -40,7 +40,7 @@ var listMethods = map[string]*Builtin{
 
 func listAppend(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "item", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "item", &x); err != nil {
 		return nil, err
 	}
 	return None, b.Receiver().(List).Append(t, x)
@@ -55,7 +55,7 @@ func listClear(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func listExtend(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "items", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "items", &x); err != nil {
 		return nil, err
 	}
 	l := b.Receiver().(List)
@@ -73,7 +73,7 @@ func listExtend(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func listIndex(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x, start, end Value
-	if err := unpackArgs(b.Name(), args, "x", &x, "start?", &start, "end?", &end); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x, "start?", &start, "end?", &end); err != nil {
 		return nil, err
 	}
 	l := b.Receiver().(List)
@@ -106,7 +106,7 @@ func listIndex(t *Thread, b *Builtin, args Args) (Value, error) {
 func listInsert(t *Thread, b *Builtin, args Args) (Value, error) {
 	var index int
 	var x Value
-	if err := unpackArgs(b.Name(), args, "index", &index, "item", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "index", &index, "item", &x); err != nil {
 		return nil, err
 	}
 	l := b.Receiver().(List)
@@ -122,7 +122,7 @@ func listInsert(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func listPop(t *Thread, b *Builtin, args Args) (Value, error) {
 	index := -1
-	if err := unpackArgs(b.Name(), args, "i?", &index); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "i?", &index); err != nil {
 		return nil, err
 	}
 	l := b.Receiver().(List)
@@ -147,7 +147,7 @@ func listPop(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func listRemove(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "x", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "x", &x); err != nil {
 		return nil, err
 	}
 	l := b.Receiver().(List)
@@ -195,7 +195,7 @@ func dictClear(t *Thread, b *Builtin, args Args) (Value, error) {
 func dictGet(t *Thread, b *Builtin, args Args) (Value, error) {
 	var key Value
 	var defaultValue Value = None
-	if err := unpackArgs(b.Name(), args, "key", &key, "default?", &defaultValue); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "key", &key, "default?", &defaultValue); err != nil {
 		return nil, err
 	}
 	v, found, err := b.Receiver().(Dict).Get(t, key)
@@ -227,7 +227,7 @@ func dictKeys(t *Thread, b *Builtin, args Args) (Value, error) {
 
 func dictPop(t *Thread, b *Builtin, args Args) (Value, error) {
 	var key, defaultValue Value
-	if err := unpackArgs(b.Name(), args, "key", &key, "default?", &defaultValue); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "key", &key, "default?", &defaultValue); err != nil {
 		return nil, err
 	}
 	v, found, err := b.Receiver().(Dict).Delete(t, key)
@@ -273,7 +273,7 @@ func dictPopitem(t *Thread, b *Builtin, args Args) (Value, error) {
 func dictSetdefault(t *Thread, b *Builtin, args Args) (Value, error) {
 	var key Value
 	var defaultValue Value = None
-	if err := unpackArgs(b.Name(), args, "key", &key, "default?", &defaultValue); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "key", &key, "default?", &defaultValue); err != nil {
 		return nil, err
 	}
 	d := b.Receiver().(Dict)

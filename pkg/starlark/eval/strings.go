@@ -105,7 +105,7 @@ func sliceIndices(start, end Value, n int) (int, int, error) {
 	return s, e, nil
 }
 
-func stringCapitalize(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringCapitalize(t *Thread, b *Builtin, args Args) (Value, error) {
 	if err := noArgs(b, args); err != nil {
 		return nil, err
 	}
@@ -116,10 +116,10 @@ func stringCapitalize(_ *Thread, b *Builtin, args Args) (Value, error) {
 	return String(toASCIIUpper(s[:1]) + toASCIILower(s[1:])), nil
 }
 
-func stringCount(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringCount(t *Thread, b *Builtin, args Args) (Value, error) {
 	var sub String
 	var start, end Value
-	if err := unpackArgs(b.Name(), args, "sub", &sub, "start?", &start, "end?", &end); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "sub", &sub, "start?", &start, "end?", &end); err != nil {
 		return nil, err
 	}
 	s := receiverString(b)
@@ -136,7 +136,7 @@ func stringCount(_ *Thread, b *Builtin, args Args) (Value, error) {
 	return MakeInt(strings.Count(s[i:j], string(sub))), nil
 }
 
-func stringElems(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringElems(t *Thread, b *Builtin, args Args) (Value, error) {
 	if err := noArgs(b, args); err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func affixArgs(t *Thread, b *Builtin, x Value) ([]string, error) {
 
 func stringStartsOrEndsWith(t *Thread, b *Builtin, args Args, f func(string, string) bool) (Value, error) {
 	var x, start, end Value
-	if err := unpackArgs(b.Name(), args, "sub", &x, "start?", &start, "end?", &end); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "sub", &x, "start?", &start, "end?", &end); err != nil {
 		return nil, err
 	}
 	affixes, err := affixArgs(t, b, x)
@@ -207,25 +207,25 @@ func stringStartswith(t *Thread, b *Builtin, args Args) (Value, error) {
 
 // stringFind implements find(), index(), rfind() and rindex().
 func stringFind(t *Thread, b *Builtin, args Args) (Value, error) {
-	return stringFindImpl(b, args, false, false)
+	return stringFindImpl(t, b, args, false, false)
 }
 
 func stringIndex(t *Thread, b *Builtin, args Args) (Value, error) {
-	return stringFindImpl(b, args, false, true)
+	return stringFindImpl(t, b, args, false, true)
 }
 
 func stringRfind(t *Thread, b *Builtin, args Args) (Value, error) {
-	return stringFindImpl(b, args, true, false)
+	return stringFindImpl(t, b, args, true, false)
 }
 
 func stringRindex(t *Thread, b *Builtin, args Args) (Value, error) {
-	return stringFindImpl(b, args, true, true)
+	return stringFindImpl(t, b, args, true, true)
 }
 
-func stringFindImpl(b *Builtin, args Args, last, mustExist bool) (Value, error) {
+func stringFindImpl(t *Thread, b *Builtin, args Args, last, mustExist bool) (Value, error) {
 	var sub String
 	var start, end Value
-	if err := unpackArgs(b.Name(), args, "sub", &sub, "start?", &start, "end?", &end); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "sub", &sub, "start?", &start, "end?", &end); err != nil {
 		return nil, err
 	}
 	s := receiverString(b)
@@ -371,19 +371,19 @@ func stringIsClass(b *Builtin, args Args, f func(byte) bool) (Value, error) {
 	return True, nil
 }
 
-func stringIsalnum(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringIsalnum(t *Thread, b *Builtin, args Args) (Value, error) {
 	return stringIsClass(b, args, func(c byte) bool { return isASCIIAlpha(c) || isASCIIDigit(c) })
 }
 
-func stringIsalpha(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringIsalpha(t *Thread, b *Builtin, args Args) (Value, error) {
 	return stringIsClass(b, args, isASCIIAlpha)
 }
 
-func stringIsdigit(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringIsdigit(t *Thread, b *Builtin, args Args) (Value, error) {
 	return stringIsClass(b, args, isASCIIDigit)
 }
 
-func stringIsspace(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringIsspace(t *Thread, b *Builtin, args Args) (Value, error) {
 	return stringIsClass(b, args, func(c byte) bool { return strings.IndexByte(asciiWhitespace, c) >= 0 })
 }
 
@@ -404,15 +404,15 @@ func stringIsCase(b *Builtin, args Args, isCase, isOpposite func(byte) bool) (Va
 	return Bool(cased), nil
 }
 
-func stringIslower(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringIslower(t *Thread, b *Builtin, args Args) (Value, error) {
 	return stringIsCase(b, args, isASCIILower, isASCIIUpper)
 }
 
-func stringIsupper(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringIsupper(t *Thread, b *Builtin, args Args) (Value, error) {
 	return stringIsCase(b, args, isASCIIUpper, isASCIILower)
 }
 
-func stringIstitle(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringIstitle(t *Thread, b *Builtin, args Args) (Value, error) {
 	if err := noArgs(b, args); err != nil {
 		return nil, err
 	}
@@ -440,7 +440,7 @@ func stringIstitle(_ *Thread, b *Builtin, args Args) (Value, error) {
 
 func stringJoin(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value
-	if err := unpackArgs(b.Name(), args, "elements", &x); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "elements", &x); err != nil {
 		return nil, err
 	}
 	elements, err := Elements(t, x)
@@ -458,21 +458,21 @@ func stringJoin(t *Thread, b *Builtin, args Args) (Value, error) {
 	return String(strings.Join(parts, receiverString(b))), nil
 }
 
-func stringLower(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringLower(t *Thread, b *Builtin, args Args) (Value, error) {
 	if err := noArgs(b, args); err != nil {
 		return nil, err
 	}
 	return String(toASCIILower(receiverString(b))), nil
 }
 
-func stringUpper(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringUpper(t *Thread, b *Builtin, args Args) (Value, error) {
 	if err := noArgs(b, args); err != nil {
 		return nil, err
 	}
 	return String(toASCIIUpper(receiverString(b))), nil
 }
 
-func stringTitle(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringTitle(t *Thread, b *Builtin, args Args) (Value, error) {
 	if err := noArgs(b, args); err != nil {
 		return nil, err
 	}
@@ -495,9 +495,9 @@ func stringTitle(_ *Thread, b *Builtin, args Args) (Value, error) {
 }
 
 // stringStripImpl implements strip(), lstrip() and rstrip().
-func stringStripImpl(b *Builtin, args Args, left, right bool) (Value, error) {
+func stringStripImpl(t *Thread, b *Builtin, args Args, left, right bool) (Value, error) {
 	var chars Value
-	if err := unpackArgs(b.Name(), args, "chars??", &chars); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "chars??", &chars); err != nil {
 		return nil, err
 	}
 	cutset := asciiWhitespace
@@ -524,21 +524,21 @@ func stringStripImpl(b *Builtin, args Args, left, right bool) (Value, error) {
 	return String(s[start:end]), nil
 }
 
-func stringStrip(_ *Thread, b *Builtin, args Args) (Value, error) {
-	return stringStripImpl(b, args, true, true)
+func stringStrip(t *Thread, b *Builtin, args Args) (Value, error) {
+	return stringStripImpl(t, b, args, true, true)
 }
 
-func stringLstrip(_ *Thread, b *Builtin, args Args) (Value, error) {
-	return stringStripImpl(b, args, true, false)
+func stringLstrip(t *Thread, b *Builtin, args Args) (Value, error) {
+	return stringStripImpl(t, b, args, true, false)
 }
 
-func stringRstrip(_ *Thread, b *Builtin, args Args) (Value, error) {
-	return stringStripImpl(b, args, false, true)
+func stringRstrip(t *Thread, b *Builtin, args Args) (Value, error) {
+	return stringStripImpl(t, b, args, false, true)
 }
 
-func stringPartitionImpl(b *Builtin, args Args, last bool) (Value, error) {
+func stringPartitionImpl(t *Thread, b *Builtin, args Args, last bool) (Value, error) {
 	var sep String
-	if err := unpackArgs(b.Name(), args, "sep", &sep); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "sep", &sep); err != nil {
 		return nil, err
 	}
 	if sep == "" {
@@ -560,34 +560,34 @@ func stringPartitionImpl(b *Builtin, args Args, last bool) (Value, error) {
 	return NewTuple([]Value{String(s[:i]), sep, String(s[i+len(sep):])}), nil
 }
 
-func stringPartition(_ *Thread, b *Builtin, args Args) (Value, error) {
-	return stringPartitionImpl(b, args, false)
+func stringPartition(t *Thread, b *Builtin, args Args) (Value, error) {
+	return stringPartitionImpl(t, b, args, false)
 }
 
-func stringRpartition(_ *Thread, b *Builtin, args Args) (Value, error) {
-	return stringPartitionImpl(b, args, true)
+func stringRpartition(t *Thread, b *Builtin, args Args) (Value, error) {
+	return stringPartitionImpl(t, b, args, true)
 }
 
-func stringRemoveprefix(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringRemoveprefix(t *Thread, b *Builtin, args Args) (Value, error) {
 	var prefix String
-	if err := unpackArgs(b.Name(), args, "prefix", &prefix); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "prefix", &prefix); err != nil {
 		return nil, err
 	}
 	return String(strings.TrimPrefix(receiverString(b), string(prefix))), nil
 }
 
-func stringRemovesuffix(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringRemovesuffix(t *Thread, b *Builtin, args Args) (Value, error) {
 	var suffix String
-	if err := unpackArgs(b.Name(), args, "suffix", &suffix); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "suffix", &suffix); err != nil {
 		return nil, err
 	}
 	return String(strings.TrimSuffix(receiverString(b), string(suffix))), nil
 }
 
-func stringReplace(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringReplace(t *Thread, b *Builtin, args Args) (Value, error) {
 	var oldValue, newValue String
 	count := -1
-	if err := unpackArgs(b.Name(), args, "old", &oldValue, "new", &newValue, "count?", &count); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "old", &oldValue, "new", &newValue, "count?", &count); err != nil {
 		return nil, err
 	}
 	s := receiverString(b)
@@ -614,10 +614,10 @@ func stringReplace(_ *Thread, b *Builtin, args Args) (Value, error) {
 }
 
 // stringSplitImpl implements split() and rsplit().
-func stringSplitImpl(b *Builtin, args Args, fromRight bool) (Value, error) {
+func stringSplitImpl(t *Thread, b *Builtin, args Args, fromRight bool) (Value, error) {
 	var sep Value
 	maxSplit := -1
-	if err := unpackArgs(b.Name(), args, "sep??", &sep, "maxsplit??", &maxSplit); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "sep??", &sep, "maxsplit??", &maxSplit); err != nil {
 		return nil, err
 	}
 	s := receiverString(b)
@@ -717,17 +717,17 @@ func splitWhitespace(s string, maxSplit int, fromRight bool) []string {
 	return parts
 }
 
-func stringSplit(_ *Thread, b *Builtin, args Args) (Value, error) {
-	return stringSplitImpl(b, args, false)
+func stringSplit(t *Thread, b *Builtin, args Args) (Value, error) {
+	return stringSplitImpl(t, b, args, false)
 }
 
-func stringRsplit(_ *Thread, b *Builtin, args Args) (Value, error) {
-	return stringSplitImpl(b, args, true)
+func stringRsplit(t *Thread, b *Builtin, args Args) (Value, error) {
+	return stringSplitImpl(t, b, args, true)
 }
 
-func stringSplitlines(_ *Thread, b *Builtin, args Args) (Value, error) {
+func stringSplitlines(t *Thread, b *Builtin, args Args) (Value, error) {
 	keepEnds := false
-	if err := unpackArgs(b.Name(), args, "keepends?", &keepEnds); err != nil {
+	if err := UnpackArgs(t, b.Name(), args, "keepends?", &keepEnds); err != nil {
 		return nil, err
 	}
 	s := receiverString(b)
