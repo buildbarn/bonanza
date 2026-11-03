@@ -329,3 +329,27 @@ func (*Cell) Repr(_ *Thread, p *Printer) error { p.WriteString("cell"); return n
 func (c *Cell) Value() Value {
 	return c.v
 }
+
+// ListMarker can be embedded into types declared outside this package,
+// to indicate that they are implementations of List.
+type ListMarker struct{}
+
+func (ListMarker) isList() {}
+
+// TupleMarker can be embedded into types declared outside this
+// package, to indicate that they are implementations of Tuple.
+type TupleMarker struct{}
+
+func (TupleMarker) isTuple() {}
+
+// DictMarker can be embedded into types declared outside this package,
+// to indicate that they are implementations of Dict.
+type DictMarker struct{}
+
+func (DictMarker) isDict() {}
+
+// SetMarker can be embedded into types declared outside this package,
+// to indicate that they are implementations of Set.
+type SetMarker struct{}
+
+func (SetMarker) isSet() {}

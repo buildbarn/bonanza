@@ -423,6 +423,25 @@ them still belong to a single `Thread`, though (see
 [Memoization and dependency tracking](#memoization-and-dependency-tracking)).
 What is shared between evaluations is the parsed objects underneath.
 
+`DecodeEvalValue()` in `pkg/model/starlark` decodes `Value` messages
+this way. Types outside `pkg/starlark/eval` mark themselves as lists,
+tuples, dicts or sets by embedding `eval.ListMarker`,
+`eval.TupleMarker`, `eval.DictMarker` or `eval.SetMarker`. Values that
+implement `EncodableEvalValue` provide their own encoding, which
+`EncodeEvalValue()` uses instead of walking their contents.
+
+Dicts and sets currently use the existing storage format, which stores
+them in insertion order. That format has to stay in place until the
+go.starlark.net based code that reads and writes the same messages is
+gone. A stored set can compute its length from the root, as its
+parents carry counts. Everything else that needs random access, such as
+`len()` of a dict, `d[k]`, `x in s` and equality, builds an in-memory
+copy on first use. That copy belongs to the wrapper, and so to the
+thread. Switching to the sorted layout described in
+[Stored dicts and sets](#stored-dicts-and-sets) removes the need for
+it. Tuples are stored inline, so they decode to in-memory tuples
+whose elements may in turn be storage-backed.
+
 ### Memoization and dependency tracking
 
 An evaluation records which other keys it depends on through the

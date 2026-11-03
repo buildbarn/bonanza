@@ -55,6 +55,10 @@ func EncodeEvalStructFields[TReference any, TMetadata model_core.ReferenceMetada
 // encodeEvalValue encodes a value. path contains the mutable composite
 // values that are being encoded, which is used to detect cycles.
 func encodeEvalValue[TReference any, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, value eval.Value, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
+	if encodableValue, ok := value.(EncodableEvalValue[TReference, TMetadata]); ok {
+		return encodableValue.EncodeEvalValue(thread, options)
+	}
+
 	switch value.(type) {
 	case eval.List, eval.Dict, eval.Set:
 		for _, v := range path {

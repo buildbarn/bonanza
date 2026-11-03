@@ -42,9 +42,17 @@ type mutability struct {
 	iterators int
 }
 
+// NewFrozenError returns the error that is reported when attempting to
+// mutate an immutable value of a given type. It can be used by
+// implementations of List, Dict and Set that are immutable, such as
+// ones backed by storage.
+func NewFrozenError(typeName string) error {
+	return errors.New("trying to mutate a frozen " + typeName + " value")
+}
+
 func (m *mutability) checkMutable(typeName string) error {
 	if m.immutable {
-		return errors.New("trying to mutate a frozen " + typeName + " value")
+		return NewFrozenError(typeName)
 	}
 	if m.iterators > 0 {
 		return errors.New(typeName + " value is temporarily immutable due to active for-loop iteration")
