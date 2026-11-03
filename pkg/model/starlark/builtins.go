@@ -11,14 +11,12 @@ import (
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
-
-	"go.starlark.net/lib/json"
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 // allowFilesUnpackerInto can be used to unpack allow_files arguments,
@@ -27,9 +25,9 @@ import (
 // accepted.
 type allowFilesUnpackerInto struct{}
 
-func (allowFilesUnpackerInto) UnpackInto(thread *starlark.Thread, v starlark.Value, dst **glob.NFA) error {
+func (allowFilesUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst **glob.NFA) error {
 	switch typedV := v.(type) {
-	case starlark.Bool:
+	case eval.Bool:
 		if typedV {
 			*dst = &glob.NFAMatchingEverything
 		} else {
@@ -49,7 +47,7 @@ func (allowFilesUnpackerInto) UnpackInto(thread *starlark.Thread, v starlark.Val
 	return nil
 }
 
-func (allowFilesUnpackerInto) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+func (allowFilesUnpackerInto) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	return v, nil
 }
 
@@ -92,7 +90,7 @@ type GlobExpander = func(include, exclude []string, includeDirectories bool) ([]
 // the nearest packages below the current package that are matched.
 type SubpackagesExpander = func(include, exclude []string) ([]string, error)
 
-func labelSetting[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple, flag bool) (starlark.Value, error) {
+func labelSetting[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, b *eval.Builtin, args eval.Args, flag bool) (eval.Value, error) {
 	targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 	if targetRegistrar == nil {
 		return nil, errors.New("targets cannot be registered from within this context")
@@ -105,20 +103,20 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 	singletonList := false
 	visibility := targetRegistrar.getOmittedVisibility()
 	labelOrStringUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
-		"name", unpack.Bind(thread, &name, unpack.Stringer(unpack.TargetName)),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
+		"name", unpack.Bind(&name, unpack.Stringer(unpack.TargetName)),
 		// Extension: allow build_setting_default to be set to
 		// None to implement command line flags that don't point
 		// to anything by default.
-		"build_setting_default", unpack.Bind(thread, &buildSettingDefault, unpack.IfNotNone(unpack.Stringer(labelOrStringUnpackerInto))),
-		"help?", unpack.Bind(thread, &help, unpack.String),
+		"build_setting_default", unpack.Bind(&buildSettingDefault, unpack.IfNotNone(unpack.Stringer(labelOrStringUnpackerInto))),
+		"help?", unpack.Bind(&help, unpack.String),
 		// Extension: --platforms is a list at the command line
 		// level, but it can only be set to a single value at a
 		// time during analysis. As part of transitions it still
 		// needs to be set to a singleton list.
-		"singleton_list?", unpack.Bind(thread, &singletonList, unpack.Bool),
-		"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
+		"singleton_list?", unpack.Bind(&singletonList, unpack.Bool),
+		"visibility?", unpack.Bind(&visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 	); err != nil {
 		return nil, err
 	}
@@ -128,7 +126,7 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 		return nil, err
 	}
 
-	return starlark.None, targetRegistrar.registerExplicitTarget(
+	return eval.None, targetRegistrar.registerExplicitTarget(
 		name,
 		model_core.NewPatchedMessage(
 			&model_starlark_pb.Target_Definition{
@@ -144,14 +142,6 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 			visibilityPackageGroup.Patcher,
 		),
 	)
-}
-
-func stringDictToStructFields(in starlark.StringDict) map[string]any {
-	out := make(map[string]any, len(in))
-	for k, v := range in {
-		out[k] = v
-	}
-	return out
 }
 
 var (
@@ -180,7 +170,7 @@ func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_co
 		return fmt.Errorf("attr %#v cannot be declared explicitly", fragmentsAttrIdentifier.String())
 	}
 	if len(fragments) > 0 {
-		fragmentsLabels := make([]starlark.Value, 0, len(fragments))
+		fragmentsLabels := make([]eval.Value, 0, len(fragments))
 		for _, fragment := range fragments {
 			fragmentsLabels = append(
 				fragmentsLabels,
@@ -189,7 +179,7 @@ func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_co
 		}
 		attrs[fragmentsAttrIdentifier] = NewAttr[TReference, TMetadata](
 			NewLabelListAttrType[TReference, TMetadata](glob.NFAMatchingNothing.Bytes(), cfg),
-			starlark.NewList(fragmentsLabels),
+			eval.NewList(fragmentsLabels),
 			/* configurable = */ true,
 		)
 	}
@@ -198,12 +188,12 @@ func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_co
 
 // GetBuiltins returns the set of Starlark builtins that should be
 // available when evaluating .bzl and BUILD files.
-func GetBuiltins[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() (starlark.StringDict, starlark.StringDict) {
+func GetBuiltins[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() (map[string]eval.Value, map[string]eval.Value) {
 	providersListUnpackerInto := unpack.Or([]unpack.UnpackerInto[[][]*Provider[TReference, TMetadata]]{
 		unpack.Singleton(unpack.List(unpack.Type[*Provider[TReference, TMetadata]]("provider"))),
 		unpack.List(unpack.List(unpack.Type[*Provider[TReference, TMetadata]]("provider"))),
 	})
-	namedFunctionUnpackerInto := NewNamedFunctionUnpackerInto[TReference, TMetadata]()
+	functionUnpackerInto := unpack.Type[eval.Function]("function")
 	toolchainTypeUnpackerInto := NewToolchainTypeUnpackerInto[TReference, TMetadata]()
 	transitionDefinitionUnpackerInto := unpack.IfNotNone(NewTransitionDefinitionUnpackerInto[TReference, TMetadata]())
 
@@ -224,14 +214,14 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 	)
 	defaultToolchainsAttr := NewAttr[TReference, TMetadata](
 		NewLabelListAttrType[TReference, TMetadata](glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
-		starlark.NewList([]starlark.Value{
+		eval.NewList([]eval.Value{
 			NewLabel[TReference, TMetadata](defaultMakeVariablesLabel.AsResolved()),
 		}),
 		/* configurable = */ true,
 	)
 	toolchainsAttr := NewAttr[TReference, TMetadata](
 		NewLabelListAttrType[TReference, TMetadata](glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
-		starlark.NewList(nil),
+		eval.NewList(nil),
 		/* configurable = */ true,
 	)
 	targetPlatformAttr := NewAttr[TReference, TMetadata](
@@ -240,27 +230,27 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 		/* configurable = */ true,
 	)
 
-	bzlFileBuiltins := starlark.StringDict{
-		"analysis_test_transition": starlark.NewBuiltin(
+	bzlFileBuiltins := map[string]eval.Value{
+		"analysis_test_transition": eval.NewBuiltin(
 			"analysis_test_transition",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 				var settings map[string]string
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
-					"settings", unpack.Bind(thread, &settings, unpack.Dict(unpack.String, unpack.String)),
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
+					"settings", unpack.Bind(&settings, unpack.Dict(unpack.String, unpack.String)),
 				); err != nil {
 					return nil, err
 				}
 				return nil, errors.New("not implemented")
 			},
 		),
-		"aspect": starlark.NewBuiltin(
+		"aspect": eval.NewBuiltin(
 			"aspect",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 1 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				if len(args.Positional) > 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 				}
-				var implementation NamedFunction[TReference, TMetadata]
+				var implementation eval.Function
 				var attrAspects []string
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				doc := ""
@@ -271,21 +261,21 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				var requiredProviders [][]*Provider[TReference, TMetadata]
 				var requires []*Aspect[TReference, TMetadata]
 				var toolchains []*ToolchainType[TReference, TMetadata]
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
 					// Positional arguments.
-					"implementation", unpack.Bind(thread, &implementation, namedFunctionUnpackerInto),
+					"implementation", unpack.Bind(&implementation, functionUnpackerInto),
 					// Keyword arguments.
-					"attr_aspects?", unpack.Bind(thread, &attrAspects, unpack.List(unpack.String)),
-					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
-					"doc?", unpack.Bind(thread, &doc, unpack.String),
-					"exec_groups?", unpack.Bind(thread, &execGroups, unpack.Dict(unpack.String, unpack.Type[*ExecGroup[TReference, TMetadata]]("exec_group"))),
-					"fragments?", unpack.Bind(thread, &fragments, unpack.List(unpack.String)),
-					"provides?", unpack.Bind(thread, &provides, unpack.List(unpack.Type[*Provider[TReference, TMetadata]]("provider"))),
-					"required_aspect_providers?", unpack.Bind(thread, &requiredAspectProviders, providersListUnpackerInto),
-					"required_providers?", unpack.Bind(thread, &requiredProviders, providersListUnpackerInto),
-					"requires?", unpack.Bind(thread, &requires, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("Aspect"))),
-					"toolchains?", unpack.Bind(thread, &toolchains, unpack.List(toolchainTypeUnpackerInto)),
+					"attr_aspects?", unpack.Bind(&attrAspects, unpack.List(unpack.String)),
+					"attrs?", unpack.Bind(&attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
+					"doc?", unpack.Bind(&doc, unpack.String),
+					"exec_groups?", unpack.Bind(&execGroups, unpack.Dict(unpack.String, unpack.Type[*ExecGroup[TReference, TMetadata]]("exec_group"))),
+					"fragments?", unpack.Bind(&fragments, unpack.List(unpack.String)),
+					"provides?", unpack.Bind(&provides, unpack.List(unpack.Type[*Provider[TReference, TMetadata]]("provider"))),
+					"required_aspect_providers?", unpack.Bind(&requiredAspectProviders, providersListUnpackerInto),
+					"required_providers?", unpack.Bind(&requiredProviders, providersListUnpackerInto),
+					"requires?", unpack.Bind(&requires, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("Aspect"))),
+					"toolchains?", unpack.Bind(&toolchains, unpack.List(toolchainTypeUnpackerInto)),
 				); err != nil {
 					return nil, err
 				}
@@ -296,23 +286,27 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 			},
 		),
 		"attr": NewStructFromDict[TReference, TMetadata](nil, map[string]any{
-			"bool": starlark.NewBuiltin(
+			"bool": eval.NewBuiltin(
 				"attr.bool",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 
 					configurable := true
-					var defaultValue starlark.Value = starlark.False
+					var defaultValue eval.Value = eval.False
 					doc := ""
 					mandatory := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"default?", &defaultValue,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
@@ -322,7 +316,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						defaultValue = nil
 					} else {
 						var err error
-						defaultValue, err = attrType.GetCanonicalizer(CurrentFilePackage(thread, 1)).
+						defaultValue, err = attrType.GetCanonicalizer(currentFilePackage).
 							Canonicalize(thread, defaultValue)
 						if err != nil {
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
@@ -331,25 +325,29 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
-			"int": starlark.NewBuiltin(
+			"int": eval.NewBuiltin(
 				"attr.int",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 
 					configurable := true
-					var defaultValue starlark.Value = starlark.MakeInt(0)
+					var defaultValue eval.Value = eval.MakeInt(0)
 					doc := ""
 					mandatory := false
 					var values []int32
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"default?", &defaultValue,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
-						"values?", unpack.Bind(thread, &values, unpack.List(unpack.Int[int32]())),
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
+						"values?", unpack.Bind(&values, unpack.List(unpack.Int[int32]())),
 					); err != nil {
 						return nil, err
 					}
@@ -359,7 +357,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						defaultValue = nil
 					} else {
 						var err error
-						defaultValue, err = attrType.GetCanonicalizer(CurrentFilePackage(thread, 1)).
+						defaultValue, err = attrType.GetCanonicalizer(currentFilePackage).
 							Canonicalize(thread, defaultValue)
 						if err != nil {
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
@@ -368,11 +366,15 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
-			"label": starlark.NewBuiltin(
+			"label": eval.NewBuiltin(
 				"attr.label",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 
 					var allowFiles *glob.NFA
@@ -381,26 +383,26 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var aspects []*Aspect[TReference, TMetadata]
 					var cfg TransitionDefinition[TReference, TMetadata]
 					configurable := true
-					var defaultValue starlark.Value = starlark.None
+					var defaultValue eval.Value = eval.None
 					doc := ""
 					executable := false
 					var flags []string
 					mandatory := false
 					providers := [][]*Provider[TReference, TMetadata]{{}}
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"allow_files?", unpack.Bind(thread, &allowFiles, allowFilesUnpackerInto{}),
-						"allow_rules?", unpack.Bind(thread, &allowRules, unpack.IfNotNone(unpack.List(unpack.String))),
-						"allow_single_file?", unpack.Bind(thread, &allowSingleFile, allowFilesUnpackerInto{}),
-						"aspects?", unpack.Bind(thread, &aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
-						"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
-						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"allow_files?", unpack.Bind(&allowFiles, allowFilesUnpackerInto{}),
+						"allow_rules?", unpack.Bind(&allowRules, unpack.IfNotNone(unpack.List(unpack.String))),
+						"allow_single_file?", unpack.Bind(&allowSingleFile, allowFilesUnpackerInto{}),
+						"aspects?", unpack.Bind(&aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
+						"cfg?", unpack.Bind(&cfg, transitionDefinitionUnpackerInto),
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"default?", &defaultValue,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"executable?", unpack.Bind(thread, &executable, unpack.Bool),
-						"flags?", unpack.Bind(thread, &flags, unpack.List(unpack.String)),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
-						"providers?", unpack.Bind(thread, &providers, providersListUnpackerInto),
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"executable?", unpack.Bind(&executable, unpack.Bool),
+						"flags?", unpack.Bind(&flags, unpack.List(unpack.String)),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
+						"providers?", unpack.Bind(&providers, providersListUnpackerInto),
 					); err != nil {
 						return nil, err
 					}
@@ -423,9 +425,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if mandatory {
 						defaultValue = nil
 					} else {
-						if err := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
-							unpack.Canonicalize(namedFunctionUnpackerInto),
-							unpack.Canonicalize(attrType.GetCanonicalizer(CurrentFilePackage(thread, 1))),
+						if err := unpack.Or([]unpack.UnpackerInto[eval.Value]{
+							unpack.Canonicalize(functionUnpackerInto),
+							unpack.Canonicalize(attrType.GetCanonicalizer(currentFilePackage)),
 						}).UnpackInto(thread, defaultValue, &defaultValue); err != nil {
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
@@ -433,11 +435,15 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
-			"label_keyed_string_dict": starlark.NewBuiltin(
+			"label_keyed_string_dict": eval.NewBuiltin(
 				"attr.label_keyed_string_dict",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 1 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 1 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 					}
 
 					allowEmpty := true
@@ -445,23 +451,23 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var aspects []*Aspect[TReference, TMetadata]
 					cfg := targetTransitionDefinition
 					configurable := true
-					var defaultValue starlark.Value = starlark.NewDict(0)
+					var defaultValue eval.Value = eval.NewDict()
 					doc := ""
 					mandatory := false
 					providers := [][]*Provider[TReference, TMetadata]{{}}
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
 						// Positional arguments.
-						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
 						// Keyword arguments.
-						"allow_files?", unpack.Bind(thread, &allowFiles, allowFilesUnpackerInto{}),
-						"aspects?", unpack.Bind(thread, &aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
-						"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
-						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
+						"allow_files?", unpack.Bind(&allowFiles, allowFilesUnpackerInto{}),
+						"aspects?", unpack.Bind(&aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
+						"cfg?", unpack.Bind(&cfg, transitionDefinitionUnpackerInto),
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"default?", &defaultValue,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
-						"providers?", unpack.Bind(thread, &providers, providersListUnpackerInto),
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
+						"providers?", unpack.Bind(&providers, providersListUnpackerInto),
 					); err != nil {
 						return nil, err
 					}
@@ -470,9 +476,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if mandatory {
 						defaultValue = nil
 					} else {
-						if err := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
-							unpack.Canonicalize(namedFunctionUnpackerInto),
-							unpack.Canonicalize(attrType.GetCanonicalizer(CurrentFilePackage(thread, 1))),
+						if err := unpack.Or([]unpack.UnpackerInto[eval.Value]{
+							unpack.Canonicalize(functionUnpackerInto),
+							unpack.Canonicalize(attrType.GetCanonicalizer(currentFilePackage)),
 						}).UnpackInto(thread, defaultValue, &defaultValue); err != nil {
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
@@ -480,11 +486,15 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
-			"label_list": starlark.NewBuiltin(
+			"label_list": eval.NewBuiltin(
 				"attr.label_list",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 1 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 1 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 					}
 
 					allowEmpty := true
@@ -493,26 +503,26 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var aspects []*Aspect[TReference, TMetadata]
 					cfg := targetTransitionDefinition
 					configurable := true
-					var defaultValue starlark.Value = starlark.NewList(nil)
+					var defaultValue eval.Value = eval.NewList(nil)
 					doc := ""
 					var flags []string
 					mandatory := false
 					providers := [][]*Provider[TReference, TMetadata]{{}}
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
 						// Positional arguments.
-						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
 						// Keyword arguments.
-						"allow_files?", unpack.Bind(thread, &allowFiles, allowFilesUnpackerInto{}),
-						"allow_rules?", unpack.Bind(thread, &allowRules, unpack.IfNotNone(unpack.List(unpack.String))),
-						"aspects?", unpack.Bind(thread, &aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
-						"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
-						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
+						"allow_files?", unpack.Bind(&allowFiles, allowFilesUnpackerInto{}),
+						"allow_rules?", unpack.Bind(&allowRules, unpack.IfNotNone(unpack.List(unpack.String))),
+						"aspects?", unpack.Bind(&aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
+						"cfg?", unpack.Bind(&cfg, transitionDefinitionUnpackerInto),
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"default?", &defaultValue,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"flags?", unpack.Bind(thread, &flags, unpack.List(unpack.String)),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
-						"providers?", unpack.Bind(thread, &providers, providersListUnpackerInto),
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"flags?", unpack.Bind(&flags, unpack.List(unpack.String)),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
+						"providers?", unpack.Bind(&providers, providersListUnpackerInto),
 					); err != nil {
 						return nil, err
 					}
@@ -521,9 +531,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if mandatory {
 						defaultValue = nil
 					} else {
-						if err := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
-							unpack.Canonicalize(namedFunctionUnpackerInto),
-							unpack.Canonicalize(attrType.GetCanonicalizer(CurrentFilePackage(thread, 1))),
+						if err := unpack.Or([]unpack.UnpackerInto[eval.Value]{
+							unpack.Canonicalize(functionUnpackerInto),
+							unpack.Canonicalize(attrType.GetCanonicalizer(currentFilePackage)),
 						}).UnpackInto(thread, defaultValue, &defaultValue); err != nil {
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
@@ -531,19 +541,19 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
-			"output": starlark.NewBuiltin(
+			"output": eval.NewBuiltin(
 				"attr.output",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 
 					doc := ""
 					mandatory := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
@@ -551,23 +561,23 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](NewOutputAttrType[TReference, TMetadata](""), nil, false), nil
 				},
 			),
-			"output_list": starlark.NewBuiltin(
+			"output_list": eval.NewBuiltin(
 				"attr.output_list",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 
 					allowEmpty := false
 					doc := ""
 					mandatory := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
 						// Positional arguments.
-						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
 						// Keyword arguments.
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
@@ -575,25 +585,29 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](NewOutputListAttrType[TReference, TMetadata](), nil, false), nil
 				},
 			),
-			"string": starlark.NewBuiltin(
+			"string": eval.NewBuiltin(
 				"attr.string",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 
 					configurable := true
-					var defaultValue starlark.Value = starlark.String("")
+					var defaultValue eval.Value = eval.String("")
 					doc := ""
 					mandatory := false
 					var values []string
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"default?", &defaultValue,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
-						"values?", unpack.Bind(thread, &values, unpack.List(unpack.String)),
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
+						"values?", unpack.Bind(&values, unpack.List(unpack.String)),
 					); err != nil {
 						return nil, err
 					}
@@ -602,9 +616,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if mandatory {
 						defaultValue = nil
 					} else {
-						if err := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
-							unpack.Canonicalize(namedFunctionUnpackerInto),
-							unpack.Canonicalize(attrType.GetCanonicalizer(CurrentFilePackage(thread, 1))),
+						if err := unpack.Or([]unpack.UnpackerInto[eval.Value]{
+							unpack.Canonicalize(functionUnpackerInto),
+							unpack.Canonicalize(attrType.GetCanonicalizer(currentFilePackage)),
 						}).UnpackInto(thread, defaultValue, &defaultValue); err != nil {
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
@@ -612,27 +626,31 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
-			"string_dict": starlark.NewBuiltin(
+			"string_dict": eval.NewBuiltin(
 				"attr.string_dict",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 1 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 2", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 1 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 2", b.Name(), len(args.Positional))
 					}
 
 					var allowEmpty bool
-					var defaultValue starlark.Value = starlark.NewDict(0)
+					var defaultValue eval.Value = eval.NewDict()
 					configurable := true
 					doc := ""
 					mandatory := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
 						// Positional arguments.
-						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
 						// Keyword arguments.
-						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"default?", &defaultValue,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
@@ -641,9 +659,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if mandatory {
 						defaultValue = nil
 					} else {
-						if err := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
-							unpack.Canonicalize(namedFunctionUnpackerInto),
-							unpack.Canonicalize(attrType.GetCanonicalizer(CurrentFilePackage(thread, 1))),
+						if err := unpack.Or([]unpack.UnpackerInto[eval.Value]{
+							unpack.Canonicalize(functionUnpackerInto),
+							unpack.Canonicalize(attrType.GetCanonicalizer(currentFilePackage)),
 						}).UnpackInto(thread, defaultValue, &defaultValue); err != nil {
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
@@ -651,11 +669,15 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
-			"string_keyed_label_dict": starlark.NewBuiltin(
+			"string_keyed_label_dict": eval.NewBuiltin(
 				"attr.string_keyed_label_dict",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 1 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 1 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 					}
 
 					allowEmpty := true
@@ -663,23 +685,23 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var aspects []*Aspect[TReference, TMetadata]
 					cfg := targetTransitionDefinition
 					configurable := true
-					var defaultValue starlark.Value = starlark.NewDict(0)
+					var defaultValue eval.Value = eval.NewDict()
 					doc := ""
 					mandatory := false
 					providers := [][]*Provider[TReference, TMetadata]{{}}
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
 						// Positional arguments.
-						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
 						// Keyword arguments.
-						"allow_files?", unpack.Bind(thread, &allowFiles, allowFilesUnpackerInto{}),
-						"aspects?", unpack.Bind(thread, &aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
-						"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
-						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
+						"allow_files?", unpack.Bind(&allowFiles, allowFilesUnpackerInto{}),
+						"aspects?", unpack.Bind(&aspects, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("aspect"))),
+						"cfg?", unpack.Bind(&cfg, transitionDefinitionUnpackerInto),
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"default?", &defaultValue,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
-						"providers?", unpack.Bind(thread, &providers, providersListUnpackerInto),
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
+						"providers?", unpack.Bind(&providers, providersListUnpackerInto),
 					); err != nil {
 						return nil, err
 					}
@@ -688,9 +710,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if mandatory {
 						defaultValue = nil
 					} else {
-						if err := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
-							unpack.Canonicalize(namedFunctionUnpackerInto),
-							unpack.Canonicalize(attrType.GetCanonicalizer(CurrentFilePackage(thread, 1))),
+						if err := unpack.Or([]unpack.UnpackerInto[eval.Value]{
+							unpack.Canonicalize(functionUnpackerInto),
+							unpack.Canonicalize(attrType.GetCanonicalizer(currentFilePackage)),
 						}).UnpackInto(thread, defaultValue, &defaultValue); err != nil {
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
@@ -698,27 +720,31 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
-			"string_list": starlark.NewBuiltin(
+			"string_list": eval.NewBuiltin(
 				"attr.string_list",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 2 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 2", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 2 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 2", b.Name(), len(args.Positional))
 					}
 
 					mandatory := false
 					var allowEmpty bool
 					configurable := true
-					var defaultValue starlark.Value = starlark.NewList(nil)
+					var defaultValue eval.Value = eval.NewList(nil)
 					doc := ""
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
 						// Positional arguments.
-						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
-						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
+						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
 						// Keyword arguments.
 						"default?", &defaultValue,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
+						"doc?", unpack.Bind(&doc, unpack.String),
 					); err != nil {
 						return nil, err
 					}
@@ -727,9 +753,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if mandatory {
 						defaultValue = nil
 					} else {
-						if err := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
-							unpack.Canonicalize(namedFunctionUnpackerInto),
-							unpack.Canonicalize(attrType.GetCanonicalizer(CurrentFilePackage(thread, 1))),
+						if err := unpack.Or([]unpack.UnpackerInto[eval.Value]{
+							unpack.Canonicalize(functionUnpackerInto),
+							unpack.Canonicalize(attrType.GetCanonicalizer(currentFilePackage)),
 						}).UnpackInto(thread, defaultValue, &defaultValue); err != nil {
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
@@ -737,26 +763,30 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
-			"string_list_dict": starlark.NewBuiltin(
+			"string_list_dict": eval.NewBuiltin(
 				"attr.string_list_dict",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 1 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 1 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 					}
 					var allowEmpty bool
 					configurable := true
-					var defaultValue starlark.Value = starlark.NewDict(0)
+					var defaultValue eval.Value = eval.NewDict()
 					doc := ""
 					mandatory := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
 						// Positional arguments.
-						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
 						// Keyword arguments.
-						"configurable?", unpack.Bind(thread, &configurable, unpack.Bool),
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"default?", &defaultValue,
-						"doc?", unpack.Bind(thread, &doc, unpack.String),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
+						"doc?", unpack.Bind(&doc, unpack.String),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
@@ -765,9 +795,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if mandatory {
 						defaultValue = nil
 					} else {
-						if err := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
-							unpack.Canonicalize(namedFunctionUnpackerInto),
-							unpack.Canonicalize(attrType.GetCanonicalizer(CurrentFilePackage(thread, 1))),
+						if err := unpack.Or([]unpack.UnpackerInto[eval.Value]{
+							unpack.Canonicalize(functionUnpackerInto),
+							unpack.Canonicalize(attrType.GetCanonicalizer(currentFilePackage)),
 						}).UnpackInto(thread, defaultValue, &defaultValue); err != nil {
 							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
 						}
@@ -777,29 +807,29 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 			),
 		}),
 		"config": NewStructFromDict[TReference, TMetadata](nil, map[string]any{
-			"bool": starlark.NewBuiltin(
+			"bool": eval.NewBuiltin(
 				"config.bool",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 					flag := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"flag?", unpack.Bind(thread, &flag, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"flag?", unpack.Bind(&flag, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
 					return NewBuildSetting(NewBoolBuildSettingType[TReference, TMetadata](), flag), nil
 				},
 			),
-			"exec": starlark.NewBuiltin(
+			"exec": eval.NewBuiltin(
 				"config.exec",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					execGroup := ""
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"exec_group?", unpack.Bind(thread, &execGroup, unpack.IfNotNone(unpack.String)),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"exec_group?", unpack.Bind(&execGroup, unpack.IfNotNone(unpack.String)),
 					); err != nil {
 						return nil, err
 					}
@@ -816,96 +846,96 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					), nil
 				},
 			),
-			"int": starlark.NewBuiltin(
+			"int": eval.NewBuiltin(
 				"config.int",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 					flag := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"flag?", unpack.Bind(thread, &flag, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"flag?", unpack.Bind(&flag, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
 					return NewBuildSetting(NewIntBuildSettingType[TReference, TMetadata](), flag), nil
 				},
 			),
-			"label_list": starlark.NewBuiltin(
+			"label_list": eval.NewBuiltin(
 				"config.label_list",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 					flag := false
 					repeatable := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"flag?", unpack.Bind(thread, &flag, unpack.Bool),
-						"repeatable?", unpack.Bind(thread, &repeatable, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"flag?", unpack.Bind(&flag, unpack.Bool),
+						"repeatable?", unpack.Bind(&repeatable, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
 					return NewBuildSetting(NewLabelListBuildSettingType[TReference, TMetadata](repeatable), flag), nil
 				},
 			),
-			"none": starlark.NewBuiltin(
+			"none": eval.NewBuiltin(
 				"config.none",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					if err := eval.UnpackArgs(thread, b.Name(), args); err != nil {
 						return nil, err
 					}
 					return NewTransition(noneTransitionDefinition), nil
 				},
 			),
-			"string": starlark.NewBuiltin(
+			"string": eval.NewBuiltin(
 				"config.string",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 					flag := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"flag?", unpack.Bind(thread, &flag, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"flag?", unpack.Bind(&flag, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
 					return NewBuildSetting(NewStringBuildSettingType[TReference, TMetadata](), flag), nil
 				},
 			),
-			"string_list": starlark.NewBuiltin(
+			"string_list": eval.NewBuiltin(
 				"config.string_list",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					if len(args.Positional) > 0 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 					flag := false
 					repeatable := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"flag?", unpack.Bind(thread, &flag, unpack.Bool),
-						"repeatable?", unpack.Bind(thread, &repeatable, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"flag?", unpack.Bind(&flag, unpack.Bool),
+						"repeatable?", unpack.Bind(&repeatable, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
 					return NewBuildSetting(NewStringListBuildSettingType[TReference, TMetadata](repeatable), flag), nil
 				},
 			),
-			"target": starlark.NewBuiltin(
+			"target": eval.NewBuiltin(
 				"config.target",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					if err := eval.UnpackArgs(thread, b.Name(), args); err != nil {
 						return nil, err
 					}
 					return NewTransition(targetTransitionDefinition), nil
 				},
 			),
-			"unconfigured": starlark.NewBuiltin(
+			"unconfigured": eval.NewBuiltin(
 				"config.unconfigured",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					if err := eval.UnpackArgs(thread, b.Name(), args); err != nil {
 						return nil, err
 					}
 					return NewTransition(unconfiguredTransitionDefinition), nil
@@ -913,18 +943,22 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 			),
 		}),
 		"config_common": NewStructFromDict[TReference, TMetadata](nil, map[string]any{
-			"toolchain_type": starlark.NewBuiltin(
+			"toolchain_type": eval.NewBuiltin(
 				"config_common.toolchain_type",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					if len(args) > 1 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 1 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 					}
 					var name pg_label.ResolvedLabel
 					mandatory := true
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"name", unpack.Bind(thread, &name, NewLabelOrStringUnpackerInto[TReference, TMetadata](CurrentFilePackage(thread, 1))),
-						"mandatory?", unpack.Bind(thread, &mandatory, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"name", unpack.Bind(&name, NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage)),
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
@@ -932,22 +966,22 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				},
 			),
 		}),
-		"depset": starlark.NewBuiltin(
+		"depset": eval.NewBuiltin(
 			"depset",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 2 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 2", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				if len(args.Positional) > 2 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 2", b.Name(), len(args.Positional))
 				}
-				var direct []starlark.Value
+				var direct []eval.Value
 				order := "default"
 				var transitive []*Depset[TReference, TMetadata]
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
 					// Positional arguments.
-					"direct?", unpack.Bind(thread, &direct, unpack.IfNotNone(unpack.List(unpack.Any))),
+					"direct?", unpack.Bind(&direct, unpack.IfNotNone(unpack.List(unpack.Any))),
 					// Keyword arguments.
-					"order?", unpack.Bind(thread, &order, unpack.String),
-					"transitive?", unpack.Bind(thread, &transitive, unpack.IfNotNone(unpack.List(unpack.Type[*Depset[TReference, TMetadata]]("depset")))),
+					"order?", unpack.Bind(&order, unpack.String),
+					"transitive?", unpack.Bind(&transitive, unpack.IfNotNone(unpack.List(unpack.Type[*Depset[TReference, TMetadata]]("depset")))),
 				); err != nil {
 					return nil, err
 				}
@@ -977,45 +1011,48 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				return NewDepset(dc, identifierGenerator.(ReferenceEqualIdentifierGenerator)), nil
 			},
 		),
-		"exec_group": starlark.NewBuiltin(
+		"exec_group": eval.NewBuiltin(
 			"exec_group",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 0 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				currentFilePackage, err := CurrentFilePackage(thread)
+				if err != nil {
+					return nil, err
+				}
+				if len(args.Positional) > 0 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 				}
 				var execCompatibleWith []pg_label.ResolvedLabel
 				var toolchains []*ToolchainType[TReference, TMetadata]
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
-					"exec_compatible_with?", unpack.Bind(thread, &execCompatibleWith, unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](CurrentFilePackage(thread, 1)))),
-					"toolchains?", unpack.Bind(thread, &toolchains, unpack.List(toolchainTypeUnpackerInto)),
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
+					"exec_compatible_with?", unpack.Bind(&execCompatibleWith, unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage))),
+					"toolchains?", unpack.Bind(&toolchains, unpack.List(toolchainTypeUnpackerInto)),
 				); err != nil {
 					return nil, err
 				}
 				return NewExecGroup(execCompatibleWith, toolchains), nil
 			},
 		),
-		"json": NewStructFromDict[TReference, TMetadata](nil, stringDictToStructFields(json.Module.Members)),
-		"macro": starlark.NewBuiltin(
+		"macro": eval.NewBuiltin(
 			"macro",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 1 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				if len(args.Positional) > 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 				}
-				var implementation NamedFunction[TReference, TMetadata]
+				var implementation eval.Function
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				doc := ""
 				finalizer := false
 				var inheritAttrs inheritableAttrsSource[TReference, TMetadata] = noInheritableAttrs[TReference, TMetadata]{}
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
 					// Positional arguments.
-					"implementation", unpack.Bind(thread, &implementation, namedFunctionUnpackerInto),
+					"implementation", unpack.Bind(&implementation, functionUnpackerInto),
 					// Keyword arguments.
-					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.IfNotNone(unpack.Type[*Attr[TReference, TMetadata]]("attr.*")))),
-					"doc?", unpack.Bind(thread, &doc, unpack.String),
-					"finalizer?", unpack.Bind(thread, &finalizer, unpack.Bool),
-					"inherit_attrs?", unpack.Bind(thread, &inheritAttrs, unpack.IfNotNone(inheritableAttrsSourceUnpackerInto[TReference, TMetadata]{})),
+					"attrs?", unpack.Bind(&attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.IfNotNone(unpack.Type[*Attr[TReference, TMetadata]]("attr.*")))),
+					"doc?", unpack.Bind(&doc, unpack.String),
+					"finalizer?", unpack.Bind(&finalizer, unpack.Bool),
+					"inherit_attrs?", unpack.Bind(&inheritAttrs, unpack.IfNotNone(inheritableAttrsSourceUnpackerInto[TReference, TMetadata]{})),
 				); err != nil {
 					return nil, err
 				}
@@ -1051,28 +1088,28 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				), nil
 			},
 		),
-		"module_extension": starlark.NewBuiltin(
+		"module_extension": eval.NewBuiltin(
 			"module_extension",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 1 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				if len(args.Positional) > 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 				}
-				var implementation NamedFunction[TReference, TMetadata]
+				var implementation eval.Function
 				archDependent := false
 				doc := ""
 				var environ []string
 				osDependent := false
 				var tagClasses map[pg_label.StarlarkIdentifier]*TagClass[TReference, TMetadata]
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
 					// Positional arguments.
-					"implementation", unpack.Bind(thread, &implementation, namedFunctionUnpackerInto),
+					"implementation", unpack.Bind(&implementation, functionUnpackerInto),
 					// Keyword arguments.
-					"arch_dependent?", unpack.Bind(thread, &archDependent, unpack.Bool),
-					"doc?", unpack.Bind(thread, &doc, unpack.String),
-					"environ?", unpack.Bind(thread, &environ, unpack.List(unpack.String)),
-					"os_dependent?", unpack.Bind(thread, &osDependent, unpack.Bool),
-					"tag_classes?", unpack.Bind(thread, &tagClasses, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*TagClass[TReference, TMetadata]]("tag_class"))),
+					"arch_dependent?", unpack.Bind(&archDependent, unpack.Bool),
+					"doc?", unpack.Bind(&doc, unpack.String),
+					"environ?", unpack.Bind(&environ, unpack.List(unpack.String)),
+					"os_dependent?", unpack.Bind(&osDependent, unpack.Bool),
+					"tag_classes?", unpack.Bind(&tagClasses, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*TagClass[TReference, TMetadata]]("tag_class"))),
 				); err != nil {
 					return nil, err
 				}
@@ -1080,9 +1117,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 			},
 		),
 		"native": NewStructFromDict[TReference, TMetadata](nil, map[string]any{
-			"alias": starlark.NewBuiltin(
+			"alias": eval.NewBuiltin(
 				"native.alias",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 					if targetRegistrar == nil {
 						return nil, errors.New("targets cannot be registered from within this context")
@@ -1095,13 +1132,13 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var tags []string
 					visibility := targetRegistrar.getOmittedVisibility()
 					labelOrStringUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"name", unpack.Bind(thread, &name, unpack.Stringer(unpack.TargetName)),
-						"actual", unpack.Bind(thread, &actual, NewSelectUnpackerInto[TReference, TMetadata](unpack.IfNotNone(labelOrStringUnpackerInto))),
-						"deprecation?", unpack.Bind(thread, &deprecation, unpack.String),
-						"tags?", unpack.Bind(thread, &tags, unpack.List(unpack.String)),
-						"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"name", unpack.Bind(&name, unpack.Stringer(unpack.TargetName)),
+						"actual", unpack.Bind(&actual, NewSelectUnpackerInto[TReference, TMetadata](unpack.IfNotNone(labelOrStringUnpackerInto))),
+						"deprecation?", unpack.Bind(&deprecation, unpack.String),
+						"tags?", unpack.Bind(&tags, unpack.List(unpack.String)),
+						"visibility?", unpack.Bind(&visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 					); err != nil {
 						return nil, err
 					}
@@ -1113,8 +1150,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					patcher := visibilityPackageGroup.Patcher
 
 					valueEncodingOptions := thread.Local(ValueEncodingOptionsKey).(*ValueEncodingOptions[TReference, TMetadata])
-					actualGroups, _, err := actual.EncodeGroups(
-						/* path = */ map[starlark.Value]struct{}{},
+					actualGroups, err := actual.EncodeGroups(
+						thread,
+						/* path = */ nil,
 						valueEncodingOptions,
 					)
 					if err != nil {
@@ -1125,7 +1163,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					}
 					patcher.Merge(actualGroups.Patcher)
 
-					actual.VisitLabels(thread, map[starlark.Value]struct{}{}, func(l pg_label.ResolvedLabel) error {
+					actual.VisitLabels(thread, nil, func(l pg_label.ResolvedLabel) error {
 						if canonicalLabel, err := l.AsCanonical(); err == nil {
 							if canonicalLabel.GetCanonicalPackage() == currentPackage {
 								targetRegistrar.registerImplicitTarget(l.GetTargetName().String())
@@ -1134,7 +1172,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil
 					})
 
-					return starlark.None, targetRegistrar.registerExplicitTarget(
+					return eval.None, targetRegistrar.registerExplicitTarget(
 						name,
 						model_core.NewPatchedMessage(
 							&model_starlark_pb.Target_Definition{
@@ -1150,54 +1188,54 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					)
 				},
 			),
-			"bazel_version": starlark.String("10.0.0"),
-			"current_ctx": starlark.NewBuiltin(
+			"bazel_version": eval.String("10.0.0"),
+			"current_ctx": eval.NewBuiltin(
 				"native.current_ctx",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					// This function is an extension. It
 					// is provided to implement functions
 					// like cc_internal.actions2ctx_cheat().
 					// It should be removed once the C++
 					// rules have been fully converted to
 					// Starlark.
-					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+					if err := eval.UnpackArgs(thread, b.Name(), args); err != nil {
 						return nil, err
 					}
 					currentCtx := thread.Local(CurrentCtxKey)
 					if currentCtx == nil {
 						return nil, errors.New("this function can only be called from within a rule implementation function")
 					}
-					return currentCtx.(starlark.Value), nil
+					return currentCtx.(eval.Value), nil
 				},
 			),
-			"existing_rule": starlark.NewBuiltin(
+			"existing_rule": eval.NewBuiltin(
 				"native.existing_rule",
 				nativeExistingRule[TReference, TMetadata],
 			),
-			"existing_rules": starlark.NewBuiltin(
+			"existing_rules": eval.NewBuiltin(
 				"native.existing_rules",
 				nativeExistingRules[TReference, TMetadata],
 			),
-			"exports_files": starlark.NewBuiltin(
+			"exports_files": eval.NewBuiltin(
 				"native.exports_files",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 					if targetRegistrar == nil {
 						return nil, errors.New("targets cannot be registered from within this context")
 					}
 					currentPackage := thread.Local(CanonicalPackageKey).(pg_label.CanonicalPackage)
 
-					if len(args) > 1 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+					if len(args.Positional) > 1 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 					}
 					var srcs []string
 					visibility := targetRegistrar.getOmittedVisibility()
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
 						// Positional arguments.
-						"srcs", unpack.Bind(thread, &srcs, unpack.List(unpack.Stringer(unpack.TargetName))),
+						"srcs", unpack.Bind(&srcs, unpack.List(unpack.Stringer(unpack.TargetName))),
 						// Keyword arguments.
-						"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
+						"visibility?", unpack.Bind(&visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 					); err != nil {
 						return nil, err
 					}
@@ -1236,12 +1274,12 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, err
 						}
 					}
-					return starlark.None, nil
+					return eval.None, nil
 				},
 			),
-			"glob": starlark.NewBuiltin(
+			"glob": eval.NewBuiltin(
 				"native.glob",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					globExpander := thread.Local(GlobExpanderKey)
 					if globExpander == nil {
 						return nil, fmt.Errorf("globs cannot be expanded within this context")
@@ -1251,12 +1289,12 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var exclude []string
 					excludeDirectories := 1
 					allowEmpty := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"include", unpack.Bind(thread, &include, unpack.List(unpack.String)),
-						"exclude?", unpack.Bind(thread, &exclude, unpack.List(unpack.String)),
-						"exclude_directories?", unpack.Bind(thread, &excludeDirectories, unpack.Int[int]()),
-						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"include", unpack.Bind(&include, unpack.List(unpack.String)),
+						"exclude?", unpack.Bind(&exclude, unpack.List(unpack.String)),
+						"exclude_directories?", unpack.Bind(&excludeDirectories, unpack.Int[int]()),
+						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
@@ -1269,28 +1307,28 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, errors.New("glob does not match any source files")
 					}
 
-					labels := make([]starlark.Value, 0, len(targetNames))
+					labels := make([]eval.Value, 0, len(targetNames))
 					for _, targetName := range targetNames {
-						labels = append(labels, starlark.String(targetName))
+						labels = append(labels, eval.String(targetName))
 					}
-					return starlark.NewList(labels), nil
+					return eval.NewList(labels), nil
 				},
 			),
-			"label_flag": starlark.NewBuiltin(
+			"label_flag": eval.NewBuiltin(
 				"native.label_flag",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					return labelSetting[TReference, TMetadata](thread, b, args, kwargs, true)
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					return labelSetting[TReference, TMetadata](thread, b, args, true)
 				},
 			),
-			"label_setting": starlark.NewBuiltin(
+			"label_setting": eval.NewBuiltin(
 				"native.label_setting",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					return labelSetting[TReference, TMetadata](thread, b, args, kwargs, false)
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					return labelSetting[TReference, TMetadata](thread, b, args, false)
 				},
 			),
-			"package_group": starlark.NewBuiltin(
+			"package_group": eval.NewBuiltin(
 				"native.package_group",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 					if targetRegistrar == nil {
 						return nil, errors.New("targets cannot be registered from within this context")
@@ -1300,17 +1338,17 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var name string
 					var packages []string
 					var includes []string
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"name", unpack.Bind(thread, &name, unpack.Stringer(unpack.TargetName)),
-						"packages?", unpack.Bind(thread, &packages, unpack.List(unpack.String)),
-						"includes?", unpack.Bind(thread, &includes, unpack.List(unpack.Stringer(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)))),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"name", unpack.Bind(&name, unpack.Stringer(unpack.TargetName)),
+						"packages?", unpack.Bind(&packages, unpack.List(unpack.String)),
+						"includes?", unpack.Bind(&includes, unpack.List(unpack.Stringer(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)))),
 					); err != nil {
 						return nil, err
 					}
 
 					slices.Sort(includes)
-					return starlark.None, targetRegistrar.registerExplicitTarget(
+					return eval.None, targetRegistrar.registerExplicitTarget(
 						name,
 						model_core.NewSimplePatchedMessage[TMetadata](
 							&model_starlark_pb.Target_Definition{
@@ -1329,22 +1367,22 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					)
 				},
 			),
-			"module_name": starlark.NewBuiltin(
+			"module_name": eval.NewBuiltin(
 				"native.module_name",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					canonicalPackage := thread.Local(CanonicalPackageKey)
 					if canonicalPackage == nil {
 						return nil, errors.New("module name cannot be obtained from within this context")
 					}
 
-					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+					if err := eval.UnpackArgs(thread, b.Name(), args); err != nil {
 						return nil, err
 					}
 
 					// For repos declared by module
 					// extensions, this is the name of the
 					// module hosting the extension.
-					return starlark.String(
+					return eval.String(
 						canonicalPackage.(pg_label.CanonicalPackage).
 							GetCanonicalRepo().
 							GetModuleInstance().
@@ -1353,15 +1391,15 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					), nil
 				},
 			),
-			"module_version": starlark.NewBuiltin(
+			"module_version": eval.NewBuiltin(
 				"native.module_version",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					canonicalPackage := thread.Local(CanonicalPackageKey)
 					if canonicalPackage == nil {
 						return nil, errors.New("module version cannot be obtained from within this context")
 					}
 
-					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+					if err := eval.UnpackArgs(thread, b.Name(), args); err != nil {
 						return nil, err
 					}
 
@@ -1376,29 +1414,29 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						GetModuleInstance().
 						GetModuleVersion()
 					if !ok {
-						return starlark.String(""), nil
+						return eval.String(""), nil
 					}
-					return starlark.String(version.String()), nil
+					return eval.String(version.String()), nil
 				},
 			),
-			"package_name": starlark.NewBuiltin(
+			"package_name": eval.NewBuiltin(
 				"native.package_name",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					canonicalPackage := thread.Local(CanonicalPackageKey)
 					if canonicalPackage == nil {
 						return nil, errors.New("package name cannot be obtained from within this context")
 					}
 
-					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+					if err := eval.UnpackArgs(thread, b.Name(), args); err != nil {
 						return nil, err
 					}
 
-					return starlark.String(canonicalPackage.(pg_label.CanonicalPackage).GetPackagePath()), nil
+					return eval.String(canonicalPackage.(pg_label.CanonicalPackage).GetPackagePath()), nil
 				},
 			),
-			"package_relative_label": starlark.NewBuiltin(
+			"package_relative_label": eval.NewBuiltin(
 				"native.package_relative_label",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					// This function is identical to Label(),
 					// except that it resolves the label
 					// relative to the package for which targets
@@ -1409,37 +1447,37 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, errors.New("package relative labels cannot be resolved from within this context")
 					}
 
-					if len(args) != 1 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 1", b.Name(), len(args))
+					if len(args.Positional) != 1 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want 1", b.Name(), len(args.Positional))
 					}
 					var input pg_label.ResolvedLabel
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"input", unpack.Bind(thread, &input, NewLabelOrStringUnpackerInto[TReference, TMetadata](canonicalPackage.(pg_label.CanonicalPackage))),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"input", unpack.Bind(&input, NewLabelOrStringUnpackerInto[TReference, TMetadata](canonicalPackage.(pg_label.CanonicalPackage))),
 					); err != nil {
 						return nil, err
 					}
 					return NewLabel[TReference, TMetadata](input), nil
 				},
 			),
-			"repo_name": starlark.NewBuiltin(
+			"repo_name": eval.NewBuiltin(
 				"native.repo_name",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					canonicalPackage := thread.Local(CanonicalPackageKey)
 					if canonicalPackage == nil {
 						return nil, errors.New("repo name cannot be obtained from within this context")
 					}
 
-					if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+					if err := eval.UnpackArgs(thread, b.Name(), args); err != nil {
 						return nil, err
 					}
 
-					return starlark.String(canonicalPackage.(pg_label.CanonicalPackage).GetCanonicalRepo().String()), nil
+					return eval.String(canonicalPackage.(pg_label.CanonicalPackage).GetCanonicalRepo().String()), nil
 				},
 			),
-			"subpackages": starlark.NewBuiltin(
+			"subpackages": eval.NewBuiltin(
 				"native.subpackages",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					subpackagesExpander := thread.Local(SubpackagesExpanderKey)
 					if subpackagesExpander == nil {
 						return nil, errors.New("subpackages cannot be expanded within this context")
@@ -1448,11 +1486,11 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var include []string
 					var exclude []string
 					allowEmpty := false
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"include", unpack.Bind(thread, &include, unpack.List(unpack.String)),
-						"exclude?", unpack.Bind(thread, &exclude, unpack.List(unpack.String)),
-						"allow_empty?", unpack.Bind(thread, &allowEmpty, unpack.Bool),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"include", unpack.Bind(&include, unpack.List(unpack.String)),
+						"exclude?", unpack.Bind(&exclude, unpack.List(unpack.String)),
+						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
 					); err != nil {
 						return nil, err
 					}
@@ -1465,16 +1503,16 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, errors.New("subpackages does not match any packages")
 					}
 
-					values := make([]starlark.Value, 0, len(packagePaths))
+					values := make([]eval.Value, 0, len(packagePaths))
 					for _, packagePath := range packagePaths {
-						values = append(values, starlark.String(packagePath))
+						values = append(values, eval.String(packagePath))
 					}
-					return starlark.NewList(values), nil
+					return eval.NewList(values), nil
 				},
 			),
-			"test_suite": starlark.NewBuiltin(
+			"test_suite": eval.NewBuiltin(
 				"native.test_suite",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 					if targetRegistrar == nil {
 						return nil, errors.New("targets cannot be registered from within this context")
@@ -1486,12 +1524,12 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					var tags []string
 					visibility := targetRegistrar.getOmittedVisibility()
 					labelOrStringUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"name", unpack.Bind(thread, &name, unpack.Stringer(unpack.TargetName)),
-						"tags?", unpack.Bind(thread, &tags, unpack.List(unpack.String)),
-						"tests?", unpack.Bind(thread, &tests, unpack.List(labelOrStringUnpackerInto)),
-						"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"name", unpack.Bind(&name, unpack.Stringer(unpack.TargetName)),
+						"tags?", unpack.Bind(&tags, unpack.List(unpack.String)),
+						"tests?", unpack.Bind(&tests, unpack.List(labelOrStringUnpackerInto)),
+						"visibility?", unpack.Bind(&visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 					); err != nil {
 						return nil, err
 					}
@@ -1532,35 +1570,35 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					// If no tests are listed, the tests
 					// in the current package are filled
 					// in by TargetRegistrar.Finalize().
-					return starlark.None, targetRegistrar.registerExplicitTarget(name, target)
+					return eval.None, targetRegistrar.registerExplicitTarget(name, target)
 				},
 			),
 		}),
-		"provider": starlark.NewBuiltin(
+		"provider": eval.NewBuiltin(
 			"provider",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 1 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				if len(args.Positional) > 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 				}
 				doc := ""
-				var computedFields map[string]NamedFunction[TReference, TMetadata]
+				var computedFields map[string]eval.Function
 				dictLike := false
 				var fields any
-				var init *NamedFunction[TReference, TMetadata]
+				var init eval.Function
 				typeName := ""
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
 					// Positional arguments.
-					"doc?", unpack.Bind(thread, &doc, unpack.String),
+					"doc?", unpack.Bind(&doc, unpack.String),
 					// Keyword arguments.
-					"computed_fields?", unpack.Bind(thread, &computedFields, unpack.Dict(unpack.String, namedFunctionUnpackerInto)),
-					"dict_like?", unpack.Bind(thread, &dictLike, unpack.Bool),
-					"fields?", unpack.Bind(thread, &fields, unpack.IfNotNone(unpack.Or([]unpack.UnpackerInto[any]{
+					"computed_fields?", unpack.Bind(&computedFields, unpack.Dict(unpack.String, functionUnpackerInto)),
+					"dict_like?", unpack.Bind(&dictLike, unpack.Bool),
+					"fields?", unpack.Bind(&fields, unpack.IfNotNone(unpack.Or([]unpack.UnpackerInto[any]{
 						unpack.Decay(unpack.Dict(unpack.String, unpack.String)),
 						unpack.Decay(unpack.List(unpack.String)),
 					}))),
-					"init?", unpack.Bind(thread, &init, unpack.Pointer(namedFunctionUnpackerInto)),
-					"type_name?", unpack.Bind(thread, &typeName, unpack.String),
+					"init?", unpack.Bind(&init, functionUnpackerInto),
+					"type_name?", unpack.Bind(&typeName, unpack.String),
 				); err != nil {
 					return nil, err
 				}
@@ -1578,7 +1616,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				sort.Strings(fieldNames)
 				fieldNames = slices.Compact(fieldNames)
 
-				instanceProperties := NewProviderInstanceProperties(nil, dictLike, computedFields, typeName)
+				instanceProperties := NewProviderInstanceProperties[TReference, TMetadata](nil, dictLike, computedFields, typeName)
 
 				// If an init function is provided, we're
 				// supposed to return both the provider with
@@ -1587,34 +1625,34 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				if init == nil {
 					return bareProvider, nil
 				}
-				return starlark.Tuple{
+				return eval.NewTuple([]eval.Value{
 					NewProvider(instanceProperties, fieldNames, init),
 					bareProvider,
-				}, nil
+				}), nil
 			},
 		),
-		"repository_rule": starlark.NewBuiltin(
+		"repository_rule": eval.NewBuiltin(
 			"repository_rule",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 1 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				if len(args.Positional) > 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 				}
-				var implementation NamedFunction[TReference, TMetadata]
+				var implementation eval.Function
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				configure := false
 				doc := ""
 				var environ []string
 				local := false
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
 					// Positional arguments.
-					"implementation", unpack.Bind(thread, &implementation, namedFunctionUnpackerInto),
+					"implementation", unpack.Bind(&implementation, functionUnpackerInto),
 					// Keyword arguments.
-					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
-					"configure?", unpack.Bind(thread, &configure, unpack.Bool),
-					"doc?", unpack.Bind(thread, &doc, unpack.String),
-					"environ?", unpack.Bind(thread, &environ, unpack.List(unpack.String)),
-					"local?", unpack.Bind(thread, &local, unpack.Bool),
+					"attrs?", unpack.Bind(&attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
+					"configure?", unpack.Bind(&configure, unpack.Bool),
+					"doc?", unpack.Bind(&doc, unpack.String),
+					"environ?", unpack.Bind(&environ, unpack.List(unpack.String)),
+					"local?", unpack.Bind(&local, unpack.Bool),
 				); err != nil {
 					return nil, err
 				}
@@ -1624,14 +1662,17 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				return NewRepositoryRule(nil, NewStarlarkRepositoryRuleDefinition(implementation, attrs)), nil
 			},
 		),
-		"rule": starlark.NewBuiltin(
+		"rule": eval.NewBuiltin(
 			"rule",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 1 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				currentFilePackage, err := CurrentFilePackage(thread)
+				if err != nil {
+					return nil, err
 				}
-				currentFilePackage := CurrentFilePackage(thread, 1)
-				var implementation NamedFunction[TReference, TMetadata]
+				if len(args.Positional) > 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
+				}
+				var implementation eval.Function
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				var buildSetting *BuildSetting[TReference, TMetadata]
 				cfg := targetTransitionDefinition
@@ -1640,7 +1681,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				executable := false
 				var execCompatibleWith []pg_label.ResolvedLabel
 				var fragments []pg_label.TargetName
-				var initializer *NamedFunction[TReference, TMetadata]
+				var initializer eval.Function
 				var needs []string
 				outputs := map[pg_label.StarlarkIdentifier]string{}
 				var provides []*Provider[TReference, TMetadata]
@@ -1648,27 +1689,27 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				test := false
 				var toolchains []*ToolchainType[TReference, TMetadata]
 				skylarkTestable := false
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
 					// Positional arguments.
-					"implementation", unpack.Bind(thread, &implementation, namedFunctionUnpackerInto),
+					"implementation", unpack.Bind(&implementation, functionUnpackerInto),
 					// Keyword arguments.
-					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
-					"build_setting?", unpack.Bind(thread, &buildSetting, unpack.IfNotNone(unpack.Type[*BuildSetting[TReference, TMetadata]]("config.*"))),
-					"cfg?", unpack.Bind(thread, &cfg, transitionDefinitionUnpackerInto),
-					"doc?", unpack.Bind(thread, &doc, unpack.String),
-					"executable?", unpack.Bind(thread, &executable, unpack.Bool),
-					"exec_compatible_with?", unpack.Bind(thread, &execCompatibleWith, unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage))),
-					"exec_groups?", unpack.Bind(thread, &execGroups, unpack.Dict(unpack.String, unpack.Type[*ExecGroup[TReference, TMetadata]]("exec_group"))),
-					"fragments?", unpack.Bind(thread, &fragments, unpack.List(unpack.TargetName)),
-					"initializer?", unpack.Bind(thread, &initializer, unpack.IfNotNone(unpack.Pointer(namedFunctionUnpackerInto))),
-					"outputs?", unpack.Bind(thread, &outputs, unpack.Dict(unpack.StarlarkIdentifier, unpack.String)),
-					"needs?", unpack.Bind(thread, &needs, unpack.IfNotNone(unpack.List(unpack.String))),
-					"provides?", unpack.Bind(thread, &provides, unpack.List(unpack.Type[*Provider[TReference, TMetadata]]("provider"))),
-					"subrules?", unpack.Bind(thread, &subrules, unpack.List(unpack.Type[*Subrule[TReference, TMetadata]]("subrule"))),
-					"test?", unpack.Bind(thread, &test, unpack.Bool),
-					"toolchains?", unpack.Bind(thread, &toolchains, unpack.List(toolchainTypeUnpackerInto)),
-					"_skylark_testable?", unpack.Bind(thread, &skylarkTestable, unpack.Bool),
+					"attrs?", unpack.Bind(&attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
+					"build_setting?", unpack.Bind(&buildSetting, unpack.IfNotNone(unpack.Type[*BuildSetting[TReference, TMetadata]]("config.*"))),
+					"cfg?", unpack.Bind(&cfg, transitionDefinitionUnpackerInto),
+					"doc?", unpack.Bind(&doc, unpack.String),
+					"executable?", unpack.Bind(&executable, unpack.Bool),
+					"exec_compatible_with?", unpack.Bind(&execCompatibleWith, unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage))),
+					"exec_groups?", unpack.Bind(&execGroups, unpack.Dict(unpack.String, unpack.Type[*ExecGroup[TReference, TMetadata]]("exec_group"))),
+					"fragments?", unpack.Bind(&fragments, unpack.List(unpack.TargetName)),
+					"initializer?", unpack.Bind(&initializer, unpack.IfNotNone(functionUnpackerInto)),
+					"outputs?", unpack.Bind(&outputs, unpack.Dict(unpack.StarlarkIdentifier, unpack.String)),
+					"needs?", unpack.Bind(&needs, unpack.IfNotNone(unpack.List(unpack.String))),
+					"provides?", unpack.Bind(&provides, unpack.List(unpack.Type[*Provider[TReference, TMetadata]]("provider"))),
+					"subrules?", unpack.Bind(&subrules, unpack.List(unpack.Type[*Subrule[TReference, TMetadata]]("subrule"))),
+					"test?", unpack.Bind(&test, unpack.Bool),
+					"toolchains?", unpack.Bind(&toolchains, unpack.List(toolchainTypeUnpackerInto)),
+					"_skylark_testable?", unpack.Bind(&skylarkTestable, unpack.Bool),
 				); err != nil {
 					return nil, err
 				}
@@ -1726,7 +1767,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if _, ok := attrs[name]; ok {
 						return nil, fmt.Errorf("predeclared output %#v has the same name as existing attr", name)
 					}
-					attrs[name] = NewAttr[TReference, TMetadata](NewOutputAttrType[TReference, TMetadata](template), starlark.String(template), false)
+					attrs[name] = NewAttr[TReference, TMetadata](NewOutputAttrType[TReference, TMetadata](template), eval.String(template), false)
 				}
 
 				if err := convertFragmentsToAttr(fragments, attrs, targetTransitionDefinition); err != nil {
@@ -1781,39 +1822,39 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				)), nil
 			},
 		),
-		"struct": starlark.NewBuiltin(
+		"struct": eval.NewBuiltin(
 			"struct",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) != 0 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				if len(args.Positional) != 0 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 				}
-				entries := make(map[string]any, len(kwargs))
-				for _, kwarg := range kwargs {
-					entries[string(kwarg[0].(starlark.String))] = kwarg[1]
+				entries := make(map[string]any, len(args.Named))
+				for _, kwarg := range args.Named {
+					entries[kwarg.Name] = kwarg.Value
 				}
 				return NewStructFromDict[TReference, TMetadata](nil, entries), nil
 			},
 		),
-		"subrule": starlark.NewBuiltin(
+		"subrule": eval.NewBuiltin(
 			"subrule",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 1 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				if len(args.Positional) > 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 				}
-				var implementation NamedFunction[TReference, TMetadata]
+				var implementation eval.Function
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				var fragments []pg_label.TargetName
 				var subrules []*Subrule[TReference, TMetadata]
 				var toolchains []*ToolchainType[TReference, TMetadata]
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
 					// Positional arguments.
-					"implementation", unpack.Bind(thread, &implementation, namedFunctionUnpackerInto),
+					"implementation", unpack.Bind(&implementation, functionUnpackerInto),
 					// Keyword arguments.
-					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
-					"fragments?", unpack.Bind(thread, &fragments, unpack.List(unpack.TargetName)),
-					"subrules?", unpack.Bind(thread, &subrules, unpack.List(unpack.Type[*Subrule[TReference, TMetadata]]("subrule"))),
-					"toolchains?", unpack.Bind(thread, &toolchains, unpack.List(toolchainTypeUnpackerInto)),
+					"attrs?", unpack.Bind(&attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
+					"fragments?", unpack.Bind(&fragments, unpack.List(unpack.TargetName)),
+					"subrules?", unpack.Bind(&subrules, unpack.List(unpack.Type[*Subrule[TReference, TMetadata]]("subrule"))),
+					"toolchains?", unpack.Bind(&toolchains, unpack.List(toolchainTypeUnpackerInto)),
 				); err != nil {
 					return nil, err
 				}
@@ -1832,20 +1873,20 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				)), nil
 			},
 		),
-		"tag_class": starlark.NewBuiltin(
+		"tag_class": eval.NewBuiltin(
 			"tag_class",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 1 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				if len(args.Positional) > 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 				}
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				doc := ""
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
 					// Positional arguments.
-					"attrs?", unpack.Bind(thread, &attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
+					"attrs?", unpack.Bind(&attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
 					// Keyword arguments.
-					"doc?", unpack.Bind(thread, &doc, unpack.String),
+					"doc?", unpack.Bind(&doc, unpack.String),
 				); err != nil {
 					return nil, err
 				}
@@ -1855,53 +1896,57 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				return NewTagClass(NewStarlarkTagClassDefinition[TReference, TMetadata](attrs)), nil
 			},
 		),
-		"transition": starlark.NewBuiltin(
+		"transition": eval.NewBuiltin(
 			"transition",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) > 0 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				currentFilePackage, err := CurrentFilePackage(thread)
+				if err != nil {
+					return nil, err
 				}
-				var implementation NamedFunction[TReference, TMetadata]
+				if len(args.Positional) > 0 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
+				}
+				var implementation eval.Function
 				var inputs []string
 				var outputs []string
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
-					"implementation", unpack.Bind(thread, &implementation, namedFunctionUnpackerInto),
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
+					"implementation", unpack.Bind(&implementation, functionUnpackerInto),
 					// Don't convert inputs and outputs to labels.
 					// The provided strings should not be
 					// normalized, as they need to become the keys
 					// of the dict provided to the implementation
 					// function.
-					"inputs", unpack.Bind(thread, &inputs, unpack.List(unpack.String)),
-					"outputs", unpack.Bind(thread, &outputs, unpack.List(unpack.String)),
+					"inputs", unpack.Bind(&inputs, unpack.List(unpack.String)),
+					"outputs", unpack.Bind(&outputs, unpack.List(unpack.String)),
 				); err != nil {
 					return nil, err
 				}
 				sort.Strings(inputs)
 				sort.Strings(outputs)
 				return NewTransition(
-					NewUserDefinedTransitionDefinition(
+					NewUserDefinedTransitionDefinition[TReference, TMetadata](
 						nil,
 						implementation,
 						slices.Compact(inputs),
 						slices.Compact(outputs),
-						CurrentFilePackage(thread, 1),
+						currentFilePackage,
 					),
 				), nil
 			},
 		),
-		"visibility": starlark.NewBuiltin(
+		"visibility": eval.NewBuiltin(
 			"visibility",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 				// TODO: Implement!
-				return starlark.None, nil
+				return eval.None, nil
 			},
 		),
 	}
-	buildFileBuiltins := starlark.StringDict{
-		"package": starlark.NewBuiltin(
+	buildFileBuiltins := map[string]eval.Value{
+		"package": eval.NewBuiltin(
 			"package",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 				targetRegistrar := thread.Local(TargetRegistrarKey).(*TargetRegistrar[TReference, TMetadata])
 				if targetRegistrar.setDefaultInheritableAttrs {
 					return nil, fmt.Errorf("%s: function can only be invoked once", b.Name())
@@ -1915,7 +1960,6 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					thread,
 					b,
 					args,
-					kwargs,
 					targetRegistrar.defaultInheritableAttrs,
 					targetRegistrar.encoder,
 					targetRegistrar.inlinedTreeOptions,
@@ -1930,46 +1974,54 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					newDefaultAttrs,
 				).Decay()
 				targetRegistrar.setDefaultInheritableAttrs = true
-				return starlark.None, nil
+				return eval.None, nil
 			},
 		),
 	}
 
-	for k, v := range (starlark.StringDict{
-		"Label": starlark.NewBuiltin(
+	for k, v := range map[string]eval.Value{
+		"Label": eval.NewBuiltin(
 			"Label",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) != 1 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want 1", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				currentFilePackage, err := CurrentFilePackage(thread)
+				if err != nil {
+					return nil, err
+				}
+				if len(args.Positional) != 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want 1", b.Name(), len(args.Positional))
 				}
 				var input pg_label.ResolvedLabel
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
-					"input", unpack.Bind(thread, &input, NewLabelOrStringUnpackerInto[TReference, TMetadata](CurrentFilePackage(thread, 1))),
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
+					"input", unpack.Bind(&input, NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage)),
 				); err != nil {
 					return nil, err
 				}
 				return NewLabel[TReference, TMetadata](input), nil
 			},
 		),
-		"select": starlark.NewBuiltin(
+		"select": eval.NewBuiltin(
 			"select",
-			func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if len(args) != 1 {
-					return nil, fmt.Errorf("%s: got %d positional arguments, want 1", b.Name(), len(args))
+			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				currentFilePackage, err := CurrentFilePackage(thread)
+				if err != nil {
+					return nil, err
+				}
+				if len(args.Positional) != 1 {
+					return nil, fmt.Errorf("%s: got %d positional arguments, want 1", b.Name(), len(args.Positional))
 				}
 
 				currentPackage := thread.Local(CanonicalPackageKey)
 				if currentPackage == nil {
-					currentPackage = CurrentFilePackage(thread, 1)
+					currentPackage = currentFilePackage
 				}
 
-				var conditions map[pg_label.ResolvedLabel]starlark.Value
+				var conditions map[pg_label.ResolvedLabel]eval.Value
 				noMatchError := ""
-				if err := starlark.UnpackArgs(
-					b.Name(), args, kwargs,
-					"conditions", unpack.Bind(thread, &conditions, unpack.Dict(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage.(pg_label.CanonicalPackage)), unpack.Any)),
-					"no_match_error?", unpack.Bind(thread, &noMatchError, unpack.String),
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
+					"conditions", unpack.Bind(&conditions, unpack.Dict(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage.(pg_label.CanonicalPackage)), unpack.Any)),
+					"no_match_error?", unpack.Bind(&noMatchError, unpack.String),
 				); err != nil {
 					return nil, err
 				}
@@ -1977,7 +2029,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				// Even though select() takes the default
 				// condition as part of the dictionary, we store
 				// the default value separately. Extract it.
-				var defaultValue starlark.Value
+				var defaultValue eval.Value
 				for label, value := range conditions {
 					if label.GetPackagePath() == "conditions" && label.GetTargetName().String() == "default" {
 						if defaultValue != nil {
@@ -1994,7 +2046,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				), nil
 			},
 		),
-	}) {
+	} {
 		bzlFileBuiltins[k] = v
 		buildFileBuiltins[k] = v
 	}

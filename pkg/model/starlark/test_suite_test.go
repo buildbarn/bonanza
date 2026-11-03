@@ -10,12 +10,12 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
-	"go.starlark.net/starlark"
 
 	"go.uber.org/mock/gomock"
 )
@@ -32,12 +32,12 @@ func TestTestSuite(t *testing.T) {
 	referenceFormat := util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1))
 	encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 	bzlFileBuiltins, _ := model_starlark.GetBuiltins[object.LocalReference, model_core.CreatedObjectTree]()
-	testSuiteBuiltin := util.Must(bzlFileBuiltins["native"].(starlark.HasAttrs).Attr(&starlark.Thread{}, "test_suite"))
+	testSuiteBuiltin := util.Must(bzlFileBuiltins["native"].(eval.HasAttrs).Attr(newTestThread(t), "test_suite"))
 	labelResolver := NewMockLabelResolver(ctrl)
 
 	// newPackage creates a Starlark thread for evaluating a BUILD
 	// file in package @@main+//foo.
-	newPackage := func(t *testing.T) (*starlark.Thread, *model_starlark.TargetRegistrar[object.LocalReference, model_core.CreatedObjectTree]) {
+	newPackage := func(t *testing.T) (*eval.Thread, *model_starlark.TargetRegistrar[object.LocalReference, model_core.CreatedObjectTree]) {
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		targetRegistrar := model_starlark.NewTargetRegistrar[object.LocalReference, model_core.CreatedObjectTree](
 			ctx,
@@ -51,7 +51,7 @@ func TestTestSuite(t *testing.T) {
 		)
 		t.Cleanup(targetRegistrar.Discard)
 
-		thread := &starlark.Thread{}
+		thread := newTestThread(t)
 		thread.SetLocal(model_starlark.TargetRegistrarKey, targetRegistrar)
 		thread.SetLocal(model_starlark.CanonicalPackageKey, util.Must(label.NewCanonicalPackage("@@main+//foo")))
 		thread.SetLocal(model_starlark.LabelResolverKey, labelResolver)
@@ -67,7 +67,7 @@ func TestTestSuite(t *testing.T) {
 	}
 	// finalize fills in the tests of test suites that don't list
 	// any tests explicitly.
-	finalize := func(thread *starlark.Thread, targetRegistrar *model_starlark.TargetRegistrar[object.LocalReference, model_core.CreatedObjectTree]) error {
+	finalize := func(thread *eval.Thread, targetRegistrar *model_starlark.TargetRegistrar[object.LocalReference, model_core.CreatedObjectTree]) error {
 		return targetRegistrar.Finalize(
 			thread.Local(model_starlark.CanonicalPackageKey).(label.CanonicalPackage),
 			thread.Local(model_starlark.ValueEncodingOptionsKey).(*model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]),
@@ -84,20 +84,20 @@ func TestTestSuite(t *testing.T) {
 	// callTestSuite invokes test_suite() from within a BUILD file
 	// in package @@main+//foo, returning the test suite that is
 	// registered.
-	callTestSuite := func(t *testing.T, kwargs ...starlark.Tuple) (*model_starlark_pb.TestSuite, error) {
+	callTestSuite := func(t *testing.T, kwargs ...eval.NamedArg) (*model_starlark_pb.TestSuite, error) {
 		thread, targetRegistrar := newPackage(t)
-		if _, err := starlark.Call(thread, testSuiteBuiltin, nil, append([]starlark.Tuple{{starlark.String("name"), starlark.String("suite")}}, kwargs...)); err != nil {
+		if _, err := eval.Call(thread, testSuiteBuiltin, eval.Args{Named: append([]eval.NamedArg{{Name: "name", Value: eval.String("suite")}}, kwargs...)}); err != nil {
 			return nil, err
 		}
 		require.NoError(t, finalize(thread, targetRegistrar))
 		return getTestSuite(t, targetRegistrar, "suite"), nil
 	}
-	stringList := func(values ...string) starlark.Value {
-		l := make([]starlark.Value, 0, len(values))
+	stringList := func(values ...string) eval.Value {
+		l := make([]eval.Value, 0, len(values))
 		for _, v := range values {
-			l = append(l, starlark.String(v))
+			l = append(l, eval.String(v))
 		}
-		return starlark.NewList(l)
+		return eval.NewList(l)
 	}
 
 	t.Run("Defaults", func(t *testing.T) {
@@ -114,10 +114,7 @@ func TestTestSuite(t *testing.T) {
 	t.Run("Tests", func(t *testing.T) {
 		// Labels of tests should be resolved, sorted and
 		// deduplicated.
-		testSuite, err := callTestSuite(t, starlark.Tuple{
-			starlark.String("tests"),
-			stringList("c", "//bar:b", ":a", "@@main+//foo:a"),
-		})
+		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tests", Value: stringList("c", "//bar:b", ":a", "@@main+//foo:a")})
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
 			Tests: []*model_starlark_pb.TestSuite_Test{
@@ -136,7 +133,7 @@ func TestTestSuite(t *testing.T) {
 		// module). This should not cause test_suite() to fail.
 		labelResolver.EXPECT().GetCanonicalRepo(util.Must(label.NewCanonicalRepo("main+")), util.Must(label.NewApparentRepo("dev"))).Return(nil, nil)
 
-		testSuite, err := callTestSuite(t, starlark.Tuple{starlark.String("tests"), stringList("@dev//:t")})
+		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tests", Value: stringList("@dev//:t")})
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
 			Tests: []*model_starlark_pb.TestSuite_Test{
@@ -153,7 +150,7 @@ func TestTestSuite(t *testing.T) {
 		// This should also apply to tests that are declared
 		// after the test suite.
 		thread, targetRegistrar := newPackage(t)
-		newRule := func(ruleType model_starlark_pb.Rule_Definition_Type) starlark.Value {
+		newRule := func(ruleType model_starlark_pb.Rule_Definition_Type) eval.Value {
 			identifier := util.Must(label.NewCanonicalStarlarkIdentifier("@@rules+//:defs.bzl%my_rule"))
 			return model_starlark.NewRule(
 				&identifier,
@@ -162,7 +159,7 @@ func TestTestSuite(t *testing.T) {
 					/* buildSetting = */ nil,
 					/* cfg = */ nil,
 					/* execGroups = */ nil,
-					/* implementation = */ model_starlark.NamedFunction[object.LocalReference, model_core.CreatedObjectTree]{},
+					/* implementation = */ nil,
 					/* initializer = */ nil,
 					/* provides = */ nil,
 					ruleType,
@@ -172,22 +169,22 @@ func TestTestSuite(t *testing.T) {
 		}
 		myTest := newRule(model_starlark_pb.Rule_Definition_TEST)
 		myLibrary := newRule(model_starlark_pb.Rule_Definition_NON_EXECUTABLE)
-		call := func(callee starlark.Value, kwargs ...starlark.Tuple) {
-			_, err := starlark.Call(thread, callee, nil, kwargs)
+		call := func(callee eval.Value, kwargs ...eval.NamedArg) {
+			_, err := eval.Call(thread, callee, eval.Args{Named: kwargs})
 			require.NoError(t, err)
 		}
-		name := func(name string) starlark.Tuple {
-			return starlark.Tuple{starlark.String("name"), starlark.String(name)}
+		name := func(name string) eval.NamedArg {
+			return eval.NamedArg{Name: "name", Value: eval.String(name)}
 		}
 
-		call(myTest, name("a_small"), starlark.Tuple{starlark.String("size"), starlark.String("small")})
+		call(myTest, name("a_small"), eval.NamedArg{Name: "size", Value: eval.String("small")})
 		call(testSuiteBuiltin, name("all"))
-		call(testSuiteBuiltin, name("small_without_flaky"), starlark.Tuple{starlark.String("tags"), stringList("small", "-flaky")})
-		call(myTest, name("b_large"), starlark.Tuple{starlark.String("size"), starlark.String("large")})
-		call(myTest, name("c_flaky"), starlark.Tuple{starlark.String("tags"), stringList("flaky")})
-		call(myTest, name("d_manual"), starlark.Tuple{starlark.String("tags"), stringList("manual")})
+		call(testSuiteBuiltin, name("small_without_flaky"), eval.NamedArg{Name: "tags", Value: stringList("small", "-flaky")})
+		call(myTest, name("b_large"), eval.NamedArg{Name: "size", Value: eval.String("large")})
+		call(myTest, name("c_flaky"), eval.NamedArg{Name: "tags", Value: stringList("flaky")})
+		call(myTest, name("d_manual"), eval.NamedArg{Name: "tags", Value: stringList("manual")})
 		call(myLibrary, name("e_library"))
-		call(testSuiteBuiltin, name("explicit"), starlark.Tuple{starlark.String("tests"), stringList(":d_manual")})
+		call(testSuiteBuiltin, name("explicit"), eval.NamedArg{Name: "tests", Value: stringList(":d_manual")})
 		require.NoError(t, finalize(thread, targetRegistrar))
 
 		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
@@ -221,10 +218,7 @@ func TestTestSuite(t *testing.T) {
 		// tags, test sizes, and the "manual" tag. Prefixing a
 		// tag with "+" should allow filtering on tags that
 		// would otherwise have a special meaning.
-		testSuite, err := callTestSuite(t, starlark.Tuple{
-			starlark.String("tags"),
-			stringList("small", "-flaky", "manual", "+manual", "+small", "requires-network", "-medium", "-nightly", "requires-network"),
-		})
+		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList("small", "-flaky", "manual", "+manual", "+small", "requires-network", "-medium", "-nightly", "requires-network")})
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
 			PositiveTags: []string{"manual", "requires-network"},
@@ -238,7 +232,7 @@ func TestTestSuite(t *testing.T) {
 		// test_suite().
 		tags := model_starlark.GetTestSuiteTags(testSuite)
 		require.Equal(t, []string{"+manual", "-flaky", "-nightly", "manual", "requires-network", "small"}, tags)
-		reconstructedTestSuite, err := callTestSuite(t, starlark.Tuple{starlark.String("tags"), stringList(tags...)})
+		reconstructedTestSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList(tags...)})
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, testSuite, reconstructedTestSuite)
 
@@ -250,7 +244,7 @@ func TestTestSuite(t *testing.T) {
 	t.Run("NegativeSizesOnly", func(t *testing.T) {
 		// Only excluding sizes should cause all other sizes to
 		// be included.
-		testSuite, err := callTestSuite(t, starlark.Tuple{starlark.String("tags"), stringList("-enormous", "-small")})
+		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList("-enormous", "-small")})
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
 			Sizes: []model_starlark_pb.TestSize{
@@ -260,7 +254,7 @@ func TestTestSuite(t *testing.T) {
 		}, testSuite)
 		tags := model_starlark.GetTestSuiteTags(testSuite)
 		require.Equal(t, []string{"-enormous", "-small"}, tags)
-		reconstructedTestSuite, err := callTestSuite(t, starlark.Tuple{starlark.String("tags"), stringList(tags...)})
+		reconstructedTestSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList(tags...)})
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, testSuite, reconstructedTestSuite)
 	})
@@ -268,7 +262,7 @@ func TestTestSuite(t *testing.T) {
 	t.Run("SingleSizeRemaining", func(t *testing.T) {
 		// Excluding all sizes but one should be equivalent to
 		// selecting that size.
-		testSuite, err := callTestSuite(t, starlark.Tuple{starlark.String("tags"), stringList("-enormous", "-large", "-small")})
+		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList("-enormous", "-large", "-small")})
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
 			Sizes: []model_starlark_pb.TestSize{model_starlark_pb.TestSize_MEDIUM},
@@ -277,7 +271,7 @@ func TestTestSuite(t *testing.T) {
 	})
 
 	t.Run("ManualOnly", func(t *testing.T) {
-		testSuite, err := callTestSuite(t, starlark.Tuple{starlark.String("tags"), stringList("manual")})
+		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList("manual")})
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
 			Sizes:  allTestSizes,
@@ -288,7 +282,7 @@ func TestTestSuite(t *testing.T) {
 	})
 
 	t.Run("OverlappingTags", func(t *testing.T) {
-		_, err := callTestSuite(t, starlark.Tuple{starlark.String("tags"), stringList("foo", "-foo")})
+		_, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList("foo", "-foo")})
 		require.EqualError(t, err, "attribute \"tags\": tag \"foo\" is both positive and negative")
 	})
 
@@ -302,7 +296,7 @@ func TestTestSuite(t *testing.T) {
 			{"small", "+medium"},
 			{"-small", "-medium", "-large", "-enormous"},
 		} {
-			_, err := callTestSuite(t, starlark.Tuple{starlark.String("tags"), stringList(tags...)})
+			_, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList(tags...)})
 			require.EqualError(t, err, "attribute \"tags\": no eligible test sizes", tags)
 		}
 	})

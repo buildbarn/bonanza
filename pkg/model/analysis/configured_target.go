@@ -23,6 +23,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 
@@ -2341,7 +2342,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 	var inputs *model_starlark.Depset[TReference, TMetadata]
 	mnemonic := ""
 	var progressMessage string
-	var resourceSet *model_starlark.NamedFunction[TReference, TMetadata]
+	var resourceSet eval.Function
 	var toolchain *label.ResolvedLabel
 	var tools []any
 	useDefaultShellEnv := false
@@ -2371,7 +2372,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 		})),
 		"mnemonic?", unpack.Bind(thread, &mnemonic, unpack.IfNotNone(unpack.String)),
 		"progress_message?", unpack.Bind(thread, &progressMessage, unpack.IfNotNone(unpack.String)),
-		"resource_set?", unpack.Bind(thread, &resourceSet, unpack.IfNotNone(unpack.Pointer(model_starlark.NewNamedFunctionUnpackerInto[TReference, TMetadata]()))),
+		"resource_set?", unpack.Bind(thread, &resourceSet, unpack.IfNotNone(unpack.Type[eval.Function]("function"))),
 		"toolchain?", unpack.Bind(thread, &toolchain, unpack.IfNotNone(unpack.Pointer(model_starlark.NewLabelOrStringUnpackerInto[TReference, TMetadata](model_starlark.CurrentFilePackage(thread, 1))))),
 		"tools?", unpack.Bind(thread, &tools, unpack.Or([]unpack.UnpackerInto[[]any]{
 			unpack.Singleton(unpack.Decay(unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))),
@@ -3293,7 +3294,7 @@ type argsAdd[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	startWith         *wrapperspb.StringValue
 	values            starlark.Value
 	expandDirectories bool
-	mapEach           *model_starlark.NamedFunction[TReference, TMetadata]
+	mapEach           eval.Function
 	formatEach        string
 	omitIfEmpty       bool
 	uniquify          bool
@@ -3544,7 +3545,7 @@ func (a *args[TReference, TMetadata]) doAddAll(thread *starlark.Thread, b *starl
 		return nil, err
 	}
 
-	var mapEach *model_starlark.NamedFunction[TReference, TMetadata]
+	var mapEach eval.Function
 	formatEach := "%s"
 	var beforeEachStr *string
 	omitIfEmpty := true
@@ -3554,7 +3555,7 @@ func (a *args[TReference, TMetadata]) doAddAll(thread *starlark.Thread, b *starl
 	allowClosure := false
 	if err := starlark.UnpackArgs(
 		b.Name(), nil, kwargs,
-		"map_each?", unpack.Bind(thread, &mapEach, unpack.Pointer(model_starlark.NewNamedFunctionUnpackerInto[TReference, TMetadata]())),
+		"map_each?", unpack.Bind(thread, &mapEach, unpack.Type[eval.Function]("function")),
 		"format_each?", unpack.Bind(thread, &formatEach, unpack.IfNotNone(unpack.String)),
 		"before_each?", unpack.Bind(thread, &beforeEachStr, unpack.IfNotNone(unpack.Pointer(unpack.String))),
 		"omit_if_empty?", unpack.Bind(thread, &omitIfEmpty, unpack.Bool),
@@ -3610,7 +3611,7 @@ func (a *args[TReference, TMetadata]) doAddJoined(thread *starlark.Thread, b *st
 	}
 
 	var joinWith string
-	var mapEach *model_starlark.NamedFunction[TReference, TMetadata]
+	var mapEach eval.Function
 	formatEach := "%s"
 	formatJoined := "%s"
 	omitIfEmpty := true
@@ -3620,7 +3621,7 @@ func (a *args[TReference, TMetadata]) doAddJoined(thread *starlark.Thread, b *st
 	if err := starlark.UnpackArgs(
 		b.Name(), nil, kwargs,
 		"join_with?", unpack.Bind(thread, &joinWith, unpack.String),
-		"map_each?", unpack.Bind(thread, &mapEach, unpack.Pointer(model_starlark.NewNamedFunctionUnpackerInto[TReference, TMetadata]())),
+		"map_each?", unpack.Bind(thread, &mapEach, unpack.Type[eval.Function]("function")),
 		"format_each?", unpack.Bind(thread, &formatEach, unpack.IfNotNone(unpack.String)),
 		"format_joined?", unpack.Bind(thread, &formatJoined, unpack.IfNotNone(unpack.String)),
 		"omit_if_empty?", unpack.Bind(thread, &omitIfEmpty, unpack.Bool),

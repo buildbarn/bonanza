@@ -407,12 +407,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				// If it has two parameters, it is invoked
 				// with a DirectoryExpander that can be used
 				// to selectively perform expansion.
-				numParams, err := mapEachFunc.NumParams(thread)
+				mapEachFuncode, err := mapEachFunc.Funcode(thread)
 				if err != nil {
 					return PatchedTargetActionCommandValue[TMetadata]{}, fmt.Errorf("unable to determine number of parameters of map_each function: %w", err)
 				}
 				var mapEachFuncArgs starlark.Tuple
-				switch numParams {
+				switch mapEachFuncode.NumParams {
 				case 1:
 					mapEachFuncArgs = make(starlark.Tuple, 1)
 				case 2:

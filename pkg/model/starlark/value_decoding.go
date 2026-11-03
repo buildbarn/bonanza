@@ -19,10 +19,11 @@ import (
 // ValueReaders contains all of the message object readers that are
 // needed to decode any type of Starlark value object.
 type ValueReaders[TReference any] struct {
-	Dict                  model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry]
-	List                  model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
-	PackageGroupOverrides model_parser.MessageObjectReader[TReference, *model_starlark_pb.PackageGroup_Subpackages_Overrides]
-	TestSuiteTest         model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
+	CompiledProgramFunctions model_parser.MessageObjectReader[TReference, []*model_starlark_pb.CompiledProgram_FunctionEntry]
+	Dict                     model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry]
+	List                     model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
+	PackageGroupOverrides    model_parser.MessageObjectReader[TReference, *model_starlark_pb.PackageGroup_Subpackages_Overrides]
+	TestSuiteTest            model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
 }
 
 // ValueDecodingOptionsKey is the key under which an instance of
@@ -120,10 +121,15 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 		if err != nil {
 			return nil, err
 		}
+		// Builtins may either be provided by Bonanza, or be part
+		// of the core language (e.g., len() or json.encode()).
 		parts := strings.Split(typedValue.Builtin, ".")
 		builtin, ok := options.BzlFileBuiltins[parts[0]]
 		if !ok {
-			return nil, fmt.Errorf("builtin %#v does not exist", parts[0])
+			builtin, ok = eval.Universe()[parts[0]]
+			if !ok {
+				return nil, fmt.Errorf("builtin %#v does not exist", parts[0])
+			}
 		}
 		for i := 1; i < len(parts); i++ {
 			hasAttrs, ok := builtin.(eval.HasAttrs)

@@ -10,22 +10,20 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
 
-	"github.com/buildbarn/bb-storage/pkg/testutil"
-	"github.com/stretchr/testify/require"
+	"bonanza.build/pkg/starlark/eval"
 
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
+	"github.com/buildbarn/bb-storage/pkg/testutil"
+	"github.com/buildbarn/bb-storage/pkg/util"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAttrConfigurable(t *testing.T) {
-	bzlFileBuiltins, _ := model_starlark.GetBuiltins[object.LocalReference, model_core.CreatedObjectTree]()
-	execGlobals := func(code string) (starlark.StringDict, error) {
-		return starlark.ExecFileOptions(
-			&syntax.FileOptions{},
-			&starlark.Thread{},
-			"@@rules+//:defs.bzl",
+	execGlobals := func(code string) (map[string]eval.Value, error) {
+		return execBzlFile(
+			newTestThread(t),
+			util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl")),
 			"def _impl(ctx):\n    pass\n"+code,
-			bzlFileBuiltins,
+			nil,
 		)
 	}
 	exec := func(code string) error {
@@ -57,7 +55,7 @@ func TestAttrConfigurable(t *testing.T) {
 		globals, err := execGlobals("OUTPUT = attr.output()\nOUTPUT_LIST = attr.output_list()\n")
 		require.NoError(t, err)
 		for _, name := range []string{"OUTPUT", "OUTPUT_LIST"} {
-			encodedAttr, _, err := globals[name].(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(map[starlark.Value]struct{}{}, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+			encodedAttr, err := globals[name].(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(newTestThread(t), nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
 			require.NoError(t, err)
 			require.False(t, encodedAttr.Message.GetAttr().Configurable)
 		}
@@ -67,21 +65,23 @@ func TestAttrConfigurable(t *testing.T) {
 		// Whether an attribute is configurable should be
 		// preserved when encoding and decoding it.
 		for _, configurable := range []bool{true, false} {
-			encodedAttr, _, err := model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
+			encodedAttr, err := model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
 				model_starlark.NewStringAttrType[object.LocalReference, model_core.CreatedObjectTree](nil),
 				/* defaultValue = */ nil,
 				configurable,
-			).EncodeValue(map[starlark.Value]struct{}{}, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+			).EncodeValue(newTestThread(t), nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
 			require.NoError(t, err)
 			require.Equal(t, configurable, encodedAttr.Message.GetAttr().Configurable)
 
+			thread := newTestThread(t)
+			thread.SetLocal(model_starlark.ValueDecodingOptionsKey, &model_starlark.ValueDecodingOptions[object.LocalReference]{})
 			decodedAttr, err := model_starlark.DecodeValue[object.LocalReference, model_core.CreatedObjectTree](
+				thread,
 				model_core.NewSimpleMessage[object.LocalReference](encodedAttr.Message),
 				nil,
-				&model_starlark.ValueDecodingOptions[object.LocalReference]{},
 			)
 			require.NoError(t, err)
-			reencodedAttr, _, err := decodedAttr.(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(map[starlark.Value]struct{}{}, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+			reencodedAttr, err := decodedAttr.(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(thread, nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
 			require.NoError(t, err)
 			testutil.RequireEqualProto(t, encodedAttr.Message, reencodedAttr.Message)
 		}

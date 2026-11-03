@@ -10,13 +10,12 @@ import (
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
 
 	"google.golang.org/protobuf/types/known/emptypb"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 // Attr represents a Starlark rule attribute object. These are typically
@@ -25,7 +24,7 @@ import (
 // repository rule.
 type Attr[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	attrType     AttrType[TReference, TMetadata]
-	defaultValue starlark.Value
+	defaultValue eval.Value
 	configurable bool
 }
 
@@ -36,7 +35,7 @@ var _ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*At
 // used when the rule is called without specifying the attribute. If no
 // default value is given, the attribute is mandatory. Only attributes
 // of symbolic macros may be marked as not being configurable.
-func NewAttr[TReference any, TMetadata model_core.ReferenceMetadata](attrType AttrType[TReference, TMetadata], defaultValue starlark.Value, configurable bool) *Attr[TReference, TMetadata] {
+func NewAttr[TReference any, TMetadata model_core.ReferenceMetadata](attrType AttrType[TReference, TMetadata], defaultValue eval.Value, configurable bool) *Attr[TReference, TMetadata] {
 	return &Attr[TReference, TMetadata]{
 		attrType:     attrType,
 		defaultValue: defaultValue,
@@ -82,11 +81,13 @@ func (a *Attr[TReference, TMetadata]) clearDefaultValue() *Attr[TReference, TMet
 	if a.defaultValue == nil {
 		return a
 	}
-	return NewAttr(a.attrType, starlark.None, a.configurable)
+	return NewAttr(a.attrType, eval.None, a.configurable)
 }
 
-func (a *Attr[TReference, TMetadata]) String() string {
-	return fmt.Sprintf("<attr.%s>", a.attrType.Type())
+// Repr writes the representation of a Starlark rule attribute object.
+func (a *Attr[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString(fmt.Sprintf("<attr.%s>", a.attrType.Type()))
+	return nil
 }
 
 // Type returns the type name of a Starlark rule attribute object in
@@ -95,60 +96,44 @@ func (a *Attr[TReference, TMetadata]) Type() string {
 	return "attr." + a.attrType.Type()
 }
 
-// Freeze a Starlark rule attribute object, so that it can no longer be
-// mutated. This has no effect, as Starlark rule attribute objects have
-// no mutable properties.
-func (Attr[TReference, TMetadata]) Freeze() {}
-
 // Truth returns whether a Starlark rule attribute object is a "truthy"
 // or a "falsy". Starlark rule attribute objects are always "truthy".
-func (Attr[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-// Hash a Starlark rule attribute object, so that it can be placed in a
-// set or used as a key in a dict. However, Starlark rule attribute
-// objects do not permit this.
-func (a *Attr[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, fmt.Errorf("attr.%s cannot be hashed", a.attrType.Type())
+func (Attr[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 // Encode a Starlark rule attribute object, so that it can be written to
 // storage.
-func (a *Attr[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata], bool, error) {
-	needsCode := false
+func (a *Attr[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata], error) {
 	attr, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_starlark_pb.Attr, error) {
 		attr := model_starlark_pb.Attr{
 			Configurable: a.configurable,
 		}
 		if a.defaultValue != nil {
-			defaultValue, defaultValueNeedsCode, err := EncodeValue[TReference, TMetadata](a.defaultValue, path, nil, options)
+			defaultValue, err := EncodeValue[TReference, TMetadata](thread, a.defaultValue, path, nil, options)
 			if err != nil {
 				return nil, err
 			}
 			attr.Default = defaultValue.Merge(patcher)
-			needsCode = needsCode || defaultValueNeedsCode
 		}
 
-		if err := a.attrType.Encode(path, options, model_core.NewPatchedMessage(&attr, patcher)); err != nil {
+		if err := a.attrType.Encode(thread, path, options, model_core.NewPatchedMessage(&attr, patcher)); err != nil {
 			return nil, err
 		}
 		return &attr, nil
 	})
-	return attr, needsCode, err
+	return attr, err
 }
 
 // EncodeValue encodes a Starlark rule attribute object to a generic
 // Starlark value Protobuf message, so that it can be written to
 // storage.
-func (a *Attr[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
-	needsCode := false
+func (a *Attr[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	value, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_starlark_pb.Value, error) {
-		attr, attrNeedsCode, err := a.Encode(path, options)
+		attr, err := a.Encode(thread, path, options)
 		if err != nil {
 			return nil, err
 		}
-		needsCode = needsCode || attrNeedsCode
 
 		return &model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_Attr{
@@ -156,14 +141,14 @@ func (a *Attr[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 			},
 		}, nil
 	})
-	return value, needsCode, err
+	return value, err
 }
 
 // AttrType contains the properties of a rule attribute that are
 // specific to the rule attribute's type.
 type AttrType[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	Type() string
-	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error
+	Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error
 	GetCanonicalizer(currentPackage pg_label.CanonicalPackage) unpack.Canonicalizer
 	IsOutput() (filenameTemplate string, ok bool)
 }
@@ -173,8 +158,8 @@ type AttrType[TReference any, TMetadata model_core.ReferenceMetadata] interface 
 // zero and one, which it converts to False and True, respectively.
 type sloppyBoolUnpackerInto struct{}
 
-func (sloppyBoolUnpackerInto) UnpackInto(thread *starlark.Thread, v starlark.Value, dst *bool) error {
-	if vInt, ok := v.(starlark.Int); ok {
+func (sloppyBoolUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst *bool) error {
+	if vInt, ok := v.(eval.Int); ok {
 		if n, ok := vInt.Int64(); ok {
 			switch n {
 			case 0:
@@ -189,12 +174,12 @@ func (sloppyBoolUnpackerInto) UnpackInto(thread *starlark.Thread, v starlark.Val
 	return unpack.Bool.UnpackInto(thread, v, dst)
 }
 
-func (ui sloppyBoolUnpackerInto) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+func (ui sloppyBoolUnpackerInto) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	var b bool
 	if err := ui.UnpackInto(thread, v, &b); err != nil {
 		return nil, err
 	}
-	return starlark.Bool(b), nil
+	return eval.Bool(b), nil
 }
 
 func (sloppyBoolUnpackerInto) GetConcatenationOperator() syntax.Token {
@@ -213,7 +198,7 @@ func (boolAttrType[TReference, TMetadata]) Type() string {
 	return "bool"
 }
 
-func (boolAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (boolAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_Bool{
 		Bool: &emptypb.Empty{},
 	}
@@ -244,7 +229,7 @@ func (intAttrType[TReference, TMetadata]) Type() string {
 	return "int"
 }
 
-func (at *intAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (at *intAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_Int{
 		Int: &model_starlark_pb.Attr_IntType{
 			Values: at.values,
@@ -274,7 +259,7 @@ func (intListAttrType[TReference, TMetadata]) Type() string {
 	return "int"
 }
 
-func (intListAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (intListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_IntList{
 		IntList: &model_starlark_pb.Attr_IntListType{},
 	}
@@ -313,8 +298,8 @@ func (labelAttrType[TReference, TMetadata]) Type() string {
 	return "label"
 }
 
-func (at *labelAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	valueCfg, err := at.valueCfg.Encode(path, options)
+func (at *labelAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+	valueCfg, err := at.valueCfg.Encode(thread, path, options)
 	if err != nil {
 		return err
 	}
@@ -363,8 +348,8 @@ func (labelKeyedStringDictAttrType[TReference, TMetadata]) Type() string {
 	return "label_keyed_string_dict"
 }
 
-func (at *labelKeyedStringDictAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	dictKeyCfg, err := at.dictKeyCfg.Encode(path, options)
+func (at *labelKeyedStringDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+	dictKeyCfg, err := at.dictKeyCfg.Encode(thread, path, options)
 	if err != nil {
 		return err
 	}
@@ -406,8 +391,8 @@ func (labelListAttrType[TReference, TMetadata]) Type() string {
 	return "label_list"
 }
 
-func (at *labelListAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	listValueCfg, err := at.listValueCfg.Encode(path, options)
+func (at *labelListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+	listValueCfg, err := at.listValueCfg.Encode(thread, path, options)
 	if err != nil {
 		return err
 	}
@@ -446,7 +431,7 @@ func (outputAttrType[TReference, TMetadata]) Type() string {
 	return "output"
 }
 
-func (at *outputAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (at *outputAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_Output{
 		Output: &model_starlark_pb.Attr_OutputType{
 			FilenameTemplate: at.filenameTemplate,
@@ -476,7 +461,7 @@ func (outputListAttrType[TReference, TMetadata]) Type() string {
 	return "output_list"
 }
 
-func (outputListAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (outputListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_OutputList{
 		OutputList: &model_starlark_pb.Attr_OutputListType{},
 	}
@@ -507,7 +492,7 @@ func (stringAttrType[TReference, TMetadata]) Type() string {
 	return "string"
 }
 
-func (stringAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (stringAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_String_{
 		String_: &model_starlark_pb.Attr_StringType{},
 	}
@@ -535,7 +520,7 @@ func (stringDictAttrType[TReference, TMetadata]) Type() string {
 	return "string_dict"
 }
 
-func (stringDictAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (stringDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_StringDict{
 		StringDict: &model_starlark_pb.Attr_StringDictType{},
 	}
@@ -563,7 +548,7 @@ func (stringListAttrType[TReference, TMetadata]) Type() string {
 	return "string_list"
 }
 
-func (stringListAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (stringListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_StringList{
 		StringList: &model_starlark_pb.Attr_StringListType{},
 	}
@@ -597,8 +582,8 @@ func (stringKeyedLabelDictAttrType[TReference, TMetadata]) Type() string {
 	return "string_keyed_label_dict"
 }
 
-func (at *stringKeyedLabelDictAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	dictValueCfg, err := at.dictValueCfg.Encode(path, options)
+func (at *stringKeyedLabelDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+	dictValueCfg, err := at.dictValueCfg.Encode(thread, path, options)
 	if err != nil {
 		return err
 	}
@@ -634,7 +619,7 @@ func (stringListDictAttrType[TReference, TMetadata]) Type() string {
 	return "string_list_dict"
 }
 
-func (stringListDictAttrType[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (stringListDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_StringListDict{
 		StringListDict: &model_starlark_pb.Attr_StringListDictType{},
 	}
@@ -649,25 +634,24 @@ func (stringListDictAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-func encodeNamedAttrs[TReference any, TMetadata model_core.ReferenceMetadata](attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_starlark_pb.NamedAttr, TMetadata], bool, error) {
+func encodeNamedAttrs[TReference any, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_starlark_pb.NamedAttr, TMetadata], error) {
 	encodedAttrs := make([]*model_starlark_pb.NamedAttr, 0, len(attrs))
 	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
-	needsCode := false
 	for _, name := range slices.SortedFunc(
 		maps.Keys(attrs),
 		func(a, b pg_label.StarlarkIdentifier) int { return strings.Compare(a.String(), b.String()) },
 	) {
-		attr, attrNeedsCode, err := attrs[name].Encode(path, options)
+		attr, err := attrs[name].Encode(thread, path, options)
 		if err != nil {
-			return model_core.PatchedMessage[[]*model_starlark_pb.NamedAttr, TMetadata]{}, false, fmt.Errorf("attr %#v: %w", name, err)
+			patcher.Discard()
+			return model_core.PatchedMessage[[]*model_starlark_pb.NamedAttr, TMetadata]{}, fmt.Errorf("attr %#v: %w", name, err)
 		}
 		encodedAttrs = append(encodedAttrs, &model_starlark_pb.NamedAttr{
 			Name: name.String(),
 			Attr: attr.Merge(patcher),
 		})
-		needsCode = needsCode || attrNeedsCode
 	}
-	return model_core.NewPatchedMessage(encodedAttrs, patcher), needsCode, nil
+	return model_core.NewPatchedMessage(encodedAttrs, patcher), nil
 }
 
 // VisitAttrValueLabels calls a function for each label contained in

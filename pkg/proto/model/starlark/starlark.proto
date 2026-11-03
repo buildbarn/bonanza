@@ -8,9 +8,54 @@ import "google/protobuf/empty.proto";
 option go_package = "bonanza.build/pkg/proto/model/starlark";
 
 message CompiledProgram {
+  // Globals of the file that may be accessed by other files, or by
+  // functions declared in the file. This includes all public globals,
+  // and private globals that are referenced by functions.
   Struct.Fields globals = 1;
 
-  bytes code = 2;
+  message FunctionEntry {
+    message Leaf {
+      // The name of the function.
+      Function.Name name = 1;
+
+      // The code of the function, including that of all functions
+      // nested inside it.
+      Funcode code = 2;
+    }
+
+    message Parent {
+      // Reference to an object containing additional entries.
+      bonanza.model.core.DecodableReference reference = 1
+          [(bonanza.model.core.object_format) = {
+            proto_list_type_name:
+              "bonanza.model.starlark.CompiledProgram.FunctionEntry";
+          }];
+
+      // The name of the first function contained in the object.
+      Function.Name first_name = 2;
+
+      // The total number of functions contained in the object and its
+      // children. This makes it possible to determine the position of
+      // a function within the B-tree while searching for it.
+      uint32 function_count = 3;
+    }
+
+    oneof level {
+      Leaf leaf = 1;
+      Parent parent = 2;
+    }
+  }
+
+  // B-tree containing the code of all functions and lambdas that are
+  // declared at the top level of the file, sorted by name and
+  // disambiguation index.
+  repeated FunctionEntry functions = 2;
+
+  // The line of the "def" or "lambda" keyword of each of the functions
+  // in the B-tree above, in the same order. These are stored separately
+  // to ensure that the B-tree doesn't change if lines are added to or
+  // removed from other parts of the file.
+  repeated uint32 top_level_function_lines = 3;
 }
 
 message Value {
@@ -378,23 +423,28 @@ message File {
 }
 
 message Function {
-  // The name of the .bzl file declaring the function.
+  // The canonical label of the .bzl file declaring the function. The
+  // code of the function is stored in the CompiledProgram of this file.
+  // Globals and predeclared names referenced by the function's code are
+  // resolved against this file as well.
   string filename = 1;
 
-  // The line at which the function is declared.
-  int32 line = 2;
+  message Name {
+    // The name of the function. Left empty for lambdas.
+    string name = 1;
 
-  // The column at which the function is declared.
-  int32 column = 3;
+    // Zero for the first function having this name in the enclosing
+    // function, one for the second, etc. As lambdas have no name, they
+    // are simply numbered in the order in which they are declared.
+    int32 disambiguation_index = 2;
+  }
 
-  // The name of the function. This may be set to "lambda" for anonymous
-  // functions.
-  string name = 4;
+  // The path of the function within the file. The first element refers
+  // to the function at the top level of the file, while any subsequent
+  // elements refer to functions nested inside it.
+  repeated Name name_path = 2;
 
   message Closure {
-    // The index of the function within the compiled bytecode.
-    uint32 index = 1;
-
     message DefaultParameter {
       // If set, the parameter is optional, and the default value is
       // provided.
@@ -402,16 +452,90 @@ message Function {
     }
 
     // Default values of parameters of the function.
-    repeated DefaultParameter default_parameters = 2;
+    repeated DefaultParameter default_parameters = 1;
 
     // If the function is a nested function or lambda, the values of free
     // variables.
-    repeated Value free_variables = 3;
+    repeated Value free_variables = 2;
   }
 
-  // If set, the function is a nested or anonymous function, meaning it
-  // cannot be decoded by name alone.
-  Closure closure = 5;
+  // The values of default parameters and free variables of the
+  // function. Omitted if the function has neither.
+  Closure closure = 3;
+}
+
+// The compiled code of a Starlark function, or the top level of a file.
+// Each function is stored in a separate object, which refers to the
+// objects containing the code of nested functions.
+message Funcode {
+  // The column of the "def" or "lambda" keyword. Its line is not stored
+  // here, so that this message does not change if lines are added to or
+  // removed from other parts of the file. It is stored in
+  // CompiledProgram.top_level_function_lines for top-level functions,
+  // and in NestedFunction.relative_line for nested functions.
+  uint32 column = 1;
+
+  // The bytecode of the function.
+  bytes code = 2;
+
+  // Delta encoded table containing the source positions of all
+  // instructions that can fail, in the order of the bytecode.
+  bytes line_table = 3;
+
+  // Constants referred to by the STR instruction. Strings may contain
+  // arbitrary bytes, which is why they are not stored as a proto3
+  // string.
+  repeated bytes string_constants = 4;
+
+  // Constants referred to by the INT instruction, encoded as big-endian
+  // two's complement integers.
+  repeated bytes int_constants = 5;
+
+  // Constants referred to by the FLOAT instruction.
+  repeated double float_constants = 6;
+
+  // Names referred to by attribute, field, global, predeclared and
+  // universal name instructions.
+  repeated string names = 7;
+
+  // Symbols referred to by the IMPORT instruction, as canonical
+  // Starlark identifiers (e.g., "repo+//pkg:defs.bzl%symbol").
+  repeated string imports = 8;
+
+  // Names of the local variables. Parameters come first.
+  repeated string locals = 9;
+
+  // Indices of local variables that need to be stored in cells, as
+  // they are captured by nested functions.
+  repeated uint32 cells = 10;
+
+  // Names of the free variables.
+  repeated string free_variables = 11;
+
+  // Number of parameters, including *args and **kwargs.
+  uint32 num_params = 12;
+  uint32 num_keyword_only_params = 13;
+  bool has_args = 14;
+  bool has_kwargs = 15;
+
+  // Maximum size of the operand stack.
+  uint32 max_stack = 16;
+
+  message NestedFunction {
+    // The name of the nested function. Left empty for lambdas.
+    string name = 1;
+
+    // The code of the nested function.
+    Funcode funcode = 2;
+
+    // The line of the "def" or "lambda" keyword, relative to that of
+    // the enclosing function.
+    uint32 relative_line = 3;
+  }
+
+  // Functions nested directly inside this function, in the order in
+  // which they are declared, referred to by the MAKEFUNC instruction.
+  repeated NestedFunction functions = 17;
 }
 
 message InheritableAttrs {

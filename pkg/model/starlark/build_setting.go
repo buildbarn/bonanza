@@ -10,12 +10,11 @@ import (
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
 	"bonanza.build/pkg/storage/object"
 
 	"google.golang.org/protobuf/types/known/emptypb"
-
-	"go.starlark.net/starlark"
 )
 
 // BuildSetting is a Starlark build setting object that may be provided
@@ -26,7 +25,7 @@ type BuildSetting[TReference any, TMetadata model_core.ReferenceMetadata] struct
 	flag             bool
 }
 
-var _ starlark.Value = (*BuildSetting[object.LocalReference, model_core.CreatedObjectTree])(nil)
+var _ eval.Value = (*BuildSetting[object.LocalReference, model_core.CreatedObjectTree])(nil)
 
 // NewBuildSetting creates a new Starlark build setting object.
 //
@@ -39,8 +38,10 @@ func NewBuildSetting[TReference any, TMetadata model_core.ReferenceMetadata](bui
 	}
 }
 
-func (bs *BuildSetting[TReference, TMetadata]) String() string {
-	return fmt.Sprintf("<config.%s>", bs.buildSettingType.Type())
+// Repr writes the representation of a Starlark build setting object.
+func (bs *BuildSetting[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString(fmt.Sprintf("<config.%s>", bs.buildSettingType.Type()))
+	return nil
 }
 
 // Type returns the type name of a Starlark build setting object in
@@ -49,22 +50,10 @@ func (bs *BuildSetting[TReference, TMetadata]) Type() string {
 	return "config." + bs.buildSettingType.Type()
 }
 
-// Freeze a Starlark build setting object, so that it can no longer be
-// mutated. Starlark build setting objects do not have any mutable
-// behavior, meaning that calling this method has no effect.
-func (BuildSetting[TReference, TMetadata]) Freeze() {}
-
 // Truth returns whether a Starlark build setting object is a "truthy"
 // or a "falsy". Starlark build setting objects are always "truthy".
-func (BuildSetting[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-// Hash a Starlark build setting object, so that it can be placed in a
-// set or used as a key in a dict. Starlark build setting objects cannot
-// be hashed.
-func (bs *BuildSetting[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, fmt.Errorf("config.%s cannot be hashed", bs.buildSettingType.Type())
+func (BuildSetting[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 // Encode a Starlark build setting object to a Protobuf message, so that
@@ -102,7 +91,7 @@ type BuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] in
 type BuildSettingCanonicalizer interface {
 	unpack.Canonicalizer
 
-	CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (starlark.Value, error)
+	CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (eval.Value, error)
 }
 
 type boolBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
@@ -153,12 +142,12 @@ func ParseBoolBuildSettingString(s string) (bool, error) {
 	}
 }
 
-func (boolBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (starlark.Value, error) {
+func (boolBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (eval.Value, error) {
 	v, err := ParseBoolBuildSettingString(values[len(values)-1])
 	if err != nil {
 		return nil, err
 	}
-	return starlark.Bool(v), nil
+	return eval.Bool(v), nil
 }
 
 type intBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
@@ -193,12 +182,12 @@ type intBuildSettingCanonicalizer struct {
 	unpack.Canonicalizer
 }
 
-func (intBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (starlark.Value, error) {
+func (intBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (eval.Value, error) {
 	v, err := strconv.ParseInt(values[len(values)-1], 10, 32)
 	if err != nil {
 		return nil, err
 	}
-	return starlark.MakeInt64(v), nil
+	return eval.MakeInt64(v), nil
 }
 
 type labelBuildSettingCanonicalizer[TReference any, TMetadata model_core.ReferenceMetadata] struct {
@@ -237,7 +226,7 @@ func NewLabelBuildSettingCanonicalizer[TReference any, TMetadata model_core.Refe
 	}
 }
 
-func (bsc *labelBuildSettingCanonicalizer[TReference, TMetadata]) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (starlark.Value, error) {
+func (bsc *labelBuildSettingCanonicalizer[TReference, TMetadata]) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (eval.Value, error) {
 	apparentLabel, err := bsc.currentPackage.AppendLabel(values[len(values)-1])
 	if err != nil {
 		return nil, err
@@ -247,9 +236,9 @@ func (bsc *labelBuildSettingCanonicalizer[TReference, TMetadata]) CanonicalizeSt
 		return nil, err
 	}
 
-	var value starlark.Value = NewLabel[TReference, TMetadata](resolvedLabel)
+	var value eval.Value = NewLabel[TReference, TMetadata](resolvedLabel)
 	if bsc.singletonList {
-		value = starlark.NewList([]starlark.Value{value})
+		value = eval.NewList([]eval.Value{value})
 	}
 	return value, nil
 }
@@ -301,7 +290,7 @@ type labelListBuildSettingCanonicalizer[TReference any, TMetadata model_core.Ref
 	repeatable     bool
 }
 
-func (labelListBuildSettingCanonicalizer[TReference, TMetadata]) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (starlark.Value, error) {
+func (labelListBuildSettingCanonicalizer[TReference, TMetadata]) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (eval.Value, error) {
 	return nil, errors.New("TODO: Implement canonicalization of config.label_list")
 }
 
@@ -337,8 +326,8 @@ type stringBuildSettingCanonicalizer struct {
 	unpack.Canonicalizer
 }
 
-func (stringBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (starlark.Value, error) {
-	return starlark.String(values[len(values)-1]), nil
+func (stringBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (eval.Value, error) {
+	return eval.String(values[len(values)-1]), nil
 }
 
 type stringListBuildSettingType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
@@ -381,7 +370,7 @@ type stringListBuildSettingCanonicalizer struct {
 	repeatable bool
 }
 
-func (bsc stringListBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (starlark.Value, error) {
+func (bsc stringListBuildSettingCanonicalizer) CanonicalizeStringList(values []string, labelResolver pg_label.Resolver) (eval.Value, error) {
 	if !bsc.repeatable {
 		if lastValue := values[len(values)-1]; lastValue == "" {
 			values = nil
@@ -390,9 +379,9 @@ func (bsc stringListBuildSettingCanonicalizer) CanonicalizeStringList(values []s
 		}
 	}
 
-	elements := make([]starlark.Value, 0, len(values))
+	elements := make([]eval.Value, 0, len(values))
 	for _, value := range values {
-		elements = append(elements, starlark.String(value))
+		elements = append(elements, eval.String(value))
 	}
-	return starlark.NewList(elements), nil
+	return eval.NewList(elements), nil
 }

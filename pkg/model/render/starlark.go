@@ -11,9 +11,9 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
 
-	"go.starlark.net/syntax"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -61,7 +61,7 @@ func starlarkCall(callee Doc, arguments []Doc) Doc {
 }
 
 func starlarkString(s string) Doc {
-	return starlarkLiteral(syntax.Quote(s, false))
+	return starlarkLiteral(syntax.Quote(s))
 }
 
 func starlarkBool(v bool) Doc {
@@ -135,7 +135,7 @@ func (sr *StarlarkRenderer) renderValue(value model_core.Message[*model_starlark
 	case *model_starlark_pb.Value_Builtin:
 		return starlarkOpaque("built-in function " + kind.Builtin)
 	case *model_starlark_pb.Value_Bytes:
-		return starlarkLiteral(syntax.Quote(string(kind.Bytes), true))
+		return starlarkLiteral("b" + syntax.Quote(string(kind.Bytes)))
 	case *model_starlark_pb.Value_Depset:
 		return sr.renderDepset(model_core.Nested(value, kind.Depset))
 	case *model_starlark_pb.Value_Dict:
@@ -366,8 +366,8 @@ func (*StarlarkRenderer) renderFile(file model_core.Message[*model_starlark_pb.F
 
 func (*StarlarkRenderer) renderFunction(function *model_starlark_pb.Function) Doc {
 	return Title(
-		fmt.Sprintf("%s:%d:%d", function.GetFilename(), function.GetLine(), function.GetColumn()),
-		starlarkOpaque("function "+function.GetName()),
+		function.GetFilename(),
+		starlarkOpaque("function "+model_starlark.GetFunctionDisplayName(function)),
 	)
 }
 

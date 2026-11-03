@@ -9,9 +9,8 @@ import (
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
-
-	"go.starlark.net/starlark"
 )
 
 // Subrule corresponds to a Starlark value of a subrule. Subrules are
@@ -27,14 +26,14 @@ type Subrule[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 }
 
 var (
-	_ starlark.Callable                                                   = (*Subrule[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Callable                                                       = (*Subrule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Subrule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ NamedGlobal                                                         = (*Subrule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewSubrule returns a Starlark value corresponding to a subrule. Such
 // values are typically created using the subrule() function.
-func NewSubrule[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition SubruleDefinition[TReference, TMetadata]) starlark.Value {
+func NewSubrule[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition SubruleDefinition[TReference, TMetadata]) eval.Value {
 	return &Subrule[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,
@@ -43,8 +42,10 @@ func NewSubrule[TReference any, TMetadata model_core.ReferenceMetadata](identifi
 	}
 }
 
-func (Subrule[TReference, TMetadata]) String() string {
-	return "<subrule>"
+// Repr writes the representation of the value.
+func (Subrule[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<subrule>")
+	return nil
 }
 
 // Type returns the type name of a subrule value.
@@ -52,21 +53,11 @@ func (Subrule[TReference, TMetadata]) Type() string {
 	return "subrule"
 }
 
-// Freeze the subrule. Because subrules are immutable, this method has
-// no effect.
-func (Subrule[TReference, TMetadata]) Freeze() {}
-
 // Truth returns whether a subrule should evaluate to true or false when
 // implicitly converted to a boolean value. Subrules always evaluate to
 // true.
-func (Subrule[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-// Hash a subrule, so that it can be used as a key in a dictionary. For
-// subrules, this is not supported.
-func (Subrule[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("subrule cannot be hashed")
+func (Subrule[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 // Name returns the name of the subrule. This typically corresponds to
@@ -88,11 +79,11 @@ const SubruleInvokerKey = "subrule_invoker"
 // implementation calls into a subrule. It is the callback's
 // responsibility for actually executing the subrule and returning the
 // subrule's return value.
-type SubruleInvoker = func(subruleIdentifier pg_label.CanonicalStarlarkIdentifier, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
+type SubruleInvoker = func(subruleIdentifier pg_label.CanonicalStarlarkIdentifier, args eval.Args) (eval.Value, error)
 
 // CallInternal is invoked when a rule implementation calls into a
 // subrule.
-func (sr *Subrule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (sr *Subrule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eval.Args) (eval.Value, error) {
 	subruleInvoker := thread.Local(SubruleInvokerKey)
 	if subruleInvoker == nil {
 		return nil, errors.New("subrules cannot be invoked from within this context")
@@ -100,15 +91,15 @@ func (sr *Subrule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, 
 	if sr.Identifier == nil {
 		return nil, errors.New("subrule does not have a name")
 	}
-	return subruleInvoker.(SubruleInvoker)(*sr.Identifier, args, kwargs)
+	return subruleInvoker.(SubruleInvoker)(*sr.Identifier, args)
 }
 
 // EncodeValue encodes a subrule to a Starlark value Protobuf message.
 // This allows it to be written to storage and subsequently reloaded
 // during target configuration.
-func (sr *Subrule[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
+func (sr *Subrule[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	if sr.Identifier == nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, errors.New("subrule does not have a name")
+		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, errors.New("subrule does not have a name")
 	}
 	if currentIdentifier == nil || *currentIdentifier != *sr.Identifier {
 		// Not the canonical identifier under which this subrule
@@ -123,12 +114,12 @@ func (sr *Subrule[TReference, TMetadata]) EncodeValue(path map[starlark.Value]st
 					},
 				},
 			},
-		), false, nil
+		), nil
 	}
 
-	definition, needsCode, err := sr.definition.Encode(path, options)
+	definition, err := sr.definition.Encode(thread, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Value{
@@ -141,17 +132,17 @@ func (sr *Subrule[TReference, TMetadata]) EncodeValue(path map[starlark.Value]st
 			},
 		},
 		definition.Patcher,
-	), needsCode, nil
+	), nil
 }
 
 // SubruleDefinition contains the definition of a subrule.
 type SubruleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata], bool, error)
+	Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata], error)
 }
 
 type starlarkSubruleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	attrs          map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]
-	implementation NamedFunction[TReference, TMetadata]
+	implementation eval.Function
 	subrules       []*Subrule[TReference, TMetadata]
 }
 
@@ -159,7 +150,7 @@ type starlarkSubruleDefinition[TReference any, TMetadata model_core.ReferenceMet
 // given the parameters that were provided to the subrule() function.
 func NewStarlarkSubruleDefinition[TReference any, TMetadata model_core.ReferenceMetadata](
 	attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata],
-	implementation NamedFunction[TReference, TMetadata],
+	implementation eval.Function,
 	subrules []*Subrule[TReference, TMetadata],
 ) SubruleDefinition[TReference, TMetadata] {
 	return &starlarkSubruleDefinition[TReference, TMetadata]{
@@ -169,26 +160,27 @@ func NewStarlarkSubruleDefinition[TReference any, TMetadata model_core.Reference
 	}
 }
 
-func (sd *starlarkSubruleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata], bool, error) {
+func (sd *starlarkSubruleDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata], error) {
 	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
 
-	implementation, needsCode, err := sd.implementation.Encode(path, options)
+	implementation, err := EncodeFunction(thread, sd.implementation, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata]{}, err
 	}
 	patcher.Merge(implementation.Patcher)
 
-	namedAttrs, namedAttrsNeedCode, err := encodeNamedAttrs(sd.attrs, path, options)
+	namedAttrs, err := encodeNamedAttrs(thread, sd.attrs, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata]{}, false, err
+		patcher.Discard()
+		return model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata]{}, err
 	}
-	needsCode = needsCode || namedAttrsNeedCode
 	patcher.Merge(namedAttrs.Patcher)
 
 	subruleIdentifiers := make([]string, 0, len(sd.subrules))
 	for i, subrule := range sd.subrules {
 		if subrule.Identifier == nil {
-			return model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata]{}, false, fmt.Errorf("subrule at index %d does not have an identifier", i)
+			patcher.Discard()
+			return model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata]{}, fmt.Errorf("subrule at index %d does not have an identifier", i)
 		}
 		subruleIdentifiers = append(subruleIdentifiers, subrule.Identifier.String())
 	}
@@ -201,7 +193,7 @@ func (sd *starlarkSubruleDefinition[TReference, TMetadata]) Encode(path map[star
 			SubruleIdentifiers: slices.Compact(subruleIdentifiers),
 		},
 		patcher,
-	), needsCode, nil
+	), nil
 }
 
 type protoSubruleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
@@ -220,6 +212,6 @@ func NewProtoSubruleDefinition[TReference any, TMetadata model_core.ReferenceMet
 	return &protoSubruleDefinition[TReference, TMetadata]{}
 }
 
-func (protoSubruleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata], bool, error) {
+func (protoSubruleDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Subrule_Definition, TMetadata], error) {
 	panic("rule definition was already encoded previously")
 }

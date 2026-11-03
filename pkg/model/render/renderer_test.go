@@ -37,7 +37,7 @@ func leaf(v *model_starlark_pb.Value) *model_starlark_pb.List_Element {
 }
 
 func function(name string) *model_starlark_pb.Function {
-	return &model_starlark_pb.Function{Name: name, Filename: "@@//foo:defs.bzl", Line: 3, Column: 1}
+	return &model_starlark_pb.Function{NamePath: []*model_starlark_pb.Function_Name{{Name: name}}, Filename: "@@//foo:defs.bzl"}
 }
 
 func TestRendererStarlarkValues(t *testing.T) {
@@ -64,7 +64,7 @@ func TestRendererStarlarkValues(t *testing.T) {
 		{
 			name:     "Bytes",
 			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Bytes{Bytes: []byte("\x00ab")}},
-			expected: `b"\x00ab"`,
+			expected: `b"\000ab"`,
 		},
 		{
 			name:     "Label",

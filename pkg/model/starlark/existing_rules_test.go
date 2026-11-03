@@ -11,12 +11,12 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
-	"go.starlark.net/starlark"
 )
 
 // fakeExistingRulesResolver is a simple implementation of
@@ -48,9 +48,9 @@ func (r fakeExistingRulesResolver) ForEachExistingRule(yield func(targetName lab
 
 func TestExistingRules(t *testing.T) {
 	bzlFileBuiltins, _ := model_starlark.GetBuiltins[object.LocalReference, model_core.CreatedObjectTree]()
-	native := bzlFileBuiltins["native"].(starlark.HasAttrs)
-	nativeExistingRule := util.Must(native.Attr(&starlark.Thread{}, "existing_rule"))
-	nativeExistingRules := util.Must(native.Attr(&starlark.Thread{}, "existing_rules"))
+	native := bzlFileBuiltins["native"].(eval.HasAttrs)
+	nativeExistingRule := util.Must(native.Attr(newTestThread(t), "existing_rule"))
+	nativeExistingRules := util.Must(native.Attr(newTestThread(t), "existing_rules"))
 
 	value := func(kind any) *model_starlark_pb.Value {
 		switch v := kind.(type) {
@@ -84,13 +84,12 @@ func TestExistingRules(t *testing.T) {
 		}
 	}
 
-	newThread := func(t *testing.T, resolver model_starlark.ExistingRulesResolver[object.LocalReference]) *starlark.Thread {
-		thread := &starlark.Thread{}
+	newThread := func(t *testing.T, resolver model_starlark.ExistingRulesResolver[object.LocalReference]) *eval.Thread {
+		thread := newTestThread(t)
 		thread.SetLocal(model_starlark.CanonicalPackageKey, util.Must(label.NewCanonicalPackage("@@main+//foo")))
 		thread.SetLocal(model_starlark.ValueDecodingOptionsKey, &model_starlark.ValueDecodingOptions[object.LocalReference]{
-			Context: t.Context(),
 			Readers: &model_starlark.ValueReaders[object.LocalReference]{},
-			LabelCreator: func(l label.ResolvedLabel) (starlark.Value, error) {
+			LabelCreator: func(l label.ResolvedLabel) (eval.Value, error) {
 				return model_starlark.NewLabel[object.LocalReference, model_core.CreatedObjectTree](l), nil
 			},
 		})
@@ -114,7 +113,7 @@ func TestExistingRules(t *testing.T) {
 										Attr: &model_starlark_pb.Attr{
 											Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
 											Default: &model_starlark_pb.Value{
-												Kind: &model_starlark_pb.Value_Function{Function: &model_starlark_pb.Function{Name: "_computed"}},
+												Kind: &model_starlark_pb.Value_Function{Function: &model_starlark_pb.Function{NamePath: []*model_starlark_pb.Function_Name{{Name: "_computed"}}}},
 											},
 										},
 									},
@@ -275,11 +274,11 @@ func TestExistingRules(t *testing.T) {
 			"suite":      `{"name": "suite", "kind": "test_suite", "tags": ("fast", "-flaky", "small", "manual"), "tests": (":test",)}`,
 			"missing":    `None`,
 		} {
-			v, err := starlark.Call(thread, nativeExistingRule, starlark.Tuple{starlark.String(name)}, nil)
+			v, err := eval.Call(thread, nativeExistingRule, eval.Args{Positional: []eval.Value{eval.String(name)}})
 			require.NoError(t, err, name)
-			require.Equal(t, expected, v.String(), name)
-			if d, ok := v.(*starlark.Dict); ok {
-				require.Error(t, d.SetKey(thread, starlark.String("x"), starlark.None), name)
+			require.Equal(t, expected, util.Must(eval.Repr(thread, v)), name)
+			if d, ok := v.(eval.Dict); ok {
+				require.Error(t, d.SetKey(thread, eval.String("x"), eval.None), name)
 			}
 		}
 	})
@@ -288,13 +287,14 @@ func TestExistingRules(t *testing.T) {
 		// Contents of select() expressions should be converted
 		// as well.
 		thread := newThread(t, resolver)
-		existingRule, err := starlark.Call(thread, nativeExistingRule, starlark.Tuple{starlark.String("rule")}, nil)
+		existingRule, err := eval.Call(thread, nativeExistingRule, eval.Args{Positional: []eval.Value{eval.String("rule")}})
 		require.NoError(t, err)
-		opts, _, err := existingRule.(*starlark.Dict).Get(thread, starlark.String("opts"))
+		opts, _, err := existingRule.(eval.Dict).Get(thread, eval.String("opts"))
 		require.NoError(t, err)
-		encodedOpts, _, err := model_starlark.EncodeValue[object.LocalReference, model_core.CreatedObjectTree](
+		encodedOpts, err := model_starlark.EncodeValue[object.LocalReference, model_core.CreatedObjectTree](
+			thread,
 			opts,
-			map[starlark.Value]struct{}{},
+			nil,
 			/* currentIdentifier = */ nil,
 			&model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
 				Context:                t.Context(),
@@ -327,25 +327,25 @@ func TestExistingRules(t *testing.T) {
 	t.Run("ExistingRules", func(t *testing.T) {
 		// Only rule targets should be returned.
 		thread := newThread(t, resolver)
-		v, err := starlark.Call(thread, nativeExistingRules, nil, nil)
+		v, err := eval.Call(thread, nativeExistingRules, eval.Args{})
 		require.NoError(t, err)
-		existingRules := v.(*starlark.Dict)
+		existingRules := v.(eval.Dict)
 		var names []string
-		for _, key := range existingRules.Keys() {
-			names = append(names, string(key.(starlark.String)))
+		for key := range existingRules.Iterate(thread, nil) {
+			names = append(names, string(key.(eval.String)))
 		}
 		require.Equal(t, []string{"alias", "flag", "rule", "rule_test", "setting", "suite"}, names)
 
 		// The results should be immutable.
-		require.Error(t, existingRules.SetKey(thread, starlark.String("x"), starlark.None))
-		alias, _, err := existingRules.Get(thread, starlark.String("alias"))
+		require.Error(t, existingRules.SetKey(thread, eval.String("x"), eval.None))
+		alias, _, err := existingRules.Get(thread, eval.String("alias"))
 		require.NoError(t, err)
-		require.Error(t, alias.(*starlark.Dict).SetKey(thread, starlark.String("x"), starlark.None))
+		require.Error(t, alias.(eval.Dict).SetKey(thread, eval.String("x"), eval.None))
 	})
 
 	t.Run("OmitMacroInternals", func(t *testing.T) {
 		thread := newThread(t, resolver)
-		_, err := starlark.Call(thread, nativeExistingRules, nil, []starlark.Tuple{{starlark.String("omit_macro_internals"), starlark.True}})
+		_, err := eval.Call(thread, nativeExistingRules, eval.Args{Named: []eval.NamedArg{{Name: "omit_macro_internals", Value: eval.True}}})
 		require.EqualError(t, err, "omitting targets declared by symbolic macros is not supported")
 	})
 
@@ -353,9 +353,9 @@ func TestExistingRules(t *testing.T) {
 		// Existing rules can only be obtained from within
 		// finalizers.
 		thread := newThread(t, nil)
-		_, err := starlark.Call(thread, nativeExistingRule, starlark.Tuple{starlark.String("alias")}, nil)
+		_, err := eval.Call(thread, nativeExistingRule, eval.Args{Positional: []eval.Value{eval.String("alias")}})
 		require.EqualError(t, err, "existing rules can only be obtained from within finalizers")
-		_, err = starlark.Call(thread, nativeExistingRules, nil, nil)
+		_, err = eval.Call(thread, nativeExistingRules, eval.Args{})
 		require.EqualError(t, err, "existing rules can only be obtained from within finalizers")
 	})
 }

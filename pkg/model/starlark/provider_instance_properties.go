@@ -21,7 +21,7 @@ import (
 type ProviderInstanceProperties[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	LateNamedValue
 	dictLike       bool
-	computedFields map[string]NamedFunction[TReference, TMetadata]
+	computedFields map[string]eval.Function
 	typeName       string
 }
 
@@ -36,8 +36,9 @@ func (pip *ProviderInstanceProperties[TReference, TMetadata]) Encode(thread *eva
 	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
 	computedFields := make([]*model_starlark_pb.Provider_InstanceProperties_ComputedField, 0, len(pip.computedFields))
 	for _, name := range slices.Sorted(maps.Keys(pip.computedFields)) {
-		function, err := pip.computedFields[name].Encode(thread, path, options)
+		function, err := EncodeFunction(thread, pip.computedFields[name], path, options)
 		if err != nil {
+			patcher.Discard()
 			return model_core.PatchedMessage[*model_starlark_pb.Provider_InstanceProperties, TMetadata]{}, err
 		}
 		computedFields = append(computedFields, &model_starlark_pb.Provider_InstanceProperties_ComputedField{
@@ -61,7 +62,7 @@ func (pip *ProviderInstanceProperties[TReference, TMetadata]) Encode(thread *eva
 // NewProviderInstanceProperties creates an ProviderInstanceProperties
 // object. This is either called via the Starlark provider() function,
 // or when a provider or one of its instances is reloaded from storage.
-func NewProviderInstanceProperties[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, dictLike bool, computedFields map[string]NamedFunction[TReference, TMetadata], typeName string) *ProviderInstanceProperties[TReference, TMetadata] {
+func NewProviderInstanceProperties[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, dictLike bool, computedFields map[string]eval.Function, typeName string) *ProviderInstanceProperties[TReference, TMetadata] {
 	return &ProviderInstanceProperties[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,
@@ -78,14 +79,10 @@ func decodeProviderInstanceProperties[TReference object.BasicReference, TMetadat
 		return nil, err
 	}
 
-	computedFields := make(map[string]NamedFunction[TReference, TMetadata], len(m.Message.ComputedFields))
+	computedFields := make(map[string]eval.Function, len(m.Message.ComputedFields))
 	for _, computedField := range m.Message.ComputedFields {
-		computedFields[computedField.Name] = NewNamedFunction(
-			NewProtoNamedFunctionDefinition[TReference, TMetadata](
-				model_core.Nested(m, computedField.Function),
-			),
-		)
+		computedFields[computedField.Name] = DecodeFunction[TReference, TMetadata](model_core.Nested(m, computedField.Function))
 	}
 
-	return NewProviderInstanceProperties(&providerIdentifier, m.Message.DictLike, computedFields, m.Message.TypeName), nil
+	return NewProviderInstanceProperties[TReference, TMetadata](&providerIdentifier, m.Message.DictLike, computedFields, m.Message.TypeName), nil
 }

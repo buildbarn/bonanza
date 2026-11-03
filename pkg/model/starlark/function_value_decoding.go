@@ -53,9 +53,7 @@ func decodeFunctionValue[TReference object.BasicReference, TMetadata model_core.
 		}
 		return NewAttr[TReference, TMetadata](attrType, defaultValue, typedValue.Attr.Configurable), nil
 	case *model_starlark_pb.Value_Function:
-		return NewNamedFunction(NewProtoNamedFunctionDefinition[TReference, TMetadata](
-			model_core.Nested(encodedValue, typedValue.Function),
-		)), nil
+		return DecodeFunction[TReference, TMetadata](model_core.Nested(encodedValue, typedValue.Function)), nil
 	case *model_starlark_pb.Value_Provider:
 		return DecodeProvider[TReference, TMetadata](model_core.Nested(encodedValue, typedValue.Provider))
 	case *model_starlark_pb.Value_Macro:
@@ -87,7 +85,7 @@ func decodeFunctionValue[TReference object.BasicReference, TMetadata model_core.
 			if err != nil {
 				return nil, err
 			}
-			return NewRepositoryRule[TReference, TMetadata](&identifier, nil), nil
+			return NewRepositoryRule(&identifier, NewReloadingRepositoryRuleDefinition[TReference, TMetadata](identifier)), nil
 		case *model_starlark_pb.RepositoryRule_Definition_:
 			if currentIdentifier == nil {
 				return nil, errors.New("encoded repository_rule does not have a name")

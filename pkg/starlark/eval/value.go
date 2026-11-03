@@ -316,6 +316,11 @@ func threeway(op syntax.Token, cmp int) bool {
 // value.
 type mandatory struct{}
 
+// Mandatory is the value that is used in the defaults of a Function to
+// indicate that a parameter does not have a default value. It is
+// needed by implementations of Function that are backed by storage.
+var Mandatory Value = mandatory{}
+
 func (mandatory) Type() string                     { return "mandatory" }
 func (mandatory) Truth(*Thread) (bool, error)      { return false, nil }
 func (mandatory) Repr(_ *Thread, p *Printer) error { p.WriteString("mandatory"); return nil }

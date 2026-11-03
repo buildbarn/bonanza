@@ -1,14 +1,11 @@
 package starlark
 
 import (
-	"errors"
-
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
-
-	"go.starlark.net/starlark"
 )
 
 // TagClass is a Starlark value type for module extension tag classes.
@@ -21,21 +18,23 @@ type TagClass[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 }
 
 var (
-	_ starlark.Value                                                      = (*TagClass[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Value                                                          = (*TagClass[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*TagClass[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewTagClass returns a Starlark value corresponding to a module
 // extension tag class. Such values are normally created by calling
 // tag_class().
-func NewTagClass[TReference any, TMetadata model_core.ReferenceMetadata](definition TagClassDefinition[TReference, TMetadata]) starlark.Value {
+func NewTagClass[TReference any, TMetadata model_core.ReferenceMetadata](definition TagClassDefinition[TReference, TMetadata]) eval.Value {
 	return &TagClass[TReference, TMetadata]{
 		TagClassDefinition: definition,
 	}
 }
 
-func (TagClass[TReference, TMetadata]) String() string {
-	return "<tag_class>"
+// Repr writes the representation of the value.
+func (TagClass[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<tag_class>")
+	return nil
 }
 
 // Type returns the name of the type of a module extension tag class
@@ -44,30 +43,20 @@ func (TagClass[TReference, TMetadata]) Type() string {
 	return "tag_class"
 }
 
-// Freeze the contents of a module extension tag class. This function
-// has no effect, as tag classes are immutable.
-func (TagClass[TReference, TMetadata]) Freeze() {}
-
 // Truth returns whether a module extension tag class should evaluate to
 // true or false when implicitly converted to a Boolean value. Module
 // extension tag classes always evaluate to true.
-func (TagClass[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-// Hash a module extension tag class, so that it can be used as the key
-// of a dictionary. This is not supported.
-func (TagClass[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("tag_class cannot be hashed")
+func (TagClass[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 // EncodeValue encodes a module extension tag class to a Starlark value
 // Protobuf message. This allows it to be written to storage, so that it
 // can be reloaded at a later point in time.
-func (tc *TagClass[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
-	tagClass, needsCode, err := tc.TagClassDefinition.Encode(path, options)
+func (tc *TagClass[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
+	tagClass, err := tc.TagClassDefinition.Encode(thread, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Value{
@@ -76,7 +65,7 @@ func (tc *TagClass[TReference, TMetadata]) EncodeValue(path map[starlark.Value]s
 			},
 		},
 		tagClass.Patcher,
-	), needsCode, nil
+	), nil
 }
 
 // TagClassDefinition contains the definition of a module extension tag
@@ -84,7 +73,7 @@ func (tc *TagClass[TReference, TMetadata]) EncodeValue(path map[starlark.Value]s
 // call to tag_class() from within a .bzl file, or be backed by a
 // previous encoded definition that has been written to storage.
 type TagClassDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.TagClass, TMetadata], bool, error)
+	Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.TagClass, TMetadata], error)
 }
 
 type starlarkTagClassDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
@@ -102,17 +91,17 @@ func NewStarlarkTagClassDefinition[TReference any, TMetadata model_core.Referenc
 	}
 }
 
-func (tcd *starlarkTagClassDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.TagClass, TMetadata], bool, error) {
-	encodedAttrs, needsCode, err := encodeNamedAttrs(tcd.attrs, path, options)
+func (tcd *starlarkTagClassDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.TagClass, TMetadata], error) {
+	encodedAttrs, err := encodeNamedAttrs(thread, tcd.attrs, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.TagClass, TMetadata]{}, false, nil
+		return model_core.PatchedMessage[*model_starlark_pb.TagClass, TMetadata]{}, nil
 	}
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.TagClass{
 			Attrs: encodedAttrs.Message,
 		},
 		encodedAttrs.Patcher,
-	), needsCode, nil
+	), nil
 }
 
 type protoTagClassDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -131,6 +120,6 @@ func NewProtoTagClassDefinition[TReference object.BasicReference, TMetadata mode
 	}
 }
 
-func (tcd *protoTagClassDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.TagClass, TMetadata], bool, error) {
-	return model_core.Patch(options.ObjectCapturer, tcd.message), false, nil
+func (tcd *protoTagClassDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.TagClass, TMetadata], error) {
+	return model_core.Patch(options.ObjectCapturer, tcd.message), nil
 }

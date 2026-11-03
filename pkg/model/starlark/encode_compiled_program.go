@@ -1,38 +1,59 @@
 package starlark
 
 import (
-	"bytes"
-	"context"
 	"errors"
 	"fmt"
-	"iter"
 	"maps"
-	"math"
-	"math/bits"
 	"slices"
-	"strings"
 
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
-	model_encoding "bonanza.build/pkg/model/encoding"
-	model_parser "bonanza.build/pkg/model/parser"
+	"bonanza.build/pkg/model/core/inlinedtree"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/compile"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
-
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/emptypb"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
-// EncodeCompiledProgram converts a Starlark program to a Protobuf
-// message, so that it can be written to storage.
-func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadata](program *starlark.Program, globals starlark.StringDict, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata], error) {
-	needsCode := false
+// getGlobalsReferencedByFunctions returns the names of the globals of
+// a program that are referenced by the code of functions declared in
+// it. The top level code of the program is not considered, as it is
+// never executed again after the program is written to storage.
+func getGlobalsReferencedByFunctions(program *compile.Program) map[string]struct{} {
+	names := map[string]struct{}{}
+	var walk func(funcode *compile.Funcode)
+	walk = func(funcode *compile.Funcode) {
+		for pc := uint32(0); pc < uint32(len(funcode.Code)); {
+			op, arg, nextPC := compile.DecodeInstruction(funcode.Code, pc)
+			if op == compile.GLOBAL {
+				names[funcode.Names[arg]] = struct{}{}
+			}
+			pc = nextPC
+		}
+		for _, nestedFuncode := range funcode.Functions {
+			walk(nestedFuncode)
+		}
+	}
+	for _, funcode := range program.Toplevel.Functions {
+		walk(funcode)
+	}
+	return names
+}
+
+// EncodeCompiledProgram converts the globals of a Starlark program that
+// has been executed to a Protobuf message, so that it can be written to
+// storage. Only globals that can be accessed by other files, or that
+// are referenced by functions declared in the program are encoded.
+//
+// The imports of the program need to have been canonicalized by
+// calling CanonicalizeImports(), so that the code of functions can be
+// written to storage.
+func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, program *compile.Program, globals map[string]eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata], error) {
+	referencedGlobals := getGlobalsReferencedByFunctions(program)
 	var globalsKeys []string
 	globalsValuesBuilder := NewListBuilder[TReference, TMetadata](options)
+	defer globalsValuesBuilder.Discard()
 	for _, name := range slices.Sorted(maps.Keys(globals)) {
 		identifier, err := pg_label.NewStarlarkIdentifier(name)
 		if err != nil {
@@ -44,12 +65,13 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadat
 			currentIdentifier = &i
 		}
 		value := globals[name]
-		if _, ok := value.(NamedGlobal); ok || identifier.IsPublic() {
-			encodedValue, valueNeedsCode, err := EncodeValue[TReference, TMetadata](value, map[starlark.Value]struct{}{}, currentIdentifier, options)
+		_, isNamedGlobal := value.(NamedGlobal)
+		_, isReferenced := referencedGlobals[name]
+		if isNamedGlobal || isReferenced || identifier.IsPublic() {
+			encodedValue, err := EncodeValue(thread, value, nil, currentIdentifier, options)
 			if err != nil {
 				return model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata]{}, fmt.Errorf("global %#v: %w", name, err)
 			}
-			needsCode = needsCode || valueNeedsCode
 			globalsKeys = append(globalsKeys, name)
 			if err := globalsValuesBuilder.PushChild(model_core.NewPatchedMessage(
 				&model_starlark_pb.List_Element{
@@ -68,33 +90,169 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadat
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata]{}, err
 	}
-
-	var code bytes.Buffer
-	if needsCode {
-		if err := program.Write(&code); err != nil {
-			return model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata]{}, err
-		}
+	functions, lines, err := encodeCompiledProgramFunctions(program, options)
+	if err != nil {
+		globalsValues.Discard()
+		return model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata]{}, err
 	}
 
-	return model_core.NewPatchedMessage(
-		&model_starlark_pb.CompiledProgram{
-			Globals: &model_starlark_pb.Struct_Fields{
-				Keys:   globalsKeys,
-				Values: globalsValues.Message,
+	return inlinedtree.Build(
+		inlinedtree.CandidateList[*model_starlark_pb.CompiledProgram, TMetadata]{
+			// Fields that should always be inlined.
+			inlinedtree.AlwaysInline(
+				model_core.NewReferenceMessagePatcher[TMetadata](),
+				func(compiledProgram model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata]) {
+					compiledProgram.Message.TopLevelFunctionLines = lines
+				},
+			),
+			// Fields that can be stored externally if needed.
+			{
+				ExternalMessage: model_core.ProtoListToBinaryMarshaler(globalsValues),
+				Encoder:         options.ObjectEncoder,
+				ParentAppender: func(
+					compiledProgram model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata],
+					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+				) error {
+					values, err := btree.MaybeMergeNodes(
+						globalsValues.Message,
+						externalObject,
+						compiledProgram.Patcher,
+						btree.Capturing(options.Context, options.ObjectCapturer, ComputeListParentNode),
+					)
+					if err != nil {
+						return err
+					}
+					compiledProgram.Message.Globals = &model_starlark_pb.Struct_Fields{
+						Keys:   globalsKeys,
+						Values: values,
+					}
+					return nil
+				},
 			},
-			Code: code.Bytes(),
+			{
+				ExternalMessage: model_core.ProtoListToBinaryMarshaler(functions),
+				Encoder:         options.ObjectEncoder,
+				ParentAppender: func(
+					compiledProgram model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata],
+					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+				) error {
+					entries, err := btree.MaybeMergeNodes(
+						functions.Message,
+						externalObject,
+						compiledProgram.Patcher,
+						btree.Capturing(options.Context, options.ObjectCapturer, computeFunctionEntryParentNode),
+					)
+					if err != nil {
+						return err
+					}
+					compiledProgram.Message.Functions = entries
+					return nil
+				},
+			},
 		},
-		globalsValues.Patcher,
-	), nil
+		options.getInlinedTreeOptions(),
+	)
+}
+
+// computeFunctionEntryParentNode generates a parent node of the B-tree
+// containing the code of the functions in a program.
+func computeFunctionEntryParentNode[TMetadata model_core.ReferenceMetadata](
+	createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]],
+	childNodes model_core.Message[[]*model_starlark_pb.CompiledProgram_FunctionEntry, object.LocalReference],
+) model_core.PatchedMessage[*model_starlark_pb.CompiledProgram_FunctionEntry, TMetadata] {
+	var firstName *model_starlark_pb.Function_Name
+	switch level := childNodes.Message[0].Level.(type) {
+	case *model_starlark_pb.CompiledProgram_FunctionEntry_Leaf_:
+		firstName = level.Leaf.Name
+	case *model_starlark_pb.CompiledProgram_FunctionEntry_Parent_:
+		firstName = level.Parent.FirstName
+	}
+	functionCount := uint32(0)
+	for _, childNode := range childNodes.Message {
+		functionCount += uint32(getFunctionEntryCount(childNode))
+	}
+	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.CompiledProgram_FunctionEntry {
+		return &model_starlark_pb.CompiledProgram_FunctionEntry{
+			Level: &model_starlark_pb.CompiledProgram_FunctionEntry_Parent_{
+				Parent: &model_starlark_pb.CompiledProgram_FunctionEntry_Parent{
+					Reference:     patcher.AddDecodableReference(createdObject),
+					FirstName:     firstName,
+					FunctionCount: functionCount,
+				},
+			},
+		}
+	})
+}
+
+// encodeCompiledProgramFunctions creates a B-tree containing the code
+// of all functions and lambdas declared at the top level of a program.
+// Nested functions are stored as part of the top-level function
+// containing them. It also returns the lines at which the functions
+// are declared, in the same order as the B-tree.
+func encodeCompiledProgramFunctions[TReference any, TMetadata model_core.ReferenceMetadata](program *compile.Program, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_starlark_pb.CompiledProgram_FunctionEntry, TMetadata], []uint32, error) {
+	treeBuilder := newBTreeBuilder(
+		options,
+		/* isParent = */ func(entry *model_starlark_pb.CompiledProgram_FunctionEntry) bool {
+			return entry.GetParent() != nil
+		},
+		/* parentNodeComputer = */ btree.Capturing(options.Context, options.ObjectCapturer, computeFunctionEntryParentNode),
+	)
+	defer treeBuilder.Discard()
+
+	type namedFuncode struct {
+		name    compile.FunctionName
+		funcode *compile.Funcode
+	}
+	funcodes := make([]namedFuncode, 0, len(program.Toplevel.Functions))
+	for i, funcode := range program.Toplevel.Functions {
+		funcodes = append(funcodes, namedFuncode{
+			name:    program.Toplevel.GetNestedFunctionName(i),
+			funcode: funcode,
+		})
+	}
+	slices.SortFunc(funcodes, func(a, b namedFuncode) int {
+		return a.name.Compare(b.name)
+	})
+
+	lines := make([]uint32, 0, len(funcodes))
+	for _, f := range funcodes {
+		lines = append(lines, uint32(f.funcode.Pos.Line))
+		encodedFuncode, err := encodeFuncode(f.funcode)
+		if err != nil {
+			return model_core.PatchedMessage[[]*model_starlark_pb.CompiledProgram_FunctionEntry, TMetadata]{}, nil, fmt.Errorf("function %#v: %w", f.funcode.Name, err)
+		}
+		if err := treeBuilder.PushChild(model_core.NewSimplePatchedMessage[TMetadata](
+			&model_starlark_pb.CompiledProgram_FunctionEntry{
+				Level: &model_starlark_pb.CompiledProgram_FunctionEntry_Leaf_{
+					Leaf: &model_starlark_pb.CompiledProgram_FunctionEntry_Leaf{
+						Name: encodeFunctionName(f.name),
+						Code: encodedFuncode,
+					},
+				},
+			},
+		)); err != nil {
+			return model_core.PatchedMessage[[]*model_starlark_pb.CompiledProgram_FunctionEntry, TMetadata]{}, nil, err
+		}
+	}
+	functions, err := treeBuilder.FinalizeList()
+	if err != nil {
+		return model_core.PatchedMessage[[]*model_starlark_pb.CompiledProgram_FunctionEntry, TMetadata]{}, nil, err
+	}
+	return functions, lines, nil
 }
 
 // DecodeGlobals decodes all of the globals declared in a .bzl file that
-// was previously compiled and written to storage.
-func DecodeGlobals[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](encodedGlobals model_core.Message[*model_starlark_pb.Struct_Fields, TReference], currentFilename pg_label.CanonicalLabel, options *ValueDecodingOptions[TReference]) (starlark.StringDict, error) {
-	globals := map[string]starlark.Value{}
+// was previously compiled and written to storage. As decoding is lazy,
+// this does not read the contents of the globals.
+func DecodeGlobals[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, encodedGlobals model_core.Message[*model_starlark_pb.Struct_Fields, TReference], currentFilename pg_label.CanonicalLabel) (map[string]eval.Value, error) {
+	options, err := getValueDecodingOptions[TReference](thread)
+	if err != nil {
+		return nil, err
+	}
+	globals := map[string]eval.Value{}
 	var errIter error
 	for key, encodedValue := range AllStructFields(
-		options.Context,
+		thread.Context(),
 		options.Readers.List,
 		encodedGlobals,
 		&errIter,
@@ -104,11 +262,10 @@ func DecodeGlobals[TReference object.BasicReference, TMetadata model_core.Refere
 			return nil, err
 		}
 		currentIdentifier := currentFilename.AppendStarlarkIdentifier(identifier)
-		value, err := DecodeValue[TReference, TMetadata](encodedValue, &currentIdentifier, options)
+		value, err := DecodeValue[TReference, TMetadata](thread, encodedValue, &currentIdentifier)
 		if err != nil {
 			return nil, err
 		}
-		value.Freeze()
 		globals[key] = value
 	}
 	if errIter != nil {
@@ -212,29 +369,4 @@ func decodeBuildSetting[TReference object.BasicReference, TMetadata model_core.R
 		return nil, err
 	}
 	return NewBuildSetting(buildSettingType, buildSetting.Flag), nil
-}
-
-// DecodeProvider converts a Protobuf message of a provider to a native
-// Starlark provider object.
-func DecodeProvider[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](m model_core.Message[*model_starlark_pb.Provider, TReference]) (*Provider[TReference, TMetadata], error) {
-	instanceProperties := m.Message.InstanceProperties
-	if instanceProperties == nil {
-		return nil, errors.New("provider instance properties are missing")
-	}
-	providerInstanceProperties, err := decodeProviderInstanceProperties[TReference, TMetadata](model_core.Nested(m, instanceProperties))
-	if err != nil {
-		return nil, err
-	}
-	var initFunction *NamedFunction[TReference, TMetadata]
-	if m.Message.InitFunction != nil {
-		f := NewNamedFunction(NewProtoNamedFunctionDefinition[TReference, TMetadata](
-			model_core.Nested(m, m.Message.InitFunction),
-		))
-		initFunction = &f
-	}
-	return NewProvider[TReference](
-		providerInstanceProperties,
-		m.Message.Fields,
-		initFunction,
-	), nil
 }

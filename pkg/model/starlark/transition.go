@@ -7,13 +7,12 @@ import (
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
 
 	"google.golang.org/protobuf/types/known/emptypb"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 // Transition is a Starlark value type that corresponds to a predeclared
@@ -25,7 +24,7 @@ type Transition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 }
 
 var (
-	_ starlark.Value                                                      = (*Transition[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Value                                                          = (*Transition[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Transition[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ NamedGlobal                                                         = (*Transition[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
@@ -39,8 +38,10 @@ func NewTransition[TReference any, TMetadata model_core.ReferenceMetadata](defin
 	}
 }
 
-func (Transition[TReference, TMetadata]) String() string {
-	return "<transition>"
+// Repr writes the representation of the value.
+func (Transition[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<transition>")
+	return nil
 }
 
 // Type returns a string representation of the type of a transition.
@@ -48,20 +49,10 @@ func (Transition[TReference, TMetadata]) Type() string {
 	return "transition"
 }
 
-// Freeze the definition of the transition. As transitions are
-// immutable, this function has no effect.
-func (Transition[TReference, TMetadata]) Freeze() {}
-
 // Truth returns whether the transition is a truthy or a falsy.
 // Transitions are always truthy.
-func (Transition[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-// Hash the transition object, so that it may be used as the key in a
-// dictionary. This is currently not supported.
-func (Transition[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("transition cannot be hashed")
+func (Transition[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 // TransitionDefinition contains the definition of a configuration
@@ -72,8 +63,8 @@ func (Transition[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, 
 type TransitionDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	EncodableValue[TReference, TMetadata]
 	AssignIdentifier(identifier pg_label.CanonicalStarlarkIdentifier)
-	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata], error)
-	EncodeUserDefinedTransition(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error)
+	Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata], error)
+	EncodeUserDefinedTransition(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error)
 }
 
 type protoTransitionDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -104,7 +95,7 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) AssignIdentifier(ide
 	}
 }
 
-func (td *protoTransitionDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata], error) {
+func (td *protoTransitionDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata], error) {
 	if td.identifier != nil {
 		return model_core.NewSimplePatchedMessage[TMetadata](
 			&model_starlark_pb.Transition{
@@ -121,7 +112,7 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) Encode(path map[star
 	return model_core.Patch(options.ObjectCapturer, td.definition), nil
 }
 
-func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeUserDefinedTransition(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error) {
+func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeUserDefinedTransition(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error) {
 	switch t := td.definition.Message.Kind.(type) {
 	case *model_starlark_pb.Transition_Target:
 		return model_core.NewSimplePatchedMessage[TMetadata](
@@ -143,7 +134,7 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeUserDefinedTra
 	}
 }
 
-func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
+func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	if td.identifier != nil && (currentIdentifier == nil || *currentIdentifier != *td.identifier) {
 		return model_core.NewSimplePatchedMessage[TMetadata](
 			&model_starlark_pb.Value{
@@ -159,7 +150,7 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeValue(path map
 					},
 				},
 			},
-		), false, nil
+		), nil
 	}
 
 	return model_core.MustBuildPatchedMessage(
@@ -171,7 +162,7 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeValue(path map
 				},
 			}
 		},
-	), false, nil
+	), nil
 }
 
 // Transitions that are used frequently (e.g., "exec", "target",
@@ -202,7 +193,7 @@ var (
 type userDefinedTransitionDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	LateNamedValue
 
-	implementation   NamedFunction[TReference, TMetadata]
+	implementation   eval.Function
 	inputs           []string
 	outputs          []string
 	canonicalPackage pg_label.CanonicalPackage
@@ -211,7 +202,7 @@ type userDefinedTransitionDefinition[TReference any, TMetadata model_core.Refere
 // NewUserDefinedTransitionDefinition creates an object holding the
 // properties of a new user defined transition, as normally done by
 // exec_transition() or transition().
-func NewUserDefinedTransitionDefinition[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, implementation NamedFunction[TReference, TMetadata], inputs, outputs []string, canonicalPackage pg_label.CanonicalPackage) TransitionDefinition[TReference, TMetadata] {
+func NewUserDefinedTransitionDefinition[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, implementation eval.Function, inputs, outputs []string, canonicalPackage pg_label.CanonicalPackage) TransitionDefinition[TReference, TMetadata] {
 	return &userDefinedTransitionDefinition[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,
@@ -223,7 +214,7 @@ func NewUserDefinedTransitionDefinition[TReference any, TMetadata model_core.Ref
 	}
 }
 
-func (td *userDefinedTransitionDefinition[TReference, TMetadata]) encodeUserDefinedTransition(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], bool, error) {
+func (td *userDefinedTransitionDefinition[TReference, TMetadata]) encodeUserDefinedTransition(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error) {
 	if td.Identifier != nil && (currentIdentifier == nil || *currentIdentifier != *td.Identifier) {
 		// Not the canonical identifier under which this
 		// transition is known. Emit a reference.
@@ -233,12 +224,12 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) encodeUserDefi
 					Identifier: td.Identifier.String(),
 				},
 			},
-		), false, nil
+		), nil
 	}
 
-	implementation, needsCode, err := td.implementation.Encode(path, options)
+	implementation, err := EncodeFunction(thread, td.implementation, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Transition_UserDefined{
@@ -252,11 +243,11 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) encodeUserDefi
 			},
 		},
 		implementation.Patcher,
-	), needsCode, nil
+	), nil
 }
 
-func (td *userDefinedTransitionDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata], error) {
-	userDefined, _, err := td.encodeUserDefinedTransition(path, nil, options)
+func (td *userDefinedTransitionDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata], error) {
+	userDefined, err := td.encodeUserDefinedTransition(thread, path, nil, options)
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata]{}, err
 	}
@@ -271,15 +262,15 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) Encode(path ma
 	), nil
 }
 
-func (td *userDefinedTransitionDefinition[TReference, TMetadata]) EncodeUserDefinedTransition(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error) {
-	userDefined, _, err := td.encodeUserDefinedTransition(path, nil, options)
+func (td *userDefinedTransitionDefinition[TReference, TMetadata]) EncodeUserDefinedTransition(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error) {
+	userDefined, err := td.encodeUserDefinedTransition(thread, path, nil, options)
 	return userDefined, err
 }
 
-func (td *userDefinedTransitionDefinition[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
-	userDefined, needsCode, err := td.encodeUserDefinedTransition(path, currentIdentifier, options)
+func (td *userDefinedTransitionDefinition[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
+	userDefined, err := td.encodeUserDefinedTransition(thread, path, currentIdentifier, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.MustBuildPatchedMessage(
 		func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Value {
@@ -293,7 +284,7 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) EncodeValue(pa
 				},
 			}
 		},
-	), needsCode, nil
+	), nil
 }
 
 type transitionDefinitionUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct{}
@@ -306,9 +297,9 @@ func NewTransitionDefinitionUnpackerInto[TReference object.BasicReference, TMeta
 	return transitionDefinitionUnpackerInto[TReference, TMetadata]{}
 }
 
-func (transitionDefinitionUnpackerInto[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst *TransitionDefinition[TReference, TMetadata]) error {
+func (transitionDefinitionUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst *TransitionDefinition[TReference, TMetadata]) error {
 	switch typedV := v.(type) {
-	case starlark.String:
+	case eval.String:
 		switch typedV {
 		case "exec":
 			*dst = NewProtoTransitionDefinition[TReference, TMetadata](
@@ -330,7 +321,7 @@ func (transitionDefinitionUnpackerInto[TReference, TMetadata]) UnpackInto(thread
 	}
 }
 
-func (ui transitionDefinitionUnpackerInto[TReference, TMetadata]) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+func (ui transitionDefinitionUnpackerInto[TReference, TMetadata]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	var td TransitionDefinition[TReference, TMetadata]
 	if err := ui.UnpackInto(thread, v, &td); err != nil {
 		return nil, err

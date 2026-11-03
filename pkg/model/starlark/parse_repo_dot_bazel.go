@@ -9,10 +9,12 @@ import (
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/compile"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
+	"bonanza.build/pkg/starlark/resolve"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
-
-	"go.starlark.net/starlark"
 )
 
 // DefaultInheritableAttrs contains the default values of the
@@ -36,44 +38,64 @@ func ParseRepoDotBazel[TReference object.BasicReference, TMetadata model_core.Re
 	objectCapturer model_core.ObjectCapturer[TReference, TMetadata],
 	labelResolver pg_label.Resolver,
 ) (model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata], error) {
-	thread := &starlark.Thread{
-		Name: "main",
-		Print: func(_ *starlark.Thread, msg string) {
-			// TODO: Provide logging sink.
-			fmt.Println(msg)
-		},
-	}
-	thread.SetLocal(LabelResolverKey, labelResolver)
-
 	var defaultAttrs model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]
-	_, err := starlark.ExecFile(
-		thread,
-		filename.String(),
-		contents,
-		starlark.StringDict{
-			"repo": starlark.NewBuiltin("repo", func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if defaultAttrs.IsSet() {
-					return nil, fmt.Errorf("%s: function can only be invoked once", b.Name())
-				}
-				newDefaultAttrs, err := getDefaultInheritableAttrs[TReference, TMetadata](
-					ctx,
-					thread,
-					b,
-					args,
-					kwargs,
-					model_core.NewSimpleMessage[TReference](&DefaultInheritableAttrs),
-					encoder,
-					inlinedTreeOptions,
-					objectCapturer,
-				)
-				if err != nil {
-					return nil, err
-				}
-				defaultAttrs = newDefaultAttrs
-				return starlark.None, nil
-			}),
+	predeclared := map[string]eval.Value{
+		"repo": eval.NewBuiltin("repo", func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+			if defaultAttrs.IsSet() {
+				return nil, fmt.Errorf("%s: function can only be invoked once", b.Name())
+			}
+			newDefaultAttrs, err := getDefaultInheritableAttrs[TReference, TMetadata](
+				ctx,
+				thread,
+				b,
+				args,
+				model_core.NewSimpleMessage[TReference](&DefaultInheritableAttrs),
+				encoder,
+				inlinedTreeOptions,
+				objectCapturer,
+			)
+			if err != nil {
+				return nil, err
+			}
+			defaultAttrs = newDefaultAttrs
+			return eval.None, nil
+		}),
+	}
+
+	// Parse, resolve and compile the file.
+	filenameStr := filename.String()
+	f, err := syntax.Parse(filenameStr, []byte(contents), syntax.Options{})
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, err
+	}
+	universe := eval.Universe()
+	m, err := resolve.File(
+		f,
+		&resolve.RepoDotBazelDialect,
+		func(name string) bool {
+			_, ok := predeclared[name]
+			return ok
+		},
+		func(name string) bool {
+			_, ok := universe[name]
+			return ok
 		},
 	)
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, err
+	}
+
+	// Execute the file. The filename of the module needs to be a
+	// canonical label, so that labels can be resolved relative to
+	// the root package of the repository.
+	thread := eval.NewThread(ctx, universe)
+	thread.Print = func(_ *eval.Thread, msg string) error {
+		// TODO: Provide logging sink.
+		fmt.Println(msg)
+		return nil
+	}
+	thread.SetLocal(LabelResolverKey, labelResolver)
+	err = eval.ExecFile(thread, compile.File(f, m), eval.NewInMemoryModule(filenameStr, predeclared, nil))
 	if !defaultAttrs.IsSet() {
 		defaultAttrs = model_core.NewSimplePatchedMessage[TMetadata](&DefaultInheritableAttrs)
 	}
@@ -84,17 +106,16 @@ func ParseRepoDotBazel[TReference object.BasicReference, TMetadata model_core.Re
 // REPO.bazel's repo() function or BUILD.bazel's package() function.
 func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	ctx context.Context,
-	thread *starlark.Thread,
-	b *starlark.Builtin,
-	args starlark.Tuple,
-	kwargs []starlark.Tuple,
+	thread *eval.Thread,
+	b *eval.Builtin,
+	args eval.Args,
 	previousInheritableAttrs model_core.Message[*model_starlark_pb.InheritableAttrs, TReference],
 	encoder model_encoding.DeterministicBinaryEncoder,
 	inlinedTreeOptions *inlinedtree.Options,
 	objectCapturer model_core.ObjectCapturer[TReference, TMetadata],
 ) (model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata], error) {
-	if len(args) > 0 {
-		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+	if len(args.Positional) > 0 {
+		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 	}
 
 	var applicableLicenses []string
@@ -102,18 +123,21 @@ func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata mode
 	packageMetadata := previousInheritableAttrs.Message.PackageMetadata
 	testOnly := previousInheritableAttrs.Message.Testonly
 	var visibility []pg_label.ResolvedLabel
-	canonicalPackage := CurrentFilePackage(thread, 1)
+	canonicalPackage, err := CurrentFilePackage(thread)
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, err
+	}
 	labelUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](canonicalPackage)
 	labelStringListUnpackerInto := unpack.List(unpack.Stringer(labelUnpackerInto))
 	var features []string
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
-		"default_applicable_licenses?", unpack.Bind(thread, &applicableLicenses, labelStringListUnpackerInto),
-		"default_deprecation?", unpack.Bind(thread, &deprecation, unpack.String),
-		"default_package_metadata?", unpack.Bind(thread, &packageMetadata, labelStringListUnpackerInto),
-		"default_testonly?", unpack.Bind(thread, &testOnly, unpack.Bool),
-		"default_visibility?", unpack.Bind(thread, &visibility, unpack.List(labelUnpackerInto)),
-		"features?", unpack.Bind(thread, &features, unpack.List(unpack.String)),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
+		"default_applicable_licenses?", unpack.Bind(&applicableLicenses, labelStringListUnpackerInto),
+		"default_deprecation?", unpack.Bind(&deprecation, unpack.String),
+		"default_package_metadata?", unpack.Bind(&packageMetadata, labelStringListUnpackerInto),
+		"default_testonly?", unpack.Bind(&testOnly, unpack.Bool),
+		"default_visibility?", unpack.Bind(&visibility, unpack.List(labelUnpackerInto)),
+		"features?", unpack.Bind(&features, unpack.List(unpack.String)),
 	); err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, err
 	}

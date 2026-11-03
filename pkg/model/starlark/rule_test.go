@@ -11,12 +11,12 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
-	"go.starlark.net/starlark"
 
 	"go.uber.org/mock/gomock"
 )
@@ -28,7 +28,7 @@ func TestRuleCallTest(t *testing.T) {
 
 	// callRule invokes a rule from within a BUILD file, returning
 	// the rule target that is registered.
-	callRule := func(t *testing.T, ruleType model_starlark_pb.Rule_Definition_Type, kwargs ...starlark.Tuple) (*model_starlark_pb.RuleTarget, error) {
+	callRule := func(t *testing.T, ruleType model_starlark_pb.Rule_Definition_Type, kwargs ...eval.NamedArg) (*model_starlark_pb.RuleTarget, error) {
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		targetRegistrar := model_starlark.NewTargetRegistrar[object.LocalReference, model_core.CreatedObjectTree](
 			ctx,
@@ -42,7 +42,7 @@ func TestRuleCallTest(t *testing.T) {
 		)
 		defer targetRegistrar.Discard()
 
-		thread := &starlark.Thread{}
+		thread := newTestThread(t)
 		thread.SetLocal(model_starlark.TargetRegistrarKey, targetRegistrar)
 		thread.SetLocal(model_starlark.CanonicalPackageKey, util.Must(label.NewCanonicalPackage("@@main+//foo")))
 		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
@@ -62,14 +62,14 @@ func TestRuleCallTest(t *testing.T) {
 				/* buildSetting = */ nil,
 				/* cfg = */ nil,
 				/* execGroups = */ nil,
-				/* implementation = */ model_starlark.NamedFunction[object.LocalReference, model_core.CreatedObjectTree]{},
+				/* implementation = */ nil,
 				/* initializer = */ nil,
 				/* provides = */ nil,
 				ruleType,
 				/* subrules = */ nil,
 			),
 		)
-		if _, err := starlark.Call(thread, rule, nil, append([]starlark.Tuple{{starlark.String("name"), starlark.String("t")}}, kwargs...)); err != nil {
+		if _, err := eval.Call(thread, rule, eval.Args{Named: append([]eval.NamedArg{{Name: "name", Value: eval.String("t")}}, kwargs...)}); err != nil {
 			return nil, err
 		}
 		return targetRegistrar.GetAndRemoveTarget("t").Message.GetRuleTarget(), nil
@@ -92,8 +92,8 @@ func TestRuleCallTest(t *testing.T) {
 		require.NoError(t, err)
 		require.Nil(t, ruleTarget.Test)
 
-		_, err = callRule(t, model_starlark_pb.Rule_Definition_NON_EXECUTABLE, starlark.Tuple{starlark.String("size"), starlark.String("small")})
-		require.ErrorContains(t, err, "unexpected keyword argument \"size\"")
+		_, err = callRule(t, model_starlark_pb.Rule_Definition_NON_EXECUTABLE, eval.NamedArg{Name: "size", Value: eval.String("small")})
+		require.ErrorContains(t, err, "unexpected keyword argument 'size'")
 	})
 
 	t.Run("Defaults", func(t *testing.T) {
@@ -110,7 +110,7 @@ func TestRuleCallTest(t *testing.T) {
 	})
 
 	t.Run("TimeoutDerivedFromSize", func(t *testing.T) {
-		ruleTarget, err := callRule(t, model_starlark_pb.Rule_Definition_TEST, starlark.Tuple{starlark.String("size"), starlark.String("enormous")})
+		ruleTarget, err := callRule(t, model_starlark_pb.Rule_Definition_TEST, eval.NamedArg{Name: "size", Value: eval.String("enormous")})
 		require.NoError(t, err)
 		require.Equal(t, model_starlark_pb.TestSize_ENORMOUS, ruleTarget.Test.Size)
 		require.Equal(t, model_starlark_pb.TestTimeout_ETERNAL, ruleTarget.Test.Timeout)
@@ -122,21 +122,21 @@ func TestRuleCallTest(t *testing.T) {
 		ruleTarget, err := callRule(
 			t,
 			model_starlark_pb.Rule_Definition_TEST,
-			starlark.Tuple{starlark.String("size"), starlark.String("small")},
-			starlark.Tuple{starlark.String("timeout"), starlark.String("long")},
-			starlark.Tuple{starlark.String("flaky"), starlark.True},
-			starlark.Tuple{starlark.String("local"), starlark.True},
-			starlark.Tuple{starlark.String("shard_count"), model_starlark.NewSelect[object.LocalReference, model_core.CreatedObjectTree](
+			eval.NamedArg{Name: "size", Value: eval.String("small")},
+			eval.NamedArg{Name: "timeout", Value: eval.String("long")},
+			eval.NamedArg{Name: "flaky", Value: eval.True},
+			eval.NamedArg{Name: "local", Value: eval.True},
+			eval.NamedArg{Name: "shard_count", Value: model_starlark.NewSelect[object.LocalReference, model_core.CreatedObjectTree](
 				[]model_starlark.SelectGroup{
 					model_starlark.NewSelectGroup(
-						map[label.ResolvedLabel]starlark.Value{condition: starlark.MakeInt(4)},
-						starlark.MakeInt(2),
+						map[label.ResolvedLabel]eval.Value{condition: eval.MakeInt(4)},
+						eval.MakeInt(2),
 						"",
 					),
 				},
 				/* concatenationOperator = */ 0,
 			)},
-			starlark.Tuple{starlark.String("args"), starlark.NewList([]starlark.Value{starlark.String("--foo")})},
+			eval.NamedArg{Name: "args", Value: eval.NewList([]eval.Value{eval.String("--foo")})},
 		)
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_starlark_pb.RuleTarget_Test{
@@ -165,12 +165,12 @@ func TestRuleCallTest(t *testing.T) {
 
 	t.Run("InvalidValues", func(t *testing.T) {
 		for name, testCase := range map[string]struct {
-			kwarg         starlark.Tuple
+			kwarg         eval.NamedArg
 			expectedError string
 		}{
-			"Size":     {starlark.Tuple{starlark.String("size"), starlark.String("huge")}, "attribute \"size\": invalid test size \"huge\""},
-			"SizeCase": {starlark.Tuple{starlark.String("size"), starlark.String("SMALL")}, "attribute \"size\": invalid test size \"SMALL\""},
-			"Timeout":  {starlark.Tuple{starlark.String("timeout"), starlark.String("forever")}, "attribute \"timeout\": invalid test timeout \"forever\""},
+			"Size":     {eval.NamedArg{Name: "size", Value: eval.String("huge")}, "attribute \"size\": invalid test size \"huge\""},
+			"SizeCase": {eval.NamedArg{Name: "size", Value: eval.String("SMALL")}, "attribute \"size\": invalid test size \"SMALL\""},
+			"Timeout":  {eval.NamedArg{Name: "timeout", Value: eval.String("forever")}, "attribute \"timeout\": invalid test timeout \"forever\""},
 		} {
 			t.Run(name, func(t *testing.T) {
 				_, err := callRule(t, model_starlark_pb.Rule_Definition_TEST, testCase.kwarg)
@@ -199,7 +199,7 @@ func TestRuleCallOutputAttr(t *testing.T) {
 
 	// Outputs are never configurable, meaning they cannot be
 	// provided using select().
-	callRule := func(out starlark.Value) error {
+	callRule := func(out eval.Value) error {
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		targetRegistrar := model_starlark.NewTargetRegistrar[object.LocalReference, model_core.CreatedObjectTree](
 			ctx,
@@ -213,7 +213,7 @@ func TestRuleCallOutputAttr(t *testing.T) {
 		)
 		defer targetRegistrar.Discard()
 
-		thread := &starlark.Thread{}
+		thread := newTestThread(t)
 		thread.SetLocal(model_starlark.TargetRegistrarKey, targetRegistrar)
 		thread.SetLocal(model_starlark.CanonicalPackageKey, util.Must(label.NewCanonicalPackage("@@main+//foo")))
 		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, valueEncodingOptions)
@@ -228,17 +228,17 @@ func TestRuleCallOutputAttr(t *testing.T) {
 				/* buildSetting = */ nil,
 				/* cfg = */ nil,
 				/* execGroups = */ nil,
-				/* implementation = */ model_starlark.NamedFunction[object.LocalReference, model_core.CreatedObjectTree]{},
+				/* implementation = */ nil,
 				/* initializer = */ nil,
 				/* provides = */ nil,
 				model_starlark_pb.Rule_Definition_NON_EXECUTABLE,
 				/* subrules = */ nil,
 			),
 		)
-		_, err := starlark.Call(thread, rule, nil, []starlark.Tuple{
-			{starlark.String("name"), starlark.String("t")},
-			{starlark.String("out"), out},
-		})
+		_, err := eval.Call(thread, rule, eval.Args{Named: []eval.NamedArg{
+			{Name: "name", Value: eval.String("t")},
+			{Name: "out", Value: out},
+		}})
 		return err
 	}
 

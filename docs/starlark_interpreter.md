@@ -910,94 +910,82 @@ unpacker that leaves them as they are.
 plus one for the top level of the file. A `Funcode` is self-contained.
 Its constants, names, loaded symbols and nested functions are stored in
 tables of its own, rather than in tables shared by the whole file. Each
-one can therefore become its own message object:
+one can therefore be stored as a `Funcode` message of its own.
 
-```proto
-message Funcode {
-  string name = 1;
-  int32 line = 2;
-  int32 column = 3;
-  string doc = 4;
-  bytes code = 5;               // bytecode, see below
-  bytes line_table = 6;         // pc -> position, delta encoded varints
-  repeated Constant constants = 7;
-  repeated string names = 8;    // attribute, global, predeclared and universal names
-  repeated Import imports = 9;  // (module, name) pairs referenced by IMPORT
-  repeated string locals = 10;  // parameters first
-  repeated uint32 cells = 11;   // indices of locals that are captured
-  repeated string free_variables = 12;
-  Parameters parameters = 13;   // counts, *args, **kwargs
-  uint32 max_stack = 14;
-  uint32 max_iterators = 15;
-
-  // Nested functions, referenced by MAKEFUNC <index>.
-  repeated bonanza.model.core.DecodableReference functions = 16;
-}
-```
+Nested functions are stored inline in the message of the function
+containing them. If the message becomes too large, `inlinedtree` moves
+the largest ones to separate objects. Lambdas and nested functions tend
+to be small, so this avoids creating lots of tiny objects. A closure
+that is created from stored code and later encoded is written as a
+standalone object, which deduplicates with any identical copy.
 
 The compiler itself only produces Go structs. Converting them to
 messages is the job of `pkg/model/starlark`, so that the compiler
 stays independent of storage.
 
-Since a `Funcode` only refers to the code of its nested functions,
-these objects form a DAG.
-
-`model_starlark_pb.Function` changes from "file + index into the
+`model_starlark_pb.Function` changed from "file + index into the
 file's bytecode" to:
 
 ```proto
 message Function {
   // Module whose globals the code resolves against.
   string filename = 1;
+  // Name of the function, so that it can be printed without loading
+  // its code.
+  string name = 2;
   // Reference to the Funcode object.
-  bonanza.model.core.DecodableReference code = 2;
-  Closure closure = 3; // defaults + free variables, as today
+  bonanza.model.core.DecodableReference code = 3;
+  // Default values of parameters and free variables.
+  Closure closure = 4;
 }
 ```
 
 The module is referenced by name rather than by object reference
 because a module's globals contain its own functions. Referencing the
-module by content would create a cycle.
+module by content would create a cycle. As every function stores its
+own default values, functions declared at the top level of a file no
+longer need to be recreated by executing the file again.
 
 ### Calling a function
 
-The core defines a function as an interface, so it doesn't need to
-know about storage:
+The core defines a function as an interface (`eval.Function`), so it
+doesn't need to know about storage. Its `Funcode()`, `Module()`,
+`Defaults()` and `FreeVars()` methods take a `*Thread`, so that an
+implementation backed by storage can load them when the function is
+first called.
 
-```go
-type Function interface {
-	Callable
-	Code(t *Thread) (*compile.Funcode, error)
-	Module(t *Thread) (Module, error)
-	Defaults() []Value
-	FreeVars() []Value
-}
+`DecodeFunction()` returns such an implementation. Its module resolves
+names as follows:
 
-type Module interface {
-	// Global resolves a global or load() binding by index into
-	// Funcode.names. Results may be cached on the Thread, but never
-	// in anything shared between evaluations (see "Memoization and
-	// dependency tracking").
-	Global(t *Thread, index int) (Value, error)
-}
-```
+- **Globals of the module** and **`load()` bindings** go through the
+  `GlobalResolver` stored in the thread, which in the context of an
+  evaluation requests `CompiledBzlFileGlobal`. Values are cached on the
+  thread for the duration of the evaluation, never across evaluations.
+- **Predeclared names** come from `ValueDecodingOptions.BzlFileBuiltins`.
 
-The storage-backed `Module` resolves names through evaluation keys:
+`load()` bindings are recorded in `Funcode.imports` as `(canonical
+label, symbol)` pairs. `CanonicalizeImports()` rewrites the module
+strings of a compiled program to canonical labels before it is
+executed, so that the code of its functions can be written to storage.
 
-- **Globals of the module** go through `CompiledBzlFileGlobal`. That
-  key already exists and returns one global as a message.
-- **`load()` bindings** are recorded at compile time as
-  `(canonical label, symbol)` pairs. Resolving one is also a
-  `CompiledBzlFileGlobal` lookup on the loaded file.
+Decoded `Funcode`s are cached on the thread, indexed by object
+reference, to avoid repeated decoding. The VM's recursion check doesn't
+depend on this: it identifies functions by their filename and the
+position of their declaration. Comparing `Funcode`s wouldn't work, as
+identical functions in different files may share the same object.
 
 So calling a function declared in another file adds dependency edges
 only on the globals it actually touches. It never executes the file's
 top-level code again, and `CompiledBzlFileFunctionFactory` goes away.
 
 Private globals (`_foo`) also have to be encoded in `CompiledProgram`
-now, because functions in the same file refer to them. To limit that,
-only private globals that some `Funcode` in the file names need to be
-encoded. The compiler knows this set.
+now, because functions in the same file refer to them.
+`EncodeCompiledProgram()` scans the bytecode of the program's functions
+for `GLOBAL` instructions, and only encodes the private globals that
+are referenced this way.
+
+`NamedFunction`, which rules, providers, macros, etc. use to refer to
+functions, is now a thin wrapper around `eval.Function`.
 
 ### Lazy `load()`
 
@@ -1212,16 +1200,20 @@ interpreters side by side in one binary isn't practical. Instead:
      - `repr()` of labels and structs follows Bazel: `Label("@@a//b:c")`
        and `struct(a = 1)`, or the provider's name for provider
        instances.
-   - **Types holding functions**: `NamedFunction`, `provider()`,
-     rules, macros, aspects, subrules, transitions, repository rules,
-     module extensions, tag classes, attributes and build settings,
-     together with the per-function code storage and lazy `load()`
-     described in [Functions](#functions). The ported code already
-     calls into these using the API they will have afterwards:
-     `NamedFunction` implements `eval.Callable` and is encoded with
-     `Encode(thread, path, options)`.
+   - **Types holding functions** (done): `NamedFunction`,
+     `provider()`, rules, macros, aspects, subrules, transitions,
+     repository rules, module extensions, tag classes, attributes,
+     build settings, `native.existing_rules()` and the builtins of
+     `.bzl` and `BUILD` files, together with the per-function code
+     storage described in [Functions](#functions). `REPO.bazel` files
+     are evaluated by the new interpreter as well. Error messages of
+     argument unpacking now follow `eval.UnpackArgs()`, e.g.
+     `macro(): for parameter inherit_attrs: ...`.
 5. **Port `pkg/model/analysis`** on the same branch. Remove the two
-   native keys, add `BzlFileBuiltins`, and make `load()` lazy. Move
+   native keys, add `BzlFileBuiltins`, and make `load()` lazy, by
+   providing an importer that resolves symbols through
+   `CompiledBzlFileGlobal`. Callers that construct
+   `ValueReaders` need to provide a reader for `Funcode` objects. Move
    the remaining users of `go.starlark.net/syntax` over: `syntax.Token`
    and `syntax.Position` in value methods, and `syntax.Quote` in
    `pkg/model/render`. Then drop `go.starlark.net` from

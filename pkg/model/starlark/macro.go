@@ -13,11 +13,10 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 type macro[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -26,14 +25,14 @@ type macro[TReference object.BasicReference, TMetadata model_core.ReferenceMetad
 }
 
 var (
-	_ starlark.Callable                                                   = (*macro[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Callable                                                       = (*macro[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*macro[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ NamedGlobal                                                         = (*macro[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewMacro creates a Starlark symbolic macro object. These are normally
 // created using the macro() function.
-func NewMacro[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition MacroDefinition[TReference, TMetadata]) starlark.Value {
+func NewMacro[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition MacroDefinition[TReference, TMetadata]) eval.Value {
 	return &macro[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,
@@ -42,22 +41,18 @@ func NewMacro[TReference object.BasicReference, TMetadata model_core.ReferenceMe
 	}
 }
 
-func (macro[TReference, TMetadata]) String() string {
-	return "<macro>"
+// Repr writes the representation of the value.
+func (macro[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<macro>")
+	return nil
 }
 
 func (macro[TReference, TMetadata]) Type() string {
 	return "macro"
 }
 
-func (macro[TReference, TMetadata]) Freeze() {}
-
-func (macro[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-func (macro[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("macro cannot be hashed")
+func (macro[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 func (m *macro[TReference, TMetadata]) Name() string {
@@ -72,9 +67,9 @@ func (m *macro[TReference, TMetadata]) Name() string {
 // implementation function immediately, the arguments of the call are
 // recorded as a macro instance. The implementation function is only
 // invoked when one of the targets declared by the macro is requested.
-func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if len(args) != 0 {
-		return nil, fmt.Errorf("got %d positional arguments, want 0", len(args))
+func (m *macro[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eval.Args) (eval.Value, error) {
+	if len(args.Positional) != 0 {
+		return nil, fmt.Errorf("got %d positional arguments, want 0", len(args.Positional))
 	}
 	if m.Identifier == nil {
 		return nil, errors.New("macro does not have a name")
@@ -102,7 +97,7 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 
 	var mandatoryUnpackers, optionalUnpackers []any
 	attrNames := make([]pg_label.StarlarkIdentifier, 0, len(attrs))
-	values := make([]starlark.Value, len(attrs))
+	values := make([]eval.Value, len(attrs))
 	currentPackage := thread.Local(CanonicalPackageKey).(pg_label.CanonicalPackage)
 	for _, name := range slices.SortedFunc(
 		maps.Keys(attrs),
@@ -135,14 +130,14 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 		// the names of the targets and macro instances they
 		// declare. They therefore don't need to be valid target
 		// names.
-		"name", unpack.Bind(thread, &name, unpack.String),
+		"name", unpack.Bind(&name, unpack.String),
 	)
 	optionalUnpackers = append(
 		optionalUnpackers,
-		"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
+		"visibility?", unpack.Bind(&visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 	)
-	if err := starlark.UnpackArgs(
-		m.Identifier.GetStarlarkIdentifier().String(), nil, kwargs,
+	if err := eval.UnpackArgs(
+		thread, m.Identifier.GetStarlarkIdentifier().String(), args,
 		append(mandatoryUnpackers, optionalUnpackers...)...,
 	); err != nil {
 		return nil, err
@@ -158,15 +153,16 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 		attr := attrs[attrName]
 		value := values[i]
 		if value == nil {
-			value = starlark.None
+			value = eval.None
 		}
 		var selectValue *Select[TReference, TMetadata]
 		if err := attr.getSelectUnpackerInto(currentPackage).UnpackInto(thread, value, &selectValue); err != nil {
 			patcher.Discard()
 			return nil, fmt.Errorf("invalid argument %#v: %w", attrName.String(), err)
 		}
-		encodedGroups, _, err := selectValue.EncodeGroups(
-			/* path = */ map[starlark.Value]struct{}{},
+		encodedGroups, err := selectValue.EncodeGroups(
+			thread,
+			/* path = */ nil,
 			valueEncodingOptions,
 		)
 		if err != nil {
@@ -186,7 +182,7 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 		// can't declare source file targets themselves. If such
 		// targets are in the namespace of a macro instance,
 		// TargetRegistrar.Finalize() forwards them to it.
-		if err := selectValue.VisitLabels(thread, map[starlark.Value]struct{}{}, func(l pg_label.ResolvedLabel) error {
+		if err := selectValue.VisitLabels(thread, nil, func(l pg_label.ResolvedLabel) error {
 			if canonicalLabel, err := l.AsCanonical(); err == nil && canonicalLabel.GetCanonicalPackage() == currentPackage {
 				targetRegistrar.registerImplicitTarget(canonicalLabel.GetTargetName().String())
 			}
@@ -208,7 +204,7 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 	patcher.Merge(visibilityPackageGroup.Patcher)
 
 	defaultInheritableAttrs := targetRegistrar.defaultInheritableAttrs.Message
-	return starlark.None, targetRegistrar.registerMacroInstance(
+	return eval.None, targetRegistrar.registerMacroInstance(
 		name,
 		model_core.NewPatchedMessage(
 			&model_starlark_pb.MacroInstance_Definition{
@@ -227,9 +223,9 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *starlark.Thread, arg
 	)
 }
 
-func (m *macro[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
+func (m *macro[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	if m.Identifier == nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, errors.New("macro does not have a name")
+		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, errors.New("macro does not have a name")
 	}
 	if currentIdentifier == nil || *currentIdentifier != *m.Identifier {
 		// Not the canonical identifier under which this macro
@@ -242,12 +238,12 @@ func (m *macro[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struc
 					},
 				},
 			},
-		}), false, nil
+		}), nil
 	}
 
-	definition, needsCode, err := m.definition.Encode(path, options)
+	definition, err := m.definition.Encode(thread, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Value{
@@ -260,7 +256,7 @@ func (m *macro[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struc
 			},
 		},
 		definition.Patcher,
-	), needsCode, nil
+	), nil
 }
 
 // inheritableAttrsSource is implemented by values that may be provided
@@ -269,10 +265,10 @@ func (m *macro[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struc
 type inheritableAttrsSource[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	// getInheritableAttrs returns the attributes that a symbolic
 	// macro may inherit. Only public attributes are returned.
-	getInheritableAttrs(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
+	getInheritableAttrs(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
 }
 
-func (m *macro[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (m *macro[TReference, TMetadata]) getInheritableAttrs(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	macroAttrs, err := m.definition.GetAttrsCheap(thread)
 	if err != nil {
 		return nil, err
@@ -291,7 +287,7 @@ func (m *macro[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Thre
 // attributes to be inherited.
 type noInheritableAttrs[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
 
-func (noInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (noInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	return nil, nil
 }
 
@@ -300,7 +296,7 @@ func (noInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread *sta
 // common to all rules to be inherited.
 type commonInheritableAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct{}
 
-func (commonInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (commonInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	return getImplicitRuleAttrs[TReference, TMetadata](
 		/* test = */ false,
 	), nil
@@ -308,9 +304,9 @@ func (commonInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread 
 
 type inheritableAttrsSourceUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct{}
 
-func (inheritableAttrsSourceUnpackerInto[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst *inheritableAttrsSource[TReference, TMetadata]) error {
+func (inheritableAttrsSourceUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst *inheritableAttrsSource[TReference, TMetadata]) error {
 	switch typedV := v.(type) {
-	case starlark.String:
+	case eval.String:
 		if typedV != "common" {
 			return fmt.Errorf("unknown set of attributes %#v", string(typedV))
 		}
@@ -323,7 +319,7 @@ func (inheritableAttrsSourceUnpackerInto[TReference, TMetadata]) UnpackInto(thre
 	return nil
 }
 
-func (ui inheritableAttrsSourceUnpackerInto[TReference, TMetadata]) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+func (ui inheritableAttrsSourceUnpackerInto[TReference, TMetadata]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	var source inheritableAttrsSource[TReference, TMetadata]
 	if err := ui.UnpackInto(thread, v, &source); err != nil {
 		return nil, err
@@ -339,14 +335,14 @@ func (inheritableAttrsSourceUnpackerInto[TReference, TMetadata]) GetConcatenatio
 // parameters that are part of the macro's definition, such as its
 // attributes.
 type MacroDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata], bool, error)
-	GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
-	IsFinalizer(thread *starlark.Thread) (bool, error)
+	Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata], error)
+	GetAttrsCheap(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
+	IsFinalizer(thread *eval.Thread) (bool, error)
 }
 
 type starlarkMacroDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	attrs          map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]
-	implementation NamedFunction[TReference, TMetadata]
+	implementation eval.Function
 	finalizer      bool
 }
 
@@ -355,7 +351,7 @@ type starlarkMacroDefinition[TReference object.BasicReference, TMetadata model_c
 // a .bzl file.
 func NewStarlarkMacroDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata],
-	implementation NamedFunction[TReference, TMetadata],
+	implementation eval.Function,
 	finalizer bool,
 ) MacroDefinition[TReference, TMetadata] {
 	return &starlarkMacroDefinition[TReference, TMetadata]{
@@ -365,16 +361,16 @@ func NewStarlarkMacroDefinition[TReference object.BasicReference, TMetadata mode
 	}
 }
 
-func (md *starlarkMacroDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata], bool, error) {
+func (md *starlarkMacroDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata], error) {
 	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
-	implementation, needsCode, err := md.implementation.Encode(path, options)
+	implementation, err := EncodeFunction(thread, md.implementation, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata]{}, err
 	}
-	namedAttrs, namedAttrsNeedCode, err := encodeNamedAttrs(md.attrs, path, options)
+	namedAttrs, err := encodeNamedAttrs(thread, md.attrs, path, options)
 	if err != nil {
 		implementation.Discard()
-		return model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Macro_Definition{
@@ -383,14 +379,14 @@ func (md *starlarkMacroDefinition[TReference, TMetadata]) Encode(path map[starla
 			Finalizer:      md.finalizer,
 		},
 		patcher,
-	), needsCode || namedAttrsNeedCode, nil
+	), nil
 }
 
-func (md *starlarkMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (md *starlarkMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	return md.attrs, nil
 }
 
-func (md *starlarkMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *starlark.Thread) (bool, error) {
+func (md *starlarkMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *eval.Thread) (bool, error) {
 	return md.finalizer, nil
 }
 
@@ -410,15 +406,15 @@ func NewProtoMacroDefinition[TReference object.BasicReference, TMetadata model_c
 	}
 }
 
-func (*protoMacroDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata], bool, error) {
+func (*protoMacroDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata], error) {
 	panic("macro definition was already encoded previously")
 }
 
-func (md *protoMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (md *protoMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	return md.protoAttrsCache.getAttrsCheap(thread, model_core.Nested(md.message, md.message.Message.Attrs))
 }
 
-func (md *protoMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *starlark.Thread) (bool, error) {
+func (md *protoMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *eval.Thread) (bool, error) {
 	return md.message.Message.Finalizer, nil
 }
 
@@ -438,11 +434,11 @@ func NewReloadingMacroDefinition[TReference object.BasicReference, TMetadata mod
 	}
 }
 
-func (*reloadingMacroDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata], bool, error) {
+func (*reloadingMacroDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata], error) {
 	panic("macro definition was already encoded previously")
 }
 
-func (md *reloadingMacroDefinition[TReference, TMetadata]) getBase(thread *starlark.Thread) (MacroDefinition[TReference, TMetadata], error) {
+func (md *reloadingMacroDefinition[TReference, TMetadata]) getBase(thread *eval.Thread) (MacroDefinition[TReference, TMetadata], error) {
 	if base := md.base.Load(); base != nil {
 		return *base, nil
 	}
@@ -459,7 +455,7 @@ func (md *reloadingMacroDefinition[TReference, TMetadata]) getBase(thread *starl
 	return base, nil
 }
 
-func (md *reloadingMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (md *reloadingMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	base, err := md.getBase(thread)
 	if err != nil {
 		return nil, err
@@ -467,7 +463,7 @@ func (md *reloadingMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread 
 	return base.GetAttrsCheap(thread)
 }
 
-func (md *reloadingMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *starlark.Thread) (bool, error) {
+func (md *reloadingMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *eval.Thread) (bool, error) {
 	base, err := md.getBase(thread)
 	if err != nil {
 		return false, err

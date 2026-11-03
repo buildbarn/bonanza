@@ -271,4 +271,30 @@ test()
 			require.ErrorContains(t, err, "unhashable type: "+value.Type())
 		}
 	})
+	t.Run("UniverseBuiltins", func(t *testing.T) {
+		// Builtins that are part of the core language, such as
+		// len() and the functions in the json module, are
+		// encoded by name and should be decodable.
+		universe := eval.Universe()
+		decodedLen, _ := roundTrip(t, universe["len"])
+		v, err := eval.Call(thread, decodedLen, eval.Args{Positional: []eval.Value{eval.String("abc")}})
+		require.NoError(t, err)
+		require.Equal(t, eval.MakeInt(3), v)
+
+		jsonEncode, err := universe["json"].(eval.HasAttrs).Attr(thread, "encode")
+		require.NoError(t, err)
+		decodedJSONEncode, _ := roundTrip(t, jsonEncode)
+		v, err = eval.Call(thread, decodedJSONEncode, eval.Args{Positional: []eval.Value{eval.MakeInt(42)}})
+		require.NoError(t, err)
+		require.Equal(t, eval.String("42"), v)
+	})
+
+	t.Run("BoundMethod", func(t *testing.T) {
+		// Methods are bound to their receiver, which cannot be
+		// preserved when encoding them by name.
+		join, err := eval.Call(thread, eval.Universe()["getattr"], eval.Args{Positional: []eval.Value{eval.String(","), eval.String("join")}})
+		require.NoError(t, err)
+		_, err = model_starlark.EncodeValue(thread, join, nil, nil, encodingOptions)
+		require.EqualError(t, err, "method join of string value cannot be encoded")
+	})
 }

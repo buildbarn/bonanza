@@ -13,12 +13,11 @@ import (
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
-
-	"go.starlark.net/starlark"
 )
 
 type rule[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -27,14 +26,14 @@ type rule[TReference object.BasicReference, TMetadata model_core.ReferenceMetada
 }
 
 var (
-	_ starlark.Callable                                                   = (*rule[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Callable                                                       = (*rule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*rule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ NamedGlobal                                                         = (*rule[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewRule creates a Starlark rule object. These are normally created
 // using the rule() function.
-func NewRule[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition RuleDefinition[TReference, TMetadata]) starlark.Value {
+func NewRule[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, definition RuleDefinition[TReference, TMetadata]) eval.Value {
 	return &rule[TReference, TMetadata]{
 		LateNamedValue: LateNamedValue{
 			Identifier: identifier,
@@ -43,22 +42,18 @@ func NewRule[TReference object.BasicReference, TMetadata model_core.ReferenceMet
 	}
 }
 
-func (rule[TReference, TMetadata]) String() string {
-	return "<rule>"
+// Repr writes the representation of the value.
+func (rule[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<rule>")
+	return nil
 }
 
 func (rule[TReference, TMetadata]) Type() string {
 	return "rule"
 }
 
-func (rule[TReference, TMetadata]) Freeze() {}
-
-func (rule[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-func (rule[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("rule cannot be hashed")
+func (rule[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 func (r *rule[TReference, TMetadata]) Name() string {
@@ -74,9 +69,9 @@ func (r *rule[TReference, TMetadata]) Name() string {
 // register targets when a rule is invoked as part of a BUILD file.
 const TargetRegistrarKey = "target_registrar"
 
-func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if len(args) != 0 {
-		return nil, fmt.Errorf("got %d positional arguments, want 1", len(args))
+func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eval.Args) (eval.Value, error) {
+	if len(args.Positional) != 0 {
+		return nil, fmt.Errorf("got %d positional arguments, want 1", len(args.Positional))
 	}
 
 	if r.Identifier == nil {
@@ -105,7 +100,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 
 	var mandatoryUnpackers, optionalUnpackers []any
 	attrNames := make([]pg_label.StarlarkIdentifier, 0, len(attrs))
-	values := make([]starlark.Value, len(attrs))
+	values := make([]eval.Value, len(attrs))
 	currentPackage := thread.Local(CanonicalPackageKey).(pg_label.CanonicalPackage)
 	for _, name := range slices.SortedFunc(
 		maps.Keys(attrs),
@@ -159,7 +154,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	var name string
 	mandatoryUnpackers = append(
 		mandatoryUnpackers,
-		"name", unpack.Bind(thread, &name, unpack.Stringer(unpack.TargetName)),
+		"name", unpack.Bind(&name, unpack.Stringer(unpack.TargetName)),
 	)
 
 	var applicableLicenses []string
@@ -176,31 +171,30 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	labelStringListUnpackerInto := unpack.List(unpack.Stringer(labelUnpackerInto))
 	optionalUnpackers = append(
 		optionalUnpackers,
-		"applicable_licenses?", unpack.Bind(thread, &applicableLicenses, unpack.IfNotNone(labelStringListUnpackerInto)),
-		"compatible_with?", unpack.Bind(thread, &compatibleWith, unpack.IfNotNone(labelStringListUnpackerInto)),
-		"deprecation?", unpack.Bind(thread, &deprecation, unpack.IfNotNone(unpack.String)),
-		"exec_compatible_with?", unpack.Bind(thread, &execCompatibleWith, unpack.IfNotNone(labelStringListUnpackerInto)),
-		"features?", unpack.Bind(thread, &features, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String))))),
-		"package_metadata?", unpack.Bind(thread, &packageMetadata, unpack.IfNotNone(labelStringListUnpackerInto)),
-		"tags?", unpack.Bind(thread, &tags, unpack.IfNotNone(unpack.List(unpack.String))),
-		"target_compatible_with?", unpack.Bind(thread, &targetCompatibleWith, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(labelUnpackerInto))))),
-		"testonly?", unpack.Bind(thread, &testOnly, unpack.IfNotNone(sloppyBoolUnpackerInto{})),
-		"visibility?", unpack.Bind(thread, &visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
+		"applicable_licenses?", unpack.Bind(&applicableLicenses, unpack.IfNotNone(labelStringListUnpackerInto)),
+		"compatible_with?", unpack.Bind(&compatibleWith, unpack.IfNotNone(labelStringListUnpackerInto)),
+		"deprecation?", unpack.Bind(&deprecation, unpack.IfNotNone(unpack.String)),
+		"exec_compatible_with?", unpack.Bind(&execCompatibleWith, unpack.IfNotNone(labelStringListUnpackerInto)),
+		"features?", unpack.Bind(&features, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String))))),
+		"package_metadata?", unpack.Bind(&packageMetadata, unpack.IfNotNone(labelStringListUnpackerInto)),
+		"tags?", unpack.Bind(&tags, unpack.IfNotNone(unpack.List(unpack.String))),
+		"target_compatible_with?", unpack.Bind(&targetCompatibleWith, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(labelUnpackerInto))))),
+		"testonly?", unpack.Bind(&testOnly, unpack.IfNotNone(sloppyBoolUnpackerInto{})),
+		"visibility?", unpack.Bind(&visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 	)
 
-	var buildSettingDefault starlark.Value
+	var buildSettingDefault eval.Value
 	if buildSetting != nil {
 		var help string
 		mandatoryUnpackers = append(
 			mandatoryUnpackers,
 			"build_setting_default",
 			unpack.Bind(
-				thread,
 				&buildSettingDefault,
 				unpack.Canonicalize(buildSetting.buildSettingType.GetCanonicalizer(currentPackage)),
 			),
 		)
-		optionalUnpackers = append(optionalUnpackers, "help?", unpack.Bind(thread, &help, unpack.IfNotNone(unpack.String)))
+		optionalUnpackers = append(optionalUnpackers, "help?", unpack.Bind(&help, unpack.IfNotNone(unpack.String)))
 	}
 
 	// Attributes that are specific to tests.
@@ -214,22 +208,22 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		optionalUnpackers = append(
 			optionalUnpackers,
 			"args?",
-			unpack.Bind(thread, &testArgs, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String))))),
+			unpack.Bind(&testArgs, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String))))),
 			"flaky?",
-			unpack.Bind(thread, &testFlaky, unpack.IfNotNone(sloppyBoolUnpackerInto{})),
+			unpack.Bind(&testFlaky, unpack.IfNotNone(sloppyBoolUnpackerInto{})),
 			"local?",
-			unpack.Bind(thread, &testLocal, unpack.IfNotNone(sloppyBoolUnpackerInto{})),
+			unpack.Bind(&testLocal, unpack.IfNotNone(sloppyBoolUnpackerInto{})),
 			"shard_count?",
-			unpack.Bind(thread, &testShardCount, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.Int[int]())))),
+			unpack.Bind(&testShardCount, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.Int[int]())))),
 			"size?",
-			unpack.Bind(thread, &testSize, unpack.IfNotNone(unpack.String)),
+			unpack.Bind(&testSize, unpack.IfNotNone(unpack.String)),
 			"timeout?",
-			unpack.Bind(thread, &testTimeout, unpack.IfNotNone(unpack.String)),
+			unpack.Bind(&testTimeout, unpack.IfNotNone(unpack.String)),
 		)
 	}
 
-	if err := starlark.UnpackArgs(
-		r.Identifier.GetStarlarkIdentifier().String(), nil, kwargs,
+	if err := eval.UnpackArgs(
+		thread, r.Identifier.GetStarlarkIdentifier().String(), args,
 		append(mandatoryUnpackers, optionalUnpackers...)...,
 	); err != nil {
 		return nil, err
@@ -240,24 +234,24 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		return nil, err
 	}
 	if initializer != nil {
-		initializerKwargs := make([]starlark.Tuple, 0, 1+len(attrNames))
-		initializerKwargs = append(initializerKwargs, starlark.Tuple{
-			starlark.String("name"),
-			starlark.String(name),
+		initializerKwargs := make([]eval.NamedArg, 0, 1+len(attrNames))
+		initializerKwargs = append(initializerKwargs, eval.NamedArg{
+			Name:  "name",
+			Value: eval.String(name),
 		})
 		for i, attrName := range attrNames {
 			if v := values[i]; v != nil {
-				initializerKwargs = append(initializerKwargs, starlark.Tuple{
-					starlark.String(attrName.String()),
-					v,
+				initializerKwargs = append(initializerKwargs, eval.NamedArg{
+					Name:  attrName.String(),
+					Value: v,
 				})
 			}
 		}
-		overrides, err := starlark.Call(thread, initializer, nil, initializerKwargs)
+		overrides, err := eval.Call(thread, initializer, eval.Args{Named: initializerKwargs})
 		if err != nil {
 			return nil, fmt.Errorf("failed to run initializer: %w", err)
 		}
-		var overrideEntries map[string]starlark.Value
+		var overrideEntries map[string]eval.Value
 		if err := unpack.Dict(unpack.String, unpack.Any).UnpackInto(thread, overrides, &overrideEntries); err != nil {
 			return nil, fmt.Errorf("failed to unpack initializer return value: %w", err)
 		}
@@ -296,15 +290,16 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		}
 
 		if value == nil {
-			value = starlark.None
+			value = eval.None
 		}
 		var selectValue *Select[TReference, TMetadata]
 		if err := attr.getSelectUnpackerInto(currentPackage).UnpackInto(thread, value, &selectValue); err != nil {
 			return nil, fmt.Errorf("invalid argument %#v: %w", attrName.String(), err)
 		}
 
-		encodedGroups, _, err := selectValue.EncodeGroups(
-			/* path = */ map[starlark.Value]struct{}{},
+		encodedGroups, err := selectValue.EncodeGroups(
+			thread,
+			/* path = */ nil,
 			valueEncodingOptions,
 		)
 		if err != nil {
@@ -323,7 +318,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		// TODO: Also visit default values of private attributes.
 		if _, isOutput := attr.attrType.IsOutput(); isOutput {
 			// Register all labels as predeclared output targets.
-			if err := selectValue.VisitLabels(thread, map[starlark.Value]struct{}{}, func(l pg_label.ResolvedLabel) error {
+			if err := selectValue.VisitLabels(thread, nil, func(l pg_label.ResolvedLabel) error {
 				if canonicalLabel, err := l.AsCanonical(); err == nil {
 					if canonicalLabel.GetCanonicalPackage() == currentPackage {
 						targetName := canonicalLabel.GetTargetName().String()
@@ -350,7 +345,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 			}
 		} else {
 			// Register all labels as implicit source file targets.
-			if err := selectValue.VisitLabels(thread, map[starlark.Value]struct{}{}, func(l pg_label.ResolvedLabel) error {
+			if err := selectValue.VisitLabels(thread, nil, func(l pg_label.ResolvedLabel) error {
 				if canonicalLabel, err := l.AsCanonical(); err == nil {
 					if canonicalLabel.GetCanonicalPackage() == currentPackage {
 						targetRegistrar.registerImplicitTarget(l.GetTargetName().String())
@@ -365,9 +360,10 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 
 	var encodedBuildSettingDefault model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]
 	if buildSetting != nil {
-		encodedBuildSettingDefault, _, err = EncodeValue[TReference, TMetadata](
+		encodedBuildSettingDefault, err = EncodeValue[TReference, TMetadata](
+			thread,
 			buildSettingDefault,
-			/* path = */ map[starlark.Value]struct{}{},
+			/* path = */ nil,
 			/* identifier = */ nil,
 			valueEncodingOptions,
 		)
@@ -387,13 +383,14 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	if targetCompatibleWith == nil {
 		targetCompatibleWith = NewSelect[TReference, TMetadata](
 			[]SelectGroup{
-				NewSelectGroup(nil, starlark.NewList(nil), ""),
+				NewSelectGroup(nil, eval.NewList(nil), ""),
 			},
 			/* concatenationOperator = */ 0,
 		)
 	}
-	targetCompatibleWithGroups, _, err := targetCompatibleWith.EncodeGroups(
-		/* path = */ map[starlark.Value]struct{}{},
+	targetCompatibleWithGroups, err := targetCompatibleWith.EncodeGroups(
+		thread,
+		/* path = */ nil,
 		valueEncodingOptions,
 	)
 	if err != nil {
@@ -416,12 +413,13 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		// they are not provided.
 		if testArgs == nil {
 			testArgs = NewSelect[TReference, TMetadata](
-				[]SelectGroup{NewSelectGroup(nil, starlark.NewList(nil), "")},
+				[]SelectGroup{NewSelectGroup(nil, eval.NewList(nil), "")},
 				/* concatenationOperator = */ 0,
 			)
 		}
-		testArgsGroups, _, err := testArgs.EncodeGroups(
-			/* path = */ map[starlark.Value]struct{}{},
+		testArgsGroups, err := testArgs.EncodeGroups(
+			thread,
+			/* path = */ nil,
 			valueEncodingOptions,
 		)
 		if err != nil {
@@ -431,12 +429,13 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 
 		if testShardCount == nil {
 			testShardCount = NewSelect[TReference, TMetadata](
-				[]SelectGroup{NewSelectGroup(nil, starlark.MakeInt(1), "")},
+				[]SelectGroup{NewSelectGroup(nil, eval.MakeInt(1), "")},
 				/* concatenationOperator = */ 0,
 			)
 		}
-		testShardCountGroups, _, err := testShardCount.EncodeGroups(
-			/* path = */ map[starlark.Value]struct{}{},
+		testShardCountGroups, err := testShardCount.EncodeGroups(
+			thread,
+			/* path = */ nil,
 			valueEncodingOptions,
 		)
 		if err != nil {
@@ -450,7 +449,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 		}
 	}
 
-	return starlark.None, targetRegistrar.registerExplicitTarget(
+	return eval.None, targetRegistrar.registerExplicitTarget(
 		name,
 		model_core.NewPatchedMessage(
 			&model_starlark_pb.Target_Definition{
@@ -480,9 +479,9 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *starlark.Thread, args
 	)
 }
 
-func (r *rule[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
+func (r *rule[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	if r.Identifier == nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, errors.New("rule does not have a name")
+		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, errors.New("rule does not have a name")
 	}
 	if currentIdentifier == nil || *currentIdentifier != *r.Identifier {
 		// Not the canonical identifier under which this rule is
@@ -495,12 +494,12 @@ func (r *rule[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 					},
 				},
 			},
-		}), false, nil
+		}), nil
 	}
 
-	definition, needsCode, err := r.definition.Encode(path, options)
+	definition, err := r.definition.Encode(thread, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Value{
@@ -513,18 +512,18 @@ func (r *rule[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 			},
 		},
 		definition.Patcher,
-	), needsCode, nil
+	), nil
 }
 
 // RuleDefinition is used by Starlark rule objects to access the
 // parameters that are part of the rule's definition, such as its
 // attributes.
 type RuleDefinition[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error)
-	GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
-	GetBuildSetting(thread *starlark.Thread) (*BuildSetting[TReference, TMetadata], error)
-	GetInitializer(thread *starlark.Thread) (*NamedFunction[TReference, TMetadata], error)
-	GetTest(thread *starlark.Thread) (bool, error)
+	Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], error)
+	GetAttrsCheap(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error)
+	GetBuildSetting(thread *eval.Thread) (*BuildSetting[TReference, TMetadata], error)
+	GetInitializer(thread *eval.Thread) (eval.Function, error)
+	GetTest(thread *eval.Thread) (bool, error)
 }
 
 type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -532,8 +531,8 @@ type starlarkRuleDefinition[TReference object.BasicReference, TMetadata model_co
 	buildSetting   *BuildSetting[TReference, TMetadata]
 	cfg            TransitionDefinition[TReference, TMetadata]
 	execGroups     map[string]*ExecGroup[TReference, TMetadata]
-	implementation NamedFunction[TReference, TMetadata]
-	initializer    *NamedFunction[TReference, TMetadata]
+	implementation eval.Function
+	initializer    eval.Function
 	provides       []*Provider[TReference, TMetadata]
 	ruleType       model_starlark_pb.Rule_Definition_Type
 	subrules       []*Subrule[TReference, TMetadata]
@@ -547,8 +546,8 @@ func NewStarlarkRuleDefinition[TReference object.BasicReference, TMetadata model
 	buildSetting *BuildSetting[TReference, TMetadata],
 	cfg TransitionDefinition[TReference, TMetadata],
 	execGroups map[string]*ExecGroup[TReference, TMetadata],
-	implementation NamedFunction[TReference, TMetadata],
-	initializer *NamedFunction[TReference, TMetadata],
+	implementation eval.Function,
+	initializer eval.Function,
 	provides []*Provider[TReference, TMetadata],
 	ruleType model_starlark_pb.Rule_Definition_Type,
 	subrules []*Subrule[TReference, TMetadata],
@@ -566,7 +565,7 @@ func NewStarlarkRuleDefinition[TReference object.BasicReference, TMetadata model
 	}
 }
 
-func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
+func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], error) {
 	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
 
 	var buildSetting *model_starlark_pb.BuildSetting
@@ -582,69 +581,80 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(path map[starlar
 		})
 	}
 
-	implementation, needsCode, err := rd.implementation.Encode(path, options)
+	// Release all references that have been added to the patcher if
+	// encoding fails.
+	success := false
+	defer func() {
+		if !success {
+			patcher.Discard()
+		}
+	}()
+
+	implementation, err := EncodeFunction(thread, rd.implementation, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, err
 	}
+	implementationMessage := implementation.Merge(patcher)
 
 	var initializerMessage *model_starlark_pb.Function
 	if rd.initializer != nil {
-		initializer, initializerNeedsCode, err := rd.initializer.Encode(path, options)
+		initializer, err := EncodeFunction(thread, rd.initializer, path, options)
 		if err != nil {
-			return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, err
+			return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, err
 		}
 		initializerMessage = initializer.Merge(patcher)
-		needsCode = needsCode || initializerNeedsCode
 	}
 
-	namedAttrs, namedAttrsNeedCode, err := encodeNamedAttrs(rd.attrs, path, options)
+	namedAttrs, err := encodeNamedAttrs(thread, rd.attrs, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, err
 	}
-	needsCode = needsCode || namedAttrsNeedCode
+	namedAttrsMessage := namedAttrs.Merge(patcher)
 
-	cfgTransition, err := rd.cfg.EncodeUserDefinedTransition(path, options)
+	cfgTransition, err := rd.cfg.EncodeUserDefinedTransition(thread, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, fmt.Errorf("failed to encode rule configuration transition: %w", err)
+		return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, fmt.Errorf("failed to encode rule configuration transition: %w", err)
 	}
+	cfgTransitionMessage := cfgTransition.Merge(patcher)
 
 	subruleIdentifiers := make([]string, 0, len(rd.subrules))
 	for i, subrule := range rd.subrules {
 		if subrule.Identifier == nil {
-			return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, false, fmt.Errorf("subrule at index %d does not have an identifier", i)
+			return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, fmt.Errorf("subrule at index %d does not have an identifier", i)
 		}
 		subruleIdentifiers = append(subruleIdentifiers, subrule.Identifier.String())
 	}
 	sort.Strings(subruleIdentifiers)
+	success = true
 
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Rule_Definition{
-			Attrs:              namedAttrs.Merge(patcher),
+			Attrs:              namedAttrsMessage,
 			BuildSetting:       buildSetting,
-			CfgTransition:      cfgTransition.Merge(patcher),
+			CfgTransition:      cfgTransitionMessage,
 			ExecGroups:         execGroups,
-			Implementation:     implementation.Merge(patcher),
+			Implementation:     implementationMessage,
 			Initializer:        initializerMessage,
 			Type:               rd.ruleType,
 			SubruleIdentifiers: slices.Compact(subruleIdentifiers),
 		},
 		patcher,
-	), needsCode, nil
+	), nil
 }
 
-func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	return rd.attrs, nil
 }
 
-func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *starlark.Thread) (*BuildSetting[TReference, TMetadata], error) {
+func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *eval.Thread) (*BuildSetting[TReference, TMetadata], error) {
 	return rd.buildSetting, nil
 }
 
-func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetInitializer(thread *starlark.Thread) (*NamedFunction[TReference, TMetadata], error) {
+func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetInitializer(thread *eval.Thread) (eval.Function, error) {
 	return rd.initializer, nil
 }
 
-func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetTest(thread *starlark.Thread) (bool, error) {
+func (rd *starlarkRuleDefinition[TReference, TMetadata]) GetTest(thread *eval.Thread) (bool, error) {
 	return rd.ruleType == model_starlark_pb.Rule_Definition_TEST, nil
 }
 
@@ -664,15 +674,15 @@ func NewProtoRuleDefinition[TReference object.BasicReference, TMetadata model_co
 	}
 }
 
-func (*protoRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
+func (*protoRuleDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], error) {
 	panic("rule definition was already encoded previously")
 }
 
-func (rd *protoRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (rd *protoRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	return rd.protoAttrsCache.getAttrsCheap(thread, model_core.Nested(rd.message, rd.message.Message.Attrs))
 }
 
-func (rd *protoRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *starlark.Thread) (*BuildSetting[TReference, TMetadata], error) {
+func (rd *protoRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *eval.Thread) (*BuildSetting[TReference, TMetadata], error) {
 	buildSettingMessage := rd.message.Message.BuildSetting
 	if buildSettingMessage == nil {
 		return nil, nil
@@ -680,19 +690,14 @@ func (rd *protoRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *st
 	return decodeBuildSetting[TReference, TMetadata](buildSettingMessage)
 }
 
-func (rd *protoRuleDefinition[TReference, TMetadata]) GetInitializer(thread *starlark.Thread) (*NamedFunction[TReference, TMetadata], error) {
+func (rd *protoRuleDefinition[TReference, TMetadata]) GetInitializer(thread *eval.Thread) (eval.Function, error) {
 	if rd.message.Message.Initializer == nil {
 		return nil, nil
 	}
-	f := NewNamedFunction(
-		NewProtoNamedFunctionDefinition[TReference, TMetadata](
-			model_core.Nested(rd.message, rd.message.Message.Initializer),
-		),
-	)
-	return &f, nil
+	return DecodeFunction[TReference, TMetadata](model_core.Nested(rd.message, rd.message.Message.Initializer)), nil
 }
 
-func (rd *protoRuleDefinition[TReference, TMetadata]) GetTest(thread *starlark.Thread) (bool, error) {
+func (rd *protoRuleDefinition[TReference, TMetadata]) GetTest(thread *eval.Thread) (bool, error) {
 	return rd.message.Message.Type == model_starlark_pb.Rule_Definition_TEST, nil
 }
 
@@ -704,10 +709,10 @@ func (rd *protoRuleDefinition[TReference, TMetadata]) GetTest(thread *starlark.T
 // keyword arguments. None of them are mandatory.
 func getImplicitRuleAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](test bool) map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata] {
 	configurable := func(attrType AttrType[TReference, TMetadata]) *Attr[TReference, TMetadata] {
-		return NewAttr(attrType, starlark.None, true)
+		return NewAttr(attrType, eval.None, true)
 	}
 	nonConfigurable := func(attrType AttrType[TReference, TMetadata]) *Attr[TReference, TMetadata] {
-		return NewAttr(attrType, starlark.None, false)
+		return NewAttr(attrType, eval.None, false)
 	}
 	boolType := NewBoolAttrType[TReference, TMetadata]()
 	labelListType := NewLabelListAttrType(
@@ -739,7 +744,7 @@ func getImplicitRuleAttrs[TReference object.BasicReference, TMetadata model_core
 	return attrs
 }
 
-func (r *rule[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (r *rule[TReference, TMetadata]) getInheritableAttrs(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	buildSetting, err := r.definition.GetBuildSetting(thread)
 	if err != nil {
 		return nil, err
@@ -766,7 +771,7 @@ func (r *rule[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Threa
 		)
 		attrs[util.Must(pg_label.NewStarlarkIdentifier("help"))] = NewAttr(
 			NewStringAttrType[TReference, TMetadata](nil),
-			starlark.None,
+			eval.None,
 			/* configurable = */ false,
 		)
 	}
@@ -779,18 +784,6 @@ func (r *rule[TReference, TMetadata]) getInheritableAttrs(thread *starlark.Threa
 	}
 	return attrs, nil
 }
-
-// GlobalResolver is called into by RuleDefinitions created using
-// NewReloadingRuleDefinition() to obtain the actual definition of a
-// rule in case such a rule is being invoked.
-type GlobalResolver[TReference any] = func(identifier pg_label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, TReference], error)
-
-// GlobalResolverKey is the key under which an instance of
-// GlobalResolver is stored in the thread local variables of a Starlark
-// thread. This allows RuleDefinitions created using
-// NewReloadingRuleDefinition() to obtain the actual definition of a
-// rule in case such a rule is being invoked.
-const GlobalResolverKey = "global_resolver"
 
 type reloadingRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	identifier pg_label.CanonicalStarlarkIdentifier
@@ -809,11 +802,11 @@ func NewReloadingRuleDefinition[TReference object.BasicReference, TMetadata mode
 	}
 }
 
-func (*reloadingRuleDefinition[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], bool, error) {
+func (*reloadingRuleDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata], error) {
 	panic("rule definition was already encoded previously")
 }
 
-func (rd *reloadingRuleDefinition[TReference, TMetadata]) getBase(thread *starlark.Thread) (RuleDefinition[TReference, TMetadata], error) {
+func (rd *reloadingRuleDefinition[TReference, TMetadata]) getBase(thread *eval.Thread) (RuleDefinition[TReference, TMetadata], error) {
 	// TODO: Get rid of this caching. It has the downside that
 	// dependencies are unstable.
 	if base := rd.base.Load(); base != nil {
@@ -838,7 +831,7 @@ func (rd *reloadingRuleDefinition[TReference, TMetadata]) getBase(thread *starla
 	return base, nil
 }
 
-func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *starlark.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	base, err := rd.getBase(thread)
 	if err != nil {
 		return nil, err
@@ -846,7 +839,7 @@ func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetAttrsCheap(thread *
 	return base.GetAttrsCheap(thread)
 }
 
-func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *starlark.Thread) (*BuildSetting[TReference, TMetadata], error) {
+func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread *eval.Thread) (*BuildSetting[TReference, TMetadata], error) {
 	base, err := rd.getBase(thread)
 	if err != nil {
 		return nil, err
@@ -854,7 +847,7 @@ func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetBuildSetting(thread
 	return base.GetBuildSetting(thread)
 }
 
-func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetInitializer(thread *starlark.Thread) (*NamedFunction[TReference, TMetadata], error) {
+func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetInitializer(thread *eval.Thread) (eval.Function, error) {
 	base, err := rd.getBase(thread)
 	if err != nil {
 		return nil, err
@@ -862,7 +855,7 @@ func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetInitializer(thread 
 	return base.GetInitializer(thread)
 }
 
-func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetTest(thread *starlark.Thread) (bool, error) {
+func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetTest(thread *eval.Thread) (bool, error) {
 	base, err := rd.getBase(thread)
 	if err != nil {
 		return false, err
@@ -876,29 +869,24 @@ func (rd *reloadingRuleDefinition[TReference, TMetadata]) GetTest(thread *starla
 // in any meaningful way.
 type bogusValue struct{}
 
-func (bogusValue) String() string {
-	return "<bogus_value>"
+func (bogusValue) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<bogus_value>")
+	return nil
 }
 
 func (bogusValue) Type() string {
 	return "bogus_value"
 }
 
-func (bogusValue) Freeze() {}
-
-func (bogusValue) Truth() starlark.Bool {
-	return starlark.False
-}
-
-func (bogusValue) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("bogus_value cannot be hashed")
+func (bogusValue) Truth(*eval.Thread) (bool, error) {
+	return false, nil
 }
 
 type protoAttrsCache[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	attrsCheap atomic.Pointer[map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]]
 }
 
-func (pac *protoAttrsCache[TReference, TMetadata]) getAttrsCheap(thread *starlark.Thread, namedAttrs model_core.Message[[]*model_starlark_pb.NamedAttr, TReference]) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
+func (pac *protoAttrsCache[TReference, TMetadata]) getAttrsCheap(thread *eval.Thread, namedAttrs model_core.Message[[]*model_starlark_pb.NamedAttr, TReference]) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
 	if attrs := pac.attrsCheap.Load(); attrs != nil {
 		return *attrs, nil
 	}
@@ -920,7 +908,7 @@ func (pac *protoAttrsCache[TReference, TMetadata]) getAttrsCheap(thread *starlar
 		// Don't bother extracting the actual default value from
 		// the rule. We don't need to know these in order to
 		// determine if a rule is being called properly.
-		var defaultValue starlark.Value
+		var defaultValue eval.Value
 		if namedAttr.Attr.Default != nil {
 			defaultValue = bogusValue{}
 		}

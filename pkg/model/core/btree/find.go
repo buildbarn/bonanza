@@ -24,8 +24,32 @@ func Find[
 	list model_core.Message[[]TMessagePtr, TReference],
 	cmp func(model_core.Message[TMessagePtr, TReference]) (int, *model_core_pb.DecodableReference),
 ) (model_core.Message[TMessagePtr, TReference], error) {
+	return FindWithPredecessors(ctx, reader, list, cmp, func(model_core.Message[[]TMessagePtr, TReference]) {})
+}
+
+// FindWithPredecessors finds an entry contained in a B-tree, similar to
+// Find(). While descending into the B-tree, it also calls a function
+// exactly once for every level, providing the entries that precede the
+// one that was selected at that level. This can be used to compute
+// properties of everything ordered before the entry that is found, such
+// as its index.
+func FindWithPredecessors[
+	TMessage any,
+	TMessagePtr interface {
+		*TMessage
+		proto.Message
+	},
+	TReference any,
+](
+	ctx context.Context,
+	reader model_parser.MessageObjectReader[TReference, []TMessagePtr],
+	list model_core.Message[[]TMessagePtr, TReference],
+	cmp func(model_core.Message[TMessagePtr, TReference]) (int, *model_core_pb.DecodableReference),
+	predecessors func(model_core.Message[[]TMessagePtr, TReference]),
+) (model_core.Message[TMessagePtr, TReference], error) {
 	for {
 		low, high := 0, len(list.Message)
+		selected := 0
 		var childReference *model_core_pb.DecodableReference
 		for low < high {
 			index := int(uint(low+high) >> 1)
@@ -40,12 +64,15 @@ func Find[
 				// to the child in case we don't find
 				// any better matches.
 				low = index + 1
+				selected = index
 				childReference = reference
 			} else {
 				// Exact match. We may stop searching.
 				if reference == nil {
+					predecessors(model_core.Nested(list, list.Message[:index]))
 					return model_core.Nested(list, list.Message[index]), nil
 				}
+				selected = index
 				childReference = reference
 				break
 			}
@@ -57,6 +84,7 @@ func Find[
 		}
 
 		// Load the child from storage and continue searching.
+		predecessors(model_core.Nested(list, list.Message[:selected]))
 		var err error
 		list, err = model_parser.Dereference(ctx, reader, model_core.Nested(list, childReference))
 		if err != nil {

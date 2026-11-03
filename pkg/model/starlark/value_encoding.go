@@ -12,6 +12,7 @@ import (
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
+	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
@@ -42,6 +43,19 @@ type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata
 	ObjectCapturer         model_core.ObjectCapturer[TReference, TMetadata]
 	ObjectMinimumSizeBytes int
 	ObjectMaximumSizeBytes int
+}
+
+// getInlinedTreeOptions returns the options to use when deciding which
+// fields of a message need to be stored in separate objects, so that
+// the message does not become too large.
+//
+// Any message that is at least twice ObjectMinimumSizeBytes in size has
+// fields moved out of it.
+func (o *ValueEncodingOptions[TReference, TMetadata]) getInlinedTreeOptions() *inlinedtree.Options {
+	return &inlinedtree.Options{
+		ReferenceFormat:  o.ObjectReferenceFormat,
+		MaximumSizeBytes: o.ObjectMinimumSizeBytes*2 - 1,
+	}
 }
 
 // ComputeListParentNode generates a parent node of a Starlark list that
@@ -121,7 +135,6 @@ func NewListBuilder[TReference any, TMetadata model_core.ReferenceMetadata](opti
 // that are backed by storage, which encode by returning their original
 // message.
 type EncodableValue[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	eval.Value
 	// EncodeValue encodes the value. path contains the mutable
 	// composite values that are being encoded, which is used to
 	// detect cycles. currentIdentifier is set if the value is being
@@ -175,14 +188,18 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](thread 
 			},
 		}), nil
 	case *eval.Builtin:
+		if typedValue.Receiver() != nil {
+			// Builtins are encoded by name, meaning the
+			// receiver of methods would get lost.
+			return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, fmt.Errorf("method %s of %s value cannot be encoded", typedValue.Name(), typedValue.Receiver().Type())
+		}
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_Builtin{
 				Builtin: typedValue.Name(),
 			},
 		}), nil
 	case eval.Function:
-		return NewNamedFunction(NewStarlarkNamedFunctionDefinition[TReference, TMetadata](typedValue)).
-			EncodeValue(thread, path, currentIdentifier, options)
+		return encodeFunctionValue(thread, typedValue, path, options)
 	case eval.List:
 		elements, err := encodeIterable(thread, typedValue, path, options)
 		if err != nil {
