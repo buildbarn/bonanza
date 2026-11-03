@@ -2,7 +2,6 @@ package starlark
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -12,10 +11,9 @@ import (
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
 	"bonanza.build/pkg/storage/object"
-
-	"go.starlark.net/starlark"
 )
 
 // TargetRegistrar can be called into by functions like alias(),
@@ -204,7 +202,7 @@ func (tr *TargetRegistrar[TReference, TMetadata]) getOmittedVisibility() visibil
 
 // addPackageToVisibility adds a package to a package group, or creates
 // a new package group containing only the package if none is provided.
-func (tr *TargetRegistrar[TReference, TMetadata]) addPackageToVisibility(thread *starlark.Thread, packageGroup model_core.Message[*model_starlark_pb.PackageGroup, TReference], canonicalPackage pg_label.CanonicalPackage) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
+func (tr *TargetRegistrar[TReference, TMetadata]) addPackageToVisibility(thread *eval.Thread, packageGroup model_core.Message[*model_starlark_pb.PackageGroup, TReference], canonicalPackage pg_label.CanonicalPackage) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
 	if !packageGroup.IsSet() {
 		return NewPackageGroupFromVisibility[TMetadata](
 			tr.context,
@@ -214,9 +212,9 @@ func (tr *TargetRegistrar[TReference, TMetadata]) addPackageToVisibility(thread 
 			tr.objectManager,
 		)
 	}
-	valueDecodingOptions, ok := thread.Local(ValueDecodingOptionsKey).(*ValueDecodingOptions[TReference])
-	if !ok {
-		return model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata]{}, errors.New("value decoding options are not available")
+	valueDecodingOptions, err := getValueDecodingOptions[TReference](thread)
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata]{}, err
 	}
 	return AddPackageToPackageGroup(
 		tr.context,

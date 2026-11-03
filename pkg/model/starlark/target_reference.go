@@ -5,17 +5,15 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync/atomic"
 
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 // ConfiguredTargetReference contains the properties of a Starlark Target
@@ -29,7 +27,7 @@ import (
 type ConfiguredTargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	label            pg_label.CanonicalLabel
 	encodedProviders model_core.Message[[]*model_starlark_pb.Struct, TReference]
-	decodedProviders []atomic.Pointer[Struct[TReference, TMetadata]]
+	decodedProviders []*Struct[TReference, TMetadata]
 }
 
 // NewConfiguredTargetReference creates a ConfiguredTargetReference
@@ -39,16 +37,11 @@ func NewConfiguredTargetReference[TReference object.BasicReference, TMetadata mo
 	return &ConfiguredTargetReference[TReference, TMetadata]{
 		label:            label,
 		encodedProviders: providers,
-		decodedProviders: make([]atomic.Pointer[Struct[TReference, TMetadata]], len(providers.Message)),
+		decodedProviders: make([]*Struct[TReference, TMetadata], len(providers.Message)),
 	}
 }
 
-func (ctr *ConfiguredTargetReference[TReference, TMetadata]) getProviderValue(thread *starlark.Thread, providerIdentifier pg_label.CanonicalStarlarkIdentifier) (*Struct[TReference, TMetadata], error) {
-	valueDecodingOptions := thread.Local(ValueDecodingOptionsKey)
-	if valueDecodingOptions == nil {
-		return nil, errors.New("providers cannot be decoded from within this context")
-	}
-
+func (ctr *ConfiguredTargetReference[TReference, TMetadata]) getProviderValue(thread *eval.Thread, providerIdentifier pg_label.CanonicalStarlarkIdentifier) (*Struct[TReference, TMetadata], error) {
 	providerIdentifierStr := providerIdentifier.String()
 	index, ok := sort.Find(
 		len(ctr.encodedProviders.Message),
@@ -60,17 +53,17 @@ func (ctr *ConfiguredTargetReference[TReference, TMetadata]) getProviderValue(th
 		return nil, fmt.Errorf("target %#v did not yield provider %#v", ctr.label.String(), providerIdentifierStr)
 	}
 
-	strukt := ctr.decodedProviders[index].Load()
+	strukt := ctr.decodedProviders[index]
 	if strukt == nil {
 		var err error
 		strukt, err = DecodeStruct[TReference, TMetadata](
+			thread,
 			model_core.Nested(ctr.encodedProviders, ctr.encodedProviders.Message[index]),
-			valueDecodingOptions.(*ValueDecodingOptions[TReference]),
 		)
 		if err != nil {
 			return nil, err
 		}
-		ctr.decodedProviders[index].Store(strukt)
+		ctr.decodedProviders[index] = strukt
 	}
 	return strukt, nil
 }
@@ -87,7 +80,7 @@ type TargetReference[TReference object.BasicReference, TMetadata model_core.Refe
 // to a given label, exposing struct instances corresponding to a set of
 // providers. This function expects these struct instances to be
 // alphabetically sorted by provider identifier.
-func NewTargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](originalLabel pg_label.ResolvedLabel, configured *ConfiguredTargetReference[TReference, TMetadata]) starlark.Value {
+func NewTargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](originalLabel pg_label.ResolvedLabel, configured *ConfiguredTargetReference[TReference, TMetadata]) eval.Value {
 	return &TargetReference[TReference, TMetadata]{
 		originalLabel: originalLabel,
 		configured:    configured,
@@ -96,16 +89,19 @@ func NewTargetReference[TReference object.BasicReference, TMetadata model_core.R
 
 var (
 	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
-	_ starlark.Comparable                                                 = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
-	_ starlark.HasAttrs                                                   = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
-	_ starlark.Mapping                                                    = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Comparable                                                     = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.HasAttrs                                                       = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Mapping                                                        = (*TargetReference[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
-func (tr *TargetReference[TReference, TMetadata]) String() string {
+// Repr writes the representation of a Starlark Target value.
+func (tr *TargetReference[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
 	if tr.configured != nil {
-		return fmt.Sprintf("<target %s>", tr.configured.label.String())
+		p.WriteString(fmt.Sprintf("<target %s>", tr.configured.label.String()))
+	} else {
+		p.WriteString(fmt.Sprintf("<unconfigured target %s>", tr.originalLabel.String()))
 	}
-	return fmt.Sprintf("<unconfigured target %s>", tr.originalLabel.String())
+	return nil
 }
 
 // Type returns the name of the type of a Starlark Target value.
@@ -113,26 +109,22 @@ func (TargetReference[TReference, TMetadata]) Type() string {
 	return "Target"
 }
 
-// Freeze the contents of a Starlark Target value. This function has no
-// effect, as a Target value is immutable.
-func (TargetReference[TReference, TMetadata]) Freeze() {}
-
 // Truth returns whether the Starlark Target value evaluates to true or
 // false when implicitly converted to a Boolean value. Starlark Target
 // values always convert to true.
-func (TargetReference[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
+func (TargetReference[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 // Hash a Starlark Target value, so that it can be used as the key of a
 // dictionary. As we assume that the number of targets having the same
 // label, but a different configuration is fairly low, we simply hash
 // the target's label.
-func (tr *TargetReference[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return starlark.String(tr.originalLabel.String()).Hash(thread)
+func (tr *TargetReference[TReference, TMetadata]) Hash(thread *eval.Thread) (uint32, error) {
+	return eval.Hash(thread, eval.String(tr.originalLabel.String()))
 }
 
-func (tr *TargetReference[TReference, TMetadata]) equal(thread *starlark.Thread, other *TargetReference[TReference, TMetadata]) (bool, error) {
+func (tr *TargetReference[TReference, TMetadata]) equal(thread *eval.Thread, other *TargetReference[TReference, TMetadata]) (bool, error) {
 	if tr != other {
 		if tr.originalLabel != other.originalLabel {
 			return false, nil
@@ -154,7 +146,7 @@ func (tr *TargetReference[TReference, TMetadata]) equal(thread *starlark.Thread,
 
 // CompareSameType can be used to compare Starlark Target values for
 // equality.
-func (tr *TargetReference[TReference, TMetadata]) CompareSameType(thread *starlark.Thread, op syntax.Token, other starlark.Value, depth int) (bool, error) {
+func (tr *TargetReference[TReference, TMetadata]) CompareSameType(thread *eval.Thread, op syntax.Token, other eval.Value, depth int) (bool, error) {
 	switch op {
 	case syntax.EQL:
 		return tr.equal(thread, other.(*TargetReference[TReference, TMetadata]))
@@ -175,7 +167,7 @@ var defaultInfoProviderIdentifier = util.Must(pg_label.NewCanonicalStarlarkIdent
 // attributes are merely forwarded to the DefaultInfo provider. This
 // allows these commonly used fields to be accessed with less
 // indirection.
-func (tr *TargetReference[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (tr *TargetReference[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	switch name {
 	case "original_label":
 		// Bonanza specific extension.
@@ -196,7 +188,7 @@ func (tr *TargetReference[TReference, TMetadata]) Attr(thread *starlark.Thread, 
 		}
 	}
 
-	return nil, nil
+	return nil, eval.NoSuchAttrError{Value: tr, Name: name}
 }
 
 var unconfiguredTargetReferenceAttrNames = []string{
@@ -213,16 +205,16 @@ var configuredTargetReferenceAttrNames = []string{
 }
 
 // AttrNames returns the attribute names of a Starlark Target value.
-func (tr *TargetReference[TReference, TMetadata]) AttrNames() []string {
+func (tr *TargetReference[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
 	if tr.configured != nil {
-		return configuredTargetReferenceAttrNames
+		return configuredTargetReferenceAttrNames, nil
 	}
-	return unconfiguredTargetReferenceAttrNames
+	return unconfiguredTargetReferenceAttrNames, nil
 }
 
 // Get the value of a given provider from the Starlark Target value.
 // This is called when a rule invokes ctx.attr.myattr[MyProviderInfo].
-func (tr *TargetReference[TReference, TMetadata]) Get(thread *starlark.Thread, v starlark.Value) (starlark.Value, bool, error) {
+func (tr *TargetReference[TReference, TMetadata]) Get(thread *eval.Thread, v eval.Value) (eval.Value, bool, error) {
 	provider, ok := v.(*Provider[TReference, TMetadata])
 	if !ok {
 		return nil, false, errors.New("keys have to be of type provider")
@@ -246,7 +238,7 @@ func (tr *TargetReference[TReference, TMetadata]) Get(thread *starlark.Thread, v
 // EncodeValue encodes a Starlark Target value to a Protobuf message, so
 // that it can be written to storage and restored at a later point in
 // time.
-func (tr *TargetReference[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
+func (tr *TargetReference[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Value {
 		m := &model_starlark_pb.TargetReference{
 			OriginalLabel: tr.originalLabel.String(),
@@ -265,5 +257,27 @@ func (tr *TargetReference[TReference, TMetadata]) EncodeValue(path map[starlark.
 				TargetReference: m,
 			},
 		}
-	}), false, nil
+	}), nil
+}
+
+func decodeTargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](encodedValue model_core.Message[*model_starlark_pb.Value, TReference], targetReference *model_starlark_pb.TargetReference) (eval.Value, error) {
+	originalLabel, err := pg_label.NewResolvedLabel(targetReference.OriginalLabel)
+	if err != nil {
+		return nil, fmt.Errorf("invalid original label %#v: %w", targetReference.OriginalLabel, err)
+	}
+	var configuredTargetReference *ConfiguredTargetReference[TReference, TMetadata]
+	if configured := targetReference.Configured; configured != nil {
+		label, err := pg_label.NewCanonicalLabel(configured.Label)
+		if err != nil {
+			return nil, fmt.Errorf("invalid label %#v: %w", configured.Label, err)
+		}
+		configuredTargetReference = NewConfiguredTargetReference[TReference, TMetadata](
+			label,
+			model_core.Nested(encodedValue, configured.Providers),
+		)
+	}
+	return NewTargetReference[TReference, TMetadata](
+		originalLabel,
+		configuredTargetReference,
+	), nil
 }

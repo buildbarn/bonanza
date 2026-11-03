@@ -62,7 +62,7 @@ func newProtoListReader[TMessage any, TMessagePtr interface {
 	)
 }
 
-func TestDecodeEvalValue(t *testing.T) {
+func TestDecodeValue(t *testing.T) {
 	ctx := t.Context()
 	encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 	store := &inMemoryObjectStore{objects: map[object.LocalReference]*object.Contents{}}
@@ -74,13 +74,14 @@ func TestDecodeEvalValue(t *testing.T) {
 		ObjectMinimumSizeBytes: 1024,
 		ObjectMaximumSizeBytes: 4096,
 	}
-	decodingOptions := &model_starlark.EvalValueDecodingOptions[object.LocalReference]{
+	decodingOptions := &model_starlark.ValueDecodingOptions[object.LocalReference]{
 		Readers: &model_starlark.ValueReaders[object.LocalReference]{
 			Dict: newProtoListReader[model_starlark_pb.Dict_Entry](store, encoder),
 			List: newProtoListReader[model_starlark_pb.List_Element](store, encoder),
 		},
 	}
 	thread := eval.NewThread(ctx, eval.Universe())
+	thread.SetLocal(model_starlark.ValueDecodingOptionsKey, decodingOptions)
 
 	// Construct values that are large enough to be split across
 	// multiple objects.
@@ -108,11 +109,11 @@ func TestDecodeEvalValue(t *testing.T) {
 	})
 
 	roundTrip := func(t *testing.T, value eval.Value) (eval.Value, model_core.Message[*model_starlark_pb.Value, object.LocalReference]) {
-		encoded, err := model_starlark.EncodeEvalValue(thread, value, encodingOptions)
+		encoded, err := model_starlark.EncodeValue(thread, value, nil, nil, encodingOptions)
 		require.NoError(t, err)
 		topLevel, _ := encoded.SortAndSetReferences()
 		message := topLevel.Decay()
-		decoded, err := model_starlark.DecodeEvalValue[object.LocalReference, model_core.NoopReferenceMetadata](thread, message, decodingOptions)
+		decoded, err := model_starlark.DecodeValue[object.LocalReference, model_core.NoopReferenceMetadata](thread, message, nil)
 		require.NoError(t, err)
 		return decoded, message
 	}
@@ -160,7 +161,7 @@ func TestDecodeEvalValue(t *testing.T) {
 		// new objects.
 		decoded, message := roundTrip(t, nested)
 		objectsBefore := len(store.objects)
-		reencoded, err := model_starlark.EncodeEvalValue(thread, decoded, encodingOptions)
+		reencoded, err := model_starlark.EncodeValue(thread, decoded, nil, nil, encodingOptions)
 		require.NoError(t, err)
 		require.Equal(t, objectsBefore, len(store.objects))
 		topLevel, _ := reencoded.SortAndSetReferences()
@@ -175,7 +176,7 @@ func TestDecodeEvalValue(t *testing.T) {
 			elements = append(elements, element)
 		}
 		require.NoError(t, errIter)
-		reencoded, err = model_starlark.EncodeEvalValue(thread, eval.NewList(elements), encodingOptions)
+		reencoded, err = model_starlark.EncodeValue(thread, eval.NewList(elements), nil, nil, encodingOptions)
 		require.NoError(t, err)
 		topLevel, _ = reencoded.SortAndSetReferences()
 		testutil.RequireEqualProto(t, message.Message, topLevel.Decay().Message)

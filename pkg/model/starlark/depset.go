@@ -10,14 +10,13 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
-func deduplicateAndAddDirect(thread *starlark.Thread, children *[]any, direct iter.Seq2[int, starlark.Value], valuesSeen *valueSet) error {
+func deduplicateAndAddDirect(thread *eval.Thread, children *[]any, direct iter.Seq2[int, eval.Value], valuesSeen *valueSet) error {
 	for _, v := range direct {
 		if alreadySeen, err := valuesSeen.testAndAdd(thread, v); err != nil {
 			return err
@@ -28,12 +27,12 @@ func deduplicateAndAddDirect(thread *starlark.Thread, children *[]any, direct it
 	return nil
 }
 
-func deduplicateAndAddTransitive[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *starlark.Thread, children *[]any, transitive iter.Seq2[int, *Depset[TReference, TMetadata]], valuesSeen *valueSet, encodedListsSeen map[model_core.Decodable[object.LocalReference]]struct{}, depsetsSeen map[*any]struct{}, order model_starlark_pb.Depset_Order) error {
+func deduplicateAndAddTransitive[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, children *[]any, transitive iter.Seq2[int, *Depset[TReference, TMetadata]], valuesSeen *valueSet, encodedListsSeen map[model_core.Decodable[object.LocalReference]]struct{}, depsetsSeen map[*any]struct{}, order model_starlark_pb.Depset_Order) error {
 	for _, d := range transitive {
 		switch v := d.children.(type) {
 		case nil:
 			// Empty child. Ignore it.
-		case starlark.Value:
+		case eval.Value:
 			// Single child that is decoded. Add it directly.
 			if alreadySeen, err := valuesSeen.testAndAdd(thread, v); err != nil {
 				return err
@@ -92,12 +91,12 @@ type DepsetContents[TReference object.BasicReference, TMetadata model_core.Refer
 // This function can be used to implement the depset() constructor
 // function.
 func NewDepsetContents[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
-	thread *starlark.Thread,
-	direct []starlark.Value,
+	thread *eval.Thread,
+	direct []eval.Value,
 	transitive []*Depset[TReference, TMetadata],
 	order model_starlark_pb.Depset_Order,
 ) (*DepsetContents[TReference, TMetadata], error) {
-	var directIter iter.Seq2[int, starlark.Value]
+	var directIter iter.Seq2[int, eval.Value]
 	var transitiveIter iter.Seq2[int, *Depset[TReference, TMetadata]]
 	preorder := false
 	switch order {
@@ -138,11 +137,11 @@ func NewDepsetContents[TReference object.BasicReference, TMetadata model_core.Re
 		}
 	}
 
-	return NewDepsetContentsFromList[TReference, TMetadata](children, order), nil
+	return newDepsetContentsFromChildren[TReference, TMetadata](children, order), nil
 }
 
 // NewDepsetContentsFromList constructs a DepsetContents, given a single
-// list of decoded values (starlark.Value) or lists of encoded values
+// list of decoded values (eval.Value) or lists of encoded values
 // (model_core.Message[*model_starlark_pb.List_Element, TReference]).
 // This function can be used to construct depsets that are (partially)
 // backed by storage.
@@ -150,10 +149,17 @@ func NewDepsetContentsFromList[TReference object.BasicReference, TMetadata model
 	children []any,
 	order model_starlark_pb.Depset_Order,
 ) *DepsetContents[TReference, TMetadata] {
+	return newDepsetContentsFromChildren[TReference, TMetadata](children, order)
+}
+
+func newDepsetContentsFromChildren[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	children []any,
+	order model_starlark_pb.Depset_Order,
+) *DepsetContents[TReference, TMetadata] {
 	// Get rid of singleton lists.
 	for len(children) == 1 {
 		switch v := children[0].(type) {
-		case starlark.Value:
+		case eval.Value:
 			return &DepsetContents[TReference, TMetadata]{
 				children: v,
 			}
@@ -186,10 +192,10 @@ func NewDepsetContentsFromList[TReference object.BasicReference, TMetadata model
 }
 
 type depsetChildrenEncoder[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	path         map[starlark.Value]struct{}
+	thread       *eval.Thread
+	path         []eval.Value
 	options      *ValueEncodingOptions[TReference, TMetadata]
 	treeBuilder  btree.Builder[*model_starlark_pb.List_Element, TMetadata]
-	needsCode    bool
 	elementsSeen map[object.LocalReference]struct{}
 	depsetsSeen  map[*any]struct{}
 }
@@ -223,12 +229,11 @@ func (e *depsetChildrenEncoder[TReference, TMetadata]) pushUniqueElement(element
 func (e *depsetChildrenEncoder[TReference, TMetadata]) encode(children any) error {
 	switch v := children.(type) {
 	case nil:
-	case starlark.Value:
-		encodedValue, valueNeedsCode, err := EncodeValue[TReference, TMetadata](v, e.path, nil, e.options)
+	case eval.Value:
+		encodedValue, err := EncodeValue[TReference, TMetadata](e.thread, v, e.path, nil, e.options)
 		if err != nil {
 			return err
 		}
-		e.needsCode = e.needsCode || valueNeedsCode
 		if err := e.pushUniqueElement(
 			model_core.NewPatchedMessage(
 				&model_starlark_pb.List_Element{
@@ -266,8 +271,9 @@ func (e *depsetChildrenEncoder[TReference, TMetadata]) encode(children any) erro
 // of a (non-deduplicated) list. This method is identical to Encode(),
 // except that can be used in cases where only the elements need to be
 // retained, and the "order" field of the depset is of no importance.
-func (dc *DepsetContents[TReference, TMetadata]) EncodeList(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_starlark_pb.List_Element, TMetadata], bool, error) {
+func (dc *DepsetContents[TReference, TMetadata]) EncodeList(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_starlark_pb.List_Element, TMetadata], error) {
 	e := depsetChildrenEncoder[TReference, TMetadata]{
+		thread:       thread,
 		path:         path,
 		options:      options,
 		treeBuilder:  NewListBuilder(options),
@@ -277,20 +283,15 @@ func (dc *DepsetContents[TReference, TMetadata]) EncodeList(path map[starlark.Va
 	defer e.treeBuilder.Discard()
 
 	if err := e.encode(dc.children); err != nil {
-		return model_core.PatchedMessage[[]*model_starlark_pb.List_Element, TMetadata]{}, false, err
+		return model_core.PatchedMessage[[]*model_starlark_pb.List_Element, TMetadata]{}, err
 	}
-
-	elements, err := e.treeBuilder.FinalizeList()
-	if err != nil {
-		return model_core.PatchedMessage[[]*model_starlark_pb.List_Element, TMetadata]{}, false, err
-	}
-	return elements, e.needsCode, nil
+	return e.treeBuilder.FinalizeList()
 }
 
 // ToList extracts all elements contained in the depset and returns them
 // as a list. If the depset contains duplicate elements, only the first
 // occurrence is retained.
-func (dc *DepsetContents[TReference, TMetadata]) ToList(thread *starlark.Thread) ([]starlark.Value, error) {
+func (dc *DepsetContents[TReference, TMetadata]) ToList(thread *eval.Thread) ([]eval.Value, error) {
 	dlc := depsetToListConverter[TReference, TMetadata]{
 		thread:           thread,
 		encodedListsSeen: map[model_core.Decodable[object.LocalReference]]struct{}{},
@@ -318,8 +319,9 @@ type Depset[TReference object.BasicReference, TMetadata model_core.ReferenceMeta
 
 var (
 	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*Depset[object.LocalReference, model_core.ReferenceMetadata])(nil)
-	_ starlark.Comparable                                                 = (*Depset[object.LocalReference, model_core.ReferenceMetadata])(nil)
-	_ starlark.HasAttrs                                                   = (*Depset[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Comparable                                                     = (*Depset[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.HasAttrs                                                       = (*Depset[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Hashable                                                       = (*Depset[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewDepset creates a Starlark depset object that holds the provided
@@ -335,8 +337,11 @@ func NewDepset[TReference object.BasicReference, TMetadata model_core.ReferenceM
 	return d
 }
 
-func (Depset[TReference, TMetadata]) String() string {
-	return "<depset>"
+// Repr writes the representation of a depset value. As the elements
+// of a depset may be backed by storage, they are not printed.
+func (Depset[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<depset>")
+	return nil
 }
 
 // Type returns the name of the type of a depset value.
@@ -344,31 +349,26 @@ func (Depset[TReference, TMetadata]) Type() string {
 	return "depset"
 }
 
-// Freeze the contents of the depset. As we assume that all values
-// contained in the depset are hashable and therefore immutable, this
-// method does nothing.
-func (Depset[TReference, TMetadata]) Freeze() {}
-
 // Truth returns whether a depset value evaluates to true or false if
 // implicitly converted to a Boolean value. Only non-empty depsets
 // evaluate to true.
-func (d *Depset[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.Bool(d.children != nil)
+func (d *Depset[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return d.children != nil, nil
 }
 
 // CompareSameType can be used to compare depsets for equality. Depsets
 // only offer reference equality.
-func (d *Depset[TReference, TMetadata]) CompareSameType(thread *starlark.Thread, op syntax.Token, other starlark.Value, depth int) (bool, error) {
+func (d *Depset[TReference, TMetadata]) CompareSameType(thread *eval.Thread, op syntax.Token, other eval.Value, depth int) (bool, error) {
 	return d.referenceEqual.compareSameType(op, &other.(*Depset[TReference, TMetadata]).referenceEqual)
 }
 
 // Encode a depset value to a Protobuf message. This method is identical
 // to EncodeValue(), except that can be used in cases where the value
 // may only be a depset.
-func (d *Depset[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Depset, TMetadata], bool, error) {
-	elements, needsCode, err := d.EncodeList(path, options)
+func (d *Depset[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Depset, TMetadata], error) {
+	elements, err := d.EncodeList(thread, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Depset, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Depset, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Depset{
@@ -377,7 +377,7 @@ func (d *Depset[TReference, TMetadata]) Encode(path map[starlark.Value]struct{},
 			Identifier: d.referenceEqual.identifier,
 		},
 		elements.Patcher,
-	), needsCode, nil
+	), nil
 }
 
 // EncodeValue encodes a depset value to a Starlark value Protobuf
@@ -393,10 +393,10 @@ func (d *Depset[TReference, TMetadata]) Encode(path map[starlark.Value]struct{},
 // encountered, we merely copy over its top level elements. Even though
 // this leads to an imbalance, it does lead to faster deduplication in
 // depset.to_list().
-func (d *Depset[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
-	encodedDepset, needsCode, err := d.Encode(path, options)
+func (d *Depset[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
+	encodedDepset, err := d.Encode(thread, path, options)
 	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, false, err
+		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Value{
@@ -405,18 +405,18 @@ func (d *Depset[TReference, TMetadata]) EncodeValue(path map[starlark.Value]stru
 			},
 		},
 		encodedDepset.Patcher,
-	), needsCode, nil
+	), nil
 }
 
 // Attr can be used to access attributes of the depset. Depsets only
 // provide a single method named to_list(), which can be used to convert
 // it to a deduplicated list.
-func (d *Depset[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (d *Depset[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	switch name {
 	case "to_list":
-		return starlark.NewBuiltin("depset.to_list", d.doToList), nil
+		return eval.NewBuiltin("depset.to_list", d.doToList), nil
 	default:
-		return nil, nil
+		return nil, eval.NoSuchAttrError{Value: d, Name: name}
 	}
 }
 
@@ -425,16 +425,16 @@ var depsetAttrNames = []string{
 }
 
 // AttrNames returns the names of the attributes of the depset object.
-func (Depset[TReference, TMetadata]) AttrNames() []string {
-	return depsetAttrNames
+func (Depset[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
+	return depsetAttrNames, nil
 }
 
 type depsetToListConverter[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	thread *starlark.Thread
+	thread *eval.Thread
 
 	valueDecodingOptions *ValueDecodingOptions[TReference]
 
-	list             []starlark.Value
+	list             []eval.Value
 	valuesSeen       valueSet
 	encodedListsSeen map[model_core.Decodable[object.LocalReference]]struct{}
 	depsetsSeen      map[*any]struct{}
@@ -442,7 +442,7 @@ type depsetToListConverter[TReference object.BasicReference, TMetadata model_cor
 
 func (dlc *depsetToListConverter[TReference, TMetadata]) appendChildren(children any) error {
 	switch v := children.(type) {
-	case starlark.Value:
+	case eval.Value:
 		if alreadySeen, err := dlc.valuesSeen.testAndAdd(dlc.thread, v); err != nil {
 			return err
 		} else if !alreadySeen {
@@ -450,22 +450,22 @@ func (dlc *depsetToListConverter[TReference, TMetadata]) appendChildren(children
 		}
 	case model_core.Message[*model_starlark_pb.List_Element, TReference]:
 		if dlc.valueDecodingOptions == nil {
-			valueDecodingOptionsValue := dlc.thread.Local(ValueDecodingOptionsKey)
-			if valueDecodingOptionsValue == nil {
-				return errors.New("depsets with encoded elements cannot be decoded from within this context")
+			var err error
+			dlc.valueDecodingOptions, err = getValueDecodingOptions[TReference](dlc.thread)
+			if err != nil {
+				return err
 			}
-			dlc.valueDecodingOptions = valueDecodingOptionsValue.(*ValueDecodingOptions[TReference])
 		}
 
 		var errIter error
 		for encodedElement := range AllListLeafElementsSkippingDuplicateParents(
-			dlc.valueDecodingOptions.Context,
+			dlc.thread.Context(),
 			dlc.valueDecodingOptions.Readers.List,
 			model_core.Nested(v, []*model_starlark_pb.List_Element{v.Message}),
 			dlc.encodedListsSeen,
 			&errIter,
 		) {
-			decodedElement, err := DecodeValue[TReference, TMetadata](encodedElement, nil, dlc.valueDecodingOptions)
+			decodedElement, err := DecodeValue[TReference, TMetadata](dlc.thread, encodedElement, nil)
 			if err != nil {
 				return err
 			}
@@ -493,32 +493,32 @@ func (dlc *depsetToListConverter[TReference, TMetadata]) appendChildren(children
 	return nil
 }
 
-func (d *Depset[TReference, TMetadata]) doToList(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if err := starlark.UnpackArgs(b.Name(), args, kwargs); err != nil {
+func (d *Depset[TReference, TMetadata]) doToList(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+	if err := eval.UnpackArgs(thread, b.Name(), args); err != nil {
 		return nil, err
 	}
 	elements, err := d.ToList(thread)
 	if err != nil {
 		return nil, err
 	}
-	return starlark.NewList(elements), nil
+	return eval.NewList(elements), nil
 }
 
-// valueSet is a simple set type for starlark.Value. It's not possible
-// to use map[starlark.Value]struct{} for this purpose, as this does not
-// imply equality at the Starlark level. For this starlark.Equal() needs
-// to be called.
+// valueSet is a simple set type for eval.Value. It's not possible to
+// use map[eval.Value]struct{} for this purpose, as this does not imply
+// equality at the Starlark level. For this eval.Equal() needs to be
+// called.
 type valueSet struct {
 	hashes      []uint32
-	values      []starlark.Value
+	values      []eval.Value
 	utilization int
 }
 
-func (vs *valueSet) testAndAdd(thread *starlark.Thread, v starlark.Value) (bool, error) {
+func (vs *valueSet) testAndAdd(thread *eval.Thread, v eval.Value) (bool, error) {
 	// Compute hash of the object. Ensure the resulting hash is
 	// non-zero, as zero is used by the hash table to indicate an
 	// entry is not used.
-	hash, err := v.Hash(thread)
+	hash, err := eval.Hash(thread, v)
 	if err != nil {
 		return false, err
 	}
@@ -540,7 +540,7 @@ func (vs *valueSet) testAndAdd(thread *starlark.Thread, v starlark.Value) (bool,
 			return false, nil
 		case hash:
 			// Matching hash. Perform deep comparison.
-			if equal, err := starlark.Equal(thread, v, vs.values[index]); err != nil {
+			if equal, err := eval.Equal(thread, v, vs.values[index]); err != nil {
 				return false, err
 			} else if equal {
 				return true, nil
@@ -555,7 +555,7 @@ func (vs *valueSet) maybeGrow() {
 		// that is twice as big.
 		newLength := max(64, len(vs.hashes)*2)
 		newHashes := make([]uint32, newLength)
-		newValues := make([]starlark.Value, newLength)
+		newValues := make([]eval.Value, newLength)
 
 		// Copy entries from the old hash table to the new one.
 		newMask := uint(newLength - 1)
@@ -579,7 +579,7 @@ func (vs *valueSet) maybeGrow() {
 }
 
 type listToDepsetUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	base unpack.UnpackerInto[[]starlark.Value]
+	base unpack.UnpackerInto[[]eval.Value]
 }
 
 // NewListToDepsetUnpackerInto creates a Starlark function argument
@@ -593,8 +593,8 @@ func NewListToDepsetUnpackerInto[TReference object.BasicReference, TMetadata mod
 	}
 }
 
-func (ui *listToDepsetUnpackerInto[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst **Depset[TReference, TMetadata]) error {
-	var list []starlark.Value
+func (ui *listToDepsetUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst **Depset[TReference, TMetadata]) error {
+	var list []eval.Value
 	if err := ui.base.UnpackInto(thread, v, &list); err != nil {
 		return err
 	}
@@ -612,7 +612,7 @@ func (ui *listToDepsetUnpackerInto[TReference, TMetadata]) UnpackInto(thread *st
 	return nil
 }
 
-func (ui *listToDepsetUnpackerInto[TReference, TMetadata]) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+func (ui *listToDepsetUnpackerInto[TReference, TMetadata]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	var d *Depset[TReference, TMetadata]
 	err := ui.UnpackInto(thread, v, &d)
 	return d, err
@@ -620,4 +620,19 @@ func (ui *listToDepsetUnpackerInto[TReference, TMetadata]) Canonicalize(thread *
 
 func (listToDepsetUnpackerInto[TReference, TMetadata]) GetConcatenationOperator() syntax.Token {
 	return syntax.PLUS
+}
+
+func decodeDepset[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](depset model_core.Message[*model_starlark_pb.Depset, TReference]) *Depset[TReference, TMetadata] {
+	children := make([]any, 0, len(depset.Message.Elements))
+	for _, element := range depset.Message.Elements {
+		children = append(children, model_core.Nested(depset, element))
+	}
+	identifier := depset.Message.Identifier
+	return NewDepset(
+		NewDepsetContentsFromList[TReference, TMetadata](
+			children,
+			depset.Message.Order,
+		),
+		func() []byte { return identifier },
+	)
 }

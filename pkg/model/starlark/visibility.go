@@ -1,17 +1,15 @@
 package starlark
 
 import (
-	"errors"
 	"fmt"
 
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 // MacroVisibility is the value of the "visibility" argument that is
@@ -22,10 +20,13 @@ import (
 // expanded, the actual visibility is tracked by TargetRegistrar.
 type MacroVisibility struct{}
 
-var _ starlark.Value = MacroVisibility{}
+var _ eval.Value = MacroVisibility{}
 
-func (MacroVisibility) String() string {
-	return "<visibility>"
+// Repr writes the representation of a Starlark macro visibility
+// object.
+func (MacroVisibility) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<visibility>")
+	return nil
 }
 
 // Type returns the type name of Starlark macro visibility objects.
@@ -33,20 +34,10 @@ func (MacroVisibility) Type() string {
 	return "visibility"
 }
 
-// Freeze a Starlark macro visibility object, so that it cannot be
-// mutated. This has no effect, as these objects are immutable.
-func (MacroVisibility) Freeze() {}
-
 // Truth returns whether a Starlark macro visibility object is "truthy"
 // or "falsy". These objects are always "truthy".
-func (MacroVisibility) Truth() starlark.Bool {
-	return starlark.True
-}
-
-// Hash a Starlark macro visibility object. This is not supported, as
-// these objects can only be forwarded.
-func (MacroVisibility) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("visibility cannot be hashed")
+func (MacroVisibility) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 // visibilityArgument contains the value of a "visibility" argument that
@@ -58,13 +49,13 @@ type visibilityArgument[TReference object.BasicReference, TMetadata model_core.R
 	// the top level of a BUILD file, targets for which no
 	// visibility is provided explicitly use the package's default
 	// visibility, unless defaultVisibilityOverride is set.
-	getTargetVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *starlark.Thread, defaultVisibilityOverride *model_starlark_pb.PackageGroup) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error)
+	getTargetVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *eval.Thread, defaultVisibilityOverride *model_starlark_pb.PackageGroup) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error)
 
 	// getMacroInstanceVisibility computes the visibility of a macro
 	// instance. In addition to the packages that are provided
 	// explicitly, macro instances are always visible to the
 	// location from which the macro is called.
-	getMacroInstanceVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *starlark.Thread, currentPackage pg_label.CanonicalPackage) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error)
+	getMacroInstanceVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *eval.Thread, currentPackage pg_label.CanonicalPackage) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error)
 }
 
 // topLevelVisibilityArgument contains the value of a "visibility"
@@ -74,7 +65,7 @@ type topLevelVisibilityArgument[TReference object.BasicReference, TMetadata mode
 	labels []pg_label.ResolvedLabel
 }
 
-func (v topLevelVisibilityArgument[TReference, TMetadata]) getTargetVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *starlark.Thread, defaultVisibilityOverride *model_starlark_pb.PackageGroup) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
+func (v topLevelVisibilityArgument[TReference, TMetadata]) getTargetVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *eval.Thread, defaultVisibilityOverride *model_starlark_pb.PackageGroup) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
 	if len(v.labels) > 0 {
 		// Explicit visibility provided. Construct new package group.
 		return NewPackageGroupFromVisibility[TMetadata](tr.context, v.labels, tr.encoder, tr.inlinedTreeOptions, tr.objectManager)
@@ -91,7 +82,7 @@ func (v topLevelVisibilityArgument[TReference, TMetadata]) getTargetVisibility(t
 	), nil
 }
 
-func (v topLevelVisibilityArgument[TReference, TMetadata]) getMacroInstanceVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *starlark.Thread, currentPackage pg_label.CanonicalPackage) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
+func (v topLevelVisibilityArgument[TReference, TMetadata]) getMacroInstanceVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *eval.Thread, currentPackage pg_label.CanonicalPackage) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
 	if len(v.labels) == 0 {
 		// No explicit visibility provided. Just like rule
 		// targets, inherit the visibility from repo() in the
@@ -117,7 +108,7 @@ type topLevelVisibilityUnpackerInto[TReference object.BasicReference, TMetadata 
 	labels unpack.UnpackerInto[[]pg_label.ResolvedLabel]
 }
 
-func (ui topLevelVisibilityUnpackerInto[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst *visibilityArgument[TReference, TMetadata]) error {
+func (ui topLevelVisibilityUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst *visibilityArgument[TReference, TMetadata]) error {
 	var labels []pg_label.ResolvedLabel
 	if err := ui.labels.UnpackInto(thread, v, &labels); err != nil {
 		return err
@@ -126,7 +117,7 @@ func (ui topLevelVisibilityUnpackerInto[TReference, TMetadata]) UnpackInto(threa
 	return nil
 }
 
-func (ui topLevelVisibilityUnpackerInto[TReference, TMetadata]) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+func (ui topLevelVisibilityUnpackerInto[TReference, TMetadata]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	return ui.labels.Canonicalize(thread, v)
 }
 
@@ -141,7 +132,7 @@ type macroVisibilityArgument[TReference object.BasicReference, TMetadata model_c
 	forwarded bool
 }
 
-func (v macroVisibilityArgument[TReference, TMetadata]) getTargetVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *starlark.Thread, defaultVisibilityOverride *model_starlark_pb.PackageGroup) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
+func (v macroVisibilityArgument[TReference, TMetadata]) getTargetVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *eval.Thread, defaultVisibilityOverride *model_starlark_pb.PackageGroup) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
 	// Targets and macro instances declared by symbolic macros are
 	// always visible to the package containing the macro's
 	// definition. The package's default visibility does not apply.
@@ -152,7 +143,7 @@ func (v macroVisibilityArgument[TReference, TMetadata]) getTargetVisibility(tr *
 	return tr.addPackageToVisibility(thread, visibility, tr.macro.definitionPackage)
 }
 
-func (v macroVisibilityArgument[TReference, TMetadata]) getMacroInstanceVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *starlark.Thread, currentPackage pg_label.CanonicalPackage) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
+func (v macroVisibilityArgument[TReference, TMetadata]) getMacroInstanceVisibility(tr *TargetRegistrar[TReference, TMetadata], thread *eval.Thread, currentPackage pg_label.CanonicalPackage) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
 	// The location from which the macro is called is the package
 	// containing the definition of the macro instance that is
 	// being expanded.
@@ -161,9 +152,9 @@ func (v macroVisibilityArgument[TReference, TMetadata]) getMacroInstanceVisibili
 
 type macroVisibilityUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct{}
 
-func (macroVisibilityUnpackerInto[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst *visibilityArgument[TReference, TMetadata]) error {
+func (macroVisibilityUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst *visibilityArgument[TReference, TMetadata]) error {
 	switch v.(type) {
-	case starlark.NoneType:
+	case eval.NoneType:
 		*dst = macroVisibilityArgument[TReference, TMetadata]{}
 	case MacroVisibility:
 		*dst = macroVisibilityArgument[TReference, TMetadata]{forwarded: true}
@@ -173,7 +164,7 @@ func (macroVisibilityUnpackerInto[TReference, TMetadata]) UnpackInto(thread *sta
 	return nil
 }
 
-func (ui macroVisibilityUnpackerInto[TReference, TMetadata]) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+func (ui macroVisibilityUnpackerInto[TReference, TMetadata]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	var visibility visibilityArgument[TReference, TMetadata]
 	if err := ui.UnpackInto(thread, v, &visibility); err != nil {
 		return nil, err

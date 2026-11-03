@@ -199,12 +199,28 @@ func Repr(t *Thread, v Value) (string, error) {
 	return p.String(), nil
 }
 
+// HasStr is implemented by values whose string representation, as
+// returned by str(), differs from the one returned by repr(). For
+// example, str() of a label yields the label itself, whereas repr()
+// yields Label("...").
+type HasStr interface {
+	Value
+	Str(t *Thread, p *Printer) error
+}
+
 // Str returns the string representation of a value, as returned by
 // str(). It is equal to Repr(), except for strings, which are
-// returned without quotes.
+// returned without quotes, and values implementing HasStr.
 func Str(t *Thread, v Value) (string, error) {
-	if s, ok := v.(String); ok {
-		return string(s), nil
+	switch typedV := v.(type) {
+	case String:
+		return string(typedV), nil
+	case HasStr:
+		var p Printer
+		if err := typedV.Str(t, &p); err != nil {
+			return "", err
+		}
+		return p.String(), nil
 	}
 	return Repr(t, v)
 }

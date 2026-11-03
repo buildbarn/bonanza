@@ -4,11 +4,11 @@ import (
 	"maps"
 	"slices"
 
+	"bonanza.build/pkg/starlark/eval"
+
 	pg_label "bonanza.build/pkg/label"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
-
-	"go.starlark.net/starlark"
 )
 
 // LateNamedValue can be embedded into Starlark value types, so that
@@ -40,7 +40,7 @@ func (lnv *LateNamedValue) equals(other *LateNamedValue) bool {
 // NamedGlobal is satisified by all Starlark objects that need to track
 // their own identifier, such as rules and providers.
 type NamedGlobal interface {
-	starlark.Value
+	eval.Value
 	AssignIdentifier(identifier pg_label.CanonicalStarlarkIdentifier)
 }
 
@@ -51,7 +51,7 @@ type NamedGlobal interface {
 //
 //	x = rule(..)
 //	y = x
-func NameAndExtractGlobals(globals starlark.StringDict, canonicalLabel pg_label.CanonicalLabel) {
+func NameAndExtractGlobals(globals map[string]eval.Value, canonicalLabel pg_label.CanonicalLabel) {
 	for _, name := range slices.Sorted(maps.Keys(globals)) {
 		if value, ok := globals[name].(NamedGlobal); ok {
 			identifier := canonicalLabel.AppendStarlarkIdentifier(util.Must(pg_label.NewStarlarkIdentifier(name)))

@@ -1185,6 +1185,41 @@ interpreters side by side in one binary isn't practical. Instead:
    `reloadingRuleDefinition` and `reloadingMacroDefinition` goes away,
    following
    [Memoization and dependency tracking](#memoization-and-dependency-tracking).
+   This is done in place, so `pkg/model/starlark` doesn't build until
+   the port is complete. It's split in two batches:
+
+   - **Plain value types** (done): `Label`, `struct` and provider
+     instances, `depset`, `select()`, `File`, `Target`, `path`,
+     `config_common.toolchain_type`, `exec_group`, macro visibility,
+     and the remaining unpackers. Decisions made along the way:
+     - `EncodeValue()` takes the thread, and `path` is a slice of the
+       mutable composite values that are being encoded. The
+       `needsCode` result is gone (see [Functions](#functions)).
+     - `ValueDecodingOptions` remains stored in a thread local
+       variable. All values that are used within a single thread are
+       assumed to be decoded with the same options, so values that
+       decode lazily obtain them from the thread when they are
+       accessed, instead of keeping a pointer to them. This means
+       that code in `pkg/model/analysis` that decodes values with
+       different `LabelCreator`s within a single thread (e.g.,
+       `configured_target.go`) needs to be restructured.
+     - `LabelCreator` functions are now called lazily. Ones that
+       record missing dependencies in a variable that is checked
+       right after decoding need to be revisited as well.
+     - `CurrentFilePackage()` uses the innermost frame on the call
+       stack that belongs to a Starlark file, and returns an error
+       instead of panicking.
+     - `repr()` of labels and structs follows Bazel: `Label("@@a//b:c")`
+       and `struct(a = 1)`, or the provider's name for provider
+       instances.
+   - **Types holding functions**: `NamedFunction`, `provider()`,
+     rules, macros, aspects, subrules, transitions, repository rules,
+     module extensions, tag classes, attributes and build settings,
+     together with the per-function code storage and lazy `load()`
+     described in [Functions](#functions). The ported code already
+     calls into these using the API they will have afterwards:
+     `NamedFunction` implements `eval.Callable` and is encoded with
+     `Encode(thread, path, options)`.
 5. **Port `pkg/model/analysis`** on the same branch. Remove the two
    native keys, add `BzlFileBuiltins`, and make `load()` lazy. Move
    the remaining users of `go.starlark.net/syntax` over: `syntax.Token`

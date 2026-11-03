@@ -1,7 +1,7 @@
 package starlark
 
 import (
-	"errors"
+	"fmt"
 	"maps"
 	"slices"
 	"sort"
@@ -9,8 +9,7 @@ import (
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-
-	"go.starlark.net/starlark"
+	"bonanza.build/pkg/starlark/eval"
 )
 
 // ExecGroup represents a Starlark execution group object. Rules may
@@ -59,8 +58,10 @@ func NewExecGroup[TReference any, TMetadata model_core.ReferenceMetadata](execCo
 	}
 }
 
-func (ExecGroup[TReference, TMetadata]) String() string {
-	return "<exec_group>"
+// Repr writes the representation of the value.
+func (ExecGroup[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<exec_group>")
+	return nil
 }
 
 // Type returns the type name of a Starlark execution group object in
@@ -69,22 +70,10 @@ func (ExecGroup[TReference, TMetadata]) Type() string {
 	return "exec_group"
 }
 
-// Freeze a Starlark execution group object, so that it can no longer be
-// mutated. This has no effect, as Starlark execution group objects are
-// already immutable.
-func (ExecGroup[TReference, TMetadata]) Freeze() {}
-
 // Truth returns whether a Starlark execution group object is "truthy"
 // or "falsy". Starlark execution group objects are always "truthy".
-func (ExecGroup[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-// Hash a Starlark execution group, so that it can be placed in a set or
-// used as a key in a dict. Starlark execution groups cannot be hashed,
-// though.
-func (ExecGroup[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("exec_group cannot be hashed")
+func (ExecGroup[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 // Encode the definition of a Starlark execution group in the form of a
@@ -102,12 +91,34 @@ func (eg *ExecGroup[TReference, TMetadata]) Encode() *model_starlark_pb.ExecGrou
 
 // EncodeValue returns the definition of a Starlark execution group in
 // the form of a Protobuf message of a generic Starlark value.
-func (eg *ExecGroup[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
+func (eg *ExecGroup[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	return model_core.NewSimplePatchedMessage[TMetadata](
 		&model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_ExecGroup{
 				ExecGroup: eg.Encode(),
 			},
 		},
-	), false, nil
+	), nil
+}
+
+func decodeExecGroup[TReference any, TMetadata model_core.ReferenceMetadata](execGroup *model_starlark_pb.ExecGroup) (*ExecGroup[TReference, TMetadata], error) {
+	execCompatibleWith := make([]pg_label.ResolvedLabel, 0, len(execGroup.ExecCompatibleWith))
+	for _, labelStr := range execGroup.ExecCompatibleWith {
+		label, err := pg_label.NewResolvedLabel(labelStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid label %#v: %w", labelStr, err)
+		}
+		execCompatibleWith = append(execCompatibleWith, label)
+	}
+
+	toolchains := make([]*ToolchainType[TReference, TMetadata], 0, len(execGroup.Toolchains))
+	for i, toolchain := range execGroup.Toolchains {
+		toolchainType, err := decodeToolchainType[TReference, TMetadata](toolchain)
+		if err != nil {
+			return nil, fmt.Errorf("toolchain %d: %w", i, err)
+		}
+		toolchains = append(toolchains, toolchainType)
+	}
+
+	return NewExecGroup(execCompatibleWith, toolchains), nil
 }

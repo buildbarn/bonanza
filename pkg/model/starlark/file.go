@@ -10,12 +10,11 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
 
 	bb_path "github.com/buildbarn/bb-storage/pkg/filesystem/path"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 // Names of commonly used pathname components of source and output files.
@@ -41,8 +40,8 @@ type File[TReference object.BasicReference, TMetadata model_core.ReferenceMetada
 
 var (
 	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*File[object.LocalReference, model_core.ReferenceMetadata])(nil)
-	_ starlark.Comparable                                                 = (*File[object.LocalReference, model_core.ReferenceMetadata])(nil)
-	_ starlark.HasAttrs                                                   = (*File[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Comparable                                                     = (*File[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.HasAttrs                                                       = (*File[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
 // NewFile creates a Starlark file object using a Protobuf message as a
@@ -63,11 +62,14 @@ func (f *File[TReference, TMetadata]) WithTreeRelativePath(treeRelativePath *bb_
 	}
 }
 
-func (f *File[TReference, TMetadata]) String() string {
-	if p, err := FileGetInputRootPath(f.definition, f.treeRelativePath); err == nil {
-		return fmt.Sprintf("<File %s>", p)
+// Repr writes the representation of a Starlark file object.
+func (f *File[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	if path, err := FileGetInputRootPath(f.definition, f.treeRelativePath); err == nil {
+		p.WriteString(fmt.Sprintf("<File %s>", path))
+	} else {
+		p.WriteString("<File>")
 	}
-	return "<File>"
+	return nil
 }
 
 // Type returns the type name of a Starlark file object in string form.
@@ -75,19 +77,15 @@ func (File[TReference, TMetadata]) Type() string {
 	return "File"
 }
 
-// Freeze a Starlark file object, so that it cannot be mutated. This has
-// no effect on Starlark file objects, as those are already immutable.
-func (File[TReference, TMetadata]) Freeze() {}
-
 // Truth returns whether a Starlark file object is "truthy" or "falsy".
 // Starlark file objects are always "truthy".
-func (File[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
+func (File[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 // Hash a Starlark file object, so that it can be placed in a set or be
 // used as a key in a dict.
-func (f *File[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
+func (f *File[TReference, TMetadata]) Hash(thread *eval.Thread) (uint32, error) {
 	d := f.definition.Message
 	h := fnv.New32a()
 	h.Write([]byte(d.Label))
@@ -101,7 +99,7 @@ func (f *File[TReference, TMetadata]) equals(other *File[TReference, TMetadata])
 // CompareSameType returns true if both Starlark file objects represent
 // the same underlying file (i.e., having the same path, owner, and
 // configuration).
-func (f *File[TReference, TMetadata]) CompareSameType(thread *starlark.Thread, op syntax.Token, other starlark.Value, depth int) (bool, error) {
+func (f *File[TReference, TMetadata]) CompareSameType(thread *eval.Thread, op syntax.Token, other eval.Value, depth int) (bool, error) {
 	switch op {
 	case syntax.EQL:
 		return f.equals(other.(*File[TReference, TMetadata])), nil
@@ -149,7 +147,7 @@ func (f *File[TReference, TMetadata]) getPathEnd() (string, error) {
 
 // Attr computes the value of an attribute of a Starlark file object
 // when it is requested.
-func (f *File[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (f *File[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	d := f.definition.Message
 	switch name {
 	case "basename":
@@ -157,13 +155,13 @@ func (f *File[TReference, TMetadata]) Attr(thread *starlark.Thread, name string)
 		if err != nil {
 			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.Label, err)
 		}
-		return starlark.String(go_path.Base(pathEnd)), nil
+		return eval.String(go_path.Base(pathEnd)), nil
 	case "dirname":
 		p, err := FileGetInputRootPath(f.definition, f.treeRelativePath)
 		if err != nil {
 			return nil, err
 		}
-		return starlark.String(go_path.Dir(p)), nil
+		return eval.String(go_path.Dir(p)), nil
 	case "extension":
 		p, err := f.getPathEnd()
 		if err != nil {
@@ -171,10 +169,10 @@ func (f *File[TReference, TMetadata]) Attr(thread *starlark.Thread, name string)
 		}
 		for i := len(p) - 1; i >= 0 && p[i] != '/' && p[i] != ':'; i-- {
 			if p[i] == '.' {
-				return starlark.String(p[i+1:]), nil
+				return eval.String(p[i+1:]), nil
 			}
 		}
-		return starlark.String(""), nil
+		return eval.String(""), nil
 	case "label":
 		// Bonanza specific extension.
 		if f.treeRelativePath != nil {
@@ -189,11 +187,11 @@ func (f *File[TReference, TMetadata]) Attr(thread *starlark.Thread, name string)
 		// For files created by DirectoryExpander, the
 		// definition still refers to the directory from which
 		// the files originated.
-		return starlark.Bool(d.Owner != nil && d.Owner.Type == model_starlark_pb.File_Owner_DIRECTORY && f.treeRelativePath == nil), nil
+		return eval.Bool(d.Owner != nil && d.Owner.Type == model_starlark_pb.File_Owner_DIRECTORY && f.treeRelativePath == nil), nil
 	case "is_source":
-		return starlark.Bool(d.Owner == nil), nil
+		return eval.Bool(d.Owner == nil), nil
 	case "is_symlink":
-		return starlark.Bool(d.Owner != nil && d.Owner.Type == model_starlark_pb.File_Owner_SYMLINK), nil
+		return eval.Bool(d.Owner != nil && d.Owner.Type == model_starlark_pb.File_Owner_SYMLINK), nil
 	case "owner":
 		canonicalLabel, err := pg_label.NewCanonicalLabel(d.Label)
 		if err != nil {
@@ -217,7 +215,7 @@ func (f *File[TReference, TMetadata]) Attr(thread *starlark.Thread, name string)
 		if err != nil {
 			return nil, err
 		}
-		return starlark.String(p), nil
+		return eval.String(p), nil
 	case "root":
 		parts, err := appendFileOwnerToPath(f.definition, make([]string, 0, 6))
 		if err != nil {
@@ -230,7 +228,7 @@ func (f *File[TReference, TMetadata]) Attr(thread *starlark.Thread, name string)
 		return newStructFromLists[TReference, TMetadata](
 			nil,
 			[]string{"path"},
-			[]any{starlark.String(rootPath)},
+			[]any{eval.String(rootPath)},
 		), nil
 	case "short_path":
 		canonicalLabel, err := pg_label.NewCanonicalLabel(d.Label)
@@ -238,7 +236,7 @@ func (f *File[TReference, TMetadata]) Attr(thread *starlark.Thread, name string)
 			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.Label, err)
 		}
 		canonicalPackage := canonicalLabel.GetCanonicalPackage()
-		return starlark.String(go_path.Join(
+		return eval.String(go_path.Join(
 			"..",
 			canonicalPackage.GetCanonicalRepo().String(),
 			canonicalPackage.GetPackagePath(),
@@ -249,9 +247,9 @@ func (f *File[TReference, TMetadata]) Attr(thread *starlark.Thread, name string)
 		if f.treeRelativePath == nil {
 			return nil, errors.New("File.tree_relative_path is only available during Args.add_*() directory expansion ")
 		}
-		return starlark.String(f.treeRelativePath.GetUNIXString()), nil
+		return eval.String(f.treeRelativePath.GetUNIXString()), nil
 	default:
-		return nil, nil
+		return nil, eval.NoSuchAttrError{Value: f, Name: name}
 	}
 }
 
@@ -272,13 +270,13 @@ var fileAttrNames = []string{
 
 // AttrNames returns the names of the set of attributes of a Starlark
 // file object.
-func (File[TReference, TMetadata]) AttrNames() []string {
-	return fileAttrNames
+func (File[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
+	return fileAttrNames, nil
 }
 
 // EncodeValue returns the properties of a Starlark file object in the
 // form of a Protobuf message which may be written to storage.
-func (f *File[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
+func (f *File[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	if f.treeRelativePath != nil {
 		panic("files with tree relative paths should not be encoded, as they only exist during target action command computation")
 	}
@@ -290,7 +288,7 @@ func (f *File[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct
 			},
 		},
 		d.Patcher,
-	), false, nil
+	), nil
 }
 
 // GetDefinition returns the properties of a Starlark file object in the

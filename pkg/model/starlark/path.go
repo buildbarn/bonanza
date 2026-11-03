@@ -1,18 +1,16 @@
 package starlark
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
+	"bonanza.build/pkg/starlark/syntax"
 
 	bb_path "github.com/buildbarn/bb-storage/pkg/filesystem/path"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 // BarePath stores an absolute pathname contained in a Starlark path
@@ -134,50 +132,45 @@ type path struct {
 	filesystem Filesystem
 }
 
-var (
-	_ starlark.Value    = (*path)(nil)
-	_ starlark.HasAttrs = (*path)(nil)
-)
+var _ eval.HasAttrs = (*path)(nil)
 
 // NewPath creates a Starlark path object. These objects consist of a
 // bare path that represents an absolute path, and a filesystem in which
 // operations performed against these paths should take place.
-func NewPath(bp *BarePath, filesystem Filesystem) starlark.Value {
+func NewPath(bp *BarePath, filesystem Filesystem) eval.Value {
 	return &path{
 		bare:       bp,
 		filesystem: filesystem,
 	}
 }
 
-func (p *path) String() string {
-	return p.bare.GetUNIXString()
+// Repr writes the representation of a path object, which is the
+// pathname string. This is consistent with Bazel, where str() of a
+// path yields the pathname.
+func (p *path) Repr(_ *eval.Thread, printer *eval.Printer) error {
+	printer.WriteString(p.bare.GetUNIXString())
+	return nil
 }
 
 func (path) Type() string {
 	return "path"
 }
 
-func (path) Freeze() {}
-
-func (path) Truth() starlark.Bool {
-	return starlark.True
+func (path) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
-func (path) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("path cannot be hashed")
-}
-
-func (p *path) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (p *path) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	bp := p.bare
 	switch name {
 	case "basename":
 		if bp == nil {
-			return starlark.None, nil
+			return eval.None, nil
 		}
-		return starlark.String(bp.component.String()), nil
+		return eval.String(bp.component.String()), nil
 	case "dirname":
 		if bp == nil {
-			return starlark.None, nil
+			return eval.None, nil
 		}
 		return NewPath(bp.parent, p.filesystem), nil
 	case "exists":
@@ -185,17 +178,17 @@ func (p *path) Attr(thread *starlark.Thread, name string) (starlark.Value, error
 		if err != nil {
 			return nil, err
 		}
-		return starlark.Bool(exists), nil
+		return eval.Bool(exists), nil
 	case "get_child":
-		return starlark.NewBuiltin("path.get_child", p.doGetChild), nil
+		return eval.NewBuiltin("path.get_child", p.doGetChild), nil
 	case "is_dir":
 		isDir, err := p.filesystem.IsDir(p.bare)
 		if err != nil {
 			return nil, err
 		}
-		return starlark.Bool(isDir), nil
+		return eval.Bool(isDir), nil
 	case "readdir":
-		return starlark.NewBuiltin("path.readdir", p.doReaddir), nil
+		return eval.NewBuiltin("path.readdir", p.doReaddir), nil
 	case "realpath":
 		realpath, err := p.filesystem.Realpath(p.bare)
 		if err != nil {
@@ -203,7 +196,7 @@ func (p *path) Attr(thread *starlark.Thread, name string) (starlark.Value, error
 		}
 		return NewPath(realpath, p.filesystem), nil
 	default:
-		return nil, nil
+		return nil, eval.NoSuchAttrError{Value: p, Name: name}
 	}
 }
 
@@ -217,20 +210,20 @@ var pathAttrNames = []string{
 	"realpath",
 }
 
-func (path) AttrNames() []string {
-	return pathAttrNames
+func (path) AttrNames(*eval.Thread) ([]string, error) {
+	return pathAttrNames, nil
 }
 
-func (p *path) doGetChild(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if len(kwargs) != 0 {
-		return nil, fmt.Errorf("%s: got %d keyword arguments, want 0", b.Name(), len(kwargs))
+func (p *path) doGetChild(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+	if len(args.Named) != 0 {
+		return nil, fmt.Errorf("%s: got %d keyword arguments, want 0", b.Name(), len(args.Named))
 	}
 
 	resolver := PathResolver{
 		CurrentPath: p.bare,
 	}
-	for i, relativePath := range args {
-		relativePathStr, ok := starlark.AsString(relativePath)
+	for i, relativePath := range args.Positional {
+		relativePathStr, ok := eval.AsString(relativePath)
 		if !ok {
 			return nil, fmt.Errorf("at index %d: got %s, want string", i, relativePath.Type())
 		}
@@ -245,11 +238,11 @@ func (p *path) doGetChild(thread *starlark.Thread, b *starlark.Builtin, args sta
 	return NewPath(resolver.CurrentPath, p.filesystem), nil
 }
 
-func (p *path) doReaddir(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (p *path) doReaddir(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	var watch string
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
-		"watch?", unpack.Bind(thread, &watch, unpack.String),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
+		"watch?", unpack.Bind(&watch, unpack.String),
 	); err != nil {
 		return nil, err
 	}
@@ -258,11 +251,11 @@ func (p *path) doReaddir(thread *starlark.Thread, b *starlark.Builtin, args star
 	if err != nil {
 		return nil, err
 	}
-	paths := make([]starlark.Value, 0, len(names))
+	paths := make([]eval.Value, 0, len(names))
 	for _, name := range names {
 		paths = append(paths, NewPath(p.bare.Append(name), p.filesystem))
 	}
-	return starlark.NewList(paths), nil
+	return eval.NewList(paths), nil
 }
 
 type pathComponentParser struct {
@@ -381,9 +374,9 @@ func NewPathOrLabelOrStringUnpackerInto[TReference any, TMetadata model_core.Ref
 	}
 }
 
-func (ui *pathOrLabelOrStringUnpackerInto[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst **BarePath) error {
+func (ui *pathOrLabelOrStringUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst **BarePath) error {
 	switch typedV := v.(type) {
-	case starlark.String:
+	case eval.String:
 		r := PathResolver{
 			CurrentPath: ui.workingDirectory,
 		}
@@ -414,12 +407,12 @@ func (ui *pathOrLabelOrStringUnpackerInto[TReference, TMetadata]) UnpackInto(thr
 	}
 }
 
-func (ui *pathOrLabelOrStringUnpackerInto[TReference, TMetadata]) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+func (ui *pathOrLabelOrStringUnpackerInto[TReference, TMetadata]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	var bp *BarePath
 	if err := ui.UnpackInto(thread, v, &bp); err != nil {
 		return nil, err
 	}
-	return starlark.String(bp.GetUNIXString()), nil
+	return eval.String(bp.GetUNIXString()), nil
 }
 
 func (pathOrLabelOrStringUnpackerInto[TReference, TMetadata]) GetConcatenationOperator() syntax.Token {

@@ -32,6 +32,12 @@ func (e NoSuchAttrError) Error() string {
 	return msg
 }
 
+// Hash returns the hash of a value, as used by dicts and sets. It fails
+// if the value is not hashable.
+func Hash(t *Thread, v Value) (uint32, error) {
+	return hashValue(t, v)
+}
+
 func hashValue(t *Thread, v Value) (uint32, error) {
 	h, ok := v.(Hashable)
 	if !ok {
@@ -43,6 +49,14 @@ func hashValue(t *Thread, v Value) (uint32, error) {
 // Equal returns whether two values are equal.
 func Equal(t *Thread, x, y Value) (bool, error) {
 	return equalDepth(t, x, y, maximumCompareDepth)
+}
+
+// EqualDepth returns whether two values are equal. It is used by
+// implementations of Comparable to compare the values contained within,
+// so that comparisons of cyclic values terminate. depth is the value
+// that was provided to CompareSameType(), minus one.
+func EqualDepth(t *Thread, x, y Value, depth int) (bool, error) {
+	return equalDepth(t, x, y, depth)
 }
 
 func equalDepth(t *Thread, x, y Value, depth int) (bool, error) {

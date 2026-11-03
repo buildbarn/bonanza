@@ -1,17 +1,15 @@
 package starlark
 
 import (
-	"errors"
 	"fmt"
 
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 // ToolchainType corresponds to a Starlark toolchain type object, as
@@ -24,8 +22,8 @@ type ToolchainType[TReference any, TMetadata model_core.ReferenceMetadata] struc
 }
 
 var (
-	_ starlark.HasAttrs                                                   = (*ToolchainType[object.LocalReference, model_core.ReferenceMetadata])(nil)
-	_ starlark.Value                                                      = (*ToolchainType[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.HasAttrs                                                       = (*ToolchainType[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.Value                                                          = (*ToolchainType[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ EncodableValue[object.LocalReference, model_core.ReferenceMetadata] = (*ToolchainType[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
@@ -38,8 +36,10 @@ func NewToolchainType[TReference any, TMetadata model_core.ReferenceMetadata](to
 	}
 }
 
-func (ToolchainType[TReference, TMetadata]) String() string {
-	return "<config_common.toolchain_type>"
+// Repr writes the representation of the value.
+func (ToolchainType[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<config_common.toolchain_type>")
+	return nil
 }
 
 // Type returns the type name of the Starlark toolchain type object.
@@ -47,35 +47,24 @@ func (ToolchainType[TReference, TMetadata]) Type() string {
 	return "config_common.toolchain_type"
 }
 
-// Freeze the contents of the toolchain type object. As toolchain type
-// objects are immutable, this method has no effect.
-func (ToolchainType[TReference, TMetadata]) Freeze() {}
-
 // Truth returns whether the Starlark toolchain type object should
 // evaluate to true or false when implicitly converted to a Boolean
 // value. Toolchain type objects always evaluate to true.
-func (ToolchainType[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-// Hash the Starlark toolchain type object, so that it can be used as a
-// key in a dictionary. This method is not implemented for toolchain
-// type objects.
-func (ToolchainType[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("config_common.toolchain_type cannot be hashed")
+func (ToolchainType[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 // Attr can be used to access attributes of the Starlark toolchain type
 // object. These attributes correspond to the properties that were used
 // to construct the toolchain type object.
-func (tt *ToolchainType[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (tt *ToolchainType[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	switch name {
 	case "mandatory":
-		return starlark.Bool(tt.mandatory), nil
+		return eval.Bool(tt.mandatory), nil
 	case "toolchain_type":
 		return NewLabel[TReference, TMetadata](tt.toolchainType), nil
 	default:
-		return nil, nil
+		return nil, eval.NoSuchAttrError{Value: tt, Name: name}
 	}
 }
 
@@ -87,8 +76,8 @@ var toolchainTypeAttrNames = []string{
 // AttrNames returns the names of the attributes of the Starlark
 // toolchain type object. These attributes can be used to access the
 // properties that were used to construct the toolchain type object.
-func (ToolchainType[TReference, TMetadata]) AttrNames() []string {
-	return toolchainTypeAttrNames
+func (ToolchainType[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
+	return toolchainTypeAttrNames, nil
 }
 
 // Encode the properties of a Starlark toolchain type value in the form
@@ -115,14 +104,14 @@ func (tt *ToolchainType[TReference, TMetadata]) Merge(other *ToolchainType[TRefe
 // written to storage. As toolchain types contain relatively little
 // information, the resulting message never contains any outgoing
 // references.
-func (tt *ToolchainType[TReference, TMetadata]) EncodeValue(path map[starlark.Value]struct{}, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], bool, error) {
+func (tt *ToolchainType[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	return model_core.NewSimplePatchedMessage[TMetadata](
 		&model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_ToolchainType{
 				ToolchainType: tt.Encode(),
 			},
 		},
-	), false, nil
+	), nil
 }
 
 type toolchainTypeUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
@@ -138,11 +127,15 @@ func NewToolchainTypeUnpackerInto[TReference any, TMetadata model_core.Reference
 	return toolchainTypeUnpackerInto[TReference, TMetadata]{}
 }
 
-func (toolchainTypeUnpackerInto[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst **ToolchainType[TReference, TMetadata]) error {
+func (toolchainTypeUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst **ToolchainType[TReference, TMetadata]) error {
 	switch typedV := v.(type) {
-	case starlark.String, Label[TReference, TMetadata]:
+	case eval.String, Label[TReference, TMetadata]:
 		var l pg_label.ResolvedLabel
-		if err := NewLabelOrStringUnpackerInto[TReference, TMetadata](CurrentFilePackage(thread, 1)).UnpackInto(thread, v, &l); err != nil {
+		currentPackage, err := CurrentFilePackage(thread)
+		if err != nil {
+			return err
+		}
+		if err := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage).UnpackInto(thread, v, &l); err != nil {
 			return err
 		}
 		*dst = NewToolchainType[TReference, TMetadata](l, true)
@@ -155,7 +148,7 @@ func (toolchainTypeUnpackerInto[TReference, TMetadata]) UnpackInto(thread *starl
 	}
 }
 
-func (ui toolchainTypeUnpackerInto[TReference, TMetadata]) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+func (ui toolchainTypeUnpackerInto[TReference, TMetadata]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	var tt *ToolchainType[TReference, TMetadata]
 	if err := ui.UnpackInto(thread, v, &tt); err != nil {
 		return nil, err
@@ -165,4 +158,12 @@ func (ui toolchainTypeUnpackerInto[TReference, TMetadata]) Canonicalize(thread *
 
 func (toolchainTypeUnpackerInto[TReference, TMetadata]) GetConcatenationOperator() syntax.Token {
 	return 0
+}
+
+func decodeToolchainType[TReference any, TMetadata model_core.ReferenceMetadata](toolchainType *model_starlark_pb.ToolchainType) (*ToolchainType[TReference, TMetadata], error) {
+	toolchainTypeLabel, err := pg_label.NewResolvedLabel(toolchainType.ToolchainType)
+	if err != nil {
+		return nil, err
+	}
+	return NewToolchainType[TReference, TMetadata](toolchainTypeLabel, toolchainType.Mandatory), nil
 }

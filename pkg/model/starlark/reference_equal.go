@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/syntax"
 )
 
 // ReferenceEqualIdentifierGenerator is called when Starlark values are
@@ -29,8 +29,8 @@ type referenceEqual struct {
 	identifier []byte
 }
 
-func (re *referenceEqual) Hash(thread *starlark.Thread) (uint32, error) {
-	return starlark.Bytes(re.identifier).Hash(thread)
+func (re *referenceEqual) Hash(thread *eval.Thread) (uint32, error) {
+	return eval.Hash(thread, eval.String(re.identifier))
 }
 
 func (re *referenceEqual) compareSameType(op syntax.Token, other *referenceEqual) (bool, error) {

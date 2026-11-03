@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"iter"
 	"math"
+	"strings"
 
+	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -14,33 +16,61 @@ import (
 	"bonanza.build/pkg/storage/object"
 )
 
-// The functions and types in this file decode Protobuf messages of
-// Starlark values to values of pkg/starlark/eval. As opposed to
-// DecodeValue(), decoding is lazy: lists, dicts and sets are returned
-// as implementations of eval.List, eval.Dict and eval.Set that read
-// their elements from storage when they are accessed. Values that are
-// decoded this way are immutable, and are encoded by returning the
-// original message.
+// ValueReaders contains all of the message object readers that are
+// needed to decode any type of Starlark value object.
+type ValueReaders[TReference any] struct {
+	Dict                  model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry]
+	List                  model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
+	PackageGroupOverrides model_parser.MessageObjectReader[TReference, *model_starlark_pb.PackageGroup_Subpackages_Overrides]
+	TestSuiteTest         model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
+}
 
-// EvalValueDecodingOptions contains parameters that need to be passed
-// along when decoding Starlark values to values of pkg/starlark/eval.
-type EvalValueDecodingOptions[TReference any] struct {
+// ValueDecodingOptionsKey is the key under which an instance of
+// ValueDecodingOptions is stored in the thread local variables of a
+// Starlark thread.
+//
+// Decoding is lazy: lists, dicts, sets, structs and depsets that are
+// backed by storage only decode their contents when they are accessed.
+// All values that are used within a single thread are assumed to be
+// decoded using the same options, which is why they are obtained from
+// the thread, as opposed to being stored in every value.
+const ValueDecodingOptionsKey = "value_decoding_options"
+
+// ValueDecodingOptions contains parameters that need to be available
+// when decoding Starlark values.
+type ValueDecodingOptions[TReference any] struct {
 	Readers *ValueReaders[TReference]
+
+	// LabelCreator is called to convert labels to Starlark
+	// values. This can be used to decode labels contained in
+	// attribute values to Target objects.
+	LabelCreator func(pg_label.ResolvedLabel) (eval.Value, error)
+
+	// Builtins that values of kind Value.builtin may refer to.
+	BzlFileBuiltins map[string]eval.Value
 }
 
-// EncodableEvalValue is implemented by values of pkg/starlark/eval
-// that provide their own encoding. Values that are backed by storage
-// implement this to return their original message, so that they can be
-// encoded without reading any of their contents.
-type EncodableEvalValue[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	eval.Value
-	EncodeEvalValue(thread *eval.Thread, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error)
+// getValueDecodingOptions returns the ValueDecodingOptions that are
+// stored in the thread local variables of a Starlark thread.
+func getValueDecodingOptions[TReference any](thread *eval.Thread) (*ValueDecodingOptions[TReference], error) {
+	options, ok := thread.Local(ValueDecodingOptionsKey).(*ValueDecodingOptions[TReference])
+	if !ok {
+		return nil, errors.New("values backed by storage cannot be decoded from within this context")
+	}
+	return options, nil
 }
 
-// DecodeEvalValue decodes a Starlark value Protobuf message to a value
-// of pkg/starlark/eval. Lists, dicts and sets are not read from storage
-// until their contents are accessed.
-func DecodeEvalValue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, value model_core.Message[*model_starlark_pb.Value, TReference], options *EvalValueDecodingOptions[TReference]) (eval.Value, error) {
+// DecodeValue converts a Protobuf message of a Starlark value to a
+// value of pkg/starlark/eval. The thread must have ValueDecodingOptions
+// stored under ValueDecodingOptionsKey. Values that are decoded this way are
+// immutable. Lists, dicts and sets are not read from storage until
+// their contents are accessed, and are encoded by returning the
+// original message.
+//
+// currentIdentifier is set if the value is assigned to a global, which
+// is needed to decode values that track their own name, such as rules
+// and providers.
+func DecodeValue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, value model_core.Message[*model_starlark_pb.Value, TReference], currentIdentifier *pg_label.CanonicalStarlarkIdentifier) (eval.Value, error) {
 	switch typedValue := value.Message.GetKind().(type) {
 	case *model_starlark_pb.Value_None:
 		return eval.None, nil
@@ -50,12 +80,13 @@ func DecodeEvalValue[TReference object.BasicReference, TMetadata model_core.Refe
 		return eval.MakeBigInt(DecodeInt(typedValue.Int)), nil
 	case *model_starlark_pb.Value_Str:
 		return eval.String(typedValue.Str), nil
+	case *model_starlark_pb.Value_Bytes:
+		return nil, errors.New("values of type bytes are not supported")
 	case *model_starlark_pb.Value_List:
 		return &storedList[TReference, TMetadata]{
 			storedSequence: storedSequence[TReference, TMetadata]{
 				value:    value,
 				elements: model_core.Nested(value, typedValue.List.Elements),
-				options:  options,
 				length:   -1,
 			},
 		}, nil
@@ -64,32 +95,78 @@ func DecodeEvalValue[TReference object.BasicReference, TMetadata model_core.Refe
 			storedSequence: storedSequence[TReference, TMetadata]{
 				value:    value,
 				elements: model_core.Nested(value, typedValue.Set.Elements),
-				options:  options,
 				length:   -1,
 			},
 		}, nil
 	case *model_starlark_pb.Value_Dict:
 		return &storedDict[TReference, TMetadata]{
-			value:   value,
-			dict:    model_core.Nested(value, typedValue.Dict),
-			options: options,
+			value: value,
+			dict:  model_core.Nested(value, typedValue.Dict),
 		}, nil
 	case *model_starlark_pb.Value_Tuple:
 		// Tuples are stored inline, so there is no need to defer
 		// decoding of their elements.
 		elements := make([]eval.Value, 0, len(typedValue.Tuple.Elements))
 		for i, element := range typedValue.Tuple.Elements {
-			decodedElement, err := DecodeEvalValue[TReference, TMetadata](thread, model_core.Nested(value, element), options)
+			decodedElement, err := DecodeValue[TReference, TMetadata](thread, model_core.Nested(value, element), nil)
 			if err != nil {
 				return nil, fmt.Errorf("at index %d: %w", i, err)
 			}
 			elements = append(elements, decodedElement)
 		}
 		return eval.NewTuple(elements), nil
+	case *model_starlark_pb.Value_Builtin:
+		options, err := getValueDecodingOptions[TReference](thread)
+		if err != nil {
+			return nil, err
+		}
+		parts := strings.Split(typedValue.Builtin, ".")
+		builtin, ok := options.BzlFileBuiltins[parts[0]]
+		if !ok {
+			return nil, fmt.Errorf("builtin %#v does not exist", parts[0])
+		}
+		for i := 1; i < len(parts); i++ {
+			hasAttrs, ok := builtin.(eval.HasAttrs)
+			if !ok {
+				return nil, fmt.Errorf("builtin %#v does have attributes", strings.Join(parts[:i], "."))
+			}
+			builtin, err = hasAttrs.Attr(thread, parts[i])
+			if err != nil {
+				return nil, fmt.Errorf("builtin %#v does not exist", strings.Join(parts[:i+1], "."))
+			}
+		}
+		return builtin, nil
+	case *model_starlark_pb.Value_Depset:
+		return decodeDepset[TReference, TMetadata](model_core.Nested(value, typedValue.Depset)), nil
+	case *model_starlark_pb.Value_ExecGroup:
+		return decodeExecGroup[TReference, TMetadata](typedValue.ExecGroup)
+	case *model_starlark_pb.Value_File:
+		return NewFile[TReference, TMetadata](model_core.Nested(value, typedValue.File)), nil
+	case *model_starlark_pb.Value_Label:
+		resolvedLabel, err := pg_label.NewResolvedLabel(typedValue.Label)
+		if err != nil {
+			return nil, fmt.Errorf("invalid label %#v: %w", typedValue.Label, err)
+		}
+		options, err := getValueDecodingOptions[TReference](thread)
+		if err != nil {
+			return nil, err
+		}
+		if options.LabelCreator == nil {
+			return NewLabel[TReference, TMetadata](resolvedLabel), nil
+		}
+		return options.LabelCreator(resolvedLabel)
+	case *model_starlark_pb.Value_Select:
+		return decodeSelect[TReference, TMetadata](thread, value, typedValue.Select)
+	case *model_starlark_pb.Value_Struct:
+		return DecodeStruct[TReference, TMetadata](thread, model_core.Nested(value, typedValue.Struct))
+	case *model_starlark_pb.Value_TargetReference:
+		return decodeTargetReference[TReference, TMetadata](value, typedValue.TargetReference)
+	case *model_starlark_pb.Value_ToolchainType:
+		return decodeToolchainType[TReference, TMetadata](typedValue.ToolchainType)
 	case nil:
 		return nil, errors.New("value has no kind")
 	default:
-		return nil, fmt.Errorf("values of kind %T cannot be decoded yet", typedValue)
+		return decodeFunctionValue[TReference, TMetadata](thread, value, currentIdentifier)
 	}
 }
 
@@ -100,7 +177,6 @@ func DecodeEvalValue[TReference object.BasicReference, TMetadata model_core.Refe
 type storedSequence[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	value    model_core.Message[*model_starlark_pb.Value, TReference]
 	elements model_core.Message[[]*model_starlark_pb.List_Element, TReference]
-	options  *EvalValueDecodingOptions[TReference]
 
 	// Length of the sequence, or -1 if not computed yet.
 	length int
@@ -137,9 +213,14 @@ func (s *storedSequence[TReference, TMetadata]) Len(*eval.Thread) (int, error) {
 
 func (s *storedSequence[TReference, TMetadata]) Iterate(t *eval.Thread, errOut *error) iter.Seq[eval.Value] {
 	return func(yield func(eval.Value) bool) {
+		options, err := getValueDecodingOptions[TReference](t)
+		if err != nil {
+			*errOut = err
+			return
+		}
 		var errIter error
-		for element := range AllListLeafElements(t.Context(), s.options.Readers.List, s.elements, &errIter) {
-			decodedElement, err := DecodeEvalValue[TReference, TMetadata](t, element, s.options)
+		for element := range AllListLeafElements(t.Context(), options.Readers.List, s.elements, &errIter) {
+			decodedElement, err := DecodeValue[TReference, TMetadata](t, element, nil)
 			if err != nil {
 				*errOut = err
 				return
@@ -154,7 +235,7 @@ func (s *storedSequence[TReference, TMetadata]) Iterate(t *eval.Thread, errOut *
 	}
 }
 
-func (s *storedSequence[TReference, TMetadata]) EncodeEvalValue(thread *eval.Thread, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
+func (s *storedSequence[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	return model_core.Patch(options.ObjectCapturer, s.value), nil
 }
 
@@ -192,6 +273,10 @@ func (l *storedList[TReference, TMetadata]) Repr(t *eval.Thread, p *eval.Printer
 // B-tree using the element counts stored in parents, meaning that only
 // the objects on the path to the element are read.
 func (l *storedList[TReference, TMetadata]) Index(t *eval.Thread, i int) (eval.Value, error) {
+	options, err := getValueDecodingOptions[TReference](t)
+	if err != nil {
+		return nil, err
+	}
 	remaining := uint64(i)
 	elements := l.elements
 descend:
@@ -200,13 +285,12 @@ descend:
 			switch level := element.Level.(type) {
 			case *model_starlark_pb.List_Element_Leaf:
 				if remaining == 0 {
-					return DecodeEvalValue[TReference, TMetadata](t, model_core.Nested(elements, level.Leaf), l.options)
+					return DecodeValue[TReference, TMetadata](t, model_core.Nested(elements, level.Leaf), nil)
 				}
 				remaining--
 			case *model_starlark_pb.List_Element_Parent_:
 				if remaining < level.Parent.Count {
-					var err error
-					elements, err = model_parser.Dereference(t.Context(), l.options.Readers.List, model_core.Nested(elements, level.Parent.Reference))
+					elements, err = model_parser.Dereference(t.Context(), options.Readers.List, model_core.Nested(elements, level.Parent.Reference))
 					if err != nil {
 						return nil, err
 					}
@@ -351,9 +435,8 @@ func (*storedSet[TReference, TMetadata]) Clear(*eval.Thread) error {
 type storedDict[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	eval.DictMarker
 
-	value   model_core.Message[*model_starlark_pb.Value, TReference]
-	dict    model_core.Message[*model_starlark_pb.Dict, TReference]
-	options *EvalValueDecodingOptions[TReference]
+	value model_core.Message[*model_starlark_pb.Value, TReference]
+	dict  model_core.Message[*model_starlark_pb.Dict, TReference]
 
 	// In-memory copy of the dict, constructed on first use. It is
 	// never exposed, so it is not mutated.
@@ -403,14 +486,19 @@ func (d *storedDict[TReference, TMetadata]) Get(t *eval.Thread, k eval.Value) (e
 
 func (d *storedDict[TReference, TMetadata]) Items(t *eval.Thread, errOut *error) iter.Seq2[eval.Value, eval.Value] {
 	return func(yield func(eval.Value, eval.Value) bool) {
+		options, err := getValueDecodingOptions[TReference](t)
+		if err != nil {
+			*errOut = err
+			return
+		}
 		var errIter error
-		for key, value := range AllDictLeafEntries(t.Context(), d.options.Readers.Dict, d.dict, &errIter) {
-			decodedKey, err := DecodeEvalValue[TReference, TMetadata](t, key, d.options)
+		for key, value := range AllDictLeafEntries(t.Context(), options.Readers.Dict, d.dict, &errIter) {
+			decodedKey, err := DecodeValue[TReference, TMetadata](t, key, nil)
 			if err != nil {
 				*errOut = fmt.Errorf("in key: %w", err)
 				return
 			}
-			decodedValue, err := DecodeEvalValue[TReference, TMetadata](t, value, d.options)
+			decodedValue, err := DecodeValue[TReference, TMetadata](t, value, nil)
 			if err != nil {
 				*errOut = fmt.Errorf("in value: %w", err)
 				return
@@ -467,7 +555,7 @@ func (d *storedDict[TReference, TMetadata]) CompareSameType(t *eval.Thread, op s
 	return index.(eval.Comparable).CompareSameType(t, op, y, depth)
 }
 
-func (d *storedDict[TReference, TMetadata]) EncodeEvalValue(thread *eval.Thread, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
+func (d *storedDict[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	return model_core.Patch(options.ObjectCapturer, d.value), nil
 }
 
