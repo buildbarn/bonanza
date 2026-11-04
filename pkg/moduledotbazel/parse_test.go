@@ -1,11 +1,11 @@
-package starlark_test
+package moduledotbazel_test
 
 import (
 	"net/url"
 	"testing"
 
 	"bonanza.build/pkg/label"
-	pg_starlark "bonanza.build/pkg/starlark"
+	"bonanza.build/pkg/moduledotbazel"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -16,11 +16,11 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestParseModuleDotBazel(t *testing.T) {
+func TestParse(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	t.Run("AllDirectives", func(t *testing.T) {
-		handler := NewMockRootModuleDotBazelHandler(ctrl)
+		handler := NewMockRootHandler(ctrl)
 
 		gomock.InOrder(
 			handler.EXPECT().RepositoryRuleOverride(
@@ -166,13 +166,13 @@ func TestParseModuleDotBazel(t *testing.T) {
 				/* moduleName = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ nil,
 				/* registry = */ nil,
-				/* patchOptions = */ &pg_starlark.PatchOptions{},
+				/* patchOptions = */ &moduledotbazel.PatchOptions{},
 			),
 			handler.EXPECT().SingleVersionOverride(
 				/* moduleName = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ nil,
 				/* registry = */ nil,
-				/* patchOptions = */ &pg_starlark.PatchOptions{
+				/* patchOptions = */ &moduledotbazel.PatchOptions{
 					Patches:   []label.ApparentLabel{},
 					PatchCmds: []string{},
 				},
@@ -181,7 +181,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 				/* moduleName = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ &version2,
 				/* registry = */ registry,
-				/* patchOptions = */ &pg_starlark.PatchOptions{
+				/* patchOptions = */ &moduledotbazel.PatchOptions{
 					Patches: []label.ApparentLabel{
 						util.Must(label.NewApparentLabel("@@my_module_name+//:patches/foo1.diff")),
 						util.Must(label.NewApparentLabel("@@my_module_name+//:patches/foo2.diff")),
@@ -255,7 +255,7 @@ func TestParseModuleDotBazel(t *testing.T) {
 			),
 		)
 
-		require.NoError(t, pg_starlark.ParseModuleDotBazel(
+		require.NoError(t, moduledotbazel.Parse(
 			`
 archive_override(
     module_name = "my_module_name",
@@ -448,13 +448,13 @@ http_archive(
 		// local_path_override()'s path argument. In that case,
 		// LocalPathOverride() should be called with path set to
 		// nil.
-		handler := NewMockRootModuleDotBazelHandler(ctrl)
+		handler := NewMockRootHandler(ctrl)
 		handler.EXPECT().LocalPathOverride(
 			/* moduleName = */ util.Must(label.NewModule("my_module_name")),
 			/* path = */ nil,
 		)
 
-		require.NoError(t, pg_starlark.ParseModuleDotBazel(
+		require.NoError(t, moduledotbazel.Parse(
 			`
 local_path_override(
     module_name = "my_module_name",

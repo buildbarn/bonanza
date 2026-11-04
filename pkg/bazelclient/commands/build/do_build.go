@@ -27,6 +27,7 @@ import (
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
 	"bonanza.build/pkg/model/render"
+	"bonanza.build/pkg/moduledotbazel"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -38,7 +39,6 @@ import (
 	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/remoteexecution"
-	pg_starlark "bonanza.build/pkg/starlark"
 	"bonanza.build/pkg/storage/dag"
 	dag_grpc "bonanza.build/pkg/storage/dag/grpc"
 	"bonanza.build/pkg/storage/object"
@@ -257,7 +257,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	}
 	modulePaths := map[label.Module]path.Parser{}
 	moduleDotBazelHandler := NewLocalPathExtractingModuleDotBazelHandler(modulePaths, workspacePath)
-	if err := pg_starlark.ParseModuleDotBazel(
+	if err := moduledotbazel.Parse(
 		string(moduleDotBazelContents),
 		util.Must(label.NewCanonicalLabel("@@main+//:MODULE.bazel")),
 		path.LocalFormat,

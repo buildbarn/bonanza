@@ -2,9 +2,9 @@ load("@rules_go//extras:gomock.bzl", "gomock")
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "starlark",
-    srcs = ["parse_module_dot_bazel.go"],
-    importpath = "bonanza.build/pkg/starlark",
+    name = "moduledotbazel",
+    srcs = ["parse.go"],
+    importpath = "bonanza.build/pkg/moduledotbazel",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/label",
@@ -16,12 +16,12 @@ go_library(
 )
 
 go_test(
-    name = "starlark_test",
+    name = "moduledotbazel_test",
     srcs = [
-        "mocks_starlark_test.go",
-        "parse_module_dot_bazel_test.go",
+        "mocks_moduledotbazel_test.go",
+        "parse_test.go",
     ],
-    embed = [":starlark"],
+    embed = [":moduledotbazel"],
     deps = [
         "//pkg/label",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
@@ -33,15 +33,15 @@ go_test(
 )
 
 gomock(
-    name = "mocks_starlark",
-    out = "mocks_starlark_test.go",
+    name = "mocks_moduledotbazel",
+    out = "mocks_moduledotbazel_test.go",
     interfaces = [
-        "RootModuleDotBazelHandler",
+        "RootHandler",
         "ModuleExtensionProxy",
         "RepoRuleProxy",
     ],
-    library = "//pkg/starlark",
+    library = "//pkg/moduledotbazel",
     mockgen_model_library = "@org_uber_go_mock//mockgen/model",
     mockgen_tool = "@org_uber_go_mock//mockgen",
-    package = "starlark_test",
+    package = "moduledotbazel_test",
 )

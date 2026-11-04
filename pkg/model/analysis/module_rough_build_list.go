@@ -12,10 +12,10 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
-	pg_starlark "bonanza.build/pkg/starlark"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 
@@ -54,11 +54,11 @@ func (bazelDepCapturingModuleDotBazelHandler) RegisterToolchains(toolchainTarget
 	return nil
 }
 
-func (bazelDepCapturingModuleDotBazelHandler) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (pg_starlark.ModuleExtensionProxy, error) {
-	return pg_starlark.NullModuleExtensionProxy, nil
+func (bazelDepCapturingModuleDotBazelHandler) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
+	return moduledotbazel.NullModuleExtensionProxy, nil
 }
 
-func (bazelDepCapturingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (pg_starlark.RepoRuleProxy, error) {
+func (bazelDepCapturingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
 	return func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error {
 		return nil
 	}, nil
@@ -253,7 +253,7 @@ ProcessModule:
 			dependencies:          map[label.Module]*label.ModuleVersion{},
 		}
 		ignoreDevDependencies = true
-		if err := pg_starlark.ParseModuleDotBazel(
+		if err := moduledotbazel.Parse(
 			string(moduleFileData),
 			module.name.
 				ToModuleInstance(nil).
@@ -261,7 +261,7 @@ ProcessModule:
 				GetRootPackage().
 				AppendTargetName(moduleDotBazelTargetName),
 			nil,
-			pg_starlark.NewOverrideIgnoringRootModuleDotBazelHandler(&handler),
+			moduledotbazel.NewOverrideIgnoringRootHandler(&handler),
 		); err != nil {
 			var evalErr *starlark.EvalError
 			if !errors.Is(err, evaluation.ErrMissingDependency) && errors.As(err, &evalErr) {

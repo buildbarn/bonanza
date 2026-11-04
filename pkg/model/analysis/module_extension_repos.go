@@ -14,9 +14,9 @@ import (
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	pg_starlark "bonanza.build/pkg/starlark"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 
@@ -105,11 +105,11 @@ func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) Register
 	return nil
 }
 
-func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (pg_starlark.ModuleExtensionProxy, error) {
-	return pg_starlark.NullModuleExtensionProxy, nil
+func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
+	return moduledotbazel.NullModuleExtensionProxy, nil
 }
 
-func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (pg_starlark.RepoRuleProxy, error) {
+func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
 	return func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error {
 		if devDependency && h.ignoreDevDependencies {
 			return nil
@@ -214,7 +214,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			ctx,
 			moduleInstance,
 			e,
-			pg_starlark.NewOverrideIgnoringRootModuleDotBazelHandler(&handler),
+			moduledotbazel.NewOverrideIgnoringRootHandler(&handler),
 		); err != nil {
 			return PatchedModuleExtensionReposValue[TMetadata]{}, err
 		}

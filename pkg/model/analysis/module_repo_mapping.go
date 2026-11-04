@@ -10,8 +10,8 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	pg_starlark "bonanza.build/pkg/starlark"
 
 	"go.starlark.net/starlark"
 )
@@ -113,7 +113,7 @@ func (repoMappingCapturingModuleDotBazelHandler) RegisterToolchains(toolchainTar
 	return nil
 }
 
-func (h *repoMappingCapturingModuleDotBazelHandler) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (pg_starlark.ModuleExtensionProxy, error) {
+func (h *repoMappingCapturingModuleDotBazelHandler) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
 	if !devDependency || !h.ignoreDevDependencies {
 		return repoMappingCapturingModuleExtensionProxy{
 			handler:          h,
@@ -121,10 +121,10 @@ func (h *repoMappingCapturingModuleDotBazelHandler) UseExtension(extensionBzlFil
 			extensionName:    extensionName,
 		}, nil
 	}
-	return pg_starlark.NullModuleExtensionProxy, nil
+	return moduledotbazel.NullModuleExtensionProxy, nil
 }
 
-func (h *repoMappingCapturingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (pg_starlark.RepoRuleProxy, error) {
+func (h *repoMappingCapturingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
 	return func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error {
 		if devDependency && h.ignoreDevDependencies {
 			return nil
@@ -180,7 +180,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleRepoMappingValue(ctx 
 
 		repos: map[label.ApparentRepo]repoMapping{},
 	}
-	if err := c.parseActiveModuleInstanceModuleDotBazel(ctx, moduleInstance, e, pg_starlark.NewOverrideIgnoringRootModuleDotBazelHandler(&handler)); err != nil {
+	if err := c.parseActiveModuleInstanceModuleDotBazel(ctx, moduleInstance, e, moduledotbazel.NewOverrideIgnoringRootHandler(&handler)); err != nil {
 		return PatchedModuleRepoMappingValue[TMetadata]{}, err
 	}
 

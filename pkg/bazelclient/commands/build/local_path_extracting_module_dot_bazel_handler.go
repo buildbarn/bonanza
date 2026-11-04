@@ -6,7 +6,7 @@ import (
 	"net/url"
 
 	"bonanza.build/pkg/label"
-	pg_starlark "bonanza.build/pkg/starlark"
+	"bonanza.build/pkg/moduledotbazel"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 
@@ -102,19 +102,19 @@ func (LocalPathExtractingModuleDotBazelHandler) RepositoryRuleOverride(moduleNam
 // SingleVersionOverride can normally be used to capture calls in
 // MODULE.bazel to single_version_override(). This implementation does
 // not need to do that.
-func (LocalPathExtractingModuleDotBazelHandler) SingleVersionOverride(moduleName label.Module, version *label.ModuleVersion, registry *url.URL, patchOptions *pg_starlark.PatchOptions) error {
+func (LocalPathExtractingModuleDotBazelHandler) SingleVersionOverride(moduleName label.Module, version *label.ModuleVersion, registry *url.URL, patchOptions *moduledotbazel.PatchOptions) error {
 	return nil
 }
 
 // UseExtension can normally be used to capture calls in MODULE.bazel to
 // use_extension(). This implementation does not need to do that.
-func (LocalPathExtractingModuleDotBazelHandler) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (pg_starlark.ModuleExtensionProxy, error) {
-	return pg_starlark.NullModuleExtensionProxy, nil
+func (LocalPathExtractingModuleDotBazelHandler) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
+	return moduledotbazel.NullModuleExtensionProxy, nil
 }
 
 // UseRepoRule can normally be used to capture calls in MODULE.bazel to
 // use_repo_rule(). This implementation does not need to do that.
-func (LocalPathExtractingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (pg_starlark.RepoRuleProxy, error) {
+func (LocalPathExtractingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
 	return func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error {
 		return nil
 	}, nil

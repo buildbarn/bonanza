@@ -1,4 +1,4 @@
-package starlark
+package moduledotbazel
 
 import (
 	"errors"
@@ -14,7 +14,7 @@ import (
 	"go.starlark.net/starlark"
 )
 
-// ModuleExtensionProxy is called into by ParseModuleDotBazel() whenever
+// ModuleExtensionProxy is called into by Parse() whenever
 // module extension tags are declared, or if use_repo() is called
 // against a given module extension.
 type ModuleExtensionProxy interface {
@@ -36,7 +36,7 @@ func (nullModuleExtensionProxy) UseRepo(repos map[label.ApparentRepo]label.Appar
 // that merely discards any tag declarations and use_repo() calls.
 var NullModuleExtensionProxy ModuleExtensionProxy = nullModuleExtensionProxy{}
 
-// RepoRuleProxy is called into by ParseModuleDotBazel() whenever a
+// RepoRuleProxy is called into by Parse() whenever a
 // repository rule is invoked.
 type RepoRuleProxy func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error
 
@@ -49,11 +49,11 @@ type PatchOptions struct {
 	PatchStrip int
 }
 
-// RootModuleDotBazelHandler is called into by ParseModuleDotBazel() for
+// RootHandler is called into by Parse() for
 // each top-level declaration. It contains all methods that have an
 // effect within the root module.
-type RootModuleDotBazelHandler interface {
-	ChildModuleDotBazelHandler
+type RootHandler interface {
+	ChildHandler
 
 	RepositoryRuleOverride(moduleName label.Module, repositoryRuleIdentifier label.CanonicalStarlarkIdentifier, attrs map[string]starlark.Value) error
 	LocalPathOverride(moduleName label.Module, path path.Parser) error
@@ -61,10 +61,10 @@ type RootModuleDotBazelHandler interface {
 	SingleVersionOverride(moduleName label.Module, version *label.ModuleVersion, registry *url.URL, patchOptions *PatchOptions) error
 }
 
-// ChildModuleDotBazelHandler contains the methods that may be called in
+// ChildHandler contains the methods that may be called in
 // MODULE.bazel, omitting any methods that should be ignored in child
 // modules.
-type ChildModuleDotBazelHandler interface {
+type ChildHandler interface {
 	BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error
 	Module(name label.Module, repoName label.ApparentRepo, bazelCompatibility []string) error
 	RegisterExecutionPlatforms(platformTargetPatterns []label.ApparentTargetPattern, devDependency bool) error
@@ -73,32 +73,32 @@ type ChildModuleDotBazelHandler interface {
 	UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (RepoRuleProxy, error)
 }
 
-type overrideIgnoringRootModuleDotBazelHandler struct {
-	ChildModuleDotBazelHandler
+type overrideIgnoringRootHandler struct {
+	ChildHandler
 }
 
-// NewOverrideIgnoringRootModuleDotBazelHandler wraps a
-// ChildModuleDotBazelHandler, providing stubs for methods that only
+// NewOverrideIgnoringRootHandler wraps a
+// ChildHandler, providing stubs for methods that only
 // have an effect in the root module.
-func NewOverrideIgnoringRootModuleDotBazelHandler(base ChildModuleDotBazelHandler) RootModuleDotBazelHandler {
-	return &overrideIgnoringRootModuleDotBazelHandler{
-		ChildModuleDotBazelHandler: base,
+func NewOverrideIgnoringRootHandler(base ChildHandler) RootHandler {
+	return &overrideIgnoringRootHandler{
+		ChildHandler: base,
 	}
 }
 
-func (overrideIgnoringRootModuleDotBazelHandler) LocalPathOverride(moduleName label.Module, path path.Parser) error {
+func (overrideIgnoringRootHandler) LocalPathOverride(moduleName label.Module, path path.Parser) error {
 	return nil
 }
 
-func (overrideIgnoringRootModuleDotBazelHandler) MultipleVersionOverride(moduleName label.Module, versions []label.ModuleVersion, registry *url.URL) error {
+func (overrideIgnoringRootHandler) MultipleVersionOverride(moduleName label.Module, versions []label.ModuleVersion, registry *url.URL) error {
 	return nil
 }
 
-func (overrideIgnoringRootModuleDotBazelHandler) RepositoryRuleOverride(moduleName label.Module, repositoryRuleIdentifier label.CanonicalStarlarkIdentifier, attrs map[string]starlark.Value) error {
+func (overrideIgnoringRootHandler) RepositoryRuleOverride(moduleName label.Module, repositoryRuleIdentifier label.CanonicalStarlarkIdentifier, attrs map[string]starlark.Value) error {
 	return nil
 }
 
-func (overrideIgnoringRootModuleDotBazelHandler) SingleVersionOverride(moduleName label.Module, version *label.ModuleVersion, registry *url.URL, patchOptions *PatchOptions) error {
+func (overrideIgnoringRootHandler) SingleVersionOverride(moduleName label.Module, version *label.ModuleVersion, registry *url.URL, patchOptions *PatchOptions) error {
 	return nil
 }
 
@@ -152,9 +152,9 @@ var (
 	targetIdentifierGitRepository = util.Must(label.NewCanonicalStarlarkIdentifier("@@bazel_tools+//tools/build_defs/repo:git.bzl%git_repository"))
 )
 
-// ParseModuleDotBazel parses a MODULE.bazel file, and call into
-// ModuleDotBazelHandler for every observed declaration.
-func ParseModuleDotBazel(contents string, filename label.CanonicalLabel, localPathFormat path.Format, handler RootModuleDotBazelHandler) error {
+// Parse parses a MODULE.bazel file, and calls into the provided
+// RootHandler for every observed declaration.
+func Parse(contents string, filename label.CanonicalLabel, localPathFormat path.Format, handler RootHandler) error {
 	repositoryRuleOverrideFunc := func(targetIdentifier label.CanonicalStarlarkIdentifier) func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		return func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 			if len(args) > 0 {

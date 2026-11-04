@@ -10,8 +10,8 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	pg_starlark "bonanza.build/pkg/starlark"
 	"bonanza.build/pkg/storage/object"
 
 	"go.starlark.net/starlark"
@@ -95,9 +95,9 @@ func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata])
 	return nil
 }
 
-func (h *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (pg_starlark.ModuleExtensionProxy, error) {
+func (h *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
 	if devDependency && h.ignoreDevDependencies {
-		return pg_starlark.NullModuleExtensionProxy, nil
+		return moduledotbazel.NullModuleExtensionProxy, nil
 	}
 
 	// Look up the module extension properties, so that we obtain
@@ -158,7 +158,7 @@ func (h *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadat
 	}, nil
 }
 
-func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (pg_starlark.RepoRuleProxy, error) {
+func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
 	return func(name label.ApparentRepo, devDependency bool, attrs map[string]starlark.Value) error {
 		return nil
 	}, nil
@@ -171,7 +171,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(c
 	}
 	usedModuleExtensions := map[label.ModuleExtension]*usedModuleExtension{}
 	isRoot := true
-	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) pg_starlark.ChildModuleDotBazelHandler {
+	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler {
 		h := &usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]{
 			options:               &options,
 			moduleInstance:        moduleInstance,

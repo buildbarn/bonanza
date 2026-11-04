@@ -11,10 +11,10 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
-	pg_starlark "bonanza.build/pkg/starlark"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -25,7 +25,7 @@ type parseLocalModuleDotBazelEnvironment[TReference object.BasicReference] inter
 	FilePropertiesValueGetter[TReference]
 }
 
-func (c *baseComputer[TReference, TMetadata]) parseLocalModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseLocalModuleDotBazelEnvironment[TReference], handler pg_starlark.RootModuleDotBazelHandler) error {
+func (c *baseComputer[TReference, TMetadata]) parseLocalModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseLocalModuleDotBazelEnvironment[TReference], handler moduledotbazel.RootHandler) error {
 	// Load a file that we know exists in storage already.
 	moduleFileProperties := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
 		CanonicalRepo: moduleInstance.String(),
@@ -52,7 +52,7 @@ type parseActiveModuleDotBazelEnvironment[TReference object.BasicReference] inte
 	ModuleDotBazelContentsValueGetter[TReference]
 }
 
-func (c *baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseActiveModuleDotBazelEnvironment[TReference], handler pg_starlark.RootModuleDotBazelHandler) error {
+func (c *baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseActiveModuleDotBazelEnvironment[TReference], handler moduledotbazel.RootHandler) error {
 	// This module file might have to be loaded.
 	moduleFileContentsValue := e.GetModuleDotBazelContentsValue(&model_analysis_pb.ModuleDotBazelContents_Key{
 		ModuleInstance: moduleInstance.String(),
@@ -71,7 +71,7 @@ func (c *baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDot
 
 var bazelToolsModule = util.Must(label.NewModule("bazel_tools"))
 
-func (baseComputer[TReference, TMetadata]) parseModuleDotBazel(ctx context.Context, moduleContentsMsg model_core.Message[*model_filesystem_pb.FileContents, TReference], moduleInstance label.ModuleInstance, e FileReaderValueGetter[TReference], handler pg_starlark.RootModuleDotBazelHandler) error {
+func (baseComputer[TReference, TMetadata]) parseModuleDotBazel(ctx context.Context, moduleContentsMsg model_core.Message[*model_filesystem_pb.FileContents, TReference], moduleInstance label.ModuleInstance, e FileReaderValueGetter[TReference], handler moduledotbazel.RootHandler) error {
 	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
 	if !gotFileReader {
 		return evaluation.ErrMissingDependency
@@ -89,7 +89,7 @@ func (baseComputer[TReference, TMetadata]) parseModuleDotBazel(ctx context.Conte
 		return err
 	}
 
-	if err := pg_starlark.ParseModuleDotBazel(
+	if err := moduledotbazel.Parse(
 		string(moduleFileContents),
 		moduleTarget,
 		nil,
@@ -124,7 +124,7 @@ type visitModuleDotBazelFilesBreadthFirstEnvironment[TReference object.BasicRefe
 }
 
 type dependencQueueingModuleDotBazelHandler struct {
-	pg_starlark.ChildModuleDotBazelHandler
+	moduledotbazel.ChildHandler
 
 	modulesWithMultipleVersions map[label.Module]OverrideVersions
 	moduleInstancesToCheck      *[]label.ModuleInstance
@@ -154,13 +154,13 @@ func (h *dependencQueueingModuleDotBazelHandler) BazelDep(name label.Module, ver
 		h.moduleInstancesSeen[moduleInstance] = struct{}{}
 	}
 
-	return h.ChildModuleDotBazelHandler.BazelDep(name, version, repoName, devDependency)
+	return h.ChildHandler.BazelDep(name, version, repoName, devDependency)
 }
 
 func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFirst(
 	ctx context.Context,
 	e visitModuleDotBazelFilesBreadthFirstEnvironment[TReference],
-	createHandler func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) pg_starlark.ChildModuleDotBazelHandler,
+	createHandler func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler,
 ) error {
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	modulesWithMultipleVersions, gotModulesWithMultipleVersions := e.GetModulesWithMultipleVersionsObjectValue(&model_analysis_pb.ModulesWithMultipleVersionsObject_Key{})
@@ -189,8 +189,8 @@ func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFir
 			ctx,
 			moduleInstance,
 			e,
-			pg_starlark.NewOverrideIgnoringRootModuleDotBazelHandler(&dependencQueueingModuleDotBazelHandler{
-				ChildModuleDotBazelHandler:  createHandler(moduleInstance, ignoreDevDependencies),
+			moduledotbazel.NewOverrideIgnoringRootHandler(&dependencQueueingModuleDotBazelHandler{
+				ChildHandler:                createHandler(moduleInstance, ignoreDevDependencies),
 				modulesWithMultipleVersions: modulesWithMultipleVersions,
 				moduleInstancesToCheck:      &moduleInstancesToCheck,
 				moduleInstancesSeen:         moduleInstancesSeen,
