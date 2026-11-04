@@ -15,6 +15,11 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx context.Context, key *model_analysis_pb.EmptyDefaultInfo_Key, e EmptyDefaultInfoEnvironment[TReference, TMetadata]) (PatchedEmptyDefaultInfoValue[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return PatchedEmptyDefaultInfoValue[TMetadata]{}, err
+	}
+
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	defaultInfoProviderIdentifierStr := defaultInfoProviderIdentifier.String()
 	defaultInfoProviderValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
@@ -35,7 +40,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx c
 	}
 
 	// Call into the DefaultInfo provider to create a new instance.
-	thread := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	if err != nil {
+		return PatchedEmptyDefaultInfoValue[TMetadata]{}, err
+	}
 	identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.NewSimpleMessage[TReference](proto.Message(key)))
 	if err != nil {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, fmt.Errorf("failed to obtain identifier generator for reference equal values: %w", err)
@@ -48,7 +56,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx c
 	}
 
 	// Encode the DefaultInfo provider instance.
-	encodedDefaultInfo, err := defaultInfo.Encode(thread, nil, c.getValueEncodingOptions(ctx, e, nil))
+	encodedDefaultInfo, err := defaultInfo.Encode(thread, nil, valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil))
 	if err != nil {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, fmt.Errorf("failed to encode DefaultInfo provider instance: %w", err)
 	}

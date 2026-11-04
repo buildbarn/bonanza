@@ -118,6 +118,12 @@ func encodeJSON(t *Thread, buf *bytes.Buffer, x Value, path []Value) error {
 		buf.WriteString(v.String())
 	case String:
 		encodeJSONString(buf, string(v))
+	case *LargeString:
+		s, err := v.ToString(t)
+		if err != nil {
+			return err
+		}
+		encodeJSONString(buf, string(s))
 	case Dict:
 		type entry struct {
 			key   string
@@ -126,11 +132,14 @@ func encodeJSON(t *Thread, buf *bytes.Buffer, x Value, path []Value) error {
 		var entries []entry
 		var errIter error
 		for k, value := range v.Items(t, &errIter) {
-			key, ok := k.(String)
+			key, ok, err := stringContents(t, k)
+			if err != nil {
+				return err
+			}
 			if !ok {
 				return fmt.Errorf("dict has %s key, want string", k.Type())
 			}
-			entries = append(entries, entry{key: string(key), value: value})
+			entries = append(entries, entry{key: key, value: value})
 		}
 		if errIter != nil {
 			return errIter

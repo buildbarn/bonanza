@@ -126,7 +126,10 @@ func (p *Provider[TReference, TMetadata]) Instantiate(thread *eval.Thread, args 
 		fields = map[string]any{}
 		var errIter error
 		for key, value := range dict.Items(thread, &errIter) {
-			keyStr, ok := eval.AsString(key)
+			keyStr, ok, err := eval.AsString(thread, key)
+			if err != nil {
+				return nil, err
+			}
 			if !ok {
 				return nil, fmt.Errorf("init function returned dict containing key of type %s, want string", key.Type())
 			}

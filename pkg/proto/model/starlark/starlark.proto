@@ -3,6 +3,7 @@ syntax = "proto3";
 package bonanza.model.starlark;
 
 import "bonanza.build/pkg/proto/model/core/core.proto";
+import "bonanza.build/pkg/proto/model/filesystem/filesystem.proto";
 import "google/protobuf/empty.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/starlark";
@@ -64,7 +65,7 @@ message Value {
     Attr attr = 2;
     bool bool = 3;
     string builtin = 4;
-    bytes bytes = 5;
+    bonanza.model.filesystem.MaybeInlineFileContents bytes = 5;
     Depset depset = 6;
     Dict dict = 7;
     ExecGroup exec_group = 8;
@@ -82,7 +83,7 @@ message Value {
     Rule rule = 18;
     Select select = 20;
     Set set = 21;
-    string str = 22;
+    bonanza.model.filesystem.MaybeInlineFileContents str = 22;
     Struct struct = 23;
     Subrule subrule = 24;
     TagClass tag_class = 25;

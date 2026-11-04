@@ -1,10 +1,12 @@
 package starlark_test
 
 import (
+	"context"
 	"testing"
 
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
 
@@ -13,7 +15,7 @@ import (
 
 func TestAllListLeafElements(t *testing.T) {
 	strValue := func(s string) *model_starlark_pb.Value {
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Str{Str: s}}
+		return newStringValue(s)
 	}
 	rootList := model_core.NewSimpleMessage[object.LocalReference]([]*model_starlark_pb.List_Element{
 		{Level: &model_starlark_pb.List_Element_Leaf{Leaf: strValue("a")}},
@@ -37,7 +39,7 @@ func TestAllListLeafElements(t *testing.T) {
 				var values []string
 				var errIter error
 				for value := range allElements(&errIter) {
-					values = append(values, value.Message.GetStr())
+					values = append(values, mustGetString(value.Message))
 				}
 				require.Equal(t, []string{"a", "b"}, values)
 				require.EqualError(t, errIter, "not a valid leaf entry")
@@ -49,11 +51,35 @@ func TestAllListLeafElements(t *testing.T) {
 				// an error to be reported.
 				var errIter error
 				for value := range allElements(&errIter) {
-					require.Equal(t, "a", value.Message.GetStr())
+					require.Equal(t, "a", mustGetString(value.Message))
 					break
 				}
 				require.NoError(t, errIter)
 			})
 		})
 	}
+}
+
+// newStringValue creates a Value message containing a string that is
+// stored inline.
+func newStringValue(s string) *model_starlark_pb.Value {
+	contents := &model_filesystem_pb.MaybeInlineFileContents{}
+	if s != "" {
+		contents.Level = &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{
+			ContentsInline: []byte(s),
+		}
+	}
+	return &model_starlark_pb.Value{
+		Kind: &model_starlark_pb.Value_Str{Str: contents},
+	}
+}
+
+// mustGetString returns the contents of a Value message containing a
+// string that is stored inline.
+func mustGetString(value *model_starlark_pb.Value) string {
+	s, ok, err := model_starlark.GetString[object.LocalReference](context.Background(), nil, model_core.NewSimpleMessage[object.LocalReference](value), 1<<20)
+	if err != nil || !ok {
+		panic("value is not a string")
+	}
+	return s
 }

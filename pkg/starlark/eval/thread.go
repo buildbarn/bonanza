@@ -45,10 +45,17 @@ type Thread struct {
 	// MaximumSteps limits the number of instructions that may be
 	// executed. Zero means no limit.
 	MaximumSteps uint64
+	// MaximumLargeStringConversionBytes limits the number of bytes
+	// of LargeString values that may be converted to String values,
+	// which happens when operations are performed on them that
+	// require their contents to be loaded into memory. If left at
+	// zero, no such conversions are permitted.
+	MaximumLargeStringConversionBytes int64
 
-	steps  uint64
-	frames []*frame
-	locals map[any]any
+	steps                      uint64
+	largeStringConversionBytes int64
+	frames                     []*frame
+	locals                     map[any]any
 }
 
 // NewThread creates a new thread. The universe contains the names that

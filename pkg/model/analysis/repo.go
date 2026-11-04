@@ -2250,13 +2250,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doFile(thread *eval
 	}
 
 	var filePath *model_starlark.BarePath
-	content := ""
+	var content []byte
 	executable := true
 	legacyUTF8 := true
 	if err := eval.UnpackArgs(
 		thread, b.Name(), args,
 		"path", unpack.Bind(&filePath, mrc.pathUnpackerInto),
-		"content?", unpack.Bind(&content, unpack.String),
+		"content?", unpack.Bind(&content, unpack.Bytes),
 		"executable?", unpack.Bind(&executable, unpack.Bool),
 		"legacy_utf8?", unpack.Bind(&legacyUTF8, unpack.Bool),
 	); err != nil {
@@ -2281,7 +2281,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doFile(thread *eval
 	// TODO: Do UTF-8 -> ISO-8859-1
 	// conversion if legacy_utf8=False.
 	patchedFileOffsetBytes := mrc.patchedFilesWriter.GetOffsetBytes()
-	if _, err := mrc.patchedFilesWriter.WriteString(content); err != nil {
+	if _, err := mrc.patchedFilesWriter.Write(content); err != nil {
 		return nil, fmt.Errorf("failed to write to file at %#v: %w", filePath.GetUNIXString(), err)
 	}
 
@@ -3438,14 +3438,14 @@ func (rc *repositoryContext[TReference, TMetadata]) doTemplate(thread *eval.Thre
 	}
 	var filePath *model_starlark.BarePath
 	var templatePath *model_starlark.BarePath
-	var substitutions map[string]string
+	var substitutions map[string][]byte
 	executable := true
 	var watchTemplate string
 	if err := eval.UnpackArgs(
 		thread, b.Name(), args,
 		"path", unpack.Bind(&filePath, mrc.pathUnpackerInto),
 		"template", unpack.Bind(&templatePath, mrc.pathUnpackerInto),
-		"substitutions?", unpack.Bind(&substitutions, unpack.Dict(unpack.String, unpack.String)),
+		"substitutions?", unpack.Bind(&substitutions, unpack.Dict(unpack.String, unpack.Bytes)),
 		"executable?", unpack.Bind(&executable, unpack.Bool),
 		"watch_template?", unpack.Bind(&watchTemplate, unpack.String),
 	); err != nil {
@@ -3456,7 +3456,7 @@ func (rc *repositoryContext[TReference, TMetadata]) doTemplate(thread *eval.Thre
 	replacements := make([][]byte, 0, len(substitutions))
 	for _, needle := range slices.Sorted(maps.Keys(substitutions)) {
 		needles = append(needles, []byte(needle))
-		replacements = append(replacements, []byte(substitutions[needle]))
+		replacements = append(replacements, substitutions[needle])
 	}
 	searchAndReplacer, err := search.NewMultiSearchAndReplacer(needles)
 	if err != nil {
@@ -3541,7 +3541,10 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 	rootRepo := rootModuleName.ToModuleInstance(nil).GetBareCanonicalRepo()
 	rootPackage := rootRepo.GetRootPackage()
 
-	thread := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	if err != nil {
+		return PatchedRepoValue[TMetadata]{}, err
+	}
 	implementation, repositoryRuleAttrs, err := c.decodeRepositoryRule(thread, repositoryRule)
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, err

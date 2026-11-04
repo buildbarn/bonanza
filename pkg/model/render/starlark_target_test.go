@@ -36,7 +36,7 @@ func TestStarlarkRendererTarget(t *testing.T) {
 		}
 	}
 	str := func(s string) *model_starlark_pb.Value {
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Str{Str: s}}
+		return newStringValue(s)
 	}
 	labelList := func(labels ...string) *model_starlark_pb.Value {
 		elements := make([]*model_starlark_pb.List_Element, 0, len(labels))

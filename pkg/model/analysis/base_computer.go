@@ -218,23 +218,113 @@ func (baseComputer[TReference, TMetadata]) getValueObjectEncoder() model_encodin
 	return model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 }
 
-func (c *baseComputer[TReference, TMetadata]) getValueEncodingOptions(ctx context.Context, objectCapturer model_core.ObjectCapturer[TReference, TMetadata], currentFilename *label.CanonicalLabel) *model_starlark.ValueEncodingOptions[TReference, TMetadata] {
+// maximumLargeStringSizeBytes limits the amount of memory that may be
+// used to hold strings that are too large to be stored inline. It is
+// both the maximum number of bytes of such strings that a single
+// Starlark thread may load into memory, and the maximum size of strings
+// that are read from Value messages by code that inspects them
+// directly.
+const maximumLargeStringSizeBytes = 64 << 20
+
+// getFileReader returns the FileReader that can be used to read the
+// contents of files, and strings that are too large to be stored
+// inline.
+func getFileReader[TReference object.BasicReference](e FileReaderValueGetter[TReference]) (*model_filesystem.FileReader[TReference], error) {
+	fileReader, ok := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
+	if !ok {
+		return nil, evaluation.ErrMissingDependency
+	}
+	return fileReader, nil
+}
+
+// getStringValue returns the contents of a Value message containing a
+// string. If the message does not contain a string, ok is false.
+func getStringValue[TReference object.BasicReference](ctx context.Context, fileReader *model_filesystem.FileReader[TReference], value model_core.Message[*model_starlark_pb.Value, TReference]) (s string, ok bool, err error) {
+	return model_starlark.GetString(ctx, fileReader, value, maximumLargeStringSizeBytes)
+}
+
+// valueEncodingEnvironment contains the methods of an Environment
+// that are needed to encode Starlark values.
+type valueEncodingEnvironment[TReference, TMetadata any] interface {
+	model_core.ObjectCapturer[TReference, TMetadata]
+	FileCreationParametersObjectValueGetter
+}
+
+// valueEncodingOptionsFactory can be used to create instances of
+// ValueEncodingOptions. It holds all dependencies that need to be
+// obtained from the environment, so that the options can be created
+// without needing to deal with missing dependencies.
+type valueEncodingOptionsFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	computer               *baseComputer[TReference, TMetadata]
+	objectCapturer         model_core.ObjectCapturer[TReference, TMetadata]
+	fileCreationParameters *model_filesystem.FileCreationParameters
+}
+
+// newValueEncodingOptionsFactory creates a valueEncodingOptionsFactory,
+// obtaining all of its dependencies from the environment.
+func (c *baseComputer[TReference, TMetadata]) newValueEncodingOptionsFactory(e valueEncodingEnvironment[TReference, TMetadata]) (*valueEncodingOptionsFactory[TReference, TMetadata], error) {
+	// Strings that are too large to be stored inline are stored
+	// using the same parameters as files, so that they can share
+	// data with files.
+	fileCreationParameters, ok := e.GetFileCreationParametersObjectValue(&model_analysis_pb.FileCreationParametersObject_Key{})
+	if !ok {
+		return nil, evaluation.ErrMissingDependency
+	}
+	return &valueEncodingOptionsFactory[TReference, TMetadata]{
+		computer:               c,
+		objectCapturer:         e,
+		fileCreationParameters: fileCreationParameters,
+	}, nil
+}
+
+// newValueEncodingOptions creates ValueEncodingOptions that can be
+// used to encode Starlark values.
+func (f *valueEncodingOptionsFactory[TReference, TMetadata]) newValueEncodingOptions(ctx context.Context, currentFilename *label.CanonicalLabel) *model_starlark.ValueEncodingOptions[TReference, TMetadata] {
 	return &model_starlark.ValueEncodingOptions[TReference, TMetadata]{
 		CurrentFilename:        currentFilename,
 		Context:                ctx,
-		ObjectEncoder:          c.getValueObjectEncoder(),
-		ObjectReferenceFormat:  c.referenceFormat,
-		ObjectCapturer:         objectCapturer,
+		ObjectEncoder:          f.computer.getValueObjectEncoder(),
+		ObjectReferenceFormat:  f.computer.referenceFormat,
+		ObjectCapturer:         f.objectCapturer,
 		ObjectMinimumSizeBytes: 32 * 1024,
 		ObjectMaximumSizeBytes: 128 * 1024,
+		FileCreationParameters: f.fileCreationParameters,
 	}
 }
 
-func (c *baseComputer[TReference, TMetadata]) getValueDecodingOptions(labelCreator func(label.ResolvedLabel) (eval.Value, error)) *model_starlark.ValueDecodingOptions[TReference] {
+// valueDecodingOptionsFactory can be used to create instances of
+// ValueDecodingOptions, whose dependencies have already been obtained
+// from the environment.
+type valueDecodingOptionsFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	computer *baseComputer[TReference, TMetadata]
+	readers  model_starlark.ValueReaders[TReference]
+}
+
+// newValueDecodingOptionsFactory creates a valueDecodingOptionsFactory,
+// obtaining all of its dependencies from the environment.
+func (c *baseComputer[TReference, TMetadata]) newValueDecodingOptionsFactory(e FileReaderValueGetter[TReference]) (*valueDecodingOptionsFactory[TReference, TMetadata], error) {
+	fileReader, err := getFileReader(e)
+	if err != nil {
+		return nil, err
+	}
+	// The file reader depends on parameters obtained from the
+	// environment, meaning it cannot be set on the readers that are
+	// shared by all evaluations.
+	readers := c.valueReaders
+	readers.FileReader = fileReader
+	return &valueDecodingOptionsFactory[TReference, TMetadata]{
+		computer: c,
+		readers:  readers,
+	}, nil
+}
+
+// newValueDecodingOptions creates ValueDecodingOptions that can be used
+// to decode Starlark values.
+func (f *valueDecodingOptionsFactory[TReference, TMetadata]) newValueDecodingOptions(labelCreator func(label.ResolvedLabel) (eval.Value, error)) *model_starlark.ValueDecodingOptions[TReference] {
 	return &model_starlark.ValueDecodingOptions[TReference]{
-		Readers:         &c.valueReaders,
+		Readers:         &f.readers,
 		LabelCreator:    labelCreator,
-		BzlFileBuiltins: c.bzlFileBuiltins,
+		BzlFileBuiltins: f.computer.bzlFileBuiltins,
 	}
 }
 
@@ -383,8 +473,9 @@ func formatStarlarkError(err error) error {
 	return err
 }
 
-type starlarkThreadEnvironment[TReference any] interface {
+type starlarkThreadEnvironment[TReference object.BasicReference] interface {
 	loadBzlGlobalsEnvironment[TReference]
+	FileReaderValueGetter[TReference]
 }
 
 // trimBuiltinModuleNames truncates the list of built-in module names up
@@ -406,13 +497,19 @@ func trimBuiltinModuleNames(builtinsModuleNames []string, module label.Module) [
 // CompiledBzlFile, while predeclared names are resolved against the
 // builtins of .bzl files, including the ones declared by builtins
 // modules. These builtins are only computed when needed.
-func (c *baseComputer[TReference, TMetadata]) newStarlarkThread(ctx context.Context, e starlarkThreadEnvironment[TReference], builtinsModuleNames []string) *eval.Thread {
+func (c *baseComputer[TReference, TMetadata]) newStarlarkThread(ctx context.Context, e starlarkThreadEnvironment[TReference], builtinsModuleNames []string) (*eval.Thread, error) {
+	decodingOptionsFactory, err := c.newValueDecodingOptionsFactory(e)
+	if err != nil {
+		return nil, err
+	}
+
 	thread := eval.NewThread(ctx, eval.Universe())
+	thread.MaximumLargeStringConversionBytes = maximumLargeStringSizeBytes
 	thread.SetLocal(model_starlark.LabelResolverKey, newLabelResolver(e))
 	thread.SetLocal(model_starlark.GlobalResolverKey, c.newGlobalResolver(ctx, e, builtinsModuleNames))
 	thread.SetLocal(model_starlark.CompiledProgramResolverKey, c.newCompiledProgramResolver(e, builtinsModuleNames))
 
-	decodingOptions := c.getValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
+	decodingOptions := decodingOptionsFactory.newValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
 		return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
 	})
 	var bzlFileBuiltins map[string]eval.Value
@@ -430,7 +527,7 @@ func (c *baseComputer[TReference, TMetadata]) newStarlarkThread(ctx context.Cont
 		return nil, fmt.Errorf("predeclared name %s is not available", name)
 	}
 	thread.SetLocal(model_starlark.ValueDecodingOptionsKey, decodingOptions)
-	return thread
+	return thread, nil
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx context.Context, key *model_analysis_pb.BuildResult_Key, e BuildResultEnvironment[TReference, TMetadata]) (PatchedBuildResultValue[TMetadata], error) {
@@ -448,7 +545,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	rootRepo := rootModule.ToModuleInstance(nil).GetBareCanonicalRepo()
 	rootPackage := rootRepo.GetRootPackage()
 
-	thread := c.newStarlarkThread(ctx, e, buildSpecification.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, buildSpecification.BuiltinsModuleNames)
+	if err != nil {
+		return PatchedBuildResultValue[TMetadata]{}, err
+	}
 	missingDependencies := false
 
 	// Determine which targets to build. The query is only expanded

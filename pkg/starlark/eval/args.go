@@ -102,11 +102,14 @@ func unpackOneArg(t *Thread, v Value, ptr any) error {
 	case *Value:
 		*p = v
 	case *String:
-		s, ok := v.(String)
+		s, ok, err := stringContents(t, v)
+		if err != nil {
+			return err
+		}
 		if !ok {
 			return fmt.Errorf("got %s, want string", v.Type())
 		}
-		*p = s
+		*p = String(s)
 	case *Int:
 		i, ok := v.(Int)
 		if !ok {
@@ -153,12 +156,6 @@ func unpackOneArg(t *Thread, v Value, ptr any) error {
 		panic(fmt.Sprintf("unsupported argument type %T", ptr))
 	}
 	return nil
-}
-
-// AsString returns the contents of a Starlark string.
-func AsString(v Value) (string, bool) {
-	s, ok := v.(String)
-	return string(s), ok
 }
 
 // AsInt converts a Starlark int to a Go integer type of choice, failing

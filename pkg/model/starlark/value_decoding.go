@@ -16,14 +16,18 @@ import (
 	"bonanza.build/pkg/storage/object"
 )
 
-// ValueReaders contains all of the message object readers that are
-// needed to decode any type of Starlark value object.
+// ValueReaders contains all of the object readers that are needed to
+// decode any type of Starlark value object.
 type ValueReaders[TReference any] struct {
 	CompiledProgramFunctions model_parser.MessageObjectReader[TReference, []*model_starlark_pb.CompiledProgram_FunctionEntry]
 	Dict                     model_parser.MessageObjectReader[TReference, []*model_starlark_pb.Dict_Entry]
 	List                     model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
 	PackageGroupOverrides    model_parser.MessageObjectReader[TReference, *model_starlark_pb.PackageGroup_Subpackages_Overrides]
 	TestSuiteTest            model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
+
+	// FileReader is used to read the contents of strings that are
+	// too large to be stored inline.
+	FileReader MaybeInlineFileContentsReader[TReference]
 }
 
 // ValueDecodingOptionsKey is the key under which an instance of
@@ -86,7 +90,7 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 	case *model_starlark_pb.Value_Int:
 		return eval.MakeBigInt(DecodeInt(typedValue.Int)), nil
 	case *model_starlark_pb.Value_Str:
-		return eval.String(typedValue.Str), nil
+		return decodeString[TReference, TMetadata](value, typedValue.Str)
 	case *model_starlark_pb.Value_Bytes:
 		return nil, errors.New("values of type bytes are not supported")
 	case *model_starlark_pb.Value_List:

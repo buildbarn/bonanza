@@ -39,6 +39,8 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
+            "FileReader",
             "QueryExpansion",
             "RootModule",
             "Target",
@@ -80,6 +82,7 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
             "FileProperties",
             "FileReader",
             "RootModule"
@@ -88,7 +91,9 @@
       "CompiledBzlFileGlobal": {
          "dependsOn": [
             "BuiltinsModuleNames",
-            "CompiledBzlFile"
+            "CompiledBzlFile",
+            "FileCreationParametersObject",
+            "FileReader"
          ]
       },
       "ConfiguredTarget": {
@@ -102,6 +107,7 @@
             "EmptyDefaultInfo",
             "ExecTransition",
             "FileCreationParametersObject",
+            "FileReader",
             "ResolvedToolchains",
             "RootModule",
             "RuleImplementationWrappers",
@@ -151,6 +157,8 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
+            "FileReader",
             "RootModule"
          ]
       },
@@ -160,6 +168,8 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
+            "FileReader",
             "RootModule",
             "Target",
             "TargetProvider",
@@ -365,6 +375,7 @@
       },
       "ModulesWithRemoteOverrides": {
          "dependsOn": [
+            "FileCreationParametersObject",
             "FileProperties",
             "FileReader",
             "ModuleDotBazelContents",
@@ -377,6 +388,7 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
             "FileProperties",
             "FileReader",
             "Glob",
@@ -409,6 +421,8 @@
       "QueryExpansion": {
          "dependsOn": [
             "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
+            "FileReader",
             "PackageGroupContains",
             "PackageTargets",
             "PackagesAtAndBelow",
@@ -420,8 +434,10 @@
       },
       "QueryResult": {
          "dependsOn": [
-            "CompiledBzlFileGlobal",
             "CanonicalRepoName",
+            "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
+            "FileReader",
             "QueryExpansion",
             "QueryTargets",
             "RootModule",
@@ -431,6 +447,8 @@
       "QueryTargets": {
          "dependsOn": [
             "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
+            "FileReader",
             "QueryTargets",
             "Target"
          ],
@@ -465,6 +483,7 @@
          "dependsOn": [
             "BuildSpecification",
             "CanonicalRepoName",
+            "FileReader",
             "RootModule",
             "TargetProvider"
          ]
@@ -541,6 +560,8 @@
       "RepositoryRuleObject": {
          "dependsOn": [
             "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
+            "FileReader",
             "RepositoryRuleObject"
          ],
          "nativeValueType": {
@@ -564,12 +585,15 @@
       "RuleImplementationWrappers": {
          "dependsOn": [
             "BuildSpecification",
-            "CompiledBzlFileGlobal"
+            "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
+            "FileReader"
          ]
       },
       "Select": {
          "dependsOn": [
             "CanonicalRepoName",
+            "FileReader",
             "RootModule",
             "Target",
             "TargetProvider",
@@ -629,6 +653,8 @@
             "DirectoryCreationParametersObject",
             "DirectoryReaders",
             "FileCreationParameters",
+            "FileCreationParametersObject",
+            "FileReader",
             "FileRoot",
             "FilesRoot",
             "RootModule",
@@ -668,6 +694,8 @@
       "TargetDirectDependencies": {
          "dependsOn": [
             "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
+            "FileReader",
             "Target"
          ]
       },
@@ -703,6 +731,7 @@
       "UsedModuleExtensions": {
          "dependsOn": [
             "CanonicalRepoName",
+            "FileCreationParametersObject",
             "FileReader",
             "ModuleDotBazelContents",
             "ModulesWithMultipleVersionsObject",
@@ -715,6 +744,8 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
+            "FileCreationParametersObject",
+            "FileReader",
             "RootModule",
             "Target",
             "TargetProvider",

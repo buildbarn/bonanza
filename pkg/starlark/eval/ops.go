@@ -63,8 +63,10 @@ func equalDepth(t *Thread, x, y Value, depth int) (bool, error) {
 	// Fast paths for common types.
 	switch xv := x.(type) {
 	case String:
-		yv, ok := y.(String)
-		return ok && xv == yv, nil
+		if yv, ok := y.(String); ok {
+			return xv == yv, nil
+		}
+		return equalStrings(t, xv, y)
 	case Int:
 		switch yv := y.(type) {
 		case Int:
@@ -189,6 +191,20 @@ func compareSequences(t *Thread, op syntax.Token, x, y Indexable, depth int) (bo
 
 // Binary applies a binary operator to two values.
 func Binary(t *Thread, op syntax.Token, x, y Value) (Value, error) {
+	if op != syntax.IN && op != syntax.NOTIN {
+		// Operators other than "in" can only be applied to
+		// strings that are loaded into memory.
+		for _, v := range []*Value{&x, &y} {
+			if s, ok := (*v).(*LargeString); ok {
+				converted, err := s.ToString(t)
+				if err != nil {
+					return nil, err
+				}
+				*v = converted
+			}
+		}
+	}
+
 	switch op {
 	case syntax.PLUS:
 		switch xv := x.(type) {
@@ -519,11 +535,23 @@ func unionDicts(t *Thread, x, y Dict) (Value, error) {
 func contains(t *Thread, haystack, needle Value) (bool, error) {
 	switch h := haystack.(type) {
 	case String:
-		n, ok := needle.(String)
+		n, ok, err := stringContents(t, needle)
+		if err != nil {
+			return false, err
+		}
 		if !ok {
 			return false, fmt.Errorf("'in <string>' requires string as left operand, not %s", needle.Type())
 		}
-		return strings.Contains(string(h), string(n)), nil
+		return strings.Contains(string(h), n), nil
+	case *LargeString:
+		n, ok, err := stringContents(t, needle)
+		if err != nil {
+			return false, err
+		}
+		if !ok {
+			return false, fmt.Errorf("'in <string>' requires string as left operand, not %s", needle.Type())
+		}
+		return h.contains(t, String(n))
 	case Mapping:
 		_, found, err := h.Get(t, needle)
 		return found, err
@@ -707,6 +735,10 @@ func slice(t *Thread, x, lo, hi, step Value) (Value, error) {
 
 // getAttr implements x.name.
 func getAttr(t *Thread, x Value, name string) (Value, error) {
+	if s, ok := x.(*LargeString); ok {
+		return getLargeStringAttr(t, s, name)
+	}
+
 	var err error
 	if xa, ok := x.(HasAttrs); ok {
 		var v Value

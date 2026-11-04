@@ -215,6 +215,9 @@ func Str(t *Thread, v Value) (string, error) {
 	switch typedV := v.(type) {
 	case String:
 		return string(typedV), nil
+	case *LargeString:
+		s, err := typedV.ToString(t)
+		return string(s), err
 	case HasStr:
 		var p Printer
 		if err := typedV.Str(t, &p); err != nil {

@@ -17,7 +17,10 @@ type targetNameUnpackerInto struct{}
 var TargetName UnpackerInto[label.TargetName] = targetNameUnpackerInto{}
 
 func (targetNameUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst *label.TargetName) error {
-	s, ok := eval.AsString(v)
+	s, ok, err := eval.AsString(thread, v)
+	if err != nil {
+		return err
+	}
 	if !ok {
 		return fmt.Errorf("got %s, want string", v.Type())
 	}

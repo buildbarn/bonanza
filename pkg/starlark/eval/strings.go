@@ -154,6 +154,12 @@ func affixArgs(t *Thread, b *Builtin, x Value) ([]string, error) {
 	switch v := x.(type) {
 	case String:
 		return []string{string(v)}, nil
+	case *LargeString:
+		s, err := v.ToString(t)
+		if err != nil {
+			return nil, err
+		}
+		return []string{string(s)}, nil
 	case Tuple:
 		elements, err := Elements(t, v)
 		if err != nil {
@@ -161,11 +167,14 @@ func affixArgs(t *Thread, b *Builtin, x Value) ([]string, error) {
 		}
 		affixes := make([]string, 0, len(elements))
 		for _, element := range elements {
-			s, ok := element.(String)
+			s, ok, err := stringContents(t, element)
+			if err != nil {
+				return nil, err
+			}
 			if !ok {
 				return nil, fmt.Errorf("%s(): got %s in tuple, want string", b.Name(), element.Type())
 			}
-			affixes = append(affixes, string(s))
+			affixes = append(affixes, s)
 		}
 		return affixes, nil
 	}
@@ -449,11 +458,14 @@ func stringJoin(t *Thread, b *Builtin, args Args) (Value, error) {
 	}
 	parts := make([]string, 0, len(elements))
 	for i, element := range elements {
-		s, ok := element.(String)
+		s, ok, err := stringContents(t, element)
+		if err != nil {
+			return nil, err
+		}
 		if !ok {
 			return nil, fmt.Errorf("join(): expected string for sequence element %d, got '%s'", i, element.Type())
 		}
-		parts = append(parts, string(s))
+		parts = append(parts, s)
 	}
 	return String(strings.Join(parts, receiverString(b))), nil
 }
@@ -502,11 +514,14 @@ func stringStripImpl(t *Thread, b *Builtin, args Args, left, right bool) (Value,
 	}
 	cutset := asciiWhitespace
 	if chars != nil {
-		s, ok := chars.(String)
+		s, ok, err := stringContents(t, chars)
+		if err != nil {
+			return nil, err
+		}
 		if !ok {
 			return nil, fmt.Errorf("%s(): for parameter chars: got %s, want string", b.Name(), chars.Type())
 		}
-		cutset = string(s)
+		cutset = s
 	}
 	s := receiverString(b)
 	contains := func(c byte) bool { return strings.IndexByte(cutset, c) >= 0 }
@@ -625,7 +640,10 @@ func stringSplitImpl(t *Thread, b *Builtin, args Args, fromRight bool) (Value, e
 	if sep == nil {
 		parts = splitWhitespace(s, maxSplit, fromRight)
 	} else {
-		sepString, ok := sep.(String)
+		sepString, ok, err := stringContents(t, sep)
+		if err != nil {
+			return nil, err
+		}
 		if !ok {
 			return nil, fmt.Errorf("%s(): for parameter sep: got %s, want string", b.Name(), sep.Type())
 		}

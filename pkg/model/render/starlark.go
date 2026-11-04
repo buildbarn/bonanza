@@ -10,6 +10,7 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
+	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
@@ -124,6 +125,31 @@ func (*StarlarkRenderer) renderReference(reference model_core.Message[*model_cor
 	return fieldReferenceLink(reference, outerMessage, "reference", Styled(RoleDim, "<"+description+">"))
 }
 
+// renderMaybeInlineFileContents renders the contents of a string or
+// bytes value. Values that are stored inline are rendered as literals.
+// Values that are stored externally are rendered as a link to the
+// object containing their contents.
+func (sr *StarlarkRenderer) renderMaybeInlineFileContents(contents model_core.Message[*model_filesystem_pb.MaybeInlineFileContents, object.LocalReference], prefix, description string) Doc {
+	switch level := contents.Message.GetLevel().(type) {
+	case nil:
+		return starlarkLiteral(prefix + syntax.Quote(""))
+	case *model_filesystem_pb.MaybeInlineFileContents_ContentsInline:
+		return starlarkLiteral(prefix + syntax.Quote(string(level.ContentsInline)))
+	case *model_filesystem_pb.MaybeInlineFileContents_ContentsExternal:
+		description = fmt.Sprintf("%s of %d bytes", description, level.ContentsExternal.GetTotalSizeBytes())
+		switch fileContentsLevel := level.ContentsExternal.GetLevel().(type) {
+		case *model_filesystem_pb.FileContents_ChunkReference:
+			return fieldReferenceLink(model_core.Nested(contents, fileContentsLevel.ChunkReference), level.ContentsExternal, "chunk_reference", Styled(RoleDim, "<"+description+">"))
+		case *model_filesystem_pb.FileContents_List_:
+			return sr.renderReference(model_core.Nested(contents, fileContentsLevel.List.GetReference()), fileContentsLevel.List, description)
+		default:
+			return starlarkOpaque(description)
+		}
+	default:
+		return starlarkErrorf("invalid %s contents", description)
+	}
+}
+
 func (sr *StarlarkRenderer) renderValue(value model_core.Message[*model_starlark_pb.Value, object.LocalReference]) Doc {
 	switch kind := value.Message.GetKind().(type) {
 	case *model_starlark_pb.Value_Aspect:
@@ -135,7 +161,7 @@ func (sr *StarlarkRenderer) renderValue(value model_core.Message[*model_starlark
 	case *model_starlark_pb.Value_Builtin:
 		return starlarkOpaque("built-in function " + kind.Builtin)
 	case *model_starlark_pb.Value_Bytes:
-		return starlarkLiteral("b" + syntax.Quote(string(kind.Bytes)))
+		return sr.renderMaybeInlineFileContents(model_core.Nested(value, kind.Bytes), "b", "bytes")
 	case *model_starlark_pb.Value_Depset:
 		return sr.renderDepset(model_core.Nested(value, kind.Depset))
 	case *model_starlark_pb.Value_Dict:
@@ -174,7 +200,7 @@ func (sr *StarlarkRenderer) renderValue(value model_core.Message[*model_starlark
 			},
 		)
 	case *model_starlark_pb.Value_Str:
-		return starlarkString(kind.Str)
+		return sr.renderMaybeInlineFileContents(model_core.Nested(value, kind.Str), "", "string")
 	case *model_starlark_pb.Value_Struct:
 		return sr.renderStruct(model_core.Nested(value, kind.Struct))
 	case *model_starlark_pb.Value_Subrule:

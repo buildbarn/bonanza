@@ -171,6 +171,23 @@ message FileContents {
   uint64 total_size_bytes = 4;
 }
 
+// Data that is stored inline if it is small enough, and as file
+// contents in separate objects otherwise. Empty data is represented by
+// leaving the oneof unset, like FileContents fields elsewhere.
+//
+// To ensure that data has a canonical encoding, data MUST be stored
+// inline if and only if its size does not exceed a limit that is
+// specified by the context in which this message is used.
+message MaybeInlineFileContents {
+  oneof level {
+    // The data is small enough to be stored inline.
+    bytes contents_inline = 1;
+
+    // The data is too large to be stored inline.
+    FileContents contents_external = 2;
+  }
+}
+
 message DirectoryAccessParameters {
   // Encoders that were used when creating objects containing Directory
   // and Leaves messages.

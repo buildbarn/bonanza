@@ -137,6 +137,11 @@ func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRe
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepos_Key, e ModuleExtensionReposEnvironment[TReference, TMetadata]) (PatchedModuleExtensionReposValue[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return PatchedModuleExtensionReposValue[TMetadata]{}, err
+	}
+
 	// Store all repos in a B-tree.
 	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
@@ -194,7 +199,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			moduleRepo:    moduleRepo,
 			ignoreDevDependencies: rootModuleValue.Message.IgnoreRootModuleDevDependencies ||
 				moduleInstance.GetModule().String() != rootModuleValue.Message.RootModuleName,
-			valueEncodingOptions: c.getValueEncodingOptions(ctx, e, nil),
+			valueEncodingOptions: valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil),
 			repos:                map[string]model_core.PatchedMessage[*model_starlark_pb.Repo, TMetadata]{},
 		}
 
@@ -241,7 +246,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		}
 		moduleExtensionDefinition := v.ModuleExtension
 
-		thread := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+		thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+		if err != nil {
+			return PatchedModuleExtensionReposValue[TMetadata]{}, err
+		}
 
 		// Decode tags declared in all MODULE.bazel files belonging to
 		// this module extension.
@@ -379,7 +387,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		// Call into the implementation function to obtain a set of
 		// repos declared by this module extension.
 		thread.SetLocal(model_starlark.CanonicalPackageKey, moduleExtension.GetModuleInstance().GetBareCanonicalRepo().GetRootPackage())
-		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, c.getValueEncodingOptions(ctx, e, nil))
+		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil))
 
 		repoRegistrar := model_starlark.NewRepoRegistrar[TMetadata]()
 		thread.SetLocal(model_starlark.RepoRegistrarKey, repoRegistrar)

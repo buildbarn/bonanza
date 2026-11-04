@@ -55,7 +55,7 @@ func TestExistingRules(t *testing.T) {
 	value := func(kind any) *model_starlark_pb.Value {
 		switch v := kind.(type) {
 		case string:
-			return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Str{Str: v}}
+			return newStringValue(v)
 		case label.CanonicalLabel:
 			return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: v.String()}}
 		case []*model_starlark_pb.Value:

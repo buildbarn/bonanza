@@ -14,10 +14,12 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
+	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
+	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
 )
@@ -180,9 +182,7 @@ func getQueryRuleTarget[TReference any](
 	for _, tag := range ruleTarget.Message.Tags {
 		tags = append(tags, &model_starlark_pb.List_Element{
 			Level: &model_starlark_pb.List_Element_Leaf{
-				Leaf: &model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_Str{Str: tag},
-				},
+				Leaf: newQueryStringValue(tag),
 			},
 		})
 	}
@@ -198,9 +198,7 @@ func getQueryRuleTarget[TReference any](
 		queryAttr[TReference]{
 			name: "name",
 			parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
-				model_core.NewSimpleMessage[TReference](&model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_Str{Str: targetLabel.GetTargetName().String()},
-				}),
+				model_core.NewSimpleMessage[TReference](newQueryStringValue(targetLabel.GetTargetName().String())),
 			}},
 			isExplicit: true,
 		},
@@ -277,12 +275,8 @@ func getQueryRuleTarget[TReference any](
 				Kind: &model_starlark_pb.Value_Bool{Bool: test.Local},
 			}),
 			shardCount,
-			newSimpleAttr("size", &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Str{Str: model_starlark.FormatTestSize(test.Size)},
-			}),
-			newSimpleAttr("timeout", &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Str{Str: model_starlark.FormatTestTimeout(test.Timeout)},
-			}),
+			newSimpleAttr("size", newQueryStringValue(model_starlark.FormatTestSize(test.Size))),
+			newSimpleAttr("timeout", newQueryStringValue(model_starlark.FormatTestTimeout(test.Timeout))),
 		)
 	}
 
@@ -360,9 +354,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx contex
 	for _, tag := range tags {
 		tagElements = append(tagElements, &model_starlark_pb.List_Element{
 			Level: &model_starlark_pb.List_Element_Leaf{
-				Leaf: &model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_Str{Str: tag},
-				},
+				Leaf: newQueryStringValue(tag),
 			},
 		})
 	}
@@ -372,9 +364,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx contex
 				name:       "name",
 				isExplicit: true,
 				parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
-					model_core.NewSimpleMessage[TReference](&model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Str{Str: targetLabel.GetTargetName().String()},
-					}),
+					model_core.NewSimpleMessage[TReference](newQueryStringValue(targetLabel.GetTargetName().String())),
 				}},
 			},
 			{
@@ -444,7 +434,7 @@ func (s *queryValueString) String() string {
 // dicts are converted to "{a=b, c=d}", labels are converted to
 // canonical labels, and Booleans are converted to "0" and "1". It
 // returns false if the value has no string representation.
-func (c *baseComputer[TReference, TMetadata]) stringifyQueryValue(ctx context.Context, value model_core.Message[*model_starlark_pb.Value, TReference]) (queryValueString, bool, error) {
+func (c *baseComputer[TReference, TMetadata]) stringifyQueryValue(ctx context.Context, fileReader *model_filesystem.FileReader[TReference], value model_core.Message[*model_starlark_pb.Value, TReference]) (queryValueString, bool, error) {
 	switch kind := value.Message.GetKind().(type) {
 	case *model_starlark_pb.Value_Bool:
 		if kind.Bool {
@@ -462,12 +452,16 @@ func (c *baseComputer[TReference, TMetadata]) stringifyQueryValue(ctx context.Co
 	case *model_starlark_pb.Value_None:
 		return queryValueString{}, true, nil
 	case *model_starlark_pb.Value_Str:
-		return queryValueString{scalar: kind.Str}, true, nil
+		str, _, err := getStringValue(ctx, fileReader, value)
+		if err != nil {
+			return queryValueString{}, false, err
+		}
+		return queryValueString{scalar: str}, true, nil
 	case *model_starlark_pb.Value_List:
 		s := queryValueString{isList: true}
 		var errIter error
 		for element := range model_starlark.AllListLeafElements(ctx, c.valueReaders.List, model_core.Nested(value, kind.List.Elements), &errIter) {
-			elementString, ok, err := c.stringifyQueryValue(ctx, element)
+			elementString, ok, err := c.stringifyQueryValue(ctx, fileReader, element)
 			if err != nil || !ok {
 				return queryValueString{}, ok, err
 			}
@@ -478,11 +472,11 @@ func (c *baseComputer[TReference, TMetadata]) stringifyQueryValue(ctx context.Co
 		var entries []string
 		var errIter error
 		for key, value := range model_starlark.AllDictLeafEntries(ctx, c.valueReaders.Dict, model_core.Nested(value, kind.Dict), &errIter) {
-			keyString, ok, err := c.stringifyQueryValue(ctx, key)
+			keyString, ok, err := c.stringifyQueryValue(ctx, fileReader, key)
 			if err != nil || !ok {
 				return queryValueString{}, ok, err
 			}
-			valueString, ok, err := c.stringifyQueryValue(ctx, value)
+			valueString, ok, err := c.stringifyQueryValue(ctx, fileReader, value)
 			if err != nil || !ok {
 				return queryValueString{}, ok, err
 			}
@@ -505,14 +499,14 @@ const maximumQueryAttrStrings = 1000
 
 // stringifyQueryAttr returns string representations of all possible
 // values of an attribute.
-func (c *baseComputer[TReference, TMetadata]) stringifyQueryAttr(ctx context.Context, attr *queryAttr[TReference]) ([]string, error) {
+func (c *baseComputer[TReference, TMetadata]) stringifyQueryAttr(ctx context.Context, fileReader *model_filesystem.FileReader[TReference], attr *queryAttr[TReference]) ([]string, error) {
 	// Compute the cartesian product of the values of all parts,
 	// concatenating them.
 	combinations := []queryValueString{{}}
 	for i, alternatives := range attr.parts {
 		var newCombinations []queryValueString
 		for _, alternative := range alternatives {
-			alternativeString, ok, err := c.stringifyQueryValue(ctx, alternative)
+			alternativeString, ok, err := c.stringifyQueryValue(ctx, fileReader, alternative)
 			if err != nil {
 				return nil, err
 			}
@@ -780,9 +774,13 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 		if err != nil {
 			return nil, fmt.Errorf("invalid regular expression %#v: %w", expression.Pattern, err)
 		}
+		fileReader, err := getFileReader(e)
+		if err != nil {
+			return nil, err
+		}
 		results := labelSet{}
 		if err := c.forEachQueryRuleTargetAttr(ctx, e, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
-			attrStrings, err := c.stringifyQueryAttr(ctx, attr)
+			attrStrings, err := c.stringifyQueryAttr(ctx, fileReader, attr)
 			if err != nil {
 				return err
 			}
@@ -2635,3 +2633,19 @@ func (c *baseComputer[TReference, TMetadata]) forEachPackageTargetLabel(
 // QueryExpansionEnvironmentForTesting is used to generate mocks for
 // testing ComputeQueryExpansionValue().
 type QueryExpansionEnvironmentForTesting QueryExpansionEnvironment[model_core.CreatedObjectTree, model_core.CreatedObjectTree]
+
+// newQueryStringValue creates a Value message containing a string,
+// for use in attributes of query targets. As these values are only
+// used to evaluate queries and are never written to storage, the
+// string can be stored inline, regardless of its size.
+func newQueryStringValue(s string) *model_starlark_pb.Value {
+	return &model_starlark_pb.Value{
+		Kind: &model_starlark_pb.Value_Str{
+			Str: &model_filesystem_pb.MaybeInlineFileContents{
+				Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{
+					ContentsInline: []byte(s),
+				},
+			},
+		},
+	}
+}

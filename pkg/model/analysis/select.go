@@ -8,6 +8,7 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
@@ -25,6 +26,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeSelectValue(ctx context.Con
 		return PatchedSelectValue[TMetadata]{}, fmt.Errorf("invalid package: %w", err)
 	}
 	labelResolver := newLabelResolver(e)
+	fileReader, err := getFileReader(e)
+	if err != nil {
+		return PatchedSelectValue[TMetadata]{}, err
+	}
 	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
 	missingDependencies := false
 	var platformConstraints []*model_analysis_pb.Constraint
@@ -107,7 +112,10 @@ CheckConditions:
 			if !ok {
 				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("\"flag_values\" field of ConfigSettingInfo provider of config setting %#v contains a key that is not a label", conditionIdentifier)
 			}
-			expectedValue, ok := value.Message.GetKind().(*model_starlark_pb.Value_Str)
+			expectedValue, ok, err := getStringValue(ctx, fileReader, value)
+			if err != nil {
+				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", buildSettingLabel.Label, conditionIdentifier, err)
+			}
 			if !ok {
 				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v is not a string", buildSettingLabel.Label, conditionIdentifier)
 			}
@@ -130,8 +138,9 @@ CheckConditions:
 			comparer := buildSettingValueComparer[TReference]{
 				context:       ctx,
 				listReader:    c.valueReaders.List,
+				fileReader:    fileReader,
 				labelResolver: labelResolver,
-				expectedValue: expectedValue.Str,
+				expectedValue: expectedValue,
 				fromPackage:   fromPackage,
 			}
 			equal, err := comparer.compareBuildSettingValue(actualValue)
@@ -163,6 +172,7 @@ CheckConditions:
 type buildSettingValueComparer[TReference object.BasicReference] struct {
 	context       context.Context
 	listReader    model_parser.MessageObjectReader[TReference, []*model_starlark_pb.List_Element]
+	fileReader    *model_filesystem.FileReader[TReference]
 	labelResolver label.Resolver
 	expectedValue string
 	fromPackage   label.CanonicalPackage
@@ -209,7 +219,11 @@ func (vc *buildSettingValueComparer[TReference]) compareBuildSettingValue(actual
 		}
 		return false, nil
 	case *model_starlark_pb.Value_Str:
-		return vc.expectedValue == typedValue.Str, nil
+		actualString, _, err := getStringValue(vc.context, vc.fileReader, actualValue)
+		if err != nil {
+			return false, err
+		}
+		return vc.expectedValue == actualString, nil
 	default:
 		return false, errors.New("build setting value is of an unknown type")
 	}

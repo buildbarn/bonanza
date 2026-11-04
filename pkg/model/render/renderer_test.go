@@ -29,7 +29,7 @@ func renderMessage(m proto.Message, pretty bool, options render.LayoutOptions) s
 }
 
 func str(s string) *model_starlark_pb.Value {
-	return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Str{Str: s}}
+	return newStringValue(s)
 }
 
 func leaf(v *model_starlark_pb.Value) *model_starlark_pb.List_Element {
@@ -62,8 +62,10 @@ func TestRendererStarlarkValues(t *testing.T) {
 			expected: "None",
 		},
 		{
-			name:     "Bytes",
-			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Bytes{Bytes: []byte("\x00ab")}},
+			name: "Bytes",
+			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Bytes{Bytes: &model_filesystem_pb.MaybeInlineFileContents{
+				Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{ContentsInline: []byte("\x00ab")},
+			}}},
 			expected: `b"\000ab"`,
 		},
 		{
@@ -301,7 +303,7 @@ func TestRendererJSON(t *testing.T) {
 	t.Run("SingleLine", func(t *testing.T) {
 		require.Equal(
 			t,
-			`{"tuple": {"elements": [{"str": "a"}, {"bool": true}]}}`,
+			`{"tuple": {"elements": [{"str": {"contentsInline": "YQ=="}}, {"bool": true}]}}`,
 			renderMessage(value, false, render.LayoutOptions{SingleLine: true}),
 		)
 	})
@@ -312,7 +314,10 @@ func TestRendererJSON(t *testing.T) {
 			t,
 			"{\n"+
 				"    \"tuple\": {\n"+
-				"        \"elements\": [{\"str\": \"a\"}, {\"bool\": true}]\n"+
+				"        \"elements\": [\n"+
+				"            {\"str\": {\"contentsInline\": \"YQ==\"}},\n"+
+				"            {\"bool\": true}\n"+
+				"        ]\n"+
 				"    }\n"+
 				"}",
 			renderMessage(value, false, render.LayoutOptions{Width: 50}),
@@ -327,7 +332,7 @@ func TestRendererJSON(t *testing.T) {
 			},
 		}
 		r.Message(model_core.NewSimpleMessage[object.LocalReference](value.ProtoReflect()))
-		require.Equal(t, []string{"Value", "Tuple", "Value", "Value"}, observed)
+		require.Equal(t, []string{"Value", "Tuple", "Value", "MaybeInlineFileContents", "Value"}, observed)
 	})
 }
 
@@ -391,4 +396,18 @@ func TestRendererDirectory(t *testing.T) {
 	rows := blocks[0].Table.Rows
 	require.Equal(t, []render.Segment{{Text: "1.8 MiB", Title: "1,843,200 bytes"}}, rows[0][1])
 	require.Equal(t, []render.Segment{{Text: "412   B"}}, rows[1][1])
+}
+
+// newStringValue creates a Value message containing a string that is
+// stored inline.
+func newStringValue(s string) *model_starlark_pb.Value {
+	contents := &model_filesystem_pb.MaybeInlineFileContents{}
+	if s != "" {
+		contents.Level = &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{
+			ContentsInline: []byte(s),
+		}
+	}
+	return &model_starlark_pb.Value{
+		Kind: &model_starlark_pb.Value_Str{Str: contents},
+	}
 }

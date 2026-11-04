@@ -93,7 +93,7 @@ func TestVisitAttrValueLabels(t *testing.T) {
 		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: l}}
 	}
 	strValue := func(s string) *model_starlark_pb.Value {
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Str{Str: s}}
+		return newStringValue(s)
 	}
 	visitLabels := func(value *model_starlark_pb.Value) []string {
 		var labels []string

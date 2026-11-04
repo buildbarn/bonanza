@@ -15,8 +15,24 @@ import (
 func Quote(s string) string {
 	buf := make([]byte, 0, len(s)+2)
 	buf = append(buf, '"')
+	buf, _ = AppendQuotedBody(buf, []byte(s), true)
+	buf = append(buf, '"')
+	return string(buf)
+}
+
+// AppendQuotedBody appends the body of a quoted string literal
+// (i.e., without the surrounding quotes) for the bytes in s to buf. It
+// can be used to quote strings that are processed in pieces. If final
+// is false, processing stops before a trailing incomplete UTF-8
+// sequence, so that it can be completed by the next piece. The number
+// of bytes of s that were processed is returned.
+func AppendQuotedBody(buf, s []byte, final bool) ([]byte, int) {
+	processed := 0
 	for len(s) > 0 {
-		r, width := utf8.DecodeRuneInString(s)
+		if !final && !utf8.FullRune(s) {
+			break
+		}
+		r, width := utf8.DecodeRune(s)
 		switch {
 		case r == '"' || r == '\\':
 			buf = append(buf, '\\', byte(r))
@@ -29,14 +45,14 @@ func Quote(s string) string {
 		case r == utf8.RuneError && width == 1, !strconv.IsPrint(r):
 			// Emit all bytes of the character as octal escape
 			// sequences.
-			for _, b := range []byte(s[:width]) {
+			for _, b := range s[:width] {
 				buf = append(buf, '\\', '0'+b>>6, '0'+b>>3&7, '0'+b&7)
 			}
 		default:
 			buf = append(buf, s[:width]...)
 		}
 		s = s[width:]
+		processed += width
 	}
-	buf = append(buf, '"')
-	return string(buf)
+	return buf, processed
 }

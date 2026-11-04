@@ -14,6 +14,7 @@ import (
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
@@ -43,6 +44,11 @@ type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata
 	ObjectCapturer         model_core.ObjectCapturer[TReference, TMetadata]
 	ObjectMinimumSizeBytes int
 	ObjectMaximumSizeBytes int
+
+	// Strings that are larger than ObjectMinimumSizeBytes are
+	// stored in the same way as file contents, using the provided
+	// parameters.
+	FileCreationParameters *model_filesystem.FileCreationParameters
 }
 
 // getInlinedTreeOptions returns the options to use when deciding which
@@ -182,11 +188,9 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](thread 
 			},
 		}), nil
 	case eval.String:
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Str{
-				Str: string(typedValue),
-			},
-		}), nil
+		return encodeString(string(typedValue), options)
+	case *eval.LargeString:
+		return encodeLargeString(thread, typedValue, options)
 	case *eval.Builtin:
 		if typedValue.Receiver() != nil {
 			// Builtins are encoded by name, meaning the

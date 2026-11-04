@@ -242,11 +242,14 @@ func builtinFail(t *Thread, b *Builtin, args Args) (Value, error) {
 	for _, arg := range args.Named {
 		switch arg.Name {
 		case "sep":
-			s, ok := arg.Value.(String)
+			s, ok, err := stringContents(t, arg.Value)
+			if err != nil {
+				return nil, err
+			}
 			if !ok {
 				return nil, fmt.Errorf("fail(): for parameter sep: got %s, want string", arg.Value.Type())
 			}
-			sep = string(s)
+			sep = s
 		case "attr":
 			attr = arg.Value
 		case "msg":
@@ -283,6 +286,12 @@ func builtinFloat(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x Value = Float(0)
 	if err := UnpackArgs(t, b.Name(), args, "x?", &x); err != nil {
 		return nil, err
+	}
+	if ls, ok := x.(*LargeString); ok {
+		var err error
+		if x, err = ls.ToString(t); err != nil {
+			return nil, err
+		}
 	}
 	switch v := x.(type) {
 	case Bool:
@@ -376,6 +385,12 @@ func builtinInt(t *Thread, b *Builtin, args Args) (Value, error) {
 	var x, base Value
 	if err := UnpackArgs(t, b.Name(), args, "x", &x, "base?", &base); err != nil {
 		return nil, err
+	}
+	if ls, ok := x.(*LargeString); ok {
+		var err error
+		if x, err = ls.ToString(t); err != nil {
+			return nil, err
+		}
 	}
 	s, isString := x.(String)
 	if base != nil && !isString {
@@ -572,11 +587,14 @@ func builtinPrint(t *Thread, b *Builtin, args Args) (Value, error) {
 		if arg.Name != "sep" {
 			return nil, fmt.Errorf("print() got unexpected keyword argument '%s'", arg.Name)
 		}
-		s, ok := arg.Value.(String)
+		s, ok, err := stringContents(t, arg.Value)
+		if err != nil {
+			return nil, err
+		}
 		if !ok {
 			return nil, fmt.Errorf("print(): for parameter sep: got %s, want string", arg.Value.Type())
 		}
-		sep = string(s)
+		sep = s
 	}
 	parts := make([]string, 0, len(args.Positional))
 	for _, arg := range args.Positional {

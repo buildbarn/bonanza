@@ -218,14 +218,18 @@ func NewLabelOrStringUnpackerInto[TReference any, TMetadata model_core.Reference
 
 func (ui *labelOrStringUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst *pg_label.ResolvedLabel) error {
 	switch typedV := v.(type) {
-	case eval.String:
+	case eval.String, *eval.LargeString:
 		// Label value is a bare string. Parse and resolve it.
+		s, _, err := eval.AsString(thread, typedV)
+		if err != nil {
+			return err
+		}
 		labelResolver := thread.Local(LabelResolverKey)
 		if labelResolver == nil {
-			return fmt.Errorf("label %#v is provided as a string instead of a Label, but such labels cannot be resolved from within this context", string(typedV))
+			return fmt.Errorf("label %#v is provided as a string instead of a Label, but such labels cannot be resolved from within this context", s)
 		}
 
-		apparentLabel, err := ui.basePackage.AppendLabel(string(typedV))
+		apparentLabel, err := ui.basePackage.AppendLabel(s)
 		if err != nil {
 			return err
 		}

@@ -13,7 +13,7 @@ import (
 
 func TestAllStructFields(t *testing.T) {
 	strValue := func(s string) *model_starlark_pb.Value {
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Str{Str: s}}
+		return newStringValue(s)
 	}
 	allFieldNames := func(structFields *model_starlark_pb.Struct_Fields, errOut *error) []string {
 		var names []string

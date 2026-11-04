@@ -22,7 +22,10 @@ func IfNonEmptyString[T any](base UnpackerInto[T]) UnpackerInto[T] {
 }
 
 func (ui *ifNonEmptyStringUnpackerInto[T]) UnpackInto(thread *eval.Thread, v eval.Value, dst *T) error {
-	s, ok := eval.AsString(v)
+	s, ok, err := eval.AsString(thread, v)
+	if err != nil {
+		return err
+	}
 	if !ok {
 		return fmt.Errorf("got %s, want string", v.Type())
 	}
@@ -33,7 +36,10 @@ func (ui *ifNonEmptyStringUnpackerInto[T]) UnpackInto(thread *eval.Thread, v eva
 }
 
 func (ui *ifNonEmptyStringUnpackerInto[T]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
-	s, ok := eval.AsString(v)
+	s, ok, err := eval.AsString(thread, v)
+	if err != nil {
+		return nil, err
+	}
 	if !ok {
 		return nil, fmt.Errorf("got %s, want string", v.Type())
 	}

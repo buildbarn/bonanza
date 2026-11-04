@@ -308,7 +308,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	// TODO: Respect use_param_file().
 	referenceFormat := c.referenceFormat
 	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(ctx, actionEncoder, referenceFormat, e)
-	thread := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	if err != nil {
+		return PatchedTargetActionCommandValue[TMetadata]{}, err
+	}
 	var errIterArgs error
 	for args := range btree.AllLeaves(
 		ctx,
@@ -442,8 +445,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				for v := range valuesIter {
 					var s string
 					switch typedV := v.(type) {
-					case eval.String:
-						s = string(typedV)
+					case eval.String, *eval.LargeString:
+						s, _, err = eval.AsString(thread, typedV)
+						if err != nil {
+							return PatchedTargetActionCommandValue[TMetadata]{}, err
+						}
 					case *model_starlark.File[TReference, TMetadata]:
 						s, err = model_starlark.FileGetInputRootPath(typedV.GetDefinition(), typedV.GetTreeRelativePath())
 						if err != nil {

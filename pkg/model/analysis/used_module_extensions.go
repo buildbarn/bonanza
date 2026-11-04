@@ -159,6 +159,11 @@ func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata])
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(ctx context.Context, key *model_analysis_pb.UsedModuleExtensions_Key, e UsedModuleExtensionsEnvironment[TReference, TMetadata]) (PatchedUsedModuleExtensionsValue[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return PatchedUsedModuleExtensionsValue[TMetadata]{}, err
+	}
+
 	options := usedModuleExtensionOptions[TReference, TMetadata]{
 		labelResolver: newLabelResolver(e),
 		patcher:       model_core.NewReferenceMessagePatcher[TMetadata](),
@@ -172,7 +177,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(c
 			isRoot:                isRoot,
 			ignoreDevDependencies: ignoreDevDependencies,
 			usedModuleExtensions:  usedModuleExtensions,
-			valueEncodingOptions:  c.getValueEncodingOptions(ctx, e, nil),
+			valueEncodingOptions:  valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil),
 		}
 		isRoot = false
 		return h

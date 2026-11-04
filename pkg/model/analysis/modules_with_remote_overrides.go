@@ -23,6 +23,11 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesValue(ctx context.Context, key *model_analysis_pb.ModulesWithRemoteOverrides_Key, e ModulesWithRemoteOverridesEnvironment[TReference, TMetadata]) (PatchedModulesWithRemoteOverridesValue[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return PatchedModulesWithRemoteOverridesValue[TMetadata]{}, err
+	}
+
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	if !rootModuleValue.IsSet() {
 		return PatchedModulesWithRemoteOverridesValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -38,7 +43,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesV
 	overrideModules := []*model_analysis_pb.ModuleOverride{}
 	handler := &overrideExtractingModuleDotBazelHandler[TReference, TMetadata]{
 		overrideModules:      &overrideModules,
-		valueEncodingOptions: c.getValueEncodingOptions(ctx, e, nil),
+		valueEncodingOptions: valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil),
 		patcher:              model_core.NewReferenceMessagePatcher[TMetadata](),
 	}
 	err = c.parseLocalModuleInstanceModuleDotBazel(ctx, rootModuleName.ToModuleInstance(nil), e, handler)

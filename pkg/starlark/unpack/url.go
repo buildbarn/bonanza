@@ -15,7 +15,10 @@ type urlUnpackerInto struct{}
 var URL UnpackerInto[*url.URL] = urlUnpackerInto{}
 
 func (urlUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst **url.URL) error {
-	s, ok := eval.AsString(v)
+	s, ok, err := eval.AsString(thread, v)
+	if err != nil {
+		return err
+	}
 	if !ok {
 		return fmt.Errorf("got %s, want string", v.Type())
 	}

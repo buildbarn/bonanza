@@ -766,9 +766,13 @@ func CompareKeys(t *Thread, x, y Value) (int, error)
 
 ### Large strings and bytes
 
-Today `Value.str` and `Value.bytes` are always stored inline. That
-puts a lower bound on the maximum object size, and forces arbitrary
-limits on reads, such as the 4 MiB limit on `stdout` in `repo.go`. We
+`Value.str` and `Value.bytes` used to be proto3 `string` and `bytes`
+fields, always stored inline. That puts a lower bound on the maximum
+object size, and forces arbitrary limits on reads, such as the 4 MiB
+limit on `stdout` in `repo.go`. It also means that strings that are
+not valid UTF-8 can't be stored, such as the octal escapes in
+`@bazel_lib//lib/private:strings.bzl`, as the Go protobuf library
+refuses to marshal them. We
 want to experiment with smaller maximum object sizes, so large strings
 and bytes are stored as trees as well. Rather than adding yet another
 B-tree type, we reuse the encoding that `pkg/model/filesystem` already
@@ -826,7 +830,10 @@ message gets the same canonical encoding:
 The maximum inline size is a parameter of each call, not part of
 `FileCreationParameters`, because how much room there is for inline
 data depends on the message it is embedded in. For Starlark values it
-is `ValueEncodingOptions.InlineStringMaximumSizeBytes`. Moving
+is `ValueEncodingOptions.ObjectMinimumSizeBytes`: strings of that size
+leave room for the rest of the object that contains them, while larger
+strings are worth sharing between objects instead of being copied into
+each of them. Moving
 `command.Log` and the other places mentioned above over to the new
 message is a separate change.
 
@@ -852,57 +859,96 @@ copying:
   `ctx.actions.write(content = ...)` can refer to the chunks of a
   storage-backed string directly.
 
-In return, `ValueEncodingOptions` gains the `FileCreationParameters`
+In return, `ValueEncodingOptions` gains `FileCreationParameters`
 (chunk encoders and MaxCDC parameters), and `ValueDecodingOptions`
-gains a `FileReader`.
+gains a `FileReader`. In `pkg/model/analysis` these are the build's
+parameters, obtained through the `FileCreationParametersObject` and
+`FileReader` keys, so that strings can share data with files. A
+`valueEncodingOptionsFactory` obtains the file creation parameters
+from the environment up front, and then creates `ValueEncodingOptions`
+given just a context and the current filename. The `FileReader` is
+only requested once a string is accessed that isn't stored inline, as
+decoding happens deep inside Starlark code.
 
-**In memory.** `String` and `Bytes` stay concrete Go types, so the
-common case has no extra cost. Storage-backed large values implement
-the following interfaces, which the core recognizes as `str` and
-`bytes` respectively:
+`Funcode` constants hold strings as `bytes` for the same reason. They
+are always stored inline, as they are bounded by the size of the
+source file.
+
+**In memory.** `String` stays a concrete Go type, so the common case
+has no extra cost. Storage-backed large strings are of type
+`*eval.LargeString`, whose contents are provided by a
+`LargeStringSource`:
 
 ```go
-type LargeString interface {
-	Value
-	isStr()
-	Len() int64
-	ReadAt(t *Thread, p []byte, off int64) (int, error)
-}
-
-type LargeBytes interface {
-	Value
-	isBytes()
-	Len() int64
-	ReadAt(t *Thread, p []byte, off int64) (int, error)
+type LargeStringSource interface {
+	SizeBytes() int64
+	ReadAt(t *Thread, p []byte, off int64) error
 }
 ```
 
-These operations work on large values without reading all of them
+Keeping the semantics of strings in a single type in
+`pkg/starlark/eval` means that `pkg/model/starlark` only needs to
+provide access to the data. Sources may implement
+`LargeStringSourceComparer` to report that two strings refer to the
+same data without reading it. `pkg/model/starlark` does so by comparing
+the references of the roots of their Merkle trees.
+
+These operations work on large strings without reading all of them
 into memory:
 
-- `len()` and truth, from `total_size_bytes`;
+- `type()`, `len()` and truth;
 - encoding, by returning the original message;
-- `==`, key ordering, `in` and `startswith()`/`endswith()`, by
-  streaming. Equal references are equal without being read;
-- `Hashable.Hash()` and `hash()`, by streaming. `maphash` produces the
-  same result whether a string is written in pieces or all at once, so
-  this matches the hash of an equal in-memory `String`;
-- `repr()`/`str()`/`print()`, by streaming into the `Printer`;
-- slicing, by reading only the requested range;
-- passing them to builtins that write files, as described above.
+- `==`, ordering, `in`, and `startswith()`/`endswith()` without
+  `start`/`end`, by streaming. Strings with equal references are equal
+  without being read;
+- `Hashable.Hash()`, by streaming. `maphash` produces the same result
+  whether a string is written in pieces or all at once, so this
+  matches the hash of an equal in-memory `String`, and both can be
+  used interchangeably as keys of dicts;
+- `repr()`, by streaming into the `Printer`;
+- indexing and slicing, by reading only the requested range.
 
-All other operations convert to an in-memory `String`/`Bytes` first.
-Examples are `+`, `%`, `format()`, `split()` and `replace()`. The
-amount of data converted this way is limited per thread, and an
-operation that exceeds the limit fails with an error that says so.
-The other direction needs nothing special: a large `String` built in
-memory (e.g. by `"\n".join(...)`) stays a Go string until it is
+All other operations convert to an in-memory `String` first. Examples
+are `+`, `%`, `str()`, `print()`, `hash()`, `format()`, `split()` and
+`replace()`. The amount of data converted this way is limited per
+thread (`Thread.MaximumLargeStringConversionBytes`, which
+`pkg/model/analysis` sets to 64 MiB),
+and an operation that exceeds the limit fails with an error that says
+so. The other direction needs nothing special: a large `String` built
+in memory (e.g. by `"\n".join(...)`) stays a Go string until it is
 encoded, and is chunked at that point.
 
-The unpackers get the same split. `unpack.String` converts
-large values to in-memory strings, subject to the same limit. Builtins
-that can handle large values without converting them use a separate
-unpacker that leaves them as they are.
+**UTF-8.** Starlark strings may contain arbitrary bytes, but Go code
+outside the interpreter should only use `string` for UTF-8. So
+`eval.AsString()` fails for strings that aren't valid UTF-8, while
+`eval.AsBytes()` returns the contents of any string as a `[]byte`.
+Both accept either kind of string, converting large strings. The
+unpackers use them: `unpack.String` for things like labels and paths,
+and `unpack.Bytes` for arbitrary data, such as the contents of files
+written by `repository_ctx.file()` and `ctx.actions.write()`, and the
+substitutions of templates. Inside `pkg/starlark/eval`, `String` stays
+a Go string, holding an immutable sequence of bytes.
+
+Bazel's dialect of Starlark has no `bytes` type, so the interpreter
+doesn't have one either. `Value.bytes` uses `MaybeInlineFileContents`
+as well, but values of that kind can't be decoded yet.
+
+Code in `pkg/model/analysis` that inspects encoded values directly
+(e.g. platform properties and build setting values) uses
+`model_starlark.GetString()`, which reads strings that aren't stored
+inline using a `FileReader`, and fails for strings that aren't valid
+UTF-8.
+
+Not done yet:
+
+- Letting `repository_ctx.read()`, `module_ctx.read()` and
+  `repository_ctx.execute()` return strings backed by existing
+  `FileContents`, and letting `repository_ctx.file()` and
+  `ctx.actions.write()` refer to the chunks of large strings directly.
+  These still read data into memory, subject to their existing size
+  limits.
+- Rendering the contents of large strings in `pkg/model/render`. They
+  are rendered as links to the objects that hold their contents.
 
 ## Functions
 

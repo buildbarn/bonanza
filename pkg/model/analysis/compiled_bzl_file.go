@@ -55,6 +55,11 @@ func (c *baseComputer[TReference, TMetadata]) getReferenceEqualIdentifierGenerat
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFile_Key, e CompiledBzlFileEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileValue[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return PatchedCompiledBzlFileValue[TMetadata]{}, err
+	}
+
 	canonicalLabel, err := label.NewCanonicalLabel(key.Label)
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, fmt.Errorf("invalid label: %w", err)
@@ -62,7 +67,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	canonicalPackage := canonicalLabel.GetCanonicalPackage()
 	canonicalRepo := canonicalPackage.GetCanonicalRepo()
 
-	thread := c.newStarlarkThread(ctx, e, key.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, key.BuiltinsModuleNames)
+	if err != nil {
+		return PatchedCompiledBzlFileValue[TMetadata]{}, err
+	}
 
 	bzlFileProperties := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
 		CanonicalRepo: canonicalRepo.String(),
@@ -109,7 +117,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	globals := module.Globals()
 
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.CompiledBzlFile_Value, error) {
-		compiledProgram, err := model_starlark.EncodeCompiledProgram(thread, program, globals, c.getValueEncodingOptions(ctx, e, &canonicalLabel))
+		compiledProgram, err := model_starlark.EncodeCompiledProgram(thread, program, globals, valueEncodingOptionsFactory.newValueEncodingOptions(ctx, &canonicalLabel))
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +204,10 @@ func (c *baseComputer[TReference, TMetadata]) forEachBuiltinsModuleExport(thread
 		}
 		var errIter error
 		for name, value := range exports.Items(thread, &errIter) {
-			nameStr, ok := eval.AsString(name)
+			nameStr, ok, err := eval.AsString(thread, name)
+			if err != nil {
+				return err
+			}
 			if !ok {
 				return fmt.Errorf("%#v contains builtins with non-string names", identifier.String())
 			}

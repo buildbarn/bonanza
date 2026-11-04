@@ -13,7 +13,7 @@ import (
 
 func TestAllDictLeafEntries(t *testing.T) {
 	strValue := func(s string) *model_starlark_pb.Value {
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Str{Str: s}}
+		return newStringValue(s)
 	}
 	rootDict := model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Dict{
 		Entries: []*model_starlark_pb.Dict_Entry{
@@ -32,7 +32,7 @@ func TestAllDictLeafEntries(t *testing.T) {
 		var keys []string
 		var errIter error
 		for key := range model_starlark.AllDictLeafEntries(t.Context(), nil, rootDict, &errIter) {
-			keys = append(keys, key.Message.GetStr())
+			keys = append(keys, mustGetString(key.Message))
 		}
 		require.Equal(t, []string{"a"}, keys)
 		require.EqualError(t, errIter, "not a valid leaf entry")
@@ -43,7 +43,7 @@ func TestAllDictLeafEntries(t *testing.T) {
 		// entry should not cause an error to be reported.
 		var errIter error
 		for key := range model_starlark.AllDictLeafEntries(t.Context(), nil, rootDict, &errIter) {
-			require.Equal(t, "a", key.Message.GetStr())
+			require.Equal(t, "a", mustGetString(key.Message))
 			break
 		}
 		require.NoError(t, errIter)

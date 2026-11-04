@@ -51,6 +51,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 // BUILD.bazel file to obtain the targets and macro instances declared
 // within.
 func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return PatchedPackageValue[TMetadata]{}, err
+	}
+
 	canonicalRepo := canonicalPackage.GetCanonicalRepo()
 
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
@@ -63,7 +68,10 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 	}
 
 	builtinsModuleNames := allBuiltinsModulesNames.Message.BuiltinsModuleNames
-	thread := c.newStarlarkThread(ctx, e, builtinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, builtinsModuleNames)
+	if err != nil {
+		return PatchedPackageValue[TMetadata]{}, err
+	}
 	buildFileBuiltins, err := c.getBuildFileBuiltins(thread, e, builtinsModuleNames)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, err
@@ -102,7 +110,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 		}
 
 		thread.SetLocal(model_starlark.CanonicalPackageKey, canonicalPackage)
-		valueEncodingOptions := c.getValueEncodingOptions(ctx, e, nil)
+		valueEncodingOptions := valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil)
 		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, valueEncodingOptions)
 		thread.SetLocal(model_starlark.GlobExpanderKey, func(includePatterns, excludePatterns []string, includeDirectories bool) ([]string, error) {
 			nfa, err := glob.NewNFAFromPatterns(includePatterns, excludePatterns)
@@ -415,6 +423,11 @@ func (r *existingRulesResolver[TReference, TMetadata]) ForEachExistingRule(yield
 // function to obtain the targets and macro instances declared by the
 // macro instance.
 func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, macroInstanceNameSuffixes []string, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return PatchedPackageValue[TMetadata]{}, err
+	}
+
 	macroInstanceName := strings.Join(macroInstanceNameSuffixes, "")
 
 	// Look up the context for expanding the macro instance. Only
@@ -456,9 +469,12 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	}
 
 	builtinsModuleNames := allBuiltinsModulesNames.Message.BuiltinsModuleNames
-	thread := c.newStarlarkThread(ctx, e, builtinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, builtinsModuleNames)
+	if err != nil {
+		return PatchedPackageValue[TMetadata]{}, err
+	}
 	thread.SetLocal(model_starlark.CanonicalPackageKey, canonicalPackage)
-	valueEncodingOptions := c.getValueEncodingOptions(ctx, e, nil)
+	valueEncodingOptions := valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil)
 	thread.SetLocal(model_starlark.ValueEncodingOptionsKey, valueEncodingOptions)
 	thread.SetLocal(model_starlark.GlobalResolverKey, c.newGlobalResolver(ctx, e, builtinsModuleNames))
 	if rootMacroInstanceDefinition.Message.Finalizer == model_starlark_pb.MacroInstance_FINALIZER {

@@ -14,7 +14,10 @@ type stringUnpackerInto struct{}
 var String UnpackerInto[string] = stringUnpackerInto{}
 
 func (stringUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst *string) error {
-	s, ok := eval.AsString(v)
+	s, ok, err := eval.AsString(thread, v)
+	if err != nil {
+		return err
+	}
 	if !ok {
 		return fmt.Errorf("got %s, want string", v.Type())
 	}
@@ -27,7 +30,9 @@ func (ui stringUnpackerInto) Canonicalize(thread *eval.Thread, v eval.Value) (ev
 	if err := ui.UnpackInto(thread, v, &s); err != nil {
 		return nil, err
 	}
-	return eval.String(s), nil
+	// Return the original value, so that strings that are backed
+	// by storage remain that way.
+	return v, nil
 }
 
 func (stringUnpackerInto) GetConcatenationOperator() syntax.Token {

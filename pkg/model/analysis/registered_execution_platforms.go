@@ -124,11 +124,18 @@ func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, 
 							return fmt.Errorf("failed to extract constraints from execution platform %#v: %w", canonicalPlatformLabelStr, err)
 						}
 					case "exec_pkix_public_key":
-						str, ok := value.Message.Kind.(*model_starlark_pb.Value_Str)
+						fileReader, err := getFileReader(h.environment)
+						if err != nil {
+							return err
+						}
+						str, ok, err := getStringValue(h.context, fileReader, value)
+						if err != nil {
+							return fmt.Errorf("exec_pkix_public_key field of PlatformInfo of execution platform %#v: %w", canonicalPlatformLabelStr, err)
+						}
 						if !ok {
 							return fmt.Errorf("exec_pkix_public_key field of PlatformInfo of execution platform %#v is not a string", canonicalPlatformLabelStr)
 						}
-						execPKIXPublicKey, err = base64.StdEncoding.DecodeString(str.Str)
+						execPKIXPublicKey, err = base64.StdEncoding.DecodeString(str)
 						if err != nil {
 							return fmt.Errorf("exec_pkix_public_key field of PlatformInfo of execution platform %#v: %w", canonicalPlatformLabelStr, err)
 						}

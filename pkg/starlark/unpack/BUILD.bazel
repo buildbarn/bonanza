@@ -10,6 +10,7 @@ go_library(
         "attrs.go",
         "bind.go",
         "bool.go",
+        "bytes.go",
         "canonicalize.go",
         "current_package.go",
         "decay.go",

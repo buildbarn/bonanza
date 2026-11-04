@@ -212,7 +212,10 @@ func (s *Struct[TReference, TMetadata]) Get(thread *eval.Thread, key eval.Value)
 		return nil, true, errors.New("only structs that were instantiated through a provider that was declared with dict_like=True may be accessed like a dict")
 	}
 
-	keyStr, ok := key.(eval.String)
+	keyStr, ok, err := eval.AsString(thread, key)
+	if err != nil {
+		return nil, false, err
+	}
 	if !ok {
 		return nil, false, errors.New("keys have to be of type string")
 	}

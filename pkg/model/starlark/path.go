@@ -223,7 +223,10 @@ func (p *path) doGetChild(thread *eval.Thread, b *eval.Builtin, args eval.Args) 
 		CurrentPath: p.bare,
 	}
 	for i, relativePath := range args.Positional {
-		relativePathStr, ok := eval.AsString(relativePath)
+		relativePathStr, ok, err := eval.AsString(thread, relativePath)
+		if err != nil {
+			return nil, err
+		}
 		if !ok {
 			return nil, fmt.Errorf("at index %d: got %s, want string", i, relativePath.Type())
 		}
@@ -376,11 +379,15 @@ func NewPathOrLabelOrStringUnpackerInto[TReference any, TMetadata model_core.Ref
 
 func (ui *pathOrLabelOrStringUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst **BarePath) error {
 	switch typedV := v.(type) {
-	case eval.String:
+	case eval.String, *eval.LargeString:
+		s, _, err := eval.AsString(thread, typedV)
+		if err != nil {
+			return err
+		}
 		r := PathResolver{
 			CurrentPath: ui.workingDirectory,
 		}
-		if err := bb_path.Resolve(bb_path.UNIXFormat.NewParser(string(typedV)), &r); err != nil {
+		if err := bb_path.Resolve(bb_path.UNIXFormat.NewParser(s), &r); err != nil {
 			return err
 		}
 		*dst = r.CurrentPath

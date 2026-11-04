@@ -22,7 +22,10 @@ func PathParser(pathFormat path.Format) UnpackerInto[path.Parser] {
 }
 
 func (ui *pathParserUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst *path.Parser) error {
-	s, ok := eval.AsString(v)
+	s, ok, err := eval.AsString(thread, v)
+	if err != nil {
+		return err
+	}
 	if !ok {
 		return fmt.Errorf("got %s, want string", v.Type())
 	}
@@ -31,7 +34,10 @@ func (ui *pathParserUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, 
 }
 
 func (ui *pathParserUnpackerInto) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
-	s, ok := eval.AsString(v)
+	s, ok, err := eval.AsString(thread, v)
+	if err != nil {
+		return nil, err
+	}
 	if !ok {
 		return nil, fmt.Errorf("got %s, want string", v.Type())
 	}
@@ -39,7 +45,7 @@ func (ui *pathParserUnpackerInto) Canonicalize(thread *eval.Thread, v eval.Value
 	if err := path.Resolve(ui.pathFormat.NewParser(s), scopeWalker); err != nil {
 		return nil, err
 	}
-	s, err := ui.pathFormat.GetString(builder)
+	s, err = ui.pathFormat.GetString(builder)
 	if err != nil {
 		return nil, err
 	}

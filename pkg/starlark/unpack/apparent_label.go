@@ -21,7 +21,10 @@ type apparentLabelUnpackerInto struct{}
 var ApparentLabel UnpackerInto[label.ApparentLabel] = apparentLabelUnpackerInto{}
 
 func (apparentLabelUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst *label.ApparentLabel) error {
-	s, ok := eval.AsString(v)
+	s, ok, err := eval.AsString(thread, v)
+	if err != nil {
+		return err
+	}
 	if !ok {
 		return fmt.Errorf("got %s, want string", v.Type())
 	}

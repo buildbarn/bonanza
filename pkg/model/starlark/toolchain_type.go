@@ -129,7 +129,7 @@ func NewToolchainTypeUnpackerInto[TReference any, TMetadata model_core.Reference
 
 func (toolchainTypeUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst **ToolchainType[TReference, TMetadata]) error {
 	switch typedV := v.(type) {
-	case eval.String, Label[TReference, TMetadata]:
+	case eval.String, *eval.LargeString, Label[TReference, TMetadata]:
 		var l pg_label.ResolvedLabel
 		currentPackage, err := CurrentFilePackage(thread)
 		if err != nil {

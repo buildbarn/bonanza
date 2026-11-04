@@ -489,8 +489,9 @@ func (c *baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.C
 	}
 }
 
-type performUserDefinedTransitionEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
+type performUserDefinedTransitionEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ObjectManager[TReference, TMetadata]
+	FileCreationParametersObjectValueGetter
 	getBuildSettingValueEnvironment[TReference, TMetadata]
 	getExpectedTransitionOutputEnvironment[TReference, TMetadata]
 	starlarkThreadEnvironment[TReference]
@@ -703,11 +704,19 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 type performAndApplyUserDefinedTransitionResult[TMetadata model_core.ReferenceMetadata] = model_core.PatchedMessage[*model_analysis_pb.UserDefinedTransition_Value_Success, TMetadata]
 
 func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransition(ctx context.Context, e performUserDefinedTransitionEnvironment[TReference, TMetadata], transition model_core.Message[*model_starlark_pb.Transition_UserDefined, TReference], configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference], attrParameter eval.Value) (performAndApplyUserDefinedTransitionResult[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, err
+	}
+
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	if !allBuiltinsModulesNames.IsSet() {
 		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	thread := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	if err != nil {
+		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, err
+	}
 
 	expectedOutputs, outputsDict, err := c.performUserDefinedTransition(ctx, e, thread, transition, configurationReference, attrParameter)
 	if err != nil {
@@ -727,7 +736,7 @@ func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransiti
 			e,
 			configurationReference,
 			buildSettingValuesToApply,
-			c.getValueEncodingOptions(ctx, e, nil),
+			valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil),
 		)
 		if err != nil {
 			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, fmt.Errorf("key %#v: %w", i, err)
@@ -746,7 +755,7 @@ func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransiti
 	), nil
 }
 
-type performUserDefinedTransitionCachedEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
+type performUserDefinedTransitionCachedEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
 	performUserDefinedTransitionEnvironment[TReference, TMetadata]
 
 	UserDefinedTransitionValueGetter[TReference, TMetadata]
@@ -806,7 +815,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached
 	)
 }
 
-type performTransitionEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
+type performTransitionEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
 	performUserDefinedTransitionCachedEnvironment[TReference, TMetadata]
 
 	ExecTransitionValueGetter[TReference, TMetadata]

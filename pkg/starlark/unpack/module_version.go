@@ -16,7 +16,10 @@ type moduleVersionUnpackerInto struct{}
 var ModuleVersion UnpackerInto[label.ModuleVersion] = moduleVersionUnpackerInto{}
 
 func (moduleVersionUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst *label.ModuleVersion) error {
-	s, ok := eval.AsString(v)
+	s, ok, err := eval.AsString(thread, v)
+	if err != nil {
+		return err
+	}
 	if !ok {
 		return fmt.Errorf("got %s, want string", v.Type())
 	}

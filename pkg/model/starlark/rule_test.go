@@ -154,9 +154,7 @@ func TestRuleCallTest(t *testing.T) {
 			Args: []*model_starlark_pb.Select_Group{noMatchGroup(&model_starlark_pb.Value{
 				Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{
 					Elements: []*model_starlark_pb.List_Element{{
-						Level: &model_starlark_pb.List_Element_Leaf{Leaf: &model_starlark_pb.Value{
-							Kind: &model_starlark_pb.Value_Str{Str: "--foo"},
-						}},
+						Level: &model_starlark_pb.List_Element_Leaf{Leaf: newStringValue("--foo")},
 					}},
 				}},
 			})},

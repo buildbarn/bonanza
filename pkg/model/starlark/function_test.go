@@ -119,9 +119,7 @@ adder = make_adder(3)
 			thread.SetLocal(model_starlark.GlobalResolverKey, model_starlark.GlobalResolver[object.LocalReference](func(identifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, object.LocalReference], error) {
 				resolvedIdentifiers = append(resolvedIdentifiers, identifier.String())
 				if identifier.GetCanonicalLabel() == otherFilename {
-					return model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Str{Str: "."},
-					}), nil
+					return model_core.NewSimpleMessage[object.LocalReference](newStringValue(".")), nil
 				}
 				return model_starlark.GetStructFieldValue(t.Context(), decodingOptions.Readers.List, model_core.Nested(globals, globals.Message.Globals), identifier.GetStarlarkIdentifier().String())
 			}))

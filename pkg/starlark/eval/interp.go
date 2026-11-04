@@ -628,11 +628,14 @@ func popCallArgs(t *Thread, fr *frame, op compile.Opcode, arg uint32) (Args, Val
 		}
 		var errIter error
 		for k, v := range d.Items(t, &errIter) {
-			name, ok := k.(String)
+			name, ok, err := stringContents(t, k)
+			if err != nil {
+				return Args{}, nil, err
+			}
 			if !ok {
 				return Args{}, nil, fmt.Errorf("keywords must be strings, not %s", k.Type())
 			}
-			args.Named = append(args.Named, NamedArg{Name: string(name), Value: v})
+			args.Named = append(args.Named, NamedArg{Name: name, Value: v})
 		}
 		if errIter != nil {
 			return Args{}, nil, errIter

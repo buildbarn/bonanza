@@ -160,6 +160,11 @@ func (c *baseComputer[TReference, TMetadata]) mapStructFields(
 	in model_core.Message[*model_starlark_pb.Struct, TReference],
 	fieldMapper func(name string, value model_core.Message[*model_starlark_pb.Value, TReference]) (any, error),
 ) (model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata]{}, err
+	}
+
 	fields := map[string]any{}
 	var errIter error
 	for name, value := range model_starlark.AllStructFields(
@@ -183,7 +188,7 @@ func (c *baseComputer[TReference, TMetadata]) mapStructFields(
 	// does not require any values to be decoded.
 	thread := eval.NewThread(ctx, eval.Universe())
 	encodedFields, err := model_starlark.NewStructFromDict[TReference, TMetadata](nil, fields).
-		EncodeStructFields(thread, nil, c.getValueEncodingOptions(ctx, e, nil))
+		EncodeStructFields(thread, nil, valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil))
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata]{}, err
 	}
@@ -356,6 +361,11 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 	visibilityFromPackage label.CanonicalPackage,
 	execGroupPlatformLabels map[string]string,
 ) (eval.Value, error) {
+	valueDecodingOptionsFactory, err := c.newValueDecodingOptionsFactory(e)
+	if err != nil {
+		return nil, err
+	}
+
 	// See if any transitions need to be applied.
 	var cfg *model_starlark_pb.Transition
 	isScalar := false
@@ -398,7 +408,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 		for _, valuePart := range valueParts.Message {
 			decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
 				thread, model_core.Nested(valueParts, valuePart),
-				c.getValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
+				valueDecodingOptionsFactory.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 					// We should leave the target
 					// unconfigured. Provide a
 					// target reference that does
@@ -419,7 +429,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 	} else {
 		missingDependencies := false
 		for _, configurationReference := range configurationReferences {
-			valueDecodingOptions := c.getValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
+			valueDecodingOptions := valueDecodingOptionsFactory.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 				// Resolve the label.
 				canonicalOriginalLabel, err := originalLabel.AsCanonical()
 				if err != nil {
@@ -508,6 +518,15 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return PatchedConfiguredTargetValue[TMetadata]{}, err
+	}
+	valueDecodingOptionsFactory, err := c.newValueDecodingOptionsFactory(e)
+	if err != nil {
+		return PatchedConfiguredTargetValue[TMetadata]{}, err
+	}
+
 	targetLabel, err := label.NewCanonicalLabel(key.Message.Label)
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
@@ -598,7 +617,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		}
 		ruleDefinition := model_core.Nested(ruleValue, d.Definition)
 
-		thread := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+		thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+		if err != nil {
+			return PatchedConfiguredTargetValue[TMetadata]{}, err
+		}
 
 		// Set all common attrs.
 		attrValues := make(map[string]any, len(ruleDefinition.Message.Attrs)+2)
@@ -679,7 +701,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			for _, valuePart := range valueParts {
 				decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
 					thread, valuePart,
-					c.getValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
+					valueDecodingOptionsFactory.newValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
 						return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
 					}),
 				)
@@ -789,7 +811,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			for _, valuePart := range valueParts.Message {
 				decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
 					thread, model_core.Nested(valueParts, valuePart),
-					c.getValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
+					valueDecodingOptionsFactory.newValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
 						switch namedAttr.Attr.GetType().(type) {
 						case *model_starlark_pb.Attr_Output, *model_starlark_pb.Attr_OutputList:
 							canonicalLabel, err := resolvedLabel.AsCanonical()
@@ -978,7 +1000,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				for _, valuePart := range valueParts.Message {
 					decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
 						thread, model_core.Nested(valueParts, valuePart),
-						c.getValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
+						valueDecodingOptionsFactory.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 							return model_starlark.NewTargetReference[TReference, TMetadata](
 								originalLabel,
 								/* configured = */ nil,
@@ -1027,7 +1049,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					}
 
 					var splitAttrEntryBuilder model_starlark.AttrValueBuilder
-					valueDecodingOptions := c.getValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
+					valueDecodingOptions := valueDecodingOptionsFactory.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 						// Resolve the label.
 						canonicalOriginalLabel, err := originalLabel.AsCanonical()
 						if err != nil {
@@ -1224,6 +1246,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		rc := &ruleContext[TReference, TMetadata]{
 			computer:                    c,
 			context:                     ctx,
+			valueEncodingOptionsFactory: valueEncodingOptionsFactory,
 			environment:                 e,
 			ruleIdentifier:              ruleIdentifier,
 			targetLabel:                 targetLabel,
@@ -1391,7 +1414,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				}
 				providersSeen[providerIdentifier] = struct{}{}
 
-				v, err := providerInstance.Encode(thread, nil, c.getValueEncodingOptions(ctx, e, nil))
+				v, err := providerInstance.Encode(thread, nil, valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil))
 				if err != nil {
 					return nil, err
 				}
@@ -1678,6 +1701,7 @@ type ruleContext[TReference object.BasicReference, TMetadata model_core.Referenc
 	computer                    *baseComputer[TReference, TMetadata]
 	context                     context.Context
 	environment                 ConfiguredTargetEnvironment[TReference, TMetadata]
+	valueEncodingOptionsFactory *valueEncodingOptionsFactory[TReference, TMetadata]
 	ruleIdentifier              label.CanonicalStarlarkIdentifier
 	targetLabel                 label.CanonicalLabel
 	configurationReference      model_core.Message[*model_core_pb.DecodableReference, TReference]
@@ -2063,7 +2087,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doExpandTemplate(thread *e
 	var output *targetOutput[TMetadata]
 	var template *model_starlark.File[TReference, TMetadata]
 	isExecutable := false
-	var substitutions map[string]string
+	var substitutions map[string][]byte
 	rc := rca.ruleContext
 	if err := eval.UnpackArgs(
 		thread, b.Name(), args,
@@ -2073,7 +2097,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doExpandTemplate(thread *e
 		// Optional arguments.
 		// TODO: Add TemplateDict and computed_substitutions.
 		"is_executable?", unpack.Bind(&isExecutable, unpack.Bool),
-		"substitutions?", unpack.Bind(&substitutions, unpack.Dict(unpack.String, unpack.String)),
+		"substitutions?", unpack.Bind(&substitutions, unpack.Dict(unpack.String, unpack.Bytes)),
 	); err != nil {
 		return nil, err
 	}
@@ -2082,7 +2106,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doExpandTemplate(thread *e
 	for _, needle := range slices.Sorted(maps.Keys(substitutions)) {
 		substitutionsList = append(substitutionsList, &model_analysis_pb.TargetOutputDefinition_ExpandTemplate_Substitution{
 			Needle:      []byte(needle),
-			Replacement: []byte(substitutions[needle]),
+			Replacement: substitutions[needle],
 		})
 	}
 
@@ -2172,7 +2196,7 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 	}
 
 	// Encode individual fields.
-	valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.context, rc.environment, nil)
+	valueEncodingOptions := rc.valueEncodingOptionsFactory.newValueEncodingOptions(rc.context, nil)
 	executable := model_core.Patch(rc.environment, fields.executable.GetDefinition())
 	runfilesFiles, err := fields.runfilesFiles.EncodeList(thread, nil, valueEncodingOptions)
 	if err != nil {
@@ -2338,7 +2362,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 		return nil, err
 	}
 
-	valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.context, rc.environment, nil)
+	valueEncodingOptions := rc.valueEncodingOptionsFactory.newValueEncodingOptions(rc.context, nil)
 	var inputsDirect []eval.Value
 	toolsParentNodeComputer := btree.Capturing(rc.context, valueEncodingOptions.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.FilesToRunProvider, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.FilesToRunProvider {
@@ -2425,17 +2449,18 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 	// objects taking a list. That way, computation of target
 	// actions only needs to process Args objects.
 	stringArgumentsListBuilder := model_starlark.NewListBuilder(valueEncodingOptions)
+	encodedArgv0, err := model_starlark.EncodeValue[TReference, TMetadata](thread, eval.String(argv0), nil, nil, valueEncodingOptions)
+	if err != nil {
+		return nil, err
+	}
 	if err := stringArgumentsListBuilder.PushChild(
-		model_core.NewSimplePatchedMessage[TMetadata](
+		model_core.NewPatchedMessage(
 			&model_starlark_pb.List_Element{
 				Level: &model_starlark_pb.List_Element_Leaf{
-					Leaf: &model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Str{
-							Str: argv0,
-						},
-					},
+					Leaf: encodedArgv0.Message,
 				},
 			},
+			encodedArgv0.Patcher,
 		),
 	); err != nil {
 		return nil, err
@@ -2499,17 +2524,18 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 				stringArgumentsListBuilder = model_starlark.NewListBuilder(valueEncodingOptions)
 				gotStringArguments = true
 			}
+			encodedTypedArgument, err := model_starlark.EncodeValue[TReference, TMetadata](thread, eval.String(typedArgument), nil, nil, valueEncodingOptions)
+			if err != nil {
+				return nil, err
+			}
 			if err := stringArgumentsListBuilder.PushChild(
-				model_core.NewSimplePatchedMessage[TMetadata](
+				model_core.NewPatchedMessage(
 					&model_starlark_pb.List_Element{
 						Level: &model_starlark_pb.List_Element_Leaf{
-							Leaf: &model_starlark_pb.Value{
-								Kind: &model_starlark_pb.Value_Str{
-									Str: typedArgument,
-								},
-							},
+							Leaf: encodedTypedArgument.Message,
 						},
 					},
+					encodedTypedArgument.Patcher,
 				),
 			); err != nil {
 				return nil, err
@@ -2974,7 +3000,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *eval.Threa
 		"output", unpack.Bind(&output, rc.outputRegistrar),
 		"content", unpack.Bind(&content, unpack.Or([]unpack.UnpackerInto[any]{
 			unpack.Decay(unpack.Type[*args[TReference, TMetadata]]("Args")),
-			unpack.Decay(unpack.String),
+			unpack.Decay(unpack.Bytes),
 		})),
 		"is_executable?", unpack.Bind(&isExecutable, unpack.Bool),
 		"mnemonic?", unpack.Bind(&mnemonic, unpack.IfNotNone(unpack.String)),
@@ -2988,7 +3014,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *eval.Threa
 
 	switch typedContent := content.(type) {
 	case *args[TReference, TMetadata]:
-		valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.context, rc.environment, nil)
+		valueEncodingOptions := rc.valueEncodingOptionsFactory.newValueEncodingOptions(rc.context, nil)
 		encodedContent, err := typedContent.Encode(thread, nil, valueEncodingOptions)
 		if err != nil {
 			return nil, err
@@ -3005,11 +3031,11 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *eval.Threa
 				}
 			}),
 		)
-	case string:
+	case []byte:
 		fileContents, err := model_filesystem.CreateFileMerkleTree(
 			rc.context,
 			rc.fileCreationParameters,
-			strings.NewReader(typedContent),
+			bytes.NewReader(typedContent),
 			model_filesystem.NewSimpleFileMerkleTreeCapturer(rc.environment),
 		)
 		if err != nil {

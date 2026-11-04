@@ -37,8 +37,12 @@ func (s String) Hash(*Thread) (uint32, error) {
 }
 
 // CompareSameType compares strings lexicographically by byte.
-func (s String) CompareSameType(_ *Thread, op syntax.Token, y Value, _ int) (bool, error) {
-	return threeway(op, strings.Compare(string(s), string(y.(String)))), nil
+func (s String) CompareSameType(t *Thread, op syntax.Token, y Value, _ int) (bool, error) {
+	if ys, ok := y.(String); ok {
+		return threeway(op, strings.Compare(string(s), string(ys))), nil
+	}
+	cmp, err := compareStrings(t, s, y)
+	return threeway(op, cmp), err
 }
 
 // Len returns the length of the string in bytes.

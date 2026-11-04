@@ -16,7 +16,10 @@ type moduleUnpackerInto struct{}
 var Module UnpackerInto[label.Module] = moduleUnpackerInto{}
 
 func (moduleUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst *label.Module) error {
-	s, ok := eval.AsString(v)
+	s, ok, err := eval.AsString(thread, v)
+	if err != nil {
+		return err
+	}
 	if !ok {
 		return fmt.Errorf("got %s, want string", v.Type())
 	}

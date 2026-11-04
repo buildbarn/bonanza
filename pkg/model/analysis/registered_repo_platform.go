@@ -11,13 +11,14 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )
 
-func (c *baseComputer[TReference, TMetadata]) decodeStringDict(ctx context.Context, d model_core.Message[*model_starlark_pb.Value, TReference]) (map[string]string, error) {
+func (c *baseComputer[TReference, TMetadata]) decodeStringDict(ctx context.Context, fileReader *model_filesystem.FileReader[TReference], d model_core.Message[*model_starlark_pb.Value, TReference]) (map[string]string, error) {
 	dict, ok := d.Message.GetKind().(*model_starlark_pb.Value_Dict)
 	if !ok {
 		return nil, errors.New("not a dict")
@@ -30,15 +31,21 @@ func (c *baseComputer[TReference, TMetadata]) decodeStringDict(ctx context.Conte
 		model_core.Nested(d, dict.Dict),
 		&iterErr,
 	) {
-		keyStr, ok := key.Message.GetKind().(*model_starlark_pb.Value_Str)
+		keyStr, ok, err := getStringValue(ctx, fileReader, key)
+		if err != nil {
+			return nil, fmt.Errorf("key: %w", err)
+		}
 		if !ok {
 			return nil, errors.New("key is not a string")
 		}
-		valueStr, ok := value.Message.GetKind().(*model_starlark_pb.Value_Str)
+		valueStr, ok, err := getStringValue(ctx, fileReader, value)
+		if err != nil {
+			return nil, fmt.Errorf("value of key %#v: %w", keyStr, err)
+		}
 		if !ok {
 			return nil, errors.New("value is not a string")
 		}
-		o[keyStr.Str] = valueStr.Str
+		o[keyStr] = valueStr
 	}
 	if iterErr != nil {
 		return nil, fmt.Errorf("failed to iterate dict: %w", iterErr)
@@ -54,6 +61,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	buildSpecification := buildSpecificationValue.Message
+	fileReader, err := getFileReader(e)
+	if err != nil {
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, err
+	}
 
 	rootModuleName := buildSpecification.RootModuleName
 	rootModule, err := label.NewModule(rootModuleName)
@@ -103,22 +114,28 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue
 	) {
 		switch key {
 		case "exec_pkix_public_key":
-			str, ok := value.Message.Kind.(*model_starlark_pb.Value_Str)
+			str, ok, err := getStringValue(ctx, fileReader, value)
+			if err != nil {
+				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("exec_pkix_public_key field of PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
+			}
 			if !ok {
 				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("exec_pkix_public_key field of PlatformInfo of repo platform %#v is not a string", repoPlatformLabelStr)
 			}
-			execPKIXPublicKey, err = base64.StdEncoding.DecodeString(str.Str)
+			execPKIXPublicKey, err = base64.StdEncoding.DecodeString(str)
 			if err != nil {
 				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("exec_pkix_public_key field of PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
 			}
 		case "repository_os_arch":
-			str, ok := value.Message.Kind.(*model_starlark_pb.Value_Str)
+			str, ok, err := getStringValue(ctx, fileReader, value)
+			if err != nil {
+				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_arch field of PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
+			}
 			if !ok {
 				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_arch field of PlatformInfo of repo platform %#v is not a string", repoPlatformLabelStr)
 			}
-			repositoryOSArch = str.Str
+			repositoryOSArch = str
 		case "repository_os_environ":
-			p, err := c.decodeStringDict(ctx, value)
+			p, err := c.decodeStringDict(ctx, fileReader, value)
 			if err != nil {
 				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_environ field of PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
 			}
@@ -130,11 +147,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue
 				})
 			}
 		case "repository_os_name":
-			str, ok := value.Message.Kind.(*model_starlark_pb.Value_Str)
+			str, ok, err := getStringValue(ctx, fileReader, value)
+			if err != nil {
+				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_name field of PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
+			}
 			if !ok {
 				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_name field of PlatformInfo of repo platform %#v is not a string", repoPlatformLabelStr)
 			}
-			repositoryOSName = str.Str
+			repositoryOSName = str
 		}
 	}
 	if errIter != nil {

@@ -16,9 +16,7 @@ import (
 )
 
 func TestAttrValueBuilder(t *testing.T) {
-	str := func(s string) *model_starlark_pb.Value {
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Str{Str: s}}
-	}
+	str := func(s string) *model_starlark_pb.Value { return newStringValue(s) }
 	labelValue := func(s string) *model_starlark_pb.Value {
 		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: s}}
 	}

@@ -20,7 +20,7 @@ import (
 )
 
 type createInitialConfigurationEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	model_core.ObjectCapturer[TReference, TMetadata]
+	valueEncodingEnvironment[TReference, TMetadata]
 	labelResolverEnvironment[TReference]
 	getExpectedTransitionOutputEnvironment[TReference, TMetadata]
 }
@@ -41,6 +41,11 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 	rootPackage label.CanonicalPackage,
 	configuration *model_analysis_pb.BuildResult_Key_Configuration,
 ) (model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata]{}, err
+	}
+
 	// Walk over all provided build setting overrides and group all
 	// values belonging to the same build setting together.
 	var buildSettings []initialConfigurationBuildSetting[TReference]
@@ -108,11 +113,16 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 		e,
 		model_core.NewSimpleMessage[TReference]((*model_core_pb.DecodableReference)(nil)),
 		buildSettingValuesToApply,
-		c.getValueEncodingOptions(ctx, e, nil),
+		valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil),
 	)
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ExecTransition_Key, TReference], e ExecTransitionEnvironment[TReference, TMetadata]) (PatchedExecTransitionValue[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	if err != nil {
+		return PatchedExecTransitionValue[TMetadata]{}, err
+	}
+
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	if !allBuiltinsModulesNames.IsSet() || !rootModuleValue.IsSet() {
@@ -153,13 +163,23 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 	if err != nil {
 		return PatchedExecTransitionValue[TMetadata]{}, err
 	}
-	execConfigStr, ok := execConfigValue.Message.Kind.(*model_starlark_pb.Value_Str)
+	fileReader, err := getFileReader(e)
+	if err != nil {
+		return PatchedExecTransitionValue[TMetadata]{}, err
+	}
+	execConfigStr, ok, err := getStringValue(ctx, fileReader, execConfigValue)
+	if err != nil {
+		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("value of build setting %s: %w", execConfigCommandLineOption, err)
+	}
 	if !ok {
 		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("value of build setting %s is not a string", execConfigCommandLineOption)
 	}
 
 	// Invoke the exec transition.
-	thread := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	if err != nil {
+		return PatchedExecTransitionValue[TMetadata]{}, err
+	}
 	expectedOutputs, outputsDict, err := c.performUserDefinedTransition(
 		ctx,
 		e,
@@ -167,7 +187,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		model_core.NewSimpleMessage[TReference](
 			&model_starlark_pb.Transition_UserDefined{
 				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-					Identifier: execConfigStr.Str,
+					Identifier: execConfigStr,
 				},
 			},
 		),
@@ -221,7 +241,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		e,
 		model_core.NewSimpleMessage[TReference]((*model_core_pb.DecodableReference)(nil)),
 		buildSettingValuesToApply,
-		c.getValueEncodingOptions(ctx, e, nil),
+		valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil),
 	)
 	if err != nil {
 		return PatchedExecTransitionValue[TMetadata]{}, err
