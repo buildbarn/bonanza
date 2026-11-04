@@ -1632,6 +1632,9 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGr
 
 	evaluationsParentNodeComputer := rc.getEvaluationsParentNodeComputer(ctx)
 	dependencyEvaluationsList, err := rc.getEvaluationsForSortedList(ctx, nestedVariableDependencies)
+	if err != nil {
+		return variableDependenciesMarshaledValueState[TReference, TMetadata]{}, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+	}
 	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{
 		ExternalMessage: model_core.ProtoListToBinaryMarshaler(dependencyEvaluationsList),
 		Encoder:         rc.cacheDeterministicEncoder,
