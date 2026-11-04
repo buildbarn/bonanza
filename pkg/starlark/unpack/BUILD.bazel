@@ -31,7 +31,7 @@ go_library(
         "type.go",
         "url.go",
     ],
-    importpath = "bonanza.build/pkg/starlark/eval/unpack",
+    importpath = "bonanza.build/pkg/starlark/unpack",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/label",

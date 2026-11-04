@@ -76,7 +76,7 @@ pkg/starlark/compile    AST -> bytecode, Funcode proto (new)
 pkg/starlark/eval       Value interfaces, core types,
                         Thread, VM, error/backtrace,
                         builtins, methods, json        (new)
-pkg/starlark/eval/unpack
+pkg/starlark/unpack
                         argument unpacking             (ported from
                                                         pkg/starlark/unpack)
 pkg/model/starlark      storage-backed implementations,
@@ -87,7 +87,7 @@ pkg/model/starlark      storage-backed implementations,
 The core interpreter lives in `pkg/starlark/eval` rather than
 `pkg/starlark`, because the latter contained code that used
 go.starlark.net while the migration was in progress. For the same
-reason the ported unpackers live in `pkg/starlark/eval/unpack`. The core knows nothing about the object store and has no
+reason the ported unpackers live in `pkg/starlark/unpack`. The core knows nothing about the object store and has no
 `[TReference, TMetadata]` generics. Storage-backed
 values are implementations of the core interfaces that live in
 `pkg/model/starlark`, just like `Struct` already does today.
@@ -1075,7 +1075,7 @@ type Builtin struct {
 Arguments are unpacked with `eval.UnpackArgs()`, which is modelled
 after `starlark.UnpackArgs()`. It accepts pointers to variables of the
 core types, or implementations of `eval.Unpacker`. The unpackers of
-`pkg/starlark/unpack` are ported to `pkg/starlark/eval/unpack`, where
+`pkg/starlark/unpack` are ported to `pkg/starlark/unpack`, where
 `unpack.Bind()` turns an `UnpackerInto[T]` into an `eval.Unpacker`.
 Their methods already took a `*Thread`, so they port by changing
 types. Unpackers of composite values, such as `unpack.List`, accept

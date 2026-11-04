@@ -9,9 +9,9 @@ import (
 	"bonanza.build/pkg/label"
 	"bonanza.build/pkg/starlark/compile"
 	"bonanza.build/pkg/starlark/eval"
-	"bonanza.build/pkg/starlark/eval/unpack"
 	"bonanza.build/pkg/starlark/resolve"
 	"bonanza.build/pkg/starlark/syntax"
+	"bonanza.build/pkg/starlark/unpack"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"

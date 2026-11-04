@@ -7,8 +7,8 @@ import (
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/starlark/eval"
-	"bonanza.build/pkg/starlark/eval/unpack"
 	"bonanza.build/pkg/starlark/syntax"
+	"bonanza.build/pkg/starlark/unpack"
 
 	bb_path "github.com/buildbarn/bb-storage/pkg/filesystem/path"
 )
