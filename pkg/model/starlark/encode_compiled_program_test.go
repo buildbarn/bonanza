@@ -90,10 +90,9 @@ my_transition = transition(implementation = _transition_impl, inputs = [], outpu
 	require.NoError(t, err)
 	program := compile.File(f, m)
 	thread := newTestThread(t)
-	module := eval.NewInMemoryModule(filename.String(), bzlFileBuiltins, nil)
+	module := model_starlark.NewBzlModule(filename, bzlFileBuiltins, nil)
 	require.NoError(t, eval.ExecFile(thread, program, module))
 	globals := module.Globals()
-	model_starlark.NameAndExtractGlobals(globals, filename)
 
 	objectManager := model_core.NewLeakCheckingObjectManager[object.LocalReference, model_core.NoopReferenceMetadata](discardingObjectManager{})
 	encodedProgram, err := model_starlark.EncodeCompiledProgram(thread, program, globals, &model_starlark.ValueEncodingOptions[object.LocalReference, metadata]{

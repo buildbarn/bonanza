@@ -410,7 +410,7 @@ func TestFunctionNamePaths(t *testing.T) {
 		)
 		require.NoError(t, err)
 		program := compile.File(f, m)
-		module := eval.NewInMemoryModule(filename.String(), nil, nil)
+		module := model_starlark.NewBzlModule(filename, nil, nil)
 		require.NoError(t, eval.ExecFile(newTestThread(t), program, module))
 		encodedProgram, err := model_starlark.EncodeCompiledProgram(newTestThread(t), program, module.Globals(), encodingOptions)
 		require.NoError(t, err)

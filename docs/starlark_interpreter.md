@@ -1128,6 +1128,7 @@ removed.
 | `CompiledBzlFileFunctionFactory` → `*starlark.FunctionFactory` (native) | Removed. Functions are called from their `Funcode` + module. |
 | `getBzlFileBuiltins()` decodes all of `exports.bzl`'s `exported_toplevels`/`exported_rules` into a `StringDict` on every evaluation | A new message-valued key, e.g. `BzlFileBuiltins{builtins_module_names}`, merges them into one `Struct.Fields` message once. The predeclared environment becomes a lazy `Module` over that message. |
 | `CompiledProgram.code` stored only if `needsCode` | Removed. Each function refers to its own `Funcode` object. |
+| `NameAndExtractGlobals()` names rules, providers, etc. after the `.bzl` file has finished executing, picking the alphabetically first global if a value is bound to several | `BzlModule.SetGlobal()` names them as soon as they are assigned to a global, so the name is visible to the rest of the file and the first assignment wins, as in Bazel. Values that are never bound to a global directly (e.g., stored in a dict) stay unnamed. |
 
 That removes every Starlark-related native value key. The native keys
 that remain (`FileReader`, `ActionReaders`, `*CreationParametersObject`,

@@ -49,12 +49,11 @@ func execBzlFile(thread *eval.Thread, filename label.CanonicalLabel, source stri
 	if err != nil {
 		return nil, err
 	}
-	module := eval.NewInMemoryModule(filename.String(), allPredeclared, nil)
+	module := model_starlark.NewBzlModule(filename, allPredeclared, nil)
 	if err := eval.ExecFile(thread, compile.File(f, m), module); err != nil {
 		return nil, err
 	}
 	globals := module.Globals()
-	model_starlark.NameAndExtractGlobals(globals, filename)
 	return globals, nil
 }
 

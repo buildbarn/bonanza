@@ -89,6 +89,7 @@ go_test(
         "mocks_encoding_test.go",
         "mocks_label_test.go",
         "mocks_starlark_test.go",
+        "named_global_test.go",
         "native_test.go",
         "package_group_test.go",
         "parse_repo_dot_bazel_test.go",

@@ -102,12 +102,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	}
 	thread.SetLocal(model_starlark.ReferenceEqualIdentifierGeneratorKey, identifierGenerator)
 
-	module := eval.NewInMemoryModule(canonicalLabel.String(), bzlFileBuiltins, c.newBzlImporter(ctx, e, key.BuiltinsModuleNames))
+	module := model_starlark.NewBzlModule(canonicalLabel, bzlFileBuiltins, c.newBzlImporter(ctx, e, key.BuiltinsModuleNames))
 	if err := eval.ExecFile(thread, program, module); err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, formatStarlarkError(err)
 	}
 	globals := module.Globals()
-	model_starlark.NameAndExtractGlobals(globals, canonicalLabel)
 
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.CompiledBzlFile_Value, error) {
 		compiledProgram, err := model_starlark.EncodeCompiledProgram(thread, program, globals, c.getValueEncodingOptions(ctx, e, &canonicalLabel))
