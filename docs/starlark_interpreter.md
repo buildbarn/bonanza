@@ -77,17 +77,16 @@ pkg/starlark/eval       Value interfaces, core types,
                         Thread, VM, error/backtrace,
                         builtins, methods, json        (new)
 pkg/starlark/unpack
-                        argument unpacking             (ported from
-                                                        pkg/starlark/unpack)
+                        argument unpacking             (ported)
 pkg/model/starlark      storage-backed implementations,
                         Bazel types (Label, depset,
                         struct, rule, ...)             (existing, ported)
 ```
 
-The core interpreter lives in `pkg/starlark/eval` rather than
-`pkg/starlark`, because the latter contained code that used
-go.starlark.net while the migration was in progress. For the same
-reason the ported unpackers live in `pkg/starlark/unpack`. The core knows nothing about the object store and has no
+The core interpreter lives in `pkg/starlark/eval`, next to the
+packages implementing the other stages of the pipeline. The unpackers
+for builtin arguments live in `pkg/starlark/unpack`, and the
+`MODULE.bazel` parser lives in `pkg/moduledotbazel`. The core knows nothing about the object store and has no
 `[TReference, TMetadata]` generics. Storage-backed
 values are implementations of the core interfaces that live in
 `pkg/model/starlark`, just like `Struct` already does today.
@@ -161,7 +160,8 @@ optional type field, and bare declarations (`x: int`) become a
    AST and resolved like other names, which catches undefined type
    names. `cast(x, T)` evaluates to `x`.
 2. **Run-time behaviour,** such as `isinstance(value, type)`, once the
-   spec has settled. It is implemented in the compiler and `library`.
+   spec has settled. It is implemented in the compiler and in
+   `pkg/starlark/eval`.
 
 Annotation syntax is enabled through `syntax.Options.TypeSyntax`, off
 by default until the spec is merged. It has to be a parser option
@@ -182,8 +182,9 @@ Upstream `resolve` gets in the way:
   the extra information our compiler needs.
 
 As in upstream, our parser accepts the full grammar and leaves all
-dialect checks (e.g. `while`, top-level `if`/`for`, `set`, global
-reassignment) to the resolver. The only exception is type syntax (see
+dialect checks (e.g. top-level `if`/`for`, `set`, global reassignment)
+to the resolver. The exceptions are `while` statements, which no
+dialect permits and are rejected by the parser, and type syntax (see
 [Type annotations](#type-annotations)). Everything from the
 compiler down is affected by the value model, so it is new code as
 well.
@@ -221,7 +222,7 @@ type Binding struct {
 type LoadedSymbol struct {
 	Module  string   // as written; the caller canonicalizes it
 	Name    string   // name in the loaded module
-	Binding *Binding // Import, or Global if load() binds globally
+	Binding *Binding
 }
 
 type Module struct {
@@ -265,9 +266,9 @@ to be deferred to the end of the file.
 
 `Dialect` replaces upstream's linknamed `syntax.FileOptions` flags. It
 contains the options of Bazel's `FileOptions` that matter here
-(`LoadBindsGlobally`, `AllowToplevelRebinding`,
-`RequireLoadStatementsFirst`, `AllowLoadPrivateSymbols`), plus
-`AllowWhile`, `ResolveTypeSyntax` and an optional `RestrictedSyntax`.
+(`AllowToplevelRebinding`,
+`RequireLoadStatementsFirst`), plus `ResolveTypeSyntax` and an optional
+`RestrictedSyntax`.
 The latter mirrors Bazel's `DotBazelFileSyntaxChecker`, including its
 error messages. There is one preset per file type, based on Bazel's
 `BzlCompileFunction`, `PackageFunction` and `CompiledModuleFile`:
@@ -277,12 +278,15 @@ error messages. There is one preset per file type, based on Bazel's
 | `def` / `lambda`, `if` / `for` | inside functions | ✗ | ✗ | ✗ |
 | `*args` in calls | ✓ | ✗ | ✗ | ✗ |
 | `**kwargs` in calls | ✓ | ✗ | dict literal only | dict literal only |
-| `load()` | before other statements | anywhere, binds globals | ✗ | ✗ |
+| `load()` | before other statements | anywhere | ✗ | ✗ |
 | reassigning top-level names | ✗ | ✓ | ✗ | ✗ |
 | loading `_private` symbols | ✗ | ✗ | — | — |
-| `while` | ✗ | ✗ | ✗ | ✗ |
 
 `if` and `for` are never permitted at the top level, in any file type.
+Symbols bound by `load()` are file-local and loaded lazily in all file
+types. Unlike Bazel, a name in a `BUILD` file can't be both loaded and
+assigned, or loaded as two different symbols, as nothing reads the
+globals of `BUILD` files that would make this distinction useful.
 The `REPO.bazel` column is a best guess, as Bazel's `RepoFileFunction`
 couldn't be checked. Recursion is not a resolver concern; it is
 detected when calls are made. `MODULE.bazel`'s rules for `include()`
@@ -374,7 +378,7 @@ pretend to be lists by accident.
 
 Implementations:
 
-| Kind | In-memory (`pkg/starlark`) | Storage-backed (`pkg/model/starlark`) |
+| Kind | In-memory (`pkg/starlark/eval`) | Storage-backed (`pkg/model/starlark`) |
 |---|---|---|
 | list | `*memList`: `[]Value`, mutable unless created immutable | `*storedList`: root `[]*List_Element`, decodes nodes on demand through the parsed object pool |
 | dict | `*memDict`: insertion-ordered hash table | `*storedDict`: entries sorted by key, plus insertion order, see [Stored dicts and sets](#stored-dicts-and-sets) |
@@ -492,10 +496,10 @@ in general, not just for these three:
    always the current thread.
 
 The function design follows these rules. A `Function` message refers to
-its `Funcode` by reference, so loading the code needs no `Environment`
-lookup and can be shared. The module's globals and imports are
-resolved through `CompiledBzlFileGlobal` by every evaluation that uses
-them. Rules and macros that are referenced by identifier become
+its code by name, and every evaluation that calls it looks up the code
+in the `CompiledProgram` of its file. The module's globals and imports
+are resolved through `CompiledBzlFileGlobal` by every evaluation that
+uses them. Rules and macros that are referenced by identifier become
 storage-backed values that resolve their definition per thread, the
 same way.
 
@@ -748,7 +752,7 @@ including errors on mixed types.
    is true, so ints and floats share one rank and are ordered by
    numeric value.
 4. **Based on content, never on identity.** Functions order by their
-   message (filename, code reference and closure). Depsets and other
+   message (filename, name path and closure). Depsets and other
    reference-equal values order by their reference-equal identifier.
 
 Tuples are stored inline (`repeated Value elements`), so comparing
@@ -910,33 +914,59 @@ Its constants, names, loaded symbols and nested functions are stored in
 tables of its own, rather than in tables shared by the whole file. Each
 one can therefore be stored as a `Funcode` message of its own.
 
-Nested functions are stored inline in the message of the function
-containing them. If the message becomes too large, `inlinedtree` moves
-the largest ones to separate objects. Lambdas and nested functions tend
-to be small, so this avoids creating lots of tiny objects. A closure
-that is created from stored code and later encoded is written as a
-standalone object, which deduplicates with any identical copy.
+The code of all functions and lambdas declared at the top level of a
+file is stored in a B-tree in `CompiledProgram.functions`, sorted by
+name. Nested functions are stored inside the message of the function
+containing them, so a function and everything nested in it are always
+read together. The name of a function isn't part of its `Funcode`. It's
+stored next to it, in the B-tree entry or `Funcode.NestedFunction`, and
+is left empty for lambdas.
+
+The line at which a function is declared isn't part of its `Funcode`
+either, so that adding or removing lines elsewhere in a file doesn't
+affect the code of its functions. The lines of top-level functions are
+stored in `CompiledProgram.top_level_function_lines`, in the same order
+as the B-tree. Parent entries of the B-tree hold the number of functions
+contained in them, so that the index of a function is determined while
+searching for it. Nested functions store their line relative to that of
+the enclosing function.
 
 The compiler itself only produces Go structs. Converting them to
 messages is the job of `pkg/model/starlark`, so that the compiler
 stays independent of storage.
 
-`model_starlark_pb.Function` changed from "file + index into the
-file's bytecode" to:
+`model_starlark_pb.Function` refers to code by name instead of by
+reference:
 
 ```proto
 message Function {
-  // Module whose globals the code resolves against.
+  // Module whose globals the code resolves against, and whose
+  // CompiledProgram contains the code.
   string filename = 1;
-  // Name of the function, so that it can be printed without loading
-  // its code.
-  string name = 2;
-  // Reference to the Funcode object.
-  bonanza.model.core.DecodableReference code = 3;
+
+  message Name {
+    // Empty for lambdas.
+    string name = 1;
+    // Zero for the first occurrence of the name within the enclosing
+    // function.
+    int32 disambiguation_index = 2;
+  }
+
+  // Path of the function within the file, one element per level of
+  // nesting.
+  repeated Name name_path = 2;
+
   // Default values of parameters and free variables.
-  Closure closure = 4;
+  Closure closure = 3;
 }
 ```
+
+This means that values that embed a function, such as structs,
+providers and rule definitions, only change if the function's name or
+closure does, not if its body does. Whoever calls the function looks up
+its code through `CompiledProgramResolver`, and thereby gets a
+dependency on it. A closure's values were produced by running its
+parent, so anything holding one already depends on the parent's code.
 
 The module is referenced by name rather than by object reference
 because a module's globals contain its own functions. Referencing the
@@ -966,8 +996,8 @@ label, symbol)` pairs. `CanonicalizeImports()` rewrites the module
 strings of a compiled program to canonical labels before it is
 executed, so that the code of its functions can be written to storage.
 
-Decoded `Funcode`s are cached on the thread, indexed by object
-reference, to avoid repeated decoding. The VM's recursion check doesn't
+Decoded `Funcode`s are cached on the thread to avoid repeated
+decoding. The VM's recursion check doesn't
 depend on this: it identifies functions by their filename and the
 position of their declaration. Comparing `Funcode`s wouldn't work, as
 identical functions in different files may share the same object.
@@ -982,8 +1012,8 @@ now, because functions in the same file refer to them.
 for `GLOBAL` instructions, and only encodes the private globals that
 are referenced this way.
 
-`NamedFunction`, which rules, providers, macros, etc. use to refer to
-functions, is now a thin wrapper around `eval.Function`.
+Rules, providers, macros, etc. refer to functions using plain
+`eval.Function` values.
 
 ### Lazy `load()`
 
@@ -1032,11 +1062,10 @@ type Thread struct {
     index, so that a function can be called without the rest of its
     file.
   - `IMPORT` reads a symbol bound by `load()`, loading it on first
-    use, and replaces `LOAD`. In `BUILD` files, where `load()` binds
-    globals, a load statement compiles to `IMPORT` followed by
-    `SETGLOBAL`.
+    use, and replaces `LOAD`. A load statement compiles to nothing.
   - Call instructions encode their positional and named argument
-    counts in 16 bits each, instead of 8.
+    counts in 16 bits each, instead of 8. The bits of both counts are
+    interleaved, so that calls with few arguments have small operands.
   - Type annotations compile to nothing, and `cast(T, x)` compiles to
     `x`.
 
@@ -1074,8 +1103,8 @@ type Builtin struct {
 
 Arguments are unpacked with `eval.UnpackArgs()`, which is modelled
 after `starlark.UnpackArgs()`. It accepts pointers to variables of the
-core types, or implementations of `eval.Unpacker`. The unpackers of
-`pkg/starlark/unpack` are ported to `pkg/starlark/unpack`, where
+core types, or implementations of `eval.Unpacker`. The unpackers in
+`pkg/starlark/unpack` are ported to the new interpreter, and
 `unpack.Bind()` turns an `UnpackerInto[T]` into an `eval.Unpacker`.
 Their methods already took a `*Thread`, so they port by changing
 types. Unpackers of composite values, such as `unpack.List`, accept
@@ -1124,10 +1153,10 @@ removed.
 
 | Today | After |
 |---|---|
-| `CompiledBzlFileDecodedGlobals` → `starlark.StringDict` (native) | Removed. Consumers read the globals they need through `CompiledBzlFileGlobal`. |
+| `CompiledBzlFileDecodedGlobals` → `starlark.StringDict` (native) | Removed. Consumers decode the globals they need from `CompiledBzlFile`, when they are first used. |
 | `CompiledBzlFileFunctionFactory` → `*starlark.FunctionFactory` (native) | Removed. Functions are called from their `Funcode` + module. |
-| `getBzlFileBuiltins()` decodes all of `exports.bzl`'s `exported_toplevels`/`exported_rules` into a `StringDict` on every evaluation | A new message-valued key, e.g. `BzlFileBuiltins{builtins_module_names}`, merges them into one `Struct.Fields` message once. The predeclared environment becomes a lazy `Module` over that message. |
-| `CompiledProgram.code` stored only if `needsCode` | Removed. Each function refers to its own `Funcode` object. |
+| `getBzlFileBuiltins()` decodes all of `exports.bzl`'s `exported_toplevels`/`exported_rules` into a `StringDict` on every evaluation | Still decoded on the thread of every evaluation that needs them, from the `CompiledBzlFile` messages of the builtins modules. Decoding is lazy, so only the builtins that are used are read. Stored functions obtain them through `ValueDecodingOptions.PredeclaredResolver`. |
+| `CompiledProgram.code` stored only if `needsCode` | Replaced by a B-tree of `Funcode`s in `CompiledProgram`, which functions refer to by name. |
 | `NameAndExtractGlobals()` names rules, providers, etc. after the `.bzl` file has finished executing, picking the alphabetically first global if a value is bound to several | `BzlModule.SetGlobal()` names them as soon as they are assigned to a global, so the name is visible to the rest of the file and the first assignment wins, as in Bazel. Values that are never bound to a global directly (e.g., stored in a dict) stay unnamed. |
 
 That removes every Starlark-related native value key. The native keys
@@ -1148,20 +1177,19 @@ interpreters side by side in one binary isn't practical. Instead:
    parsing every `.bzl` and `BUILD` file in the Bazel Central Registry
    and in Bazel's own repository with both parsers, and comparing the
    resulting trees. This can land on `main` right away, as unused code.
-2. **Build the core** (`pkg/starlark`, `compile`, `library`) without
-   any storage. Port `go.starlark.net`'s `testdata/*.star` conformance
-   tests (BSD-3-Clause) and add Bazel-dialect cases. This can also land
+2. **Build the core** (`pkg/starlark/compile` and `pkg/starlark/eval`)
+   without any storage. Port `go.starlark.net`'s `testdata/*.star`
+   conformance tests (BSD-3-Clause) and add Bazel-dialect cases. This can also land
    on `main` early, as unused code.
-3. **Port `MODULE.bazel` evaluation.** `parse_module_dot_bazel.go`
-   only depends on the core types and a few unpackers, so it can move
-   over first. Its handler interfaces take `eval.Value`s and the
-   calling `*eval.Thread`, and consumers in `pkg/model/analysis`
-   encode attributes with `model_starlark.EncodeEvalStructFields()`,
-   which produces the same messages as `EncodeStructFields()`. This
-   was validated by evaluating every `MODULE.bazel` file in a Bazel
-   output base with both implementations and comparing the calls
-   made to the handler.
-4. **Port the rest of `pkg/starlark/unpack` and `pkg/model/starlark`**
+3. **Port `MODULE.bazel` evaluation.** The `MODULE.bazel` parser
+   (now `pkg/moduledotbazel`) only depends on the core types and a few
+   unpackers, so it can move over first. Its handler interfaces take
+   `eval.Value`s and the calling `*eval.Thread`, and consumers in
+   `pkg/model/analysis` encode attributes with
+   `model_starlark.EncodeStructFields()`. This was validated by
+   evaluating every `MODULE.bazel` file in a Bazel output base with
+   both implementations and comparing the calls made to the handler.
+4. **Port the rest of the unpackers and `pkg/model/starlark`**
    on a branch.
    `thread.diff` already threads `*Thread` through every method, so
    most type implementations port by changing signatures. The work
@@ -1199,8 +1227,7 @@ interpreters side by side in one binary isn't practical. Instead:
      - `repr()` of labels and structs follows Bazel: `Label("@@a//b:c")`
        and `struct(a = 1)`, or the provider's name for provider
        instances.
-   - **Types holding functions** (done): `NamedFunction`,
-     `provider()`, rules, macros, aspects, subrules, transitions,
+   - **Types holding functions** (done): `provider()`, rules, macros, aspects, subrules, transitions,
      repository rules, module extensions, tag classes, attributes,
      build settings, `native.existing_rules()` and the builtins of
      `.bzl` and `BUILD` files, together with the per-function code
@@ -1234,11 +1261,13 @@ interpreters side by side in one binary isn't practical. Instead:
      contain the list of builtins modules. Adding it would make
      dependencies more precise.
    - Attribute values of configured targets are decoded with
-     `DecodeValueEagerly()`, as their labels are converted to `Target`
+     `DecodeAttrValuePart()`, as their labels are converted to `Target`
      objects of a specific configuration.
-   - go.starlark.net, its patches and `pkg/starlark/unpack` are
-     removed. So are the tests that compared the parser and resolver
-     against upstream, as they depended on it.
+   - go.starlark.net and its patches are removed, and the ported
+     unpackers take the place of the old ones in
+     `pkg/starlark/unpack`. Also removed are the tests that compared
+     the parser and resolver against upstream, as they depended on
+     go.starlark.net.
 6. **Validate** by building a corpus of real workspaces with `main` and
    the branch and comparing the resulting action digests. Values like
    `CompiledBzlFile` change by design, but the actions sent to workers
