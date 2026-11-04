@@ -936,24 +936,39 @@ def flag_group_can_be_expanded(flag_group, variables):
     return True
 
 def flag_group_expand_command_line(flag_group, variables, command_line):
-    if not flag_group_can_be_expanded(flag_group, variables):
-        return
-    if flag_group.iterate_over:
-        variable_values = variables_get_variable(variables, flag_group.iterate_over)
-        if type(variable_values) == "depset":
-            variable_values = variable_values.to_list()
-        for variable_value in variable_values:
-            nested_variables = dict(variables)
-            nested_variables[flag_group.iterate_over] = variable_value
-            for expandable in flag_group.flags:
-                flag_expand(expandable, nested_variables, command_line)
-            for expandable in flag_group.flag_groups:
-                flag_group_expand_command_line(expandable, nested_variables, command_line)
-    else:
-        for expandable in flag_group.flags:
-            flag_expand(expandable, variables, command_line)
-        for expandable in flag_group.flag_groups:
-            flag_group_expand_command_line(expandable, variables, command_line)
+    # Flag groups may be nested arbitrarily deep. As Starlark does not
+    # permit recursion, traverse them using an explicit stack. Work is
+    # pushed in reverse order, so that flags are emitted in the order
+    # in which they are declared.
+    stack = [(None, flag_group, variables)]
+    for _ in range(1 << 31):
+        if not stack:
+            return
+        flag, flag_group, variables = stack.pop()
+        if flag != None:
+            flag_expand(flag, variables, command_line)
+            continue
+        if not flag_group_can_be_expanded(flag_group, variables):
+            continue
+
+        if flag_group.iterate_over:
+            variable_values = variables_get_variable(variables, flag_group.iterate_over)
+            if type(variable_values) == "depset":
+                variable_values = variable_values.to_list()
+            all_nested_variables = []
+            for variable_value in variable_values:
+                nested_variables = dict(variables)
+                nested_variables[flag_group.iterate_over] = variable_value
+                all_nested_variables.append(nested_variables)
+        else:
+            all_nested_variables = [variables]
+
+        for nested_variables in reversed(all_nested_variables):
+            for nested_flag_group in reversed(flag_group.flag_groups):
+                stack.append((None, nested_flag_group, nested_variables))
+            for nested_flag in reversed(flag_group.flags):
+                stack.append((nested_flag, None, nested_variables))
+    fail("flag groups are nested too deeply")
 
 def is_with_features_satisfied(with_feature_sets, enabled_feature_names):
     if not with_feature_sets:
