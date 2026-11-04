@@ -562,6 +562,9 @@ func (storedModule[TReference, TMetadata]) Predeclared(thread *eval.Thread, name
 	if err != nil {
 		return nil, err
 	}
+	if options.PredeclaredResolver != nil {
+		return options.PredeclaredResolver(thread, name)
+	}
 	if value, ok := options.BzlFileBuiltins[name]; ok {
 		return value, nil
 	}

@@ -18,12 +18,12 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/resolve"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 var buildDotBazelTargetNames = []label.TargetName{
@@ -93,20 +93,12 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 			return PatchedPackageValue[TMetadata]{}, err
 		}
 
-		_, program, err := starlark.SourceProgramOptions(
-			&syntax.FileOptions{
-				Set: true,
-			},
-			buildFileLabel.String(),
-			buildFileData,
-			buildFileBuiltins.Has,
-		)
+		program, err := c.loadProgram(e, buildFileLabel, buildFileData, &resolve.BuildDialect, buildFileBuiltins, builtinsModuleNames)
 		if err != nil {
+			if errors.Is(err, evaluation.ErrMissingDependency) {
+				return PatchedPackageValue[TMetadata]{}, err
+			}
 			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("failed to load %#v: %w", buildFileLabel.String(), err)
-		}
-
-		if err := c.preloadBzlGlobals(e, canonicalPackage, program, builtinsModuleNames); err != nil {
-			return PatchedPackageValue[TMetadata]{}, err
 		}
 
 		thread.SetLocal(model_starlark.CanonicalPackageKey, canonicalPackage)
@@ -159,12 +151,9 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 
 		// Execute the BUILD.bazel file, so that all targets
 		// contained within are instantiated.
-		if _, err := program.Init(thread, buildFileBuiltins); err != nil {
-			var evalErr *starlark.EvalError
-			if !errors.Is(err, evaluation.ErrMissingDependency) && errors.As(err, &evalErr) {
-				return PatchedPackageValue[TMetadata]{}, errors.New(evalErr.Backtrace())
-			}
-			return PatchedPackageValue[TMetadata]{}, err
+		module := eval.NewInMemoryModule(buildFileLabel.String(), buildFileBuiltins, c.newBzlImporter(ctx, e, builtinsModuleNames))
+		if err := eval.ExecFile(thread, program, module); err != nil {
+			return PatchedPackageValue[TMetadata]{}, formatStarlarkError(err)
 		}
 
 		if err := targetRegistrar.Finalize(canonicalPackage, valueEncodingOptions); err != nil {
@@ -304,6 +293,22 @@ func (c *baseComputer[TReference, TMetadata]) newGlobalResolver(ctx context.Cont
 	}
 }
 
+// newCompiledProgramResolver creates a function that can be used to
+// obtain the compiled programs of .bzl files, which contain the code of
+// the functions declared in them.
+func (*baseComputer[TReference, TMetadata]) newCompiledProgramResolver(e CompiledBzlFileValueGetter[TReference], builtinsModuleNames []string) model_starlark.CompiledProgramResolver[TReference] {
+	return func(filename label.CanonicalLabel) (model_core.Message[*model_starlark_pb.CompiledProgram, TReference], error) {
+		compiledBzlFile := e.GetCompiledBzlFileValue(&model_analysis_pb.CompiledBzlFile_Key{
+			Label:               filename.String(),
+			BuiltinsModuleNames: trimBuiltinModuleNames(builtinsModuleNames, filename.GetCanonicalPackage().GetCanonicalRepo().GetModuleInstance().GetModule()),
+		})
+		if !compiledBzlFile.IsSet() {
+			return model_core.Message[*model_starlark_pb.CompiledProgram, TReference]{}, evaluation.ErrMissingDependency
+		}
+		return model_core.Nested(compiledBzlFile, compiledBzlFile.Message.CompiledProgram), nil
+	}
+}
+
 // decodeMacroAttrValue decodes the value of an attribute of a macro
 // instance, so that it can be provided to the macro's implementation
 // function. As with Bazel, values of configurable attributes are
@@ -315,14 +320,14 @@ func decodeMacroAttrValue[TReference object.BasicReference, TMetadata model_core
 	configurable bool,
 	concatenationOperator syntax.Token,
 	defaultValue model_core.Message[*model_starlark_pb.Value, TReference],
-	options *model_starlark.ValueDecodingOptions[TReference],
-) (starlark.Value, error) {
+	thread *eval.Thread,
+) (eval.Value, error) {
 	if groups := valueParts.Message; len(groups) == 1 && len(groups[0].Conditions) == 0 {
 		if _, ok := groups[0].GetNoMatchValue().GetKind().(*model_starlark_pb.Value_None); ok {
 			// No value provided. Use the default value of
 			// the attribute.
 			if _, ok := defaultValue.Message.GetKind().(*model_starlark_pb.Value_None); ok || !defaultValue.IsSet() {
-				return starlark.None, nil
+				return eval.None, nil
 			}
 			valueParts = model_core.Nested(defaultValue, []*model_starlark_pb.Select_Group{{
 				NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
@@ -337,9 +342,11 @@ func decodeMacroAttrValue[TReference object.BasicReference, TMetadata model_core
 		if len(groups) != 1 || len(groups[0].Conditions) != 0 || groups[0].GetNoMatchValue() == nil {
 			return nil, errors.New("value of attribute that is not configurable depends on select()")
 		}
-		return model_starlark.DecodeValue[TReference, TMetadata](model_core.Nested(valueParts, groups[0].GetNoMatchValue()), nil, options)
+		return model_starlark.DecodeValue[TReference, TMetadata](
+			thread, model_core.Nested(valueParts, groups[0].GetNoMatchValue()), nil,
+		)
 	}
-	return model_starlark.DecodeSelectGroups[TReference, TMetadata](valueParts, concatenationOperator, options)
+	return model_starlark.DecodeSelectGroups[TReference, TMetadata](thread, valueParts, concatenationOperator)
 }
 
 // existingRulesResolver is used by native.existing_rule() and
@@ -511,10 +518,9 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	}
 
 	// Construct the arguments of the implementation function.
-	valueDecodingOptions := thread.Local(model_starlark.ValueDecodingOptionsKey).(*model_starlark.ValueDecodingOptions[TReference])
-	kwargs := []starlark.Tuple{
-		{starlark.String("name"), starlark.String(macroInstanceName)},
-		{starlark.String("visibility"), model_starlark.MacroVisibility{}},
+	kwargs := []eval.NamedArg{
+		{Name: "name", Value: eval.String(macroInstanceName)},
+		{Name: "visibility", Value: model_starlark.MacroVisibility{}},
 	}
 	publicAttrValues := rootMacroInstanceDefinition.Message.PublicAttrValues
 	for _, namedAttr := range macroDefinition.Message.Attrs {
@@ -526,13 +532,15 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 		if attr.Default != nil {
 			defaultValue = model_core.Nested(macroDefinition, attr.Default)
 		}
-		var value starlark.Value
+		var value eval.Value
 		if strings.HasPrefix(namedAttr.Name, "_") {
 			// Private attributes cannot be set by the
 			// caller. Provide the default value.
-			value = starlark.None
+			value = eval.None
 			if defaultValue.IsSet() {
-				value, err = model_starlark.DecodeValue[TReference, TMetadata](defaultValue, nil, valueDecodingOptions)
+				value, err = model_starlark.DecodeValue[TReference, TMetadata](
+					thread, defaultValue, nil,
+				)
 				if err != nil {
 					return PatchedPackageValue[TMetadata]{}, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
 				}
@@ -553,13 +561,13 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 				attr.Configurable,
 				attrType.GetCanonicalizer(canonicalPackage).GetConcatenationOperator(),
 				defaultValue,
-				valueDecodingOptions,
+				thread,
 			)
 			if err != nil {
 				return PatchedPackageValue[TMetadata]{}, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
 			}
 		}
-		kwargs = append(kwargs, starlark.Tuple{starlark.String(namedAttr.Name), value})
+		kwargs = append(kwargs, eval.NamedArg{Name: namedAttr.Name, Value: value})
 	}
 	if len(publicAttrValues) != 0 {
 		return PatchedPackageValue[TMetadata]{}, errors.New("has more public attr values than the macro definition has public attrs")
@@ -567,22 +575,11 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 
 	// Invoke the implementation function, so that all targets and
 	// macro instances declared by the macro are registered.
-	returnValue, err := starlark.Call(
-		thread,
-		model_starlark.NewNamedFunction(model_starlark.NewProtoNamedFunctionDefinition[TReference, TMetadata](
-			model_core.Nested(macroDefinition, macroDefinition.Message.Implementation),
-		)),
-		/* args = */ nil,
-		kwargs,
-	)
+	returnValue, err := eval.Call(thread, model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(macroDefinition, macroDefinition.Message.Implementation)), eval.Args{Positional: /* args = */ nil, Named: kwargs})
 	if err != nil {
-		var evalErr *starlark.EvalError
-		if !errors.Is(err, evaluation.ErrMissingDependency) && errors.As(err, &evalErr) {
-			return PatchedPackageValue[TMetadata]{}, errors.New(evalErr.Backtrace())
-		}
-		return PatchedPackageValue[TMetadata]{}, err
+		return PatchedPackageValue[TMetadata]{}, formatStarlarkError(err)
 	}
-	if returnValue != starlark.None {
+	if returnValue != eval.None {
 		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("implementation function of macro %#v returned a value of type %s, while macros may not return values", macroIdentifier.String(), returnValue.Type())
 	}
 

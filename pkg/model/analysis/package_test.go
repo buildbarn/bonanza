@@ -1,6 +1,7 @@
 package analysis_test
 
 import (
+	"context"
 	"testing"
 
 	"bonanza.build/pkg/label"
@@ -11,13 +12,15 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/compile"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/resolve"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 
 	"go.uber.org/mock/gomock"
 )
@@ -26,20 +29,47 @@ func TestPackage(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(t.Context(), t)
 	bct := newBaseComputerTester(ctrl)
 
-	// newFunctionFactory compiles a .bzl file containing the
-	// implementation functions of macros.
-	newFunctionFactory := func(t *testing.T, source string) *starlark.FunctionFactory {
+	// newImplementation compiles a .bzl file containing the
+	// implementation function of a macro, and returns the encoded
+	// function named "_impl".
+	newImplementation := func(t *testing.T, source string) (model_core.Message[*model_starlark_pb.Function, model_core.CreatedObjectTree], model_core.Message[*model_starlark_pb.CompiledProgram, model_core.CreatedObjectTree]) {
+		filename := util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl"))
 		bzlFileBuiltins, _ := model_starlark.GetBuiltins[model_core.CreatedObjectTree, model_core.CreatedObjectTree]()
-		_, program, err := starlark.SourceProgramOptions(
-			&syntax.FileOptions{},
-			"@@rules+//:defs.bzl",
-			source,
-			bzlFileBuiltins.Has,
+		f, err := syntax.Parse(filename.String(), []byte(source), syntax.Options{})
+		require.NoError(t, err)
+		universe := eval.Universe()
+		m, err := resolve.File(
+			f,
+			&resolve.BzlDialect,
+			func(name string) bool { _, ok := bzlFileBuiltins[name]; return ok },
+			func(name string) bool { _, ok := universe[name]; return ok },
 		)
 		require.NoError(t, err)
-		functionFactory, _, err := program.NewFunctionFactory(&starlark.Thread{}, bzlFileBuiltins)
+		thread := eval.NewThread(ctx, universe)
+		module := eval.NewInMemoryModule(filename.String(), bzlFileBuiltins, nil)
+		program := compile.File(f, m)
+		require.NoError(t, eval.ExecFile(thread, program, module))
+
+		capturer := createdObjectTreeCapturer{}
+		encodingOptions := &model_starlark.ValueEncodingOptions[model_core.CreatedObjectTree, model_core.CreatedObjectTree]{
+			CurrentFilename:        &filename,
+			Context:                ctx,
+			ObjectEncoder:          model_encoding.NewChainedDeterministicBinaryEncoder(nil),
+			ObjectReferenceFormat:  object.SHA256V1ReferenceFormat,
+			ObjectCapturer:         capturer,
+			ObjectMinimumSizeBytes: 32 * 1024,
+			ObjectMaximumSizeBytes: 128 * 1024,
+		}
+		encodedFunction, err := model_starlark.EncodeFunction(
+			thread,
+			module.Globals()["_impl"].(eval.Function),
+			nil,
+			encodingOptions,
+		)
 		require.NoError(t, err)
-		return functionFactory
+		encodedProgram, err := model_starlark.EncodeCompiledProgram(thread, program, module.Globals(), encodingOptions)
+		require.NoError(t, err)
+		return model_core.Unpatch(capturer, encodedFunction).Decay(), model_core.Unpatch(capturer, encodedProgram).Decay()
 	}
 	stringAttr := func(name string, defaultValue *model_starlark_pb.Value) *model_starlark_pb.NamedAttr {
 		return &model_starlark_pb.NamedAttr{
@@ -107,23 +137,26 @@ func TestPackage(t *testing.T) {
 	// expectMacroGlobal sets up the expectations for loading the
 	// definition of macro "@@rules+//:defs.bzl%my_macro", without
 	// loading its implementation function.
-	expectMacroGlobal := func(e *MockPackageEnvironmentForTesting, attrs []*model_starlark_pb.NamedAttr) {
+	expectMacroGlobal := func(e *MockPackageEnvironmentForTesting, attrs []*model_starlark_pb.NamedAttr, implementation model_core.Message[*model_starlark_pb.Function, model_core.CreatedObjectTree]) {
+		if !implementation.IsSet() {
+			implementation = model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_starlark_pb.Function{
+				Filename: "@@rules+//:defs.bzl",
+				NamePath: []*model_starlark_pb.Function_Name{{Name: "_impl"}},
+			})
+		}
 		e.EXPECT().GetBuiltinsModuleNamesValue(gomock.Any()).
 			Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.BuiltinsModuleNames_Value{})).
 			AnyTimes()
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_macro"}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
+		).Return(model_core.Nested(implementation, &model_analysis_pb.CompiledBzlFileGlobal_Value{
 			Global: &model_starlark_pb.Value{
 				Kind: &model_starlark_pb.Value_Macro{
 					Macro: &model_starlark_pb.Macro{
 						Kind: &model_starlark_pb.Macro_Definition_{
 							Definition: &model_starlark_pb.Macro_Definition{
-								Attrs: attrs,
-								Implementation: &model_starlark_pb.Function{
-									Filename: "@@rules+//:defs.bzl",
-									Name:     "_impl",
-								},
+								Attrs:          attrs,
+								Implementation: implementation.Message,
 							},
 						},
 					},
@@ -135,10 +168,13 @@ func TestPackage(t *testing.T) {
 	// macro "@@rules+//:defs.bzl%my_macro" with a given
 	// implementation function.
 	expectMacroDefinition := func(e *MockPackageEnvironmentForTesting, source string, attrs []*model_starlark_pb.NamedAttr) {
-		expectMacroGlobal(e, attrs)
-		e.EXPECT().GetCompiledBzlFileFunctionFactoryValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileFunctionFactory_Key{Label: "@@rules+//:defs.bzl"}),
-		).Return(newFunctionFactory(t, source), true)
+		implementation, program := newImplementation(t, source)
+		e.EXPECT().GetCompiledBzlFileValue(
+			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFile_Key{Label: "@@rules+//:defs.bzl"}),
+		).Return(model_core.Nested(program, &model_analysis_pb.CompiledBzlFile_Value{
+			CompiledProgram: program.Message,
+		})).AnyTimes()
+		expectMacroGlobal(e, attrs, implementation)
 	}
 	// expectMacro sets up the expectations for expanding macro
 	// instance "@@main+//foo:m", declared at the top level of the
@@ -338,7 +374,7 @@ def _impl(name, visibility, explicit, with_default):
 				e := NewMockPackageEnvironmentForTesting(ctrl)
 				attr := stringAttr("explicit", nil)
 				attr.Attr.Configurable = false
-				expectMacroGlobal(e, []*model_starlark_pb.NamedAttr{attr})
+				expectMacroGlobal(e, []*model_starlark_pb.NamedAttr{attr}, model_core.Message[*model_starlark_pb.Function, model_core.CreatedObjectTree]{})
 				definition := newMacroExpansionContextDefinition()
 				definition.RootMacroInstanceDefinition.PublicAttrValues = []*model_starlark_pb.RuleTarget_PublicAttrValue{{
 					ValueParts: valueParts,
@@ -445,7 +481,7 @@ def _impl(name, visibility):
 `, nil)
 
 		_, err := computeMacroInstance(e, "m")
-		require.EqualError(t, err, "macro instance \"m\": Traceback (most recent call last):\n  @@rules+//:defs.bzl: in _impl\nError in native.alias: target \"m_out\" is already declared outside of this macro instance")
+		require.EqualError(t, err, "macro instance \"m\": Traceback (most recent call last):\n\tFile \"@@rules+//:defs.bzl\", line 4, column 17, in _impl\nError in native.alias: target \"m_out\" is already declared outside of this macro instance")
 	})
 
 	t.Run("Finalizer", func(t *testing.T) {
@@ -527,7 +563,7 @@ def _impl(name, visibility):
 `, nil)
 
 			_, err := computeMacroInstance(e, "m")
-			require.EqualError(t, err, "macro instance \"m\": Traceback (most recent call last):\n  @@rules+//:defs.bzl: in _impl\nError in native.existing_rules: existing rules can only be obtained from within finalizers")
+			require.EqualError(t, err, "macro instance \"m\": Traceback (most recent call last):\n\tFile \"@@rules+//:defs.bzl\", line 3, column 26, in _impl\nError in native.existing_rules: existing rules can only be obtained from within finalizers")
 		}
 	})
 
@@ -630,4 +666,21 @@ def _impl(name, visibility):
 		_, err := computeMacroInstance(e, "m")
 		require.Equal(t, evaluation.ErrMissingDependency, err)
 	})
+}
+
+// createdObjectTreeCapturer is an ObjectCapturer that keeps created
+// objects in memory, allowing them to be referenced by messages that
+// use CreatedObjectTree as their reference type.
+type createdObjectTreeCapturer struct{}
+
+func (createdObjectTreeCapturer) CaptureCreatedObject(ctx context.Context, createdObject model_core.CreatedObject[model_core.CreatedObjectTree]) (model_core.CreatedObjectTree, error) {
+	return model_core.CreatedObjectTree(createdObject), nil
+}
+
+func (createdObjectTreeCapturer) CaptureExistingObject(reference model_core.CreatedObjectTree) model_core.CreatedObjectTree {
+	return reference
+}
+
+func (createdObjectTreeCapturer) ReferenceObject(entry model_core.MetadataEntry[model_core.CreatedObjectTree]) model_core.CreatedObjectTree {
+	return entry.Metadata
 }

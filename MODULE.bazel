@@ -84,7 +84,6 @@ use_repo(
     "com_github_ulikunitz_xz",
     "dev_maragu_gomponents",
     "io_filippo_edwards25519",
-    "net_starlark_go",
     "org_golang_google_genproto_googleapis_rpc",
     "org_golang_google_grpc",
     "org_golang_google_grpc_security_advancedtls",
@@ -123,18 +122,6 @@ go_deps_dev.module_override(
         "@com_github_buildbarn_bb_storage//:patches/org_uber_go_mock/mocks-for-funcs.diff",
     ],
     path = "go.uber.org/mock",
-)
-go_deps_dev.module_override(
-    patches = [
-        "//:patches/net_starlark_go/thread.diff",
-        "//:patches/net_starlark_go/dict-get-pop.diff",
-        "//:patches/net_starlark_go/function-saving.diff",
-        "//:patches/net_starlark_go/getattr-error-checking.diff",
-        "//:patches/net_starlark_go/octal.diff",
-        "//:patches/net_starlark_go/unwrap.diff",
-        "//:patches/net_starlark_go/set-isdisjoint.diff",
-    ],
-    path = "go.starlark.net",
 )
 
 llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm", dev_dependency = True)

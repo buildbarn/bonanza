@@ -49,6 +49,12 @@ type ValueDecodingOptions[TReference any] struct {
 
 	// Builtins that values of kind Value.builtin may refer to.
 	BzlFileBuiltins map[string]eval.Value
+
+	// PredeclaredResolver is called to obtain the value of a name
+	// that is predeclared by .bzl files, when called from within a
+	// function that is backed by storage. If not set, names are
+	// looked up in BzlFileBuiltins.
+	PredeclaredResolver func(thread *eval.Thread, name string) (eval.Value, error)
 }
 
 // getValueDecodingOptions returns the ValueDecodingOptions that are

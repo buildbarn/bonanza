@@ -2,7 +2,6 @@ package analysis
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	model_core "bonanza.build/pkg/model/core"
@@ -10,10 +9,9 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/eval"
 
 	"google.golang.org/protobuf/proto"
-
-	"go.starlark.net/starlark"
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx context.Context, key *model_analysis_pb.EmptyDefaultInfo_Key, e EmptyDefaultInfoEnvironment[TReference, TMetadata]) (PatchedEmptyDefaultInfoValue[TMetadata], error) {
@@ -44,19 +42,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx c
 	}
 	thread.SetLocal(model_starlark.ReferenceEqualIdentifierGeneratorKey, identifierGenerator)
 
-	defaultInfo, err := defaultInfoProvider.Instantiate(thread, nil, nil)
+	defaultInfo, err := defaultInfoProvider.Instantiate(thread, eval.Args{})
 	if err != nil {
-		if !errors.Is(err, evaluation.ErrMissingDependency) {
-			var evalErr *starlark.EvalError
-			if errors.As(err, &evalErr) {
-				return PatchedEmptyDefaultInfoValue[TMetadata]{}, errors.New(evalErr.Backtrace())
-			}
-		}
-		return PatchedEmptyDefaultInfoValue[TMetadata]{}, err
+		return PatchedEmptyDefaultInfoValue[TMetadata]{}, formatStarlarkError(err)
 	}
 
 	// Encode the DefaultInfo provider instance.
-	encodedDefaultInfo, _, err := defaultInfo.Encode(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(ctx, e, nil))
+	encodedDefaultInfo, err := defaultInfo.Encode(thread, nil, c.getValueEncodingOptions(ctx, e, nil))
 	if err != nil {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, fmt.Errorf("failed to encode DefaultInfo provider instance: %w", err)
 	}

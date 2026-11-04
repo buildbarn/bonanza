@@ -85,11 +85,9 @@ pkg/model/starlark      storage-backed implementations,
 ```
 
 The core interpreter lives in `pkg/starlark/eval` rather than
-`pkg/starlark`, because the latter still contains code that uses
-go.starlark.net until the migration is done. For the same reason the
-ported unpackers live in `pkg/starlark/eval/unpack`, next to the
-original `pkg/starlark/unpack`, which is removed at the end of the
-migration. The core knows nothing about the object store and has no
+`pkg/starlark`, because the latter contained code that used
+go.starlark.net while the migration was in progress. For the same
+reason the ported unpackers live in `pkg/starlark/eval/unpack`. The core knows nothing about the object store and has no
 `[TReference, TMetadata]` generics. Storage-backed
 values are implementations of the core interfaces that live in
 `pkg/model/starlark`, just like `Struct` already does today.
@@ -1209,15 +1207,37 @@ interpreters side by side in one binary isn't practical. Instead:
      are evaluated by the new interpreter as well. Error messages of
      argument unpacking now follow `eval.UnpackArgs()`, e.g.
      `macro(): for parameter inherit_attrs: ...`.
-5. **Port `pkg/model/analysis`** on the same branch. Remove the two
-   native keys, add `BzlFileBuiltins`, and make `load()` lazy, by
-   providing an importer that resolves symbols through
-   `CompiledBzlFileGlobal`. Callers that construct
-   `ValueReaders` need to provide a reader for `Funcode` objects. Move
-   the remaining users of `go.starlark.net/syntax` over: `syntax.Token`
-   and `syntax.Position` in value methods, and `syntax.Quote` in
-   `pkg/model/render`. Then drop `go.starlark.net` from
-   `go.mod`/`MODULE.bazel` and delete `patches/net_starlark_go/`.
+5. **Port `pkg/model/analysis`** (done) on the same branch. Decisions
+   made along the way:
+   - The native keys `CompiledBzlFileDecodedGlobals` and
+     `CompiledBzlFileFunctionFactory` are removed. Values that are
+     decoded lazily cache state without synchronization, so they may
+     not be shared between evaluations. The builtins exported by the
+     `exports.bzl` files of builtins modules are decoded on the thread
+     of every evaluation that needs them, from their `CompiledBzlFile`
+     messages. Stored functions obtain them through
+     `ValueDecodingOptions.PredeclaredResolver`, which computes them on
+     first use.
+   - For the same reason, `RuleImplementationWrappers` became a
+     message-valued key, and `RepositoryRuleObject` holds the
+     definition message of the repository rule, which is decoded by
+     each evaluation that calls it.
+   - `.bzl` and `BUILD` files are compiled by `loadProgram()`. It
+     canonicalizes the labels of `load()` statements, and checks that
+     all loaded symbols exist before any code is executed. Loaded
+     symbols are decoded when first used.
+   - Globals of other files, both for `load()` and for the
+     `GlobalResolver`, are obtained through `CompiledBzlFile`, using
+     the same lists of builtins modules as before. This is coarser
+     than requesting `CompiledBzlFileGlobal`, whose key doesn't
+     contain the list of builtins modules. Adding it would make
+     dependencies more precise.
+   - Attribute values of configured targets are decoded with
+     `DecodeValueEagerly()`, as their labels are converted to `Target`
+     objects of a specific configuration.
+   - go.starlark.net, its patches and `pkg/starlark/unpack` are
+     removed. So are the tests that compared the parser and resolver
+     against upstream, as they depended on it.
 6. **Validate** by building a corpus of real workspaces with `main` and
    the branch and comparing the resulting action digests. Values like
    `CompiledBzlFile` change by design, but the actions sent to workers

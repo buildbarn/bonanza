@@ -37,8 +37,7 @@
             "BuildSpecification",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
+            "CompiledBzlFile",
             "CompiledBzlFileGlobal",
             "QueryExpansion",
             "RootModule",
@@ -80,39 +79,11 @@
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
+            "CompiledBzlFileGlobal",
             "FileProperties",
             "FileReader",
             "RootModule"
          ]
-      },
-      "CompiledBzlFileDecodedGlobals": {
-         "dependsOn": [
-            "CompiledBzlFile"
-         ],
-         "nativeValueType": {
-            "imports": {
-               "starlark": "go.starlark.net/starlark"
-            },
-            "type": "starlark.StringDict"
-         }
-      },
-      "CompiledBzlFileFunctionFactory": {
-         "dependsOn": [
-            "BuiltinsModuleNames",
-            "CanonicalRepoName",
-            "CompiledBzlFile",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
-            "RootModule"
-         ],
-         "nativeValueType": {
-            "imports": {
-               "starlark": "go.starlark.net/starlark"
-            },
-            "type": "*starlark.FunctionFactory"
-         }
       },
       "CompiledBzlFileGlobal": {
          "dependsOn": [
@@ -125,8 +96,7 @@
             "ActionEncoderObject",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
+            "CompiledBzlFile",
             "CompiledBzlFileGlobal",
             "DirectoryCreationParametersObject",
             "EmptyDefaultInfo",
@@ -179,8 +149,7 @@
          "dependsOn": [
             "BuiltinsModuleNames",
             "CanonicalRepoName",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
+            "CompiledBzlFile",
             "CompiledBzlFileGlobal",
             "RootModule"
          ]
@@ -189,8 +158,7 @@
          "dependsOn": [
             "BuiltinsModuleNames",
             "CanonicalRepoName",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
+            "CompiledBzlFile",
             "CompiledBzlFileGlobal",
             "RootModule",
             "Target",
@@ -324,8 +292,7 @@
             "ActionResult",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
+            "CompiledBzlFile",
             "CompiledBzlFileGlobal",
             "DirectoryCreationParameters",
             "DirectoryCreationParametersObject",
@@ -409,8 +376,6 @@
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
             "CompiledBzlFileGlobal",
             "FileProperties",
             "FileReader",
@@ -530,8 +495,8 @@
             "BuildSpecification",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
+            "CompiledBzlFile",
+            "CompiledBzlFileGlobal",
             "DirectoryCreationParameters",
             "DirectoryCreationParametersObject",
             "DirectoryReaders",
@@ -600,10 +565,7 @@
          "dependsOn": [
             "BuildSpecification",
             "CompiledBzlFileGlobal"
-         ],
-         "nativeValueType": {
-            "type": "*RuleImplementationWrappers"
-         }
+         ]
       },
       "Select": {
          "dependsOn": [
@@ -661,8 +623,8 @@
             "ActionReaders",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
+            "CompiledBzlFile",
+            "CompiledBzlFileGlobal",
             "DirectoryCreationParameters",
             "DirectoryCreationParametersObject",
             "DirectoryReaders",
@@ -751,8 +713,7 @@
          "dependsOn": [
             "BuiltinsModuleNames",
             "CanonicalRepoName",
-            "CompiledBzlFileDecodedGlobals",
-            "CompiledBzlFileFunctionFactory",
+            "CompiledBzlFile",
             "CompiledBzlFileGlobal",
             "RootModule",
             "Target",

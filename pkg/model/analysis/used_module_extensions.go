@@ -47,7 +47,7 @@ func (p *usedModuleExtensionProxy[TReference, TMetadata]) Tag(thread *eval.Threa
 		meu.tagClasses[className] = tagClass
 	}
 
-	fields, err := model_starlark.EncodeEvalStructFields(thread, attrs, p.handler.valueEncodingOptions)
+	fields, err := model_starlark.EncodeStructFields(thread, attrs, p.handler.valueEncodingOptions)
 	if err != nil {
 		return err
 	}

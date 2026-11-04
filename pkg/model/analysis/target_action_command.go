@@ -21,12 +21,11 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
-
-	"go.starlark.net/starlark"
 )
 
 // splitArgsTemplate preprocesses format strings that are provided to
@@ -309,9 +308,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	// TODO: Respect use_param_file().
 	referenceFormat := c.referenceFormat
 	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(ctx, actionEncoder, referenceFormat, e)
-	valueDecodingOptions := c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
-		return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
-	})
 	thread := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
 	var errIterArgs error
 	for args := range btree.AllLeaves(
@@ -343,14 +339,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			}
 
 			values, err := model_starlark.DecodeValue[TReference, TMetadata](
-				model_core.Nested(add, addLeaf.Leaf.Values),
+				thread, model_core.Nested(add, addLeaf.Leaf.Values),
 				/* currentIdentifier = */ nil,
-				valueDecodingOptions,
 			)
 			if err != nil {
 				return PatchedTargetActionCommandValue[TMetadata]{}, err
 			}
-			var valuesIter iter.Seq[starlark.Value]
+			var valuesIter iter.Seq[eval.Value]
 			switch typedValues := values.(type) {
 			case *model_starlark.Depset[TReference, TMetadata]:
 				list, err := typedValues.ToList(thread)
@@ -358,8 +353,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 					return PatchedTargetActionCommandValue[TMetadata]{}, err
 				}
 				valuesIter = slices.Values(list)
-			case starlark.Iterable:
-				valuesIter = starlark.Elements(typedValues)
+			case eval.List, eval.Tuple:
+				list, err := eval.Elements(thread, typedValues)
+				if err != nil {
+					return PatchedTargetActionCommandValue[TMetadata]{}, err
+				}
+				valuesIter = slices.Values(list)
 			default:
 				return PatchedTargetActionCommandValue[TMetadata]{}, errors.New("args.add*() value is not a depset or list")
 			}
@@ -370,7 +369,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			// Step 1: Each directory File item is replaced by all
 			// Files recursively contained in that directory.
 			if addLeaf.Leaf.ExpandDirectories {
-				var expandedValues []starlark.Value
+				var expandedValues []eval.Value
 				for v := range valuesIter {
 					if f, ok := v.(*model_starlark.File[TReference, TMetadata]); ok {
 						var errIter error
@@ -395,11 +394,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			// standard conversion to each item.
 			var stringValues []string
 			if mapEach := addLeaf.Leaf.MapEach; mapEach != nil {
-				mapEachFunc := model_starlark.NewNamedFunction(
-					model_starlark.NewProtoNamedFunctionDefinition[TReference, TMetadata](
-						model_core.Nested(add, mapEach),
-					),
-				)
+				mapEachFunc := model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(add, mapEach))
 
 				// The map_each function is allowed to have
 				// multiple shapes. If it has a single
@@ -411,12 +406,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				if err != nil {
 					return PatchedTargetActionCommandValue[TMetadata]{}, fmt.Errorf("unable to determine number of parameters of map_each function: %w", err)
 				}
-				var mapEachFuncArgs starlark.Tuple
+				var mapEachFuncArgs []eval.Value
 				switch mapEachFuncode.NumParams {
 				case 1:
-					mapEachFuncArgs = make(starlark.Tuple, 1)
+					mapEachFuncArgs = make([]eval.Value, 1)
 				case 2:
-					mapEachFuncArgs = make(starlark.Tuple, 2)
+					mapEachFuncArgs = make([]eval.Value, 2)
 					mapEachFuncArgs[1] = &directoryExpander[TReference, TMetadata]{
 						context:          ctx,
 						environment:      e,
@@ -428,20 +423,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 
 				for v := range valuesIter {
 					mapEachFuncArgs[0] = v
-					returnValue, err := starlark.Call(
-						thread,
-						mapEachFunc,
-						mapEachFuncArgs,
-						nil,
-					)
+					returnValue, err := eval.Call(thread, mapEachFunc, eval.Args{Positional: mapEachFuncArgs})
 					if err != nil {
-						if !errors.Is(err, evaluation.ErrMissingDependency) {
-							var evalErr *starlark.EvalError
-							if errors.As(err, &evalErr) {
-								return PatchedTargetActionCommandValue[TMetadata]{}, errors.New(evalErr.Backtrace())
-							}
-						}
-						return PatchedTargetActionCommandValue[TMetadata]{}, err
+						return PatchedTargetActionCommandValue[TMetadata]{}, formatStarlarkError(err)
 					}
 					var s []string
 					if err := unpack.IfNotNone(unpack.Or([]unpack.UnpackerInto[[]string]{
@@ -458,7 +442,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				for v := range valuesIter {
 					var s string
 					switch typedV := v.(type) {
-					case starlark.String:
+					case eval.String:
 						s = string(typedV)
 					case *model_starlark.File[TReference, TMetadata]:
 						s, err = model_starlark.FileGetInputRootPath(typedV.GetDefinition(), typedV.GetTreeRelativePath())
@@ -466,7 +450,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 							return PatchedTargetActionCommandValue[TMetadata]{}, err
 						}
 					case model_starlark.Label[TReference, TMetadata]:
-						s = typedV.String()
+						s = typedV.GetLabel().String()
 					default:
 						return PatchedTargetActionCommandValue[TMetadata]{}, fmt.Errorf("argument value is of type %#v, while a string, File or Label were expected", typedV.Type())
 					}
@@ -774,32 +758,28 @@ type directoryExpander[TReference object.BasicReference, TMetadata model_core.Re
 	directoryReaders *DirectoryReaders[TReference]
 }
 
-var _ starlark.HasAttrs = (*directoryExpander[object.LocalReference, model_core.ReferenceMetadata])(nil)
+var _ eval.HasAttrs = (*directoryExpander[object.LocalReference, model_core.ReferenceMetadata])(nil)
 
-func (directoryExpander[TReference, TMetadata]) String() string {
-	return "<DirectoryExpander>"
+// Repr writes the representation of the value.
+func (directoryExpander[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<DirectoryExpander>")
+	return nil
 }
 
 func (directoryExpander[TReference, TMetadata]) Type() string {
 	return "DirectoryExpander"
 }
 
-func (directoryExpander[TReference, TMetadata]) Freeze() {}
-
-func (directoryExpander[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
+func (directoryExpander[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
-func (directoryExpander[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("DirectoryExpander cannot be hashed")
-}
-
-func (de *directoryExpander[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (de *directoryExpander[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	switch name {
 	case "expand":
-		return starlark.NewBuiltin("DirectoryExpander.expand", de.doExpand), nil
+		return eval.NewBuiltin("DirectoryExpander.expand", de.doExpand), nil
 	default:
-		return nil, nil
+		return nil, eval.NoSuchAttrError{Value: de, Name: name}
 	}
 }
 
@@ -807,20 +787,20 @@ var directoryExpanderAttrNames = []string{
 	"expand",
 }
 
-func (directoryExpander[TReference, TMetadata]) AttrNames() []string {
-	return directoryExpanderAttrNames
+func (directoryExpander[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
+	return directoryExpanderAttrNames, nil
 }
 
-func (de *directoryExpander[TReference, TMetadata]) doExpand(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (de *directoryExpander[TReference, TMetadata]) doExpand(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	var file *model_starlark.File[TReference, TMetadata]
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
-		"file", unpack.Bind(thread, &file, unpack.Type[*model_starlark.File[TReference, TMetadata]]("File")),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
+		"file", unpack.Bind(&file, unpack.Type[*model_starlark.File[TReference, TMetadata]]("File")),
 	); err != nil {
 		return nil, err
 	}
 
-	var files []starlark.Value
+	var files []eval.Value
 	var errIter error
 	for child := range expandFileIfDirectory(
 		de.context,
@@ -834,5 +814,5 @@ func (de *directoryExpander[TReference, TMetadata]) doExpand(thread *starlark.Th
 	if errIter != nil {
 		return nil, errIter
 	}
-	return starlark.NewList(files), nil
+	return eval.NewList(files), nil
 }

@@ -19,8 +19,6 @@ import (
 	"bonanza.build/pkg/starlark/eval"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
-
-	"go.starlark.net/starlark"
 )
 
 const moduleDotBazelFilename = "MODULE.bazel"
@@ -264,11 +262,7 @@ ProcessModule:
 			nil,
 			moduledotbazel.NewOverrideIgnoringRootHandler(&handler),
 		); err != nil {
-			var evalErr *starlark.EvalError
-			if !errors.Is(err, evaluation.ErrMissingDependency) && errors.As(err, &evalErr) {
-				return PatchedModuleRoughBuildListValue[TMetadata]{}, errors.New(evalErr.Backtrace())
-			}
-			return PatchedModuleRoughBuildListValue[TMetadata]{}, err
+			return PatchedModuleRoughBuildListValue[TMetadata]{}, formatStarlarkError(err)
 		}
 
 		if buildListEntry != nil {

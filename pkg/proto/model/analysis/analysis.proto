@@ -301,26 +301,6 @@ message CompiledBzlFile {
   }
 }
 
-message CompiledBzlFileDecodedGlobals {
-  message Key {
-    // The label of the .bzl file. The label MUST include a canonical
-    // repo name.
-    string label = 1;
-
-    repeated string builtins_module_names = 2;
-  }
-}
-
-message CompiledBzlFileFunctionFactory {
-  message Key {
-    // The label of the .bzl file. The label MUST include a canonical
-    // repo name.
-    string label = 1;
-
-    repeated string builtins_module_names = 2;
-  }
-}
-
 message CompiledBzlFileGlobal {
   message Key {
     string identifier = 1;
@@ -1944,6 +1924,18 @@ message RootModule {
 
 message RuleImplementationWrappers {
   message Key {}
+
+  message Value {
+    // Function that needs to be invoked instead of the implementation
+    // function of rules. If not set, the implementation function is
+    // invoked directly.
+    bonanza.model.starlark.Function rule = 1;
+
+    // Function that needs to be invoked instead of the implementation
+    // function of subrules. If not set, the implementation function
+    // is invoked directly.
+    bonanza.model.starlark.Function subrule = 2;
+  }
 }
 
 message Select {

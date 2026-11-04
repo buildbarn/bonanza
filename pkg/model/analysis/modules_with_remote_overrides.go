@@ -141,7 +141,7 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Reposit
 	attrNames := slices.Collect(maps.Keys(attrs))
 	sort.Strings(attrNames)
 
-	fields, err := model_starlark.EncodeEvalStructFields(thread, attrs, h.valueEncodingOptions)
+	fields, err := model_starlark.EncodeStructFields(thread, attrs, h.valueEncodingOptions)
 	if err != nil {
 		return err
 	}

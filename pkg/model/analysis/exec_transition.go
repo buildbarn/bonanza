@@ -16,8 +16,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-
-	"go.starlark.net/starlark"
+	"bonanza.build/pkg/starlark/eval"
 )
 
 type createInitialConfigurationEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
@@ -38,7 +37,7 @@ type initialConfigurationBuildSetting[TReference any] struct {
 func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 	ctx context.Context,
 	e createInitialConfigurationEnvironment[TReference, TMetadata],
-	thread *starlark.Thread,
+	thread *eval.Thread,
 	rootPackage label.CanonicalPackage,
 	configuration *model_analysis_pb.BuildResult_Key_Configuration,
 ) (model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata], error) {
@@ -105,6 +104,7 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 
 	return c.applyTransition(
 		ctx,
+		thread,
 		e,
 		model_core.NewSimpleMessage[TReference]((*model_core_pb.DecodableReference)(nil)),
 		buildSettingValuesToApply,
@@ -203,7 +203,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 			buildSettingValuesToApply[:platformsInsertionIndex:platformsInsertionIndex],
 			buildSettingValueToApply[TReference]{
 				label: commandLineOptionPlatformsLabelStr,
-				canonicalizedValue: starlark.NewList([]starlark.Value{
+				canonicalizedValue: eval.NewList([]eval.Value{
 					model_starlark.NewLabel[TReference, TMetadata](canonicalTargetPlatform.AsResolved()),
 				}),
 				// TODO: This is not correct, but likely not harmful.
@@ -217,6 +217,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 	// yielded by the exec transition.
 	outputConfigurationReference, err := c.applyTransition(
 		ctx,
+		thread,
 		e,
 		model_core.NewSimpleMessage[TReference]((*model_core_pb.DecodableReference)(nil)),
 		buildSettingValuesToApply,

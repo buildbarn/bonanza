@@ -22,11 +22,7 @@ go_test(
         "parser_test.go",
         "scanner_test.go",
         "tree_string_test.go",
-        "upstream_comparison_test.go",
     ],
     embed = [":syntax"],
-    deps = [
-        "@com_github_stretchr_testify//require",
-        "@net_starlark_go//syntax",
-    ],
+    deps = ["@com_github_stretchr_testify//require"],
 )

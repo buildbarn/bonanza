@@ -14,16 +14,11 @@ go_library(
 
 go_test(
     name = "resolve_test",
-    srcs = [
-        "resolve_test.go",
-        "upstream_comparison_test.go",
-    ],
+    srcs = ["resolve_test.go"],
     data = glob(["testdata/**"]),
     deps = [
         ":resolve",
         "//pkg/starlark/syntax",
         "@com_github_stretchr_testify//require",
-        "@net_starlark_go//resolve",
-        "@net_starlark_go//syntax",
     ],
 )

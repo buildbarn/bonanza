@@ -18,14 +18,13 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/eval/unpack"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/protobuf/types/known/emptypb"
-
-	"go.starlark.net/starlark"
 )
 
 var commandLineOptionRepoRootPackage = util.Must(label.NewCanonicalPackage("@@bazel_tools+"))
@@ -190,7 +189,7 @@ type namedExpectedTransitionOutput[TReference any] struct {
 	expectedOutput expectedTransitionOutput[TReference]
 }
 
-func getCanonicalTransitionOutputValuesFromDict[TReference any](thread *starlark.Thread, namedExpectedOutputs []namedExpectedTransitionOutput[TReference], outputs map[string]starlark.Value) ([]buildSettingValueToApply[TReference], error) {
+func getCanonicalTransitionOutputValuesFromDict[TReference any](thread *eval.Thread, namedExpectedOutputs []namedExpectedTransitionOutput[TReference], outputs map[string]eval.Value) ([]buildSettingValueToApply[TReference], error) {
 	if len(outputs) != len(namedExpectedOutputs) {
 		return nil, fmt.Errorf("output dictionary contains %d keys, while the transition's definition only has %d outputs", len(outputs), len(namedExpectedOutputs))
 	}
@@ -221,12 +220,13 @@ func getCanonicalTransitionOutputValuesFromDict[TReference any](thread *starlark
 // suppressed in case the desired value is equal to the default.
 type buildSettingValueToApply[TReference any] struct {
 	label              string
-	canonicalizedValue starlark.Value
+	canonicalizedValue eval.Value
 	defaultValue       model_core.Message[*model_starlark_pb.Value, TReference]
 }
 
 func (c *baseComputer[TReference, TMetadata]) applyTransition(
 	ctx context.Context,
+	thread *eval.Thread,
 	e model_core.ObjectCapturer[TReference, TMetadata],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
 	buildSettingValuesToApply []buildSettingValueToApply[TReference],
@@ -300,9 +300,10 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 			// setting override, or inject a new one.
 			buildSettingValueToApply := buildSettingValuesToApply[0]
 			buildSettingValuesToApply = buildSettingValuesToApply[1:]
-			encodedValue, _, err := model_starlark.EncodeValue(
+			encodedValue, err := model_starlark.EncodeValue(
+				thread,
 				buildSettingValueToApply.canonicalizedValue,
-				/* path = */ map[starlark.Value]struct{}{},
+				/* path = */ nil,
 				/* identifier = */ nil,
 				valueEncodingOptions,
 			)
@@ -498,11 +499,11 @@ type performUserDefinedTransitionEnvironment[TReference any, TMetadata model_cor
 func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 	ctx context.Context,
 	e performUserDefinedTransitionEnvironment[TReference, TMetadata],
-	thread *starlark.Thread,
+	thread *eval.Thread,
 	transition model_core.Message[*model_starlark_pb.Transition_UserDefined, TReference],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
-	attrParameter starlark.Value,
-) ([]namedExpectedTransitionOutput[TReference], map[string]map[string]starlark.Value, error) {
+	attrParameter eval.Value,
+) ([]namedExpectedTransitionOutput[TReference], map[string]map[string]eval.Value, error) {
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	if !allBuiltinsModulesNames.IsSet() {
 		return nil, nil, evaluation.ErrMissingDependency
@@ -550,7 +551,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 
 	// Collect inputs to provide to the implementation function.
 	missingDependencies := false
-	inputs := starlark.NewDict(len(transitionDefinition.Message.Inputs))
+	inputs := eval.NewDict()
 	for _, input := range transitionDefinition.Message.Inputs {
 		// Resolve the actual build setting target corresponding
 		// to the string value provided as part of the
@@ -587,20 +588,16 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 		}
 
 		v, err := model_starlark.DecodeValue[TReference, TMetadata](
-			encodedValue,
+			thread, encodedValue,
 			/* currentIdentifier = */ nil,
-			c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
-				return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
-			}),
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to decode value for input %#v: %w", input, err)
 		}
-		if err := inputs.SetKey(thread, starlark.String(input), v); err != nil {
+		if err := inputs.SetKey(thread, eval.String(input), v); err != nil {
 			return nil, nil, err
 		}
 	}
-	inputs.Freeze()
 
 	// Preprocess the outputs that we expect to see.
 	expectedOutputs := make([]namedExpectedTransitionOutput[TReference], 0, len(transitionDefinition.Message.Outputs))
@@ -639,55 +636,47 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 	}
 
 	// Invoke transition implementation function.
-	outputs, err := starlark.Call(
-		thread,
-		model_starlark.NewNamedFunction(
-			model_starlark.NewProtoNamedFunctionDefinition[TReference, TMetadata](
-				model_core.Nested(transitionDefinition, transitionDefinition.Message.Implementation),
-			),
-		),
-		/* args = */ starlark.Tuple{
-			inputs,
-			attrParameter,
-		},
-		/* kwargs = */ nil,
-	)
+	outputs, err := eval.Call(thread, model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(transitionDefinition, transitionDefinition.Message.Implementation)), eval.Args{Positional: /* args = */ []eval.Value{
+		inputs,
+		attrParameter,
+	}, Named:/* kwargs = */ nil})
 	if err != nil {
-		if !errors.Is(err, evaluation.ErrMissingDependency) && !errors.Is(err, errTransitionDependsOnAttrs) {
-			var evalErr *starlark.EvalError
-			if errors.As(err, &evalErr) {
-				return nil, nil, errors.New(evalErr.Backtrace())
-			}
+		if errors.Is(err, errTransitionDependsOnAttrs) {
+			return nil, nil, err
 		}
-		return nil, nil, err
+		return nil, nil, formatStarlarkError(err)
 	}
 
 	// Process return value of transition implementation function.
-	var outputsDict map[string]map[string]starlark.Value
+	var outputsDict map[string]map[string]eval.Value
 	switch typedOutputs := outputs.(type) {
-	case starlark.Indexable:
+	case eval.List, eval.Tuple:
 		// 1:2+ transition in the form of a list.
-		var outputsList []map[string]starlark.Value
+		var outputsList []map[string]eval.Value
 		if err := unpack.List(unpack.Dict(unpack.String, unpack.Any)).UnpackInto(thread, typedOutputs, &outputsList); err != nil {
 			return nil, nil, err
 		}
-		outputsDict = make(map[string]map[string]starlark.Value, len(outputsList))
+		outputsDict = make(map[string]map[string]eval.Value, len(outputsList))
 		for i, outputs := range outputsList {
 			outputsDict[strconv.FormatInt(int64(i), 10)] = outputs
 		}
-	case starlark.IterableMapping:
+	case eval.Dict:
 		// If the implementation function returns a dict, this
 		// can either be a 1:1 transition or a 1:2+ transition
 		// in the form of a dictionary of dictionaries. Check
 		// whether the return value is a dict of dicts.
 		gotEntries := false
 		dictOfDicts := true
-		for _, value := range starlark.Entries(thread, typedOutputs) {
+		var errIter error
+		for _, value := range typedOutputs.Items(thread, &errIter) {
 			gotEntries = true
-			if _, ok := value.(starlark.Mapping); !ok {
+			if _, ok := value.(eval.Dict); !ok {
 				dictOfDicts = false
 				break
 			}
+		}
+		if errIter != nil {
+			return nil, nil, errIter
 		}
 		if gotEntries && dictOfDicts {
 			// 1:2+ transition in the form of a dictionary.
@@ -697,11 +686,11 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 		} else {
 			// 1:1 transition. These are implicitly converted to a
 			// singleton list.
-			var outputs map[string]starlark.Value
+			var outputs map[string]eval.Value
 			if err := unpack.Dict(unpack.String, unpack.Any).UnpackInto(thread, typedOutputs, &outputs); err != nil {
 				return nil, nil, err
 			}
-			outputsDict = map[string]map[string]starlark.Value{
+			outputsDict = map[string]map[string]eval.Value{
 				"0": outputs,
 			}
 		}
@@ -713,7 +702,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 
 type performAndApplyUserDefinedTransitionResult[TMetadata model_core.ReferenceMetadata] = model_core.PatchedMessage[*model_analysis_pb.UserDefinedTransition_Value_Success, TMetadata]
 
-func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransition(ctx context.Context, e performUserDefinedTransitionEnvironment[TReference, TMetadata], transition model_core.Message[*model_starlark_pb.Transition_UserDefined, TReference], configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference], attrParameter starlark.Value) (performAndApplyUserDefinedTransitionResult[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransition(ctx context.Context, e performUserDefinedTransitionEnvironment[TReference, TMetadata], transition model_core.Message[*model_starlark_pb.Transition_UserDefined, TReference], configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference], attrParameter eval.Value) (performAndApplyUserDefinedTransitionResult[TMetadata], error) {
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	if !allBuiltinsModulesNames.IsSet() {
 		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, evaluation.ErrMissingDependency
@@ -734,6 +723,7 @@ func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransiti
 		}
 		outputConfigurationReference, err := c.applyTransition(
 			ctx,
+			thread,
 			e,
 			configurationReference,
 			buildSettingValuesToApply,
@@ -767,7 +757,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached
 	e performUserDefinedTransitionCachedEnvironment[TReference, TMetadata],
 	transition model_core.Message[*model_starlark_pb.Transition_UserDefined, TReference],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
-	attrParameter starlark.Value,
+	attrParameter eval.Value,
 ) (performAndApplyUserDefinedTransitionResult[TMetadata], error) {
 	switch t := transition.Message.Kind.(type) {
 	case *model_starlark_pb.Transition_UserDefined_Identifier:
@@ -827,7 +817,7 @@ func (c *baseComputer[TReference, TMetadata]) performTransition(
 	e performTransitionEnvironment[TReference, TMetadata],
 	transition model_core.Message[*model_starlark_pb.Transition, TReference],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
-	attrParameter starlark.Value,
+	attrParameter eval.Value,
 	execGroupPlatformLabels map[string]string,
 ) (performAndApplyUserDefinedTransitionResult[TMetadata], bool, error) {
 	// See if any transitions need to be applied.
@@ -941,33 +931,28 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUserDefinedTransitionValue(
 
 type stubbedTransitionAttr struct{}
 
-var _ starlark.HasAttrs = stubbedTransitionAttr{}
+var _ eval.HasAttrs = stubbedTransitionAttr{}
 
-func (stubbedTransitionAttr) String() string {
-	return "<transition_attr>"
+// Repr writes the representation of the value.
+func (stubbedTransitionAttr) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<transition_attr>")
+	return nil
 }
 
 func (stubbedTransitionAttr) Type() string {
 	return "transition_attr"
 }
 
-func (stubbedTransitionAttr) Freeze() {}
-
-func (stubbedTransitionAttr) Truth() starlark.Bool {
-	return starlark.True
-}
-
-func (stubbedTransitionAttr) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("transition_attr cannot be hashed")
+func (stubbedTransitionAttr) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
 var errTransitionDependsOnAttrs = errors.New("transition depends on rule attrs, which are not available in this context")
 
-func (stubbedTransitionAttr) Attr(*starlark.Thread, string) (starlark.Value, error) {
+func (stubbedTransitionAttr) Attr(*eval.Thread, string) (eval.Value, error) {
 	return nil, errTransitionDependsOnAttrs
 }
 
-func (stubbedTransitionAttr) AttrNames() []string {
-	// TODO: This should also be able to return an error.
-	return nil
+func (stubbedTransitionAttr) AttrNames(*eval.Thread) ([]string, error) {
+	return nil, errTransitionDependsOnAttrs
 }

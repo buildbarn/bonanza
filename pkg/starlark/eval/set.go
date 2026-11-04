@@ -35,6 +35,19 @@ func NewSet() Set {
 	return &memSet{}
 }
 
+// NewImmutableSet creates an immutable set containing the provided
+// elements, which must also be immutable.
+func NewImmutableSet(t *Thread, elements []Value) (Set, error) {
+	s := &memSet{}
+	for _, element := range elements {
+		if err := s.Add(t, element); err != nil {
+			return nil, err
+		}
+	}
+	s.immutable = true
+	return s, nil
+}
+
 func (*memSet) isSet()                        {}
 func (*memSet) Type() string                  { return "set" }
 func (s *memSet) Truth(*Thread) (bool, error) { return s.table.count > 0, nil }

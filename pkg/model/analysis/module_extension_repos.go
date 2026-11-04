@@ -2,7 +2,6 @@ package analysis
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -18,48 +17,41 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval/unpack"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/protobuf/proto"
-
-	"go.starlark.net/starlark"
 )
 
 type bazelModuleTag struct {
 	tagClass        *model_starlark_pb.TagClass
 	isDevDependency bool
-	attrs           []starlark.Value
+	attrs           []eval.Value
 }
 
 var (
-	_ starlark.HasAttrs = bazelModuleTag{}
-	_ starlark.Value    = bazelModuleTag{}
+	_ eval.HasAttrs = bazelModuleTag{}
+	_ eval.Value    = bazelModuleTag{}
 )
 
-func (bazelModuleTag) String() string {
-	return "<bazel_module_tag>"
+// Repr writes the representation of the value.
+func (bazelModuleTag) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<bazel_module_tag>")
+	return nil
 }
 
 func (bazelModuleTag) Type() string {
 	return "bazel_module_tag"
 }
 
-func (bazelModuleTag) Freeze() {
+func (bazelModuleTag) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
-func (bazelModuleTag) Truth() starlark.Bool {
-	return starlark.True
-}
-
-func (bazelModuleTag) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("bazel_module_tag cannot be hashed")
-}
-
-func (t bazelModuleTag) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (t bazelModuleTag) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	attrs := t.tagClass.GetAttrs()
 	if index, ok := sort.Find(
 		len(attrs),
@@ -67,16 +59,16 @@ func (t bazelModuleTag) Attr(thread *starlark.Thread, name string) (starlark.Val
 	); ok {
 		return t.attrs[index], nil
 	}
-	return nil, nil
+	return nil, eval.NoSuchAttrError{Value: t, Name: name}
 }
 
-func (t bazelModuleTag) AttrNames() []string {
+func (t bazelModuleTag) AttrNames(*eval.Thread) ([]string, error) {
 	attrs := t.tagClass.GetAttrs()
 	attrNames := make([]string, 0, len(attrs))
 	for _, attr := range attrs {
 		attrNames = append(attrNames, attr.Name)
 	}
-	return attrNames
+	return attrNames, nil
 }
 
 var repoRulesExtensionName = util.Must(label.NewStarlarkIdentifier("_repo_rules"))
@@ -121,7 +113,7 @@ func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRe
 			return err
 		}
 
-		attrValues, err := model_starlark.EncodeEvalStructFields(thread, attrs, h.valueEncodingOptions)
+		attrValues, err := model_starlark.EncodeStructFields(thread, attrs, h.valueEncodingOptions)
 		if err != nil {
 			return err
 		}
@@ -254,13 +246,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		// Decode tags declared in all MODULE.bazel files belonging to
 		// this module extension.
 		moduleExtensionUsers := usedModuleExtension.GetUsers()
-		modules := make([]starlark.Value, 0, len(moduleExtensionUsers))
-		valueDecodingOptions := c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
-			return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
-		})
+		modules := make([]eval.Value, 0, len(moduleExtensionUsers))
 		listReader := c.valueReaders.List
 		tagClassAttrTypes := make([][]model_starlark.AttrType[TReference, TMetadata], len(moduleExtensionDefinition.TagClasses))
-		tagClassAttrDefaults := make([][]starlark.Value, len(moduleExtensionDefinition.TagClasses))
+		tagClassAttrDefaults := make([][]eval.Value, len(moduleExtensionDefinition.TagClasses))
 		for _, user := range moduleExtensionUsers {
 			moduleInstance, err := label.NewModuleInstance(user.ModuleInstance)
 			if err != nil {
@@ -277,10 +266,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 				tagClassDefinition := tagClass.TagClass
 				tagClassAttrs := tagClassDefinition.GetAttrs()
 
-				var tags []starlark.Value
+				var tags []eval.Value
 				if len(usedTagClasses) > 0 && usedTagClasses[0].Name == tagClass.Name {
 					declaredTags := usedTagClasses[0].Tags
-					tags = make([]starlark.Value, 0, len(declaredTags))
+					tags = make([]eval.Value, 0, len(declaredTags))
 					for _, declaredTag := range declaredTags {
 						var errIter error
 						declaredAttrs := maps.Collect(
@@ -295,13 +284,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 							return PatchedModuleExtensionReposValue[TMetadata]{}, errIter
 						}
 
-						attrs := make([]starlark.Value, 0, len(tagClassAttrs))
+						attrs := make([]eval.Value, 0, len(tagClassAttrs))
 						for attrIndex, attr := range tagClassAttrs {
 							if declaredValue, ok := declaredAttrs[attr.Name]; ok {
 								value, err := model_starlark.DecodeValue[TReference, TMetadata](
-									declaredValue,
+									thread, declaredValue,
 									/* currentIdentifier = */ nil,
-									valueDecodingOptions,
 								)
 								if err != nil {
 									return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("failed to decode value of attribute %#v of tag class %#v declared by module instance %#v", attr.Name, tagClass.Name, moduleInstance.String())
@@ -336,7 +324,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 								// Tag didn't provide the attribute.
 								// Use the default value.
 								if len(tagClassAttrDefaults[tagClassIndex]) != len(tagClassAttrs) {
-									tagClassAttrDefaults[tagClassIndex] = make([]starlark.Value, len(tagClassAttrs))
+									tagClassAttrDefaults[tagClassIndex] = make([]eval.Value, len(tagClassAttrs))
 								}
 								defaultValue := &tagClassAttrDefaults[tagClassIndex][attrIndex]
 								if *defaultValue == nil {
@@ -344,9 +332,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 									// invoked without a value for this
 									// attribute. Decode the default value.
 									*defaultValue, err = model_starlark.DecodeValue[TReference, TMetadata](
-										model_core.Nested(moduleExtensionDefinitionValue, encodedDefaultValue),
+										thread, model_core.Nested(moduleExtensionDefinitionValue, encodedDefaultValue),
 										/* currentIdentifier = */ nil,
-										valueDecodingOptions,
 									)
 									if err != nil {
 										return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("failed to decode default value of attribute %#v of tag class %#v", attr.Name, tagClass.Name)
@@ -375,17 +362,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 
 					usedTagClasses = usedTagClasses[1:]
 				}
-				tagClasses[tagClass.Name] = starlark.NewList(tags)
+				tagClasses[tagClass.Name] = eval.NewImmutableList(tags)
 			}
 			if len(usedTagClasses) > 0 {
 				return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("module instance %#v uses unknown tag class %#v", moduleInstance.String(), usedTagClasses[0].Name)
 			}
 
 			modules = append(modules, model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
-				"is_root": starlark.Bool(user.IsRoot),
-				"name":    starlark.String(moduleInstance.GetModule().String()),
+				"is_root": eval.Bool(user.IsRoot),
+				"name":    eval.String(moduleInstance.GetModule().String()),
 				"tags":    model_starlark.NewStructFromDict[TReference, TMetadata](nil, tagClasses),
-				"version": starlark.String(versionStr),
+				"version": eval.String(versionStr),
 			}))
 		}
 
@@ -412,62 +399,54 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		}
 		defer moduleContext.release()
 
+		repositoryOS, err := newRepositoryOS[TReference, TMetadata](thread, repoPlatform.Message)
+		if err != nil {
+			return PatchedModuleExtensionReposValue[TMetadata]{}, err
+		}
 		moduleCtx := model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
 			// Fields shared with repository_ctx.
-			"download":                           starlark.NewBuiltin("module_ctx.download", moduleContext.doDownload),
-			"download_and_extract":               starlark.NewBuiltin("module_ctx.download_and_extract", moduleContext.doDownloadAndExtract),
-			"execute":                            starlark.NewBuiltin("module_ctx.execute", moduleContext.doExecute),
-			"extract":                            starlark.NewBuiltin("module_ctx.extract", moduleContext.doExtract),
-			"file":                               starlark.NewBuiltin("module_ctx.file", moduleContext.doFile),
-			"getenv":                             starlark.NewBuiltin("module_ctx.getenv", moduleContext.doGetenv),
-			"os":                                 newRepositoryOS[TReference, TMetadata](thread, repoPlatform.Message),
-			"path":                               starlark.NewBuiltin("module_ctx.path", moduleContext.doPath),
-			"read":                               starlark.NewBuiltin("module_ctx.read", moduleContext.doRead),
-			"report_progress":                    starlark.NewBuiltin("module_ctx.report_progress", moduleContext.doReportProgress),
-			"root_module_has_non_dev_dependency": starlark.Bool(usedModuleExtension.RootModuleHasNonDevDependency),
-			"watch":                              starlark.NewBuiltin("module_ctx.watch", moduleContext.doWatch),
-			"which":                              starlark.NewBuiltin("module_ctx.which", moduleContext.doWhich),
+			"download":                           eval.NewBuiltin("module_ctx.download", moduleContext.doDownload),
+			"download_and_extract":               eval.NewBuiltin("module_ctx.download_and_extract", moduleContext.doDownloadAndExtract),
+			"execute":                            eval.NewBuiltin("module_ctx.execute", moduleContext.doExecute),
+			"extract":                            eval.NewBuiltin("module_ctx.extract", moduleContext.doExtract),
+			"file":                               eval.NewBuiltin("module_ctx.file", moduleContext.doFile),
+			"getenv":                             eval.NewBuiltin("module_ctx.getenv", moduleContext.doGetenv),
+			"os":                                 repositoryOS,
+			"path":                               eval.NewBuiltin("module_ctx.path", moduleContext.doPath),
+			"read":                               eval.NewBuiltin("module_ctx.read", moduleContext.doRead),
+			"report_progress":                    eval.NewBuiltin("module_ctx.report_progress", moduleContext.doReportProgress),
+			"root_module_has_non_dev_dependency": eval.Bool(usedModuleExtension.RootModuleHasNonDevDependency),
+			"watch":                              eval.NewBuiltin("module_ctx.watch", moduleContext.doWatch),
+			"which":                              eval.NewBuiltin("module_ctx.which", moduleContext.doWhich),
 
 			// Fields specific to module_ctx.
-			"extension_metadata": starlark.NewBuiltin(
+			"extension_metadata": eval.NewBuiltin(
 				"module_ctx.extension_metadata",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					// TODO: Properly implement this function.
-					return starlark.None, nil
+					return eval.None, nil
 				},
 			),
-			"is_dev_dependency": starlark.NewBuiltin(
+			"is_dev_dependency": eval.NewBuiltin(
 				"module_ctx.is_dev_dependency",
-				func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 					var tag bazelModuleTag
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"tag", unpack.Bind(thread, &tag, unpack.Type[bazelModuleTag]("bazel_module_tag")),
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						"tag", unpack.Bind(&tag, unpack.Type[bazelModuleTag]("bazel_module_tag")),
 					); err != nil {
 						return nil, err
 					}
-					return starlark.Bool(tag.isDevDependency), nil
+					return eval.Bool(tag.isDevDependency), nil
 				},
 			),
-			"modules": starlark.NewList(modules),
+			"modules": eval.NewImmutableList(modules),
 		})
-		moduleCtx.Freeze()
 
 		// TODO: Capture extension_metadata.
-		_, err = starlark.Call(
-			thread,
-			model_starlark.NewNamedFunction(model_starlark.NewProtoNamedFunctionDefinition[TReference, TMetadata](
-				model_core.Nested(moduleExtensionDefinitionValue, moduleExtensionDefinition.Implementation),
-			)),
-			/* args = */ starlark.Tuple{moduleCtx},
-			/* kwargs = */ nil,
-		)
+		_, err = eval.Call(thread, model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(moduleExtensionDefinitionValue, moduleExtensionDefinition.Implementation)), eval.Args{Positional: /* args = */ []eval.Value{moduleCtx}, Named: /* kwargs = */ nil})
 		if err != nil {
-			var evalErr *starlark.EvalError
-			if !errors.Is(err, evaluation.ErrMissingDependency) && errors.As(err, &evalErr) {
-				return PatchedModuleExtensionReposValue[TMetadata]{}, errors.New(evalErr.Backtrace())
-			}
-			return PatchedModuleExtensionReposValue[TMetadata]{}, err
+			return PatchedModuleExtensionReposValue[TMetadata]{}, formatStarlarkError(err)
 		}
 
 		repos = repoRegistrar.GetRepos()

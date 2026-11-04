@@ -1,9 +1,8 @@
 // Package unpack provides strategies for converting arguments of
 // builtins written in Go from Starlark values to native Go types.
 //
-// It is a port of pkg/starlark/unpack, which is built on top of
-// go.starlark.net, to pkg/starlark/eval. pkg/starlark/unpack is removed
-// once the migration to pkg/starlark/eval is complete.
+// It was originally written for go.starlark.net, and ported to
+// pkg/starlark/eval.
 package unpack
 
 import (

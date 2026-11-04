@@ -24,7 +24,8 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
-	"bonanza.build/pkg/starlark/unpack"
+	"bonanza.build/pkg/starlark/eval/unpack"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
@@ -35,9 +36,6 @@ import (
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 var (
@@ -180,8 +178,12 @@ func (c *baseComputer[TReference, TMetadata]) mapStructFields(
 		return model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata]{}, errIter
 	}
 
-	encodedFields, _, err := model_starlark.NewStructFromDict[TReference, TMetadata](nil, fields).
-		EncodeStructFields(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(ctx, e, nil))
+	// The fields are either backed by storage, or depsets
+	// containing values that are backed by storage. Encoding these
+	// does not require any values to be decoded.
+	thread := eval.NewThread(ctx, eval.Universe())
+	encodedFields, err := model_starlark.NewStructFromDict[TReference, TMetadata](nil, fields).
+		EncodeStructFields(thread, nil, c.getValueEncodingOptions(ctx, e, nil))
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata]{}, err
 	}
@@ -347,13 +349,13 @@ func getAttrValueParts[TReference object.BasicReference, TMetadata model_core.Re
 func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
-	thread *starlark.Thread,
+	thread *eval.Thread,
 	namedAttr model_core.Message[*model_starlark_pb.NamedAttr, TReference],
 	valueParts model_core.Message[[]*model_starlark_pb.Value, TReference],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
 	visibilityFromPackage label.CanonicalPackage,
 	execGroupPlatformLabels map[string]string,
-) (starlark.Value, error) {
+) (eval.Value, error) {
 	// See if any transitions need to be applied.
 	var cfg *model_starlark_pb.Transition
 	isScalar := false
@@ -391,13 +393,12 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 		}
 	}
 
-	var attr starlark.Value
+	var attrBuilder model_starlark.AttrValueBuilder
 	if len(configurationReferences) == 0 {
 		for _, valuePart := range valueParts.Message {
-			decodedPart, err := model_starlark.DecodeValue[TReference, TMetadata](
-				model_core.Nested(valueParts, valuePart),
-				/* currentIdentifier = */ nil,
-				c.getValueDecodingOptions(ctx, func(originalLabel label.ResolvedLabel) (starlark.Value, error) {
+			decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
+				thread, model_core.Nested(valueParts, valuePart),
+				c.getValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 					// We should leave the target
 					// unconfigured. Provide a
 					// target reference that does
@@ -411,14 +412,14 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 			if err != nil {
 				return nil, err
 			}
-			if err := concatenateAttrValueParts(thread, &attr, decodedPart); err != nil {
+			if err := attrBuilder.Add(thread, decodedPart); err != nil {
 				return nil, err
 			}
 		}
 	} else {
 		missingDependencies := false
 		for _, configurationReference := range configurationReferences {
-			valueDecodingOptions := c.getValueDecodingOptions(ctx, func(originalLabel label.ResolvedLabel) (starlark.Value, error) {
+			valueDecodingOptions := c.getValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 				// Resolve the label.
 				canonicalOriginalLabel, err := originalLabel.AsCanonical()
 				if err != nil {
@@ -437,11 +438,11 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 				)
 				if !resolvedLabelValue.IsSet() {
 					missingDependencies = true
-					return starlark.None, nil
+					return eval.None, nil
 				}
 				resolvedLabelStr := resolvedLabelValue.Message.Label
 				if resolvedLabelStr == "" {
-					return starlark.None, nil
+					return eval.None, nil
 				}
 				resolvedLabel, err := label.NewCanonicalLabel(resolvedLabelStr)
 				if err != nil {
@@ -461,7 +462,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 				)
 				if !targetProviders.IsSet() {
 					missingDependencies = true
-					return starlark.None, nil
+					return eval.None, nil
 				}
 
 				return model_starlark.NewTargetReference(
@@ -473,18 +474,20 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 				), nil
 			})
 			for _, valuePart := range valueParts.Message {
-				decodedPart, err := model_starlark.DecodeValue[TReference, TMetadata](
-					model_core.Nested(valueParts, valuePart),
-					/* currentIdentifier = */ nil,
+				decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
+					thread, model_core.Nested(valueParts, valuePart),
 					valueDecodingOptions,
 				)
 				if err != nil {
 					return nil, err
 				}
 				if isScalar && mayHaveMultipleConfigurations {
-					decodedPart = starlark.NewList([]starlark.Value{decodedPart})
+					decodedPart, err = decodedPart.AsList(thread /* omitNone = */, false)
+					if err != nil {
+						return nil, err
+					}
 				}
-				if err := concatenateAttrValueParts(thread, &attr, decodedPart); err != nil {
+				if err := attrBuilder.Add(thread, decodedPart); err != nil {
 					return nil, err
 				}
 			}
@@ -494,30 +497,14 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 		}
 	}
 
+	attr, err := attrBuilder.Build(thread)
+	if err != nil {
+		return nil, err
+	}
 	if attr == nil {
 		return nil, errors.New("attr value does not have any parts")
 	}
-	attr.Freeze()
 	return attr, nil
-}
-
-func concatenateAttrValueParts(thread *starlark.Thread, left *starlark.Value, right starlark.Value) error {
-	if *left == nil {
-		// Initial round.
-		*left = right
-		return nil
-	}
-
-	concatenationOperator := syntax.PLUS
-	if _, ok := (*left).(*starlark.Dict); ok {
-		concatenationOperator = syntax.PIPE
-	}
-	v, err := starlark.Binary(thread, concatenationOperator, *left, right)
-	if err != nil {
-		return err
-	}
-	*left = v
-	return nil
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
@@ -592,13 +579,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		ruleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
 			Identifier: ruleIdentifier.String(),
 		})
-		ruleImplementationWrappers, gotRuleImplementationWrappers := e.GetRuleImplementationWrappersValue(&model_analysis_pb.RuleImplementationWrappers_Key{})
+		ruleImplementationWrappers := e.GetRuleImplementationWrappersValue(&model_analysis_pb.RuleImplementationWrappers_Key{})
 		if !allBuiltinsModulesNames.IsSet() ||
 			!gotActionEncoder ||
 			!gotDirectoryCreationParameters ||
 			!gotFileCreationParameters ||
 			!ruleValue.IsSet() ||
-			!gotRuleImplementationWrappers {
+			!ruleImplementationWrappers.IsSet() {
 			return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		v, ok := ruleValue.Message.Global.GetKind().(*model_starlark_pb.Value_Rule)
@@ -615,17 +602,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 
 		// Set all common attrs.
 		attrValues := make(map[string]any, len(ruleDefinition.Message.Attrs)+2)
-		name := starlark.String(targetLabel.GetTargetName().String())
+		name := eval.String(targetLabel.GetTargetName().String())
 		attrValues["name"] = name
 
-		tags := make([]starlark.Value, 0, len(ruleTarget.Tags))
+		tags := make([]eval.Value, 0, len(ruleTarget.Tags))
 		for _, tag := range ruleTarget.Tags {
-			tags = append(tags, starlark.String(tag))
+			tags = append(tags, eval.String(tag))
 		}
-		tagsList := starlark.NewList(tags)
+		tagsList := eval.NewList(tags)
 		attrValues["tags"] = tagsList
 
-		attrValues["testonly"] = starlark.Bool(ruleTarget.InheritableAttrs.GetTestonly())
+		attrValues["testonly"] = eval.Bool(ruleTarget.InheritableAttrs.GetTestonly())
 
 		edgeTransitionAttrValues := make(map[string]any, len(ruleDefinition.Message.Attrs)+2)
 		for k, v := range attrValues {
@@ -688,23 +675,25 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				valueParts = append(valueParts, model_core.Nested(ruleDefinition, defaultValue))
 			}
 
-			var attrValue starlark.Value
+			var attrValueBuilder model_starlark.AttrValueBuilder
 			for _, valuePart := range valueParts {
-				decodedPart, err := model_starlark.DecodeValue[TReference, TMetadata](
-					valuePart,
-					/* currentIdentifier = */ nil,
-					c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
+				decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
+					thread, valuePart,
+					c.getValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
 						return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
 					}),
 				)
 				if err != nil {
 					return PatchedConfiguredTargetValue[TMetadata]{}, err
 				}
-				if err := concatenateAttrValueParts(thread, &attrValue, decodedPart); err != nil {
+				if err := attrValueBuilder.Add(thread, decodedPart); err != nil {
 					return PatchedConfiguredTargetValue[TMetadata]{}, err
 				}
 			}
-			attrValue.Freeze()
+			attrValue, err := attrValueBuilder.Build(thread)
+			if err != nil {
+				return PatchedConfiguredTargetValue[TMetadata]{}, err
+			}
 
 			switch namedAttr.Attr.GetType().(type) {
 			case *model_starlark_pb.Attr_Label, *model_starlark_pb.Attr_LabelList, *model_starlark_pb.Attr_LabelKeyedStringDict,
@@ -795,13 +784,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				return PatchedConfiguredTargetValue[TMetadata]{}, err
 			}
 
-			var attrValue starlark.Value
-			var attrOutputs []starlark.Value
+			var attrValueBuilder model_starlark.AttrValueBuilder
+			var attrOutputs []eval.Value
 			for _, valuePart := range valueParts.Message {
-				decodedPart, err := model_starlark.DecodeValue[TReference, TMetadata](
-					model_core.Nested(valueParts, valuePart),
-					/* currentIdentifier = */ nil,
-					c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
+				decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
+					thread, model_core.Nested(valueParts, valuePart),
+					c.getValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
 						switch namedAttr.Attr.GetType().(type) {
 						case *model_starlark_pb.Attr_Output, *model_starlark_pb.Attr_OutputList:
 							canonicalLabel, err := resolvedLabel.AsCanonical()
@@ -826,25 +814,28 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				if err != nil {
 					return PatchedConfiguredTargetValue[TMetadata]{}, err
 				}
-				if err := concatenateAttrValueParts(thread, &attrValue, decodedPart); err != nil {
+				if err := attrValueBuilder.Add(thread, decodedPart); err != nil {
 					return PatchedConfiguredTargetValue[TMetadata]{}, err
 				}
 			}
-			attrValue.Freeze()
+			attrValue, err := attrValueBuilder.Build(thread)
+			if err != nil {
+				return PatchedConfiguredTargetValue[TMetadata]{}, err
+			}
 			attrValues[namedAttr.Name] = attrValue
 			edgeTransitionAttrValues[namedAttr.Name] = attrValue
 
 			switch namedAttr.Attr.GetType().(type) {
 			case *model_starlark_pb.Attr_Output:
 				if len(attrOutputs) == 0 {
-					outputsValues[namedAttr.Name] = starlark.None
+					outputsValues[namedAttr.Name] = eval.None
 				} else if len(attrOutputs) == 1 {
 					outputsValues[namedAttr.Name] = attrOutputs[0]
 				} else {
 					return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("value of attr %#v contains multiple labels, which is not expected for attrs of type output", namedAttr.Name)
 				}
 			case *model_starlark_pb.Attr_OutputList:
-				outputsValues[namedAttr.Name] = starlark.NewList(attrOutputs)
+				outputsValues[namedAttr.Name] = eval.NewList(attrOutputs)
 			}
 		}
 
@@ -889,7 +880,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			execGroups = append(execGroups, ruleContextExecGroupState{
 				platformPkixPublicKey: resolvedToolchains.Message.PlatformPkixPublicKey,
 				toolchainIdentifiers:  toolchainIdentifiers,
-				toolchainInfos:        make([]starlark.Value, len(toolchainIdentifiers)),
+				toolchainInfos:        make([]eval.Value, len(toolchainIdentifiers)),
 			})
 			execGroupPlatformLabels[namedExecGroup.Name] = resolvedToolchains.Message.PlatformLabel
 		}
@@ -959,11 +950,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			}
 			transition := model_core.Unpatch(e, patchedTransition).Decay()
 
-			var attrValue starlark.Value
-			var splitAttrValue *starlark.Dict
-			if mayHaveMultipleConfigurations {
-				splitAttrValue = starlark.NewDict(len(transition.Message.Entries))
-			}
+			var attrValueBuilder model_starlark.AttrValueBuilder
+			var splitAttrEntries [][2]eval.Value
 
 			var filesDepsetElements []any
 
@@ -988,10 +976,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				// Provide a target reference that does
 				// not contain any providers.
 				for _, valuePart := range valueParts.Message {
-					decodedPart, err := model_starlark.DecodeValue[TReference, TMetadata](
-						model_core.Nested(valueParts, valuePart),
-						/* currentIdentifier = */ nil,
-						c.getValueDecodingOptions(ctx, func(originalLabel label.ResolvedLabel) (starlark.Value, error) {
+					decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
+						thread, model_core.Nested(valueParts, valuePart),
+						c.getValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 							return model_starlark.NewTargetReference[TReference, TMetadata](
 								originalLabel,
 								/* configured = */ nil,
@@ -1001,13 +988,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					if err != nil {
 						return PatchedConfiguredTargetValue[TMetadata]{}, err
 					}
-					if err := concatenateAttrValueParts(thread, &attrValue, decodedPart); err != nil {
+					if err := attrValueBuilder.Add(thread, decodedPart); err != nil {
 						return PatchedConfiguredTargetValue[TMetadata]{}, err
 					}
 				}
 			} else {
 				if executable {
-					executableValues[namedAttr.Name] = starlark.None
+					executableValues[namedAttr.Name] = eval.None
 				}
 				for _, transitionEntry := range transition.Message.Entries {
 					outputConfigurationReference := model_core.Nested(transition, transitionEntry.OutputConfigurationReference)
@@ -1039,8 +1026,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						visibilityFromPackage = targetPackage
 					}
 
-					var splitAttrEntry starlark.Value
-					valueDecodingOptions := c.getValueDecodingOptions(ctx, func(originalLabel label.ResolvedLabel) (starlark.Value, error) {
+					var splitAttrEntryBuilder model_starlark.AttrValueBuilder
+					valueDecodingOptions := c.getValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 						// Resolve the label.
 						canonicalOriginalLabel, err := originalLabel.AsCanonical()
 						if err != nil {
@@ -1059,11 +1046,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						)
 						if !resolvedLabelValue.IsSet() {
 							missingDependencies = true
-							return starlark.None, nil
+							return eval.None, nil
 						}
 						resolvedLabelStr := resolvedLabelValue.Message.Label
 						if resolvedLabelStr == "" {
-							return starlark.None, nil
+							return eval.None, nil
 						}
 						canonicalResolvedLabel, err := label.NewCanonicalLabel(resolvedLabelStr)
 						if err != nil {
@@ -1083,7 +1070,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						)
 						if !targetProviders.IsSet() {
 							missingDependencies = true
-							return starlark.None, nil
+							return eval.None, nil
 						}
 						providerInstances := model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances)
 
@@ -1140,13 +1127,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 							if err != nil {
 								return nil, fmt.Errorf("failed to obtain field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v: %w", resolvedLabelStr, err)
 							}
-							decodedExecutable, err := model_starlark.DecodeValue[TReference, TMetadata](
-								executableField,
-								/* currentIdentifier = */ nil,
-								c.getValueDecodingOptions(ctx, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
-									return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
-								}),
-							)
+							decodedExecutable, err := model_starlark.DecodeValue[TReference, TMetadata](thread, executableField, nil)
 							if err != nil {
 								return nil, fmt.Errorf("decode field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v: %w", resolvedLabelStr, err)
 							}
@@ -1167,45 +1148,51 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						), nil
 					})
 					for i, valuePart := range valueParts.Message {
-						decodedPart, err := model_starlark.DecodeValue[TReference, TMetadata](
-							model_core.Nested(valueParts, valuePart),
-							/* currentIdentifier = */ nil,
+						decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
+							thread, model_core.Nested(valueParts, valuePart),
 							valueDecodingOptions,
 						)
 						if err != nil {
 							return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("decoding attr %#v transition %#v value part %d: %w", namedAttr.Name, transitionEntry.Key, i, err)
 						}
 						if isScalar && mayHaveMultipleConfigurations {
-							if decodedPart == starlark.None {
-								decodedPart = starlark.NewList(nil)
-							} else {
-								decodedPart = starlark.NewList([]starlark.Value{decodedPart})
+							decodedPart, err = decodedPart.AsList(thread /* omitNone = */, true)
+							if err != nil {
+								return PatchedConfiguredTargetValue[TMetadata]{}, err
 							}
 						}
-						if err := concatenateAttrValueParts(thread, &attrValue, decodedPart); err != nil {
+						if err := attrValueBuilder.Add(thread, decodedPart); err != nil {
 							return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("concatenate attr value parts: %w", err)
 						}
 						if mayHaveMultipleConfigurations {
-							if err := concatenateAttrValueParts(thread, &splitAttrEntry, decodedPart); err != nil {
+							if err := splitAttrEntryBuilder.Add(thread, decodedPart); err != nil {
 								return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("concatenate split attr value parts: %w", err)
 							}
 						}
 					}
 
 					if mayHaveMultipleConfigurations {
-						if err := splitAttrValue.SetKey(thread, starlark.String(transitionEntry.Key), splitAttrEntry); err != nil {
+						splitAttrEntry, err := splitAttrEntryBuilder.Build(thread)
+						if err != nil {
 							return PatchedConfiguredTargetValue[TMetadata]{}, err
 						}
+						splitAttrEntries = append(splitAttrEntries, [2]eval.Value{eval.String(transitionEntry.Key), splitAttrEntry})
 					}
 				}
 			}
 			if !missingDependencies {
-				attrValue.Freeze()
+				attrValue, err := attrValueBuilder.Build(thread)
+				if err != nil {
+					return PatchedConfiguredTargetValue[TMetadata]{}, err
+				}
 				attrValues[namedAttr.Name] = attrValue
 
 				if mayHaveMultipleConfigurations {
-					splitAttrValue.Freeze()
-					splitAttrValues[namedAttr.Name] = splitAttrValue
+					immutableSplitAttrValue, err := eval.NewImmutableDict(thread, splitAttrEntries)
+					if err != nil {
+						return PatchedConfiguredTargetValue[TMetadata]{}, err
+					}
+					splitAttrValues[namedAttr.Name] = immutableSplitAttrValue
 				}
 
 				filesElements, err := model_starlark.NewDepsetContentsFromList[TReference, TMetadata](
@@ -1215,14 +1202,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				if err != nil {
 					return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("converting files depset to list: %w", err)
 				}
-				files := starlark.NewList(filesElements)
-				files.Freeze()
+				files := eval.NewImmutableList(filesElements)
 				if allowSingleFile {
-					switch l := files.Len(); l {
+					switch l := len(filesElements); l {
 					case 0:
-						fileValues[namedAttr.Name] = starlark.None
+						fileValues[namedAttr.Name] = eval.None
 					case 1:
-						fileValues[namedAttr.Name] = files.Index(0)
+						fileValues[namedAttr.Name] = filesElements[0]
 					default:
 						return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("attr %#v has allow_single_file=True, but its value expands to %d targets", namedAttr.Name, l)
 					}
@@ -1261,7 +1247,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			rc.actions.Discard()
 		}()
 
-		thread.SetLocal(model_starlark.SubruleInvokerKey, func(subruleIdentifier label.CanonicalStarlarkIdentifier, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		thread.SetLocal(model_starlark.SubruleInvokerKey, func(subruleIdentifier label.CanonicalStarlarkIdentifier, args eval.Args) (eval.Value, error) {
 			// TODO: Subrules are allowed to be nested. Keep a stack!
 			permittedSubruleIdentifiers := ruleDefinition.Message.SubruleIdentifiers
 
@@ -1291,19 +1277,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			missingDependencies := false
 
 			implementationArgs := append(
-				starlark.Tuple{
-					model_starlark.NewNamedFunction(
-						model_starlark.NewProtoNamedFunctionDefinition[TReference, TMetadata](
-							model_core.Nested(subruleDefinition, subruleDefinition.Message.Implementation),
-						),
-					),
+				[]eval.Value{
+					model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(subruleDefinition, subruleDefinition.Message.Implementation)),
 					&subruleContext[TReference, TMetadata]{ruleContext: rc},
 				},
-				args...,
+				args.Positional...,
 			)
 			implementationKwargs := append(
-				make([]starlark.Tuple, 0, len(kwargs)+len(subruleDefinition.Message.Attrs)),
-				kwargs...,
+				make([]eval.NamedArg, 0, len(args.Named)+len(subruleDefinition.Message.Attrs)),
+				args.Named...,
 			)
 			for _, namedAttr := range subruleDefinition.Message.Attrs {
 				defaultValue := namedAttr.Attr.GetDefault()
@@ -1330,9 +1312,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				}
 				implementationKwargs = append(
 					implementationKwargs,
-					starlark.Tuple{
-						starlark.String(namedAttr.Name),
-						value,
+					eval.NamedArg{
+						Name:  namedAttr.Name,
+						Value: value,
 					},
 				)
 			}
@@ -1341,12 +1323,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				return nil, evaluation.ErrMissingDependency
 			}
 
-			return starlark.Call(
-				thread,
-				ruleImplementationWrappers.Subrule,
-				implementationArgs,
-				implementationKwargs,
-			)
+			return eval.Call(thread, decodeImplementationWrapper[TReference, TMetadata](model_core.Nested(ruleImplementationWrappers, ruleImplementationWrappers.Message.Subrule)), eval.Args{Positional: implementationArgs, Named: implementationKwargs})
 		})
 
 		identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
@@ -1359,47 +1336,31 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		// calling it directly, we call the rule implementation
 		// wrapper function, having both the actual
 		// implementation function and ctx as arguments.
-		returnValue, err := starlark.Call(
-			thread,
-			ruleImplementationWrappers.Rule,
-			/* args = */ starlark.Tuple{
-				starlark.NewBuiltin("current_ctx_capturer", func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-					// The rule implementation wrapper
-					// function may augment ctx. Capture
-					// it, so that we can let
-					// native.current_ctx() return it.
-					var currentCtx starlark.Value
-					if err := starlark.UnpackArgs(
-						b.Name(), args, kwargs,
-						"ctx", &currentCtx,
-					); err != nil {
-						return nil, err
-					}
-					thread.SetLocal(model_starlark.CurrentCtxKey, currentCtx)
-
-					return starlark.Call(
-						thread,
-						model_starlark.NewNamedFunction(
-							model_starlark.NewProtoNamedFunctionDefinition[TReference, TMetadata](
-								model_core.Nested(ruleDefinition, ruleDefinition.Message.Implementation),
-							),
-						),
-						args,
-						kwargs,
-					)
-				}),
-				rc,
-			},
-			/* kwargs = */ nil,
-		)
-		if err != nil {
-			if !errors.Is(err, evaluation.ErrMissingDependency) {
-				var evalErr *starlark.EvalError
-				if errors.As(err, &evalErr) {
-					return PatchedConfiguredTargetValue[TMetadata]{}, errors.New(evalErr.Backtrace())
+		returnValue, err := eval.Call(thread, decodeImplementationWrapper[TReference, TMetadata](model_core.Nested(ruleImplementationWrappers, ruleImplementationWrappers.Message.Rule)), eval.Args{Positional: /* args = */ []eval.Value{
+			eval.NewBuiltin("current_ctx_capturer", func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				// The rule implementation wrapper
+				// function may augment ctx. Capture
+				// it, so that we can let
+				// native.current_ctx() return it.
+				var currentCtx eval.Value
+				if err := eval.UnpackArgs(
+					thread, b.Name(), args,
+					"ctx", &currentCtx,
+				); err != nil {
+					return nil, err
 				}
-			}
-			return PatchedConfiguredTargetValue[TMetadata]{}, err
+				thread.SetLocal(model_starlark.CurrentCtxKey, currentCtx)
+
+				return eval.Call(
+					thread,
+					model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(ruleDefinition, ruleDefinition.Message.Implementation)),
+					args,
+				)
+			}),
+			rc,
+		}})
+		if err != nil {
+			return PatchedConfiguredTargetValue[TMetadata]{}, formatStarlarkError(err)
 		}
 
 		// Bazel permits returning either a single provider, or
@@ -1430,7 +1391,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				}
 				providersSeen[providerIdentifier] = struct{}{}
 
-				v, _, err := providerInstance.Encode(map[starlark.Value]struct{}{}, c.getValueEncodingOptions(ctx, e, nil))
+				v, err := providerInstance.Encode(thread, nil, c.getValueEncodingOptions(ctx, e, nil))
 				if err != nil {
 					return nil, err
 				}
@@ -1645,7 +1606,7 @@ type targetOutputRegistrar[TReference object.BasicReference, TMetadata model_cor
 	outputsByFile                map[*model_starlark.File[TReference, TMetadata]]*targetOutput[TMetadata]
 }
 
-func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename label.TargetName, sibling *model_starlark.File[TReference, TMetadata], fileType model_starlark_pb.File_Owner_Type) (starlark.Value, error) {
+func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename label.TargetName, sibling *model_starlark.File[TReference, TMetadata], fileType model_starlark_pb.File_Owner_Type) (eval.Value, error) {
 	// If a sibling is provided, path resolution needs to start in
 	// the directory containing containing the sibling.
 	if sibling != nil {
@@ -1684,20 +1645,24 @@ func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename 
 // This allows them to be associated to the action that yields them.
 var _ unpack.UnpackerInto[*targetOutput[model_core.ReferenceMetadata]] = (*targetOutputRegistrar[object.BasicReference, model_core.ReferenceMetadata])(nil)
 
-func (or *targetOutputRegistrar[TReference, TMetadata]) UnpackInto(thread *starlark.Thread, v starlark.Value, dst **targetOutput[TMetadata]) error {
+func (or *targetOutputRegistrar[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst **targetOutput[TMetadata]) error {
 	var f *model_starlark.File[TReference, TMetadata]
 	if err := unpack.Type[*model_starlark.File[TReference, TMetadata]]("File").UnpackInto(thread, v, &f); err != nil {
 		return err
 	}
 	o, ok := or.outputsByFile[f]
 	if !ok {
-		return fmt.Errorf("%s was not declared as part of this target", f.String())
+		repr, err := eval.Repr(thread, f)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("%s was not declared as part of this target", repr)
 	}
 	*dst = o
 	return nil
 }
 
-func (or *targetOutputRegistrar[TReference, TMetadata]) Canonicalize(thread *starlark.Thread, v starlark.Value) (starlark.Value, error) {
+func (or *targetOutputRegistrar[TReference, TMetadata]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	var o *targetOutput[TMetadata]
 	if err := or.UnpackInto(thread, v, &o); err != nil {
 		return nil, err
@@ -1718,16 +1683,16 @@ type ruleContext[TReference object.BasicReference, TMetadata model_core.Referenc
 	configurationReference      model_core.Message[*model_core_pb.DecodableReference, TReference]
 	ruleDefinition              model_core.Message[*model_starlark_pb.Rule_Definition, TReference]
 	ruleTarget                  model_core.Message[*model_starlark_pb.RuleTarget, TReference]
-	attr                        starlark.Value
-	splitAttr                   starlark.Value
-	buildSettingValue           starlark.Value
-	executable                  starlark.Value
+	attr                        eval.Value
+	splitAttr                   eval.Value
+	buildSettingValue           eval.Value
+	executable                  eval.Value
 	executableFileToFilesToRun  map[*model_starlark.File[TReference, TMetadata]]model_core.Message[*model_starlark_pb.Struct, TReference]
-	file                        starlark.Value
-	files                       starlark.Value
-	outputs                     starlark.Value
+	file                        eval.Value
+	files                       eval.Value
+	outputs                     eval.Value
 	execGroups                  []ruleContextExecGroupState
-	tags                        *starlark.List
+	tags                        eval.List
 	outputRegistrar             *targetOutputRegistrar[TReference, TMetadata]
 	actionEncoder               model_encoding.DeterministicBinaryEncoder
 	directoryCreationParameters *model_filesystem.DirectoryCreationParameters
@@ -1735,28 +1700,23 @@ type ruleContext[TReference object.BasicReference, TMetadata model_core.Referenc
 	actions                     model_core.PatchedMessageList[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]
 }
 
-var _ starlark.HasAttrs = (*ruleContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
+var _ eval.HasAttrs = (*ruleContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
-func (rc *ruleContext[TReference, TMetadata]) String() string {
-	return fmt.Sprintf("<ctx for %s>", rc.targetLabel.String())
+// Repr writes the representation of the value.
+func (rc *ruleContext[TReference, TMetadata]) Repr(_ *eval.Thread, printer *eval.Printer) error {
+	printer.WriteString(fmt.Sprintf("<ctx for %s>", rc.targetLabel.String()))
+	return nil
 }
 
 func (ruleContext[TReference, TMetadata]) Type() string {
 	return "ctx"
 }
 
-func (ruleContext[TReference, TMetadata]) Freeze() {
+func (ruleContext[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
-func (ruleContext[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-func (ruleContext[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("ctx cannot be hashed")
-}
-
-func (rc *ruleContext[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (rc *ruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	switch name {
 	case "actions":
 		return &ruleContextActions[TReference, TMetadata]{
@@ -1770,13 +1730,13 @@ func (rc *ruleContext[TReference, TMetadata]) Attr(thread *starlark.Thread, name
 			return nil, err
 		}
 		return model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
-			"path": starlark.String(model_starlark.ComponentStrBazelOut + "/" + configurationComponent + "/" + model_starlark.ComponentStrBin),
+			"path": eval.String(model_starlark.ComponentStrBazelOut + "/" + configurationComponent + "/" + model_starlark.ComponentStrBin),
 		}), nil
 	case "build_setting_value":
 		if rc.buildSettingValue == nil {
 			buildSettingDefault := rc.ruleTarget.Message.BuildSettingDefault
 			if buildSettingDefault == nil {
-				return nil, nil
+				return nil, eval.NoSuchAttrError{Value: rc, Name: name}
 			}
 
 			targetLabelStr := rc.targetLabel.String()
@@ -1810,13 +1770,7 @@ func (rc *ruleContext[TReference, TMetadata]) Attr(thread *starlark.Thread, name
 				encodedValue = model_core.Nested(rc.ruleTarget, rc.ruleTarget.Message.BuildSettingDefault)
 			}
 
-			value, err := model_starlark.DecodeValue[TReference, TMetadata](
-				encodedValue,
-				/* currentIdentifier = */ nil,
-				rc.computer.getValueDecodingOptions(rc.context, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
-					return nil, errors.New("did not expect label values")
-				}),
-			)
+			value, err := model_starlark.DecodeValue[TReference, TMetadata](thread, encodedValue, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -1866,7 +1820,7 @@ func (rc *ruleContext[TReference, TMetadata]) Attr(thread *starlark.Thread, name
 			),
 		), nil
 	default:
-		return nil, nil
+		return nil, eval.NoSuchAttrError{Value: rc, Name: name}
 	}
 }
 
@@ -1885,12 +1839,12 @@ var ruleContextAttrNames = []string{
 	"version_file",
 }
 
-func (rc *ruleContext[TReference, TMetadata]) AttrNames() []string {
+func (rc *ruleContext[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
 	attrNames := append([]string(nil), ruleContextAttrNames...)
 	if rc.ruleTarget.Message.BuildSettingDefault != nil {
 		attrNames = append(attrNames, "build_setting_value")
 	}
-	return attrNames
+	return attrNames, nil
 }
 
 func toSymlinkEntryDepset[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](v any, identifierGenerator model_starlark.ReferenceEqualIdentifierGenerator) *model_starlark.Depset[TReference, TMetadata] {
@@ -1952,7 +1906,7 @@ func (rc *ruleContext[TReference, TMetadata]) setOutputToStaticDirectory(output 
 
 // getFileOrFilesToRunProvider takes a File or a FilesToRunProvider and
 // returns it as a typed value.
-func (rc *ruleContext[TReference, TMetadata]) getFileOrFilesToRunProvider(thread *starlark.Thread, value any) (*model_starlark.File[TReference, TMetadata], *model_starlark.Struct[TReference, TMetadata], error) {
+func (rc *ruleContext[TReference, TMetadata]) getFileOrFilesToRunProvider(thread *eval.Thread, value any) (*model_starlark.File[TReference, TMetadata], *model_starlark.Struct[TReference, TMetadata], error) {
 	switch typedValue := value.(type) {
 	case *model_starlark.File[TReference, TMetadata]:
 		if filesToRun, ok := rc.executableFileToFilesToRun[typedValue]; ok {
@@ -1962,10 +1916,8 @@ func (rc *ruleContext[TReference, TMetadata]) getFileOrFilesToRunProvider(thread
 			// provided to ctx.actions.run(tools=[...]), its
 			// runfiles are added to the input root as well.
 			decodedFilesToRun, err := model_starlark.DecodeStruct[TReference, TMetadata](
+				thread,
 				filesToRun,
-				rc.computer.getValueDecodingOptions(rc.context, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
-					return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
-				}),
 			)
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to decode FilesToRunProvider: %w", err)
@@ -1984,51 +1936,46 @@ type ruleContextActions[TReference object.BasicReference, TMetadata model_core.R
 	ruleContext *ruleContext[TReference, TMetadata]
 }
 
-var _ starlark.HasAttrs = (*ruleContextActions[object.GlobalReference, model_core.ReferenceMetadata])(nil)
+var _ eval.HasAttrs = (*ruleContextActions[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
-func (ruleContextActions[TReference, TMetadata]) String() string {
-	return "<ctx.actions>"
+// Repr writes the representation of the value.
+func (ruleContextActions[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<ctx.actions>")
+	return nil
 }
 
 func (ruleContextActions[TReference, TMetadata]) Type() string {
 	return "ctx.actions"
 }
 
-func (ruleContextActions[TReference, TMetadata]) Freeze() {
+func (ruleContextActions[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
-func (ruleContextActions[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-func (ruleContextActions[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("ctx.actions cannot be hashed")
-}
-
-func (rca *ruleContextActions[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (rca *ruleContextActions[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	switch name {
 	case "args":
-		return starlark.NewBuiltin("ctx.actions.args", rca.doArgs), nil
+		return eval.NewBuiltin("ctx.actions.args", rca.doArgs), nil
 	case "declare_directory":
-		return starlark.NewBuiltin("ctx.actions.declare_directory", rca.doDeclareDirectory), nil
+		return eval.NewBuiltin("ctx.actions.declare_directory", rca.doDeclareDirectory), nil
 	case "declare_file":
-		return starlark.NewBuiltin("ctx.actions.declare_file", rca.doDeclareFile), nil
+		return eval.NewBuiltin("ctx.actions.declare_file", rca.doDeclareFile), nil
 	case "declare_symlink":
-		return starlark.NewBuiltin("ctx.actions.declare_symlink", rca.doDeclareSymlink), nil
+		return eval.NewBuiltin("ctx.actions.declare_symlink", rca.doDeclareSymlink), nil
 	case "expand_template":
-		return starlark.NewBuiltin("ctx.actions.expand_template", rca.doExpandTemplate), nil
+		return eval.NewBuiltin("ctx.actions.expand_template", rca.doExpandTemplate), nil
 	case "run":
-		return starlark.NewBuiltin("ctx.actions.run", rca.doRun), nil
+		return eval.NewBuiltin("ctx.actions.run", rca.doRun), nil
 	case "symlink":
-		return starlark.NewBuiltin("ctx.actions.symlink", rca.doSymlink), nil
+		return eval.NewBuiltin("ctx.actions.symlink", rca.doSymlink), nil
 	case "transform_info_file":
-		return starlark.NewBuiltin("ctx.actions.transform_info_file", rca.doTransformInfoFile), nil
+		return eval.NewBuiltin("ctx.actions.transform_info_file", rca.doTransformInfoFile), nil
 	case "transform_version_file":
-		return starlark.NewBuiltin("ctx.actions.transform_version_file", rca.doTransformVersionFile), nil
+		return eval.NewBuiltin("ctx.actions.transform_version_file", rca.doTransformVersionFile), nil
 	case "write":
-		return starlark.NewBuiltin("ctx.actions.write", rca.doWrite), nil
+		return eval.NewBuiltin("ctx.actions.write", rca.doWrite), nil
 	default:
-		return nil, nil
+		return nil, eval.NoSuchAttrError{Value: rca, Name: name}
 	}
 }
 
@@ -2045,27 +1992,27 @@ var ruleContextActionsAttrNames = []string{
 	"write",
 }
 
-func (ruleContextActions[TReference, TMetadata]) AttrNames() []string {
-	return ruleContextActionsAttrNames
+func (ruleContextActions[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
+	return ruleContextActionsAttrNames, nil
 }
 
-func (ruleContextActions[TReference, TMetadata]) doArgs(thread *starlark.Thread, b *starlark.Builtin, arguments starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (ruleContextActions[TReference, TMetadata]) doArgs(thread *eval.Thread, b *eval.Builtin, arguments eval.Args) (eval.Value, error) {
 	return &args[TReference, TMetadata]{
 		paramFileFormat: model_analysis_pb.Args_Leaf_UseParamFile_SHELL,
 	}, nil
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doDeclareDirectory(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if len(args) > 1 {
-		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+func (rca *ruleContextActions[TReference, TMetadata]) doDeclareDirectory(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+	if len(args.Positional) > 1 {
+		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 	}
 	var filename label.TargetName
 	var sibling *model_starlark.File[TReference, TMetadata]
 	rc := rca.ruleContext
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
-		"filename", unpack.Bind(thread, &filename, unpack.TargetName),
-		"sibling?", unpack.Bind(thread, &sibling, unpack.IfNotNone(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
+		"filename", unpack.Bind(&filename, unpack.TargetName),
+		"sibling?", unpack.Bind(&sibling, unpack.IfNotNone(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))),
 	); err != nil {
 		return nil, err
 	}
@@ -2073,17 +2020,17 @@ func (rca *ruleContextActions[TReference, TMetadata]) doDeclareDirectory(thread 
 	return rc.outputRegistrar.registerOutput(filename, sibling, model_starlark_pb.File_Owner_DIRECTORY)
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doDeclareFile(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if len(args) > 1 {
-		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+func (rca *ruleContextActions[TReference, TMetadata]) doDeclareFile(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+	if len(args.Positional) > 1 {
+		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 	}
 	var filename label.TargetName
 	var sibling *model_starlark.File[TReference, TMetadata]
 	rc := rca.ruleContext
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
-		"filename", unpack.Bind(thread, &filename, unpack.TargetName),
-		"sibling?", unpack.Bind(thread, &sibling, unpack.IfNotNone(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
+		"filename", unpack.Bind(&filename, unpack.TargetName),
+		"sibling?", unpack.Bind(&sibling, unpack.IfNotNone(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))),
 	); err != nil {
 		return nil, err
 	}
@@ -2091,17 +2038,17 @@ func (rca *ruleContextActions[TReference, TMetadata]) doDeclareFile(thread *star
 	return rc.outputRegistrar.registerOutput(filename, sibling, model_starlark_pb.File_Owner_FILE)
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doDeclareSymlink(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if len(args) > 1 {
-		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+func (rca *ruleContextActions[TReference, TMetadata]) doDeclareSymlink(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+	if len(args.Positional) > 1 {
+		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 	}
 	var filename label.TargetName
 	var sibling *model_starlark.File[TReference, TMetadata]
 	rc := rca.ruleContext
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
-		"filename", unpack.Bind(thread, &filename, unpack.TargetName),
-		"sibling?", unpack.Bind(thread, &sibling, unpack.IfNotNone(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
+		"filename", unpack.Bind(&filename, unpack.TargetName),
+		"sibling?", unpack.Bind(&sibling, unpack.IfNotNone(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))),
 	); err != nil {
 		return nil, err
 	}
@@ -2109,24 +2056,24 @@ func (rca *ruleContextActions[TReference, TMetadata]) doDeclareSymlink(thread *s
 	return rc.outputRegistrar.registerOutput(filename, sibling, model_starlark_pb.File_Owner_SYMLINK)
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doExpandTemplate(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if len(args) != 0 {
-		return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args))
+func (rca *ruleContextActions[TReference, TMetadata]) doExpandTemplate(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+	if len(args.Positional) != 0 {
+		return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 	}
 	var output *targetOutput[TMetadata]
 	var template *model_starlark.File[TReference, TMetadata]
 	isExecutable := false
 	var substitutions map[string]string
 	rc := rca.ruleContext
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
 		// Required arguments.
-		"output", unpack.Bind(thread, &output, rc.outputRegistrar),
-		"template", unpack.Bind(thread, &template, unpack.Type[*model_starlark.File[TReference, TMetadata]]("File")),
+		"output", unpack.Bind(&output, rc.outputRegistrar),
+		"template", unpack.Bind(&template, unpack.Type[*model_starlark.File[TReference, TMetadata]]("File")),
 		// Optional arguments.
 		// TODO: Add TemplateDict and computed_substitutions.
-		"is_executable?", unpack.Bind(thread, &isExecutable, unpack.Bool),
-		"substitutions?", unpack.Bind(thread, &substitutions, unpack.Dict(unpack.String, unpack.String)),
+		"is_executable?", unpack.Bind(&isExecutable, unpack.Bool),
+		"substitutions?", unpack.Bind(&substitutions, unpack.Dict(unpack.String, unpack.String)),
 	); err != nil {
 		return nil, err
 	}
@@ -2143,7 +2090,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doExpandTemplate(thread *s
 		return nil, errors.New("output was not declared as a regular file")
 	}
 	patchedTemplate := model_core.Patch(rc.environment, template.GetDefinition())
-	return starlark.None, output.setDefinition(
+	return eval.None, output.setDefinition(
 		model_core.NewPatchedMessage(
 			&model_analysis_pb.TargetOutputDefinition{
 				Source: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate_{
@@ -2202,7 +2149,7 @@ func promoteStringArgumentsToArgs[TMetadata model_core.ReferenceMetadata](
 // newFilesToRunProviderFromStruct converts a Starlark
 // FilesToRunProvider object to a Protobuf message, so that it may be
 // embedded in a target action definition.
-func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(thread *starlark.Thread, s *model_starlark.Struct[TReference, TMetadata]) (model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata], *model_starlark.File[TReference, TMetadata], error) {
+func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(thread *eval.Thread, s *model_starlark.Struct[TReference, TMetadata]) (model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata], *model_starlark.File[TReference, TMetadata], error) {
 	// Unpack individual struct fields.
 	type filesToRunProviderFields struct {
 		executable           *model_starlark.File[TReference, TMetadata]
@@ -2212,12 +2159,12 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 	}
 	var fields filesToRunProviderFields
 	if err := unpack.Attrs(
-		func(thread *starlark.Thread, fields *filesToRunProviderFields) []unpack.AttrUnpacker {
+		func(thread *eval.Thread, fields *filesToRunProviderFields) []unpack.AttrUnpacker {
 			return []unpack.AttrUnpacker{
-				{Name: "executable", Unpacker: unpack.Bind(thread, &fields.executable, unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))},
-				{Name: "_runfiles_files", Unpacker: unpack.Bind(thread, &fields.runfilesFiles, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
-				{Name: "_runfiles_symlinks", Unpacker: unpack.Bind(thread, &fields.runfilesSymlinks, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
-				{Name: "_runfiles_root_symlinks", Unpacker: unpack.Bind(thread, &fields.runfilesRootSymlinks, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
+				{Name: "executable", Unpacker: unpack.Bind(&fields.executable, unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))},
+				{Name: "_runfiles_files", Unpacker: unpack.Bind(&fields.runfilesFiles, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
+				{Name: "_runfiles_symlinks", Unpacker: unpack.Bind(&fields.runfilesSymlinks, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
+				{Name: "_runfiles_root_symlinks", Unpacker: unpack.Bind(&fields.runfilesRootSymlinks, unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))},
 			}
 		},
 	).UnpackInto(thread, s, &fields); err != nil {
@@ -2227,15 +2174,15 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 	// Encode individual fields.
 	valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.context, rc.environment, nil)
 	executable := model_core.Patch(rc.environment, fields.executable.GetDefinition())
-	runfilesFiles, _, err := fields.runfilesFiles.EncodeList(map[starlark.Value]struct{}{}, valueEncodingOptions)
+	runfilesFiles, err := fields.runfilesFiles.EncodeList(thread, nil, valueEncodingOptions)
 	if err != nil {
 		return model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata]{}, nil, fmt.Errorf("runfiles files: %w", err)
 	}
-	runfilesSymlinks, _, err := fields.runfilesSymlinks.EncodeList(map[starlark.Value]struct{}{}, valueEncodingOptions)
+	runfilesSymlinks, err := fields.runfilesSymlinks.EncodeList(thread, nil, valueEncodingOptions)
 	if err != nil {
 		return model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata]{}, nil, fmt.Errorf("runfiles symlinks: %w", err)
 	}
-	runfilesRootSymlinks, _, err := fields.runfilesRootSymlinks.EncodeList(map[starlark.Value]struct{}{}, valueEncodingOptions)
+	runfilesRootSymlinks, err := fields.runfilesRootSymlinks.EncodeList(thread, nil, valueEncodingOptions)
 	if err != nil {
 		return model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata]{}, nil, fmt.Errorf("runfiles root symlinks: %w", err)
 	}
@@ -2329,9 +2276,13 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 	return patchedFilesToRunProvider, fields.executable, err
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thread, b *starlark.Builtin, fnArgs starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if len(fnArgs) != 0 {
-		return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(fnArgs))
+func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread, b *eval.Builtin, fnArgs eval.Args) (eval.Value, error) {
+	if len(fnArgs.Positional) != 0 {
+		return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(fnArgs.Positional))
+	}
+	currentFilePackage, err := model_starlark.CurrentFilePackage(thread)
+	if err != nil {
+		return nil, err
 	}
 	var executable any
 	var outputs []*targetOutput[TMetadata]
@@ -2347,34 +2298,34 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 	var tools []any
 	useDefaultShellEnv := false
 	rc := rca.ruleContext
-	if err := starlark.UnpackArgs(
-		b.Name(), fnArgs, kwargs,
+	if err := eval.UnpackArgs(
+		thread, b.Name(), fnArgs,
 		// Required arguments.
-		"executable", unpack.Bind(thread, &executable, unpack.Or([]unpack.UnpackerInto[any]{
+		"executable", unpack.Bind(&executable, unpack.Or([]unpack.UnpackerInto[any]{
 			unpack.Decay(unpack.String),
 			unpack.Decay(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File")),
 			unpack.Decay(unpack.Type[*model_starlark.Struct[TReference, TMetadata]]("struct")),
 		})),
-		"outputs", unpack.Bind(thread, &outputs, unpack.List(rc.outputRegistrar)),
+		"outputs", unpack.Bind(&outputs, unpack.List(rc.outputRegistrar)),
 		// Optional arguments.
-		"arguments?", unpack.Bind(thread, &arguments, unpack.List(unpack.Or([]unpack.UnpackerInto[any]{
+		"arguments?", unpack.Bind(&arguments, unpack.List(unpack.Or([]unpack.UnpackerInto[any]{
 			unpack.Decay(unpack.Type[*args[TReference, TMetadata]]("Args")),
 			unpack.Decay(unpack.String),
 		}))),
-		"env?", unpack.Bind(thread, &env, unpack.Dict(unpack.String, unpack.String)),
-		"exec_group?", unpack.Bind(thread, &execGroup, unpack.IfNotNone(unpack.String)),
-		"execution_requirements?", unpack.Bind(thread, &executionRequirements, unpack.IfNotNone(unpack.Dict(unpack.String, unpack.String))),
-		"inputs?", unpack.Bind(thread, &inputs, unpack.Or([]unpack.UnpackerInto[*model_starlark.Depset[TReference, TMetadata]]{
+		"env?", unpack.Bind(&env, unpack.Dict(unpack.String, unpack.String)),
+		"exec_group?", unpack.Bind(&execGroup, unpack.IfNotNone(unpack.String)),
+		"execution_requirements?", unpack.Bind(&executionRequirements, unpack.IfNotNone(unpack.Dict(unpack.String, unpack.String))),
+		"inputs?", unpack.Bind(&inputs, unpack.Or([]unpack.UnpackerInto[*model_starlark.Depset[TReference, TMetadata]]{
 			unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"),
 			model_starlark.NewListToDepsetUnpackerInto[TReference, TMetadata](
 				unpack.Canonicalize(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File")),
 			),
 		})),
-		"mnemonic?", unpack.Bind(thread, &mnemonic, unpack.IfNotNone(unpack.String)),
-		"progress_message?", unpack.Bind(thread, &progressMessage, unpack.IfNotNone(unpack.String)),
-		"resource_set?", unpack.Bind(thread, &resourceSet, unpack.IfNotNone(unpack.Type[eval.Function]("function"))),
-		"toolchain?", unpack.Bind(thread, &toolchain, unpack.IfNotNone(unpack.Pointer(model_starlark.NewLabelOrStringUnpackerInto[TReference, TMetadata](model_starlark.CurrentFilePackage(thread, 1))))),
-		"tools?", unpack.Bind(thread, &tools, unpack.Or([]unpack.UnpackerInto[[]any]{
+		"mnemonic?", unpack.Bind(&mnemonic, unpack.IfNotNone(unpack.String)),
+		"progress_message?", unpack.Bind(&progressMessage, unpack.IfNotNone(unpack.String)),
+		"resource_set?", unpack.Bind(&resourceSet, unpack.IfNotNone(unpack.Type[eval.Function]("function"))),
+		"toolchain?", unpack.Bind(&toolchain, unpack.IfNotNone(unpack.Pointer(model_starlark.NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage)))),
+		"tools?", unpack.Bind(&tools, unpack.Or([]unpack.UnpackerInto[[]any]{
 			unpack.Singleton(unpack.Decay(unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset"))),
 			unpack.List(unpack.Or([]unpack.UnpackerInto[any]{
 				unpack.Decay(unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset")),
@@ -2382,13 +2333,13 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 				unpack.Decay(unpack.Type[*model_starlark.Struct[TReference, TMetadata]]("struct")),
 			})),
 		})),
-		"use_default_shell_env?", unpack.Bind(thread, &useDefaultShellEnv, unpack.Bool),
+		"use_default_shell_env?", unpack.Bind(&useDefaultShellEnv, unpack.Bool),
 	); err != nil {
 		return nil, err
 	}
 
 	valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.context, rc.environment, nil)
-	var inputsDirect []starlark.Value
+	var inputsDirect []eval.Value
 	toolsParentNodeComputer := btree.Capturing(rc.context, valueEncodingOptions.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.FilesToRunProvider, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.FilesToRunProvider {
 			return &model_analysis_pb.FilesToRunProvider{
@@ -2527,7 +2478,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 				}
 				gotStringArguments = false
 			}
-			encodedArgs, err := typedArgument.Encode(map[starlark.Value]struct{}{}, valueEncodingOptions)
+			encodedArgs, err := typedArgument.Encode(thread, nil, valueEncodingOptions)
 			if err != nil {
 				return nil, err
 			}
@@ -2708,7 +2659,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 	if err != nil {
 		return nil, err
 	}
-	encodedInputs, _, err := mergedInputs.EncodeList(map[starlark.Value]struct{}{}, valueEncodingOptions)
+	encodedInputs, err := mergedInputs.EncodeList(thread, nil, valueEncodingOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -2855,7 +2806,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *starlark.Thr
 		},
 		actionDefinition.Patcher,
 	))
-	return starlark.None, nil
+	return eval.None, nil
 }
 
 type singleSymlinkDirectory[TFile, TDirectory model_core.ReferenceMetadata] struct {
@@ -2892,7 +2843,7 @@ func (singleSymlinkDirectory[TFile, TDirectory]) OpenForFileMerkleTreeCreation(n
 	panic("directory only contains a symlink")
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doSymlink(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (rca *ruleContextActions[TReference, TMetadata]) doSymlink(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	var output *targetOutput[TMetadata]
 	var targetFile *model_starlark.File[TReference, TMetadata]
 	var targetPath path.Parser
@@ -2900,14 +2851,14 @@ func (rca *ruleContextActions[TReference, TMetadata]) doSymlink(thread *starlark
 	progressMessage := ""
 	useExecRootForSource := false
 	rc := rca.ruleContext
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
-		"output", unpack.Bind(thread, &output, rc.outputRegistrar),
-		"target_file?", unpack.Bind(thread, &targetFile, unpack.IfNotNone(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))),
-		"target_path?", unpack.Bind(thread, &targetPath, unpack.PathParser(path.UNIXFormat)),
-		"is_executable?", unpack.Bind(thread, &isExecutable, unpack.Bool),
-		"progress_message?", unpack.Bind(thread, &progressMessage, unpack.IfNotNone(unpack.String)),
-		"use_exec_root_for_source?", unpack.Bind(thread, &useExecRootForSource, unpack.Bool),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
+		"output", unpack.Bind(&output, rc.outputRegistrar),
+		"target_file?", unpack.Bind(&targetFile, unpack.IfNotNone(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File"))),
+		"target_path?", unpack.Bind(&targetPath, unpack.PathParser(path.UNIXFormat)),
+		"is_executable?", unpack.Bind(&isExecutable, unpack.Bool),
+		"progress_message?", unpack.Bind(&progressMessage, unpack.IfNotNone(unpack.String)),
+		"use_exec_root_for_source?", unpack.Bind(&useExecRootForSource, unpack.Bool),
 	); err != nil {
 		return nil, err
 	}
@@ -2932,7 +2883,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doSymlink(thread *starlark
 		}
 
 		patchedTargetFileDefinition := model_core.Patch(rc.environment, targetFileDefinition)
-		return starlark.None, output.setDefinition(
+		return eval.None, output.setDefinition(
 			model_core.NewPatchedMessage(
 				&model_analysis_pb.TargetOutputDefinition{
 					Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{
@@ -2954,7 +2905,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doSymlink(thread *starlark
 		return nil, errors.New("target_path can only be used in combination with outputs that are declared as symbolic links")
 	}
 
-	return starlark.None, rc.setOutputToStaticDirectory(
+	return eval.None, rc.setOutputToStaticDirectory(
 		output,
 		&singleSymlinkDirectory[TMetadata, TMetadata]{
 			components: output.packageRelativePath.ToComponents(),
@@ -2963,12 +2914,12 @@ func (rca *ruleContextActions[TReference, TMetadata]) doSymlink(thread *starlark
 	)
 }
 
-func (ruleContextActions[TReference, TMetadata]) doTransformInfoFile(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	return starlark.None, nil
+func (ruleContextActions[TReference, TMetadata]) doTransformInfoFile(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+	return eval.None, nil
 }
 
-func (ruleContextActions[TReference, TMetadata]) doTransformVersionFile(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	return starlark.None, nil
+func (ruleContextActions[TReference, TMetadata]) doTransformVersionFile(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+	return eval.None, nil
 }
 
 type singleFileDirectory[TFile, TDirectory model_core.ReferenceMetadata] struct {
@@ -3009,24 +2960,24 @@ func (d *singleFileDirectory[TFile, TDirectory]) OpenForFileMerkleTreeCreation(n
 	return d.file, nil
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *starlark.Thread, b *starlark.Builtin, fnArgs starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if len(fnArgs) > 3 {
-		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 3", b.Name(), len(fnArgs))
+func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *eval.Thread, b *eval.Builtin, fnArgs eval.Args) (eval.Value, error) {
+	if len(fnArgs.Positional) > 3 {
+		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 3", b.Name(), len(fnArgs.Positional))
 	}
 	var output *targetOutput[TMetadata]
 	var content any
 	isExecutable := false
 	mnemonic := ""
 	rc := rca.ruleContext
-	if err := starlark.UnpackArgs(
-		b.Name(), fnArgs, kwargs,
-		"output", unpack.Bind(thread, &output, rc.outputRegistrar),
-		"content", unpack.Bind(thread, &content, unpack.Or([]unpack.UnpackerInto[any]{
+	if err := eval.UnpackArgs(
+		thread, b.Name(), fnArgs,
+		"output", unpack.Bind(&output, rc.outputRegistrar),
+		"content", unpack.Bind(&content, unpack.Or([]unpack.UnpackerInto[any]{
 			unpack.Decay(unpack.Type[*args[TReference, TMetadata]]("Args")),
 			unpack.Decay(unpack.String),
 		})),
-		"is_executable?", unpack.Bind(thread, &isExecutable, unpack.Bool),
-		"mnemonic?", unpack.Bind(thread, &mnemonic, unpack.IfNotNone(unpack.String)),
+		"is_executable?", unpack.Bind(&isExecutable, unpack.Bool),
+		"mnemonic?", unpack.Bind(&mnemonic, unpack.IfNotNone(unpack.String)),
 	); err != nil {
 		return nil, err
 	}
@@ -3038,11 +2989,11 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *starlark.T
 	switch typedContent := content.(type) {
 	case *args[TReference, TMetadata]:
 		valueEncodingOptions := rc.computer.getValueEncodingOptions(rc.context, rc.environment, nil)
-		encodedContent, err := typedContent.Encode(map[starlark.Value]struct{}{}, valueEncodingOptions)
+		encodedContent, err := typedContent.Encode(thread, nil, valueEncodingOptions)
 		if err != nil {
 			return nil, err
 		}
-		return starlark.None, output.setDefinition(
+		return eval.None, output.setDefinition(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetOutputDefinition {
 				return &model_analysis_pb.TargetOutputDefinition{
 					Source: &model_analysis_pb.TargetOutputDefinition_Write_{
@@ -3065,7 +3016,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *starlark.T
 			return nil, err
 		}
 
-		return starlark.None, rc.setOutputToStaticDirectory(
+		return eval.None, rc.setOutputToStaticDirectory(
 			output,
 			&singleFileDirectory[TMetadata, TMetadata]{
 				components:   output.packageRelativePath.ToComponents(),
@@ -3082,28 +3033,23 @@ type ruleContextExecGroups[TReference object.BasicReference, TMetadata model_cor
 	ruleContext *ruleContext[TReference, TMetadata]
 }
 
-var _ starlark.Mapping = (*ruleContextExecGroups[object.GlobalReference, model_core.ReferenceMetadata])(nil)
+var _ eval.Mapping = (*ruleContextExecGroups[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
-func (ruleContextExecGroups[TReference, TMetadata]) String() string {
-	return "<ctx.exec_groups>"
+// Repr writes the representation of the value.
+func (ruleContextExecGroups[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<ctx.exec_groups>")
+	return nil
 }
 
 func (ruleContextExecGroups[TReference, TMetadata]) Type() string {
 	return "ctx.exec_groups"
 }
 
-func (ruleContextExecGroups[TReference, TMetadata]) Freeze() {
+func (ruleContextExecGroups[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
-func (ruleContextExecGroups[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-func (ruleContextExecGroups[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("ctx.exec_groups cannot be hashed")
-}
-
-func (rca *ruleContextExecGroups[TReference, TMetadata]) Get(thread *starlark.Thread, key starlark.Value) (starlark.Value, bool, error) {
+func (rca *ruleContextExecGroups[TReference, TMetadata]) Get(thread *eval.Thread, key eval.Value) (eval.Value, bool, error) {
 	var execGroupName string
 	if err := unpack.String.UnpackInto(thread, key, &execGroupName); err != nil {
 		return nil, false, err
@@ -3131,30 +3077,29 @@ type toolchainContext[TReference object.BasicReference, TMetadata model_core.Ref
 	execGroupIndex int
 }
 
-var _ starlark.Mapping = (*toolchainContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
+var _ eval.Mapping = (*toolchainContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
-func (toolchainContext[TReference, TMetadata]) String() string {
-	return "<toolchain context>"
+// Repr writes the representation of the value.
+func (toolchainContext[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<toolchain context>")
+	return nil
 }
 
 func (toolchainContext[TReference, TMetadata]) Type() string {
 	return "ToolchainContext"
 }
 
-func (toolchainContext[TReference, TMetadata]) Freeze() {
+func (toolchainContext[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
-func (toolchainContext[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-func (toolchainContext[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("ToolchainContext cannot be hashed")
-}
-
-func (tc *toolchainContext[TReference, TMetadata]) Get(thread *starlark.Thread, v starlark.Value) (starlark.Value, bool, error) {
+func (tc *toolchainContext[TReference, TMetadata]) Get(thread *eval.Thread, v eval.Value) (eval.Value, bool, error) {
 	rc := tc.ruleContext
-	labelUnpackerInto := unpack.Stringer(model_starlark.NewLabelOrStringUnpackerInto[TReference, TMetadata](model_starlark.CurrentFilePackage(thread, 0)))
+	currentFilePackage, err := model_starlark.CurrentFilePackage(thread)
+	if err != nil {
+		return nil, false, err
+	}
+	labelUnpackerInto := unpack.Stringer(model_starlark.NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage))
 	var toolchainType string
 	if err := labelUnpackerInto.UnpackInto(thread, v, &toolchainType); err != nil {
 		return nil, false, err
@@ -3182,7 +3127,7 @@ func (tc *toolchainContext[TReference, TMetadata]) Get(thread *starlark.Thread, 
 		if toolchainIdentifier == "" {
 			// Toolchain was optional, and no matching
 			// toolchain was found.
-			toolchainInfo = starlark.None
+			toolchainInfo = eval.None
 		} else {
 			encodedToolchainInfo, err := getProviderFromConfiguredTarget(
 				rc.environment,
@@ -3198,14 +3143,12 @@ func (tc *toolchainContext[TReference, TMetadata]) Get(thread *starlark.Thread, 
 			}
 
 			toolchainInfo, err = model_starlark.DecodeStruct[TReference, TMetadata](
+				thread,
 				model_core.Nested(encodedToolchainInfo, &model_starlark_pb.Struct{
 					ProviderInstanceProperties: &model_starlark_pb.Provider_InstanceProperties{
 						ProviderIdentifier: toolchainInfoProviderIdentifier.String(),
 					},
 					Fields: encodedToolchainInfo.Message,
-				}),
-				rc.computer.getValueDecodingOptions(rc.context, func(resolvedLabel label.ResolvedLabel) (starlark.Value, error) {
-					return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
 				}),
 			)
 			if err != nil {
@@ -3220,7 +3163,7 @@ func (tc *toolchainContext[TReference, TMetadata]) Get(thread *starlark.Thread, 
 type ruleContextExecGroupState struct {
 	platformPkixPublicKey []byte
 	toolchainIdentifiers  []string
-	toolchainInfos        []starlark.Value
+	toolchainInfos        []eval.Value
 }
 
 // getProviderFromConfiguredTarget looks up a single provider that is
@@ -3292,7 +3235,7 @@ func getProviderFromVisibleConfiguredTarget[TReference object.BasicReference, TM
 // and Args.add_joined().
 type argsAdd[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	startWith         *wrapperspb.StringValue
-	values            starlark.Value
+	values            eval.Value
 	expandDirectories bool
 	mapEach           eval.Function
 	formatEach        string
@@ -3316,40 +3259,36 @@ type args[TReference object.BasicReference, TMetadata model_core.ReferenceMetada
 	useParamFile    *argsUseParamFile
 }
 
-var _ starlark.HasAttrs = (*args[object.LocalReference, model_core.ReferenceMetadata])(nil)
+var _ eval.HasAttrs = (*args[object.LocalReference, model_core.ReferenceMetadata])(nil)
 
-func (args[TReference, TMetadata]) String() string {
-	return "<Args>"
+// Repr writes the representation of the value.
+func (args[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<Args>")
+	return nil
 }
 
 func (args[TReference, TMetadata]) Type() string {
 	return "Args"
 }
 
-func (args[TReference, TMetadata]) Freeze() {}
-
-func (args[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
+func (args[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
-func (args[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("Args cannot be hashed")
-}
-
-func (a *args[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (a *args[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	switch name {
 	case "add":
-		return starlark.NewBuiltin("Args.add", a.doAdd), nil
+		return eval.NewBuiltin("Args.add", a.doAdd), nil
 	case "add_all":
-		return starlark.NewBuiltin("Args.add_all", a.doAddAll), nil
+		return eval.NewBuiltin("Args.add_all", a.doAddAll), nil
 	case "add_joined":
-		return starlark.NewBuiltin("Args.add_joined", a.doAddJoined), nil
+		return eval.NewBuiltin("Args.add_joined", a.doAddJoined), nil
 	case "set_param_file_format":
-		return starlark.NewBuiltin("Args.set_param_file_format", a.doSetParamFileFormat), nil
+		return eval.NewBuiltin("Args.set_param_file_format", a.doSetParamFileFormat), nil
 	case "use_param_file":
-		return starlark.NewBuiltin("Args.use_param_file", a.doUseParamFile), nil
+		return eval.NewBuiltin("Args.use_param_file", a.doUseParamFile), nil
 	default:
-		return nil, nil
+		return nil, eval.NoSuchAttrError{Value: a, Name: name}
 	}
 }
 
@@ -3361,11 +3300,11 @@ var argsAttrNames = []string{
 	"use_param_file",
 }
 
-func (args[TReference, TMetadata]) AttrNames() []string {
-	return argsAttrNames
+func (args[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
+	return argsAttrNames, nil
 }
 
-func (a *args[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, options *model_starlark.ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_analysis_pb.Args_Leaf, TMetadata], error) {
+func (a *args[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *model_starlark.ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_analysis_pb.Args_Leaf, TMetadata], error) {
 	var useParamFile *model_analysis_pb.Args_Leaf_UseParamFile
 	if u := a.useParamFile; u != nil {
 		useParamFile = &model_analysis_pb.Args_Leaf_UseParamFile{
@@ -3411,14 +3350,14 @@ func (a *args[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, o
 				Uniquify:          add.uniquify,
 			}
 
-			values, _, err := model_starlark.EncodeValue(add.values, map[starlark.Value]struct{}{}, nil, options)
+			values, err := model_starlark.EncodeValue(thread, add.values, nil, nil, options)
 			if err != nil {
 				return nil, err
 			}
 			leaf.Values = values.Merge(patcher)
 
 			if add.mapEach != nil {
-				mapEach, _, err := add.mapEach.Encode(path, options)
+				mapEach, err := model_starlark.EncodeFunction(thread, add.mapEach, path, options)
 				if err != nil {
 					return nil, err
 				}
@@ -3459,28 +3398,28 @@ func (a *args[TReference, TMetadata]) Encode(path map[starlark.Value]struct{}, o
 	), nil
 }
 
-func (a *args[TReference, TMetadata]) doAdd(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (a *args[TReference, TMetadata]) doAdd(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	var startWith *wrapperspb.StringValue
-	var value starlark.Value
-	valueUnpackerInto := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
+	var value eval.Value
+	valueUnpackerInto := unpack.Or([]unpack.UnpackerInto[eval.Value]{
 		unpack.Canonicalize(unpack.String),
 		unpack.Canonicalize(unpack.Type[*model_starlark.File[TReference, TMetadata]]("File")),
 		unpack.Canonicalize(unpack.Type[model_starlark.Label[TReference, TMetadata]]("Label")),
 	})
-	switch len(args) {
+	switch len(args.Positional) {
 	case 1:
-		if err := starlark.UnpackArgs(
-			b.Name(), args, nil,
-			"value", unpack.Bind(thread, &value, valueUnpackerInto),
+		if err := eval.UnpackArgs(
+			thread, b.Name(), eval.Args{Positional: args.Positional},
+			"value", unpack.Bind(&value, valueUnpackerInto),
 		); err != nil {
 			return nil, err
 		}
 	case 2:
 		var argName string
-		if err := starlark.UnpackArgs(
-			b.Name(), args, nil,
-			"arg_name", unpack.Bind(thread, &argName, unpack.String),
-			"value", unpack.Bind(thread, &value, valueUnpackerInto),
+		if err := eval.UnpackArgs(
+			thread, b.Name(), eval.Args{Positional: args.Positional},
+			"arg_name", unpack.Bind(&argName, unpack.String),
+			"value", unpack.Bind(&value, valueUnpackerInto),
 		); err != nil {
 			return nil, err
 		}
@@ -3488,20 +3427,20 @@ func (a *args[TReference, TMetadata]) doAdd(thread *starlark.Thread, b *starlark
 			Value: argName,
 		}
 	default:
-		return nil, fmt.Errorf("%s: got %d positional arguments, want 1 or 2", b.Name(), len(args))
+		return nil, fmt.Errorf("%s: got %d positional arguments, want 1 or 2", b.Name(), len(args.Positional))
 	}
 
 	format := "%s"
-	if err := starlark.UnpackArgs(
-		b.Name(), nil, kwargs,
-		"format?", unpack.Bind(thread, &format, unpack.String),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), eval.Args{Named: args.Named},
+		"format?", unpack.Bind(&format, unpack.String),
 	); err != nil {
 		return nil, err
 	}
 
 	a.adds = append(a.adds, argsAdd[TReference, TMetadata]{
 		startWith:  startWith,
-		values:     starlark.NewList([]starlark.Value{value}),
+		values:     eval.NewList([]eval.Value{value}),
 		formatEach: format,
 		setStyle: func(leaf *model_analysis_pb.Args_Leaf_Add_Leaf) {
 			leaf.Style = &model_analysis_pb.Args_Leaf_Add_Leaf_Separate_{
@@ -3512,34 +3451,34 @@ func (a *args[TReference, TMetadata]) doAdd(thread *starlark.Thread, b *starlark
 	return a, nil
 }
 
-func (args[TReference, TMetadata]) doAddAllJoinedParseArgs(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple) (startWith *string, values starlark.Value, err error) {
-	valuesUnpackerInto := unpack.Or([]unpack.UnpackerInto[starlark.Value]{
+func (args[TReference, TMetadata]) doAddAllJoinedParseArgs(thread *eval.Thread, b *eval.Builtin, args eval.Args) (startWith *string, values eval.Value, err error) {
+	valuesUnpackerInto := unpack.Or([]unpack.UnpackerInto[eval.Value]{
 		unpack.Canonicalize(unpack.List(unpack.Any)),
 		unpack.Canonicalize(unpack.Type[*model_starlark.Depset[TReference, TMetadata]]("depset")),
 	})
-	switch len(args) {
+	switch len(args.Positional) {
 	case 1:
-		if err := starlark.UnpackArgs(
-			b.Name(), args, nil,
-			"values", unpack.Bind(thread, &values, valuesUnpackerInto),
+		if err := eval.UnpackArgs(
+			thread, b.Name(), eval.Args{Positional: args.Positional},
+			"values", unpack.Bind(&values, valuesUnpackerInto),
 		); err != nil {
 			return nil, nil, err
 		}
 	case 2:
-		if err := starlark.UnpackArgs(
-			b.Name(), args, nil,
-			"arg_name", unpack.Bind(thread, &startWith, unpack.Pointer(unpack.String)),
-			"values", unpack.Bind(thread, &values, valuesUnpackerInto),
+		if err := eval.UnpackArgs(
+			thread, b.Name(), eval.Args{Positional: args.Positional},
+			"arg_name", unpack.Bind(&startWith, unpack.Pointer(unpack.String)),
+			"values", unpack.Bind(&values, valuesUnpackerInto),
 		); err != nil {
 			return nil, nil, err
 		}
 	default:
-		return nil, nil, fmt.Errorf("%s: got %d positional arguments, want 1 or 2", b.Name(), len(args))
+		return nil, nil, fmt.Errorf("%s: got %d positional arguments, want 1 or 2", b.Name(), len(args.Positional))
 	}
 	return startWith, values, nil
 }
 
-func (a *args[TReference, TMetadata]) doAddAll(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (a *args[TReference, TMetadata]) doAddAll(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	startWith, values, err := a.doAddAllJoinedParseArgs(thread, b, args)
 	if err != nil {
 		return nil, err
@@ -3553,16 +3492,16 @@ func (a *args[TReference, TMetadata]) doAddAll(thread *starlark.Thread, b *starl
 	expandDirectories := true
 	var terminateWithStr *string
 	allowClosure := false
-	if err := starlark.UnpackArgs(
-		b.Name(), nil, kwargs,
-		"map_each?", unpack.Bind(thread, &mapEach, unpack.Type[eval.Function]("function")),
-		"format_each?", unpack.Bind(thread, &formatEach, unpack.IfNotNone(unpack.String)),
-		"before_each?", unpack.Bind(thread, &beforeEachStr, unpack.IfNotNone(unpack.Pointer(unpack.String))),
-		"omit_if_empty?", unpack.Bind(thread, &omitIfEmpty, unpack.Bool),
-		"uniquify?", unpack.Bind(thread, &uniquify, unpack.Bool),
-		"expand_directories?", unpack.Bind(thread, &expandDirectories, unpack.Bool),
-		"terminate_with?", unpack.Bind(thread, &terminateWithStr, unpack.IfNotNone(unpack.Pointer(unpack.String))),
-		"allow_closure?", unpack.Bind(thread, &allowClosure, unpack.Bool),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), eval.Args{Named: args.Named},
+		"map_each?", unpack.Bind(&mapEach, unpack.Type[eval.Function]("function")),
+		"format_each?", unpack.Bind(&formatEach, unpack.IfNotNone(unpack.String)),
+		"before_each?", unpack.Bind(&beforeEachStr, unpack.IfNotNone(unpack.Pointer(unpack.String))),
+		"omit_if_empty?", unpack.Bind(&omitIfEmpty, unpack.Bool),
+		"uniquify?", unpack.Bind(&uniquify, unpack.Bool),
+		"expand_directories?", unpack.Bind(&expandDirectories, unpack.Bool),
+		"terminate_with?", unpack.Bind(&terminateWithStr, unpack.IfNotNone(unpack.Pointer(unpack.String))),
+		"allow_closure?", unpack.Bind(&allowClosure, unpack.Bool),
 	); err != nil {
 		return nil, err
 	}
@@ -3604,7 +3543,7 @@ func (a *args[TReference, TMetadata]) doAddAll(thread *starlark.Thread, b *starl
 	return a, nil
 }
 
-func (a *args[TReference, TMetadata]) doAddJoined(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (a *args[TReference, TMetadata]) doAddJoined(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	startWith, values, err := a.doAddAllJoinedParseArgs(thread, b, args)
 	if err != nil {
 		return nil, err
@@ -3618,16 +3557,16 @@ func (a *args[TReference, TMetadata]) doAddJoined(thread *starlark.Thread, b *st
 	uniquify := false
 	expandDirectories := true
 	allowClosure := false
-	if err := starlark.UnpackArgs(
-		b.Name(), nil, kwargs,
-		"join_with?", unpack.Bind(thread, &joinWith, unpack.String),
-		"map_each?", unpack.Bind(thread, &mapEach, unpack.Type[eval.Function]("function")),
-		"format_each?", unpack.Bind(thread, &formatEach, unpack.IfNotNone(unpack.String)),
-		"format_joined?", unpack.Bind(thread, &formatJoined, unpack.IfNotNone(unpack.String)),
-		"omit_if_empty?", unpack.Bind(thread, &omitIfEmpty, unpack.Bool),
-		"uniquify?", unpack.Bind(thread, &uniquify, unpack.Bool),
-		"expand_directories?", unpack.Bind(thread, &expandDirectories, unpack.Bool),
-		"allow_closure?", unpack.Bind(thread, &allowClosure, unpack.Bool),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), eval.Args{Named: args.Named},
+		"join_with?", unpack.Bind(&joinWith, unpack.String),
+		"map_each?", unpack.Bind(&mapEach, unpack.Type[eval.Function]("function")),
+		"format_each?", unpack.Bind(&formatEach, unpack.IfNotNone(unpack.String)),
+		"format_joined?", unpack.Bind(&formatJoined, unpack.IfNotNone(unpack.String)),
+		"omit_if_empty?", unpack.Bind(&omitIfEmpty, unpack.Bool),
+		"uniquify?", unpack.Bind(&uniquify, unpack.Bool),
+		"expand_directories?", unpack.Bind(&expandDirectories, unpack.Bool),
+		"allow_closure?", unpack.Bind(&allowClosure, unpack.Bool),
 	); err != nil {
 		return nil, err
 	}
@@ -3657,11 +3596,11 @@ func (a *args[TReference, TMetadata]) doAddJoined(thread *starlark.Thread, b *st
 	return a, nil
 }
 
-func (a *args[TReference, TMetadata]) doSetParamFileFormat(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (a *args[TReference, TMetadata]) doSetParamFileFormat(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	var format string
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
-		"format", unpack.Bind(thread, &format, unpack.String),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
+		"format", unpack.Bind(&format, unpack.String),
 	); err != nil {
 		return nil, err
 	}
@@ -3678,16 +3617,16 @@ func (a *args[TReference, TMetadata]) doSetParamFileFormat(thread *starlark.Thre
 	return a, nil
 }
 
-func (a *args[TReference, TMetadata]) doUseParamFile(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if len(args) > 1 {
-		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args))
+func (a *args[TReference, TMetadata]) doUseParamFile(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+	if len(args.Positional) > 1 {
+		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 	}
 	var paramFileArg string
 	useAlways := false
-	if err := starlark.UnpackArgs(
-		b.Name(), args, kwargs,
-		"param_file_arg", unpack.Bind(thread, &paramFileArg, unpack.String),
-		"use_always?", unpack.Bind(thread, &useAlways, unpack.Bool),
+	if err := eval.UnpackArgs(
+		thread, b.Name(), args,
+		"param_file_arg", unpack.Bind(&paramFileArg, unpack.String),
+		"use_always?", unpack.Bind(&useAlways, unpack.Bool),
 	); err != nil {
 		return nil, err
 	}
@@ -3702,29 +3641,23 @@ type subruleContext[TReference object.BasicReference, TMetadata model_core.Refer
 	ruleContext *ruleContext[TReference, TMetadata]
 }
 
-var _ starlark.HasAttrs = (*subruleContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
+var _ eval.HasAttrs = (*subruleContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
-func (sc *subruleContext[TReference, TMetadata]) String() string {
-	rc := sc.ruleContext
-	return fmt.Sprintf("<subrule_ctx for %s>", rc.targetLabel.String())
+// Repr writes the representation of the value.
+func (sc *subruleContext[TReference, TMetadata]) Repr(_ *eval.Thread, printer *eval.Printer) error {
+	printer.WriteString(fmt.Sprintf("<subrule_ctx for %s>", sc.ruleContext.targetLabel.String()))
+	return nil
 }
 
 func (subruleContext[TReference, TMetadata]) Type() string {
 	return "subrule_ctx"
 }
 
-func (subruleContext[TReference, TMetadata]) Freeze() {
+func (subruleContext[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
 }
 
-func (subruleContext[TReference, TMetadata]) Truth() starlark.Bool {
-	return starlark.True
-}
-
-func (subruleContext[TReference, TMetadata]) Hash(thread *starlark.Thread) (uint32, error) {
-	return 0, errors.New("subrule_ctx cannot be hashed")
-}
-
-func (sc *subruleContext[TReference, TMetadata]) Attr(thread *starlark.Thread, name string) (starlark.Value, error) {
+func (sc *subruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	// TODO: Add subrule_ctx.toolchains.
 	rc := sc.ruleContext
 	switch name {
@@ -3735,7 +3668,7 @@ func (sc *subruleContext[TReference, TMetadata]) Attr(thread *starlark.Thread, n
 	case "label":
 		return model_starlark.NewLabel[TReference, TMetadata](rc.targetLabel.AsResolved()), nil
 	default:
-		return nil, nil
+		return nil, eval.NoSuchAttrError{Value: sc, Name: name}
 	}
 }
 
@@ -3744,6 +3677,6 @@ var subruleContextAttrNames = []string{
 	"label",
 }
 
-func (subruleContext[TReference, TMetadata]) AttrNames() []string {
-	return subruleContextAttrNames
+func (subruleContext[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
+	return subruleContextAttrNames, nil
 }

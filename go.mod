@@ -8,9 +8,6 @@ replace go.uber.org/mock => go.uber.org/mock v0.4.0
 // The latest version of go-fuse added a new method that we don't support.
 replace github.com/hanwen/go-fuse/v2 => github.com/hanwen/go-fuse/v2 v2.10.1
 
-// Stick to a very specific version of Go Starlark to make patches apply.
-replace go.starlark.net => go.starlark.net v0.0.0-20250225190231-0d3f41d403af
-
 require (
 	filippo.io/edwards25519 v1.2.0
 	github.com/bazelbuild/buildtools v0.0.0-20260904073137-eaa4d125b423
@@ -24,7 +21,6 @@ require (
 	github.com/prometheus/client_golang v1.25.0
 	github.com/stretchr/testify v1.12.1
 	github.com/ulikunitz/xz v0.5.17
-	go.starlark.net v0.0.0-20261021141710-4f4267fb140d
 	go.uber.org/mock v0.6.0
 	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067
