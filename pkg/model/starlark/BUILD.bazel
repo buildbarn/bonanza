@@ -97,6 +97,7 @@ go_test(
         "select_test.go",
         "struct_test.go",
         "target_kind_test.go",
+        "target_reference_test.go",
         "test_suite_test.go",
         "value_decoding_test.go",
     ],

@@ -43,8 +43,12 @@ func NewProvider[TReference object.BasicReference, TMetadata model_core.Referenc
 }
 
 // Repr writes the representation of the value.
-func (Provider[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
-	p.WriteString("<provider>")
+func (p *Provider[TReference, TMetadata]) Repr(_ *eval.Thread, printer *eval.Printer) error {
+	if p.Identifier == nil {
+		printer.WriteString("<provider>")
+	} else {
+		printer.WriteString("<provider " + p.Identifier.String() + ">")
+	}
 	return nil
 }
 

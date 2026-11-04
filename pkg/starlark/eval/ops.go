@@ -583,7 +583,12 @@ func getIndex(t *Thread, x, y Value) (Value, error) {
 			if err != nil {
 				return nil, err
 			}
-			return nil, fmt.Errorf("key %s not found in dictionary", key)
+			if _, ok := x.(Dict); ok {
+				return nil, fmt.Errorf("key %s not found in dictionary", key)
+			}
+			// Don't print the mapping itself, as it may be
+			// large or backed by storage.
+			return nil, fmt.Errorf("key %s not found in %s", key, x.Type())
 		}
 		return v, nil
 	case Indexable:

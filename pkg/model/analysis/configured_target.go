@@ -3062,7 +3062,7 @@ func (rca *ruleContextExecGroups[TReference, TMetadata]) Get(thread *eval.Thread
 		func(i int) int { return strings.Compare(execGroupName, execGroups[i].Name) },
 	)
 	if !ok {
-		return nil, false, fmt.Errorf("rule does not have an exec group with name %#v", execGroupName)
+		return nil, false, nil
 	}
 	return model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
 		"toolchains": &toolchainContext[TReference, TMetadata]{
@@ -3117,7 +3117,8 @@ func (tc *toolchainContext[TReference, TMetadata]) Get(thread *eval.Thread, v ev
 		func(i int) int { return strings.Compare(toolchainType, toolchains[i].ToolchainType) },
 	)
 	if !ok {
-		return nil, false, fmt.Errorf("exec group %#v does not depend on toolchain type %#v", namedExecGroup.Name, toolchainType)
+		// Exec group does not depend on the toolchain type.
+		return nil, false, nil
 	}
 
 	execGroup := &rc.execGroups[tc.execGroupIndex]

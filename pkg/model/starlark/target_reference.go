@@ -41,6 +41,9 @@ func NewConfiguredTargetReference[TReference object.BasicReference, TMetadata mo
 	}
 }
 
+// getProviderValue returns the instance of a provider that was yielded
+// by the target. If the target did not yield an instance of the
+// provider, nil is returned.
 func (ctr *ConfiguredTargetReference[TReference, TMetadata]) getProviderValue(thread *eval.Thread, providerIdentifier pg_label.CanonicalStarlarkIdentifier) (*Struct[TReference, TMetadata], error) {
 	providerIdentifierStr := providerIdentifier.String()
 	index, ok := sort.Find(
@@ -50,7 +53,7 @@ func (ctr *ConfiguredTargetReference[TReference, TMetadata]) getProviderValue(th
 		},
 	)
 	if !ok {
-		return nil, fmt.Errorf("target %#v did not yield provider %#v", ctr.label.String(), providerIdentifierStr)
+		return nil, nil
 	}
 
 	strukt := ctr.decodedProviders[index]
@@ -182,6 +185,9 @@ func (tr *TargetReference[TReference, TMetadata]) Attr(thread *eval.Thread, name
 			if err != nil {
 				return nil, err
 			}
+			if defaultInfoProviderValue == nil {
+				return nil, fmt.Errorf("target %#v did not yield provider %#v", ctr.label.String(), defaultInfoProviderIdentifier.String())
+			}
 			return defaultInfoProviderValue.Attr(thread, name)
 		case "label":
 			return NewLabel[TReference, TMetadata](ctr.label.AsResolved()), nil
@@ -231,6 +237,10 @@ func (tr *TargetReference[TReference, TMetadata]) Get(thread *eval.Thread, v eva
 	providerValue, err := ctr.getProviderValue(thread, *providerIdentifier)
 	if err != nil {
 		return nil, false, err
+	}
+	if providerValue == nil {
+		// Target did not yield an instance of the provider.
+		return nil, false, nil
 	}
 	return providerValue, true, nil
 }
