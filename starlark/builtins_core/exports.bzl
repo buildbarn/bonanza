@@ -1573,9 +1573,6 @@ def builtins_internal_py_builtins_make_runfiles_respect_legacy_external_runfiles
 def builtins_internal_py_builtins_merge_runfiles_with_generated_inits_empty_files_supplier(ctx, runfiles):
     return runfiles
 
-def builtins_json_encode_indent(x, **kwargs):
-    return json.indent(json.encode(x), **kwargs)
-
 exported_rules = {
     "alias": native.alias,
     "cc_libc_top_alias": cc_libc_top_alias,
@@ -1617,14 +1614,6 @@ exported_toplevels = {
         instrumented_files_info = coverage_common_instrumented_files_info,
     ),
     "exec_transition": transition,
-    "json": struct(
-        decode = json.decode,
-        encode = json.encode,
-        # starlark-go does not support json.encode_indent().
-        # TODO: Should we get it added?
-        encode_indent = builtins_json_encode_indent,
-        indent = json.indent,
-    ),
     "platform_common": struct(
         ConstraintValueInfo = ConstraintValueInfo,
         PlatformInfo = PlatformInfo,
