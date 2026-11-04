@@ -18,7 +18,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestParseModuleDotBazel(t *testing.T) {
+func TestParseRepoDotBazel(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(t.Context(), t)
 
 	encoder := NewMockDeterministicBinaryEncoder(ctrl)
