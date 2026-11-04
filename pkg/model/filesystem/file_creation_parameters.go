@@ -1,6 +1,8 @@
 package filesystem
 
 import (
+	"bytes"
+
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
@@ -80,6 +82,14 @@ func (p *FileCreationParameters) EncodeChunk(data []byte) (model_core.Decodable[
 	encodedChunk, decodingParameters, err := p.chunkEncoder.EncodeBinary(data)
 	if err != nil {
 		return model_core.Decodable[*object.Contents]{}, err
+	}
+	if len(encodedChunk) > 0 && len(data) > 0 && &encodedChunk[0] == &data[0] {
+		// No encoders are configured, meaning the encoded
+		// chunk refers to the data provided by the caller.
+		// Callers like CreateFileMerkleTree() reuse that
+		// buffer, while the resulting object may outlive this
+		// call. Make a copy.
+		encodedChunk = bytes.Clone(encodedChunk)
 	}
 	contents, err := p.referenceFormat.NewContents(nil, encodedChunk)
 	if err != nil {
