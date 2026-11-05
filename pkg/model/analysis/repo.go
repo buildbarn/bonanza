@@ -2250,14 +2250,18 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doFile(thread *eval
 	}
 
 	var filePath *model_starlark.BarePath
-	var content []byte
+	var content any = []byte(nil)
 	executable := true
 	legacyUTF8 := true
 	if err := eval.UnpackArgs(
 		thread, b.Name(), args,
 		"path", unpack.Bind(&filePath, mrc.pathUnpackerInto),
-		"content?", unpack.Bind(&content, unpack.Bytes),
+		"content?", unpack.Bind(&content, unpack.Or([]unpack.UnpackerInto[any]{
+			unpack.Decay(model_starlark.NewStoredStringFileContentsUnpackerInto[TReference, TMetadata]()),
+			unpack.Decay(unpack.Bytes),
+		})),
 		"executable?", unpack.Bind(&executable, unpack.Bool),
+		// This parameter is a no-op, as is the case for Bazel.
 		"legacy_utf8?", unpack.Bind(&legacyUTF8, unpack.Bool),
 	); err != nil {
 		return nil, err
@@ -2274,15 +2278,30 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doFile(thread *eval
 		return nil, fmt.Errorf("%#v does not resolve to a file", filePath.GetUNIXString())
 	}
 
-	if err := mrc.maybeInitializePatchedFiles(); err != nil {
-		return nil, err
-	}
-
-	// TODO: Do UTF-8 -> ISO-8859-1
-	// conversion if legacy_utf8=False.
-	patchedFileOffsetBytes := mrc.patchedFilesWriter.GetOffsetBytes()
-	if _, err := mrc.patchedFilesWriter.Write(content); err != nil {
-		return nil, fmt.Errorf("failed to write to file at %#v: %w", filePath.GetUNIXString(), err)
+	var fileContents changeTrackingFileContents[TReference, TMetadata]
+	switch typedContent := content.(type) {
+	case model_core.Message[*model_filesystem_pb.FileContents, TReference]:
+		// Large string that is backed by storage. Its Merkle
+		// tree is identical to the one that would be created
+		// when writing it to a file, so there is no need to
+		// read the string.
+		fileContents = unmodifiedFileContents[TReference, TMetadata]{
+			contents: typedContent,
+		}
+	case []byte:
+		if err := mrc.maybeInitializePatchedFiles(); err != nil {
+			return nil, err
+		}
+		patchedFileOffsetBytes := mrc.patchedFilesWriter.GetOffsetBytes()
+		if _, err := mrc.patchedFilesWriter.Write(typedContent); err != nil {
+			return nil, fmt.Errorf("failed to write to file at %#v: %w", filePath.GetUNIXString(), err)
+		}
+		fileContents = patchedFileContents[TReference, TMetadata]{
+			offsetBytes: patchedFileOffsetBytes,
+			sizeBytes:   mrc.patchedFilesWriter.GetOffsetBytes() - patchedFileOffsetBytes,
+		}
+	default:
+		panic("unexpected argument type")
 	}
 
 	if err := r.stack.Peek().setFile(
@@ -2290,10 +2309,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doFile(thread *eval
 		*r.TerminalName,
 		&changeTrackingFile[TReference, TMetadata]{
 			isExecutable: executable,
-			contents: patchedFileContents[TReference, TMetadata]{
-				offsetBytes: patchedFileOffsetBytes,
-				sizeBytes:   mrc.patchedFilesWriter.GetOffsetBytes() - patchedFileOffsetBytes,
-			},
+			contents:     fileContents,
 		},
 	); err != nil {
 		return nil, err

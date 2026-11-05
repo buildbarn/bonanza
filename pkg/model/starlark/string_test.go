@@ -221,6 +221,46 @@ func TestStringStorage(t *testing.T) {
 		testutil.RequireEqualProto(t, message.Message, encode(t, thread, eval.String(data)).Message)
 	})
 
+	t.Run("FileContentsUnpacker", func(t *testing.T) {
+		unpacker := model_starlark.NewStoredStringFileContentsUnpackerInto[object.LocalReference, model_core.NoopReferenceMetadata]()
+
+		// A large string that is backed by storage should yield
+		// the same Merkle tree as creating one for its contents.
+		// This should not need to read it, which is why the
+		// thread used for unpacking has no file reader.
+		thread := newThread(t)
+		decoded, _ := roundTrip(t, thread, eval.String(data))
+		var fileContents model_core.Message[*model_filesystem_pb.FileContents, object.LocalReference]
+		blindThread := newTestThread(t)
+		require.NoError(t, unpacker.UnpackInto(blindThread, decoded, &fileContents))
+
+		expected, err := model_filesystem.CreateFileMerkleTree(
+			ctx,
+			fileCreationParameters,
+			strings.NewReader(data),
+			model_filesystem.NewSimpleFileMerkleTreeCapturer[model_core.NoopReferenceMetadata](store),
+		)
+		require.NoError(t, err)
+		expectedTopLevel, _ := expected.SortAndSetReferences()
+		testutil.RequireEqualProto(t, expectedTopLevel.Message, fileContents.Message)
+		actualEntry := util.Must(model_filesystem.NewFileContentsEntryFromProto(fileContents))
+		expectedEntry := util.Must(model_filesystem.NewFileContentsEntryFromProto(expectedTopLevel.Decay()))
+		require.Equal(t, expectedEntry.GetReference(), actualEntry.GetReference())
+
+		// The contents should be readable through the resulting
+		// message.
+		contents, err := fileReader.FileReadAll(ctx, actualEntry, uint64(len(data)))
+		require.NoError(t, err)
+		require.Equal(t, []byte(data), contents)
+
+		// Strings held in memory, and values of other types
+		// should be rejected, so that callers can fall back to
+		// creating a new Merkle tree.
+		for _, value := range []eval.Value{eval.String(data), eval.String("small"), eval.None} {
+			require.Error(t, unpacker.UnpackInto(blindThread, value, &fileContents))
+		}
+	})
+
 	t.Run("LargeWithoutFileCreationParameters", func(t *testing.T) {
 		thread := newThread(t)
 		_, err := model_starlark.EncodeValue(thread, eval.String(data), nil, nil, newEncodingOptions(nil))

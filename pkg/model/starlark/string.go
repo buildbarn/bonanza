@@ -13,6 +13,8 @@ import (
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/syntax"
+	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 )
 
@@ -159,6 +161,54 @@ func (s *storedStringSource[TReference, TMetadata]) ReadAt(t *eval.Thread, p []b
 // doesn't need to be read and stored once more.
 func (s *storedStringSource[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	return model_core.Patch(options.ObjectCapturer, s.value), nil
+}
+
+type storedStringFileContentsUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct{}
+
+// NewStoredStringFileContentsUnpackerInto creates an unpacker that
+// accepts strings that are stored in the same way as file contents,
+// and yields the FileContents message of the string. All other values,
+// including strings that are held in memory, are rejected.
+//
+// Large strings are stored using the same algorithm and parameters as
+// files. Builtins that write strings to files can therefore use this
+// unpacker in combination with unpack.Or() and unpack.Bytes to reuse
+// the existing Merkle tree, without reading the string. The resulting
+// message is identical to the one that would be obtained by creating a
+// new Merkle tree for the contents of the string.
+func NewStoredStringFileContentsUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() unpack.UnpackerInto[model_core.Message[*model_filesystem_pb.FileContents, TReference]] {
+	return storedStringFileContentsUnpackerInto[TReference, TMetadata]{}
+}
+
+func (storedStringFileContentsUnpackerInto[TReference, TMetadata]) getSource(v eval.Value) (*storedStringSource[TReference, TMetadata], *model_filesystem_pb.MaybeInlineFileContents_ContentsExternal, error) {
+	if s, ok := v.(*eval.LargeString); ok {
+		if source, ok := s.Source().(*storedStringSource[TReference, TMetadata]); ok {
+			if external, ok := source.contents.Message.Level.(*model_filesystem_pb.MaybeInlineFileContents_ContentsExternal); ok {
+				return source, external, nil
+			}
+		}
+	}
+	return nil, nil, fmt.Errorf("got %s, want string that is stored in the same way as file contents", v.Type())
+}
+
+func (ui storedStringFileContentsUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst *model_core.Message[*model_filesystem_pb.FileContents, TReference]) error {
+	source, external, err := ui.getSource(v)
+	if err != nil {
+		return err
+	}
+	*dst = model_core.Nested(source.contents, external.ContentsExternal)
+	return nil
+}
+
+func (ui storedStringFileContentsUnpackerInto[TReference, TMetadata]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
+	if _, _, err := ui.getSource(v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func (storedStringFileContentsUnpackerInto[TReference, TMetadata]) GetConcatenationOperator() syntax.Token {
+	return 0
 }
 
 // getRootReference returns the reference of the object at the root of

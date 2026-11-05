@@ -939,14 +939,17 @@ Code in `pkg/model/analysis` that inspects encoded values directly
 inline using a `FileReader`, and fails for strings that aren't valid
 UTF-8.
 
+`repository_ctx.file()` and `ctx.actions.write()` reuse the
+`FileContents` of large strings that are backed by storage, using
+`model_starlark.NewStoredStringFileContentsUnpackerInto()`. They don't
+read these strings, so they aren't subject to the conversion limit.
+
 Not done yet:
 
 - Letting `repository_ctx.read()`, `module_ctx.read()` and
   `repository_ctx.execute()` return strings backed by existing
-  `FileContents`, and letting `repository_ctx.file()` and
-  `ctx.actions.write()` refer to the chunks of large strings directly.
-  These still read data into memory, subject to their existing size
-  limits.
+  `FileContents`. These still read data into memory, subject to their
+  existing size limits.
 - Rendering the contents of large strings in `pkg/model/render`. They
   are rendered as links to the objects that hold their contents.
 

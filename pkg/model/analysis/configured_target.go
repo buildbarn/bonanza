@@ -22,6 +22,7 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
+	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/starlark/syntax"
@@ -3000,6 +3001,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *eval.Threa
 		"output", unpack.Bind(&output, rc.outputRegistrar),
 		"content", unpack.Bind(&content, unpack.Or([]unpack.UnpackerInto[any]{
 			unpack.Decay(unpack.Type[*args[TReference, TMetadata]]("Args")),
+			unpack.Decay(model_starlark.NewStoredStringFileContentsUnpackerInto[TReference, TMetadata]()),
 			unpack.Decay(unpack.Bytes),
 		})),
 		"is_executable?", unpack.Bind(&isExecutable, unpack.Bool),
@@ -3030,6 +3032,18 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *eval.Threa
 					},
 				}
 			}),
+		)
+	case model_core.Message[*model_filesystem_pb.FileContents, TReference]:
+		// Large string that is backed by storage. Its Merkle
+		// tree is identical to the one that would be created
+		// below, so there is no need to read the string.
+		return eval.None, rc.setOutputToStaticDirectory(
+			output,
+			&singleFileDirectory[TMetadata, TMetadata]{
+				components:   output.packageRelativePath.ToComponents(),
+				isExecutable: isExecutable,
+				file:         model_filesystem.NewSimpleCapturableFile(model_core.Patch(rc.environment, typedContent)),
+			},
 		)
 	case []byte:
 		fileContents, err := model_filesystem.CreateFileMerkleTree(
