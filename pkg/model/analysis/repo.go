@@ -106,6 +106,7 @@ func (m *jsonOrderedMap[T]) UnmarshalJSON(data []byte) error {
 // served by Bazel Central Registry (BCR).
 type sourceJSON struct {
 	Integrity   string                 `json:"integrity"`
+	Overlay     jsonOrderedMap[string] `json:"overlay"`
 	PatchStrip  int                    `json:"patch_strip"`
 	Patches     jsonOrderedMap[string] `json:"patches"`
 	StripPrefix string                 `json:"strip_prefix"`
@@ -968,6 +969,50 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 		missingDependencies = true
 	}
 
+	// Process overlay files stored in source.json. These are files
+	// that are added to the source archive, such as BUILD.bazel files
+	// for projects that don't provide their own.
+	overlayFiles := make([]overlayFile[TReference], 0, len(sourceJSON.Overlay))
+	for _, overlayEntry := range sourceJSON.Overlay {
+		overlayURL, err := url.JoinPath(
+			module.RegistryUrl,
+			"modules",
+			module.Name,
+			module.Version,
+			"overlay",
+			overlayEntry.key,
+		)
+		if err != nil {
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for overlay file %s of module %s with version %s in registry %#v: %w", overlayEntry.key, module.Name, module.Version, module.RegistryUrl, err)
+		}
+
+		integrity, err := parseSubresourceIntegrity(overlayEntry.value)
+		if err != nil {
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid subresource integrity %#v for overlay file %#v: %w", overlayEntry.value, overlayURL, err)
+		}
+
+		overlayContentsValue := e.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
+			FetchOptions: &model_analysis_pb.HttpFetchOptions{
+				Target: &model_fetch_pb.Target{
+					Urls:      []string{overlayURL},
+					Integrity: integrity,
+				},
+			},
+		})
+		if !overlayContentsValue.IsSet() {
+			missingDependencies = true
+			continue
+		}
+		if overlayContentsValue.Message.Exists == nil {
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("overlay file at URL %#v does not exist", overlayURL)
+		}
+
+		overlayFiles = append(overlayFiles, overlayFile[TReference]{
+			filename: overlayEntry.key,
+			contents: model_core.Nested(overlayContentsValue, overlayContentsValue.Message.Exists.Contents),
+		})
+	}
+
 	// Process patches stored in source.json.
 	patchesToApply := make([]patchToApply[TReference], 0, len(sourceJSON.Patches)+len(singleVersionOverridePatchLabels))
 	for _, patchEntry := range sourceJSON.Patches {
@@ -1065,8 +1110,16 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 		e,
 		model_core.Nested(archiveContentsValue, archiveContentsValue.Message.Exists.Contents),
 		sourceJSON.StripPrefix,
+		overlayFiles,
 		patchesToApply,
 	)
+}
+
+// overlayFile is a file that is added to a source archive of a module
+// prior to applying any patches.
+type overlayFile[TReference object.BasicReference] struct {
+	filename string
+	contents model_core.Message[*model_filesystem_pb.FileContents, TReference]
 }
 
 type patchToApply[TReference object.BasicReference] struct {
@@ -1089,6 +1142,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 	e applyPatchesEnvironment[TReference, TMetadata],
 	rootRef model_core.Message[*model_filesystem_pb.DirectoryReference, TReference],
 	stripPrefix string,
+	overlayFiles []overlayFile[TReference],
 	patches []patchToApply[TReference],
 ) (PatchedRepoValue[TMetadata], error) {
 	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
@@ -1127,6 +1181,35 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to strip prefix %#v from contents: %w", stripPrefix, err)
 	}
 	rootDirectory = rootDirectoryResolver.stack.Peek()
+
+	// Add overlay files. Like Bazel, do this before applying patches,
+	// so that patches may modify these files.
+	for _, overlay := range overlayFiles {
+		r := &changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
+			loadOptions: loadOptions,
+			stack:       util.NewNonEmptyStack(rootDirectory),
+		}
+		if err := path.Resolve(
+			path.UNIXFormat.NewParser(overlay.filename),
+			path.NewRelativeScopeWalker(r),
+		); err != nil {
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("cannot resolve path of overlay file %#v: %w", overlay.filename, err)
+		}
+		if r.TerminalName == nil {
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("path of overlay file %#v does not resolve to a file", overlay.filename)
+		}
+		if err := r.stack.Peek().setFile(
+			loadOptions,
+			*r.TerminalName,
+			&changeTrackingFile[TReference, TMetadata]{
+				contents: unmodifiedFileContents[TReference, TMetadata]{
+					contents: overlay.contents,
+				},
+			},
+		); err != nil {
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("cannot add overlay file %#v: %w", overlay.filename, err)
+		}
+	}
 
 	patchedFiles, err := c.filePool.NewFile(pool.ZeroHoleSource, 0)
 	if err != nil {
