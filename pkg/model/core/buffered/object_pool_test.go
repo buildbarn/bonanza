@@ -416,6 +416,30 @@ func TestObjectPool(t *testing.T) {
 		require.Equal(t, codes.Unavailable, grpc_status.Code(err))
 	})
 
+	t.Run("RequestForObjectNotInPool", func(t *testing.T) {
+		// Objects that are not in the pool are expected to exist
+		// in storage. If the server requests the contents of
+		// such an object, this should cause an error, as opposed
+		// to reading it from storage or cancelling the upload.
+		h := newObjectPoolHarness(t, ctrl, object.Unlimited, 10, func(h *objectPoolHarness) {
+			h.capture(parent)
+		})
+
+		h.expectInitiateDAG(parent.LocalReference)
+		h.requestAndExpectContents(0, parent)
+		h.respond(&dag_pb.UploadDagsResponse{
+			Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+				RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+					LowestReferenceIndex: 1,
+				},
+			},
+		})
+		err := <-h.errChan
+		require.Equal(t, codes.Internal, grpc_status.Code(err))
+		require.ErrorContains(t, err, "Server requested the contents of object with reference ")
+		require.ErrorContains(t, err, ", even though this object was expected to exist")
+	})
+
 	t.Run("CaptureLimitAndEviction", func(t *testing.T) {
 		// If the pool is full and none of the objects have
 		// been written, capturing should block. Once objects

@@ -341,29 +341,32 @@ func (op *ObjectPool) initiateDAGLocked(reference object.LocalReference, tr *tag
 // provideObjectContentsLocked creates a ProvideObjectContents message
 // in response to a RequestObjectContents message sent by the server.
 // Reference indices are assigned to all children of the object.
-func (op *ObjectPool) provideObjectContentsLocked(p pendingProvide) *dag_pb.UploadDagsRequest {
-	provideObjectContents := &dag_pb.UploadDagsRequest_ProvideObjectContents{
-		LowestReferenceIndex: p.lowestReferenceIndex,
+//
+// Objects that are not present in the pool are either ones that we did
+// not create, or ones that were evicted after being written to storage.
+// In both cases we expect them to exist in storage, meaning the server
+// should not be requesting them. As this indicates that data has gone
+// missing, or that leases have expired, an error is returned.
+func (op *ObjectPool) provideObjectContentsLocked(p pendingProvide) (*dag_pb.UploadDagsRequest, error) {
+	os, ok := op.objects[p.reference.reference]
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "Server requested the contents of object with reference %s, even though this object was expected to exist", p.reference.reference)
 	}
-	if os, ok := op.objects[p.reference.reference]; ok {
-		contents := os.contents
-		for i := range contents.GetDegree() {
-			referenceIndex := op.nextReferenceIndex
-			op.nextReferenceIndex++
-			op.addReferenceIndexLocked(contents.GetOutgoingReference(i), referenceIndex)
-		}
-		provideObjectContents.ObjectContents = contents.GetFullData()
+
+	contents := os.contents
+	for i := range contents.GetDegree() {
+		referenceIndex := op.nextReferenceIndex
+		op.nextReferenceIndex++
+		op.addReferenceIndexLocked(contents.GetOutgoingReference(i), referenceIndex)
 	}
-	// If the object is not present in the pool, we leave
-	// ObjectContents empty, thereby cancelling the upload. This
-	// may happen if the server requests the contents of an object
-	// that we did not create, or one that was evicted after being
-	// written to storage, but its lease has expired since.
 	return &dag_pb.UploadDagsRequest{
 		Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{
-			ProvideObjectContents: provideObjectContents,
+			ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				LowestReferenceIndex: p.lowestReferenceIndex,
+				ObjectContents:       contents.GetFullData(),
+			},
 		},
-	}
+	}, nil
 }
 
 // getNextRequestLocked blocks until there is a message that needs to
@@ -383,7 +386,12 @@ func (op *ObjectPool) getNextRequestLocked(ctx context.Context) (*dag_pb.UploadD
 			p := op.pendingProvides[0]
 			op.pendingProvides[0] = pendingProvide{}
 			op.pendingProvides = op.pendingProvides[1:]
-			return op.provideObjectContentsLocked(p), nil
+			request, err := op.provideObjectContentsLocked(p)
+			if err != nil {
+				op.lock.Unlock()
+				return nil, err
+			}
+			return request, nil
 		}
 
 		if op.unfinalizedDAGs < op.maximumUnfinalizedDAGs {
