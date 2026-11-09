@@ -53,7 +53,7 @@ func TestRendererStarlarkValues(t *testing.T) {
 		},
 		{
 			name:     "NegativeInt",
-			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: &model_starlark_pb.Int{AbsoluteValue: []byte{1, 0}, Negative: true}}},
+			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: []byte{0xff, 0x00}}},
 			expected: "-256",
 		},
 		{

@@ -371,7 +371,7 @@ func (*StarlarkRenderer) renderFunction(function *model_starlark_pb.Function) Do
 	)
 }
 
-func (*StarlarkRenderer) renderInt(v *model_starlark_pb.Int) Doc {
+func (*StarlarkRenderer) renderInt(v []byte) Doc {
 	return starlarkLiteral(model_starlark.DecodeInt(v).String())
 }
 

@@ -170,10 +170,10 @@ func TestTargetDirectDependencies(t *testing.T) {
 							ShardCount: []*model_starlark_pb.Select_Group{{
 								Conditions: []*model_starlark_pb.Select_Condition{{
 									ConditionIdentifier: "@@main+//:many_shards",
-									Value:               &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: &model_starlark_pb.Int{AbsoluteValue: []byte{8}}}},
+									Value:               &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: []byte{8}}},
 								}},
 								NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
-									NoMatchValue: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: &model_starlark_pb.Int{AbsoluteValue: []byte{1}}}},
+									NoMatchValue: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: []byte{1}}},
 								},
 							}},
 							Args: []*model_starlark_pb.Select_Group{{

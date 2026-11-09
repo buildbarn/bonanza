@@ -25,7 +25,8 @@ message Value {
     ExecGroup exec_group = 8;
     File file = 9;
     Function function = 10;
-    Int int = 11;
+    // Integer, encoded as a big-endian two's complement value.
+    bytes int = 11;
     string label = 12;
     List list = 13;
     Macro macro = 30;
@@ -429,14 +430,6 @@ message InheritableAttrs {
   // Which targets in other packages are permitted to depend on this
   // target.
   PackageGroup visibility = 4;
-}
-
-message Int {
-  // Absolute value of the integer as a big-endian byte slice.
-  bytes absolute_value = 1;
-
-  // If set, the value is negative.
-  bool negative = 2;
 }
 
 message LabelSetting {
