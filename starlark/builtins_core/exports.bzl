@@ -1301,7 +1301,7 @@ def builtins_internal_cc_internal_create_copts_filter(copts_filter = None):
 
 def library_to_link_disable_whole_archive(lib):
     disable_whole_archive = lib._disable_whole_archive
-    return lambda: lib._disable_whole_archive
+    return lambda: disable_whole_archive
 
 def library_to_link_must_keep_debug(lib):
     must_keep_debug = lib._must_keep_debug
