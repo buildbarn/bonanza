@@ -180,6 +180,7 @@ func (mr *messageRenderer) renderBlock(block render.Block) []g.Node {
 	}
 	return []g.Node{
 		h.Table(
+			g.If(table.Compact, h.Class("compact")),
 			h.THead(h.Tr(headerCells...)),
 			h.TBody(rows...),
 		),

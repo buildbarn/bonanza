@@ -36,6 +36,20 @@ async function main() {
       padding: 5px;
       text-wrap: nowrap;
     }
+
+    .message-contents table.compact tbody tr {
+      border-bottom: none;
+      height: 1lh;
+    }
+
+    .message-contents table.compact tr th,
+    .message-contents table.compact tr td {
+      padding: 0 8px;
+    }
+
+    .message-contents table.compact tr > :last-child:not([colspan]) {
+      width: 100%;
+    }
   `, {
     base: process.cwd(),
     onDependency(path) {},

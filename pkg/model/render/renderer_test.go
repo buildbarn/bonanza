@@ -7,6 +7,7 @@ import (
 	"bonanza.build/pkg/model/render"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/starlark/compile"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/stretchr/testify/require"
@@ -410,4 +411,78 @@ func newStringValue(s string) *model_starlark_pb.Value {
 	return &model_starlark_pb.Value{
 		Kind: &model_starlark_pb.Value_Str{Str: contents},
 	}
+}
+
+func TestRendererFunctionEntryLeaf(t *testing.T) {
+	newLeaf := func(code []byte) *model_starlark_pb.CompiledProgram_FunctionEntry_Leaf {
+		return &model_starlark_pb.CompiledProgram_FunctionEntry_Leaf{
+			Name: &model_starlark_pb.Function_Name{Name: "greet"},
+			Code: &model_starlark_pb.Funcode{
+				Column: 1,
+				Code:   code,
+				// Position of the instruction at offset 4, as
+				// accessing parameters cannot fail.
+				LineTable:       []byte{0x83, 0x85},
+				StringConstants: [][]byte{[]byte("hello\n")},
+				Locals:          []string{"name"},
+				NumParams:       1,
+				MaxStack:        2,
+				Functions: []*model_starlark_pb.Funcode_NestedFunction{{
+					RelativeLine: 2,
+					Funcode: &model_starlark_pb.Funcode{
+						Code:          []byte{byte(compile.FREECELL), 0x80, byte(compile.RETURN)},
+						FreeVariables: []string{"captured"},
+						Column:        5,
+						LineTable:     []byte{0x80},
+						MaxStack:      1,
+					},
+				}},
+			},
+		}
+	}
+	code := []byte{
+		byte(compile.STR), 0x80,
+		byte(compile.LOCAL), 0x80,
+		byte(compile.PLUS),
+		byte(compile.JMP), 7,
+		byte(compile.RETURN),
+	}
+
+	t.Run("Pretty", func(t *testing.T) {
+		require.Equal(
+			t,
+			"function greet(name) stack=2\n"+
+				"0\t\tstr\t0\t\"hello\\n\"\n"+
+				"2\t\tlocal\t0\tname\n"+
+				"4\t2:5\tplus\t\t\n"+
+				"5\t\tjmp\t7\t\n"+
+				"7\t\treturn\t\t\n"+
+				"\n"+
+				"function lambda() stack=1\n"+
+				"freevars: captured\n"+
+				"0\t3:5\tfreecell\t0\tcaptured\n"+
+				"2\t\treturn\t\t",
+			renderMessage(newLeaf(code), true, render.LayoutOptions{Width: 80}),
+		)
+	})
+
+	t.Run("JSON", func(t *testing.T) {
+		// The disassembly should only be displayed when pretty
+		// printing is enabled.
+		require.Contains(
+			t,
+			renderMessage(newLeaf(code), false, render.LayoutOptions{SingleLine: true}),
+			`"lineTable"`,
+		)
+	})
+
+	t.Run("Malformed", func(t *testing.T) {
+		// If the code cannot be disassembled, its raw contents
+		// should be displayed instead.
+		require.Contains(
+			t,
+			renderMessage(newLeaf([]byte{byte(compile.STR)}), true, render.LayoutOptions{SingleLine: true}),
+			`"lineTable"`,
+		)
+	})
 }

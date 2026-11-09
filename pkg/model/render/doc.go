@@ -96,6 +96,7 @@ type annotateDoc struct {
 type tableDoc struct {
 	columns []TableColumn
 	rows    [][]Doc
+	compact bool
 }
 
 func (textDoc) isDoc()     {}
@@ -184,6 +185,14 @@ type TableColumn struct {
 // starts on a new line, causing the enclosing group to be broken.
 func Table(columns []TableColumn, rows [][]Doc) Doc {
 	return tableDoc{columns: columns, rows: rows}
+}
+
+// CompactTable emits a table in the same way as Table(), except that
+// backends should display it as densely as possible. This is useful
+// for tables having many rows that are read as if they were lines of
+// text, such as disassembled code.
+func CompactTable(columns []TableColumn, rows [][]Doc) Doc {
+	return tableDoc{columns: columns, rows: rows, compact: true}
 }
 
 // Sequence emits a sequence of elements, enclosed by delimiters and

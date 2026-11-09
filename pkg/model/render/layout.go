@@ -18,6 +18,8 @@ type Segment struct {
 type TableBlock struct {
 	Columns []TableColumn
 	Rows    [][][]Segment
+	// If set, the table should be displayed as densely as possible.
+	Compact bool
 }
 
 // Block is either a line of text, or a table.
@@ -245,6 +247,7 @@ func (ls *layoutState) layoutTable(d tableDoc, indent int) {
 	table := &TableBlock{
 		Columns: d.columns,
 		Rows:    make([][][]Segment, 0, len(d.rows)),
+		Compact: d.compact,
 	}
 	for _, row := range d.rows {
 		cells := make([][]Segment, 0, len(row))

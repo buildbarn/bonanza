@@ -9,6 +9,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
+	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -275,6 +276,8 @@ func (*Renderer) renderPretty(m model_core.Message[protoreflect.Message, object.
 	switch v := m.Message.Interface().(type) {
 	case *model_filesystem_pb.DirectoryContents:
 		return renderDirectory(model_core.Nested(m, v))
+	case *model_starlark_pb.CompiledProgram_FunctionEntry_Leaf:
+		return renderFunctionEntryLeaf(v)
 	}
 	return renderStarlark(model_core.Nested(m, m.Message.Interface()))
 }

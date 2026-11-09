@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "directory.go",
         "doc.go",
+        "funcode.go",
         "layout.go",
         "renderer.go",
         "starlark.go",
@@ -21,6 +22,7 @@ go_library(
         "//pkg/proto/model/core",
         "//pkg/proto/model/filesystem",
         "//pkg/proto/model/starlark",
+        "//pkg/starlark/compile",
         "//pkg/starlark/syntax",
         "//pkg/storage/object",
         "@org_golang_google_protobuf//encoding/protojson",
@@ -46,6 +48,7 @@ go_test(
         "//pkg/model/starlark",
         "//pkg/proto/model/filesystem",
         "//pkg/proto/model/starlark",
+        "//pkg/starlark/compile",
         "//pkg/storage/object",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@com_github_stretchr_testify//require",

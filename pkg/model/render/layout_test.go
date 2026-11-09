@@ -176,3 +176,16 @@ func TestLayoutTableFollowedByLineBreak(t *testing.T) {
 	require.NotNil(t, blocks[2].Table)
 	require.Equal(t, render.Block{Indent: 0, Segments: []render.Segment{{Text: "}"}}}, blocks[3])
 }
+
+func TestLayoutCompactTable(t *testing.T) {
+	columns := []render.TableColumn{{Name: "Path"}}
+	rows := [][]render.Doc{{render.Text("a")}}
+
+	blocks := render.Layout(render.Table(columns, rows), render.LayoutOptions{})
+	require.Len(t, blocks, 1)
+	require.False(t, blocks[0].Table.Compact)
+
+	blocks = render.Layout(render.CompactTable(columns, rows), render.LayoutOptions{})
+	require.Len(t, blocks, 1)
+	require.True(t, blocks[0].Table.Compact)
+}
