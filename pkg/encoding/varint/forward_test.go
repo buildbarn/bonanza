@@ -1,10 +1,14 @@
 package varint_test
 
 import (
+	"bufio"
 	"bytes"
+	"errors"
+	"io"
 	"math"
 	"math/rand/v2"
 	"testing"
+	"testing/iotest"
 
 	"bonanza.build/pkg/encoding/varint"
 
@@ -350,5 +354,47 @@ func TestForward(t *testing.T) {
 			_, err = varint.ReadForward[uint64](bytes.NewBuffer([]byte{0x00, 0x41, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))
 			testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Value is out of range for int64 and uint64"), err)
 		})
+	})
+}
+
+func TestReadForwardErrors(t *testing.T) {
+	// Read errors may occur at any of the places where ReadForward()
+	// consumes a byte. Each of the prefixes below ends right before
+	// a different one of those.
+	readUnsigned := func(r io.ByteReader) error {
+		_, err := varint.ReadForward[uint64](r)
+		return err
+	}
+	readSigned := func(r io.ByteReader) error {
+		_, err := varint.ReadForward[int64](r)
+		return err
+	}
+	for name, tc := range map[string]struct {
+		read   func(io.ByteReader) error
+		prefix []byte
+	}{
+		"Trailing":          {read: readSigned, prefix: []byte{0x40}},
+		"SecondByte":        {read: readSigned, prefix: []byte{0x00}},
+		"Unsigned70Bit":     {read: readUnsigned, prefix: []byte{0x00, 0x40}},
+		"Unsigned70BitLast": {read: readUnsigned, prefix: []byte{0x00, 0x40, 0, 0, 0, 0, 0, 0, 0}},
+		"Signed70Bit":       {read: readSigned, prefix: []byte{0x00, 0x40}},
+		"Signed70BitLast":   {read: readSigned, prefix: []byte{0x00, 0x40, 0x00, 0, 0, 0, 0, 0, 0}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Run("ReadError", func(t *testing.T) {
+				readErr := errors.New("disk on fire")
+				require.Equal(t, readErr, tc.read(bufio.NewReader(io.MultiReader(bytes.NewReader(tc.prefix), iotest.ErrReader(readErr)))))
+			})
+
+			t.Run("EOF", func(t *testing.T) {
+				require.Equal(t, io.ErrUnexpectedEOF, tc.read(bytes.NewReader(tc.prefix)))
+			})
+		})
+	}
+
+	t.Run("FirstByte", func(t *testing.T) {
+		// End of stream is expected before the first byte, as
+		// callers may use it to detect the end of a sequence.
+		require.Equal(t, io.EOF, readSigned(bytes.NewReader(nil)))
 	})
 }

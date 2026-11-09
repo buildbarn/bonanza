@@ -214,6 +214,17 @@ func ConsumeForward[T constraints.Integer](src []byte) (T, int) {
 	return converted, length
 }
 
+// readTrailingByte reads a byte of an integer value of which at least
+// one byte has already been read, meaning that reaching the end of the
+// stream is unexpected.
+func readTrailingByte(r io.ByteReader) (byte, error) {
+	b, err := r.ReadByte()
+	if err == io.EOF {
+		return 0, io.ErrUnexpectedEOF
+	}
+	return b, err
+}
+
 // ReadForward consumes an integer value from the start of a ByteReader,
 // which was encoded using AppendForward().
 func ReadForward[T constraints.Integer](r io.ByteReader) (T, error) {
@@ -227,11 +238,9 @@ func ReadForward[T constraints.Integer](r io.ByteReader) (T, error) {
 	isUnsigned := ^T(0) > 0
 	if leadingZeros == 8 {
 		// Special handling for sequences that are 9 or 10 bytes.
-		b, err = r.ReadByte()
+		b, err = readTrailingByte(r)
 		if err != nil {
-			if err == io.EOF {
-				return 0, io.ErrUnexpectedEOF
-			}
+			return 0, err
 		}
 		length--
 
@@ -244,11 +253,9 @@ func ReadForward[T constraints.Integer](r io.ByteReader) (T, error) {
 			// 70 bit value stored in 10 bytes, converted to uint64.
 			var v uint64
 			for i := 0; i < length; i++ {
-				b, err = r.ReadByte()
+				b, err = readTrailingByte(r)
 				if err != nil {
-					if err == io.EOF {
-						return 0, io.ErrUnexpectedEOF
-					}
+					return 0, err
 				}
 				v = v<<8 | uint64(b)
 			}
@@ -260,11 +267,9 @@ func ReadForward[T constraints.Integer](r io.ByteReader) (T, error) {
 		case !isUnsigned && (b == 0x40 || b == 0x7f):
 			// 70 bit value stored in 10 bytes, converted to int64.
 			positive := b == 0x40
-			b, err = r.ReadByte()
+			b, err = readTrailingByte(r)
 			if err != nil {
-				if err == io.EOF {
-					return 0, io.ErrUnexpectedEOF
-				}
+				return 0, err
 			}
 			length--
 			leadingZeros = -1
@@ -279,11 +284,9 @@ func ReadForward[T constraints.Integer](r io.ByteReader) (T, error) {
 	shift := 64 - 7 + leadingZeros
 	v := int64(b) << shift >> shift
 	for i := 0; i < length; i++ {
-		b, err = r.ReadByte()
+		b, err = readTrailingByte(r)
 		if err != nil {
-			if err == io.EOF {
-				return 0, io.ErrUnexpectedEOF
-			}
+			return 0, err
 		}
 		v = v<<8 | int64(b)
 	}
