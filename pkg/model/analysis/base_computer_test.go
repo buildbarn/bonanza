@@ -115,7 +115,7 @@ func (baseComputerTester) expectGetFileCreationParametersObject(t *testing.T, e 
 			ChunkMinimumSizeBytes:            1 << 16,
 			ChunkHorizonSizeBytes:            1 << 19,
 			FileContentsListMinimumSizeBytes: 1 << 16,
-			FileContentsListMaximumSizeBytes: 1 << 18,
+			FileContentsListHorizonSizeBytes: 8 << 16,
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),

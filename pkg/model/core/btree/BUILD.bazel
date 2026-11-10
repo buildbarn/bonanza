@@ -42,11 +42,13 @@ go_test(
     ],
     embed = [":btree"],
     deps = [
+        "//pkg/encoding/varint",
         "//pkg/model/core",
         "//pkg/proto/model/core",
         "//pkg/proto/model/filesystem",
         "//pkg/storage/object",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//proto",
         "@org_uber_go_mock//gomock",
     ],
 )

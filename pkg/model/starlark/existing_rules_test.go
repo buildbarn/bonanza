@@ -301,7 +301,7 @@ func TestExistingRules(t *testing.T) {
 				ObjectEncoder:          model_encoding.NewChainedDeterministicBinaryEncoder(nil),
 				ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				ObjectMinimumSizeBytes: 32 * 1024,
-				ObjectMaximumSizeBytes: 128 * 1024,
+				ObjectHorizonSizeBytes: 8 * 32 * 1024,
 			},
 		)
 		require.NoError(t, err)

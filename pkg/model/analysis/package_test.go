@@ -58,7 +58,7 @@ func TestPackage(t *testing.T) {
 			ObjectReferenceFormat:  object.SHA256V1ReferenceFormat,
 			ObjectCapturer:         capturer,
 			ObjectMinimumSizeBytes: 32 * 1024,
-			ObjectMaximumSizeBytes: 128 * 1024,
+			ObjectHorizonSizeBytes: 8 * 32 * 1024,
 		}
 		encodedFunction, err := model_starlark.EncodeFunction(
 			thread,

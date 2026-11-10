@@ -30,7 +30,7 @@ func TestMaybeInlineFileContents(t *testing.T) {
 			ChunkMinimumSizeBytes:            1 << 16,
 			ChunkHorizonSizeBytes:            1 << 19,
 			FileContentsListMinimumSizeBytes: 1 << 12,
-			FileContentsListMaximumSizeBytes: 1 << 14,
+			FileContentsListHorizonSizeBytes: 8 << 12,
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),

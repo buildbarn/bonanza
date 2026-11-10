@@ -555,7 +555,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(
 	evaluationsBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			/* minimumSizeBytes = */ 1<<16,
-			/* maximumSizeBytes = */ 1<<18,
+			/* horizonSizeBytes = */ 8<<16,
 			/* isParent = */ func(evaluations *model_evaluation_pb.Evaluations) bool {
 				return evaluations.GetParent() != nil
 			},
@@ -613,7 +613,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getKeysForSortedList(ctx con
 	keysBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			/* minimumSizeBytes = */ 1<<16,
-			/* maximumSizeBytes = */ 1<<18,
+			/* horizonSizeBytes = */ 8<<16,
 			/* isParent = */ func(keys *model_evaluation_pb.Keys) bool {
 				return keys.GetParent() != nil
 			},

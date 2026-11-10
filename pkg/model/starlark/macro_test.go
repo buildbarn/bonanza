@@ -57,7 +57,7 @@ func TestMacro(t *testing.T) {
 			ObjectReferenceFormat:  referenceFormat,
 			ObjectCapturer:         objectManager,
 			ObjectMinimumSizeBytes: 32 * 1024,
-			ObjectMaximumSizeBytes: 128 * 1024,
+			ObjectHorizonSizeBytes: 8 * 32 * 1024,
 		})
 		thread.SetLocal(model_starlark.ValueDecodingOptionsKey, &model_starlark.ValueDecodingOptions[object.LocalReference]{
 			Readers: &model_starlark.ValueReaders[object.LocalReference]{},
@@ -572,7 +572,7 @@ func TestMacro(t *testing.T) {
 					ObjectReferenceFormat:  referenceFormat,
 					ObjectCapturer:         objectManager,
 					ObjectMinimumSizeBytes: 100,
-					ObjectMaximumSizeBytes: 200,
+					ObjectHorizonSizeBytes: 8 * 100,
 				},
 			))
 
@@ -908,7 +908,7 @@ func TestMacroExpansionContextListBuilder(t *testing.T) {
 		ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		ObjectCapturer:         objectManager,
 		ObjectMinimumSizeBytes: 100,
-		ObjectMaximumSizeBytes: 200,
+		ObjectHorizonSizeBytes: 8 * 100,
 	})
 	defer treeBuilder.Discard()
 	var nameSuffixes []string
@@ -947,7 +947,7 @@ func TestMacroInheritAttrs(t *testing.T) {
 		ObjectReferenceFormat:  referenceFormat,
 		ObjectCapturer:         createdObjectTreeCapturer{},
 		ObjectMinimumSizeBytes: 32 * 1024,
-		ObjectMaximumSizeBytes: 128 * 1024,
+		ObjectHorizonSizeBytes: 8 * 32 * 1024,
 	}
 	canonicalLabel := util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl"))
 

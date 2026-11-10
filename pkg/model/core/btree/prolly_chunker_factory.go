@@ -2,6 +2,7 @@ package btree
 
 import (
 	"hash/fnv"
+	"sort"
 
 	"bonanza.build/pkg/encoding/varint"
 	model_core "bonanza.build/pkg/model/core"
@@ -13,7 +14,7 @@ var marshalOptions = proto.MarshalOptions{UseCachedSize: true}
 
 type prollyChunkerFactory[TNode proto.Message, TMetadata model_core.ReferenceMetadata] struct {
 	minimumSizeBytes int
-	maximumSizeBytes int
+	horizonSizeBytes int
 	isParent         func(TNode) bool
 }
 
@@ -24,95 +25,124 @@ type prollyChunkerFactory[TNode proto.Message, TMetadata model_core.ReferenceMet
 // https://docs.dolthub.com/architecture/storage-engine/prolly-tree
 //
 // For each node that is inserted, an FNV-1a hash is computed based on
-// the node's message contents and outgoing references. A cut is made
-// after the node where the hash is maximal.
+// the node's message contents and outgoing references. Cuts are placed
+// after nodes using an algorithm that is similar to RepMaxCDC, as
+// described in "Content-Defined Chunking with tight chunk size bounds":
+//
+// https://github.com/buildbarn/go-cdc/blob/main/papers/cdc.pdf
+//
+// Starting at the first position at which a cut may be placed, the
+// position with the highest hash within horizonSizeBytes is selected.
+// If cutting at that position would yield an object that could have
+// been split up into two objects that both respect the minimum size,
+// the search is repeated, only considering positions that still permit
+// the previously selected position to be used as a cut afterwards.
+//
+// Objects are thus at least minimumSizeBytes in size. If nodes were
+// infinitesimally small, objects would be at most 2*minimumSizeBytes-1
+// bytes in size. In practice the maximum size is somewhat higher, as
+// nodes cannot be split. Increasing horizonSizeBytes improves the
+// stability of the cuts, at the cost of buffering more nodes before
+// objects can be emitted.
 //
 // The size computation that is used by this type assumes that the
 // resulting nodes are stored in an object where each node is prefixed
 // with a variable length integer indicating the node's size.
 func NewProllyChunkerFactory[TMetadata model_core.ReferenceMetadata, TNode proto.Message](
-	minimumSizeBytes, maximumSizeBytes int,
+	minimumSizeBytes, horizonSizeBytes int,
 	isParent func(TNode) bool,
 ) ChunkerFactory[TNode, TMetadata] {
 	return &prollyChunkerFactory[TNode, TMetadata]{
 		minimumSizeBytes: minimumSizeBytes,
-		maximumSizeBytes: maximumSizeBytes,
+		horizonSizeBytes: horizonSizeBytes,
 		isParent:         isParent,
 	}
 }
 
 func (cf *prollyChunkerFactory[TNode, TMetadata]) NewChunker() Chunker[TNode, TMetadata] {
 	return &prollyChunker[TNode, TMetadata]{
-		factory: cf,
-		cuts:    make([]prollyCut, 2),
+		factory:              cf,
+		cumulativeSizesBytes: []int{0},
 	}
-}
-
-type prollyCutPoint struct {
-	index               int
-	cumulativeSizeBytes int
-}
-
-type prollyCut struct {
-	point prollyCutPoint
-	hash  uint64
 }
 
 type prollyChunker[TNode proto.Message, TMetadata model_core.ReferenceMetadata] struct {
 	factory *prollyChunkerFactory[TNode, TMetadata]
 
-	nodes               model_core.PatchedMessageList[TNode, TMetadata]
-	uncutSizesBytes     []int
-	totalUncutSizeBytes int
-	cuts                []prollyCut
+	// Nodes that have been pushed, but not popped yet.
+	nodes model_core.PatchedMessageList[TNode, TMetadata]
+
+	// The total size of nodes[:i] is stored at index i. This list
+	// is thus one element longer than the list of nodes.
+	cumulativeSizesBytes []int
+
+	// The hash of the node at index i, which is used to determine
+	// the suitability of placing a cut after it. Hashes are only
+	// computed for nodes that may be considered as candidates.
+	hashes []uint64
+
+	// The number of leading nodes for which there is no need to
+	// compute a hash anymore, either because the hash has already
+	// been computed, or because no cut can be placed after them.
+	hashesComputed int
 }
 
-func (c *prollyChunker[TNode, TMetadata]) isLargeEnough(start, end prollyCutPoint) bool {
+// isLargeEnough returns true if the nodes in range [start, end) may be
+// stored in an object. This is the case if the nodes have the minimum
+// size, and the object does not consist of a single parent node, as
+// that would only add unnecessary indirection.
+func (c *prollyChunker[TNode, TMetadata]) isLargeEnough(start, end int) bool {
 	cf := c.factory
-	count := end.index - start.index
-	return end.cumulativeSizeBytes-start.cumulativeSizeBytes >= cf.minimumSizeBytes &&
-		(count >= 2 || (count == 1 && !cf.isParent(c.nodes[start.index].Message)))
+	count := end - start
+	return c.cumulativeSizesBytes[end]-c.cumulativeSizesBytes[start] >= cf.minimumSizeBytes &&
+		(count >= 2 || (count == 1 && !cf.isParent(c.nodes[start].Message)))
+}
+
+// getFirstCutPoint returns the first position at which a cut may be
+// placed, such that the nodes preceding it are large enough to be
+// stored in an object.
+func (c *prollyChunker[TNode, TMetadata]) getFirstCutPoint() (int, bool) {
+	cf := c.factory
+	firstCutPoint := max(
+		sort.SearchInts(c.cumulativeSizesBytes, cf.minimumSizeBytes),
+		1,
+	)
+	if firstCutPoint == 1 && len(c.nodes) > 0 && cf.isParent(c.nodes[0].Message) {
+		firstCutPoint = 2
+	}
+	return firstCutPoint, firstCutPoint <= len(c.nodes)
+}
+
+// getLastCutPointInHorizon returns the last position at which a cut
+// may be placed, given the first position at which a cut may be placed.
+func (c *prollyChunker[TNode, TMetadata]) getLastCutPointInHorizon(firstCutPoint int) int {
+	return sort.SearchInts(
+		c.cumulativeSizesBytes,
+		c.cumulativeSizesBytes[firstCutPoint]+c.factory.horizonSizeBytes+1,
+	) - 1
 }
 
 func (c *prollyChunker[TNode, TMetadata]) PushSingle(node model_core.PatchedMessage[TNode, TMetadata]) error {
 	// Schedule the nodes for insertion into objects. Don't insert
 	// them immediately, as we need to keep some at hand to ensure
-	// the final object on this level respects the minimum number of
-	// objects and size.
+	// cuts are placed at the most optimal position, and the final
+	// object on this level respects the minimum number of objects
+	// and size.
 	messageSizeBytes := marshalOptions.Size(node.Message)
 	sizeBytes := node.Patcher.GetReferencesSizeBytes() + varint.SizeBytes(messageSizeBytes) + messageSizeBytes
 	c.nodes = append(c.nodes, node)
-	c.uncutSizesBytes = append(c.uncutSizesBytes, sizeBytes)
-	c.totalUncutSizeBytes += sizeBytes
+	c.cumulativeSizesBytes = append(c.cumulativeSizesBytes, c.cumulativeSizesBytes[len(c.cumulativeSizesBytes)-1]+sizeBytes)
+	c.hashes = append(c.hashes, 0)
 
-	cf := c.factory
-	for {
-		lastCutPoint := c.cuts[len(c.cuts)-1].point
-		newCutPoint := prollyCutPoint{
-			index:               lastCutPoint.index + 1,
-			cumulativeSizeBytes: lastCutPoint.cumulativeSizeBytes + c.uncutSizesBytes[0],
-		}
-		if !c.isLargeEnough(
-			newCutPoint,
-			prollyCutPoint{
-				index:               len(c.nodes),
-				cumulativeSizeBytes: lastCutPoint.cumulativeSizeBytes + c.totalUncutSizeBytes,
-			},
-		) {
-			return nil
-		}
-
-		// We've got enough nodes to fill the last object on
-		// this level. Add a new potential cut.
-		var hash uint64
-		if c.isLargeEnough(prollyCutPoint{}, newCutPoint) {
-			// This node lies within a range where we can
-			// eventually expect cuts to appear. Compute an
-			// FNV-1a hash of the node, so that we can
-			// perform the cut at the position where the
-			// hash is maximized.
+	// Compute hashes of nodes after which cuts may be placed. Only
+	// do this for nodes after which a cut may be placed, both
+	// respecting the minimum size of the object preceding and
+	// succeeding it. This prevents us from computing hashes for
+	// levels of the B-tree that only consist of a single object.
+	for c.hashesComputed < len(c.nodes) && c.isLargeEnough(c.hashesComputed+1, len(c.nodes)) {
+		if c.isLargeEnough(0, c.hashesComputed+1) {
 			hasher := fnv.New64a()
-			node := &c.nodes[lastCutPoint.index]
+			node := &c.nodes[c.hashesComputed]
 			references, _ := node.Patcher.SortAndSetReferences()
 			for _, reference := range references {
 				hasher.Write(reference.GetRawReference())
@@ -122,48 +152,66 @@ func (c *prollyChunker[TNode, TMetadata]) PushSingle(node model_core.PatchedMess
 				return err
 			}
 			hasher.Write(m)
-			hash = hasher.Sum64()
+			c.hashes[c.hashesComputed] = hasher.Sum64()
 		}
-		c.totalUncutSizeBytes -= c.uncutSizesBytes[0]
-		c.uncutSizesBytes = c.uncutSizesBytes[1:]
+		c.hashesComputed++
+	}
+	return nil
+}
 
-		// Insert the new cut, potentially collapsing some of
-		// the cuts we added previously.
-		cutsToKeep := len(c.cuts)
-		for cutsToKeep >= 2 &&
-			(!c.isLargeEnough(c.cuts[cutsToKeep-2].point, c.cuts[cutsToKeep-1].point) ||
-				(c.cuts[cutsToKeep-1].hash < hash &&
-					newCutPoint.cumulativeSizeBytes-c.cuts[cutsToKeep-2].point.cumulativeSizeBytes <= cf.maximumSizeBytes)) {
-			cutsToKeep--
+// findCutPoint determines the position at which the first object on
+// this level should end, assuming that no more nodes are pushed.
+func (c *prollyChunker[TNode, TMetadata]) findCutPoint() int {
+	firstCutPoint, ok := c.getFirstCutPoint()
+	if !ok || !c.isLargeEnough(firstCutPoint, len(c.nodes)) {
+		// The remaining nodes cannot be split into multiple
+		// objects that are large enough.
+		return len(c.nodes)
+	}
+
+	// Find the position within the horizon having the highest hash.
+	// If cutting at this position would yield an object that is
+	// too large, repeat the search with a smaller horizon, so that
+	// the position can still be considered for the next object.
+	lastCutPoint := c.getLastCutPointInHorizon(firstCutPoint)
+	nextObjectEnd := len(c.nodes)
+	for {
+		bestCutPoint := firstCutPoint
+		bestHash := c.hashes[firstCutPoint-1]
+		for cutPoint := firstCutPoint + 1; cutPoint <= lastCutPoint && c.isLargeEnough(cutPoint, nextObjectEnd); cutPoint++ {
+			if hash := c.hashes[cutPoint-1]; bestHash < hash {
+				bestCutPoint = cutPoint
+				bestHash = hash
+			}
 		}
-		c.cuts = append(c.cuts[:cutsToKeep], prollyCut{
-			point: newCutPoint,
-			hash:  hash,
-		})
+		if !c.isLargeEnough(firstCutPoint, bestCutPoint) {
+			return bestCutPoint
+		}
+		nextObjectEnd = bestCutPoint
 	}
 }
 
 func (c *prollyChunker[TNode, TMetadata]) PopMultiple(threshold PopThreshold) model_core.PatchedMessageList[TNode, TMetadata] {
 	// Determine whether we've collected enough nodes to be able to
-	// create a new object, and how many nodes should go into it.
-	cf := c.factory
-	cutPoint := c.cuts[1].point
-	cutPointIsLargeEnough := c.isLargeEnough(prollyCutPoint{}, cutPoint)
-	endCutPoint := prollyCutPoint{
-		index:               len(c.nodes),
-		cumulativeSizeBytes: c.cuts[len(c.cuts)-1].point.cumulativeSizeBytes + c.totalUncutSizeBytes,
-	}
+	// create a new object.
 	switch threshold {
 	case PopDefinitive:
-		if !cutPointIsLargeEnough || c.cuts[len(c.cuts)-1].point.cumulativeSizeBytes < cf.maximumSizeBytes {
+		// Only pop an object if all positions within the
+		// horizon have been observed, and are followed by
+		// enough nodes to fill another object. Pushing more
+		// nodes can then no longer affect where the cut is
+		// placed.
+		firstCutPoint, ok := c.getFirstCutPoint()
+		if !ok || !c.isLargeEnough(c.getLastCutPointInHorizon(firstCutPoint), len(c.nodes)) {
 			return nil
 		}
 	case PopChild:
-		if !cutPointIsLargeEnough {
+		firstCutPoint, ok := c.getFirstCutPoint()
+		if !ok || !c.isLargeEnough(firstCutPoint, len(c.nodes)) {
 			return nil
 		}
 	case PopLargeEnough:
-		if !c.isLargeEnough(prollyCutPoint{}, endCutPoint) {
+		if !c.isLargeEnough(0, len(c.nodes)) {
 			return nil
 		}
 	case PopAll:
@@ -174,37 +222,17 @@ func (c *prollyChunker[TNode, TMetadata]) PopMultiple(threshold PopThreshold) mo
 		panic("unknown pop threshold")
 	}
 
-	if !cutPointIsLargeEnough {
-		// We've reached the end. Add all nodes for which we
-		// didn't compute cuts yet, thereby ensuring that the
-		// last object also respects the minimum node count and
-		// size limit.
-		if len(c.cuts) > 2 {
-			panic("can't have multiple cuts if the first cut is still below limits")
-		}
-		cutPoint = endCutPoint
-		c.uncutSizesBytes = c.uncutSizesBytes[:0]
-		c.totalUncutSizeBytes = 0
+	// Remove nodes that are placed in the object.
+	cutPoint := c.findCutPoint()
+	nodes := c.nodes[:cutPoint]
+	c.nodes = c.nodes[cutPoint:]
+	c.cumulativeSizesBytes = c.cumulativeSizesBytes[cutPoint:]
+	cutSizeBytes := c.cumulativeSizesBytes[0]
+	for i := range c.cumulativeSizesBytes {
+		c.cumulativeSizesBytes[i] -= cutSizeBytes
 	}
-
-	// Remove nodes and cuts.
-	nodes := c.nodes[:cutPoint.index]
-	c.nodes = c.nodes[cutPoint.index:]
-	if len(c.cuts) > 2 {
-		for i := 1; i < len(c.cuts)-1; i++ {
-			c.cuts[i] = prollyCut{
-				point: prollyCutPoint{
-					index:               c.cuts[i+1].point.index - cutPoint.index,
-					cumulativeSizeBytes: c.cuts[i+1].point.cumulativeSizeBytes - cutPoint.cumulativeSizeBytes,
-				},
-				hash: c.cuts[i+1].hash,
-			}
-		}
-		c.cuts = c.cuts[:len(c.cuts)-1]
-	} else {
-		c.cuts = append(c.cuts[:1], prollyCut{})
-	}
-
+	c.hashes = c.hashes[cutPoint:]
+	c.hashesComputed = max(c.hashesComputed-cutPoint, 0)
 	return nodes
 }
 

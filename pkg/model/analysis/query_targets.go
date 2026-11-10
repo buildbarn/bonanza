@@ -79,7 +79,7 @@ func (c *baseComputer[TReference, TMetadata]) newQueryTargetTreeBuilder(ctx cont
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			/* minimumSizeBytes = */ 32*1024,
-			/* maximumSizeBytes = */ 128*1024,
+			/* horizonSizeBytes = */ 8*32*1024,
 			/* isParent = */ func(target *model_analysis_pb.QueryTarget) bool {
 				return target.GetParent() != nil
 			},

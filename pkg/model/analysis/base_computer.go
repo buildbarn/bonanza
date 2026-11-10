@@ -287,7 +287,7 @@ func (f *valueEncodingOptionsFactory[TReference, TMetadata]) newValueEncodingOpt
 		ObjectReferenceFormat:  f.computer.referenceFormat,
 		ObjectCapturer:         f.objectCapturer,
 		ObjectMinimumSizeBytes: 32 * 1024,
-		ObjectMaximumSizeBytes: 128 * 1024,
+		ObjectHorizonSizeBytes: 8 * 32 * 1024,
 		FileCreationParameters: f.fileCreationParameters,
 	}
 }

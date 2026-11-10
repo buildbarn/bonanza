@@ -251,17 +251,20 @@ message FileCreationParameters {
   //
   // The resulting objects may be smaller than the minimum size, if and
   // only if the file consists of fewer chunks than are needed to reach
-  // the limit.
+  // the limit. The maximum size of these objects is approximately as
+  // follows:
+  //
+  //     file_contents_list_maximum_size_bytes =
+  //         file_contents_list_minimum_size_bytes * 2 - 1
+  //
+  // The resulting objects may slightly exceed this size, as individual
+  // FileContents messages cannot be split.
   uint32 file_contents_list_minimum_size_bytes = 4;
 
-  // The maximum size of objects containing lists of FileContents
-  // messages, prior to applying any encoding steps and deduplicating
-  // any outgoing references.
-  //
-  // The result objects may be larger than the maximum size, if further
-  // partitioning a list of FileContents messages would violate the
-  // minimum size or cause it to contain fewer than two parts. However,
-  // if the maximum size is sufficiently large, this cannot occur in
-  // practice.
-  uint32 file_contents_list_maximum_size_bytes = 5;
+  // The amount of data the chunking algorithm may look ahead to
+  // determine the optimal set of cutting points between objects
+  // containing lists of FileContents messages. This field has the same
+  // semantics as chunk_horizon_size_bytes. This implementation forbids
+  // setting it to a value larger than 32 times the minimum size.
+  uint32 file_contents_list_horizon_size_bytes = 5;
 }

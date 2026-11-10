@@ -38,7 +38,7 @@ func TestStringStorage(t *testing.T) {
 			ChunkMinimumSizeBytes:            1 << 12,
 			ChunkHorizonSizeBytes:            1 << 14,
 			FileContentsListMinimumSizeBytes: 1 << 10,
-			FileContentsListMaximumSizeBytes: 1 << 12,
+			FileContentsListHorizonSizeBytes: 8 << 10,
 		},
 		referenceFormat,
 		model_encoding.NewBinaryEncoderFactory(true),
@@ -52,7 +52,7 @@ func TestStringStorage(t *testing.T) {
 			ObjectReferenceFormat:  referenceFormat,
 			ObjectCapturer:         store,
 			ObjectMinimumSizeBytes: 1024,
-			ObjectMaximumSizeBytes: 4096,
+			ObjectHorizonSizeBytes: 8 * 1024,
 			FileCreationParameters: fileCreationParameters,
 		}
 		return options

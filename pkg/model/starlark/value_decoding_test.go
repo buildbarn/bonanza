@@ -72,7 +72,7 @@ func TestDecodeValue(t *testing.T) {
 		ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		ObjectCapturer:         store,
 		ObjectMinimumSizeBytes: 1024,
-		ObjectMaximumSizeBytes: 4096,
+		ObjectHorizonSizeBytes: 8 * 1024,
 	}
 	decodingOptions := &model_starlark.ValueDecodingOptions[object.LocalReference]{
 		Readers: &model_starlark.ValueReaders[object.LocalReference]{

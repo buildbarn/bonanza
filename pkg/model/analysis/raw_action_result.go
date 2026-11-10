@@ -113,7 +113,7 @@ func convertDictToEnvironmentVariableList[TMetadata model_core.ReferenceMetadata
 	environmentVariablesBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			/* minimumSizeBytes = */ 1<<16,
-			/* maximumSizeBytes = */ 1<<18,
+			/* horizonSizeBytes = */ 8<<16,
 			/* isParent = */ func(element *model_command_pb.EnvironmentVariableList_Element) bool {
 				return element.GetParent() != nil
 			},

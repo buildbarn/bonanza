@@ -15,14 +15,14 @@ import (
 )
 
 // FileCreationParameters contains parameters such as encoders, and
-// minimum/maximum object sizes that need to be considered when creating
+// minimum object sizes that need to be considered when creating
 // Merkle trees of files.
 type FileCreationParameters struct {
 	*FileAccessParameters
 	referenceFormat                  object.ReferenceFormat
 	contentDefinedChunker            cdc.ContentDefinedChunker
 	fileContentsListMinimumSizeBytes int
-	fileContentsListMaximumSizeBytes int
+	fileContentsListHorizonSizeBytes int
 }
 
 // NewFileCreationParametersFromProto converts the file creation
@@ -56,11 +56,11 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 	if limit := uint32(1024); m.FileContentsListMinimumSizeBytes < limit {
 		return nil, status.Errorf(codes.InvalidArgument, "Minimum size of file contents list is below %d bytes", limit)
 	}
-	if m.FileContentsListMaximumSizeBytes > maximumObjectSizeBytes {
-		return nil, status.Errorf(codes.InvalidArgument, "Maximum size of file contents list is above maximum object size of %d bytes", maximumObjectSizeBytes)
+	if uint64(m.FileContentsListMinimumSizeBytes)*2-1 > uint64(maximumObjectSizeBytes) {
+		return nil, status.Errorf(codes.InvalidArgument, "Maximum size of file contents list (twice the minimum size) is above maximum object size of %d bytes", maximumObjectSizeBytes)
 	}
-	if m.FileContentsListMaximumSizeBytes < m.FileContentsListMinimumSizeBytes {
-		return nil, status.Error(codes.InvalidArgument, "Maximum size of file contents list must be at least as large as the minimum")
+	if maxMultiplier := uint64(32); uint64(m.FileContentsListHorizonSizeBytes) > maxMultiplier*uint64(m.FileContentsListMinimumSizeBytes) {
+		return nil, status.Errorf(codes.InvalidArgument, "Horizon size of file contents list is more than %d times as large as the minimum size", maxMultiplier)
 	}
 
 	return &FileCreationParameters{
@@ -72,7 +72,7 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 			int(m.ChunkHorizonSizeBytes),
 		),
 		fileContentsListMinimumSizeBytes: int(m.FileContentsListMinimumSizeBytes),
-		fileContentsListMaximumSizeBytes: int(m.FileContentsListMaximumSizeBytes),
+		fileContentsListHorizonSizeBytes: int(m.FileContentsListHorizonSizeBytes),
 	}, nil
 }
 

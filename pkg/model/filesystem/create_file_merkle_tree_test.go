@@ -31,7 +31,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 			ChunkMinimumSizeBytes:            1 << 16,
 			ChunkHorizonSizeBytes:            1 << 19,
 			FileContentsListMinimumSizeBytes: 1 << 12,
-			FileContentsListMaximumSizeBytes: 1 << 14,
+			FileContentsListHorizonSizeBytes: 8 << 12,
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),
@@ -121,7 +121,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 			TotalSizeBytes: 1 << 30,
 		}, rootFileContents.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
-			object.MustNewSHA256V1LocalReference("918585a281f14ebe1605c43bf655b20baed65231af8ed3c752d02079ab6b82a3", 3591, 2, 63, 16364),
+			object.MustNewSHA256V1LocalReference("fe7615d5abef587dc4fc97a76155c7c7ddee0f2664104f08246e945567b0e0a5", 6726, 2, 118, 8154),
 		}, references)
 	})
 }

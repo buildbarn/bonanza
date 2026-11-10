@@ -43,7 +43,7 @@ type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata
 	ObjectReferenceFormat  object.ReferenceFormat
 	ObjectCapturer         model_core.ObjectCapturer[TReference, TMetadata]
 	ObjectMinimumSizeBytes int
-	ObjectMaximumSizeBytes int
+	ObjectHorizonSizeBytes int
 
 	// Strings that are larger than ObjectMinimumSizeBytes are
 	// stored in the same way as file contents, using the provided
@@ -113,7 +113,7 @@ func newBTreeBuilder[TReference any, TMessage proto.Message, TMetadata model_cor
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			options.ObjectMinimumSizeBytes,
-			options.ObjectMaximumSizeBytes,
+			options.ObjectHorizonSizeBytes,
 			isParent,
 		),
 		btree.NewObjectCreatingNodeMerger(

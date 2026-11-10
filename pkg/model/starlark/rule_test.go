@@ -51,7 +51,7 @@ func TestRuleCallTest(t *testing.T) {
 			ObjectReferenceFormat:  referenceFormat,
 			ObjectCapturer:         objectManager,
 			ObjectMinimumSizeBytes: 32 * 1024,
-			ObjectMaximumSizeBytes: 128 * 1024,
+			ObjectHorizonSizeBytes: 8 * 32 * 1024,
 		})
 
 		identifier := util.Must(label.NewCanonicalStarlarkIdentifier("@@rules+//:defs.bzl%my_rule"))
@@ -187,7 +187,7 @@ func TestRuleCallOutputAttr(t *testing.T) {
 		ObjectEncoder:          encoder,
 		ObjectReferenceFormat:  referenceFormat,
 		ObjectMinimumSizeBytes: 32 * 1024,
-		ObjectMaximumSizeBytes: 128 * 1024,
+		ObjectHorizonSizeBytes: 8 * 32 * 1024,
 	}
 	attr := model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
 		model_starlark.NewOutputAttrType[object.LocalReference, model_core.CreatedObjectTree](""),

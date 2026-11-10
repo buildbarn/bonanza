@@ -912,7 +912,7 @@ type FileCreationParameters struct {
 	ChunkHorizonSizeBytes            uint32                 `protobuf:"varint,3,opt,name=chunk_horizon_size_bytes,json=chunkHorizonSizeBytes,proto3" json:"chunk_horizon_size_bytes,omitempty"`
 	ChunkGearTableSeed               []byte                 `protobuf:"bytes,6,opt,name=chunk_gear_table_seed,json=chunkGearTableSeed,proto3" json:"chunk_gear_table_seed,omitempty"`
 	FileContentsListMinimumSizeBytes uint32                 `protobuf:"varint,4,opt,name=file_contents_list_minimum_size_bytes,json=fileContentsListMinimumSizeBytes,proto3" json:"file_contents_list_minimum_size_bytes,omitempty"`
-	FileContentsListMaximumSizeBytes uint32                 `protobuf:"varint,5,opt,name=file_contents_list_maximum_size_bytes,json=fileContentsListMaximumSizeBytes,proto3" json:"file_contents_list_maximum_size_bytes,omitempty"`
+	FileContentsListHorizonSizeBytes uint32                 `protobuf:"varint,5,opt,name=file_contents_list_horizon_size_bytes,json=fileContentsListHorizonSizeBytes,proto3" json:"file_contents_list_horizon_size_bytes,omitempty"`
 	unknownFields                    protoimpl.UnknownFields
 	sizeCache                        protoimpl.SizeCache
 }
@@ -982,9 +982,9 @@ func (x *FileCreationParameters) GetFileContentsListMinimumSizeBytes() uint32 {
 	return 0
 }
 
-func (x *FileCreationParameters) GetFileContentsListMaximumSizeBytes() uint32 {
+func (x *FileCreationParameters) GetFileContentsListHorizonSizeBytes() uint32 {
 	if x != nil {
-		return x.FileContentsListMaximumSizeBytes
+		return x.FileContentsListHorizonSizeBytes
 	}
 	return 0
 }
@@ -1108,7 +1108,7 @@ const file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "
 	"\x18chunk_horizon_size_bytes\x18\x03 \x01(\rR\x15chunkHorizonSizeBytes\x121\n" +
 	"\x15chunk_gear_table_seed\x18\x06 \x01(\fR\x12chunkGearTableSeed\x12O\n" +
 	"%file_contents_list_minimum_size_bytes\x18\x04 \x01(\rR fileContentsListMinimumSizeBytes\x12O\n" +
-	"%file_contents_list_maximum_size_bytes\x18\x05 \x01(\rR fileContentsListMaximumSizeBytesB*Z(bonanza.build/pkg/proto/model/filesystemb\x06proto3"
+	"%file_contents_list_horizon_size_bytes\x18\x05 \x01(\rR fileContentsListHorizonSizeBytesB*Z(bonanza.build/pkg/proto/model/filesystemb\x06proto3"
 
 var (
 	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescOnce sync.Once

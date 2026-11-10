@@ -336,7 +336,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		ChunkHorizonSizeBytes:            512 * 1024,
 		ChunkGearTableSeed:               encryptionKeyBytes,
 		FileContentsListMinimumSizeBytes: 4 * 1024,
-		FileContentsListMaximumSizeBytes: 16 * 1024,
+		FileContentsListHorizonSizeBytes: 8 * 4 * 1024,
 	}
 	fileParameters, err := model_filesystem.NewFileCreationParametersFromProto(fileParametersMessage, referenceFormat, binaryEncoderFactory)
 	if err != nil {

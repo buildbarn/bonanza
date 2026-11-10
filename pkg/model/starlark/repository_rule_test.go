@@ -68,7 +68,7 @@ func TestRepositoryRuleReference(t *testing.T) {
 		ObjectReferenceFormat:  object.SHA256V1ReferenceFormat,
 		ObjectCapturer:         model_core.NewDiscardingObjectCapturer[object.LocalReference](),
 		ObjectMinimumSizeBytes: 1024,
-		ObjectMaximumSizeBytes: 4096,
+		ObjectHorizonSizeBytes: 8 * 1024,
 	})
 
 	_, err = eval.Call(thread, repositoryRule, eval.Args{

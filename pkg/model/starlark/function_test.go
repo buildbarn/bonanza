@@ -86,7 +86,7 @@ adder = make_adder(3)
 				ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				ObjectCapturer:         store,
 				ObjectMinimumSizeBytes: maximumSizeBytes / 4,
-				ObjectMaximumSizeBytes: maximumSizeBytes,
+				ObjectHorizonSizeBytes: maximumSizeBytes * 2,
 			}
 			encodingThread := newTestThread(t)
 			encodedProgram, err := model_starlark.EncodeCompiledProgram(encodingThread, program, module.Globals(), encodingOptions)
@@ -209,7 +209,7 @@ func TestFunctionStorageLines(t *testing.T) {
 			ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 			ObjectCapturer:         store,
 			ObjectMinimumSizeBytes: objectMinimumSizeBytes,
-			ObjectMaximumSizeBytes: objectMinimumSizeBytes * 4,
+			ObjectHorizonSizeBytes: objectMinimumSizeBytes * 8,
 		})
 		require.NoError(t, err)
 		topLevel, _ := encodedProgram.SortAndSetReferences()
@@ -336,7 +336,7 @@ def factorial(n):
 			ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 			ObjectCapturer:         store,
 			ObjectMinimumSizeBytes: 1024,
-			ObjectMaximumSizeBytes: 4096,
+			ObjectHorizonSizeBytes: 8 * 1024,
 		})
 		require.NoError(t, err)
 		topLevel, _ := encodedProgram.SortAndSetReferences()
@@ -391,7 +391,7 @@ func TestFunctionNamePaths(t *testing.T) {
 		ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		ObjectCapturer:         store,
 		ObjectMinimumSizeBytes: 256,
-		ObjectMaximumSizeBytes: 1024,
+		ObjectHorizonSizeBytes: 8 * 256,
 	}
 
 	// execAndEncode executes the provided source, and encodes the

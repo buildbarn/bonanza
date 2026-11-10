@@ -1442,7 +1442,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			outputsTreeBuilder := btree.NewHeightAwareBuilder(
 				btree.NewProllyChunkerFactory[TMetadata](
 					/* minimumSizeBytes = */ 32*1024,
-					/* maximumSizeBytes = */ 128*1024,
+					/* horizonSizeBytes = */ 8*32*1024,
 					/* isParent = */ func(output *model_analysis_pb.ConfiguredTarget_Value_Output) bool {
 						return output.GetParent() != nil
 					},
@@ -1504,7 +1504,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			actionsTreeBuilder := btree.NewHeightAwareBuilder(
 				btree.NewProllyChunkerFactory[TMetadata](
 					/* minimumSizeBytes = */ 32*1024,
-					/* maximumSizeBytes = */ 128*1024,
+					/* horizonSizeBytes = */ 8*32*1024,
 					/* isParent = */ func(action *model_analysis_pb.ConfiguredTarget_Value_Action) bool {
 						return action.GetParent() != nil
 					},
@@ -2379,7 +2379,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 	toolsBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			valueEncodingOptions.ObjectMinimumSizeBytes,
-			valueEncodingOptions.ObjectMaximumSizeBytes,
+			valueEncodingOptions.ObjectHorizonSizeBytes,
 			/* isParent = */ func(filesToRunProvider *model_analysis_pb.FilesToRunProvider) bool {
 				return filesToRunProvider.GetParent() != nil
 			},
@@ -2481,7 +2481,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 	argsListBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			valueEncodingOptions.ObjectMinimumSizeBytes,
-			valueEncodingOptions.ObjectMaximumSizeBytes,
+			valueEncodingOptions.ObjectHorizonSizeBytes,
 			/* isParent = */ func(args *model_analysis_pb.Args) bool {
 				return args.GetParent() != nil
 			},
@@ -3358,7 +3358,7 @@ func (a *args[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Va
 	addsListBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			options.ObjectMinimumSizeBytes,
-			options.ObjectMaximumSizeBytes,
+			options.ObjectHorizonSizeBytes,
 			/* isParent = */ func(add *model_analysis_pb.Args_Leaf_Add) bool {
 				return add.GetParent() != nil
 			},

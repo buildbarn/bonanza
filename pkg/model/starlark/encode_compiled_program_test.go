@@ -102,7 +102,7 @@ my_transition = transition(implementation = _transition_impl, inputs = [], outpu
 		ObjectReferenceFormat:  object.SHA256V1ReferenceFormat,
 		ObjectCapturer:         objectManager,
 		ObjectMinimumSizeBytes: 1024,
-		ObjectMaximumSizeBytes: 4096,
+		ObjectHorizonSizeBytes: 8 * 1024,
 	})
 	require.NoError(t, err)
 	require.Len(t, encodedProgram.Message.Globals.Keys, 9)

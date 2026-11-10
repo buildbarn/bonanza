@@ -248,7 +248,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			/* minimumSizeBytes = */ 32*1024,
-			/* maximumSizeBytes = */ 128*1024,
+			/* horizonSizeBytes = */ 8*32*1024,
 			/* isParent = */ func(buildSettingOverride *model_analysis_pb.BuildSettingOverride) bool {
 				return buildSettingOverride.GetParent() != nil
 			},

@@ -61,7 +61,7 @@ func TestTestSuite(t *testing.T) {
 			ObjectReferenceFormat:  referenceFormat,
 			ObjectCapturer:         objectManager,
 			ObjectMinimumSizeBytes: 32 * 1024,
-			ObjectMaximumSizeBytes: 128 * 1024,
+			ObjectHorizonSizeBytes: 8 * 32 * 1024,
 		})
 		return thread, targetRegistrar
 	}
