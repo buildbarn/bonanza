@@ -76,7 +76,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 		CanonicalRepo: canonicalRepo.String(),
 		Path:          canonicalLabel.GetRepoRelativePath(),
 	})
-	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
+	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	bzlFileBuiltins, bzlFileBuiltinsErr := c.getBzlFileBuiltins(thread, e, key.BuiltinsModuleNames)
 	if !bzlFileProperties.IsSet() || !gotFileReader {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, evaluation.ErrMissingDependency

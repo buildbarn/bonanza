@@ -25,17 +25,8 @@ message DependenciesHashRecord {
   // Reference of the key for which evaluation was performed.
   bonanza.model.core.Reference key_reference = 1;
 
-  oneof value {
-    // The message value, in case evaluation of the function is expected
-    // to yield one.
-    bonanza.model.core.Any message_value = 2;
-
-    // In case evaluation of the function yielded a native value, the
-    // SHA-256 hash of the concatenated references of the
-    // DependenciesHashRecord messages of all dependencies that were
-    // accessed during evaluation, sorted by key reference.
-    bytes native_value_dependencies_hash = 3;
-  }
+  // The value that was computed for the key.
+  bonanza.model.core.Any value = 2;
 }
 
 message LookupTagKeyData {

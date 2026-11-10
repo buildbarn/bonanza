@@ -864,7 +864,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		), nil
 	}
 
-	valueNodes := renderWarningAlert("This key yields a native value that cannot be represented as JSON, or evaluation failed to yield a value.")
+	valueNodes := renderWarningAlert("Evaluation failed to yield a value.")
 	dependenciesNodes := renderWarningAlert("This key has no dependencies, or evaluation failed to yield a list of dependencies.")
 	if evaluations.IsSet() {
 		evaluationsLeaf, ok := evaluations.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)

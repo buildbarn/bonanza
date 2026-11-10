@@ -1,33 +1,17 @@
 {
    "functions": {
-      "ActionEncoderObject": {
-         "dependsOn": [
-            "ActionEncoders"
-         ],
-         "nativeValueType": {
-            "imports": {
-               "model_encoding": "bonanza.build/pkg/model/encoding"
-            },
-            "type": "model_encoding.DeterministicBinaryEncoder"
-         }
-      },
       "ActionEncoders": {
          "dependsOn": [
             "BuildSpecification"
          ],
-         "isLookup": true
-      },
-      "ActionReaders": {
-         "dependsOn": [
-            "ActionEncoderObject"
-         ],
-         "nativeValueType": {
-            "type": "*ActionReaders[TReference]"
+         "isLookup": true,
+         "objectType": {
+            "type": "*ActionEncoders[TReference]"
          }
       },
       "ActionResult": {
          "dependsOn": [
-            "ActionReaders",
+            "ActionEncoders",
             "RawActionResult"
          ],
          "keyContainsReferences": true
@@ -39,8 +23,8 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
-            "FileReader",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "QueryExpansion",
             "RootModule",
             "Target",
@@ -82,9 +66,9 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "FileProperties",
-            "FileReader",
             "RootModule"
          ]
       },
@@ -92,22 +76,22 @@
          "dependsOn": [
             "BuiltinsModuleNames",
             "CompiledBzlFile",
-            "FileCreationParametersObject",
-            "FileReader"
+            "FileAccessParameters",
+            "FileCreationParameters"
          ]
       },
       "ConfiguredTarget": {
          "dependsOn": [
-            "ActionEncoderObject",
+            "ActionEncoders",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
-            "DirectoryCreationParametersObject",
+            "DirectoryCreationParameters",
             "EmptyDefaultInfo",
             "ExecTransition",
-            "FileCreationParametersObject",
-            "FileReader",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "ResolvedToolchains",
             "RootModule",
             "RuleImplementationWrappers",
@@ -124,31 +108,21 @@
          "dependsOn": [
             "BuildSpecification"
          ],
-         "isLookup": true
+         "isLookup": true,
+         "objectType": {
+            "type": "*DirectoryReaders[TReference]"
+         }
       },
       "DirectoryCreationParameters": {
          "dependsOn": [
             "BuildSpecification"
          ],
-         "isLookup": true
-      },
-      "DirectoryCreationParametersObject": {
-         "dependsOn": [
-            "DirectoryCreationParameters"
-         ],
-         "nativeValueType": {
+         "isLookup": true,
+         "objectType": {
             "imports": {
                "model_filesystem": "bonanza.build/pkg/model/filesystem"
             },
             "type": "*model_filesystem.DirectoryCreationParameters"
-         }
-      },
-      "DirectoryReaders": {
-         "dependsOn": [
-            "DirectoryAccessParameters"
-         ],
-         "nativeValueType": {
-            "type": "*DirectoryReaders[TReference]"
          }
       },
       "EmptyDefaultInfo": {
@@ -157,8 +131,8 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
-            "FileReader",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "RootModule"
          ]
       },
@@ -168,8 +142,8 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
-            "FileReader",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "RootModule",
             "Target",
             "TargetProvider",
@@ -181,19 +155,21 @@
          "dependsOn": [
             "FileCreationParameters"
          ],
-         "isLookup": true
+         "isLookup": true,
+         "objectType": {
+            "imports": {
+               "model_filesystem": "bonanza.build/pkg/model/filesystem"
+            },
+            "referenceConstraint": "object.BasicReference",
+            "type": "*model_filesystem.FileReader[TReference]"
+         }
       },
       "FileCreationParameters": {
          "dependsOn": [
             "BuildSpecification"
          ],
-         "isLookup": true
-      },
-      "FileCreationParametersObject": {
-         "dependsOn": [
-            "FileCreationParameters"
-         ],
-         "nativeValueType": {
+         "isLookup": true,
+         "objectType": {
             "imports": {
                "model_filesystem": "bonanza.build/pkg/model/filesystem"
             },
@@ -202,29 +178,17 @@
       },
       "FileProperties": {
          "dependsOn": [
-            "DirectoryReaders",
+            "DirectoryAccessParameters",
             "Repo"
          ]
       },
-      "FileReader": {
-         "dependsOn": [
-            "FileAccessParameters"
-         ],
-         "nativeValueType": {
-            "imports": {
-               "model_filesystem": "bonanza.build/pkg/model/filesystem"
-            },
-            "referenceConstraint": "object.BasicReference",
-            "type": "*model_filesystem.FileReader[TReference]"
-         }
-      },
       "FileRoot": {
          "dependsOn": [
-            "DirectoryCreationParametersObject",
-            "DirectoryReaders",
-            "FileCreationParametersObject",
+            "DirectoryAccessParameters",
+            "DirectoryCreationParameters",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "FileProperties",
-            "FileReader",
             "FileRoot",
             "Repo",
             "TargetActionInputRoot",
@@ -235,39 +199,37 @@
       },
       "FilesInPackage": {
          "dependsOn": [
-            "DirectoryCreationParametersObject",
-            "DirectoryReaders",
+            "DirectoryAccessParameters",
+            "DirectoryCreationParameters",
             "Repo"
          ]
       },
       "FilesRoot": {
          "dependsOn": [
-            "DirectoryCreationParametersObject",
-            "DirectoryReaders",
-            "FilesRoot",
-            "FileRoot"
+            "DirectoryAccessParameters",
+            "DirectoryCreationParameters",
+            "FileRoot",
+            "FilesRoot"
          ],
          "keyContainsReferences": true
       },
       "Glob": {
          "dependsOn": [
-            "DirectoryReaders",
+            "DirectoryAccessParameters",
             "FilesInPackage"
          ]
       },
       "HTTPArchiveContents": {
          "dependsOn": [
-            "DirectoryCreationParametersObject",
-            "FileReader",
-            "FileCreationParametersObject",
+            "DirectoryCreationParameters",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "HTTPFileContents"
          ]
       },
       "HTTPFileContents": {
          "dependsOn": [
-            "ActionEncoderObject",
             "ActionEncoders",
-            "ActionReaders",
             "FileCreationParameters",
             "RegisteredFetchPlatform"
          ],
@@ -298,18 +260,16 @@
       },
       "ModuleExtensionRepos": {
          "dependsOn": [
-            "ActionEncoderObject",
+            "ActionEncoders",
             "ActionResult",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
+            "DirectoryAccessParameters",
             "DirectoryCreationParameters",
-            "DirectoryCreationParametersObject",
-            "DirectoryReaders",
+            "FileAccessParameters",
             "FileCreationParameters",
-            "FileCreationParametersObject",
-            "FileReader",
             "HTTPArchiveContents",
             "HTTPFileContents",
             "ModuleDotBazelContents",
@@ -317,7 +277,7 @@
             "Repo",
             "RepoPlatformHostPath",
             "RootModule",
-            "StableInputRootPathObject",
+            "StableInputRootPath",
             "SuccessfulActionResult",
             "UsedModuleExtension"
          ]
@@ -335,15 +295,15 @@
       },
       "ModuleRepoMapping": {
          "dependsOn": [
-            "FileReader",
+            "FileAccessParameters",
             "ModuleDotBazelContents",
-            "ModulesWithMultipleVersionsObject",
+            "ModulesWithMultipleVersions",
             "RootModule"
          ]
       },
       "ModuleRoughBuildList": {
          "dependsOn": [
-            "FileReader",
+            "FileAccessParameters",
             "HTTPFileContents",
             "ModuleDotBazelContents",
             "ModuleRegistryUrls",
@@ -354,13 +314,8 @@
       "ModulesWithMultipleVersions": {
          "dependsOn": [
             "ModulesWithOverrides"
-         ]
-      },
-      "ModulesWithMultipleVersionsObject": {
-         "dependsOn": [
-            "ModulesWithMultipleVersions"
          ],
-         "nativeValueType": {
+         "objectType": {
             "imports": {
                "label": "bonanza.build/pkg/label"
             },
@@ -375,9 +330,9 @@
       },
       "ModulesWithRemoteOverrides": {
          "dependsOn": [
-            "FileCreationParametersObject",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "FileProperties",
-            "FileReader",
             "ModuleDotBazelContents",
             "RootModule"
          ]
@@ -388,9 +343,9 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "FileProperties",
-            "FileReader",
             "Glob",
             "MacroExpansionContext",
             "PackageTargets",
@@ -414,15 +369,15 @@
       },
       "PackagesAtAndBelow": {
          "dependsOn": [
-            "DirectoryReaders",
+            "DirectoryAccessParameters",
             "Repo"
          ]
       },
       "QueryExpansion": {
          "dependsOn": [
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
-            "FileReader",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "PackageGroupContains",
             "PackageTargets",
             "PackagesAtAndBelow",
@@ -436,8 +391,8 @@
          "dependsOn": [
             "CanonicalRepoName",
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
-            "FileReader",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "QueryExpansion",
             "QueryTargets",
             "RootModule",
@@ -447,8 +402,8 @@
       "QueryTargets": {
          "dependsOn": [
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
-            "FileReader",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "QueryTargets",
             "Target"
          ],
@@ -456,8 +411,7 @@
       },
       "RawActionResult": {
          "dependsOn": [
-            "ActionEncoders",
-            "ActionReaders"
+            "ActionEncoders"
          ],
          "isLookup": false,
          "keyContainsReferences": true
@@ -465,9 +419,9 @@
       "RegisteredExecutionPlatforms": {
          "dependsOn": [
             "CanonicalRepoName",
-            "FileReader",
+            "FileAccessParameters",
             "ModuleDotBazelContents",
-            "ModulesWithMultipleVersionsObject",
+            "ModulesWithMultipleVersions",
             "QueryExpansion",
             "RootModule",
             "TargetProvider"
@@ -483,7 +437,7 @@
          "dependsOn": [
             "BuildSpecification",
             "CanonicalRepoName",
-            "FileReader",
+            "FileAccessParameters",
             "RootModule",
             "TargetProvider"
          ]
@@ -491,9 +445,9 @@
       "RegisteredToolchains": {
          "dependsOn": [
             "CanonicalRepoName",
-            "FileReader",
+            "FileAccessParameters",
             "ModuleDotBazelContents",
-            "ModulesWithMultipleVersionsObject",
+            "ModulesWithMultipleVersions",
             "QueryExpansion",
             "RootModule",
             "Select",
@@ -509,20 +463,18 @@
       },
       "Repo": {
          "dependsOn": [
-            "ActionEncoderObject",
+            "ActionEncoders",
             "ActionResult",
             "BuildSpecification",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
+            "DirectoryAccessParameters",
             "DirectoryCreationParameters",
-            "DirectoryCreationParametersObject",
-            "DirectoryReaders",
+            "FileAccessParameters",
             "FileCreationParameters",
-            "FileCreationParametersObject",
             "FileProperties",
-            "FileReader",
             "HTTPArchiveContents",
             "HTTPFileContents",
             "ModuleExtensionRepo",
@@ -531,42 +483,29 @@
             "RegisteredRepoPlatform",
             "Repo",
             "RepoPlatformHostPath",
-            "RepositoryRuleObject",
             "RootModule",
-            "StableInputRootPathObject",
+            "StableInputRootPath",
             "SuccessfulActionResult"
          ]
       },
       "RepoDefaultAttrs": {
          "dependsOn": [
             "CanonicalRepoName",
+            "FileAccessParameters",
             "FileProperties",
-            "FileReader",
             "RootModule"
          ]
       },
       "RepoPlatformHostPath": {
          "dependsOn": [
-            "ActionEncoderObject",
+            "ActionEncoders",
+            "DirectoryAccessParameters",
             "DirectoryCreationParameters",
-            "DirectoryCreationParametersObject",
-            "DirectoryReaders",
             "FileCreationParameters",
             "RegisteredRepoPlatform",
             "RepoPlatformHostPath",
             "SuccessfulActionResult"
          ]
-      },
-      "RepositoryRuleObject": {
-         "dependsOn": [
-            "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
-            "FileReader",
-            "RepositoryRuleObject"
-         ],
-         "nativeValueType": {
-            "type": "*RepositoryRule[TReference, TMetadata]"
-         }
       },
       "ResolvedToolchains": {
          "dependsOn": [
@@ -586,14 +525,14 @@
          "dependsOn": [
             "BuildSpecification",
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
-            "FileReader"
+            "FileAccessParameters",
+            "FileCreationParameters"
          ]
       },
       "Select": {
          "dependsOn": [
             "CanonicalRepoName",
-            "FileReader",
+            "FileAccessParameters",
             "RootModule",
             "Target",
             "TargetProvider",
@@ -603,21 +542,15 @@
       },
       "StableInputRootPath": {
          "dependsOn": [
-            "ActionEncoderObject",
+            "ActionEncoders",
+            "DirectoryAccessParameters",
             "DirectoryCreationParameters",
-            "DirectoryCreationParametersObject",
-            "DirectoryReaders",
+            "FileAccessParameters",
             "FileCreationParameters",
-            "FileReader",
             "RegisteredRepoPlatform",
             "SuccessfulActionResult"
-         ]
-      },
-      "StableInputRootPathObject": {
-         "dependsOn": [
-            "StableInputRootPath"
          ],
-         "nativeValueType": {
+         "objectType": {
             "imports": {
                "model_starlark": "bonanza.build/pkg/model/starlark"
             },
@@ -643,18 +576,15 @@
       },
       "TargetActionCommand": {
          "dependsOn": [
-            "ActionEncoderObject",
-            "ActionReaders",
+            "ActionEncoders",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
+            "DirectoryAccessParameters",
             "DirectoryCreationParameters",
-            "DirectoryCreationParametersObject",
-            "DirectoryReaders",
+            "FileAccessParameters",
             "FileCreationParameters",
-            "FileCreationParametersObject",
-            "FileReader",
             "FileRoot",
             "FilesRoot",
             "RootModule",
@@ -664,8 +594,8 @@
       },
       "TargetActionInputRoot": {
          "dependsOn": [
-            "DirectoryCreationParametersObject",
-            "DirectoryReaders",
+            "DirectoryAccessParameters",
+            "DirectoryCreationParameters",
             "FileCreationParameters",
             "FileRoot",
             "FilesRoot",
@@ -675,8 +605,8 @@
       },
       "TargetActionResult": {
          "dependsOn": [
-            "ActionEncoderObject",
-            "DirectoryReaders",
+            "ActionEncoders",
+            "DirectoryAccessParameters",
             "SuccessfulActionResult",
             "TargetAction",
             "TargetActionCommand",
@@ -694,8 +624,8 @@
       "TargetDirectDependencies": {
          "dependsOn": [
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
-            "FileReader",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "Target"
          ]
       },
@@ -731,10 +661,10 @@
       "UsedModuleExtensions": {
          "dependsOn": [
             "CanonicalRepoName",
-            "FileCreationParametersObject",
-            "FileReader",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "ModuleDotBazelContents",
-            "ModulesWithMultipleVersionsObject",
+            "ModulesWithMultipleVersions",
             "RootModule"
          ]
       },
@@ -744,8 +674,8 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
-            "FileCreationParametersObject",
-            "FileReader",
+            "FileAccessParameters",
+            "FileCreationParameters",
             "RootModule",
             "Target",
             "TargetProvider",

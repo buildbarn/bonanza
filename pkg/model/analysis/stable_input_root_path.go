@@ -22,14 +22,14 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ctx context.Context, key *model_analysis_pb.StableInputRootPath_Key, e StableInputRootPathEnvironment[TReference, TMetadata]) (PatchedStableInputRootPathValue[TMetadata], error) {
-	actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
-	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
+	actionEncoders, gotActionEncoders := e.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{})
+	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 	directoryCreationParametersValue := e.GetDirectoryCreationParametersValue(&model_analysis_pb.DirectoryCreationParameters_Key{})
-	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
+	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	fileCreationParametersValue := e.GetFileCreationParametersValue(&model_analysis_pb.FileCreationParameters_Key{})
-	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
+	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	repoPlatform := e.GetRegisteredRepoPlatformValue(&model_analysis_pb.RegisteredRepoPlatform_Key{})
-	if !gotActionEncoder ||
+	if !gotActionEncoders ||
 		!gotDirectoryCreationParameters ||
 		!directoryCreationParametersValue.IsSet() ||
 		!gotDirectoryReaders ||
@@ -49,7 +49,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
 		ctx,
 		environment,
-		actionEncoder,
+		actionEncoders.Encoder,
 		referenceFormat,
 		e,
 	)
@@ -75,7 +75,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 			environmentVariableList.Patcher,
 		),
 		referenceFormat,
-		actionEncoder,
+		actionEncoders.Encoder,
 	)
 	if err != nil {
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create command: %w", err)
@@ -118,7 +118,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	if err != nil {
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
 	}
-	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, actionEncoder)
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, actionEncoders.Encoder)
 	if err != nil {
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to encode action: %w", err)
 	}
@@ -164,11 +164,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	), nil
 }
 
-func (baseComputer[TReference, TMetadata]) ComputeStableInputRootPathObjectValue(ctx context.Context, key *model_analysis_pb.StableInputRootPathObject_Key, e StableInputRootPathObjectEnvironment[TReference, TMetadata]) (*model_starlark.BarePath, error) {
-	stableInputRootPath := e.GetStableInputRootPathValue(&model_analysis_pb.StableInputRootPath_Key{})
-	if !stableInputRootPath.IsSet() {
-		return nil, evaluation.ErrMissingDependency
-	}
+func (baseComputer[TReference, TMetadata]) ComputeStableInputRootPathObject(stableInputRootPath model_core.Message[*model_analysis_pb.StableInputRootPath_Value, TReference]) (*model_starlark.BarePath, error) {
 	// TODO: This currently assumes UNIX-based paths. We should
 	// likely add an option on the platform that controls the
 	// pathname format.

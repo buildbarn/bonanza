@@ -87,12 +87,12 @@ func (baseComputerTester) expectCaptureExistingObject(e *MockFileRootEnvironment
 		})
 }
 
-// expectGetDirectoryCreationParametersObjectValue can be called by
+// expectGetDirectoryCreationParametersObject can be called by
 // tests to indicate that the analysis function needs access to
 // attributes necessary for creating new directories.
-func (baseComputerTester) expectGetDirectoryCreationParametersObjectValue(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
-	return e.EXPECT().GetDirectoryCreationParametersObjectValue(
-		testutil.EqProto(t, &model_analysis_pb.DirectoryCreationParametersObject_Key{}),
+func (baseComputerTester) expectGetDirectoryCreationParametersObject(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
+	return e.EXPECT().GetDirectoryCreationParametersObject(
+		testutil.EqProto(t, &model_analysis_pb.DirectoryCreationParameters_Key{}),
 	).Return(util.Must(model_filesystem.NewDirectoryCreationParametersFromProto(
 		&model_filesystem_pb.DirectoryCreationParameters{
 			Access:                    &model_filesystem_pb.DirectoryAccessParameters{},
@@ -103,12 +103,12 @@ func (baseComputerTester) expectGetDirectoryCreationParametersObjectValue(t *tes
 	)), true)
 }
 
-// expectGetFileCreationParametersObjectValue can be called by tests to
+// expectGetFileCreationParametersObject can be called by tests to
 // indicate that the analysis function needs access to attributes
 // necessary for creating new files.
-func (baseComputerTester) expectGetFileCreationParametersObjectValue(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
-	return e.EXPECT().GetFileCreationParametersObjectValue(
-		testutil.EqProto(t, &model_analysis_pb.FileCreationParametersObject_Key{}),
+func (baseComputerTester) expectGetFileCreationParametersObject(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
+	return e.EXPECT().GetFileCreationParametersObject(
+		testutil.EqProto(t, &model_analysis_pb.FileCreationParameters_Key{}),
 	).Return(util.Must(model_filesystem.NewFileCreationParametersFromProto(
 		&model_filesystem_pb.FileCreationParameters{
 			Access:                           &model_filesystem_pb.FileAccessParameters{},
@@ -122,12 +122,12 @@ func (baseComputerTester) expectGetFileCreationParametersObjectValue(t *testing.
 	)), true)
 }
 
-// expectGetFileReaderValue can be called by tests to
+// expectGetFileAccessParametersObject can be called by tests to
 // indicate that the analysis function needs access to attributes
 // necessary for reading existing files.
-func (bct *baseComputerTester) expectGetFileReaderValue(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
-	return e.EXPECT().GetFileReaderValue(
-		testutil.EqProto(t, &model_analysis_pb.FileReader_Key{}),
+func (bct *baseComputerTester) expectGetFileAccessParametersObject(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
+	return e.EXPECT().GetFileAccessParametersObject(
+		testutil.EqProto(t, &model_analysis_pb.FileAccessParameters_Key{}),
 	).Return(model_filesystem.NewFileReader(
 		model_parser.LookupParsedObjectReader(
 			bct.parsedObjectPoolIngester,
@@ -141,11 +141,11 @@ func (bct *baseComputerTester) expectGetFileReaderValue(t *testing.T, e *MockFil
 	), true)
 }
 
-// expectGetDirectoryReadersValue can be called by tests to indicate
+// expectGetDirectoryAccessParametersObject can be called by tests to indicate
 // that the analysis function needs read access to directories.
-func (bct *baseComputerTester) expectGetDirectoryReadersValue(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
-	return e.EXPECT().GetDirectoryReadersValue(
-		testutil.EqProto(t, &model_analysis_pb.DirectoryReaders_Key{}),
+func (bct *baseComputerTester) expectGetDirectoryAccessParametersObject(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
+	return e.EXPECT().GetDirectoryAccessParametersObject(
+		testutil.EqProto(t, &model_analysis_pb.DirectoryAccessParameters_Key{}),
 	).Return(&model_analysis.DirectoryReaders[model_core.CreatedObjectTree]{
 		DirectoryContents: model_parser.LookupParsedObjectReader(
 			bct.parsedObjectPoolIngester,

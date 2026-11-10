@@ -24,8 +24,8 @@ var commandActionObjectFormat = model_core.NewProtoObjectFormat(&model_command_p
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.RawActionResult_Key, TReference], e RawActionResultEnvironment[TReference, TMetadata]) (PatchedRawActionResultValue[TMetadata], error) {
 	actionEncodersValue := e.GetActionEncodersValue(&model_analysis_pb.ActionEncoders_Key{})
-	actionReaders, gotActionReaders := e.GetActionReadersValue(&model_analysis_pb.ActionReaders_Key{})
-	if !actionEncodersValue.IsSet() || !gotActionReaders {
+	actionEncoders, gotActionEncoders := e.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{})
+	if !actionEncodersValue.IsSet() || !gotActionEncoders {
 		return PatchedRawActionResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
@@ -49,7 +49,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 	if err != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, fmt.Errorf("invalid action reference: %w", err)
 	}
-	action, err := actionReaders.CommandAction.ReadObject(ctx, actionReference)
+	action, err := actionEncoders.Readers.CommandAction.ReadObject(ctx, actionReference)
 	if err != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, fmt.Errorf("failed to read action: %w", err)
 	}

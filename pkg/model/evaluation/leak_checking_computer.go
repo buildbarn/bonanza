@@ -23,9 +23,9 @@ func NewLeakCheckingComputer[TReference any, TMetadata model_core.ReferenceMetad
 	}
 }
 
-func (c *leakCheckingComputer[TReference, TMetadata]) ComputeMessageValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error) {
+func (c *leakCheckingComputer[TReference, TMetadata]) ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error) {
 	objectManager := model_core.NewLeakCheckingObjectManager(e)
-	value, err := c.Computer.ComputeMessageValue(
+	value, err := c.Computer.ComputeValue(
 		ctx,
 		key,
 		&leakCheckingEnvironment[TReference, TMetadata]{
@@ -56,22 +56,6 @@ func (c *leakCheckingComputer[TReference, TMetadata]) ComputeMessageValue(ctx co
 	return mappedValue, nil
 }
 
-func (c *leakCheckingComputer[TReference, TMetadata]) ComputeNativeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (any, error) {
-	objectManager := model_core.NewLeakCheckingObjectManager(e)
-	value, err := c.Computer.ComputeNativeValue(
-		ctx,
-		key,
-		&leakCheckingEnvironment[TReference, TMetadata]{
-			ObjectManager: objectManager,
-			environment:   e,
-		},
-	)
-	if c := objectManager.GetCurrentValidMetadataCount(); c != 0 {
-		return nil, fmt.Errorf("leaked %d metadata values", c)
-	}
-	return value, err
-}
-
 // leakCheckingEnvironment is a decorator for Environment that unwraps
 // ReferenceMetadata objects provided to Get*Value(). This is needed,
 // because the base implementation of Environment takes ownership of any
@@ -81,8 +65,8 @@ type leakCheckingEnvironment[TReference any, TMetadata model_core.ReferenceMetad
 	environment Environment[TReference, TMetadata]
 }
 
-func (e *leakCheckingEnvironment[TReference, TMetadata]) GetMessageValue(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]]) model_core.Message[proto.Message, TReference] {
-	return e.environment.GetMessageValue(
+func (e *leakCheckingEnvironment[TReference, TMetadata]) GetValue(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]]) model_core.Message[proto.Message, TReference] {
+	return e.environment.GetValue(
 		model_core.NewPatchedMessage(
 			key.Message,
 			model_core.MapReferenceMessagePatcherMetadata(
@@ -95,8 +79,8 @@ func (e *leakCheckingEnvironment[TReference, TMetadata]) GetMessageValue(key mod
 	)
 }
 
-func (e *leakCheckingEnvironment[TReference, TMetadata]) GetNativeValue(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]]) (any, bool) {
-	return e.environment.GetNativeValue(
+func (e *leakCheckingEnvironment[TReference, TMetadata]) GetObject(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]]) (any, bool) {
+	return e.environment.GetObject(
 		model_core.NewPatchedMessage(
 			key.Message,
 			model_core.MapReferenceMessagePatcherMetadata(

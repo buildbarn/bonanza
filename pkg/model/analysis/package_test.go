@@ -199,8 +199,8 @@ func TestPackage(t *testing.T) {
 		// given an explicit visibility should only be visible
 		// to the package containing the macro's definition.
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectMacro(
 			e,
 			`
@@ -286,8 +286,8 @@ def _impl(name, visibility, actual, _private):
 		// The same holds for mandatory attributes for which None
 		// was provided explicitly.
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectMacro(
 			e,
 			`
@@ -328,8 +328,8 @@ def _impl(name, visibility, mandatory, with_default, without_default):
 			return attr
 		}
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectMacro(
 			e,
 			`
@@ -378,8 +378,8 @@ def _impl(name, visibility, explicit, with_default):
 		} {
 			t.Run(name, func(t *testing.T) {
 				e := NewMockPackageEnvironmentForTesting(ctrl)
-				e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-				e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+				e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+				e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 				attr := stringAttr("explicit", nil)
 				attr.Attr.Configurable = false
 				expectMacroGlobal(e, []*model_starlark_pb.NamedAttr{attr}, model_core.Message[*model_starlark_pb.Function, model_core.CreatedObjectTree]{})
@@ -399,8 +399,8 @@ def _impl(name, visibility, explicit, with_default):
 		// Targets declared by macros need to be prefixed by the
 		// name of the macro instance.
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectMacro(
 			e,
 			`
@@ -416,8 +416,8 @@ def _impl(name, visibility):
 
 	t.Run("ReturnValue", func(t *testing.T) {
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectMacro(
 			e,
 			`
@@ -433,8 +433,8 @@ def _impl(name, visibility):
 
 	t.Run("MissingVisibility", func(t *testing.T) {
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		definition := newMacroExpansionContextDefinition()
 		definition.RootMacroInstanceDefinition.InheritableAttrs.Visibility = nil
 		expectMacroExpansionContext(e, definition)
@@ -448,8 +448,8 @@ def _impl(name, visibility):
 		// are referenced by the caller should be declared as
 		// source files, unless the macro declares them.
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		definition := newMacroExpansionContextDefinition()
 		definition.ReferencedTargetNameSuffixes = []string{"_gen.h", "_src.c"}
 		expectMacroExpansionContext(e, definition)
@@ -473,8 +473,8 @@ def _impl(name, visibility):
 
 	t.Run("InvalidReferencedTargetName", func(t *testing.T) {
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		definition := newMacroExpansionContextDefinition()
 		definition.ReferencedTargetNameSuffixes = []string{"x"}
 		expectMacroExpansionContext(e, definition)
@@ -489,8 +489,8 @@ def _impl(name, visibility):
 		// may then not declare these targets, as lookups don't
 		// expand the macro instance.
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		definition := newMacroExpansionContextDefinition()
 		definition.ForbiddenTargetNameSuffixes = []string{"", "_out"}
 		expectMacroExpansionContext(e, definition)
@@ -532,8 +532,8 @@ def _impl(name, visibility):
 		}
 
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		definition := newMacroExpansionContextDefinition()
 		definition.RootMacroInstanceDefinition.Finalizer = model_starlark_pb.MacroInstance_FINALIZER
 		expectMacroExpansionContext(e, definition)
@@ -576,8 +576,8 @@ def _impl(name, visibility):
 			model_starlark_pb.MacroInstance_CALLED_BY_FINALIZER,
 		} {
 			e := NewMockPackageEnvironmentForTesting(ctrl)
-			e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-			e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+			e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			definition := newMacroExpansionContextDefinition()
 			definition.RootMacroInstanceDefinition.Finalizer = finalizer
 			expectMacroExpansionContext(e, definition)
@@ -614,8 +614,8 @@ def _impl(name, visibility):
 		} {
 			t.Run(name, func(t *testing.T) {
 				e := NewMockPackageEnvironmentForTesting(ctrl)
-				e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-				e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+				e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+				e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 				e.EXPECT().CaptureExistingObject(gomock.Any()).
 					DoAndReturn(func(reference model_core.CreatedObjectTree) model_core.CreatedObjectTree {
 						return reference
@@ -661,8 +661,8 @@ def _impl(name, visibility):
 		// It does not contain a version number unless multiple
 		// versions of the module are permitted to coexist.
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectMacro(
 			e,
 			`
@@ -687,8 +687,8 @@ def _impl(name, visibility):
 		// Missing dependencies should be propagated as is, and
 		// not be wrapped.
 		e := NewMockPackageEnvironmentForTesting(ctrl)
-		e.EXPECT().GetFileCreationParametersObjectValue(gomock.Any()).Return(nil, true).AnyTimes()
-		e.EXPECT().GetFileReaderValue(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		e.EXPECT().GetMacroExpansionContextValue(
 			testutil.EqProto(t, &model_analysis_pb.MacroExpansionContext_Key{Package: "@@main+//foo", MacroInstanceName: []string{"m"}}),
 		).Return(model_core.Message[*model_analysis_pb.MacroExpansionContext_Value, model_core.CreatedObjectTree]{})

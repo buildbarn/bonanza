@@ -19,11 +19,7 @@ func (baseComputer[TReference, TMetadata]) ComputeDirectoryCreationParametersVal
 	}), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryCreationParametersObjectValue(ctx context.Context, key *model_analysis_pb.DirectoryCreationParametersObject_Key, e DirectoryCreationParametersObjectEnvironment[TReference, TMetadata]) (*model_filesystem.DirectoryCreationParameters, error) {
-	directoryCreationParameters := e.GetDirectoryCreationParametersValue(&model_analysis_pb.DirectoryCreationParameters_Key{})
-	if !directoryCreationParameters.IsSet() {
-		return nil, evaluation.ErrMissingDependency
-	}
+func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryCreationParametersObject(directoryCreationParameters model_core.Message[*model_analysis_pb.DirectoryCreationParameters_Value, TReference]) (*model_filesystem.DirectoryCreationParameters, error) {
 	return model_filesystem.NewDirectoryCreationParametersFromProto(
 		directoryCreationParameters.Message.DirectoryCreationParameters,
 		c.referenceFormat,

@@ -1,9 +1,7 @@
 package analysis
 
 import (
-	"context"
-
-	"bonanza.build/pkg/model/evaluation"
+	model_core "bonanza.build/pkg/model/core"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
@@ -20,11 +18,7 @@ type DirectoryReaders[TReference any] struct {
 	CommandOutputs    model_parser.MessageObjectReader[TReference, *model_command_pb.Outputs]
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryReadersValue(ctx context.Context, key *model_analysis_pb.DirectoryReaders_Key, e DirectoryReadersEnvironment[TReference, TMetadata]) (*DirectoryReaders[TReference], error) {
-	directoryAccessParametersValue := e.GetDirectoryAccessParametersValue(&model_analysis_pb.DirectoryAccessParameters_Key{})
-	if !directoryAccessParametersValue.IsSet() {
-		return nil, evaluation.ErrMissingDependency
-	}
+func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryAccessParametersObject(directoryAccessParametersValue model_core.Message[*model_analysis_pb.DirectoryAccessParameters_Value, TReference]) (*DirectoryReaders[TReference], error) {
 	directoryAccessParameters, err := model_filesystem.NewDirectoryAccessParametersFromProto(
 		directoryAccessParametersValue.Message.DirectoryAccessParameters,
 		c.referenceFormat,

@@ -25,10 +25,6 @@ func (baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsVal
 	}), nil
 }
 
-func (baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsObjectValue(ctx context.Context, key *model_analysis_pb.ModulesWithMultipleVersionsObject_Key, e ModulesWithMultipleVersionsObjectEnvironment[TReference, TMetadata]) (map[label.Module]OverrideVersions, error) {
-	modulesWithMultipleVersionsValue := e.GetModulesWithMultipleVersionsValue(&model_analysis_pb.ModulesWithMultipleVersions_Key{})
-	if !modulesWithMultipleVersionsValue.IsSet() {
-		return nil, evaluation.ErrMissingDependency
-	}
+func (baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsObject(modulesWithMultipleVersionsValue model_core.Message[*model_analysis_pb.ModulesWithMultipleVersions_Value, TReference]) (map[label.Module]OverrideVersions, error) {
 	return parseOverridesList(modulesWithMultipleVersionsValue.Message.OverridesList)
 }

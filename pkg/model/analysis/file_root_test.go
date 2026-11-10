@@ -116,8 +116,8 @@ func TestFileRoot(t *testing.T) {
 			// should cause the creation of a file root to
 			// fail.
 			e := NewMockFileRootEnvironmentForTesting(ctrl)
-			bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-			bct.expectGetDirectoryReadersValue(t, e)
+			bct.expectGetDirectoryCreationParametersObject(t, e)
+			bct.expectGetDirectoryAccessParametersObject(t, e)
 			e.EXPECT().GetRepoValue(
 				testutil.EqProto(t, &model_analysis_pb.Repo_Key{
 					CanonicalRepo: "myrepo+",
@@ -165,8 +165,8 @@ func TestFileRoot(t *testing.T) {
 			// unrelated files should be removed.
 			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
-				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-				bct.expectGetDirectoryReadersValue(t, e)
+				bct.expectGetDirectoryCreationParametersObject(t, e)
+				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetRepoValue(
 					testutil.EqProto(t, &model_analysis_pb.Repo_Key{
 						CanonicalRepo: "myrepo+",
@@ -285,8 +285,8 @@ func TestFileRoot(t *testing.T) {
 			// loaded as well.
 			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
-				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-				bct.expectGetDirectoryReadersValue(t, e)
+				bct.expectGetDirectoryCreationParametersObject(t, e)
+				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetRepoValue(
 					testutil.EqProto(t, &model_analysis_pb.Repo_Key{
 						CanonicalRepo: "myrepo+",
@@ -554,8 +554,8 @@ func TestFileRoot(t *testing.T) {
 			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e).Times(3)
-				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-				bct.expectGetDirectoryReadersValue(t, e)
+				bct.expectGetDirectoryCreationParametersObject(t, e)
+				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
@@ -739,8 +739,8 @@ func TestFileRoot(t *testing.T) {
 			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e).Times(2)
-				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-				bct.expectGetDirectoryReadersValue(t, e)
+				bct.expectGetDirectoryCreationParametersObject(t, e)
+				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
@@ -915,8 +915,8 @@ func TestFileRoot(t *testing.T) {
 			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e).Times(2)
-				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-				bct.expectGetDirectoryReadersValue(t, e)
+				bct.expectGetDirectoryCreationParametersObject(t, e)
+				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
@@ -1080,8 +1080,8 @@ func TestFileRoot(t *testing.T) {
 			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e).Times(3)
-				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-				bct.expectGetDirectoryReadersValue(t, e)
+				bct.expectGetDirectoryCreationParametersObject(t, e)
+				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
@@ -1291,8 +1291,8 @@ func TestFileRoot(t *testing.T) {
 			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e).Times(2)
-				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-				bct.expectGetDirectoryReadersValue(t, e)
+				bct.expectGetDirectoryCreationParametersObject(t, e)
+				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
@@ -1555,10 +1555,10 @@ func TestFileRoot(t *testing.T) {
 			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e)
-				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-				bct.expectGetDirectoryReadersValue(t, e)
-				bct.expectGetFileCreationParametersObjectValue(t, e)
-				bct.expectGetFileReaderValue(t, e)
+				bct.expectGetDirectoryCreationParametersObject(t, e)
+				bct.expectGetDirectoryAccessParametersObject(t, e)
+				bct.expectGetFileCreationParametersObject(t, e)
+				bct.expectGetFileAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
@@ -1744,7 +1744,7 @@ func TestFileRoot(t *testing.T) {
 			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e)
-				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
+				bct.expectGetDirectoryCreationParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
@@ -1866,8 +1866,8 @@ func TestFileRoot(t *testing.T) {
 			// should resolve to a directory as well.
 			e := NewMockFileRootEnvironmentForTesting(ctrl)
 			bct.expectCaptureExistingObject(e)
-			bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-			bct.expectGetDirectoryReadersValue(t, e)
+			bct.expectGetDirectoryCreationParametersObject(t, e)
+			bct.expectGetDirectoryAccessParametersObject(t, e)
 			e.EXPECT().GetTargetOutputValue(
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 					return &model_analysis_pb.TargetOutput_Key{
@@ -1947,8 +1947,8 @@ func TestFileRoot(t *testing.T) {
 			// resolve to a file as well.
 			e := NewMockFileRootEnvironmentForTesting(ctrl)
 			bct.expectCaptureExistingObject(e)
-			bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-			bct.expectGetDirectoryReadersValue(t, e)
+			bct.expectGetDirectoryCreationParametersObject(t, e)
+			bct.expectGetDirectoryAccessParametersObject(t, e)
 			e.EXPECT().GetTargetOutputValue(
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 					return &model_analysis_pb.TargetOutput_Key{
@@ -2022,8 +2022,8 @@ func TestFileRoot(t *testing.T) {
 			// resolve to a file that is executable as well.
 			e := NewMockFileRootEnvironmentForTesting(ctrl)
 			bct.expectCaptureExistingObject(e)
-			bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-			bct.expectGetDirectoryReadersValue(t, e)
+			bct.expectGetDirectoryCreationParametersObject(t, e)
+			bct.expectGetDirectoryAccessParametersObject(t, e)
 			e.EXPECT().GetTargetOutputValue(
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 					return &model_analysis_pb.TargetOutput_Key{
@@ -2109,8 +2109,8 @@ func TestFileRoot(t *testing.T) {
 			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout, target *model_filesystem_pb.DirectoryContents) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e)
-				bct.expectGetDirectoryCreationParametersObjectValue(t, e)
-				bct.expectGetDirectoryReadersValue(t, e)
+				bct.expectGetDirectoryCreationParametersObject(t, e)
+				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{

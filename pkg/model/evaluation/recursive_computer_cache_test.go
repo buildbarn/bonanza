@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -105,12 +106,11 @@ func (c *cacheTestClock) Now() time.Time {
 // computed by calling into a function provided by the test. It keeps
 // track of the number of times each key is evaluated.
 //
-// In addition to that, it supports a single StringValue key that
-// returns a native value. It returns the value of the key that is
-// requested by the test. As native values are never cached, this key
-// is evaluated during every build, allowing tests to observe the
-// value of the requested key, regardless of whether it was obtained
-// from the cache.
+// In addition to that, it supports StringValue keys that return the
+// value of the key that is requested by the test. Tests should use a
+// different StringValue key during every build, so that it is always
+// evaluated. This allows tests to observe the value of the requested
+// key, regardless of whether it was obtained from the cache.
 type cacheTestComputer struct {
 	functions map[uint32]func(get func(uint32) (uint32, bool)) (uint32, bool)
 	root      uint32
@@ -120,10 +120,8 @@ type cacheTestComputer struct {
 	rootValue   uint32
 }
 
-var cacheTestStringValueTypeURL = "type.googleapis.com/google.protobuf.StringValue"
-
 func (*cacheTestComputer) getValue(e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata], key uint32) (uint32, bool) {
-	value := e.GetMessageValue(
+	value := e.GetValue(
 		model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
 			&wrapperspb.UInt32Value{Value: key},
 		),
@@ -134,7 +132,20 @@ func (*cacheTestComputer) getValue(e model_evaluation.Environment[object.LocalRe
 	return value.Message.(*wrapperspb.UInt32Value).Value, true
 }
 
-func (c *cacheTestComputer) ComputeMessageValue(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+func (c *cacheTestComputer) ComputeValue(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+	if _, ok := key.Message.(*wrapperspb.StringValue); ok {
+		v, ok := c.getValue(e, c.root)
+		if !ok {
+			return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
+		}
+		c.lock.Lock()
+		c.rootValue = v
+		c.lock.Unlock()
+		return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
+			&wrapperspb.UInt32Value{Value: v},
+		), nil
+	}
+
 	n := key.Message.(*wrapperspb.UInt32Value).Value
 	c.lock.Lock()
 	c.evaluations[n]++
@@ -151,23 +162,12 @@ func (c *cacheTestComputer) ComputeMessageValue(ctx context.Context, key model_c
 	), nil
 }
 
-func (c *cacheTestComputer) ComputeNativeValue(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (any, error) {
-	v, ok := c.getValue(e, c.root)
-	if !ok {
-		return nil, model_evaluation.ErrMissingDependency
-	}
-	c.lock.Lock()
-	c.rootValue = v
-	c.lock.Unlock()
-	return v, nil
+func (*cacheTestComputer) ComputeObject(value model_core.Message[proto.Message, object.LocalReference]) (any, error) {
+	panic("values do not have objects")
 }
 
 func (*cacheTestComputer) IsLookup(typeURL string) bool {
 	return false
-}
-
-func (*cacheTestComputer) ReturnsNativeValue(typeURL string) bool {
-	return typeURL == cacheTestStringValueTypeURL
 }
 
 // cacheTestHarness can be used to perform successive builds that
@@ -180,6 +180,7 @@ type cacheTestHarness struct {
 	keysReader                model_parser.MessageObjectReader[object.LocalReference, []*model_evaluation_pb.Keys]
 	cacheDeterministicEncoder model_encoding.DeterministicBinaryEncoder
 	cacheKeyedEncoder         model_encoding.KeyedBinaryEncoder
+	builds                    int
 }
 
 const cacheTestIndirectionMaximumAge = time.Hour
@@ -276,11 +277,12 @@ func (h *cacheTestHarness) build(
 		require.NoError(t, recursiveComputer.OverrideKeyState(cacheTestKeyReference(key), cacheTestKey(value)))
 	}
 
+	h.builds++
 	probeKeyState, err := recursiveComputer.GetOrCreateKeyState(
 		util.Must(
 			model_core.MarshalTopLevelAny(
 				model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
-					&wrapperspb.StringValue{Value: "probe"},
+					&wrapperspb.StringValue{Value: fmt.Sprintf("probe-%d", h.builds)},
 				),
 			),
 		),

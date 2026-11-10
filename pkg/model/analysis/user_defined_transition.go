@@ -491,7 +491,7 @@ func (c *baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.C
 
 type performUserDefinedTransitionEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ObjectManager[TReference, TMetadata]
-	FileCreationParametersObjectValueGetter
+	FileCreationParametersObjectGetter
 	getBuildSettingValueEnvironment[TReference, TMetadata]
 	getExpectedTransitionOutputEnvironment[TReference, TMetadata]
 	starlarkThreadEnvironment[TReference]

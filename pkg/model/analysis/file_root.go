@@ -32,7 +32,7 @@ import (
 type getStarlarkFilePropertiesEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
 
-	DirectoryReadersValueGetter[TReference]
+	DirectoryAccessParametersObjectGetter[TReference]
 	FilePropertiesValueGetter[TReference]
 	FileRootValueGetter[TReference, TMetadata]
 }
@@ -42,7 +42,7 @@ func getStarlarkFileProperties[TReference object.BasicReference, TMetadata model
 		return model_core.Message[*model_filesystem_pb.FileProperties, TReference]{}, errors.New("file not set")
 	}
 
-	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
+	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	patchedFile := model_core.Patch(e, f)
 	targetOutput := e.GetFileRootValue(
 		model_core.NewPatchedMessage(
@@ -519,8 +519,8 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 
 		switch source := output.Message.Definition.GetSource().(type) {
 		case *model_analysis_pb.TargetOutputDefinition_ActionId:
-			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
-			directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
+			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
+			directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 			patchedConfigurationReference := model_core.Patch(e, configurationReference)
 			targetActionResult := e.GetTargetActionResultValue(
 				model_core.NewPatchedMessage(
@@ -679,9 +679,9 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			}
 
 		case *model_analysis_pb.TargetOutputDefinition_ExpandTemplate_:
-			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
-			fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObjectValue(&model_analysis_pb.FileCreationParametersObject_Key{})
-			fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
+			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
+			fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
+			fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 			if !gotDirectoryCreationParameters || !gotFileCreationParameters || !gotFileReader {
 				return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
@@ -777,7 +777,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			// ctx.actions.symlink(target_path=...).
 			//
 			// Wrap the package directory to make it an input root.
-			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
+			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 			if !gotDirectoryCreationParameters {
 				return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
@@ -816,8 +816,8 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 		case *model_analysis_pb.TargetOutputDefinition_Symlink_:
 			// Symlink to another file. Obtain the root of
 			// the target and add a symlink to it.
-			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
-			directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
+			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
+			directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 			symlinkTargetFile := model_core.Nested(output, source.Symlink.Target)
 			patchedSymlinkTargetFile := model_core.Patch(e, symlinkTargetFile)
 			symlinkTarget := e.GetFileRootValue(
@@ -930,8 +930,8 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 	// on following them until we reach a file. Create a directory
 	// hierarchy that contains the resulting file and all of the
 	// symbolic links that we encountered along the way.
-	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
-	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
+	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
+	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	if !gotDirectoryCreationParameters || !gotDirectoryReaders {
 		return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}

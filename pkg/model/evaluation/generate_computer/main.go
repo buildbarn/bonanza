@@ -19,7 +19,7 @@ type computerDefinition struct {
 type functionDefinition struct {
 	KeyContainsReferences bool
 	DependsOn             []string `json:"dependsOn"`
-	NativeValueType       *nativeValueTypeDefinition
+	ObjectType            *objectTypeDefinition
 	IsLookup              *bool `json:"isLookup"`
 }
 
@@ -50,7 +50,7 @@ func (fd functionDefinition) typedKeyToArgument(functionName string) string {
 	return "typedKey"
 }
 
-type nativeValueTypeDefinition struct {
+type objectTypeDefinition struct {
 	Imports map[string]string `json:"imports"`
 	Type    string            `json:"type"`
 
@@ -59,17 +59,9 @@ type nativeValueTypeDefinition struct {
 	ReferenceConstraint string `json:"referenceConstraint"`
 }
 
-// getGetterMethod returns the signature of the method that is used to
-// obtain the value of a function.
-func (fd functionDefinition) getGetterMethod(functionName string) string {
-	if nativeValueType := fd.NativeValueType; nativeValueType != nil {
-		return fmt.Sprintf(
-			"Get%sValue(key %s) (%s, bool)",
-			functionName,
-			fd.getKeyType(functionName, true),
-			nativeValueType.Type,
-		)
-	}
+// getValueGetterMethod returns the signature of the method that is
+// used to obtain the value of a function.
+func (fd functionDefinition) getValueGetterMethod(functionName string) string {
 	return fmt.Sprintf(
 		"Get%sValue(key %s) model_core.Message[*pb.%s_Value, TReference]",
 		functionName,
@@ -78,19 +70,25 @@ func (fd functionDefinition) getGetterMethod(functionName string) string {
 	)
 }
 
-// getGetterTypeParameters returns the type parameters of the getter
-// interface of a function, both in the form used to declare the
+// getObjectGetterMethod returns the signature of the method that is
+// used to obtain the object derived from the value of a function.
+func (fd functionDefinition) getObjectGetterMethod(functionName string) string {
+	return fmt.Sprintf(
+		"Get%sObject(key %s) (%s, bool)",
+		functionName,
+		fd.getKeyType(functionName, true),
+		fd.ObjectType.Type,
+	)
+}
+
+// getTypeParameters returns the type parameters of a getter interface
+// containing a given method, both in the form used to declare the
 // interface (e.g., "[TReference any]") and to instantiate it (e.g.,
 // "[TReference]"). Only type parameters that are used by the method
 // are included. Constraints are as liberal as possible, so that the
 // interfaces can also be used by helper functions that are not specific
 // to a type of reference.
-func (fd functionDefinition) getGetterTypeParameters(functionName string) (declaration, arguments string) {
-	referenceConstraint := "any"
-	if nativeValueType := fd.NativeValueType; nativeValueType != nil && nativeValueType.ReferenceConstraint != "" {
-		referenceConstraint = nativeValueType.ReferenceConstraint
-	}
-	method := fd.getGetterMethod(functionName)
+func getTypeParameters(method, referenceConstraint string) (declaration, arguments string) {
 	var declarations, names []string
 	if strings.Contains(method, "TReference") {
 		declarations = append(declarations, "TReference "+referenceConstraint)
@@ -104,6 +102,23 @@ func (fd functionDefinition) getGetterTypeParameters(functionName string) (decla
 		return "", ""
 	}
 	return "[" + strings.Join(declarations, ", ") + "]", "[" + strings.Join(names, ", ") + "]"
+}
+
+// getValueGetterTypeParameters returns the type parameters of the
+// interface for obtaining the value of a function.
+func (fd functionDefinition) getValueGetterTypeParameters(functionName string) (declaration, arguments string) {
+	return getTypeParameters(fd.getValueGetterMethod(functionName), "any")
+}
+
+// getObjectGetterTypeParameters returns the type parameters of the
+// interface for obtaining the object derived from the value of a
+// function.
+func (fd functionDefinition) getObjectGetterTypeParameters(functionName string) (declaration, arguments string) {
+	referenceConstraint := "any"
+	if fd.ObjectType.ReferenceConstraint != "" {
+		referenceConstraint = fd.ObjectType.ReferenceConstraint
+	}
+	return getTypeParameters(fd.getObjectGetterMethod(functionName), referenceConstraint)
 }
 
 func main() {
@@ -148,9 +163,9 @@ func main() {
 	}
 	for functionName, functionDefinition := range computerDefinition.Functions {
 		worstCaseHeight := worstCaseHeights[functionName]
-		if len(functionDefinition.DependsOn) == 0 || functionDefinition.NativeValueType != nil {
+		if len(functionDefinition.DependsOn) == 0 {
 			if functionDefinition.IsLookup != nil {
-				log.Fatalf("Function %s specifies whether it is a lookup, which can only be done for functions with dependencies, returning a message", functionName)
+				log.Fatalf("Function %s specifies whether it is a lookup, which can only be done for functions with dependencies", functionName)
 			}
 		} else {
 			if (functionDefinition.IsLookup == nil) == (worstCaseHeight < len(computerDefinition.Functions)) {
@@ -163,8 +178,8 @@ func main() {
 
 	imports := map[string]string{}
 	for _, functionDefinition := range computerDefinition.Functions {
-		if nativeValueType := functionDefinition.NativeValueType; nativeValueType != nil {
-			for shortName, importPath := range nativeValueType.Imports {
+		if objectType := functionDefinition.ObjectType; objectType != nil {
+			for shortName, importPath := range objectType.Imports {
 				imports[shortName] = importPath
 			}
 		}
@@ -191,33 +206,29 @@ func main() {
 				getMessageName(functionName),
 			)
 		}
-		if functionDefinition.NativeValueType == nil {
-			fmt.Printf(
-				"type Patched%sValue[TMetadata model_core.ReferenceMetadata] = model_core.PatchedMessage[*pb.%s_Value, TMetadata]\n",
-				functionName,
-				getMessageName(functionName),
-			)
-		}
+		fmt.Printf(
+			"type Patched%sValue[TMetadata model_core.ReferenceMetadata] = model_core.PatchedMessage[*pb.%s_Value, TMetadata]\n",
+			functionName,
+			getMessageName(functionName),
+		)
 	}
 
 	fmt.Printf("type Computer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {\n")
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		functionDefinition := computerDefinition.Functions[functionName]
-		if nativeValueType := functionDefinition.NativeValueType; nativeValueType == nil {
+		fmt.Printf(
+			"\tCompute%sValue(context.Context, %s, %sEnvironment[TReference, TMetadata]) (Patched%sValue[TMetadata], error)\n",
+			functionName,
+			functionDefinition.getKeyType(functionName, false),
+			functionName,
+			functionName,
+		)
+		if objectType := functionDefinition.ObjectType; objectType != nil {
 			fmt.Printf(
-				"\tCompute%sValue(context.Context, %s, %sEnvironment[TReference, TMetadata]) (Patched%sValue[TMetadata], error)\n",
+				"\tCompute%sObject(model_core.Message[*pb.%s_Value, TReference]) (%s, error)\n",
 				functionName,
-				functionDefinition.getKeyType(functionName, false),
-				functionName,
-				functionName,
-			)
-		} else {
-			fmt.Printf(
-				"\tCompute%sValue(context.Context, %s, %sEnvironment[TReference, TMetadata]) (%s, error)\n",
-				functionName,
-				functionDefinition.getKeyType(functionName, false),
-				functionName,
-				nativeValueType.Type,
+				getMessageName(functionName),
+				objectType.Type,
 			)
 		}
 	}
@@ -228,18 +239,29 @@ func main() {
 	// only depend on a small number of functions.
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		functionDefinition := computerDefinition.Functions[functionName]
-		typeParametersDeclaration, _ := functionDefinition.getGetterTypeParameters(functionName)
-		fmt.Printf("type %sValueGetter%s interface {\n", functionName, typeParametersDeclaration)
-		fmt.Printf("\t%s\n", functionDefinition.getGetterMethod(functionName))
+		valueTypeParametersDeclaration, _ := functionDefinition.getValueGetterTypeParameters(functionName)
+		fmt.Printf("type %sValueGetter%s interface {\n", functionName, valueTypeParametersDeclaration)
+		fmt.Printf("\t%s\n", functionDefinition.getValueGetterMethod(functionName))
 		fmt.Printf("}\n")
+		if functionDefinition.ObjectType != nil {
+			objectTypeParametersDeclaration, _ := functionDefinition.getObjectGetterTypeParameters(functionName)
+			fmt.Printf("type %sObjectGetter%s interface {\n", functionName, objectTypeParametersDeclaration)
+			fmt.Printf("\t%s\n", functionDefinition.getObjectGetterMethod(functionName))
+			fmt.Printf("}\n")
+		}
 	}
 
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		fmt.Printf("type %sEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {\n", functionName)
 		functionDefinition := computerDefinition.Functions[functionName]
 		for _, dependencyName := range slices.Sorted(slices.Values(functionDefinition.DependsOn)) {
-			_, typeArguments := computerDefinition.Functions[dependencyName].getGetterTypeParameters(dependencyName)
-			fmt.Printf("\t%sValueGetter%s\n", dependencyName, typeArguments)
+			dependencyDefinition := computerDefinition.Functions[dependencyName]
+			_, valueTypeArguments := dependencyDefinition.getValueGetterTypeParameters(dependencyName)
+			fmt.Printf("\t%sValueGetter%s\n", dependencyName, valueTypeArguments)
+			if dependencyDefinition.ObjectType != nil {
+				_, objectTypeArguments := dependencyDefinition.getObjectGetterTypeParameters(dependencyName)
+				fmt.Printf("\t%sObjectGetter%s\n", dependencyName, objectTypeArguments)
+			}
 		}
 		fmt.Printf("\tmodel_core.ObjectManager[TReference, TMetadata]\n")
 		fmt.Printf("}\n")
@@ -250,40 +272,38 @@ func main() {
 	fmt.Printf("}\n")
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		functionDefinition := computerDefinition.Functions[functionName]
-		if nativeValueType := functionDefinition.NativeValueType; nativeValueType == nil {
+		fmt.Printf(
+			"func (e *typedEnvironment[TReference, TMetadata]) Get%sValue(key %s) model_core.Message[*pb.%s_Value, TReference] {\n",
+			functionName,
+			functionDefinition.getKeyType(functionName, true),
+			getMessageName(functionName),
+		)
+		fmt.Printf("\tm := e.Environment.GetValue(%s)\n", functionDefinition.keyToPatchedMessage())
+		fmt.Printf("\tif !m.IsSet() {\n")
+		fmt.Printf("\t\treturn model_core.Message[*pb.%s_Value, TReference]{}\n", getMessageName(functionName))
+		fmt.Printf("\t}\n")
+		fmt.Printf("\treturn model_core.Message[*pb.%s_Value, TReference]{\n", getMessageName(functionName))
+		fmt.Printf("\t\tMessage: m.Message.(*pb.%s_Value),\n", getMessageName(functionName))
+		fmt.Printf("\t\tOutgoingReferences: m.OutgoingReferences,\n")
+		fmt.Printf("\t}\n")
+		fmt.Printf("}\n")
+		if objectType := functionDefinition.ObjectType; objectType != nil {
 			fmt.Printf(
-				"func (e *typedEnvironment[TReference, TMetadata]) Get%sValue(key %s) model_core.Message[*pb.%s_Value, TReference] {\n",
+				"func (e *typedEnvironment[TReference, TMetadata]) Get%sObject(key %s) (%s, bool) {\n",
 				functionName,
 				functionDefinition.getKeyType(functionName, true),
-				getMessageName(functionName),
+				objectType.Type,
 			)
-			fmt.Printf("\tm := e.Environment.GetMessageValue(%s)\n", functionDefinition.keyToPatchedMessage())
-			fmt.Printf("\tif !m.IsSet() {\n")
-			fmt.Printf("\t\treturn model_core.Message[*pb.%s_Value, TReference]{}\n", getMessageName(functionName))
-			fmt.Printf("\t}\n")
-			fmt.Printf("\treturn model_core.Message[*pb.%s_Value, TReference]{\n", getMessageName(functionName))
-			fmt.Printf("\t\tMessage: m.Message.(*pb.%s_Value),\n", getMessageName(functionName))
-			fmt.Printf("\t\tOutgoingReferences: m.OutgoingReferences,\n")
-			fmt.Printf("\t}\n")
-			fmt.Printf("}\n")
-		} else {
-			fmt.Printf(
-				"func (e *typedEnvironment[TReference, TMetadata]) Get%sValue(key %s) (%s, bool) {\n",
-				functionName,
-				functionDefinition.getKeyType(functionName, true),
-				nativeValueType.Type,
-			)
-			fmt.Printf("\tv, ok := e.Environment.GetNativeValue(%s)\n", functionDefinition.keyToPatchedMessage())
+			fmt.Printf("\tv, ok := e.Environment.GetObject(%s)\n", functionDefinition.keyToPatchedMessage())
 			fmt.Printf("\tif !ok {\n")
 			fmt.Printf("\t\treturn nil, false\n")
 			fmt.Printf("\t}\n")
-			fmt.Printf("\t\treturn v.(%s), true\n", nativeValueType.Type)
+			fmt.Printf("\treturn v.(%s), true\n", objectType.Type)
 			fmt.Printf("}\n")
 		}
 	}
 
 	fmt.Printf("var isLookupKeyTypeURLs map[string]struct{}\n")
-	fmt.Printf("var nativeValueKeyTypeURLs map[string]struct{}\n")
 
 	fmt.Printf("func init() {\n")
 
@@ -301,20 +321,6 @@ func main() {
 	fmt.Printf("\t\t\tisLookupKeyTypeURLs[a.TypeUrl] = struct{}{}\n")
 	fmt.Printf("\t}\n")
 
-	fmt.Printf("\tnativeValueKeys := []proto.Message{\n")
-	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
-		functionDefinition := computerDefinition.Functions[functionName]
-		if functionDefinition.NativeValueType != nil {
-			fmt.Printf("\t\t&pb.%s_Key{},\n", getMessageName(functionName))
-		}
-	}
-	fmt.Printf("\t}\n")
-	fmt.Printf("\tnativeValueKeyTypeURLs = make(map[string]struct{}, len(nativeValueKeys))\n")
-	fmt.Printf("\tfor _, m := range nativeValueKeys {\n")
-	fmt.Printf("\t\ta, _ := anypb.New(m)\n")
-	fmt.Printf("\t\t\tnativeValueKeyTypeURLs[a.TypeUrl] = struct{}{}\n")
-	fmt.Printf("\t}\n")
-
 	fmt.Printf("}\n")
 
 	fmt.Printf("type typedComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {\n")
@@ -324,44 +330,35 @@ func main() {
 	fmt.Printf("\treturn &typedComputer[TReference, TMetadata]{base: base}\n")
 	fmt.Printf("}\n")
 
-	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeMessageValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e evaluation.Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error) {\n")
+	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e evaluation.Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error) {\n")
 	fmt.Printf("\ttypedE := typedEnvironment[TReference, TMetadata]{Environment: e}\n")
 	fmt.Printf("\tswitch typedKey := key.Message.(type) {\n")
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		functionDefinition := computerDefinition.Functions[functionName]
-		if functionDefinition.NativeValueType == nil {
-			fmt.Printf("\tcase *pb.%s_Key:\n", getMessageName(functionName))
-			fmt.Printf("\t\tm, err := c.base.Compute%sValue(ctx, %s, &typedE)\n", functionName, functionDefinition.typedKeyToArgument(functionName))
-			fmt.Printf("\t\treturn model_core.NewPatchedMessage[proto.Message](m.Message, m.Patcher), err\n")
-		}
+		fmt.Printf("\tcase *pb.%s_Key:\n", getMessageName(functionName))
+		fmt.Printf("\t\tm, err := c.base.Compute%sValue(ctx, %s, &typedE)\n", functionName, functionDefinition.typedKeyToArgument(functionName))
+		fmt.Printf("\t\treturn model_core.NewPatchedMessage[proto.Message](m.Message, m.Patcher), err\n")
 	}
 	fmt.Printf("\tdefault:\n")
 	fmt.Printf("\t\tpanic(\"unrecognized key type\")\n")
 	fmt.Printf("\t}\n")
 	fmt.Printf("}\n")
 
-	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeNativeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e evaluation.Environment[TReference, TMetadata]) (any, error) {\n")
-	fmt.Printf("\ttypedE := typedEnvironment[TReference, TMetadata]{Environment: e}\n")
-	fmt.Printf("\tswitch typedKey := key.Message.(type) {\n")
+	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeObject(value model_core.Message[proto.Message, TReference]) (any, error) {\n")
+	fmt.Printf("\tswitch typedValue := value.Message.(type) {\n")
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
-		functionDefinition := computerDefinition.Functions[functionName]
-		if functionDefinition.NativeValueType != nil {
-			fmt.Printf("\tcase *pb.%s_Key:\n", getMessageName(functionName))
-			fmt.Printf("\t\treturn c.base.Compute%sValue(ctx, %s, &typedE)\n", functionName, functionDefinition.typedKeyToArgument(functionName))
+		if computerDefinition.Functions[functionName].ObjectType != nil {
+			fmt.Printf("\tcase *pb.%s_Value:\n", getMessageName(functionName))
+			fmt.Printf("\t\treturn c.base.Compute%sObject(model_core.Message[*pb.%s_Value, TReference]{Message: typedValue, OutgoingReferences: value.OutgoingReferences})\n", functionName, getMessageName(functionName))
 		}
 	}
 	fmt.Printf("\tdefault:\n")
-	fmt.Printf("\t\tpanic(\"unrecognized key type\")\n")
+	fmt.Printf("\t\tpanic(\"value type has no object\")\n")
 	fmt.Printf("\t}\n")
 	fmt.Printf("}\n")
 
 	fmt.Printf("func (typedComputer[TReference, TMetadata]) IsLookup(typeURL string) bool {\n")
 	fmt.Printf("\t_, ok := isLookupKeyTypeURLs[typeURL]\n")
-	fmt.Printf("\treturn ok\n")
-	fmt.Printf("}\n")
-
-	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ReturnsNativeValue(typeURL string) bool {\n")
-	fmt.Printf("\t_, ok := nativeValueKeyTypeURLs[typeURL]\n")
 	fmt.Printf("\treturn ok\n")
 	fmt.Printf("}\n")
 }

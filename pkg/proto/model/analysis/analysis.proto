@@ -14,10 +14,6 @@ import "google/protobuf/wrappers.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/analysis";
 
-message ActionEncoderObject {
-  message Key {}
-}
-
 message ActionEncoders {
   message Key {}
 
@@ -26,10 +22,6 @@ message ActionEncoders {
     // are processed by workers.
     repeated bonanza.model.encoding.BinaryEncoder action_encoders = 1;
   }
-}
-
-message ActionReaders {
-  message Key {}
 }
 
 message ExecuteRequest {
@@ -793,14 +785,6 @@ message DirectoryCreationParameters {
   }
 }
 
-message DirectoryCreationParametersObject {
-  message Key {}
-}
-
-message DirectoryReaders {
-  message Key {}
-}
-
 message EmptyDefaultInfo {
   message Key {}
 
@@ -853,10 +837,6 @@ message FileCreationParameters {
   }
 }
 
-message FileCreationParametersObject {
-  message Key {}
-}
-
 message FileProperties {
   message Key {
     // The canonical name of the repo that contains the file whose
@@ -874,10 +854,6 @@ message FileProperties {
     // If set, the file exists, and its properties are provided.
     bonanza.model.filesystem.FileProperties exists = 1;
   }
-}
-
-message FileReader {
-  message Key {}
 }
 
 enum DirectoryLayout {
@@ -1261,10 +1237,6 @@ message ModulesWithMultipleVersions {
     // Central Registry (BCR).
     repeated OverridesListModule overrides_list = 1;
   }
-}
-
-message ModulesWithMultipleVersionsObject {
-  message Key {}
 }
 
 message ModulesWithOverrides {
@@ -1984,10 +1956,6 @@ message StableInputRootPath {
   }
 }
 
-message StableInputRootPathObject {
-  message Key {}
-}
-
 message SuccessfulActionResult {
   message Key {
     ExecuteRequest execute_request = 1;
@@ -2269,14 +2237,6 @@ message ModuleExtension {
   // more calls to use_extension() for this extension with
   // dev_dependency set to False.
   bool root_module_has_non_dev_dependency = 3;
-}
-
-message RepositoryRuleObject {
-  message Key {
-    // The canonical Starlark identifier of the repository rule whose
-    // properties need to be obtained.
-    string identifier = 1;
-  }
 }
 
 message UsedModuleExtension {

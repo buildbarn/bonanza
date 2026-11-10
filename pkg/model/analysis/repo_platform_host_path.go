@@ -26,13 +26,13 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(ctx context.Context, key *model_analysis_pb.RepoPlatformHostPath_Key, e RepoPlatformHostPathEnvironment[TReference, TMetadata]) (PatchedRepoPlatformHostPathValue[TMetadata], error) {
-	actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
-	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
+	actionEncoders, gotActionEncoders := e.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{})
+	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 	directoryCreationParametersMessage := e.GetDirectoryCreationParametersValue(&model_analysis_pb.DirectoryCreationParameters_Key{})
-	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
+	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	fileCreationParametersMessage := e.GetFileCreationParametersValue(&model_analysis_pb.FileCreationParameters_Key{})
 	repoPlatform := e.GetRegisteredRepoPlatformValue(&model_analysis_pb.RegisteredRepoPlatform_Key{})
-	if !gotActionEncoder ||
+	if !gotActionEncoders ||
 		!gotDirectoryCreationParameters ||
 		!directoryCreationParametersMessage.IsSet() ||
 		!gotDirectoryReaders ||
@@ -51,7 +51,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
 		ctx,
 		environment,
-		actionEncoder,
+		actionEncoders.Encoder,
 		referenceFormat,
 		e,
 	)
@@ -106,7 +106,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 			environmentVariableList.Patcher,
 		),
 		referenceFormat,
-		actionEncoder,
+		actionEncoders.Encoder,
 	)
 	if err != nil {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create command: %w", err)
@@ -143,7 +143,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	if err != nil {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
 	}
-	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, actionEncoder)
+	createdAction, err := model_core.MarshalAndEncodeDeterministic(action, referenceFormat, actionEncoders.Encoder)
 	if err != nil {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to encode action: %w", err)
 	}

@@ -166,7 +166,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleRepoMappingValue(ctx 
 	}
 
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
-	modulesWithMultipleVersions, gotModulesWithMultipleVersions := e.GetModulesWithMultipleVersionsObjectValue(&model_analysis_pb.ModulesWithMultipleVersionsObject_Key{})
+	modulesWithMultipleVersions, gotModulesWithMultipleVersions := e.GetModulesWithMultipleVersionsObject(&model_analysis_pb.ModulesWithMultipleVersions_Key{})
 	if !rootModuleValue.IsSet() || !gotModulesWithMultipleVersions {
 		return PatchedModuleRepoMappingValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}

@@ -25,14 +25,12 @@ var fetchActionObjectFormat = model_core.NewProtoObjectFormat(&model_fetch_pb.Ac
 
 func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx context.Context, key *model_analysis_pb.HttpFileContents_Key, e HTTPFileContentsEnvironment[TReference, TMetadata]) (PatchedHTTPFileContentsValue[TMetadata], error) {
 	actionEncodersValue := e.GetActionEncodersValue(&model_analysis_pb.ActionEncoders_Key{})
-	actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
-	actionReaders, gotActionReaders := e.GetActionReadersValue(&model_analysis_pb.ActionReaders_Key{})
+	actionEncoders, gotActionEncoders := e.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{})
 	fetchPlatform := e.GetRegisteredFetchPlatformValue(&model_analysis_pb.RegisteredFetchPlatform_Key{})
 	fileCreationParametersValue := e.GetFileCreationParametersValue(&model_analysis_pb.FileCreationParameters_Key{})
 	registeredFetchPlatformValue := e.GetRegisteredFetchPlatformValue(&model_analysis_pb.RegisteredFetchPlatform_Key{})
 	if !actionEncodersValue.IsSet() ||
-		!gotActionEncoder ||
-		!gotActionReaders ||
+		!gotActionEncoders ||
 		!fetchPlatform.IsSet() ||
 		!fileCreationParametersValue.IsSet() ||
 		!registeredFetchPlatformValue.IsSet() {
@@ -63,7 +61,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 			}),
 		),
 		referenceFormat,
-		actionEncoder,
+		actionEncoders.Encoder,
 	)
 	capturedAction, err := createdAction.Value.Capture(ctx, e)
 	if err != nil {
@@ -114,7 +112,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 		return PatchedHTTPFileContentsValue[TMetadata]{}, errExecution
 	}
 
-	result, err := actionReaders.FetchResult.ReadObject(ctx, resultReference)
+	result, err := actionEncoders.Readers.FetchResult.ReadObject(ctx, resultReference)
 	if err != nil {
 		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to read completion event: %w", err)
 	}

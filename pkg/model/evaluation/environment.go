@@ -13,7 +13,7 @@ type Environment[TReference any, TMetadata model_core.ReferenceMetadata] interfa
 	model_core.ObjectManager[TReference, TMetadata]
 
 	// Methods that implementations of Computer can invoke to get
-	// access to the value of another key.
-	GetMessageValue(key model_core.PatchedMessage[proto.Message, TMetadata]) model_core.Message[proto.Message, TReference]
-	GetNativeValue(key model_core.PatchedMessage[proto.Message, TMetadata]) (any, bool)
+	// access to the value of another key, or the object derived from it.
+	GetValue(key model_core.PatchedMessage[proto.Message, TMetadata]) model_core.Message[proto.Message, TReference]
+	GetObject(key model_core.PatchedMessage[proto.Message, TMetadata]) (any, bool)
 }

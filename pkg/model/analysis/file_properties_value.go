@@ -99,7 +99,7 @@ func (r *reposFilePropertiesResolver[TReference, TMetadata]) getCurrentFilePrope
 }
 
 func (baseComputer[TReference, TMetadata]) ComputeFilePropertiesValue(ctx context.Context, key *model_analysis_pb.FileProperties_Key, e FilePropertiesEnvironment[TReference, TMetadata]) (PatchedFilePropertiesValue[TMetadata], error) {
-	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
+	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	if !gotDirectoryReaders {
 		return PatchedFilePropertiesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}

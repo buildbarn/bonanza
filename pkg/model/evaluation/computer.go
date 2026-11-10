@@ -17,14 +17,19 @@ import (
 // progress.
 var ErrMissingDependency = errors.New("missing dependency")
 
-// Computer of values belonging to keys. Keys are always provided in the
-// form of a Protobuf message. The resulting values can either be
-// Protobuf messages, or ones belonging to native Go types.
+// Computer of values belonging to keys. Both keys and values are always
+// provided in the form of a Protobuf message.
+//
+// Values may have an object associated with them, consisting of an
+// arbitrary Go value that is derived from the message. These are useful
+// for values that are expensive to convert to the form in which they
+// are used, or for which it is desirable that only a single instance
+// exists. Objects are not written to the cache, and can't depend on
+// anything other than the value.
 type Computer[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	ComputeMessageValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error)
-	ComputeNativeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (any, error)
+	ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error)
+	ComputeObject(value model_core.Message[proto.Message, TReference]) (any, error)
 	IsLookup(typeURL string) bool
-	ReturnsNativeValue(typeURL string) bool
 }
 
 // ComputerForTesting is used to generate mocks that are used by

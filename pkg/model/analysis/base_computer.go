@@ -229,8 +229,8 @@ const maximumLargeStringSizeBytes = 64 << 20
 // getFileReader returns the FileReader that can be used to read the
 // contents of files, and strings that are too large to be stored
 // inline.
-func getFileReader[TReference object.BasicReference](e FileReaderValueGetter[TReference]) (*model_filesystem.FileReader[TReference], error) {
-	fileReader, ok := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
+func getFileReader[TReference object.BasicReference](e FileAccessParametersObjectGetter[TReference]) (*model_filesystem.FileReader[TReference], error) {
+	fileReader, ok := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	if !ok {
 		return nil, evaluation.ErrMissingDependency
 	}
@@ -247,7 +247,7 @@ func getStringValue[TReference object.BasicReference](ctx context.Context, fileR
 // that are needed to encode Starlark values.
 type valueEncodingEnvironment[TReference, TMetadata any] interface {
 	model_core.ObjectCapturer[TReference, TMetadata]
-	FileCreationParametersObjectValueGetter
+	FileCreationParametersObjectGetter
 }
 
 // valueEncodingOptionsFactory can be used to create instances of
@@ -266,7 +266,7 @@ func (c *baseComputer[TReference, TMetadata]) newValueEncodingOptionsFactory(e v
 	// Strings that are too large to be stored inline are stored
 	// using the same parameters as files, so that they can share
 	// data with files.
-	fileCreationParameters, ok := e.GetFileCreationParametersObjectValue(&model_analysis_pb.FileCreationParametersObject_Key{})
+	fileCreationParameters, ok := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
 	if !ok {
 		return nil, evaluation.ErrMissingDependency
 	}
@@ -302,7 +302,7 @@ type valueDecodingOptionsFactory[TReference object.BasicReference, TMetadata mod
 
 // newValueDecodingOptionsFactory creates a valueDecodingOptionsFactory,
 // obtaining all of its dependencies from the environment.
-func (c *baseComputer[TReference, TMetadata]) newValueDecodingOptionsFactory(e FileReaderValueGetter[TReference]) (*valueDecodingOptionsFactory[TReference, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) newValueDecodingOptionsFactory(e FileAccessParametersObjectGetter[TReference]) (*valueDecodingOptionsFactory[TReference, TMetadata], error) {
 	fileReader, err := getFileReader(e)
 	if err != nil {
 		return nil, err
@@ -475,7 +475,7 @@ func formatStarlarkError(err error) error {
 
 type starlarkThreadEnvironment[TReference object.BasicReference] interface {
 	loadBzlGlobalsEnvironment[TReference]
-	FileReaderValueGetter[TReference]
+	FileAccessParametersObjectGetter[TReference]
 }
 
 // trimBuiltinModuleNames truncates the list of built-in module names up
@@ -659,7 +659,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 		Path:          repoFileName.String(),
 	})
 
-	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
+	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	if !repoFileProperties.IsSet() || !gotFileReader {
 		return PatchedRepoDefaultAttrsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}

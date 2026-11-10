@@ -283,16 +283,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			patchedID.Patcher,
 		),
 	)
-	actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
-	actionReaders, gotActionReaders := e.GetActionReadersValue(&model_analysis_pb.ActionReaders_Key{})
+	actionEncoders, gotActionEncoders := e.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{})
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	directoryCreationParametersMessage := e.GetDirectoryCreationParametersValue(&model_analysis_pb.DirectoryCreationParameters_Key{})
-	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
+	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	fileCreationParametersMessage := e.GetFileCreationParametersValue(&model_analysis_pb.FileCreationParameters_Key{})
 	if !action.IsSet() ||
 		!allBuiltinsModulesNames.IsSet() ||
-		!gotActionEncoder ||
-		!gotActionReaders ||
+		!gotActionEncoders ||
 		!directoryCreationParametersMessage.IsSet() ||
 		!gotDirectoryReaders ||
 		!fileCreationParametersMessage.IsSet() {
@@ -307,7 +305,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	// Construct the list of command line arguments.
 	// TODO: Respect use_param_file().
 	referenceFormat := c.referenceFormat
-	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(ctx, actionEncoder, referenceFormat, e)
+	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(ctx, actionEncoders.Encoder, referenceFormat, e)
 	thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
 	if err != nil {
 		return PatchedTargetActionCommandValue[TMetadata]{}, err
@@ -628,7 +626,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	// pathname components to make it relative to the input root.
 	packageRelativeOutputPathPatternChildren, err := model_command.PathPatternGetChildren(
 		ctx,
-		actionReaders.CommandPathPatternChildren,
+		actionEncoders.Readers.CommandPathPatternChildren,
 		model_core.Nested(action, actionDefinition.OutputPathPattern),
 	)
 	if err != nil {
@@ -643,7 +641,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			ctx,
 			packageComponents[i],
 			outputPathPatternChildren,
-			actionEncoder,
+			actionEncoders.Encoder,
 			inlinedTreeOptions,
 			e,
 		)
@@ -666,7 +664,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			ctx,
 			component,
 			outputPathPatternChildren,
-			actionEncoder,
+			actionEncoders.Encoder,
 			inlinedTreeOptions,
 			e,
 		)
@@ -691,7 +689,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			// Fields that can be stored externally if needed.
 			{
 				ExternalMessage: model_core.ProtoListToBinaryMarshaler(argumentsList),
-				Encoder:         actionEncoder,
+				Encoder:         actionEncoders.Encoder,
 				ParentAppender: func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
@@ -720,7 +718,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			),
 			{
 				ExternalMessage: model_core.ProtoToBinaryMarshaler(outputPathPatternChildren),
-				Encoder:         actionEncoder,
+				Encoder:         actionEncoders.Encoder,
 				ParentAppender: inlinedtree.Capturing(ctx, e, func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
 					externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
@@ -741,7 +739,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoToBinaryMarshaler(command),
 		referenceFormat,
-		actionEncoder,
+		actionEncoders.Encoder,
 	)
 
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.TargetActionCommand_Value, error) {

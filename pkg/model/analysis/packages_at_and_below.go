@@ -76,7 +76,7 @@ func (baseComputer[TReference, TMetadata]) getPackageDirectory(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx context.Context, key *model_analysis_pb.PackagesAtAndBelow_Key, e PackagesAtAndBelowEnvironment[TReference, TMetadata]) (PatchedPackagesAtAndBelowValue[TMetadata], error) {
-	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
+	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	if !gotDirectoryReaders {
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}

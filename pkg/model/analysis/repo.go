@@ -894,7 +894,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	singleVersionOverridePatchCommands []string,
 	singleVersionOverridePatchStrip int,
 ) (PatchedRepoValue[TMetadata], error) {
-	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
+	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	if !gotFileReader {
 		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -1130,10 +1130,10 @@ type patchToApply[TReference object.BasicReference] struct {
 type applyPatchesEnvironment[TReference object.BasicReference, TMetadata any] interface {
 	model_core.ObjectCapturer[TReference, TMetadata]
 
-	DirectoryCreationParametersObjectValueGetter
-	DirectoryReadersValueGetter[TReference]
-	FileCreationParametersObjectValueGetter
-	FileReaderValueGetter[TReference]
+	DirectoryCreationParametersObjectGetter
+	DirectoryAccessParametersObjectGetter[TReference]
+	FileCreationParametersObjectGetter
+	FileAccessParametersObjectGetter[TReference]
 }
 
 func (c *baseComputer[TReference, TMetadata]) applyPatches(
@@ -1144,10 +1144,10 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 	overlayFiles []overlayFile[TReference],
 	patches []patchToApply[TReference],
 ) (PatchedRepoValue[TMetadata], error) {
-	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
-	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
-	directoryReaders, gotDirectoryReaders := e.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{})
-	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObjectValue(&model_analysis_pb.FileCreationParametersObject_Key{})
+	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
+	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
+	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
+	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
 	if !gotFileReader || !gotDirectoryCreationParameters || !gotDirectoryReaders || !gotFileCreationParameters {
 		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -1386,21 +1386,21 @@ func newRepositoryOS[TReference object.BasicReference, TMetadata model_core.Refe
 type moduleOrRepositoryContextEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ObjectCapturer[TReference, TMetadata]
 
-	ActionEncoderObjectValueGetter
+	ActionEncodersObjectGetter[TReference]
 	ActionResultValueGetter[TReference, TMetadata]
-	DirectoryCreationParametersObjectValueGetter
+	DirectoryCreationParametersObjectGetter
 	DirectoryCreationParametersValueGetter[TReference]
-	DirectoryReadersValueGetter[TReference]
-	FileCreationParametersObjectValueGetter
+	DirectoryAccessParametersObjectGetter[TReference]
+	FileCreationParametersObjectGetter
 	FileCreationParametersValueGetter[TReference]
-	FileReaderValueGetter[TReference]
+	FileAccessParametersObjectGetter[TReference]
 	HTTPArchiveContentsValueGetter[TReference]
 	HTTPFileContentsValueGetter[TReference]
 	RegisteredRepoPlatformValueGetter[TReference]
 	RepoPlatformHostPathValueGetter[TReference]
 	RepoValueGetter[TReference]
 	RootModuleValueGetter[TReference]
-	StableInputRootPathObjectValueGetter
+	StableInputRootPathObjectGetter
 	SuccessfulActionResultValueGetter[TReference, TMetadata]
 }
 
@@ -1460,8 +1460,8 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) resolveRepoDirector
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetActionEncoder() {
 	if mrc.actionEncoder == nil {
-		if v, ok := mrc.environment.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{}); ok {
-			mrc.actionEncoder = v
+		if v, ok := mrc.environment.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{}); ok {
+			mrc.actionEncoder = v.Encoder
 		}
 	}
 }
@@ -1469,7 +1469,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetActionEncod
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetDirectoryCreationParameters() {
 	mrc.maybeGetDirectoryReaders()
 	if mrc.directoryCreationParameters == nil {
-		if v, ok := mrc.environment.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{}); ok {
+		if v, ok := mrc.environment.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{}); ok {
 			mrc.directoryCreationParameters = v
 		}
 	}
@@ -1485,7 +1485,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetDirectoryCr
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetDirectoryReaders() {
 	if mrc.directoryReaders == nil {
-		if v, ok := mrc.environment.GetDirectoryReadersValue(&model_analysis_pb.DirectoryReaders_Key{}); ok {
+		if v, ok := mrc.environment.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{}); ok {
 			mrc.directoryReaders = v
 			mrc.directoryLoadOptions = &changeTrackingDirectoryLoadOptions[TReference]{
 				context:                 mrc.context,
@@ -1498,7 +1498,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetDirectoryRe
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetFileCreationParameters() {
 	if mrc.fileCreationParameters == nil {
-		if v, ok := mrc.environment.GetFileCreationParametersObjectValue(&model_analysis_pb.FileCreationParametersObject_Key{}); ok {
+		if v, ok := mrc.environment.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{}); ok {
 			mrc.fileCreationParameters = v
 		}
 	}
@@ -1514,7 +1514,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetFileCreatio
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetFileReader() {
 	if mrc.fileReader == nil {
-		if v, ok := mrc.environment.GetFileReaderValue(&model_analysis_pb.FileReader_Key{}); ok {
+		if v, ok := mrc.environment.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{}); ok {
 			mrc.fileReader = v
 		}
 	}
@@ -1540,7 +1540,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetRepoPlatfor
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetStableInputRootPath() error {
 	if mrc.virtualRootScopeWalkerFactory == nil {
-		stableInputRootPath, ok := mrc.environment.GetStableInputRootPathObjectValue(&model_analysis_pb.StableInputRootPathObject_Key{})
+		stableInputRootPath, ok := mrc.environment.GetStableInputRootPathObject(&model_analysis_pb.StableInputRootPath_Key{})
 		if !ok {
 			return evaluation.ErrMissingDependency
 		}
@@ -3543,10 +3543,11 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	repoPlatform := e.GetRegisteredRepoPlatformValue(&model_analysis_pb.RegisteredRepoPlatform_Key{})
-	repositoryRule, gotRepositoryRule := e.GetRepositoryRuleObjectValue(&model_analysis_pb.RepositoryRuleObject_Key{
-		Identifier: repo.Message.RepositoryRuleIdentifier,
-	})
-	if !gotRepositoryRule || !allBuiltinsModulesNames.IsSet() || !repoPlatform.IsSet() || !rootModuleValue.IsSet() {
+	repositoryRuleDefinition, err := getRepositoryRuleDefinition(e, repo.Message.RepositoryRuleIdentifier)
+	if err != nil {
+		return PatchedRepoValue[TMetadata]{}, err
+	}
+	if !repositoryRuleDefinition.IsSet() || !allBuiltinsModulesNames.IsSet() || !repoPlatform.IsSet() || !rootModuleValue.IsSet() {
 		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
@@ -3561,7 +3562,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, err
 	}
-	implementation, repositoryRuleAttrs, err := c.decodeRepositoryRule(thread, repositoryRule)
+	implementation, repositoryRuleAttrs, err := c.decodeRepositoryRule(thread, repositoryRuleDefinition)
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, err
 	}

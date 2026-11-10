@@ -862,8 +862,9 @@ copying:
 In return, `ValueEncodingOptions` gains `FileCreationParameters`
 (chunk encoders and MaxCDC parameters), and `ValueDecodingOptions`
 gains a `FileReader`. In `pkg/model/analysis` these are the build's
-parameters, obtained through the `FileCreationParametersObject` and
-`FileReader` keys, so that strings can share data with files. A
+parameters, obtained through the native counterparts of the
+`FileCreationParameters` and `FileAccessParameters` values, so that
+strings can share data with files. A
 `valueEncodingOptionsFactory` obtains the file creation parameters
 from the environment up front, and then creates `ValueEncodingOptions`
 given just a context and the current filename. The `FileReader` is
@@ -1208,11 +1209,11 @@ removed.
 | `CompiledProgram.code` stored only if `needsCode` | Replaced by a B-tree of `Funcode`s in `CompiledProgram`, which functions refer to by name. |
 | `NameAndExtractGlobals()` names rules, providers, etc. after the `.bzl` file has finished executing, picking the alphabetically first global if a value is bound to several | `BzlModule.SetGlobal()` names them as soon as they are assigned to a global, so the name is visible to the rest of the file and the first assignment wins, as in Bazel. Values that are never bound to a global directly (e.g., stored in a dict) stay unnamed. |
 
-That removes every Starlark-related native value key. The native keys
-that remain (`FileReader`, `ActionReaders`, `*CreationParametersObject`,
-encoder objects, etc.) are derived from message values and could
-become a per-process cache keyed by those messages. That's a separate
-change, but this design removes the last thing that would block it.
+That removes every Starlark-related native value. The ones that remain
+(file and directory readers, encoder objects, etc.) are native
+counterparts of message values. These are derived from just the message
+of the value, and declared through `objectType` on the
+corresponding entry in `computer.json`.
 
 ## Migration plan
 
@@ -1296,9 +1297,8 @@ interpreters side by side in one binary isn't practical. Instead:
      `ValueDecodingOptions.PredeclaredResolver`, which computes them on
      first use.
    - For the same reason, `RuleImplementationWrappers` became a
-     message-valued key, and `RepositoryRuleObject` holds the
-     definition message of the repository rule, which is decoded by
-     each evaluation that calls it.
+     message-valued key. The definition of a repository rule is decoded
+     by each evaluation that calls it.
    - `.bzl` and `BUILD` files are compiled by `loadProgram()`. It
      canonicalizes the labels of `load()` statements, and checks that
      all loaded symbols exist before any code is executed. Loaded

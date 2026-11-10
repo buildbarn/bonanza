@@ -21,7 +21,7 @@ import (
 )
 
 type parseLocalModuleDotBazelEnvironment[TReference object.BasicReference] interface {
-	FileReaderValueGetter[TReference]
+	FileAccessParametersObjectGetter[TReference]
 	FilePropertiesValueGetter[TReference]
 }
 
@@ -48,7 +48,7 @@ func (c *baseComputer[TReference, TMetadata]) parseLocalModuleInstanceModuleDotB
 }
 
 type parseActiveModuleDotBazelEnvironment[TReference object.BasicReference] interface {
-	FileReaderValueGetter[TReference]
+	FileAccessParametersObjectGetter[TReference]
 	ModuleDotBazelContentsValueGetter[TReference]
 }
 
@@ -71,8 +71,8 @@ func (c *baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDot
 
 var bazelToolsModule = util.Must(label.NewModule("bazel_tools"))
 
-func (baseComputer[TReference, TMetadata]) parseModuleDotBazel(ctx context.Context, moduleContentsMsg model_core.Message[*model_filesystem_pb.FileContents, TReference], moduleInstance label.ModuleInstance, e FileReaderValueGetter[TReference], handler moduledotbazel.RootHandler) error {
-	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
+func (baseComputer[TReference, TMetadata]) parseModuleDotBazel(ctx context.Context, moduleContentsMsg model_core.Message[*model_filesystem_pb.FileContents, TReference], moduleInstance label.ModuleInstance, e FileAccessParametersObjectGetter[TReference], handler moduledotbazel.RootHandler) error {
+	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	if !gotFileReader {
 		return evaluation.ErrMissingDependency
 	}
@@ -118,8 +118,8 @@ func (baseComputer[TReference, TMetadata]) parseModuleDotBazel(ctx context.Conte
 type visitModuleDotBazelFilesBreadthFirstEnvironment[TReference object.BasicReference] interface {
 	parseActiveModuleDotBazelEnvironment[TReference]
 
-	FileReaderValueGetter[TReference]
-	ModulesWithMultipleVersionsObjectValueGetter
+	FileAccessParametersObjectGetter[TReference]
+	ModulesWithMultipleVersionsObjectGetter
 	RootModuleValueGetter[TReference]
 }
 
@@ -163,7 +163,7 @@ func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFir
 	createHandler func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler,
 ) error {
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
-	modulesWithMultipleVersions, gotModulesWithMultipleVersions := e.GetModulesWithMultipleVersionsObjectValue(&model_analysis_pb.ModulesWithMultipleVersionsObject_Key{})
+	modulesWithMultipleVersions, gotModulesWithMultipleVersions := e.GetModulesWithMultipleVersionsObject(&model_analysis_pb.ModulesWithMultipleVersions_Key{})
 	if !rootModuleValue.IsSet() || !gotModulesWithMultipleVersions {
 		return evaluation.ErrMissingDependency
 	}

@@ -62,7 +62,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 	repoDefaultAttrsValue := e.GetRepoDefaultAttrsValue(&model_analysis_pb.RepoDefaultAttrs_Key{
 		CanonicalRepo: canonicalRepo.String(),
 	})
-	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
+	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	if !allBuiltinsModulesNames.IsSet() || !repoDefaultAttrsValue.IsSet() || !gotFileReader {
 		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}

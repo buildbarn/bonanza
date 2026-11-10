@@ -49,8 +49,8 @@ func TestPackagesAtAndBelow(t *testing.T) {
 	// directory hierarchy where "foo" has the provided children.
 	compute := func(t *testing.T, fooChildren []*model_filesystem_pb.DirectoryNode, includes, excludes []string) (*model_analysis_pb.PackagesAtAndBelow_Value, error) {
 		e := NewMockPackagesAtAndBelowEnvironmentForTesting(ctrl)
-		e.EXPECT().GetDirectoryReadersValue(
-			testutil.EqProto(t, &model_analysis_pb.DirectoryReaders_Key{}),
+		e.EXPECT().GetDirectoryAccessParametersObject(
+			testutil.EqProto(t, &model_analysis_pb.DirectoryAccessParameters_Key{}),
 		).Return(&analysis.DirectoryReaders[model_core.CreatedObjectTree]{
 			DirectoryContents: model_parser.LookupParsedObjectReader(
 				bct.parsedObjectPoolIngester,

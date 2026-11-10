@@ -40,7 +40,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// the Fibonacci sequence recursively. Due to
 		// memoization, this should run in polynomial time.
 		computer := NewMockComputerForTesting(ctrl)
-		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				// Base case: fib(0) and fib(1).
 				k := key.Message.(*wrapperspb.UInt32Value)
@@ -53,10 +53,10 @@ func TestRecursiveComputer(t *testing.T) {
 				}
 
 				// Recursion: fib(n) = fib(n-2) + fib(n-1).
-				v0 := e.GetMessageValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
+				v0 := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
 					Value: k.Value - 2,
 				}))
-				v1 := e.GetMessageValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
+				v1 := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
 					Value: k.Value - 1,
 				}))
 				if !v0.IsSet() || !v1.IsSet() {
@@ -98,7 +98,6 @@ func TestRecursiveComputer(t *testing.T) {
 			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			util.Must(
 				model_core.MarshalTopLevelAny(
@@ -198,9 +197,9 @@ func TestRecursiveComputer(t *testing.T) {
 		// request its own value recursively. This should
 		// immediately trigger cycle detection.
 		computer := NewMockComputerForTesting(ctrl)
-		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
-				v := e.GetMessageValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](key.Message))
+				v := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](key.Message))
 				require.False(t, v.IsSet())
 				return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 			})
@@ -233,7 +232,6 @@ func TestRecursiveComputer(t *testing.T) {
 			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			util.Must(
 				model_core.MarshalTopLevelAny(
@@ -265,14 +263,14 @@ func TestRecursiveComputer(t *testing.T) {
 		// deep. At some point this will return an error, which
 		// should be propagated all the way back up.
 		computer := NewMockComputerForTesting(ctrl)
-		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				k := key.Message.(*wrapperspb.UInt32Value)
 				if k.Value == 0 {
 					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, errors.New("reached zero")
 				}
 
-				v := e.GetMessageValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
+				v := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
 					Value: k.Value - 1,
 				}))
 				if !v.IsSet() {
@@ -312,7 +310,6 @@ func TestRecursiveComputer(t *testing.T) {
 			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		keyState2, err := recursiveComputer.GetOrCreateKeyState(
 			util.Must(
 				model_core.MarshalTopLevelAny(
@@ -326,13 +323,11 @@ func TestRecursiveComputer(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		errCompute := program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
 			queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
 			return recursiveComputer.WaitForEvaluation(ctx, keyState2)
 		})
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		keyState0, err := recursiveComputer.GetOrCreateKeyState(
 			util.Must(
 				model_core.MarshalTopLevelAny(
@@ -346,7 +341,6 @@ func TestRecursiveComputer(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		keyState1, err := recursiveComputer.GetOrCreateKeyState(
 			util.Must(
 				model_core.MarshalTopLevelAny(
@@ -440,7 +434,6 @@ func TestRecursiveComputer(t *testing.T) {
 			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			util.Must(
 				model_core.MarshalTopLevelAny(
@@ -463,7 +456,7 @@ func TestRecursiveComputer(t *testing.T) {
 				0x74, 0x76, 0x7c, 0x78, 0xea, 0x47, 0x94, 0xc6,
 			},
 		).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist"))
-		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
 					&wrapperspb.UInt64Value{Value: 42},
@@ -518,7 +511,6 @@ func TestRecursiveComputer(t *testing.T) {
 			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			util.Must(
 				model_core.MarshalTopLevelAny(
@@ -553,7 +545,7 @@ func TestRecursiveComputer(t *testing.T) {
 				),
 			),
 		).Return(model_core.Message[*model_evaluation_cache_pb.LookupResult, object.LocalReference]{}, status.Error(codes.NotFound, "Object does not exist"))
-		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
 					&wrapperspb.UInt64Value{Value: 42},
@@ -609,7 +601,6 @@ func TestRecursiveComputer(t *testing.T) {
 			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			util.Must(
 				model_core.MarshalTopLevelAny(
@@ -650,7 +641,7 @@ func TestRecursiveComputer(t *testing.T) {
 				},
 			},
 		), nil)
-		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
 					&wrapperspb.UInt64Value{Value: 13},
@@ -705,7 +696,6 @@ func TestRecursiveComputer(t *testing.T) {
 			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(
 			util.Must(
 				model_core.MarshalTopLevelAny(
@@ -801,7 +791,6 @@ func TestRecursiveComputer(t *testing.T) {
 			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
 		)
 
-		computer.EXPECT().ReturnsNativeValue("type.googleapis.com/google.protobuf.UInt32Value").Return(false)
 		keyState, err := recursiveComputer.GetOrCreateKeyState(cacheTestKey(18))
 		require.NoError(t, err)
 
@@ -841,7 +830,7 @@ func TestRecursiveComputer(t *testing.T) {
 			},
 		), nil)
 
-		computer.EXPECT().ComputeMessageValue(gomock.Any(), gomock.Any(), gomock.Any()).
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
 				testutil.RequireEqualProto(t, &wrapperspb.UInt32Value{
 					Value: 18,
@@ -855,6 +844,130 @@ func TestRecursiveComputer(t *testing.T) {
 
 		require.NoError(
 			t,
+			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+				queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
+				return recursiveComputer.WaitForEvaluation(ctx, keyState)
+			}),
+		)
+	})
+}
+
+func TestRecursiveComputerObject(t *testing.T) {
+	ctrl, ctx := gomock.WithContext(context.Background(), t)
+
+	sourceKey := func(value uint32) model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata] {
+		return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{Value: value})
+	}
+	marshalKey := func(value uint32) model_core.TopLevelMessage[*anypb.Any, object.LocalReference] {
+		return util.Must(
+			model_core.MarshalTopLevelAny(
+				model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+					&wrapperspb.UInt32Value{Value: value},
+				),
+			),
+		)
+	}
+	newRecursiveComputer := func(computer *MockComputerForTesting) (*model_evaluation.RecursiveComputer[object.LocalReference, model_core.ReferenceMetadata], model_evaluation.RecursiveComputerEvaluationQueues[object.LocalReference, model_core.ReferenceMetadata]) {
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		tagStore := NewMockBoundStoreForTesting(ctrl)
+		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
+		lookupResultReader := NewMockLookupResultReaderForTesting(ctrl)
+		lookupResultReader.EXPECT().GetDecodingParametersSizeBytes().Return(16).AnyTimes()
+		queues := model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1).NewQueues()
+		return model_evaluation.NewRecursiveComputer(
+			computer,
+			queues,
+			object.SHA256V1ReferenceFormat,
+			NewMockObjectManagerForTesting(ctrl),
+			tagStore,
+			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("f07997aa26d63ad33c8b2e6f920ae9b42c93bacb67c84ae529d065c6d572d342", 2323, 0, 0, 0),
+			NewMockProtoEvaluationReaderForTesting(ctrl),
+			lookupResultReader,
+			NewMockKeysReaderForTesting(ctrl),
+			model_encoding.NewChainedDeterministicBinaryEncoder(nil),
+			NewMockKeyedBinaryEncoder(ctrl),
+			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
+		), queues
+	}
+	computeValue := func(onObject func(any)) func(context.Context, model_core.Message[proto.Message, object.LocalReference], model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+		return func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+			// Key 0 is the source of the object. Key
+			// 3 depends on keys 1 and 2, which both request
+			// the object.
+			switch k := key.Message.(*wrapperspb.UInt32Value).Value; k {
+			case 0:
+				return sourceKey(1000), nil
+			case 3:
+				v1 := e.GetValue(sourceKey(1))
+				v2 := e.GetValue(sourceKey(2))
+				if !v1.IsSet() || !v2.IsSet() {
+					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
+				}
+				return sourceKey(3), nil
+			default:
+				object, ok := e.GetObject(sourceKey(0))
+				if !ok {
+					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
+				}
+				onObject(object)
+				return sourceKey(k), nil
+			}
+		}
+	}
+
+	t.Run("Success", func(t *testing.T) {
+		// The conversion should only be performed once, and be
+		// given the value of the key. All consumers should see
+		// the same instance.
+		var objects []any
+		computer := NewMockComputerForTesting(ctrl)
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(computeValue(func(object any) {
+				objects = append(objects, object)
+			})).
+			AnyTimes()
+		instance := new(int)
+		computer.EXPECT().ComputeObject(gomock.Any()).
+			DoAndReturn(func(value model_core.Message[proto.Message, object.LocalReference]) (any, error) {
+				require.Equal(t, uint32(1000), value.Message.(*wrapperspb.UInt32Value).Value)
+				return instance, nil
+			})
+		recursiveComputer, queues := newRecursiveComputer(computer)
+
+		keyState, err := recursiveComputer.GetOrCreateKeyState(marshalKey(3))
+		require.NoError(t, err)
+		require.NoError(t, program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+			queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
+			return recursiveComputer.WaitForEvaluation(ctx, keyState)
+		}))
+		require.Len(t, objects, 2)
+		require.Same(t, instance, objects[0])
+		require.Same(t, instance, objects[1])
+	})
+
+	t.Run("ConversionFailure", func(t *testing.T) {
+		// Failures to perform the conversion should be reported
+		// against the key whose value is being converted.
+		computer := NewMockComputerForTesting(ctrl)
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(computeValue(func(any) {
+				t.Error("Object should not have been provided")
+			})).
+			AnyTimes()
+		computer.EXPECT().ComputeObject(gomock.Any()).Return(nil, errors.New("invalid value"))
+		recursiveComputer, queues := newRecursiveComputer(computer)
+
+		keyState, err := recursiveComputer.GetOrCreateKeyState(marshalKey(1))
+		require.NoError(t, err)
+		sourceKeyState, err := recursiveComputer.GetOrCreateKeyState(marshalKey(0))
+		require.NoError(t, err)
+		require.Equal(
+			t,
+			model_evaluation.NestedError[object.LocalReference, model_core.ReferenceMetadata]{
+				KeyState: sourceKeyState,
+				Err:      errors.New("invalid value"),
+			},
 			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
 				queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
 				return recursiveComputer.WaitForEvaluation(ctx, keyState)

@@ -1,31 +1,57 @@
 package analysis
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	model_core "bonanza.build/pkg/model/core"
-	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 )
 
-// RepositoryRule contains the definition of a repository rule, such as
-// its implementation function and the attributes it accepts. Use
-// decodeRepositoryRule() to obtain the definition in the form of
-// Starlark values.
-type RepositoryRule[TReference any, TMetadata model_core.ReferenceMetadata] struct {
-	Definition model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]
+// getRepositoryRuleDefinition obtains the definition of a repository
+// rule, given the identifier of the global holding it. An unset message
+// is returned if not all dependencies are available yet.
+func getRepositoryRuleDefinition[TReference any](e CompiledBzlFileGlobalValueGetter[TReference], identifier string) (model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference], error) {
+	seenIdentifiers := map[string]struct{}{}
+	for {
+		if _, ok := seenIdentifiers[identifier]; ok {
+			return model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]{}, fmt.Errorf("repository rule %#v refers to itself", identifier)
+		}
+		seenIdentifiers[identifier] = struct{}{}
+
+		repositoryRuleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+			Identifier: identifier,
+		})
+		if !repositoryRuleValue.IsSet() {
+			return model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]{}, nil
+		}
+
+		v, ok := repositoryRuleValue.Message.Global.GetKind().(*model_starlark_pb.Value_RepositoryRule)
+		if !ok {
+			return model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]{}, errors.New("global value is not a repository rule")
+		}
+		switch kind := v.RepositoryRule.Kind.(type) {
+		case *model_starlark_pb.RepositoryRule_Definition_:
+			return model_core.Nested(repositoryRuleValue, kind.Definition), nil
+		case *model_starlark_pb.RepositoryRule_Reference:
+			// When use_repo_rule() is used, the repository
+			// rule identifier may still refer to a global
+			// that refers to the actual repository rule
+			// object.
+			identifier = kind.Reference
+		default:
+			return model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]{}, errors.New("unknown kind of repository rule")
+		}
+	}
 }
 
 // decodeRepositoryRule decodes the definition of a repository rule, so
 // that its implementation function can be invoked.
-func (c *baseComputer[TReference, TMetadata]) decodeRepositoryRule(thread *eval.Thread, repositoryRule *RepositoryRule[TReference, TMetadata]) (eval.Value, AttrsDict[TReference, TMetadata], error) {
-	definition := repositoryRule.Definition
+func (c *baseComputer[TReference, TMetadata]) decodeRepositoryRule(thread *eval.Thread, definition model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]) (eval.Value, AttrsDict[TReference, TMetadata], error) {
 	attrs, err := c.decodeAttrsDict(thread, model_core.Nested(definition, definition.Message.Attrs))
 	if err != nil {
 		return nil, AttrsDict[TReference, TMetadata]{}, err
@@ -34,41 +60,6 @@ func (c *baseComputer[TReference, TMetadata]) decodeRepositoryRule(thread *eval.
 		return nil, AttrsDict[TReference, TMetadata]{}, errors.New("repository rule does not have an implementation function")
 	}
 	return model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(definition, definition.Message.Implementation)), attrs, nil
-}
-
-func (*baseComputer[TReference, TMetadata]) ComputeRepositoryRuleObjectValue(ctx context.Context, key *model_analysis_pb.RepositoryRuleObject_Key, e RepositoryRuleObjectEnvironment[TReference, TMetadata]) (*RepositoryRule[TReference, TMetadata], error) {
-	repositoryRuleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
-		Identifier: key.Identifier,
-	})
-	if !repositoryRuleValue.IsSet() {
-		return nil, evaluation.ErrMissingDependency
-	}
-
-	v, ok := repositoryRuleValue.Message.Global.GetKind().(*model_starlark_pb.Value_RepositoryRule)
-	if !ok {
-		return nil, errors.New("global value is not a repository rule")
-	}
-	switch kind := v.RepositoryRule.Kind.(type) {
-	case *model_starlark_pb.RepositoryRule_Definition_:
-		return &RepositoryRule[TReference, TMetadata]{
-			Definition: model_core.Nested(repositoryRuleValue, kind.Definition),
-		}, nil
-	case *model_starlark_pb.RepositoryRule_Reference:
-		// When use_repo_rule() is used, the repository rule
-		// identifier may still refer to a global that refers to
-		// the actual repository rule object.
-		repositoryRuleObject, ok := e.GetRepositoryRuleObjectValue(
-			&model_analysis_pb.RepositoryRuleObject_Key{
-				Identifier: kind.Reference,
-			},
-		)
-		if !ok {
-			return nil, evaluation.ErrMissingDependency
-		}
-		return repositoryRuleObject, nil
-	default:
-		return nil, errors.New("unknown kind of repository rule")
-	}
 }
 
 // PublicAttr contains information on a public attribute accepted by a

@@ -243,9 +243,9 @@ func (af *capturableArchiveFile[TFile]) CreateFileMerkleTree(ctx context.Context
 func (capturableArchiveFile[TFile]) Discard() {}
 
 func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx context.Context, key *model_analysis_pb.HttpArchiveContents_Key, e HTTPArchiveContentsEnvironment[TReference, TMetadata]) (PatchedHTTPArchiveContentsValue[TMetadata], error) {
-	fileReader, gotFileReader := e.GetFileReaderValue(&model_analysis_pb.FileReader_Key{})
-	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
-	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObjectValue(&model_analysis_pb.FileCreationParametersObject_Key{})
+	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
+	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
+	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
 	httpFileContentsValue := e.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
 		FetchOptions: key.FetchOptions,
 	})

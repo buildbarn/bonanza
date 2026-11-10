@@ -593,15 +593,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		}
 
 		allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
-		actionEncoder, gotActionEncoder := e.GetActionEncoderObjectValue(&model_analysis_pb.ActionEncoderObject_Key{})
-		directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObjectValue(&model_analysis_pb.DirectoryCreationParametersObject_Key{})
-		fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObjectValue(&model_analysis_pb.FileCreationParametersObject_Key{})
+		actionEncoders, gotActionEncoders := e.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{})
+		directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
+		fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
 		ruleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
 			Identifier: ruleIdentifier.String(),
 		})
 		ruleImplementationWrappers := e.GetRuleImplementationWrappersValue(&model_analysis_pb.RuleImplementationWrappers_Key{})
 		if !allBuiltinsModulesNames.IsSet() ||
-			!gotActionEncoder ||
+			!gotActionEncoders ||
 			!gotDirectoryCreationParameters ||
 			!gotFileCreationParameters ||
 			!ruleValue.IsSet() ||
@@ -1263,7 +1263,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			outputs:                     model_starlark.NewStructFromDict[TReference, TMetadata](nil, outputsValues),
 			execGroups:                  execGroups,
 			outputRegistrar:             &outputRegistrar,
-			actionEncoder:               actionEncoder,
+			actionEncoder:               actionEncoders.Encoder,
 			directoryCreationParameters: directoryCreationParameters,
 			fileCreationParameters:      fileCreationParameters,
 		}

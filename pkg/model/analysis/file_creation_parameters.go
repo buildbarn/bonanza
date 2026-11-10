@@ -19,11 +19,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileCreationParametersValue(ct
 	}), nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeFileCreationParametersObjectValue(ctx context.Context, key *model_analysis_pb.FileCreationParametersObject_Key, e FileCreationParametersObjectEnvironment[TReference, TMetadata]) (*model_filesystem.FileCreationParameters, error) {
-	fileCreationParameters := e.GetFileCreationParametersValue(&model_analysis_pb.FileCreationParameters_Key{})
-	if !fileCreationParameters.IsSet() {
-		return nil, evaluation.ErrMissingDependency
-	}
+func (c *baseComputer[TReference, TMetadata]) ComputeFileCreationParametersObject(fileCreationParameters model_core.Message[*model_analysis_pb.FileCreationParameters_Value, TReference]) (*model_filesystem.FileCreationParameters, error) {
 	return model_filesystem.NewFileCreationParametersFromProto(
 		fileCreationParameters.Message.FileCreationParameters,
 		c.referenceFormat,

@@ -13,7 +13,7 @@ import (
 )
 
 func (baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ActionResult_Key, TReference], e ActionResultEnvironment[TReference, TMetadata]) (PatchedActionResultValue[TMetadata], error) {
-	actionReaders, gotActionReaders := e.GetActionReadersValue(&model_analysis_pb.ActionReaders_Key{})
+	actionEncoders, gotActionEncoders := e.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{})
 	rawActionResultValue := e.GetRawActionResultValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.RawActionResult_Key {
 			return &model_analysis_pb.RawActionResult_Key{
@@ -21,13 +21,13 @@ func (baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx context.
 			}
 		}),
 	)
-	if !gotActionReaders || !rawActionResultValue.IsSet() {
+	if !gotActionEncoders || !rawActionResultValue.IsSet() {
 		return PatchedActionResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	result, err := model_parser.Dereference(
 		ctx,
-		actionReaders.CommandResult,
+		actionEncoders.Readers.CommandResult,
 		model_core.Nested(rawActionResultValue, rawActionResultValue.Message.ResultReference),
 	)
 	if err != nil {
