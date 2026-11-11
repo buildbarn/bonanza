@@ -38,6 +38,7 @@ go_test(
         "mocks_btree_test.go",
         "mocks_core_test.go",
         "mocks_encoding_test.go",
+        "prolly_chunker_factory_internal_test.go",
         "prolly_chunker_factory_test.go",
     ],
     embed = [":btree"],

@@ -1,6 +1,7 @@
 package btree_test
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"testing"
 
@@ -135,78 +136,95 @@ func TestProllyChunkerFactory(t *testing.T) {
 			},
 		)
 
-		const nodesCount = 10000
-		random := rand.New(rand.NewPCG(1, 2))
-		totalSizesBytes := make([]uint64, 0, nodesCount)
-		for range nodesCount {
-			totalSizesBytes = append(totalSizesBytes, random.Uint64()>>random.IntN(64))
-		}
-		newNode := func(i int) model_core.PatchedMessage[*model_filesystem_pb.FileContents, *MockReferenceMetadata] {
-			return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[*MockReferenceMetadata]) *model_filesystem_pb.FileContents {
-				return &model_filesystem_pb.FileContents{
-					TotalSizeBytes: totalSizesBytes[i],
-					Level: &model_filesystem_pb.FileContents_ChunkReference{
-						ChunkReference: &model_core_pb.DecodableReference{
-							Reference: patcher.AddReference(model_core.MetadataEntry[*MockReferenceMetadata]{
-								LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i+1), 0, 0, 0),
-								Metadata:       NewMockReferenceMetadata(ctrl),
-							}),
-						},
-					},
+		for _, repeatedPercentage := range []int{0, 50, 95, 99} {
+			t.Run(fmt.Sprintf("Repeated%d", repeatedPercentage), func(t *testing.T) {
+				const nodesCount = 10000
+				random := rand.New(rand.NewPCG(1, 2))
+				totalSizesBytes := make([]uint64, 0, nodesCount)
+				for range nodesCount {
+					totalSizesBytes = append(totalSizesBytes, random.Uint64()>>random.IntN(64))
 				}
+
+				// Let a percentage of the nodes be identical to each
+				// other, so that cuts are also placed based on the
+				// nodes succeeding them.
+				symbols := make([]int, 0, nodesCount)
+				for i := range nodesCount {
+					if random.IntN(100) < repeatedPercentage {
+						symbols = append(symbols, 0)
+					} else {
+						symbols = append(symbols, i)
+					}
+				}
+				newNode := func(i int) model_core.PatchedMessage[*model_filesystem_pb.FileContents, *MockReferenceMetadata] {
+					i = symbols[i]
+					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[*MockReferenceMetadata]) *model_filesystem_pb.FileContents {
+						return &model_filesystem_pb.FileContents{
+							TotalSizeBytes: totalSizesBytes[i],
+							Level: &model_filesystem_pb.FileContents_ChunkReference{
+								ChunkReference: &model_core_pb.DecodableReference{
+									Reference: patcher.AddReference(model_core.MetadataEntry[*MockReferenceMetadata]{
+										LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i+1), 0, 0, 0),
+										Metadata:       NewMockReferenceMetadata(ctrl),
+									}),
+								},
+							},
+						}
+					})
+				}
+
+				getObjectSizes := func(popInBetween bool) [][]int {
+					chunker := chunkerFactory.NewChunker()
+					var objectSizes [][]int
+					appendObjects := func(threshold btree.PopThreshold) {
+						for {
+							nodes := chunker.PopMultiple(threshold)
+							if len(nodes) == 0 {
+								return
+							}
+							nodeSizes := make([]int, 0, len(nodes))
+							for _, node := range nodes {
+								messageSizeBytes := proto.Size(node.Message)
+								nodeSizes = append(nodeSizes, node.Patcher.GetReferencesSizeBytes()+varint.SizeBytes(messageSizeBytes)+messageSizeBytes)
+							}
+							objectSizes = append(objectSizes, nodeSizes)
+						}
+					}
+					for i := range nodesCount {
+						require.NoError(t, chunker.PushSingle(newNode(i)))
+						if popInBetween {
+							appendObjects(btree.PopDefinitive)
+						}
+					}
+					appendObjects(btree.PopAll)
+					return objectSizes
+				}
+
+				objectSizes := getObjectSizes(true)
+				require.Equal(t, objectSizes, getObjectSizes(false))
+
+				totalNodesCount := 0
+				for _, nodeSizes := range objectSizes {
+					totalNodesCount += len(nodeSizes)
+
+					objectSizeBytes := 0
+					for _, nodeSizeBytes := range nodeSizes {
+						objectSizeBytes += nodeSizeBytes
+					}
+					require.GreaterOrEqual(t, objectSizeBytes, minimumSizeBytes)
+
+					firstObjectSizeBytes := 0
+					for _, nodeSizeBytes := range nodeSizes {
+						if firstObjectSizeBytes >= minimumSizeBytes {
+							break
+						}
+						firstObjectSizeBytes += nodeSizeBytes
+					}
+					require.Less(t, objectSizeBytes-firstObjectSizeBytes, minimumSizeBytes)
+				}
+				require.Equal(t, nodesCount, totalNodesCount)
+				require.Greater(t, len(objectSizes), 100)
 			})
 		}
-
-		getObjectSizes := func(popInBetween bool) [][]int {
-			chunker := chunkerFactory.NewChunker()
-			var objectSizes [][]int
-			appendObjects := func(threshold btree.PopThreshold) {
-				for {
-					nodes := chunker.PopMultiple(threshold)
-					if len(nodes) == 0 {
-						return
-					}
-					nodeSizes := make([]int, 0, len(nodes))
-					for _, node := range nodes {
-						messageSizeBytes := proto.Size(node.Message)
-						nodeSizes = append(nodeSizes, node.Patcher.GetReferencesSizeBytes()+varint.SizeBytes(messageSizeBytes)+messageSizeBytes)
-					}
-					objectSizes = append(objectSizes, nodeSizes)
-				}
-			}
-			for i := range nodesCount {
-				require.NoError(t, chunker.PushSingle(newNode(i)))
-				if popInBetween {
-					appendObjects(btree.PopDefinitive)
-				}
-			}
-			appendObjects(btree.PopAll)
-			return objectSizes
-		}
-
-		objectSizes := getObjectSizes(true)
-		require.Equal(t, objectSizes, getObjectSizes(false))
-
-		totalNodesCount := 0
-		for _, nodeSizes := range objectSizes {
-			totalNodesCount += len(nodeSizes)
-
-			objectSizeBytes := 0
-			for _, nodeSizeBytes := range nodeSizes {
-				objectSizeBytes += nodeSizeBytes
-			}
-			require.GreaterOrEqual(t, objectSizeBytes, minimumSizeBytes)
-
-			firstObjectSizeBytes := 0
-			for _, nodeSizeBytes := range nodeSizes {
-				if firstObjectSizeBytes >= minimumSizeBytes {
-					break
-				}
-				firstObjectSizeBytes += nodeSizeBytes
-			}
-			require.Less(t, objectSizeBytes-firstObjectSizeBytes, minimumSizeBytes)
-		}
-		require.Equal(t, nodesCount, totalNodesCount)
-		require.Greater(t, len(objectSizes), 100)
 	})
 }

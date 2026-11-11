@@ -26,17 +26,28 @@ type prollyChunkerFactory[TNode proto.Message, TMetadata model_core.ReferenceMet
 //
 // For each node that is inserted, an FNV-1a hash is computed based on
 // the node's message contents and outgoing references. Cuts are placed
-// after nodes using an algorithm that is similar to RepMaxCDC, as
-// described in "Content-Defined Chunking with tight chunk size bounds":
+// after nodes using an algorithm that is similar to RepLexCDC, which is
+// a variant of RepMaxCDC as described in "Content-Defined Chunking with
+// tight chunk size bounds":
 //
 // https://github.com/buildbarn/go-cdc/blob/main/papers/cdc.pdf
 //
-// Starting at the first position at which a cut may be placed, the
-// position with the highest hash within horizonSizeBytes is selected.
-// If cutting at that position would yield an object that could have
-// been split up into two objects that both respect the minimum size,
-// the search is repeated, only considering positions that still permit
-// the previously selected position to be used as a cut afterwards.
+// Each position at which a cut may be placed is assigned the sequence
+// of hashes of the nodes starting at the node preceding it, limited to
+// the nodes that start within minimumSizeBytes. Starting at the first
+// position at which a cut may be placed, the position whose sequence of
+// hashes is lexicographically maximal within horizonSizeBytes is
+// selected. As hashes are 64 bits in size, this is almost always
+// decided by the hash of the node preceding the cut. Only if nodes are
+// repeated, the nodes succeeding it are considered. This prevents the
+// selection of cuts from depending on where the previous cut was placed
+// in case the input has low entropy.
+//
+// If cutting at the selected position would yield an object that could
+// have been split up into two objects that both respect the minimum
+// size, the search is repeated, only considering positions that still
+// permit the previously selected position to be used as a cut
+// afterwards.
 //
 // Objects are thus at least minimumSizeBytes in size. If nodes were
 // infinitesimally small, objects would be at most 2*minimumSizeBytes-1
@@ -77,8 +88,9 @@ type prollyChunker[TNode proto.Message, TMetadata model_core.ReferenceMetadata] 
 	cumulativeSizesBytes []int
 
 	// The hash of the node at index i, which is used to determine
-	// the suitability of placing a cut after it. Hashes are only
-	// computed for nodes that may be considered as candidates.
+	// the suitability of placing a cut after it, and the ones
+	// before it. Hashes are only computed if the nodes are going to
+	// be stored in at least two objects.
 	hashes []uint64
 
 	// The number of leading nodes for which there is no need to
@@ -134,13 +146,17 @@ func (c *prollyChunker[TNode, TMetadata]) PushSingle(node model_core.PatchedMess
 	c.cumulativeSizesBytes = append(c.cumulativeSizesBytes, c.cumulativeSizesBytes[len(c.cumulativeSizesBytes)-1]+sizeBytes)
 	c.hashes = append(c.hashes, 0)
 
-	// Compute hashes of nodes after which cuts may be placed. Only
-	// do this for nodes after which a cut may be placed, both
-	// respecting the minimum size of the object preceding and
-	// succeeding it. This prevents us from computing hashes for
-	// levels of the B-tree that only consist of a single object.
-	for c.hashesComputed < len(c.nodes) && c.isLargeEnough(c.hashesComputed+1, len(c.nodes)) {
-		if c.isLargeEnough(0, c.hashesComputed+1) {
+	// Compute hashes of nodes that may need to be compared to
+	// determine where cuts are placed. Only do this if the nodes
+	// can be stored in at least two objects. This prevents us from
+	// computing hashes for levels of the B-tree that only consist
+	// of a single object.
+	firstCutPoint, ok := c.getFirstCutPoint()
+	if !ok || !c.isLargeEnough(firstCutPoint, len(c.nodes)) {
+		return nil
+	}
+	for ; c.hashesComputed < len(c.nodes); c.hashesComputed++ {
+		if c.hashesComputed >= firstCutPoint-1 {
 			hasher := fnv.New64a()
 			node := &c.nodes[c.hashesComputed]
 			references, _ := node.Patcher.SortAndSetReferences()
@@ -154,9 +170,67 @@ func (c *prollyChunker[TNode, TMetadata]) PushSingle(node model_core.PatchedMess
 			hasher.Write(m)
 			c.hashes[c.hashesComputed] = hasher.Sum64()
 		}
-		c.hashesComputed++
 	}
 	return nil
+}
+
+// getLexicographicMaximum returns the index i in range [first, last]
+// for which the sequence of hashes starting at index i is
+// lexicographically maximal. Sequences are limited to the elements
+// that start within windowSizeBytes, but always contain at least one
+// element. If multiple sequences are equal, the first one is returned.
+//
+// The caller must ensure that the sequences of all indices in range
+// [first, last] are fully contained within the hashes that are
+// provided.
+//
+// A naïve implementation of this function would have a running time
+// that is quadratic in case of repetitive inputs. This implementation
+// uses an algorithm similar to Duval's algorithm for computing maximum
+// suffixes, which runs in linear time.
+func getLexicographicMaximum(hashes []uint64, cumulativeSizesBytes []int, windowSizeBytes, first, last int) int {
+	// best: the index of the best sequence found so far.
+	// bestRepeated: the highest index at which the same sequence
+	// as the best one is found.
+	// i: the index of the sequence that is currently compared
+	// against the one at bestRepeated.
+	// matched: the number of leading elements of the sequences at
+	// bestRepeated and i that are known to be equal.
+	best, bestRepeated := first, first
+	i, matched := first+1, 0
+	for i <= last {
+		period := i - bestRepeated
+		if matched > 0 && cumulativeSizesBytes[i+matched]-cumulativeSizesBytes[i] >= windowSizeBytes {
+			// The sequences at bestRepeated and i are
+			// equal. Prefer the first occurrence. If the
+			// input is periodic, skip ahead by a full
+			// period.
+			bestRepeated = i
+			if matched >= period {
+				i += period
+				matched -= period
+			} else {
+				i++
+				matched = 0
+			}
+		} else if h, hBest := hashes[i+matched], hashes[bestRepeated+matched]; h < hBest {
+			// None of the sequences in range [i, i+matched]
+			// are better than the best one.
+			i += matched + 1
+			matched = 0
+		} else if h > hBest {
+			// The sequence at index i is better. If the
+			// input is periodic, the sequences at the next
+			// periods are even better.
+			best = i + min(matched, last-i)/period*period
+			bestRepeated = best
+			i = best + 1
+			matched = 0
+		} else {
+			matched++
+		}
+	}
+	return best
 }
 
 // findCutPoint determines the position at which the first object on
@@ -169,21 +243,24 @@ func (c *prollyChunker[TNode, TMetadata]) findCutPoint() int {
 		return len(c.nodes)
 	}
 
-	// Find the position within the horizon having the highest hash.
-	// If cutting at this position would yield an object that is
-	// too large, repeat the search with a smaller horizon, so that
-	// the position can still be considered for the next object.
+	// Find the position within the horizon whose sequence of
+	// hashes is lexicographically maximal. If cutting at this
+	// position would yield an object that is too large, repeat the
+	// search with a smaller horizon, so that the position can still
+	// be considered for the next object.
 	lastCutPoint := c.getLastCutPointInHorizon(firstCutPoint)
 	nextObjectEnd := len(c.nodes)
 	for {
-		bestCutPoint := firstCutPoint
-		bestHash := c.hashes[firstCutPoint-1]
-		for cutPoint := firstCutPoint + 1; cutPoint <= lastCutPoint && c.isLargeEnough(cutPoint, nextObjectEnd); cutPoint++ {
-			if hash := c.hashes[cutPoint-1]; bestHash < hash {
-				bestCutPoint = cutPoint
-				bestHash = hash
-			}
+		for !c.isLargeEnough(lastCutPoint, nextObjectEnd) {
+			lastCutPoint--
 		}
+		bestCutPoint := getLexicographicMaximum(
+			c.hashes,
+			c.cumulativeSizesBytes,
+			c.factory.minimumSizeBytes,
+			firstCutPoint-1,
+			lastCutPoint-1,
+		) + 1
 		if !c.isLargeEnough(firstCutPoint, bestCutPoint) {
 			return bestCutPoint
 		}
