@@ -150,7 +150,7 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadat
 				},
 			},
 		},
-		options.getInlinedTreeOptions(),
+		options.ObjectChunkingParameters.GetInlinedTreeOptions(),
 	)
 }
 

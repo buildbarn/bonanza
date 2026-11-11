@@ -1,6 +1,7 @@
 package chunking
 
 import (
+	"bonanza.build/pkg/model/core/inlinedtree"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	"bonanza.build/pkg/storage/object"
 
@@ -24,6 +25,7 @@ const (
 // whose sizes fall within a given range. This is the native counterpart
 // of bonanza.model.chunking.Parameters.
 type Parameters struct {
+	referenceFormat  object.ReferenceFormat
 	minimumSizeBytes int
 	horizonSizeBytes int
 }
@@ -50,6 +52,7 @@ func NewParametersFromProto(m *model_chunking_pb.Parameters, referenceFormat obj
 	}
 
 	return Parameters{
+		referenceFormat:  referenceFormat,
 		minimumSizeBytes: int(minimumSizeBytes),
 		horizonSizeBytes: int(horizonSizeBytes),
 	}, nil
@@ -60,16 +63,20 @@ func (p Parameters) GetMinimumSizeBytes() int {
 	return p.minimumSizeBytes
 }
 
-// GetMaximumSizeBytes returns the approximate maximum size of objects
-// in bytes. Chunking algorithms that are unable to split elements in
-// the input may yield objects that slightly exceed this size.
-func (p Parameters) GetMaximumSizeBytes() int {
-	return p.minimumSizeBytes*2 - 1
-}
-
 // GetHorizonSizeBytes returns the amount of data in bytes the chunking
 // algorithm may look ahead to determine the optimal set of cutting
 // points.
 func (p Parameters) GetHorizonSizeBytes() int {
 	return p.horizonSizeBytes
+}
+
+// GetInlinedTreeOptions returns options that can be provided to
+// inlinedtree.Build(), so that it constructs messages whose size does
+// not exceed the maximum size of objects (twice the minimum size,
+// minus one byte).
+func (p Parameters) GetInlinedTreeOptions() inlinedtree.Options {
+	return inlinedtree.Options{
+		ReferenceFormat:  p.referenceFormat,
+		MaximumSizeBytes: p.minimumSizeBytes*2 - 1,
+	}
 }

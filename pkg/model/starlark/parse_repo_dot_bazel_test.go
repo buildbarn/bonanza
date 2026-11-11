@@ -35,7 +35,7 @@ func TestParseRepoDotBazel(t *testing.T) {
 			"",
 			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
@@ -57,7 +57,7 @@ func TestParseRepoDotBazel(t *testing.T) {
 			"repo()",
 			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
@@ -77,7 +77,7 @@ func TestParseRepoDotBazel(t *testing.T) {
 			"repo()\nrepo()",
 			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
@@ -101,7 +101,7 @@ func TestParseRepoDotBazel(t *testing.T) {
 			)`,
 			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
@@ -130,7 +130,7 @@ func TestParseRepoDotBazel(t *testing.T) {
 			)`,
 			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},

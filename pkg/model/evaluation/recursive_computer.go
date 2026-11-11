@@ -903,7 +903,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) buildEvaluation(ctx context.
 
 	return inlinedtree.Build(
 		inlineCandidates,
-		&inlinedtree.Options{
+		inlinedtree.Options{
 			ReferenceFormat:  rc.referenceFormat,
 			MaximumSizeBytes: 1 << 16,
 		},
@@ -1563,7 +1563,7 @@ func (vs *evaluationFailedValueState[TReference, TMetadata]) getGraphlet(ctx con
 	}
 	patchedGraphlet, err := inlinedtree.Build(
 		inlinedtree.CandidateList[*model_evaluation_pb.Graphlet, TMetadata]{graphletEvaluation},
-		&inlinedtree.Options{
+		inlinedtree.Options{
 			ReferenceFormat:  rc.referenceFormat,
 			MaximumSizeBytes: 1 << 16,
 		},
@@ -1675,7 +1675,7 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGr
 
 	patchedGraphlet, err := inlinedtree.Build(
 		inlineCandidates,
-		&inlinedtree.Options{
+		inlinedtree.Options{
 			ReferenceFormat:  rc.referenceFormat,
 			MaximumSizeBytes: 1 << 16,
 		},
@@ -2507,7 +2507,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) storeInitialLookupResult(
 
 	lookupResultInitial, err := inlinedtree.Build(
 		inlineCandidates,
-		&inlinedtree.Options{
+		inlinedtree.Options{
 			ReferenceFormat:  rc.referenceFormat,
 			MaximumSizeBytes: 1 << 16,
 		},
@@ -2554,7 +2554,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) storeMissingDependenciesLook
 	}
 	lookupResultMissingDependencies, err := inlinedtree.Build(
 		inlinedtree.CandidateList[*model_evaluation_cache_pb.LookupResult_MissingDependencies, TMetadata]{keysCandidate},
-		&inlinedtree.Options{
+		inlinedtree.Options{
 			ReferenceFormat:  rc.referenceFormat,
 			MaximumSizeBytes: 1 << 16,
 		},

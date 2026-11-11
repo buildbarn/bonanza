@@ -32,7 +32,7 @@ func TestMacro(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(t.Context(), t)
 	referenceFormat := util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1))
 	encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
-	inlinedTreeOptions := &inlinedtree.Options{
+	inlinedTreeOptions := inlinedtree.Options{
 		ReferenceFormat:  referenceFormat,
 		MaximumSizeBytes: 32 * 1024,
 	}
@@ -1116,7 +1116,7 @@ m = macro(
 			targetRegistrar := model_starlark.NewTargetRegistrar[object.LocalReference, model_core.CreatedObjectTree](
 				ctx,
 				encoder,
-				&inlinedtree.Options{
+				inlinedtree.Options{
 					ReferenceFormat:  referenceFormat,
 					MaximumSizeBytes: 32 * 1024,
 				},

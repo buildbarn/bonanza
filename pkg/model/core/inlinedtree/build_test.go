@@ -26,7 +26,7 @@ func TestBuild(t *testing.T) {
 		// meaning an empty message needs to be emitted.
 		output, err := inlinedtree.Build(
 			inlinedtree.CandidateList[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]{},
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 16 * 1024,
 			},
@@ -86,7 +86,7 @@ func TestBuild(t *testing.T) {
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
 			}},
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
@@ -150,7 +150,7 @@ func TestBuild(t *testing.T) {
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
 			}},
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 0,
 			},
@@ -206,7 +206,7 @@ func TestBuild(t *testing.T) {
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
 			}},
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 100,
 			},
@@ -247,7 +247,7 @@ func TestBuild(t *testing.T) {
 				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](encoding.BinaryMarshaler(nil)),
 				ParentAppender:  parentAppender.Call,
 			}},
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 100,
 			},

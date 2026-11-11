@@ -98,7 +98,7 @@ func TestPackage(t *testing.T) {
 			ctx,
 			resolvedLabels,
 			model_encoding.NewChainedDeterministicBinaryEncoder(nil),
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  object.SHA256V1ReferenceFormat,
 				MaximumSizeBytes: 32 * 1024,
 			},

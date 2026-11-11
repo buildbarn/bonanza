@@ -13,7 +13,6 @@ import (
 	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
-	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -49,19 +48,6 @@ type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata
 	// stored in the same way as file contents, using the provided
 	// parameters.
 	FileCreationParameters *model_filesystem.FileCreationParameters
-}
-
-// getInlinedTreeOptions returns the options to use when deciding which
-// fields of a message need to be stored in separate objects, so that
-// the message does not become too large.
-//
-// Any message that exceeds the maximum object size (twice the minimum
-// object size) has fields moved out of it.
-func (o *ValueEncodingOptions[TReference, TMetadata]) getInlinedTreeOptions() *inlinedtree.Options {
-	return &inlinedtree.Options{
-		ReferenceFormat:  o.ObjectReferenceFormat,
-		MaximumSizeBytes: o.ObjectChunkingParameters.GetMaximumSizeBytes(),
-	}
 }
 
 // ComputeListParentNode generates a parent node of a Starlark list that

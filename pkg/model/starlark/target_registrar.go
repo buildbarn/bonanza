@@ -25,7 +25,7 @@ type TargetRegistrar[TReference object.BasicReference, TMetadata model_core.Refe
 	// Immutable fields.
 	context            context.Context
 	encoder            model_encoding.DeterministicBinaryEncoder
-	inlinedTreeOptions *inlinedtree.Options
+	inlinedTreeOptions inlinedtree.Options
 	objectManager      model_core.ObjectManager[TReference, TMetadata]
 	macro              *registrarMacro[TReference]
 
@@ -68,7 +68,7 @@ type registrarMacro[TReference any] struct {
 // creation contains no targets. The caller needs to provide default
 // values for attributes that are provided to calls to repo() in
 // REPO.bazel, so that they can be inherited by registered targets.
-func NewTargetRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectManager model_core.ObjectManager[TReference, TMetadata], defaultInheritableAttrs model_core.Message[*model_starlark_pb.InheritableAttrs, TReference]) *TargetRegistrar[TReference, TMetadata] {
+func NewTargetRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions inlinedtree.Options, objectManager model_core.ObjectManager[TReference, TMetadata], defaultInheritableAttrs model_core.Message[*model_starlark_pb.InheritableAttrs, TReference]) *TargetRegistrar[TReference, TMetadata] {
 	return &TargetRegistrar[TReference, TMetadata]{
 		context:                 ctx,
 		encoder:                 encoder,
@@ -101,7 +101,7 @@ func NewTargetRegistrar[TReference object.BasicReference, TMetadata model_core.R
 // whose namespace is contained in the namespace of the macro instance,
 // are provided by the macro expansion context. These need to be
 // registered by calling RegisterNestedMacroInstance().
-func NewMacroTargetRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectManager model_core.ObjectManager[TReference, TMetadata], macroName string, macroDefinitionPackage pg_label.CanonicalPackage, macroExpansionContextDefinition model_core.Message[*model_starlark_pb.MacroExpansionContext_Definition, TReference]) *TargetRegistrar[TReference, TMetadata] {
+func NewMacroTargetRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions inlinedtree.Options, objectManager model_core.ObjectManager[TReference, TMetadata], macroName string, macroDefinitionPackage pg_label.CanonicalPackage, macroExpansionContextDefinition model_core.Message[*model_starlark_pb.MacroExpansionContext_Definition, TReference]) *TargetRegistrar[TReference, TMetadata] {
 	inheritableAttrs := model_core.Nested(macroExpansionContextDefinition, macroExpansionContextDefinition.Message.GetRootMacroInstanceDefinition().GetInheritableAttrs())
 	tr := NewTargetRegistrar(ctx, encoder, inlinedTreeOptions, objectManager, inheritableAttrs)
 	tr.macro = &registrarMacro[TReference]{

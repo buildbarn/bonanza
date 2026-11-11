@@ -332,8 +332,8 @@ func (f *valueDecodingOptionsFactory[TReference, TMetadata]) newValueDecodingOpt
 	}
 }
 
-func (c *baseComputer[TReference, TMetadata]) getInlinedTreeOptions() *inlinedtree.Options {
-	return &inlinedtree.Options{
+func (c *baseComputer[TReference, TMetadata]) getInlinedTreeOptions() inlinedtree.Options {
+	return inlinedtree.Options{
 		ReferenceFormat:  c.referenceFormat,
 		MaximumSizeBytes: 32 * 1024,
 	}

@@ -119,7 +119,7 @@ func Build[
 	},
 ](
 	candidates CandidateList[TParentMessagePtr, TMetadata],
-	options *Options,
+	options Options,
 ) (model_core.PatchedMessage[TParentMessagePtr, TMetadata], error) {
 	defer candidates.Discard()
 

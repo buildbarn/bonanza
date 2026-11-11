@@ -35,7 +35,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 					util.Must(label.NewResolvedLabel("@@foo+//visibility:private")),
 				},
 				encoder,
-				&inlinedtree.Options{
+				inlinedtree.Options{
 					ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 					MaximumSizeBytes: 0,
 				},
@@ -55,7 +55,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 					util.Must(label.NewResolvedLabel("@@foo+//visibility:private")),
 				},
 				encoder,
-				&inlinedtree.Options{
+				inlinedtree.Options{
 					ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 					MaximumSizeBytes: 0,
 				},
@@ -73,7 +73,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 					util.Must(label.NewResolvedLabel("@@foo+//visibility:public")),
 				},
 				encoder,
-				&inlinedtree.Options{
+				inlinedtree.Options{
 					ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 					MaximumSizeBytes: 0,
 				},
@@ -95,7 +95,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 					util.Must(label.NewResolvedLabel("@@foo+//visibility:public")),
 				},
 				encoder,
-				&inlinedtree.Options{
+				inlinedtree.Options{
 					ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 					MaximumSizeBytes: 0,
 				},
@@ -142,7 +142,7 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 				util.Must(label.NewResolvedLabel("@@packagegroups+//:group4")),
 			},
 			encoder,
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 1 << 20,
 			},
@@ -294,7 +294,7 @@ func TestAddPackageToPackageGroup(t *testing.T) {
 
 	encoder := NewMockDeterministicBinaryEncoder(ctrl)
 	encoder.EXPECT().GetDecodingParametersSizeBytes().Return(0).AnyTimes()
-	inlinedTreeOptions := &inlinedtree.Options{
+	inlinedTreeOptions := inlinedtree.Options{
 		ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		MaximumSizeBytes: 1 << 20,
 	}

@@ -44,7 +44,7 @@ func TestTestSuite(t *testing.T) {
 		targetRegistrar := model_starlark.NewTargetRegistrar[object.LocalReference, model_core.CreatedObjectTree](
 			ctx,
 			encoder,
-			&inlinedtree.Options{
+			inlinedtree.Options{
 				ReferenceFormat:  referenceFormat,
 				MaximumSizeBytes: 32 * 1024,
 			},

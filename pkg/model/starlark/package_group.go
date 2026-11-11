@@ -65,7 +65,7 @@ func (n *packageGroupNode) lookupPackage(canonicalPackage pg_label.CanonicalPack
 
 // toProto converts the data contained in a tree of packageGroupNode to
 // its Protobuf message counterpart.
-func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](ctx context.Context, n *packageGroupNode, encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata], error) {
+func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](ctx context.Context, n *packageGroupNode, encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata], error) {
 	inlineCandidates := make(inlinedtree.CandidateList[*model_starlark_pb.PackageGroup_Subpackages, TMetadata], 0, 2)
 	defer inlineCandidates.Discard()
 
@@ -123,7 +123,7 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](ctx context
 // NewPackageGroupFromVisibility generates a PackageGroup message based
 // on a sequence of "visibility" labels provided to repo(), package(),
 // or rule targets.
-func NewPackageGroupFromVisibility[TMetadata model_core.ReferenceMetadata](ctx context.Context, visibility []pg_label.ResolvedLabel, encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions *inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
+func NewPackageGroupFromVisibility[TMetadata model_core.ReferenceMetadata](ctx context.Context, visibility []pg_label.ResolvedLabel, encoder model_encoding.DeterministicBinaryEncoder, inlinedTreeOptions inlinedtree.Options, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
 	tree := packageGroupNode{
 		subpackages: map[string]*packageGroupNode{},
 	}
@@ -254,7 +254,7 @@ func AddPackageToPackageGroup[TReference object.BasicReference, TMetadata model_
 	packageGroup model_core.Message[*model_starlark_pb.PackageGroup, TReference],
 	canonicalPackage pg_label.CanonicalPackage,
 	encoder model_encoding.DeterministicBinaryEncoder,
-	inlinedTreeOptions *inlinedtree.Options,
+	inlinedTreeOptions inlinedtree.Options,
 	objectManager model_core.ObjectManager[TReference, TMetadata],
 ) (model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata], error) {
 	tree, err := decodePackageGroupNode(ctx, overridesReader, model_core.Nested(packageGroup, packageGroup.Message.GetTree()), false)

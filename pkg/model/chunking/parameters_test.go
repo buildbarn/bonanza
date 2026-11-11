@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"bonanza.build/pkg/model/chunking"
+	"bonanza.build/pkg/model/core/inlinedtree"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
@@ -57,7 +58,10 @@ func TestNewParametersFromProto(t *testing.T) {
 			parameters, err := chunking.NewParametersFromProto(m, referenceFormat)
 			require.NoError(t, err)
 			require.Equal(t, int(m.MinimumSizeBytes), parameters.GetMinimumSizeBytes())
-			require.Equal(t, int(m.MinimumSizeBytes)*2-1, parameters.GetMaximumSizeBytes())
+			require.Equal(t, inlinedtree.Options{
+				ReferenceFormat:  referenceFormat,
+				MaximumSizeBytes: int(m.MinimumSizeBytes)*2 - 1,
+			}, parameters.GetInlinedTreeOptions())
 			require.Equal(t, int(m.HorizonSizeBytes), parameters.GetHorizonSizeBytes())
 		}
 	})

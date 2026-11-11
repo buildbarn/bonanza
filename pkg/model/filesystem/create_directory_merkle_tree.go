@@ -332,7 +332,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 			}
 		}
 
-		message, err := inlinedtree.Build(inlineCandidates, &b.directoryInlinedTreeOptions)
+		message, err := inlinedtree.Build(inlineCandidates, b.directoryInlinedTreeOptions)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to build directory")
 		}

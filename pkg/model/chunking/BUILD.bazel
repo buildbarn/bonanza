@@ -6,6 +6,7 @@ go_library(
     importpath = "bonanza.build/pkg/model/chunking",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/model/core/inlinedtree",
         "//pkg/proto/model/chunking",
         "//pkg/storage/object",
         "@org_golang_google_grpc//codes",
@@ -18,6 +19,7 @@ go_test(
     srcs = ["parameters_test.go"],
     deps = [
         ":chunking",
+        "//pkg/model/core/inlinedtree",
         "//pkg/proto/model/chunking",
         "//pkg/proto/storage/object",
         "//pkg/storage/object",

@@ -78,7 +78,7 @@ func PrependDirectoryToPathPatternChildren[TMetadata model_core.ReferenceMetadat
 	name string,
 	grandChildren model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],
 	encoder model_encoding.DeterministicBinaryEncoder,
-	inlinedTreeOptions *inlinedtree.Options,
+	inlinedTreeOptions inlinedtree.Options,
 	objectCapturer model_core.CreatedObjectCapturer[TMetadata],
 ) (model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], error) {
 	return inlinedtree.Build(
@@ -118,7 +118,7 @@ func (s *PathPatternSet[TMetadata]) Add(path iter.Seq[string]) {
 func (s *PathPatternSet[TMetadata]) ToProto(
 	ctx context.Context,
 	encoder model_encoding.DeterministicBinaryEncoder,
-	inlinedTreeOptions *inlinedtree.Options,
+	inlinedTreeOptions inlinedtree.Options,
 	objectCapturer model_core.CreatedObjectCapturer[TMetadata],
 ) (model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata], error) {
 	if s.included {
