@@ -241,7 +241,7 @@ func (p *ReferenceMessagePatcher[TMetadata]) GetHeight() int {
 // of outgoing references.
 func (p *ReferenceMessagePatcher[TMetadata]) GetReferencesSizeBytes() int {
 	for reference := range p.messagesByReference {
-		return len(reference.GetRawReference()) * len(p.messagesByReference)
+		return reference.GetReferenceFormat().GetReferenceSizeBytes() * len(p.messagesByReference)
 	}
 	return 0
 }
