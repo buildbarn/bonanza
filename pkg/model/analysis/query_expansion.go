@@ -577,13 +577,13 @@ func newQueryExpansionKey(query label.Query[label.CanonicalTargetPattern], inclu
 
 // getQueryLabels returns the labels of the targets yielded by a query
 // expression.
-func (c *baseComputer[TReference, TMetadata]) getQueryLabels(ctx context.Context, e QueryExpansionValueGetter[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) ([]label.CanonicalLabel, error) {
+func (c *baseComputer[TReference, TMetadata]) getQueryLabels(ctx context.Context, e QueryExpansionValueGetter[TReference], analysisReaders *AnalysisReaders[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) ([]label.CanonicalLabel, error) {
 	value := e.GetQueryExpansionValue(newQueryExpansionKey(query, includeImplicitDeps))
 	if !value.IsSet() {
 		return nil, evaluation.ErrMissingDependency
 	}
 	var errIter error
-	labels := slices.Collect(c.allTargetLabels(ctx, model_core.Nested(value, value.Message.TargetLabels), &errIter))
+	labels := slices.Collect(c.allTargetLabels(ctx, analysisReaders, model_core.Nested(value, value.Message.TargetLabels), &errIter))
 	if errIter != nil {
 		return nil, errIter
 	}
@@ -595,11 +595,11 @@ func (c *baseComputer[TReference, TMetadata]) getQueryLabels(ctx context.Context
 // list of expressions of the query. All operands are requested before
 // returning ErrMissingDependency, so that they can be evaluated
 // concurrently.
-func (c *baseComputer[TReference, TMetadata]) getQueryLabelsOfOperands(ctx context.Context, e QueryExpansionValueGetter[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool, operands ...int) ([][]label.CanonicalLabel, error) {
+func (c *baseComputer[TReference, TMetadata]) getQueryLabelsOfOperands(ctx context.Context, e QueryExpansionValueGetter[TReference], analysisReaders *AnalysisReaders[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool, operands ...int) ([][]label.CanonicalLabel, error) {
 	results := make([][]label.CanonicalLabel, 0, len(operands))
 	missingDependencies := false
 	for _, operand := range operands {
-		labels, err := c.getQueryLabels(ctx, e, query.GetSubquery(operand), includeImplicitDeps)
+		labels, err := c.getQueryLabels(ctx, e, analysisReaders, query.GetSubquery(operand), includeImplicitDeps)
 		if err != nil {
 			if !errors.Is(err, evaluation.ErrMissingDependency) {
 				return nil, err
@@ -639,7 +639,7 @@ func getQueryTargetDefinitions[TReference any](e TargetValueGetter[TReference], 
 // getQueryDirectDependencies returns the direct dependencies of a set
 // of targets, as a map from the label of each target to the labels of
 // its dependencies.
-func (c *baseComputer[TReference, TMetadata]) getQueryDirectDependencies(ctx context.Context, e TargetDirectDependenciesValueGetter[TReference], labels []label.CanonicalLabel, includeImplicitDeps bool) (map[label.CanonicalLabel][]label.CanonicalLabel, error) {
+func (c *baseComputer[TReference, TMetadata]) getQueryDirectDependencies(ctx context.Context, e TargetDirectDependenciesValueGetter[TReference], analysisReaders *AnalysisReaders[TReference], labels []label.CanonicalLabel, includeImplicitDeps bool) (map[label.CanonicalLabel][]label.CanonicalLabel, error) {
 	dependencies := make(map[label.CanonicalLabel][]label.CanonicalLabel, len(labels))
 	missingDependencies := false
 	for _, l := range labels {
@@ -652,7 +652,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryDirectDependencies(ctx con
 			continue
 		}
 		var errIter error
-		dependencies[l] = slices.Collect(c.allTargetLabels(ctx, model_core.Nested(value, value.Message.TargetLabels), &errIter))
+		dependencies[l] = slices.Collect(c.allTargetLabels(ctx, analysisReaders, model_core.Nested(value, value.Message.TargetLabels), &errIter))
 		if errIter != nil {
 			return nil, fmt.Errorf("failed to obtain direct dependencies of target %#v: %w", l.String(), errIter)
 		}
@@ -665,13 +665,13 @@ func (c *baseComputer[TReference, TMetadata]) getQueryDirectDependencies(ctx con
 
 // queryDeps computes the transitive closure of the dependencies of a
 // set of targets, optionally limiting the search depth.
-func (c *baseComputer[TReference, TMetadata]) queryDeps(ctx context.Context, e TargetDirectDependenciesValueGetter[TReference], labels []label.CanonicalLabel, maximumDepth *uint32, includeImplicitDeps bool) (labelSet, error) {
+func (c *baseComputer[TReference, TMetadata]) queryDeps(ctx context.Context, e TargetDirectDependenciesValueGetter[TReference], analysisReaders *AnalysisReaders[TReference], labels []label.CanonicalLabel, maximumDepth *uint32, includeImplicitDeps bool) (labelSet, error) {
 	// Perform a breadth-first search, requesting the dependencies
 	// of all targets at the same depth at once.
 	seen := newLabelSet(labels)
 	frontier := labels
 	for depth := uint32(0); len(frontier) > 0 && (maximumDepth == nil || depth < *maximumDepth); depth++ {
-		dependencies, err := c.getQueryDirectDependencies(ctx, e, frontier, includeImplicitDeps)
+		dependencies, err := c.getQueryDirectDependencies(ctx, e, analysisReaders, frontier, includeImplicitDeps)
 		if err != nil {
 			return nil, err
 		}
@@ -953,7 +953,7 @@ func getQuerySiblingsPackages(query label.Query[label.CanonicalTargetPattern], s
 // addition to that, it returns the labels of the targets that are
 // matched by rules(). These can be computed without loading the targets
 // individually, as their definitions are contained in the package.
-func (c *baseComputer[TReference, TMetadata]) getQueryPackageTargets(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], canonicalPackage label.CanonicalPackage) (labelSet, labelSet, error) {
+func (c *baseComputer[TReference, TMetadata]) getQueryPackageTargets(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], canonicalPackage label.CanonicalPackage) (labelSet, labelSet, error) {
 	packageTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
 		Package: canonicalPackage.String(),
 	})
@@ -968,7 +968,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryPackageTargets(ctx context
 		{true, allTargets},
 		{false, ruleTargets},
 	} {
-		if err := c.forEachPackageTargetLabel(ctx, canonicalPackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), entry.includeFileTargets, func(l label.CanonicalLabel) error {
+		if err := c.forEachPackageTargetLabel(ctx, analysisReaders, canonicalPackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), entry.includeFileTargets, func(l label.CanonicalLabel) error {
 			entry.results[l] = struct{}{}
 			return nil
 		}); err != nil {
@@ -981,14 +981,14 @@ func (c *baseComputer[TReference, TMetadata]) getQueryPackageTargets(ctx context
 // getQueryPredicatePackages returns the packages of the targets
 // yielded by the predicate of visible(), by requesting the results of
 // packages() applied to the predicate.
-func (c *baseComputer[TReference, TMetadata]) getQueryPredicatePackages(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], predicate label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) ([]label.CanonicalPackage, error) {
+func (c *baseComputer[TReference, TMetadata]) getQueryPredicatePackages(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], predicate label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) ([]label.CanonicalPackage, error) {
 	queryExpansion := e.GetQueryExpansionValue(newQueryExpansionKey(label.NewPackagesQuery(predicate), includeImplicitDeps))
 	if !queryExpansion.IsSet() {
 		return nil, evaluation.ErrMissingDependency
 	}
 	var packages []label.CanonicalPackage
 	var errIter error
-	for l := range c.allTargetLabels(ctx, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter) {
+	for l := range c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter) {
 		packages = append(packages, l.GetCanonicalPackage())
 	}
 	if errIter != nil {
@@ -1049,7 +1049,7 @@ func (c *baseComputer[TReference, TMetadata]) applyQueryVisible(ctx context.Cont
 }
 
 // isStreamingQueryExpression returns whether an expression can be
-// evaluated by expandQueryStreaming().
+// evaluated by expandQueryStreaming(analysisReaders).
 func isStreamingQueryExpression(expression label.QueryExpression[label.CanonicalTargetPattern]) bool {
 	switch expression.(type) {
 	case *label.QuerySome[label.CanonicalTargetPattern], *label.QuerySiblings[label.CanonicalTargetPattern], *label.QueryVisible[label.CanonicalTargetPattern]:
@@ -1061,7 +1061,7 @@ func isStreamingQueryExpression(expression label.QueryExpression[label.Canonical
 }
 
 // queryStreamingBatchSize is the number of labels that
-// expandQueryStreaming() passes to expressions that process targets
+// expandQueryStreaming(analysisReaders) passes to expressions that process targets
 // individually at once.
 const queryStreamingBatchSize = 1000
 
@@ -1071,7 +1071,7 @@ const queryStreamingBatchSize = 1000
 // sorted if the results of their operands are sorted, such as
 // expressions that process targets individually, some(), siblings()
 // and visible().
-func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], valueReaders *model_starlark.ValueReaders[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], valueReaders *model_starlark.ValueReaders[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	expressions := query.GetExpressions()
 	expression := expressions[len(expressions)-1]
 
@@ -1096,7 +1096,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 			})
 			missingDependencies := false
 			for _, canonicalPackage := range slices.Compact(packages) {
-				if err := c.pushQueryPackageTargets(ctx, e, canonicalPackage, pushLabel); err != nil {
+				if err := c.pushQueryPackageTargets(ctx, e, analysisReaders, canonicalPackage, pushLabel); err != nil {
 					if !errors.Is(err, evaluation.ErrMissingDependency) {
 						return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
 					}
@@ -1127,7 +1127,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 		// separate key, so that they don't need to be computed
 		// for each batch.
 		operand = expr.Expression
-		predicatePackages, err := c.getQueryPredicatePackages(ctx, e, query.GetSubquery(expr.Predicate), includeImplicitDeps)
+		predicatePackages, err := c.getQueryPredicatePackages(ctx, e, analysisReaders, query.GetSubquery(expr.Predicate), includeImplicitDeps)
 		if err != nil {
 			if !errors.Is(err, evaluation.ErrMissingDependency) {
 				return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
@@ -1147,7 +1147,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	var errIter error
-	labels := c.allTargetLabels(ctx, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter)
+	labels := c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter)
 
 	switch expr := expression.(type) {
 	case *label.QuerySome[label.CanonicalTargetPattern]:
@@ -1183,7 +1183,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 				continue
 			}
 			lastPackage = &canonicalPackage
-			if err := c.pushQueryPackageTargets(ctx, e, canonicalPackage, pushLabel); err != nil {
+			if err := c.pushQueryPackageTargets(ctx, e, analysisReaders, canonicalPackage, pushLabel); err != nil {
 				if !errors.Is(err, evaluation.ErrMissingDependency) {
 					return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
 				}
@@ -1248,26 +1248,26 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 
 // pushQueryPackageTargets calls a function for the labels of all
 // targets in a package, including file targets, in sorted order.
-func (c *baseComputer[TReference, TMetadata]) pushQueryPackageTargets(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], canonicalPackage label.CanonicalPackage, yield func(label.CanonicalLabel) error) error {
+func (c *baseComputer[TReference, TMetadata]) pushQueryPackageTargets(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], canonicalPackage label.CanonicalPackage, yield func(label.CanonicalLabel) error) error {
 	packageTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
 		Package: canonicalPackage.String(),
 	})
 	if !packageTargets.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
-	return c.forEachPackageTargetLabel(ctx, canonicalPackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), true, yield)
+	return c.forEachPackageTargetLabel(ctx, analysisReaders, canonicalPackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), true, yield)
 }
 
 // evaluateQuery evaluates the top-level expression of a query. Its
 // operands are evaluated by requesting separate QueryExpansion keys.
 // This function is only used for expressions whose results can't be
 // computed without loading them into memory (e.g., deps()). Other
-// expressions are evaluated by expandQuerySet(),
-// expandQuerySetOperation() and expandQueryStreaming().
-func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], valueReaders *model_starlark.ValueReaders[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (labelSet, error) {
+// expressions are evaluated by expandQuerySet(analysisReaders),
+// expandQuerySetOperation(analysisReaders) and expandQueryStreaming(analysisReaders).
+func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], valueReaders *model_starlark.ValueReaders[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (labelSet, error) {
 	expressions := query.GetExpressions()
 	getOperand := func(operand int) ([]label.CanonicalLabel, error) {
-		return c.getQueryLabels(ctx, e, query.GetSubquery(operand), includeImplicitDeps)
+		return c.getQueryLabels(ctx, e, analysisReaders, query.GetSubquery(operand), includeImplicitDeps)
 	}
 	switch expression := expressions[len(expressions)-1].(type) {
 	case *label.QueryDeps[label.CanonicalTargetPattern]:
@@ -1275,21 +1275,21 @@ func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context,
 		if err != nil {
 			return nil, err
 		}
-		return c.queryDeps(ctx, e, labels, expression.MaximumDepth, includeImplicitDeps)
+		return c.queryDeps(ctx, e, analysisReaders, labels, expression.MaximumDepth, includeImplicitDeps)
 
 	case *label.QueryReverseDeps[label.CanonicalTargetPattern]:
 		// Compute the transitive closure of the universe, and
 		// invert the dependency graph within it.
-		operands, err := c.getQueryLabelsOfOperands(ctx, e, query, includeImplicitDeps, expression.Universe, expression.Expression)
+		operands, err := c.getQueryLabelsOfOperands(ctx, e, analysisReaders, query, includeImplicitDeps, expression.Universe, expression.Expression)
 		if err != nil {
 			return nil, err
 		}
-		universeSet, err := c.queryDeps(ctx, e, operands[0], nil, includeImplicitDeps)
+		universeSet, err := c.queryDeps(ctx, e, analysisReaders, operands[0], nil, includeImplicitDeps)
 		if err != nil {
 			return nil, err
 		}
 		universe := universeSet.sorted()
-		dependencies, err := c.getQueryDirectDependencies(ctx, e, universe, includeImplicitDeps)
+		dependencies, err := c.getQueryDirectDependencies(ctx, e, analysisReaders, universe, includeImplicitDeps)
 		if err != nil {
 			return nil, err
 		}
@@ -1475,11 +1475,11 @@ func (c *baseComputer[TReference, TMetadata]) buildTargetLabels(ctx context.Cont
 
 // allTargetLabels returns the labels contained in a B-tree of
 // TargetLabel messages.
-func (c *baseComputer[TReference, TMetadata]) allTargetLabels(ctx context.Context, targetLabels model_core.Message[[]*model_analysis_pb.TargetLabel, TReference], errOut *error) iter.Seq[label.CanonicalLabel] {
+func (*baseComputer[TReference, TMetadata]) allTargetLabels(ctx context.Context, analysisReaders *AnalysisReaders[TReference], targetLabels model_core.Message[[]*model_analysis_pb.TargetLabel, TReference], errOut *error) iter.Seq[label.CanonicalLabel] {
 	return func(yield func(label.CanonicalLabel) bool) {
 		for entry := range btree.AllLeaves(
 			ctx,
-			c.targetLabelReader,
+			analysisReaders.TargetLabel,
 			targetLabels,
 			func(entry model_core.Message[*model_analysis_pb.TargetLabel, TReference]) (*model_core_pb.DecodableReference, error) {
 				return entry.Message.GetParent().GetReference(), nil
@@ -1629,7 +1629,7 @@ func (mc *targetLabelsMergeCursor[TReference]) getHeight() int {
 // balanced, this ensures that merging B-trees whose labels don't
 // overlap is cheap, and that the resulting B-tree shares most of its
 // objects with the B-trees being merged.
-func (c *baseComputer[TReference, TMetadata]) mergeTargetLabels(ctx context.Context, e model_core.ObjectCapturer[TReference, TMetadata], lists []model_core.Message[[]*model_analysis_pb.TargetLabel, TReference]) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) mergeTargetLabels(ctx context.Context, e model_core.ObjectCapturer[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], lists []model_core.Message[[]*model_analysis_pb.TargetLabel, TReference]) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	treeBuilder := c.newTargetLabelTreeBuilder(ctx, e)
 	defer treeBuilder.Discard()
 
@@ -1697,7 +1697,7 @@ func (c *baseComputer[TReference, TMetadata]) mergeTargetLabels(ctx context.Cont
 		if cursor.isParent {
 			// The current node overlaps with other
 			// B-trees. Look at its children instead.
-			if err := cursor.descend(ctx, c.targetLabelReader); err != nil {
+			if err := cursor.descend(ctx, analysisReaders.TargetLabel); err != nil {
 				return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
 			}
 			if err := loadCursor(minimum); err != nil {
@@ -1711,7 +1711,7 @@ func (c *baseComputer[TReference, TMetadata]) mergeTargetLabels(ctx context.Cont
 		// into these, so that duplicate labels can be detected.
 		for i := len(cursors) - 1; i >= 0; i-- {
 			if other := cursors[i]; other.isParent && other.first == cursor.first {
-				if err := other.descend(ctx, c.targetLabelReader); err != nil {
+				if err := other.descend(ctx, analysisReaders.TargetLabel); err != nil {
 					return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
 				}
 				if err := loadCursor(i); err != nil {
@@ -1727,13 +1727,13 @@ func (c *baseComputer[TReference, TMetadata]) mergeTargetLabels(ctx context.Cont
 // difference of two B-trees of TargetLabel messages, yielding a B-tree
 // in the order defined by label.CanonicalLabel.Compare().
 //
-// Like mergeTargetLabels(), this only descends into nodes whose range
+// Like mergeTargetLabels(analysisReaders), this only descends into nodes whose range
 // of labels overlaps with the other B-tree. Nodes that don't overlap
 // are either copied as is, or skipped without loading the objects they
 // reference. This means that the cost of these operations is
 // proportional to the number of overlapping nodes, as opposed to the
 // number of labels.
-func (c *baseComputer[TReference, TMetadata]) intersectOrSubtractTargetLabels(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], operator label.QuerySetOperator, left, right model_core.Message[[]*model_analysis_pb.TargetLabel, TReference]) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) intersectOrSubtractTargetLabels(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], operator label.QuerySetOperator, left, right model_core.Message[[]*model_analysis_pb.TargetLabel, TReference]) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	var intersect bool
 	switch operator {
 	case label.QuerySetOperatorIntersect:
@@ -1784,14 +1784,14 @@ func (c *baseComputer[TReference, TMetadata]) intersectOrSubtractTargetLabels(ct
 			// likely to contain children that don't
 			// overlap with the other node.
 			if leftCursor.getHeight() >= rightCursor.getHeight() {
-				if err := leftCursor.descend(ctx, c.targetLabelReader); err != nil {
+				if err := leftCursor.descend(ctx, analysisReaders.TargetLabel); err != nil {
 					return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
 				}
 				if leftOK, err = leftCursor.load(); err != nil {
 					return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
 				}
 			} else {
-				if err := rightCursor.descend(ctx, c.targetLabelReader); err != nil {
+				if err := rightCursor.descend(ctx, analysisReaders.TargetLabel); err != nil {
 					return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
 				}
 				if rightOK, err = rightCursor.load(); err != nil {
@@ -1829,6 +1829,7 @@ func (c *baseComputer[TReference, TMetadata]) intersectOrSubtractTargetLabels(ct
 func (c *baseComputer[TReference, TMetadata]) allQueryLabels(
 	ctx context.Context,
 	e QueryExpansionValueGetter[TReference],
+	analysisReaders *AnalysisReaders[TReference],
 	query label.Query[label.CanonicalTargetPattern],
 	errOut *error,
 ) iter.Seq[label.CanonicalLabel] {
@@ -1850,7 +1851,7 @@ func (c *baseComputer[TReference, TMetadata]) allQueryLabels(
 			*errOut = evaluation.ErrMissingDependency
 			return
 		}
-		for l := range c.allTargetLabels(ctx, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), errOut) {
+		for l := range c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), errOut) {
 			if !yield(l) {
 				return
 			}
@@ -1862,7 +1863,7 @@ func (c *baseComputer[TReference, TMetadata]) allQueryLabels(
 // x, and the tests that are part of test suites contained in x. As
 // test suites may refer to tests in other packages, the expanded test
 // suites are merged with the tests contained in x.
-func (c *baseComputer[TReference, TMetadata]) expandQueryTests(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], operand label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) expandQueryTests(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], operand label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	queryExpansion := e.GetQueryExpansionValue(newQueryExpansionKey(operand, includeImplicitDeps))
 	if !queryExpansion.IsSet() {
 		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, evaluation.ErrMissingDependency
@@ -1907,7 +1908,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryTests(ctx context.Conte
 		return nil
 	}
 	var errIter error
-	for l := range c.allTargetLabels(ctx, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter) {
+	for l := range c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter) {
 		batch = append(batch, l)
 		if len(batch) == queryStreamingBatchSize {
 			if err := flushBatch(); err != nil {
@@ -1926,10 +1927,11 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryTests(ctx context.Conte
 	if missingDependencies {
 		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return c.mergeTargetLabels(ctx, e, append(testSuites, newTargetLabelLeaves[TReference](tests)))
+	return c.mergeTargetLabels(ctx, e, analysisReaders, append(testSuites, newTargetLabelLeaves[TReference](tests)))
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx context.Context, key *model_analysis_pb.QueryExpansion_Key, e QueryExpansionEnvironment[TReference, TMetadata]) (PatchedQueryExpansionValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	query, err := label.NewQuery(key.Query, label.NewCanonicalTargetPattern)
@@ -1950,34 +1952,34 @@ func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx con
 	var targetLabels model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]
 	expressions := query.GetExpressions()
 
-	if !gotValueReaders {
+	if !gotAnalysisReaders || !gotValueReaders {
 		return PatchedQueryExpansionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if set, ok := expressions[len(expressions)-1].(*label.QuerySet[label.CanonicalTargetPattern]); ok {
-		targetLabels, err = c.expandQuerySet(ctx, e, set.TargetPatterns)
+		targetLabels, err = c.expandQuerySet(ctx, e, analysisReaders, set.TargetPatterns)
 	} else if perPackageQuery, base, exclusions, ok := getQueryExcludedDirectories(query); ok {
 		// Must be checked before getPerPackageQueryBase(), as
 		// queries like "//... - //..." are accepted by both.
-		targetLabels, err = c.expandQueryPerPackageWithExclusions(ctx, e, perPackageQuery, base, exclusions)
+		targetLabels, err = c.expandQueryPerPackageWithExclusions(ctx, e, analysisReaders, perPackageQuery, base, exclusions)
 	} else if base, ok := getPerPackageQueryBase(query); ok {
 		if base.recursive {
-			targetLabels, err = c.expandQueryPerPackage(ctx, e, query, base.canonicalPackage, base.includeFileTargets, nil)
+			targetLabels, err = c.expandQueryPerPackage(ctx, e, analysisReaders, query, base.canonicalPackage, base.includeFileTargets, nil)
 		} else {
 			var labels labelSet
-			labels, err = c.evaluateSinglePackageQuery(ctx, e, valueReaders, query, base.canonicalPackage)
+			labels, err = c.evaluateSinglePackageQuery(ctx, e, analysisReaders, valueReaders, query, base.canonicalPackage)
 			if err == nil {
 				targetLabels, err = c.buildTargetLabels(ctx, e, labels)
 			}
 		}
 	} else if setOperation, ok := expressions[len(expressions)-1].(*label.QuerySetOperation[label.CanonicalTargetPattern]); ok {
-		targetLabels, err = c.expandQuerySetOperation(ctx, e, query, setOperation, key.IncludeImplicitDeps)
+		targetLabels, err = c.expandQuerySetOperation(ctx, e, analysisReaders, query, setOperation, key.IncludeImplicitDeps)
 	} else if tests, ok := expressions[len(expressions)-1].(*label.QueryTests[label.CanonicalTargetPattern]); ok {
-		targetLabels, err = c.expandQueryTests(ctx, e, query.GetSubquery(tests.Expression), key.IncludeImplicitDeps)
+		targetLabels, err = c.expandQueryTests(ctx, e, analysisReaders, query.GetSubquery(tests.Expression), key.IncludeImplicitDeps)
 	} else if isStreamingQueryExpression(expressions[len(expressions)-1]) {
-		targetLabels, err = c.expandQueryStreaming(ctx, e, valueReaders, query, key.IncludeImplicitDeps)
+		targetLabels, err = c.expandQueryStreaming(ctx, e, analysisReaders, valueReaders, query, key.IncludeImplicitDeps)
 	} else {
 		var labels labelSet
-		labels, err = c.evaluateQuery(ctx, e, valueReaders, query, key.IncludeImplicitDeps)
+		labels, err = c.evaluateQuery(ctx, e, analysisReaders, valueReaders, query, key.IncludeImplicitDeps)
 		if err == nil {
 			targetLabels, err = c.buildTargetLabels(ctx, e, labels)
 		}
@@ -1998,7 +2000,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx con
 // memory, the B-trees containing their results are merged. Nested
 // unions (e.g., "a + b + c") are flattened, so that the results of all
 // operands are merged at once.
-func (c *baseComputer[TReference, TMetadata]) expandQuerySetOperation(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], query label.Query[label.CanonicalTargetPattern], setOperation *label.QuerySetOperation[label.CanonicalTargetPattern], includeImplicitDeps bool) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) expandQuerySetOperation(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], query label.Query[label.CanonicalTargetPattern], setOperation *label.QuerySetOperation[label.CanonicalTargetPattern], includeImplicitDeps bool) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	var operands []int
 	if setOperation.Operator == label.QuerySetOperatorUnion {
 		expressions := query.GetExpressions()
@@ -2037,9 +2039,9 @@ func (c *baseComputer[TReference, TMetadata]) expandQuerySetOperation(ctx contex
 	}
 
 	if setOperation.Operator == label.QuerySetOperatorUnion {
-		return c.mergeTargetLabels(ctx, e, lists)
+		return c.mergeTargetLabels(ctx, e, analysisReaders, lists)
 	}
-	return c.intersectOrSubtractTargetLabels(ctx, e, setOperation.Operator, lists[0], lists[1])
+	return c.intersectOrSubtractTargetLabels(ctx, e, analysisReaders, setOperation.Operator, lists[0], lists[1])
 }
 
 // perPackageQueryBase describes the set of targets against which a
@@ -2221,7 +2223,7 @@ func getQueryExcludedDirectories(query label.Query[label.CanonicalTargetPattern]
 
 // expandQueryPerPackageWithExclusions evaluates a query for which
 // getQueryExcludedDirectories() succeeds.
-func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackageWithExclusions(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], query label.Query[label.CanonicalTargetPattern], base perPackageQueryBase, excludedPackages []label.CanonicalPackage) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackageWithExclusions(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], query label.Query[label.CanonicalTargetPattern], base perPackageQueryBase, excludedPackages []label.CanonicalPackage) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	// Only retain exclusions that are below the base package. If
 	// the base package itself is excluded, the query yields no
 	// results.
@@ -2267,7 +2269,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackageWithExclusion
 			nonNestedExclusions = append(nonNestedExclusions, excludedPackage)
 		}
 	}
-	return c.expandQueryPerPackage(ctx, e, query, base.canonicalPackage, base.includeFileTargets, nonNestedExclusions)
+	return c.expandQueryPerPackage(ctx, e, analysisReaders, query, base.canonicalPackage, base.includeFileTargets, nonNestedExclusions)
 }
 
 // expandQueryPerPackage evaluates a query whose only target pattern is
@@ -2284,7 +2286,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackageWithExclusion
 // for these directories. The queries of other subpackages are identical
 // to the ones used if no exclusions are provided, so that their results
 // can be reused.
-func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackage(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], query label.Query[label.CanonicalTargetPattern], basePackage label.CanonicalPackage, includeFileTargets bool, excludedPackages []label.CanonicalPackage) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackage(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], query label.Query[label.CanonicalTargetPattern], basePackage label.CanonicalPackage, includeFileTargets bool, excludedPackages []label.CanonicalPackage) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	packagesAtAndBelow := e.GetPackagesAtAndBelowValue(&model_analysis_pb.PackagesAtAndBelow_Key{
 		BasePackage: basePackage.String(),
 		Pattern:     allPackagesPattern,
@@ -2363,8 +2365,8 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackage(ctx context.
 // getPerPackageQueryBase() returns a base that is not recursive in
 // memory. As the query only processes the targets in a single package,
 // the amount of memory needed is bounded by the size of the package.
-func (c *baseComputer[TReference, TMetadata]) evaluateSinglePackageQuery(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], valueReaders *model_starlark.ValueReaders[TReference], query label.Query[label.CanonicalTargetPattern], canonicalPackage label.CanonicalPackage) (labelSet, error) {
-	packageTargets, packageRuleTargets, err := c.getQueryPackageTargets(ctx, e, canonicalPackage)
+func (c *baseComputer[TReference, TMetadata]) evaluateSinglePackageQuery(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], valueReaders *model_starlark.ValueReaders[TReference], query label.Query[label.CanonicalTargetPattern], canonicalPackage label.CanonicalPackage) (labelSet, error) {
+	packageTargets, packageRuleTargets, err := c.getQueryPackageTargets(ctx, e, analysisReaders, canonicalPackage)
 	if err != nil {
 		return nil, err
 	}
@@ -2436,13 +2438,13 @@ func (c *baseComputer[TReference, TMetadata]) evaluateSinglePackageQuery(ctx con
 
 // expandQuerySet computes the labels of the targets matched by a set
 // of target patterns.
-func (c *baseComputer[TReference, TMetadata]) expandQuerySet(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], targetPatterns []label.CanonicalTargetPattern) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) expandQuerySet(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], targetPatterns []label.CanonicalTargetPattern) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	if len(targetPatterns) == 1 {
 		// Expand individual target patterns, so that the
 		// results of recursive target patterns can be reused.
 		treeBuilder := c.newTargetLabelTreeBuilder(ctx, e)
 		defer treeBuilder.Discard()
-		if err := c.expandTargetPattern(ctx, e, targetPatterns[0], treeBuilder); err != nil {
+		if err := c.expandTargetPattern(ctx, e, analysisReaders, targetPatterns[0], treeBuilder); err != nil {
 			return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, err
 		}
 		return treeBuilder.FinalizeList()
@@ -2483,12 +2485,12 @@ func (c *baseComputer[TReference, TMetadata]) expandQuerySet(ctx context.Context
 		})
 	}
 	lists = append(lists, model_core.NewSimpleMessage[TReference](singleTargetLabels))
-	return c.mergeTargetLabels(ctx, e, lists)
+	return c.mergeTargetLabels(ctx, e, analysisReaders, lists)
 }
 
 // expandTargetPattern adds the labels of the targets matched by a
 // single target pattern to a B-tree.
-func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], targetPattern label.CanonicalTargetPattern, treeBuilder btree.Builder[*model_analysis_pb.TargetLabel, TMetadata]) error {
+func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], targetPattern label.CanonicalTargetPattern, treeBuilder btree.Builder[*model_analysis_pb.TargetLabel, TMetadata]) error {
 	if l, ok := targetPattern.AsCanonicalLabel(); ok {
 		// Target pattern refers to a single target. Ensure that
 		// it actually exists.
@@ -2512,6 +2514,7 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 
 		definition, err := c.lookupTargetDefinitionInTargetList(
 			ctx,
+			analysisReaders,
 			targets,
 			initialTarget.GetTargetName(),
 		)
@@ -2525,7 +2528,7 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 			// performing actual wildcard expansion.
 			return pushTargetLabel(treeBuilder, initialTarget)
 		}
-		return c.forEachPackageTargetLabel(ctx, canonicalPackage, targets, includeFileTargets, func(l label.CanonicalLabel) error {
+		return c.forEachPackageTargetLabel(ctx, analysisReaders, canonicalPackage, targets, includeFileTargets, func(l label.CanonicalLabel) error {
 			return pushTargetLabel(treeBuilder, l)
 		})
 	}
@@ -2553,7 +2556,7 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 			Package: basePackage.String(),
 		})
 		if packageTargets.IsSet() {
-			if err := c.forEachPackageTargetLabel(ctx, basePackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), includeFileTargets, func(l label.CanonicalLabel) error {
+			if err := c.forEachPackageTargetLabel(ctx, analysisReaders, basePackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), includeFileTargets, func(l label.CanonicalLabel) error {
 				return pushTargetLabel(treeBuilder, l)
 			}); err != nil {
 				return err
@@ -2597,8 +2600,9 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 // targets in a package, optionally excluding file targets. As targets
 // in a package are sorted by name, the labels are provided in sorted
 // order.
-func (c *baseComputer[TReference, TMetadata]) forEachPackageTargetLabel(
+func (*baseComputer[TReference, TMetadata]) forEachPackageTargetLabel(
 	ctx context.Context,
+	analysisReaders *AnalysisReaders[TReference],
 	canonicalPackage label.CanonicalPackage,
 	targets model_core.Message[[]*model_analysis_pb.Package_Value_Target, TReference],
 	includeFileTargets bool,
@@ -2607,7 +2611,7 @@ func (c *baseComputer[TReference, TMetadata]) forEachPackageTargetLabel(
 	var errIter error
 	for entry := range btree.AllLeaves(
 		ctx,
-		c.packageValueTargetReader,
+		analysisReaders.PackageValueTarget,
 		targets,
 		func(entry model_core.Message[*model_analysis_pb.Package_Value_Target, TReference]) (*model_core_pb.DecodableReference, error) {
 			if level, ok := entry.Message.Level.(*model_analysis_pb.Package_Value_Target_Parent_); ok {

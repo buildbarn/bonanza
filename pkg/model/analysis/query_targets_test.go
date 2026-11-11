@@ -65,6 +65,7 @@ func TestQueryTargets(t *testing.T) {
 		// If no definitions are requested, there is no need to
 		// load any targets.
 		e := NewMockQueryTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 
 		value, err := bct.computer.ComputeQueryTargetsValue(
 			ctx,
@@ -96,6 +97,7 @@ func TestQueryTargets(t *testing.T) {
 		// rule should be provided, so that clients can display
 		// their values.
 		e := NewMockQueryTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectTarget(e, "@@main+//:a", ruleTargetDefinition)
 		expectTarget(e, "@@main+//:b", newSourceFileTargetValue().Message.Definition)
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
@@ -143,6 +145,7 @@ func TestQueryTargets(t *testing.T) {
 
 	t.Run("DoesNotExist", func(t *testing.T) {
 		e := NewMockQueryTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectTarget(e, "@@main+//:missing", nil)
 
 		_, err := bct.computer.ComputeQueryTargetsValue(
@@ -169,6 +172,7 @@ func TestQueryTargets(t *testing.T) {
 		// of their results should be inserted in place, so that
 		// the order of the labels is preserved.
 		e := NewMockQueryTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		e.EXPECT().CaptureExistingObject(gomock.Any()).
 			DoAndReturn(func(reference model_core.CreatedObjectTree) model_core.CreatedObjectTree {
 				return reference

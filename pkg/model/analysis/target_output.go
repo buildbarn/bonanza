@@ -12,7 +12,9 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetOutput_Key, TReference], e TargetOutputEnvironment[TReference, TMetadata]) (PatchedTargetOutputValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetOutput_Key, TReference], e TargetOutputEnvironment[TReference, TMetadata]) (PatchedTargetOutputValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+
 	patchedConfigurationReference := model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference))
 	configuredTarget := e.GetConfiguredTargetValue(
 		model_core.NewPatchedMessage(
@@ -23,14 +25,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx conte
 			patchedConfigurationReference.Patcher,
 		),
 	)
-	if !configuredTarget.IsSet() {
+	if !configuredTarget.IsSet() || !gotAnalysisReaders {
 		return PatchedTargetOutputValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	packageRelativePath := key.Message.PackageRelativePath
 	output, err := btree.Find(
 		ctx,
-		c.configuredTargetOutputReader,
+		analysisReaders.ConfiguredTargetOutput,
 		model_core.Nested(configuredTarget, configuredTarget.Message.Outputs),
 		func(entry model_core.Message[*model_analysis_pb.ConfiguredTarget_Value_Output, TReference]) (int, *model_core_pb.DecodableReference) {
 			switch level := entry.Message.Level.(type) {

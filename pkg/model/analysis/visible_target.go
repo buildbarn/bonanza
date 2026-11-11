@@ -167,6 +167,7 @@ func getTargetVisibility[TReference any](e TargetValueGetter[TReference], target
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.VisibleTarget_Key, TReference], e VisibleTargetEnvironment[TReference, TMetadata]) (PatchedVisibleTargetValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	fromPackage, err := label.NewCanonicalPackage(key.Message.FromPackage)
@@ -181,7 +182,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
 		Label: key.Message.ToLabel,
 	})
-	if !targetValue.IsSet() || !gotValueReaders {
+	if !targetValue.IsSet() || !gotAnalysisReaders || !gotValueReaders {
 		return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if targetValue.Message.Definition == nil {
@@ -290,7 +291,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		toLabelStr := toLabel.String()
 		override, err := btree.Find(
 			ctx,
-			c.buildSettingOverrideReader,
+			analysisReaders.BuildSettingOverride,
 			getBuildSettingOverridesFromReference(model_core.Nested(key, key.Message.ConfigurationReference)),
 			func(entry model_core.Message[*model_analysis_pb.BuildSettingOverride, TReference]) (int, *model_core_pb.DecodableReference) {
 				switch level := entry.Message.Level.(type) {

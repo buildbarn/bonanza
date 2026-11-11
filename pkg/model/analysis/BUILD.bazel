@@ -14,6 +14,7 @@ go_library(
     srcs = [
         "action_encoders.go",
         "action_result.go",
+        "analysis_encoders.go",
         "base_computer.go",
         "build_result.go",
         "build_specification.go",

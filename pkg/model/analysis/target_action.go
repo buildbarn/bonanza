@@ -12,7 +12,9 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetAction_Key, TReference], e TargetActionEnvironment[TReference, TMetadata]) (PatchedTargetActionValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeTargetActionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetAction_Key, TReference], e TargetActionEnvironment[TReference, TMetadata]) (PatchedTargetActionValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+
 	id := key.Message.Id
 	if id == nil {
 		return PatchedTargetActionValue[TMetadata]{}, errors.New("no target action identifier specified")
@@ -27,14 +29,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionValue(ctx conte
 			patchedConfigurationReference.Patcher,
 		),
 	)
-	if !configuredTarget.IsSet() {
+	if !configuredTarget.IsSet() || !gotAnalysisReaders {
 		return PatchedTargetActionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	actionID := id.ActionId
 	action, err := btree.Find(
 		ctx,
-		c.configuredTargetActionReader,
+		analysisReaders.ConfiguredTargetAction,
 		model_core.Nested(configuredTarget, configuredTarget.Message.Actions),
 		func(entry model_core.Message[*model_analysis_pb.ConfiguredTarget_Value_Action, TReference]) (int, *model_core_pb.DecodableReference) {
 			switch level := entry.Message.Level.(type) {

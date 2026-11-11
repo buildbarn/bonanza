@@ -132,6 +132,7 @@ func TestTarget(t *testing.T) {
 		// instance.
 		for _, name := range []string{"bar", "bar_baz", "barbaz"} {
 			e := NewMockTargetEnvironmentForTesting(ctrl)
+			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 			expectPackage(e, newDeclarations(
 				newRuleTargetDeclaration(name, "@@rules+//:defs.bzl%top_level"),
 			).withMacroExpansionContexts("bar"))
@@ -149,6 +150,7 @@ func TestTarget(t *testing.T) {
 		// instance if not declared at the top level.
 		for _, name := range []string{"bar", "bar_baz", "bar-baz", "bar.baz"} {
 			e := NewMockTargetEnvironmentForTesting(ctrl)
+			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 			expectPackage(e, newDeclarations().withMacroExpansionContexts("bar"))
 			expectMacroInstance(e, []string{"bar"}, newDeclarations(
 				newRuleTargetDeclaration(name, "@@rules+//:defs.bzl%in_macro"),
@@ -164,6 +166,7 @@ func TestTarget(t *testing.T) {
 		// Names of macro instances don't need to be valid
 		// target names.
 		e := NewMockTargetEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newDeclarations().withMacroExpansionContexts("bar/"))
 		expectMacroInstance(e, []string{"bar/"}, newDeclarations(
 			newRuleTargetDeclaration("bar/_baz", "@@rules+//:defs.bzl%in_macro"),
@@ -180,6 +183,7 @@ func TestTarget(t *testing.T) {
 		// sorts before "0", the macro instance preceding
 		// "bar_x" is stored in the first object.
 		e := NewMockTargetEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		e.EXPECT().GetPackageValue(
 			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo"}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Package_Value {
@@ -213,6 +217,7 @@ func TestTarget(t *testing.T) {
 			"a1x":  "a1x",
 		} {
 			e := NewMockTargetEnvironmentForTesting(ctrl)
+			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 			expectPackage(e, newDeclarations().withMacroExpansionContexts("a", "a0", "a1x", "b"))
 			expectMacroInstance(e, []string{owner}, newDeclarations(
 				newRuleTargetDeclaration(targetName, "@@rules+//:defs.bzl%in_"+owner),
@@ -227,6 +232,7 @@ func TestTarget(t *testing.T) {
 		// them don't belong to any macro instance.
 		for _, targetName := range []string{"0", "a1", "a1y", "c"} {
 			e := NewMockTargetEnvironmentForTesting(ctrl)
+			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 			expectPackage(e, newDeclarations().withMacroExpansionContexts("a", "a0", "a1x", "b"))
 
 			_, err := getRuleIdentifier(t, "@@main+//foo:"+targetName, e)
@@ -239,6 +245,7 @@ func TestTarget(t *testing.T) {
 		// These should only be expanded if their namespace
 		// contains the target's name.
 		e := NewMockTargetEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newDeclarations().withMacroExpansionContexts("a"))
 		expectMacroInstance(e, []string{"a"}, newDeclarations().withMacroExpansionContexts("_b", "_c"))
 		expectMacroInstance(e, []string{"a", "_b"}, newDeclarations(
@@ -256,6 +263,7 @@ func TestTarget(t *testing.T) {
 		// terminate, as every macro instance that is expanded
 		// causes the macro instance name to become longer.
 		e := NewMockTargetEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newDeclarations().withMacroExpansionContexts("a"))
 		expectMacroInstance(e, []string{"a"}, newDeclarations().withMacroExpansionContexts(""))
 		expectMacroInstance(e, []string{"a", ""}, newDeclarations())
@@ -268,6 +276,7 @@ func TestTarget(t *testing.T) {
 		// Lookups should stop as soon as a macro instance
 		// owning the name cannot be expanded.
 		e := NewMockTargetEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newDeclarations().withMacroExpansionContexts("a"))
 		e.EXPECT().GetPackageValue(
 			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo", MacroInstanceName: []string{"a"}}),
@@ -279,6 +288,7 @@ func TestTarget(t *testing.T) {
 
 	t.Run("DoesNotExist", func(t *testing.T) {
 		e := NewMockTargetEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newDeclarations().withMacroExpansionContexts("bar"))
 		expectMacroInstance(e, []string{"bar"}, newDeclarations(
 			newRuleTargetDeclaration("bar_other", "@@rules+//:defs.bzl%in_macro"),
@@ -292,6 +302,7 @@ func TestTarget(t *testing.T) {
 
 		// Macro instances themselves are not targets.
 		e = NewMockTargetEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newDeclarations().withMacroExpansionContexts("bar"))
 		expectMacroInstance(e, []string{"bar"}, newDeclarations().withMacroExpansionContexts("_nested"))
 		expectMacroInstance(e, []string{"bar", "_nested"}, newDeclarations())

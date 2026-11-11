@@ -15,7 +15,9 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeMacroExpansionContextValue(ctx context.Context, key *model_analysis_pb.MacroExpansionContext_Key, e MacroExpansionContextEnvironment[TReference, TMetadata]) (PatchedMacroExpansionContextValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeMacroExpansionContextValue(ctx context.Context, key *model_analysis_pb.MacroExpansionContext_Key, e MacroExpansionContextEnvironment[TReference, TMetadata]) (PatchedMacroExpansionContextValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+
 	if len(key.MacroInstanceName) == 0 {
 		return PatchedMacroExpansionContextValue[TMetadata]{}, errors.New("no macro instance name provided")
 	}
@@ -29,13 +31,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeMacroExpansionContextValue(
 		Label:             key.Package,
 		MacroInstanceName: key.MacroInstanceName[:len(key.MacroInstanceName)-1],
 	})
-	if !parentValue.IsSet() {
+	if !parentValue.IsSet() || !gotAnalysisReaders {
 		return PatchedMacroExpansionContextValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	nameSuffix := key.MacroInstanceName[len(key.MacroInstanceName)-1]
 	macroExpansionContext, err := btree.Find(
 		ctx,
-		c.macroExpansionContextEntryReader,
+		analysisReaders.MacroExpansionContextEntry,
 		model_core.Nested(parentValue, parentValue.Message.MacroExpansionContexts),
 		func(entry model_core.Message[*model_starlark_pb.MacroExpansionContext_Entry, TReference]) (int, *model_core_pb.DecodableReference) {
 			switch level := entry.Message.Level.(type) {

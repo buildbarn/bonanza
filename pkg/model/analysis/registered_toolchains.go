@@ -31,6 +31,7 @@ type registeredToolchainExtractingModuleDotBazelHandler[TReference object.BasicR
 	computer                   *baseComputer[TReference, TMetadata]
 	environment                RegisteredToolchainsEnvironment[TReference, TMetadata]
 	valueReaders               *model_starlark.ValueReaders[TReference]
+	analysisReaders            *AnalysisReaders[TReference]
 	labelResolver              label.Resolver
 	moduleInstance             label.ModuleInstance
 	ignoreDevDependencies      bool
@@ -66,6 +67,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 			for canonicalToolchainLabel := range h.computer.allQueryLabels(
 				h.context,
 				h.environment,
+				h.analysisReaders,
 				canonicalToolchainTargetPattern.ToQuery(),
 				&iterErr,
 			) {
@@ -313,12 +315,13 @@ func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata])
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(ctx context.Context, key *model_analysis_pb.RegisteredToolchains_Key, e RegisteredToolchainsEnvironment[TReference, TMetadata]) (PatchedRegisteredToolchainsValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	registeredToolchainsByType := map[string][]*model_analysis_pb.RegisteredToolchain{}
 	missingDependencies := false
 
-	if !gotValueReaders {
+	if !gotAnalysisReaders || !gotValueReaders {
 		return PatchedRegisteredToolchainsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler {
@@ -327,6 +330,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(c
 			computer:                   c,
 			environment:                e,
 			valueReaders:               valueReaders,
+			analysisReaders:            analysisReaders,
 			labelResolver:              newLabelResolver(e),
 			moduleInstance:             moduleInstance,
 			ignoreDevDependencies:      ignoreDevDependencies,

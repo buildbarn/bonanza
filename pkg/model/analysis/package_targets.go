@@ -89,11 +89,13 @@ func (h packageTargetsCursorHeap[TReference]) Less(i, j int) bool {
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx context.Context, key *model_analysis_pb.PackageTargets_Key, e PackageTargetsEnvironment[TReference, TMetadata]) (PatchedPackageTargetsValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+
 	packageValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
 		Label:             key.Package,
 		MacroInstanceName: key.MacroInstanceName,
 	})
-	if !packageValue.IsSet() {
+	if !packageValue.IsSet() || !gotAnalysisReaders {
 		return PatchedPackageTargetsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	// Create cursors for the targets declared by the package or
@@ -121,7 +123,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx con
 	var errIter error
 	for entry := range btree.AllLeaves(
 		ctx,
-		c.macroExpansionContextEntryReader,
+		analysisReaders.MacroExpansionContextEntry,
 		model_core.Nested(packageValue, packageValue.Message.MacroExpansionContexts),
 		func(entry model_core.Message[*model_starlark_pb.MacroExpansionContext_Entry, TReference]) (*model_core_pb.DecodableReference, error) {
 			if level, ok := entry.Message.Level.(*model_starlark_pb.MacroExpansionContext_Entry_Parent_); ok {
@@ -197,7 +199,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx con
 				// Subtree overlaps with other lists.
 				// Merge its children.
 				var err error
-				children, err = model_parser.Dereference(ctx, c.packageValueTargetReader, model_core.Nested(entry, parent.Reference))
+				children, err = model_parser.Dereference(ctx, analysisReaders.PackageValueTarget, model_core.Nested(entry, parent.Reference))
 				if err != nil {
 					return PatchedPackageTargetsValue[TMetadata]{}, err
 				}

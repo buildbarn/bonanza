@@ -265,6 +265,7 @@ func expandFileIfDirectory[TReference object.BasicReference, TMetadata model_cor
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionCommand_Key, TReference], e TargetActionCommandEnvironment[TReference, TMetadata]) (PatchedTargetActionCommandValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	id := model_core.Nested(key, key.Message.Id)
@@ -309,7 +310,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	referenceFormat := c.referenceFormat
 	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(ctx, actionEncoders.Encoder, referenceFormat, e)
 
-	if !gotStarlarkValueEncoders {
+	if !gotAnalysisReaders || !gotStarlarkValueEncoders {
 		return PatchedTargetActionCommandValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
@@ -319,7 +320,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	var errIterArgs error
 	for args := range btree.AllLeaves(
 		ctx,
-		c.argsReader,
+		analysisReaders.Args,
 		model_core.Nested(action, actionDefinition.Arguments),
 		/* traverser = */ func(element model_core.Message[*model_analysis_pb.Args, TReference]) (*model_core_pb.DecodableReference, error) {
 			return element.Message.GetParent().GetReference(), nil
@@ -333,7 +334,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		var errIterAdd error
 		for add := range btree.AllLeaves(
 			ctx,
-			c.argsAddReader,
+			analysisReaders.ArgsAdd,
 			model_core.Nested(args, argsLeaf.Leaf.Adds),
 			/* traverser = */ func(element model_core.Message[*model_analysis_pb.Args_Leaf_Add, TReference]) (*model_core_pb.DecodableReference, error) {
 				return element.Message.GetParent().GetReference(), nil

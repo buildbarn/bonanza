@@ -11,11 +11,13 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoNamesValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepoNames_Key, e ModuleExtensionRepoNamesEnvironment[TReference, TMetadata]) (PatchedModuleExtensionRepoNamesValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoNamesValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepoNames_Key, e ModuleExtensionRepoNamesEnvironment[TReference, TMetadata]) (PatchedModuleExtensionRepoNamesValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+
 	moduleExtensionReposValue := e.GetModuleExtensionReposValue(&model_analysis_pb.ModuleExtensionRepos_Key{
 		ModuleExtension: key.ModuleExtension,
 	})
-	if !moduleExtensionReposValue.IsSet() {
+	if !moduleExtensionReposValue.IsSet() || !gotAnalysisReaders {
 		return PatchedModuleExtensionRepoNamesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
@@ -23,7 +25,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoNamesVal
 	var errIter error
 	for entry := range btree.AllLeaves(
 		ctx,
-		c.moduleExtensionReposValueRepoReader,
+		analysisReaders.ModuleExtensionReposValueRepo,
 		model_core.Nested(moduleExtensionReposValue, moduleExtensionReposValue.Message.Repos),
 		func(entry model_core.Message[*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TReference]) (*model_core_pb.DecodableReference, error) {
 			return entry.Message.GetParent().GetReference(), nil

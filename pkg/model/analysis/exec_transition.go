@@ -37,6 +37,7 @@ type initialConfigurationBuildSetting[TReference any] struct {
 func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 	ctx context.Context,
 	e createInitialConfigurationEnvironment[TReference, TMetadata],
+	analysisReaders *AnalysisReaders[TReference],
 	thread *eval.Thread,
 	rootPackage label.CanonicalPackage,
 	configuration *model_analysis_pb.BuildResult_Key_Configuration,
@@ -111,6 +112,7 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 		ctx,
 		thread,
 		e,
+		analysisReaders,
 		model_core.NewSimpleMessage[TReference]((*model_core_pb.DecodableReference)(nil)),
 		buildSettingValuesToApply,
 		valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil),
@@ -118,6 +120,7 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ExecTransition_Key, TReference], e ExecTransitionEnvironment[TReference, TMetadata]) (PatchedExecTransitionValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
@@ -127,7 +130,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
-	if !allBuiltinsModulesNames.IsSet() || !rootModuleValue.IsSet() || !gotStarlarkValueEncoders {
+	if !allBuiltinsModulesNames.IsSet() || !rootModuleValue.IsSet() || !gotAnalysisReaders || !gotStarlarkValueEncoders {
 		return PatchedExecTransitionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	valueReaders := &starlarkValueEncoders.Readers
@@ -159,6 +162,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 	execConfigValue, err := c.getBuildSettingValue(
 		ctx,
 		e,
+		analysisReaders,
 		valueReaders,
 		rootPackage,
 		execConfigCommandLineOption,
@@ -187,6 +191,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 	expectedOutputs, outputsDict, err := c.performUserDefinedTransition(
 		ctx,
 		e,
+		analysisReaders,
 		valueReaders,
 		thread,
 		model_core.NewSimpleMessage[TReference](
@@ -244,6 +249,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		ctx,
 		thread,
 		e,
+		analysisReaders,
 		model_core.NewSimpleMessage[TReference]((*model_core_pb.DecodableReference)(nil)),
 		buildSettingValuesToApply,
 		valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil),

@@ -14,7 +14,9 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepo_Key, e ModuleExtensionRepoEnvironment[TReference, TMetadata]) (PatchedModuleExtensionRepoValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepo_Key, e ModuleExtensionRepoEnvironment[TReference, TMetadata]) (PatchedModuleExtensionRepoValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+
 	canonicalRepo, err := label.NewCanonicalRepo(key.CanonicalRepo)
 	if err != nil {
 		return PatchedModuleExtensionRepoValue[TMetadata]{}, fmt.Errorf("invalid repo: %w", err)
@@ -26,14 +28,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ct
 	moduleExtensionReposValue := e.GetModuleExtensionReposValue(&model_analysis_pb.ModuleExtensionRepos_Key{
 		ModuleExtension: moduleExtension.String(),
 	})
-	if !moduleExtensionReposValue.IsSet() {
+	if !moduleExtensionReposValue.IsSet() || !gotAnalysisReaders {
 		return PatchedModuleExtensionRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	repoName := apparentRepo.String()
 	repo, err := btree.Find(
 		ctx,
-		c.moduleExtensionReposValueRepoReader,
+		analysisReaders.ModuleExtensionReposValueRepo,
 		model_core.Nested(moduleExtensionReposValue, moduleExtensionReposValue.Message.Repos),
 		func(entry model_core.Message[*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TReference]) (int, *model_core_pb.DecodableReference) {
 			switch level := entry.Message.Level.(type) {

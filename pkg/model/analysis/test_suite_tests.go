@@ -45,7 +45,7 @@ func allTestSuiteTests[TReference object.BasicReference](ctx context.Context, va
 
 // newTargetLabelLeaves converts a set of labels to a list of
 // TargetLabel messages that only contains leaves. This list can be
-// merged with B-trees using mergeTargetLabels().
+// merged with B-trees using mergeTargetLabels(analysisReaders).
 func newTargetLabelLeaves[TReference any](labels labelSet) model_core.Message[[]*model_analysis_pb.TargetLabel, TReference] {
 	leaves := make([]*model_analysis_pb.TargetLabel, 0, len(labels))
 	for _, l := range labels.sorted() {
@@ -59,10 +59,11 @@ func newTargetLabelLeaves[TReference any](labels labelSet) model_core.Message[[]
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx context.Context, key *model_analysis_pb.TestSuiteTests_Key, e TestSuiteTestsEnvironment[TReference, TMetadata]) (PatchedTestSuiteTestsValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{Label: key.Label})
-	if !targetValue.IsSet() || !gotValueReaders {
+	if !targetValue.IsSet() || !gotAnalysisReaders || !gotValueReaders {
 		return PatchedTestSuiteTestsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if targetValue.Message.Definition == nil {
@@ -143,7 +144,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx con
 		return PatchedTestSuiteTestsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	targetLabels, err := c.mergeTargetLabels(ctx, e, append(nestedTestSuites, newTargetLabelLeaves[TReference](tests)))
+	targetLabels, err := c.mergeTargetLabels(ctx, e, analysisReaders, append(nestedTestSuites, newTargetLabelLeaves[TReference](tests)))
 	if err != nil {
 		return PatchedTestSuiteTestsValue[TMetadata]{}, err
 	}

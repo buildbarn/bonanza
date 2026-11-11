@@ -34,6 +34,7 @@ var buildDotBazelTargetNames = []label.TargetName{
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Context, key *model_analysis_pb.Package_Key, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	canonicalPackage, err := label.NewCanonicalPackage(key.Label)
@@ -41,11 +42,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid package label: %w", err)
 	}
 
-	if !gotStarlarkValueEncoders {
+	if !gotAnalysisReaders || !gotStarlarkValueEncoders {
 		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if len(key.MacroInstanceName) > 0 {
-		value, err := c.computeMacroInstancePackageValue(ctx, canonicalPackage, key.MacroInstanceName, e, starlarkValueEncoders)
+		value, err := c.computeMacroInstancePackageValue(ctx, canonicalPackage, key.MacroInstanceName, e, analysisReaders, starlarkValueEncoders)
 		if err != nil && !errors.Is(err, evaluation.ErrMissingDependency) {
 			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("macro instance %#v: %w", strings.Join(key.MacroInstanceName, ""), err)
 		}
@@ -375,6 +376,7 @@ type existingRulesResolver[TReference object.BasicReference, TMetadata model_cor
 	computer         *baseComputer[TReference, TMetadata]
 	context          context.Context
 	environment      PackageEnvironment[TReference, TMetadata]
+	analysisReaders  *AnalysisReaders[TReference]
 	canonicalPackage label.CanonicalPackage
 }
 
@@ -404,7 +406,7 @@ func (r *existingRulesResolver[TReference, TMetadata]) ForEachExistingRule(yield
 	var errIter error
 	for entry := range btree.AllLeaves(
 		r.context,
-		r.computer.packageValueTargetReader,
+		r.analysisReaders.PackageValueTarget,
 		model_core.Nested(packageTargets, packageTargets.Message.Targets),
 		func(entry model_core.Message[*model_analysis_pb.Package_Value_Target, TReference]) (*model_core_pb.DecodableReference, error) {
 			if level, ok := entry.Message.Level.(*model_analysis_pb.Package_Value_Target_Parent_); ok {
@@ -433,7 +435,7 @@ func (r *existingRulesResolver[TReference, TMetadata]) ForEachExistingRule(yield
 // key for a macro instance. It invokes the macro's implementation
 // function to obtain the targets and macro instances declared by the
 // macro instance.
-func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, macroInstanceNameSuffixes []string, e PackageEnvironment[TReference, TMetadata], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedPackageValue[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, macroInstanceNameSuffixes []string, e PackageEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedPackageValue[TMetadata], error) {
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, err
@@ -496,6 +498,7 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 			computer:         c,
 			context:          ctx,
 			environment:      e,
+			analysisReaders:  analysisReaders,
 			canonicalPackage: canonicalPackage,
 		})
 	}
@@ -523,7 +526,7 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	var errIter error
 	for entry := range btree.AllLeaves(
 		ctx,
-		c.macroInstanceEntryReader,
+		analysisReaders.MacroInstanceEntry,
 		model_core.Nested(macroExpansionContextDefinition, macroExpansionContextDefinition.Message.NestedMacroInstances),
 		func(entry model_core.Message[*model_starlark_pb.MacroInstance_Entry, TReference]) (*model_core_pb.DecodableReference, error) {
 			if level, ok := entry.Message.Level.(*model_starlark_pb.MacroInstance_Entry_Parent_); ok {

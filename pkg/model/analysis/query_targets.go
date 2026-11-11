@@ -272,7 +272,12 @@ func (c *baseComputer[TReference, TMetadata]) buildQueryTargets(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeQueryTargetsValue(ctx context.Context, key model_core.Message[*model_analysis_pb.QueryTargets_Key, TReference], e QueryTargetsEnvironment[TReference, TMetadata]) (PatchedQueryTargetsValue[TMetadata], error) {
-	targetLabels, err := model_parser.Dereference(ctx, c.targetLabelReader, model_core.Nested(key, key.Message.TargetLabelsReference))
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+
+	if !gotAnalysisReaders {
+		return PatchedQueryTargetsValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+	targetLabels, err := model_parser.Dereference(ctx, analysisReaders.TargetLabel, model_core.Nested(key, key.Message.TargetLabelsReference))
 	if err != nil {
 		return PatchedQueryTargetsValue[TMetadata]{}, err
 	}

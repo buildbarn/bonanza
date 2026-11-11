@@ -93,21 +93,6 @@ type baseComputer[TReference object.BasicReference, TMetadata model_core.Referen
 	discardingObjectCapturer model_core.ObjectCapturer[TReference, model_core.NoopReferenceMetadata]
 	objectStoreSemaphore     *semaphore.Weighted
 	binaryEncoderFactory     model_encoding.BinaryEncoderFactory
-
-	// Readers for various message types.
-	// TODO: These should likely be removed and instantiated later
-	// on, so that we can encrypt all data in storage.
-	argsReader                          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args]
-	argsAddReader                       model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args_Leaf_Add]
-	buildSettingOverrideReader          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.BuildSettingOverride]
-	configuredTargetActionReader        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Action]
-	configuredTargetOutputReader        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Output]
-	filesToRunProviderReader            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.FilesToRunProvider]
-	macroExpansionContextEntryReader    model_parser.MessageObjectReader[TReference, []*model_starlark_pb.MacroExpansionContext_Entry]
-	macroInstanceEntryReader            model_parser.MessageObjectReader[TReference, []*model_starlark_pb.MacroInstance_Entry]
-	moduleExtensionReposValueRepoReader model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ModuleExtensionRepos_Value_Repo]
-	packageValueTargetReader            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Package_Value_Target]
-	targetLabelReader                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetLabel]
 }
 
 // NewBaseComputer constructs a computer that is capable of performing
@@ -132,51 +117,6 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 		discardingObjectCapturer: model_core.NewDiscardingObjectCapturer[TReference](),
 		objectStoreSemaphore:     objectStoreSemaphore,
 		binaryEncoderFactory:     binaryEncoderFactory,
-
-		argsReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Args](),
-		),
-		argsAddReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Args_Leaf_Add](),
-		),
-		buildSettingOverrideReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.BuildSettingOverride](),
-		),
-		configuredTargetOutputReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ConfiguredTarget_Value_Output](),
-		),
-		configuredTargetActionReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ConfiguredTarget_Value_Action](),
-		),
-		filesToRunProviderReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.FilesToRunProvider](),
-		),
-		macroExpansionContextEntryReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.MacroExpansionContext_Entry](),
-		),
-		macroInstanceEntryReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.MacroInstance_Entry](),
-		),
-		moduleExtensionReposValueRepoReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ModuleExtensionRepos_Value_Repo](),
-		),
-		packageValueTargetReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Package_Value_Target](),
-		),
-		targetLabelReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.TargetLabel](),
-		),
 	}
 }
 

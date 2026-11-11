@@ -42,6 +42,12 @@ message ExecuteRequest {
   google.protobuf.Duration execution_timeout = 3;
 }
 
+message AnalysisEncoders {
+  message Key {}
+
+  message Value {}
+}
+
 message ActionResult {
   message Key {
     ExecuteRequest execute_request = 1;

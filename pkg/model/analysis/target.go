@@ -16,11 +16,11 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )
 
-func (c *baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList(ctx context.Context, targetList model_core.Message[[]*model_analysis_pb.Package_Value_Target, TReference], targetName label.TargetName) (model_core.Message[*model_starlark_pb.Target_Definition, TReference], error) {
+func (*baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList(ctx context.Context, analysisReaders *AnalysisReaders[TReference], targetList model_core.Message[[]*model_analysis_pb.Package_Value_Target, TReference], targetName label.TargetName) (model_core.Message[*model_starlark_pb.Target_Definition, TReference], error) {
 	targetNameStr := targetName.String()
 	target, err := btree.Find(
 		ctx,
-		c.packageValueTargetReader,
+		analysisReaders.PackageValueTarget,
 		targetList,
 		func(entry model_core.Message[*model_analysis_pb.Package_Value_Target, TReference]) (int, *model_core_pb.DecodableReference) {
 			switch level := entry.Message.Level.(type) {
@@ -52,6 +52,8 @@ func (c *baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Context, key *model_analysis_pb.Target_Key, e TargetEnvironment[TReference, TMetadata]) (PatchedTargetValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+
 	targetLabel, err := label.NewCanonicalLabel(key.Label)
 	if err != nil {
 		return PatchedTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
@@ -79,6 +81,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Con
 	// obtained by slicing the target's name.
 	var macroInstanceName []string
 	macroInstanceNameLength := 0
+
+	if !gotAnalysisReaders {
+		return PatchedTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
 	for {
 		packageValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
 			Label:             canonicalPackage,
@@ -87,7 +93,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Con
 		if !packageValue.IsSet() {
 			return PatchedTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		definition, err := c.lookupTargetDefinitionInTargetList(ctx, model_core.Nested(packageValue, packageValue.Message.Targets), targetName)
+		definition, err := c.lookupTargetDefinitionInTargetList(ctx, analysisReaders, model_core.Nested(packageValue, packageValue.Message.Targets), targetName)
 		if err != nil {
 			return PatchedTargetValue[TMetadata]{}, err
 		}
@@ -105,7 +111,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Con
 		var precedingNameSuffix *string
 		if _, err := btree.Find(
 			ctx,
-			c.macroExpansionContextEntryReader,
+			analysisReaders.MacroExpansionContextEntry,
 			model_core.Nested(packageValue, packageValue.Message.MacroExpansionContexts),
 			func(entry model_core.Message[*model_starlark_pb.MacroExpansionContext_Entry, TReference]) (int, *model_core_pb.DecodableReference) {
 				switch level := entry.Message.Level.(type) {

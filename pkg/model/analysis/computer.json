@@ -16,8 +16,14 @@
          ],
          "keyContainsReferences": true
       },
+      "AnalysisEncoders": {
+         "objectType": {
+            "type": "*AnalysisReaders[TReference]"
+         }
+      },
       "BuildResult": {
          "dependsOn": [
+            "AnalysisEncoders",
             "BuildSpecification",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
@@ -87,6 +93,7 @@
       "ConfiguredTarget": {
          "dependsOn": [
             "ActionEncoders",
+            "AnalysisEncoders",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
@@ -144,6 +151,7 @@
       },
       "ExecTransition": {
          "dependsOn": [
+            "AnalysisEncoders",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
@@ -245,6 +253,7 @@
       },
       "MacroExpansionContext": {
          "dependsOn": [
+            "AnalysisEncoders",
             "Package"
          ]
       },
@@ -258,11 +267,13 @@
       },
       "ModuleExtensionRepo": {
          "dependsOn": [
+            "AnalysisEncoders",
             "ModuleExtensionRepos"
          ]
       },
       "ModuleExtensionRepoNames": {
          "dependsOn": [
+            "AnalysisEncoders",
             "ModuleExtensionRepos"
          ]
       },
@@ -348,6 +359,7 @@
       },
       "Package": {
          "dependsOn": [
+            "AnalysisEncoders",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
@@ -374,6 +386,7 @@
       },
       "PackageTargets": {
          "dependsOn": [
+            "AnalysisEncoders",
             "Package",
             "PackageTargets"
          ]
@@ -386,6 +399,7 @@
       },
       "QueryExpansion": {
          "dependsOn": [
+            "AnalysisEncoders",
             "CompiledBzlFileGlobal",
             "FileAccessParameters",
             "FileCreationParameters",
@@ -413,6 +427,7 @@
       },
       "QueryTargets": {
          "dependsOn": [
+            "AnalysisEncoders",
             "CompiledBzlFileGlobal",
             "FileAccessParameters",
             "FileCreationParameters",
@@ -430,6 +445,7 @@
       },
       "RegisteredExecutionPlatforms": {
          "dependsOn": [
+            "AnalysisEncoders",
             "CanonicalRepoName",
             "FileAccessParameters",
             "ModuleDotBazelContents",
@@ -458,6 +474,7 @@
       },
       "RegisteredToolchains": {
          "dependsOn": [
+            "AnalysisEncoders",
             "CanonicalRepoName",
             "FileAccessParameters",
             "ModuleDotBazelContents",
@@ -547,6 +564,7 @@
       },
       "Select": {
          "dependsOn": [
+            "AnalysisEncoders",
             "CanonicalRepoName",
             "FileAccessParameters",
             "RootModule",
@@ -592,11 +610,13 @@
       },
       "Target": {
          "dependsOn": [
+            "AnalysisEncoders",
             "Package"
          ]
       },
       "TargetAction": {
          "dependsOn": [
+            "AnalysisEncoders",
             "ConfiguredTarget"
          ],
          "keyContainsReferences": true
@@ -604,6 +624,7 @@
       "TargetActionCommand": {
          "dependsOn": [
             "ActionEncoders",
+            "AnalysisEncoders",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
@@ -622,6 +643,7 @@
       },
       "TargetActionInputRoot": {
          "dependsOn": [
+            "AnalysisEncoders",
             "DirectoryAccessParameters",
             "DirectoryCreationParameters",
             "FileCreationParameters",
@@ -661,6 +683,7 @@
       },
       "TargetOutput": {
          "dependsOn": [
+            "AnalysisEncoders",
             "ConfiguredTarget"
          ],
          "keyContainsReferences": true
@@ -679,6 +702,7 @@
       },
       "TestSuiteTests": {
          "dependsOn": [
+            "AnalysisEncoders",
             "StarlarkValueEncoders",
             "Target",
             "TestSuiteTests"
@@ -701,6 +725,7 @@
       },
       "UserDefinedTransition": {
          "dependsOn": [
+            "AnalysisEncoders",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
@@ -717,6 +742,7 @@
       },
       "VisibleTarget": {
          "dependsOn": [
+            "AnalysisEncoders",
             "PackageGroupContains",
             "Select",
             "StarlarkValueEncoders",

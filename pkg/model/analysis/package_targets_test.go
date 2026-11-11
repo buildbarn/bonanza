@@ -121,6 +121,7 @@ func TestPackageTargets(t *testing.T) {
 		// If the package does not contain any macro instances,
 		// the targets of the package should be returned as is.
 		e := NewMockPackageTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newDeclarations(
 			newRuleTargetDeclaration("a", "@@rules+//:defs.bzl%my_rule"),
 			newSourceFileTargetDeclaration("b.txt"),
@@ -143,6 +144,7 @@ func TestPackageTargets(t *testing.T) {
 		// should be sorted by name. Targets declared by callers
 		// may be part of the namespace of a macro instance.
 		e := NewMockPackageTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newDeclarations(
 			newRuleTargetDeclaration("a_main", "@@rules+//:defs.bzl%top_level"),
 			newRuleTargetDeclaration("b", "@@rules+//:defs.bzl%top_level"),
@@ -172,6 +174,7 @@ func TestPackageTargets(t *testing.T) {
 		// merging the targets declared by the macro instance
 		// with those of the macro instances it declares.
 		e := NewMockPackageTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newDeclarations(
 			newRuleTargetDeclaration("a", "@@rules+//:defs.bzl%in_a"),
 			newRuleTargetDeclaration("a_out", "@@rules+//:defs.bzl%in_a"),
@@ -200,6 +203,7 @@ func TestPackageTargets(t *testing.T) {
 			newRuleTargetDeclaration("b", "@@rules+//:defs.bzl%top_level"),
 		)
 		e := NewMockPackageTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectCaptureObjects(e)
 		e.EXPECT().GetPackageValue(
 			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo"}),
@@ -242,6 +246,7 @@ func TestPackageTargets(t *testing.T) {
 		// with any of the other lists, not just the one that
 		// happens to be stored first in the heap.
 		e := NewMockPackageTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectCaptureObjects(e)
 		e.EXPECT().GetPackageValue(
 			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo"}),
@@ -289,6 +294,7 @@ func TestPackageTargets(t *testing.T) {
 		topLevelTargets := append(newTargets("a%05d", 2000), newTargets("n%05d", 2000)...)
 
 		e := NewMockPackageTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectCaptureObjects(e)
 		expectPackage(e, newDeclarations(topLevelTargets...).withMacroExpansionContexts("m"))
 		expectMacroInstanceTargets(e, []string{"m"}, newTargets("m_%05d", 2000)...)
@@ -301,6 +307,7 @@ func TestPackageTargets(t *testing.T) {
 		require.Greater(t, parents, 1)
 
 		e = NewMockPackageTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectCaptureObjects(e)
 		e.EXPECT().GetPackageValue(
 			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo"}),
@@ -338,6 +345,7 @@ func TestPackageTargets(t *testing.T) {
 
 		for _, excludeFinalizers := range []bool{false, true} {
 			e := NewMockPackageTargetsEnvironmentForTesting(ctrl)
+			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 			expectCaptureObjects(e)
 			expectPackage(e, d)
 			expectedMacroInstanceNames := []string{"a"}
@@ -372,6 +380,7 @@ func TestPackageTargets(t *testing.T) {
 		// All macro instances should be requested before
 		// returning ErrMissingDependency.
 		e := NewMockPackageTargetsEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newDeclarations().withMacroExpansionContexts("a", "b"))
 		for _, name := range []string{"a", "b"} {
 			e.EXPECT().GetPackageTargetsValue(

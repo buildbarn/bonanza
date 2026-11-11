@@ -45,6 +45,7 @@ func TestMacroExpansionContext(t *testing.T) {
 		// package should be looked up in the package's
 		// declarations.
 		e := NewMockMacroExpansionContextEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newPackageValue(newDeclarations().withMacroExpansionContexts("l", "m", "n")))
 
 		value, err := computeMacroExpansionContext(e, "m")
@@ -60,6 +61,7 @@ func TestMacroExpansionContext(t *testing.T) {
 		// sorts before "0", "a_c" is stored in the first
 		// object.
 		e := NewMockMacroExpansionContextEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		e.EXPECT().CaptureExistingObject(gomock.Any()).
 			DoAndReturn(func(reference model_core.CreatedObjectTree) model_core.CreatedObjectTree {
 				return reference
@@ -86,6 +88,7 @@ func TestMacroExpansionContext(t *testing.T) {
 		// should be looked up in the declarations of the last
 		// macro instance in the chain.
 		e := NewMockMacroExpansionContextEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newPackageValue(newDeclarations().withMacroExpansionContexts("_n", "_o")), "m")
 
 		value, err := computeMacroExpansionContext(e, "m", "_n")
@@ -100,6 +103,7 @@ func TestMacroExpansionContext(t *testing.T) {
 		// namespaces, meaning that a target with the same name
 		// is not a macro instance.
 		e := NewMockMacroExpansionContextEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newPackageValue(newDeclarations(
 			newRuleTargetDeclaration("m", "@@rules+//:defs.bzl%my_rule"),
 		)))
@@ -112,6 +116,7 @@ func TestMacroExpansionContext(t *testing.T) {
 		// If the macro instance is not declared by the last
 		// macro instance in the chain, it does not exist.
 		e := NewMockMacroExpansionContextEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, newPackageValue(newDeclarations()), "m")
 
 		_, err := computeMacroExpansionContext(e, "m", "_x")
@@ -120,6 +125,7 @@ func TestMacroExpansionContext(t *testing.T) {
 
 	t.Run("MissingDependency", func(t *testing.T) {
 		e := NewMockMacroExpansionContextEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		expectPackage(e, model_core.Message[*model_analysis_pb.Package_Value, model_core.CreatedObjectTree]{}, "m")
 
 		_, err := computeMacroExpansionContext(e, "m", "_n")
@@ -128,6 +134,7 @@ func TestMacroExpansionContext(t *testing.T) {
 
 	t.Run("NoMacroInstanceName", func(t *testing.T) {
 		e := NewMockMacroExpansionContextEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
 		_, err := computeMacroExpansionContext(e)
 		require.EqualError(t, err, "no macro instance name provided")
 	})

@@ -24,6 +24,8 @@ import (
 var componentMainWorkspaceName = path.MustNewComponent("_main")
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionInputRoot_Key, TReference], e TargetActionInputRootEnvironment[TReference, TMetadata]) (PatchedTargetActionInputRootValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+
 	id := model_core.Nested(key, key.Message.Id)
 	if id.Message == nil {
 		return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("no target action identifier specified")
@@ -94,11 +96,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 		return PatchedTargetActionInputRootValue[TMetadata]{}, fmt.Errorf("failed to add input files to input root: %w", err)
 	}
 
+	if !gotAnalysisReaders {
+		return PatchedTargetActionInputRootValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+
 	// Add tools.
 	var errIter error
 	for tool := range btree.AllLeaves(
 		ctx,
-		c.filesToRunProviderReader,
+		analysisReaders.FilesToRunProvider,
 		model_core.Nested(action, actionDefinition.Tools),
 		func(element model_core.Message[*model_analysis_pb.FilesToRunProvider, TReference]) (*model_core_pb.DecodableReference, error) {
 			return element.Message.GetParent().GetReference(), nil

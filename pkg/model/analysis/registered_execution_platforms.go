@@ -29,6 +29,7 @@ type registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference objec
 	context               context.Context
 	environment           RegisteredExecutionPlatformsEnvironment[TReference, TMetadata]
 	valueReaders          *model_starlark.ValueReaders[TReference]
+	analysisReaders       *AnalysisReaders[TReference]
 	labelResolver         label.Resolver
 	moduleInstance        label.ModuleInstance
 	ignoreDevDependencies bool
@@ -91,6 +92,7 @@ func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, 
 			for canonicalPlatformLabel := range h.computer.allQueryLabels(
 				h.context,
 				h.environment,
+				h.analysisReaders,
 				canonicalPlatformTargetPattern.ToQuery(),
 				&iterErr,
 			) {
@@ -183,11 +185,12 @@ func (registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMe
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredExecutionPlatformsValue(ctx context.Context, key *model_analysis_pb.RegisteredExecutionPlatforms_Key, e RegisteredExecutionPlatformsEnvironment[TReference, TMetadata]) (PatchedRegisteredExecutionPlatformsValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	var executionPlatforms []*model_analysis_pb.ExecutionPlatform
 
-	if !gotValueReaders {
+	if !gotAnalysisReaders || !gotValueReaders {
 		return PatchedRegisteredExecutionPlatformsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler {
@@ -196,6 +199,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredExecutionPlatform
 			context:               ctx,
 			environment:           e,
 			valueReaders:          valueReaders,
+			analysisReaders:       analysisReaders,
 			labelResolver:         newLabelResolver(e),
 			moduleInstance:        moduleInstance,
 			ignoreDevDependencies: ignoreDevDependencies,

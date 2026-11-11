@@ -359,6 +359,7 @@ func getAttrValueParts[TReference object.BasicReference, TMetadata model_core.Re
 func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
+	analysisReaders *AnalysisReaders[TReference],
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	thread *eval.Thread,
 	namedAttr model_core.Message[*model_starlark_pb.NamedAttr, TReference],
@@ -388,6 +389,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 		patchedResult, mayHaveMultipleConfigurations, err = c.performTransition(
 			ctx,
 			e,
+			analysisReaders,
 			starlarkValueEncoders,
 			model_core.Nested(namedAttr, cfg),
 			configurationReference,
@@ -520,6 +522,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
@@ -535,7 +538,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
 		Label: targetLabel.String(),
 	})
-	if !emptyDefaultInfoValue.IsSet() || !targetValue.IsSet() || !gotStarlarkValueEncoders {
+	if !emptyDefaultInfoValue.IsSet() || !targetValue.IsSet() || !gotAnalysisReaders || !gotStarlarkValueEncoders {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	valueReaders := &starlarkValueEncoders.Readers
@@ -740,6 +743,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			patchedConfigurationReferences, err := c.performUserDefinedTransitionCached(
 				ctx,
 				e,
+				analysisReaders,
 				starlarkValueEncoders,
 				model_core.Nested(ruleDefinition, cfgTransition),
 				configurationReference,
@@ -962,6 +966,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			patchedTransition, mayHaveMultipleConfigurations, err := c.performTransition(
 				ctx,
 				e,
+				analysisReaders,
 				starlarkValueEncoders,
 				model_core.Nested(ruleDefinition, labelOptions.Cfg),
 				configurationReference,
@@ -1253,6 +1258,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			context:                     ctx,
 			valueEncodingOptionsFactory: valueEncodingOptionsFactory,
 			starlarkValueEncoders:       starlarkValueEncoders,
+			analysisReaders:             analysisReaders,
 			environment:                 e,
 			ruleIdentifier:              ruleIdentifier,
 			targetLabel:                 targetLabel,
@@ -1325,6 +1331,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				value, err := rc.computer.configureAttrValueParts(
 					rc.context,
 					rc.environment,
+					analysisReaders,
 					rc.starlarkValueEncoders,
 					thread,
 					model_core.Nested(subruleDefinition, namedAttr),
@@ -1715,6 +1722,7 @@ type ruleContext[TReference object.BasicReference, TMetadata model_core.Referenc
 	environment                 ConfiguredTargetEnvironment[TReference, TMetadata]
 	valueEncodingOptionsFactory *valueEncodingOptionsFactory[TReference, TMetadata]
 	starlarkValueEncoders       *StarlarkValueEncoders[TReference]
+	analysisReaders             *AnalysisReaders[TReference]
 	ruleIdentifier              label.CanonicalStarlarkIdentifier
 	targetLabel                 label.CanonicalLabel
 	configurationReference      model_core.Message[*model_core_pb.DecodableReference, TReference]
@@ -1779,7 +1787,7 @@ func (rc *ruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name str
 			targetLabelStr := rc.targetLabel.String()
 			override, err := btree.Find(
 				rc.context,
-				rc.computer.buildSettingOverrideReader,
+				rc.analysisReaders.BuildSettingOverride,
 				getBuildSettingOverridesFromReference(rc.configurationReference),
 				func(entry model_core.Message[*model_analysis_pb.BuildSettingOverride, TReference]) (int, *model_core_pb.DecodableReference) {
 					switch level := entry.Message.Level.(type) {
