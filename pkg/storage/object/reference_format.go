@@ -20,6 +20,16 @@ type ReferenceFormat struct{}
 // that uses algorithm "SHA256_V1".
 var SHA256V1ReferenceFormat = ReferenceFormat{}
 
+// sha256V1PlaceholderContents is the object that is returned by
+// ReferenceFormat.GetPlaceholderContents().
+var sha256V1PlaceholderContents = func() *Contents {
+	contents, err := SHA256V1ReferenceFormat.NewContents(nil, []byte("A"))
+	if err != nil {
+		panic(err)
+	}
+	return contents
+}()
+
 // NewReferenceFormat converts a ReferenceFormat enumeration value that
 // is used as part of gRPC requests to a native type. Right now it
 // merely validates that the provided enumeration value corresponds to
@@ -141,6 +151,17 @@ func (ReferenceFormat) NewFlatReference(rawReference []byte) (r FlatReference, e
 // modern computer.
 func (ReferenceFormat) GetMaximumObjectSizeBytes() int {
 	return maximumObjectSizeBytes
+}
+
+// GetPlaceholderContents returns an arbitrary object that has no
+// outgoing references. It can be used in places where an object is
+// needed, but its contents are irrelevant, such as when computing the
+// size of messages containing references to objects.
+//
+// The same instance is returned on every call. Callers must therefore
+// not modify it.
+func (ReferenceFormat) GetPlaceholderContents() *Contents {
+	return sha256V1PlaceholderContents
 }
 
 // NewContents creates a new object having the provided set of outgoing

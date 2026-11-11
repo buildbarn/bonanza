@@ -155,15 +155,8 @@ func Build[
 		// compute how much the size of the output message
 		// increases when inlined, compared to storing it
 		// externally.
-		//
-		// TODO: Prevent these from getting recomputed every time.
-		bogusData := []byte("A")
-		bogusContents, err := options.ReferenceFormat.NewContents(nil, bogusData)
-		if err != nil {
-			panic(err)
-		}
 		bogusCreatedObject := model_core.CreatedObject[TMetadata]{
-			Contents: bogusContents,
+			Contents: options.ReferenceFormat.GetPlaceholderContents(),
 		}
 
 		outputSizeBytes := 0
