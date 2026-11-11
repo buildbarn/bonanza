@@ -368,6 +368,7 @@
       "PackageGroupContains": {
          "dependsOn": [
             "PackageGroupContains",
+            "StarlarkValueEncoders",
             "Target"
          ]
       },
@@ -718,6 +719,7 @@
          "dependsOn": [
             "PackageGroupContains",
             "Select",
+            "StarlarkValueEncoders",
             "Target",
             "VisibleTarget"
          ],

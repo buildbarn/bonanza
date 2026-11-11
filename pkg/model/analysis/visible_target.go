@@ -10,6 +10,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
+	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -90,13 +91,13 @@ func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_c
 	}
 }
 
-func (c *baseComputer[TReference, TMetadata]) checkVisibility(ctx context.Context, e PackageGroupContainsValueGetter[TReference], fromPackage label.CanonicalPackage, toLabel label.CanonicalLabel, toLabelVisibility model_core.Message[*model_starlark_pb.PackageGroup, TReference]) error {
+func (c *baseComputer[TReference, TMetadata]) checkVisibility(ctx context.Context, e PackageGroupContainsValueGetter[TReference], valueReaders *model_starlark.ValueReaders[TReference], fromPackage label.CanonicalPackage, toLabel label.CanonicalLabel, toLabelVisibility model_core.Message[*model_starlark_pb.PackageGroup, TReference]) error {
 	// Always permit access from within the same package.
 	if fromPackage == toLabel.GetCanonicalPackage() {
 		return nil
 	}
 
-	contains, err := c.packageGroupContains(ctx, e, toLabelVisibility, fromPackage)
+	contains, err := c.packageGroupContains(ctx, e, valueReaders, toLabelVisibility, fromPackage)
 	if err != nil {
 		return err
 	}
@@ -166,6 +167,11 @@ func getTargetVisibility[TReference any](e TargetValueGetter[TReference], target
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.VisibleTarget_Key, TReference], e VisibleTargetEnvironment[TReference, TMetadata]) (PatchedVisibleTargetValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedVisibleTargetValue[TMetadata]{}, err
+	}
+
 	fromPackage, err := label.NewCanonicalPackage(key.Message.FromPackage)
 	if err != nil {
 		return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid from package: %w", err)
@@ -192,6 +198,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		if err := c.checkVisibility(
 			ctx,
 			e,
+			valueReaders,
 			fromPackage,
 			toLabel,
 			model_core.Nested(targetValue, definition.Alias.Visibility),
@@ -367,7 +374,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			return PatchedVisibleTargetValue[TMetadata]{}, err
 		}
 		if restricted {
-			if err := c.checkVisibility(ctx, e, fromPackage, toLabel, visibility); err != nil {
+			if err := c.checkVisibility(ctx, e, valueReaders, fromPackage, toLabel, visibility); err != nil {
 				return PatchedVisibleTargetValue[TMetadata]{}, err
 			}
 		}

@@ -1000,7 +1000,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryPredicatePackages(ctx cont
 // applyQueryVisible returns the targets in a list of targets that are
 // visible to all of the provided packages, as done by visible(). Targets
 // are always visible to the package containing them.
-func (c *baseComputer[TReference, TMetadata]) applyQueryVisible(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], predicatePackages []label.CanonicalPackage, labels []label.CanonicalLabel) (labelSet, error) {
+func (c *baseComputer[TReference, TMetadata]) applyQueryVisible(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], valueReaders *model_starlark.ValueReaders[TReference], predicatePackages []label.CanonicalPackage, labels []label.CanonicalLabel) (labelSet, error) {
 	definitions, err := getQueryTargetDefinitions(e, labels)
 	if err != nil {
 		return nil, err
@@ -1023,7 +1023,7 @@ func (c *baseComputer[TReference, TMetadata]) applyQueryVisible(ctx context.Cont
 				if predicatePackage == l.GetCanonicalPackage() {
 					continue
 				}
-				contains, err := c.packageGroupContains(ctx, e, visibility, predicatePackage)
+				contains, err := c.packageGroupContains(ctx, e, valueReaders, visibility, predicatePackage)
 				if err != nil {
 					if !errors.Is(err, evaluation.ErrMissingDependency) {
 						return nil, fmt.Errorf("failed to determine whether target %#v is visible from package %#v: %w", l.String(), predicatePackage.String(), err)
@@ -1137,7 +1137,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 			missingDependencies = true
 		}
 		applyToBatch = func(batch []label.CanonicalLabel) (labelSet, error) {
-			return c.applyQueryVisible(ctx, e, predicatePackages, batch)
+			return c.applyQueryVisible(ctx, e, valueReaders, predicatePackages, batch)
 		}
 	default:
 		operand, _ = getPerTargetQueryOperand(expression)

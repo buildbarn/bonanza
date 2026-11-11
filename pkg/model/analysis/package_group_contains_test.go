@@ -34,6 +34,7 @@ func TestPackageGroupContains(t *testing.T) {
 		// QueryExpansionEnvironment provides all of the
 		// functions needed by PackageGroupContains.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:group"}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Target_Value {
