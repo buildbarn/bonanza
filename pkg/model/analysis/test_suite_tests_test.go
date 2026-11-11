@@ -76,7 +76,6 @@ func TestTestSuiteTests(t *testing.T) {
 	t.Run("NotATestSuite", func(t *testing.T) {
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
-		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		expectTarget(e, "@@main+//foo:t", ruleTargetDefinition(testOfSize(model_starlark_pb.TestSize_SMALL)))
 
 		_, err := computeTestSuiteTests(e, "@@main+//foo:t")
@@ -88,7 +87,6 @@ func TestTestSuiteTests(t *testing.T) {
 		// to exist.
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
-		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		expectTarget(e, "@@main+//foo:suite", nil)
 
 		_, err := computeTestSuiteTests(e, "@@main+//foo:suite")
@@ -96,7 +94,6 @@ func TestTestSuiteTests(t *testing.T) {
 
 		e = NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
-		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
 			Tests: newTestSuiteTests("@@main+//foo:missing"),
 			Sizes: allSizes,
@@ -114,7 +111,6 @@ func TestTestSuiteTests(t *testing.T) {
 		// empty. The package should not be inspected again.
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
-		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{Sizes: allSizes}))
 
 		labels, err := computeTestSuiteTests(e, "@@main+//foo:suite")
@@ -129,7 +125,6 @@ func TestTestSuiteTests(t *testing.T) {
 		// applying these filters.
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
-		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
 			Tests: newTestSuiteTests(
 				"@@main+//bar:nested",
@@ -165,7 +160,6 @@ func TestTestSuiteTests(t *testing.T) {
 		// single object are stored as B-trees.
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
-		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:suite"}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Target_Value {
@@ -205,7 +199,6 @@ func TestTestSuiteTests(t *testing.T) {
 		// when the test suite is expanded.
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
-		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
 			Tests: newTestSuiteTests("@@[unknown repo 'dev' requested from main+]//:t"),
 			Sizes: allSizes,
@@ -221,7 +214,6 @@ func TestTestSuiteTests(t *testing.T) {
 		// parallel.
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
-		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
 			Tests: newTestSuiteTests("@@main+//foo:a", "@@main+//foo:b", "@@main+//foo:nested"),
 			Sizes: allSizes,
@@ -242,7 +234,6 @@ func TestTestSuiteTests(t *testing.T) {
 	t.Run("NeitherTestNorTestSuite", func(t *testing.T) {
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
-		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
 			Tests: newTestSuiteTests("@@main+//foo:lib"),
 			Sizes: allSizes,

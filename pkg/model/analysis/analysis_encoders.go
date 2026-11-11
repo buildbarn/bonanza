@@ -27,6 +27,7 @@ type AnalysisReaders[TReference any] struct {
 	ModuleExtensionReposValueRepo model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ModuleExtensionRepos_Value_Repo]
 	PackageValueTarget            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Package_Value_Target]
 	TargetLabel                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetLabel]
+	TestSuiteTest                 model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersObject(value model_core.Message[*model_analysis_pb.AnalysisEncoders_Value, TReference]) (*AnalysisReaders[TReference], error) {
@@ -75,6 +76,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersObject(valu
 		TargetLabel: model_parser.LookupParsedObjectReader(
 			c.parsedObjectPoolIngester,
 			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.TargetLabel](),
+		),
+		TestSuiteTest: model_parser.LookupParsedObjectReader(
+			c.parsedObjectPoolIngester,
+			model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.TestSuite_Test](),
 		),
 	}, nil
 }

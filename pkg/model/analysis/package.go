@@ -15,6 +15,7 @@ import (
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
@@ -381,6 +382,10 @@ type existingRulesResolver[TReference object.BasicReference, TMetadata model_cor
 }
 
 var _ model_starlark.ExistingRulesResolver[object.LocalReference] = (*existingRulesResolver[object.LocalReference, model_core.ReferenceMetadata])(nil)
+
+func (r *existingRulesResolver[TReference, TMetadata]) GetTestSuiteTestReader() model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test] {
+	return r.analysisReaders.TestSuiteTest
+}
 
 func (r *existingRulesResolver[TReference, TMetadata]) LookupExistingRule(targetName label.TargetName) (model_core.Message[*model_starlark_pb.Target_Definition, TReference], error) {
 	targetValue := r.environment.GetTargetValue(&model_analysis_pb.Target_Key{

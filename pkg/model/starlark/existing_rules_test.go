@@ -9,6 +9,7 @@ import (
 	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -31,6 +32,11 @@ func (r fakeExistingRulesResolver) LookupExistingRule(targetName label.TargetNam
 		return model_core.Message[*model_starlark_pb.Target_Definition, object.LocalReference]{}, nil
 	}
 	return model_core.NewSimpleMessage[object.LocalReference](definition), nil
+}
+
+func (fakeExistingRulesResolver) GetTestSuiteTestReader() model_parser.MessageObjectReader[object.LocalReference, []*model_starlark_pb.TestSuite_Test] {
+	// Tests of test_suite() targets are always stored inline.
+	return nil
 }
 
 func (r fakeExistingRulesResolver) ForEachExistingRule(yield func(targetName label.TargetName, definition model_core.Message[*model_starlark_pb.Target_Definition, object.LocalReference]) error) error {

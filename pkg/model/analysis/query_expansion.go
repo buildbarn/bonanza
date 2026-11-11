@@ -343,10 +343,10 @@ func getQueryRuleTarget[TReference any](
 // As the list of tests of a test suite is stored as a B-tree, it needs
 // to be loaded into memory to provide it as the value of the "tests"
 // attribute.
-func (*baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], targetLabel label.CanonicalLabel, testSuite model_core.Message[*model_starlark_pb.TestSuite, TReference]) (*queryRuleTarget[TReference], error) {
+func (*baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx context.Context, analysisReaders *AnalysisReaders[TReference], valueReaders *model_starlark.ValueReaders[TReference], targetLabel label.CanonicalLabel, testSuite model_core.Message[*model_starlark_pb.TestSuite, TReference]) (*queryRuleTarget[TReference], error) {
 	var tests []string
 	var errIter error
-	for test := range allTestSuiteTests(ctx, valueReaders, model_core.Nested(testSuite, testSuite.Message.Tests), &errIter) {
+	for test := range allTestSuiteTests(ctx, analysisReaders, model_core.Nested(testSuite, testSuite.Message.Tests), &errIter) {
 		tests = append(tests, test)
 	}
 	if errIter != nil {
@@ -737,7 +737,7 @@ func getPerTargetQueryOperand(expression label.QueryExpression[label.CanonicalTa
 // applyPerTargetQueryExpression evaluates a query expression that
 // processes targets individually, given the labels of the targets
 // yielded by its operand.
-func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], valueReaders *model_starlark.ValueReaders[TReference], expression label.QueryExpression[label.CanonicalTargetPattern], labels []label.CanonicalLabel) (labelSet, error) {
+func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], valueReaders *model_starlark.ValueReaders[TReference], expression label.QueryExpression[label.CanonicalTargetPattern], labels []label.CanonicalLabel) (labelSet, error) {
 	switch expression := expression.(type) {
 	case *label.QueryFilter[label.CanonicalTargetPattern]:
 		pattern, err := regexp.Compile(expression.Pattern)
@@ -783,7 +783,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 			return nil, err
 		}
 		results := labelSet{}
-		if err := c.forEachQueryRuleTargetAttr(ctx, e, valueReaders, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
+		if err := c.forEachQueryRuleTargetAttr(ctx, e, analysisReaders, valueReaders, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
 			attrStrings, err := c.stringifyQueryAttr(ctx, valueReaders, fileReader, attr)
 			if err != nil {
 				return err
@@ -1112,7 +1112,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 
 	var operand int
 	applyToBatch := func(batch []label.CanonicalLabel) (labelSet, error) {
-		return c.applyPerTargetQueryExpression(ctx, e, valueReaders, expression, batch)
+		return c.applyPerTargetQueryExpression(ctx, e, analysisReaders, valueReaders, expression, batch)
 	}
 	missingDependencies := false
 	switch expr := expression.(type) {
@@ -1329,7 +1329,7 @@ func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context,
 			return nil, err
 		}
 		results := labelSet{}
-		if err := c.forEachQueryRuleTargetAttr(ctx, e, valueReaders, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
+		if err := c.forEachQueryRuleTargetAttr(ctx, e, analysisReaders, valueReaders, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
 			return visitQueryAttrLabels(ctx, valueReaders, attr, false, func(attrLabel label.ResolvedLabel) error {
 				canonicalLabel, err := canonicalizeResolvedQueryLabel(attrLabel)
 				if err != nil {
@@ -1365,7 +1365,7 @@ type forEachQueryRuleTargetAttrEnvironment[TReference any] interface {
 
 // forEachQueryRuleTargetAttr calls a function for each rule target in
 // a set of targets that has an attribute with a given name.
-func (c *baseComputer[TReference, TMetadata]) forEachQueryRuleTargetAttr(ctx context.Context, e forEachQueryRuleTargetAttrEnvironment[TReference], valueReaders *model_starlark.ValueReaders[TReference], labels []label.CanonicalLabel, attrName string, f func(l label.CanonicalLabel, attr *queryAttr[TReference]) error) error {
+func (c *baseComputer[TReference, TMetadata]) forEachQueryRuleTargetAttr(ctx context.Context, e forEachQueryRuleTargetAttrEnvironment[TReference], analysisReaders *AnalysisReaders[TReference], valueReaders *model_starlark.ValueReaders[TReference], labels []label.CanonicalLabel, attrName string, f func(l label.CanonicalLabel, attr *queryAttr[TReference]) error) error {
 	definitions, err := getQueryTargetDefinitions(e, labels)
 	if err != nil {
 		return err
@@ -1378,7 +1378,7 @@ func (c *baseComputer[TReference, TMetadata]) forEachQueryRuleTargetAttr(ctx con
 		case *model_starlark_pb.Target_Definition_RuleTarget:
 			t, err = getQueryRuleTarget(e, labels[i], model_core.Nested(definition, kind.RuleTarget))
 		case *model_starlark_pb.Target_Definition_TestSuite:
-			t, err = c.getQueryTestSuiteTarget(ctx, valueReaders, labels[i], model_core.Nested(definition, kind.TestSuite))
+			t, err = c.getQueryTestSuiteTarget(ctx, analysisReaders, valueReaders, labels[i], model_core.Nested(definition, kind.TestSuite))
 		default:
 			continue
 		}
@@ -2405,7 +2405,7 @@ func (c *baseComputer[TReference, TMetadata]) evaluateSinglePackageQuery(ctx con
 			if results[expr.Expression] == nil {
 				continue
 			}
-			result, err := c.applyPerTargetQueryExpression(ctx, e, valueReaders, expression, results[expr.Expression].sorted())
+			result, err := c.applyPerTargetQueryExpression(ctx, e, analysisReaders, valueReaders, expression, results[expr.Expression].sorted())
 			if err != nil {
 				if !errors.Is(err, evaluation.ErrMissingDependency) {
 					return nil, err
@@ -2419,7 +2419,7 @@ func (c *baseComputer[TReference, TMetadata]) evaluateSinglePackageQuery(ctx con
 			if results[operand] == nil {
 				continue
 			}
-			result, err := c.applyPerTargetQueryExpression(ctx, e, valueReaders, expression, results[operand].sorted())
+			result, err := c.applyPerTargetQueryExpression(ctx, e, analysisReaders, valueReaders, expression, results[operand].sorted())
 			if err != nil {
 				if !errors.Is(err, evaluation.ErrMissingDependency) {
 					return nil, err

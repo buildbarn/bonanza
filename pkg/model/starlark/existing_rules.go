@@ -8,6 +8,7 @@ import (
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
+	model_parser "bonanza.build/pkg/model/parser"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
@@ -38,6 +39,11 @@ type ExistingRulesResolver[TReference any] interface {
 	// ForEachExistingRule calls a function for each target that
 	// finalizers may observe, in alphabetical order.
 	ForEachExistingRule(yield func(targetName pg_label.TargetName, definition model_core.Message[*model_starlark_pb.Target_Definition, TReference]) error) error
+
+	// GetTestSuiteTestReader returns a reader for objects containing
+	// the tests of test_suite() targets, which are needed to report
+	// the value of their "tests" attribute.
+	GetTestSuiteTestReader() model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
 }
 
 func getExistingRulesResolver[TReference any](thread *eval.Thread) (ExistingRulesResolver[TReference], error) {
@@ -68,7 +74,7 @@ func nativeExistingRule[TReference object.BasicReference, TMetadata model_core.R
 	if !definition.IsSet() {
 		return eval.None, nil
 	}
-	existingRule, err := newExistingRule[TReference, TMetadata](thread, name, definition)
+	existingRule, err := newExistingRule[TReference, TMetadata](thread, existingRulesResolver, name, definition)
 	if err != nil {
 		return nil, fmt.Errorf("target %#v: %w", name.String(), err)
 	}
@@ -96,7 +102,7 @@ func nativeExistingRules[TReference object.BasicReference, TMetadata model_core.
 
 	var existingRules [][2]eval.Value
 	if err := existingRulesResolver.ForEachExistingRule(func(targetName pg_label.TargetName, definition model_core.Message[*model_starlark_pb.Target_Definition, TReference]) error {
-		existingRule, err := newExistingRule[TReference, TMetadata](thread, targetName, definition)
+		existingRule, err := newExistingRule[TReference, TMetadata](thread, existingRulesResolver, targetName, definition)
 		if err != nil {
 			return fmt.Errorf("target %#v: %w", targetName.String(), err)
 		}
@@ -113,10 +119,11 @@ func nativeExistingRules[TReference object.BasicReference, TMetadata model_core.
 // existingRuleBuilder is used to construct the dict that is returned
 // by native.existing_rule() and native.existing_rules().
 type existingRuleBuilder[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	thread         *eval.Thread
-	currentPackage pg_label.CanonicalPackage
-	options        *ValueDecodingOptions[TReference]
-	attrs          [][2]eval.Value
+	thread              *eval.Thread
+	currentPackage      pg_label.CanonicalPackage
+	options             *ValueDecodingOptions[TReference]
+	testSuiteTestReader model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
+	attrs               [][2]eval.Value
 }
 
 func (b *existingRuleBuilder[TReference, TMetadata]) set(name string, value eval.Value) error {
@@ -267,15 +274,16 @@ var (
 // contains the name and the kind of the target, and the values of its
 // public attributes. Unset attributes having computed defaults are
 // omitted. If the target is not a rule target, nil is returned.
-func newExistingRule[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, targetName pg_label.TargetName, definition model_core.Message[*model_starlark_pb.Target_Definition, TReference]) (eval.Value, error) {
+func newExistingRule[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, existingRulesResolver ExistingRulesResolver[TReference], targetName pg_label.TargetName, definition model_core.Message[*model_starlark_pb.Target_Definition, TReference]) (eval.Value, error) {
 	options, err := getValueDecodingOptions[TReference](thread)
 	if err != nil {
 		return nil, err
 	}
 	b := existingRuleBuilder[TReference, TMetadata]{
-		thread:         thread,
-		currentPackage: thread.Local(CanonicalPackageKey).(pg_label.CanonicalPackage),
-		options:        options,
+		thread:              thread,
+		currentPackage:      thread.Local(CanonicalPackageKey).(pg_label.CanonicalPackage),
+		options:             options,
+		testSuiteTestReader: existingRulesResolver.GetTestSuiteTestReader(),
 	}
 	if err := b.set("name", eval.String(targetName.String())); err != nil {
 		return nil, err
@@ -508,7 +516,7 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addTestSuiteAttrs(testSuite
 	var errIter error
 	for entry := range btree.AllLeaves(
 		b.thread.Context(),
-		b.options.Readers.TestSuiteTest,
+		b.testSuiteTestReader,
 		model_core.Nested(testSuite, testSuite.Message.Tests),
 		func(entry model_core.Message[*model_starlark_pb.TestSuite_Test, TReference]) (*model_core_pb.DecodableReference, error) {
 			return entry.Message.GetParent().GetReference(), nil

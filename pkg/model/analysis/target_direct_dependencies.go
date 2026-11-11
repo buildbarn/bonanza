@@ -13,6 +13,8 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesValue(ctx context.Context, key *model_analysis_pb.TargetDirectDependencies_Key, e TargetDirectDependenciesEnvironment[TReference, TMetadata]) (PatchedTargetDirectDependenciesValue[TMetadata], error) {
+	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	targetLabel, err := label.NewCanonicalLabel(key.Label)
@@ -20,7 +22,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
 	target := e.GetTargetValue(&model_analysis_pb.Target_Key{Label: key.Label})
-	if !target.IsSet() || !gotValueReaders {
+	if !target.IsSet() || !gotValueReaders || !gotAnalysisReaders {
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if target.Message.Definition == nil {
@@ -90,7 +92,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 	case *model_starlark_pb.Target_Definition_TestSuite:
 		testSuite := kind.TestSuite
 		var errIter error
-		for l := range allTestSuiteTests(ctx, valueReaders, model_core.Nested(target, testSuite.Tests), &errIter) {
+		for l := range allTestSuiteTests(ctx, analysisReaders, model_core.Nested(target, testSuite.Tests), &errIter) {
 			if err := addDependencyString(l); err != nil {
 				return PatchedTargetDirectDependenciesValue[TMetadata]{}, err
 			}

@@ -674,6 +674,7 @@
       },
       "TargetDirectDependencies": {
          "dependsOn": [
+            "AnalysisEncoders",
             "CompiledBzlFileGlobal",
             "FileAccessParameters",
             "FileCreationParameters",
@@ -703,7 +704,6 @@
       "TestSuiteTests": {
          "dependsOn": [
             "AnalysisEncoders",
-            "StarlarkValueEncoders",
             "Target",
             "TestSuiteTests"
          ]

@@ -74,10 +74,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStarlarkValueEncodersObject
 				c.parsedObjectPoolIngester,
 				model_parser.NewProtoObjectParser[TReference, model_starlark_pb.PackageGroup_Subpackages_Overrides](),
 			),
-			TestSuiteTest: model_parser.LookupParsedObjectReader(
-				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.TestSuite_Test](),
-			),
 			FileReader: fileReader,
 		},
 		bzlFileBuiltins: c.bzlFileBuiltins,
