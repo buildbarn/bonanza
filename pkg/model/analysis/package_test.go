@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/compile"
 	"bonanza.build/pkg/starlark/eval"
@@ -52,13 +54,15 @@ func TestPackage(t *testing.T) {
 
 		capturer := createdObjectTreeCapturer{}
 		encodingOptions := &model_starlark.ValueEncodingOptions[model_core.CreatedObjectTree, model_core.CreatedObjectTree]{
-			CurrentFilename:        &filename,
-			Context:                ctx,
-			ObjectEncoder:          model_encoding.NewChainedDeterministicBinaryEncoder(nil),
-			ObjectReferenceFormat:  object.SHA256V1ReferenceFormat,
-			ObjectCapturer:         capturer,
-			ObjectMinimumSizeBytes: 32 * 1024,
-			ObjectHorizonSizeBytes: 8 * 32 * 1024,
+			CurrentFilename:       &filename,
+			Context:               ctx,
+			ObjectEncoder:         model_encoding.NewChainedDeterministicBinaryEncoder(nil),
+			ObjectReferenceFormat: object.SHA256V1ReferenceFormat,
+			ObjectCapturer:        capturer,
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 32 * 1024,
+				HorizonSizeBytes: 8 * 32 * 1024,
+			}, object.SHA256V1ReferenceFormat)),
 		}
 		encodedFunction, err := model_starlark.EncodeFunction(
 			thread,

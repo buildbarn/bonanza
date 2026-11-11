@@ -15,6 +15,7 @@ go_library(
     importpath = "bonanza.build/pkg/model/evaluation",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/model/chunking",
         "//pkg/model/core",
         "//pkg/model/core/btree",
         "//pkg/model/core/buffered",
@@ -23,6 +24,7 @@ go_library(
         "//pkg/model/executewithstorage",
         "//pkg/model/parser",
         "//pkg/model/tag",
+        "//pkg/proto/model/chunking",
         "//pkg/proto/model/core",
         "//pkg/proto/model/evaluation",
         "//pkg/proto/model/evaluation/cache",

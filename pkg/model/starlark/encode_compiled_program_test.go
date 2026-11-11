@@ -5,9 +5,11 @@ import (
 	"testing"
 
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	"bonanza.build/pkg/starlark/compile"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/starlark/resolve"
@@ -96,13 +98,15 @@ my_transition = transition(implementation = _transition_impl, inputs = [], outpu
 
 	objectManager := model_core.NewLeakCheckingObjectManager[object.LocalReference, model_core.NoopReferenceMetadata](discardingObjectManager{})
 	encodedProgram, err := model_starlark.EncodeCompiledProgram(thread, program, globals, &model_starlark.ValueEncodingOptions[object.LocalReference, metadata]{
-		CurrentFilename:        &filename,
-		Context:                t.Context(),
-		ObjectEncoder:          model_encoding.NewChainedDeterministicBinaryEncoder(nil),
-		ObjectReferenceFormat:  object.SHA256V1ReferenceFormat,
-		ObjectCapturer:         objectManager,
-		ObjectMinimumSizeBytes: 1024,
-		ObjectHorizonSizeBytes: 8 * 1024,
+		CurrentFilename:       &filename,
+		Context:               t.Context(),
+		ObjectEncoder:         model_encoding.NewChainedDeterministicBinaryEncoder(nil),
+		ObjectReferenceFormat: object.SHA256V1ReferenceFormat,
+		ObjectCapturer:        objectManager,
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			MinimumSizeBytes: 1024,
+			HorizonSizeBytes: 8 * 1024,
+		}, object.SHA256V1ReferenceFormat)),
 	})
 	require.NoError(t, err)
 	require.Len(t, encodedProgram.Message.Globals.Keys, 9)

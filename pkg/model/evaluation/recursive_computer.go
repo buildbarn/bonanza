@@ -12,12 +12,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_tag "bonanza.build/pkg/model/tag"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
@@ -554,8 +556,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsParentNodeComp
 func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(ctx context.Context, sortedKeyStates []*KeyState[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_evaluation_pb.Evaluations, TMetadata], error) {
 	evaluationsBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			/* minimumSizeBytes = */ 1<<16,
-			/* horizonSizeBytes = */ 8<<16,
+			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 16,
+				HorizonSizeBytes: 8 << 16,
+			}, rc.referenceFormat)),
 			/* isParent = */ func(evaluations *model_evaluation_pb.Evaluations) bool {
 				return evaluations.GetParent() != nil
 			},
@@ -612,8 +616,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getKeysParentNodeComputer(ct
 func (rc *RecursiveComputer[TReference, TMetadata]) getKeysForSortedList(ctx context.Context, sortedKeyStates []*KeyState[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_evaluation_pb.Keys, TMetadata], error) {
 	keysBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			/* minimumSizeBytes = */ 1<<16,
-			/* horizonSizeBytes = */ 8<<16,
+			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 16,
+				HorizonSizeBytes: 8 << 16,
+			}, rc.referenceFormat)),
 			/* isParent = */ func(keys *model_evaluation_pb.Keys) bool {
 				return keys.GetParent() != nil
 			},

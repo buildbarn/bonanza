@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
@@ -16,6 +17,7 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/remoteexecution"
@@ -281,13 +283,15 @@ func (c *baseComputer[TReference, TMetadata]) newValueEncodingOptionsFactory(e v
 // used to encode Starlark values.
 func (f *valueEncodingOptionsFactory[TReference, TMetadata]) newValueEncodingOptions(ctx context.Context, currentFilename *label.CanonicalLabel) *model_starlark.ValueEncodingOptions[TReference, TMetadata] {
 	return &model_starlark.ValueEncodingOptions[TReference, TMetadata]{
-		CurrentFilename:        currentFilename,
-		Context:                ctx,
-		ObjectEncoder:          f.computer.getValueObjectEncoder(),
-		ObjectReferenceFormat:  f.computer.referenceFormat,
-		ObjectCapturer:         f.objectCapturer,
-		ObjectMinimumSizeBytes: 32 * 1024,
-		ObjectHorizonSizeBytes: 8 * 32 * 1024,
+		CurrentFilename:       currentFilename,
+		Context:               ctx,
+		ObjectEncoder:         f.computer.getValueObjectEncoder(),
+		ObjectReferenceFormat: f.computer.referenceFormat,
+		ObjectCapturer:        f.objectCapturer,
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			MinimumSizeBytes: 32 * 1024,
+			HorizonSizeBytes: 8 * 32 * 1024,
+		}, f.computer.referenceFormat)),
 		FileCreationParameters: f.fileCreationParameters,
 	}
 }

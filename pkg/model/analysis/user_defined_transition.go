@@ -11,20 +11,22 @@ import (
 	"strings"
 
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 
-	"github.com/buildbarn/bb-storage/pkg/util"
-
 	"google.golang.org/protobuf/types/known/emptypb"
+
+	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
 var commandLineOptionRepoRootPackage = util.Must(label.NewCanonicalPackage("@@bazel_tools+"))
@@ -247,8 +249,10 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 	// TODO: Use a proper encoder!
 	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			/* minimumSizeBytes = */ 32*1024,
-			/* horizonSizeBytes = */ 8*32*1024,
+			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 32 * 1024,
+				HorizonSizeBytes: 8 * 32 * 1024,
+			}, c.referenceFormat)),
 			/* isParent = */ func(buildSettingOverride *model_analysis_pb.BuildSettingOverride) bool {
 				return buildSettingOverride.GetParent() != nil
 			},

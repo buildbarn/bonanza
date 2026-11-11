@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/starlark/eval"
@@ -297,11 +299,13 @@ func TestExistingRules(t *testing.T) {
 			nil,
 			/* currentIdentifier = */ nil,
 			&model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
-				Context:                t.Context(),
-				ObjectEncoder:          model_encoding.NewChainedDeterministicBinaryEncoder(nil),
-				ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-				ObjectMinimumSizeBytes: 32 * 1024,
-				ObjectHorizonSizeBytes: 8 * 32 * 1024,
+				Context:               t.Context(),
+				ObjectEncoder:         model_encoding.NewChainedDeterministicBinaryEncoder(nil),
+				ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+				ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+					MinimumSizeBytes: 32 * 1024,
+					HorizonSizeBytes: 8 * 32 * 1024,
+				}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 			},
 		)
 		require.NoError(t, err)

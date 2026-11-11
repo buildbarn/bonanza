@@ -30,14 +30,14 @@ type MaybeInlineFileContentsReader[TReference any] interface {
 // small enough are stored inline. Larger strings are stored in the same
 // way as file contents.
 func encodeString[TReference any, TMetadata model_core.ReferenceMetadata](s string, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
-	if len(s) > options.ObjectMinimumSizeBytes && options.FileCreationParameters == nil {
+	if len(s) > options.ObjectChunkingParameters.GetMinimumSizeBytes() && options.FileCreationParameters == nil {
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, errors.New("strings that are too large to be stored inline cannot be encoded from within this context")
 	}
 	contents, err := model_filesystem.CreateMaybeInlineFileContents(
 		options.Context,
 		options.FileCreationParameters,
 		[]byte(s),
-		options.ObjectMinimumSizeBytes,
+		options.ObjectChunkingParameters.GetMinimumSizeBytes(),
 		model_filesystem.NewSimpleFileMerkleTreeCapturer[TMetadata](options.ObjectCapturer),
 	)
 	if err != nil {

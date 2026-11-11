@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
@@ -52,12 +53,14 @@ func TestStringStorage(t *testing.T) {
 
 	newEncodingOptions := func(fileCreationParameters *model_filesystem.FileCreationParameters) *model_starlark.ValueEncodingOptions[object.LocalReference, model_core.NoopReferenceMetadata] {
 		options := &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.NoopReferenceMetadata]{
-			Context:                ctx,
-			ObjectEncoder:          encoder,
-			ObjectReferenceFormat:  referenceFormat,
-			ObjectCapturer:         store,
-			ObjectMinimumSizeBytes: 1024,
-			ObjectHorizonSizeBytes: 8 * 1024,
+			Context:               ctx,
+			ObjectEncoder:         encoder,
+			ObjectReferenceFormat: referenceFormat,
+			ObjectCapturer:        store,
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1024,
+				HorizonSizeBytes: 8 * 1024,
+			}, referenceFormat)),
 			FileCreationParameters: fileCreationParameters,
 		}
 		return options

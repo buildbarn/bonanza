@@ -93,6 +93,7 @@ go_library(
         "//pkg/ds",
         "//pkg/glob",
         "//pkg/label",
+        "//pkg/model/chunking",
         "//pkg/model/command",
         "//pkg/model/core",
         "//pkg/model/core/btree",
@@ -106,6 +107,7 @@ go_library(
         "//pkg/moduledotbazel",
         "//pkg/proto/encryptedaction",
         "//pkg/proto/model/analysis",
+        "//pkg/proto/model/chunking",
         "//pkg/proto/model/command",
         "//pkg/proto/model/core",
         "//pkg/proto/model/fetch",
@@ -164,6 +166,7 @@ go_test(
     deps = [
         "//pkg/glob",
         "//pkg/label",
+        "//pkg/model/chunking",
         "//pkg/model/core",
         "//pkg/model/core/inlinedtree",
         "//pkg/model/encoding",

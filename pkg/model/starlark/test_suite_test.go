@@ -4,10 +4,12 @@ import (
 	"testing"
 
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/starlark/eval"
@@ -56,12 +58,14 @@ func TestTestSuite(t *testing.T) {
 		thread.SetLocal(model_starlark.CanonicalPackageKey, util.Must(label.NewCanonicalPackage("@@main+//foo")))
 		thread.SetLocal(model_starlark.LabelResolverKey, labelResolver)
 		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
-			Context:                ctx,
-			ObjectEncoder:          encoder,
-			ObjectReferenceFormat:  referenceFormat,
-			ObjectCapturer:         objectManager,
-			ObjectMinimumSizeBytes: 32 * 1024,
-			ObjectHorizonSizeBytes: 8 * 32 * 1024,
+			Context:               ctx,
+			ObjectEncoder:         encoder,
+			ObjectReferenceFormat: referenceFormat,
+			ObjectCapturer:        objectManager,
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 32 * 1024,
+				HorizonSizeBytes: 8 * 32 * 1024,
+			}, referenceFormat)),
 		})
 		return thread, targetRegistrar
 	}

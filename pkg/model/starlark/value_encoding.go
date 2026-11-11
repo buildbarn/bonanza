@@ -10,6 +10,7 @@ import (
 	"slices"
 
 	pg_label "bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/core/inlinedtree"
@@ -38,14 +39,13 @@ type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata
 	CurrentFilename *pg_label.CanonicalLabel
 
 	// Options to use when storing Starlark values in separate objects.
-	Context                context.Context
-	ObjectEncoder          model_encoding.DeterministicBinaryEncoder
-	ObjectReferenceFormat  object.ReferenceFormat
-	ObjectCapturer         model_core.ObjectCapturer[TReference, TMetadata]
-	ObjectMinimumSizeBytes int
-	ObjectHorizonSizeBytes int
+	Context                  context.Context
+	ObjectEncoder            model_encoding.DeterministicBinaryEncoder
+	ObjectReferenceFormat    object.ReferenceFormat
+	ObjectCapturer           model_core.ObjectCapturer[TReference, TMetadata]
+	ObjectChunkingParameters chunking.Parameters
 
-	// Strings that are larger than ObjectMinimumSizeBytes are
+	// Strings that are larger than the minimum object size are
 	// stored in the same way as file contents, using the provided
 	// parameters.
 	FileCreationParameters *model_filesystem.FileCreationParameters
@@ -55,12 +55,12 @@ type ValueEncodingOptions[TReference any, TMetadata model_core.ReferenceMetadata
 // fields of a message need to be stored in separate objects, so that
 // the message does not become too large.
 //
-// Any message that is at least twice ObjectMinimumSizeBytes in size has
-// fields moved out of it.
+// Any message that exceeds the maximum object size (twice the minimum
+// object size) has fields moved out of it.
 func (o *ValueEncodingOptions[TReference, TMetadata]) getInlinedTreeOptions() *inlinedtree.Options {
 	return &inlinedtree.Options{
 		ReferenceFormat:  o.ObjectReferenceFormat,
-		MaximumSizeBytes: o.ObjectMinimumSizeBytes*2 - 1,
+		MaximumSizeBytes: o.ObjectChunkingParameters.GetMaximumSizeBytes(),
 	}
 }
 
@@ -112,8 +112,7 @@ func newBTreeBuilder[TReference any, TMessage proto.Message, TMetadata model_cor
 ) btree.Builder[TMessage, TMetadata] {
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			options.ObjectMinimumSizeBytes,
-			options.ObjectHorizonSizeBytes,
+			options.ObjectChunkingParameters,
 			isParent,
 		),
 		btree.NewObjectCreatingNodeMerger(

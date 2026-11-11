@@ -5,6 +5,11 @@ import (
 	"math/rand/v2"
 	"testing"
 
+	model_core "bonanza.build/pkg/model/core"
+	model_core_pb "bonanza.build/pkg/proto/model/core"
+	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
+	"bonanza.build/pkg/storage/object"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,4 +90,84 @@ func TestGetLexicographicMaximum(t *testing.T) {
 			fmt.Sprintf("input=%v sizes=%v window=%d first=%d last=%d", input, alphabetSizesBytes, windowSizeBytes, first, last),
 		)
 	}
+}
+
+func TestProllyChunkerFactoryTiny(t *testing.T) {
+	// These tests construct prollyChunkerFactory directly, as
+	// NewProllyChunkerFactory() only accepts validated parameters,
+	// which disallow sizes this small.
+	t.Run("LeafNodes", func(t *testing.T) {
+		// When the minimum and horizon sizes are set far too
+		// low, we should still store at least one leaf node in
+		// every object.
+		chunkerFactory := &prollyChunkerFactory[*model_filesystem_pb.FileContents, model_core.NoopReferenceMetadata]{
+			isParent: func(contents *model_filesystem_pb.FileContents) bool {
+				return contents.GetList() != nil
+			},
+		}
+		chunker := chunkerFactory.NewChunker()
+
+		expectedNodes := make(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.NoopReferenceMetadata], 0, 10)
+		for i := 1000; i < 1010; i++ {
+			node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_filesystem_pb.FileContents {
+				return &model_filesystem_pb.FileContents{
+					TotalSizeBytes: uint64(i),
+					Level: &model_filesystem_pb.FileContents_ChunkReference{
+						ChunkReference: &model_core_pb.DecodableReference{
+							Reference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
+								LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
+								Metadata:       model_core.NoopReferenceMetadata{},
+							}),
+						},
+					},
+				}
+			})
+			require.NoError(t, chunker.PushSingle(node))
+			expectedNodes = append(expectedNodes, node)
+		}
+
+		for i := range expectedNodes {
+			require.Equal(t, expectedNodes[i:i+1], chunker.PopMultiple(PopAll))
+		}
+		require.Empty(t, chunker.PopMultiple(PopAll))
+	})
+
+	t.Run("ParentNodes", func(t *testing.T) {
+		// We should never store single parent nodes in
+		// their own object, as that would just be
+		// unnecessary indirection.
+		chunkerFactory := &prollyChunkerFactory[*model_filesystem_pb.FileContents, model_core.NoopReferenceMetadata]{
+			isParent: func(contents *model_filesystem_pb.FileContents) bool {
+				return contents.GetList() != nil
+			},
+		}
+		chunker := chunkerFactory.NewChunker()
+
+		expectedNodes := make(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.NoopReferenceMetadata], 0, 10)
+		for i := 1000; i < 1010; i++ {
+			node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_filesystem_pb.FileContents {
+				return &model_filesystem_pb.FileContents{
+					TotalSizeBytes: uint64(i),
+					Level: &model_filesystem_pb.FileContents_List_{
+						List: &model_filesystem_pb.FileContents_List{
+							Reference: &model_core_pb.DecodableReference{
+								Reference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
+									LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
+									Metadata:       model_core.NoopReferenceMetadata{},
+								}),
+							},
+							Sparse: false,
+						},
+					},
+				}
+			})
+			require.NoError(t, chunker.PushSingle(node))
+			expectedNodes = append(expectedNodes, node)
+		}
+
+		for i := 0; i < len(expectedNodes); i += 2 {
+			require.Equal(t, expectedNodes[i:i+2], chunker.PopMultiple(PopAll))
+		}
+		require.Empty(t, chunker.PopMultiple(PopAll))
+	})
 }

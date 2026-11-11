@@ -18,6 +18,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/encoding/varint",
+        "//pkg/model/chunking",
         "//pkg/model/core",
         "//pkg/model/encoding",
         "//pkg/model/parser",
@@ -44,10 +45,14 @@ go_test(
     embed = [":btree"],
     deps = [
         "//pkg/encoding/varint",
+        "//pkg/model/chunking",
         "//pkg/model/core",
+        "//pkg/proto/model/chunking",
         "//pkg/proto/model/core",
         "//pkg/proto/model/filesystem",
+        "//pkg/proto/storage/object",
         "//pkg/storage/object",
+        "@com_github_buildbarn_bb_storage//pkg/util",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_protobuf//proto",
         "@org_uber_go_mock//gomock",

@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"testing"
 
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/starlark/compile"
@@ -67,12 +69,14 @@ func TestDecodeValue(t *testing.T) {
 	encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 	store := &inMemoryObjectStore{objects: map[object.LocalReference]*object.Contents{}}
 	encodingOptions := &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.NoopReferenceMetadata]{
-		Context:                ctx,
-		ObjectEncoder:          encoder,
-		ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-		ObjectCapturer:         store,
-		ObjectMinimumSizeBytes: 1024,
-		ObjectHorizonSizeBytes: 8 * 1024,
+		Context:               ctx,
+		ObjectEncoder:         encoder,
+		ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+		ObjectCapturer:        store,
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			MinimumSizeBytes: 1024,
+			HorizonSizeBytes: 8 * 1024,
+		}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 	}
 	decodingOptions := &model_starlark.ValueDecodingOptions[object.LocalReference]{
 		Readers: &model_starlark.ValueReaders[object.LocalReference]{

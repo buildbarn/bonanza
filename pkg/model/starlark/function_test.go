@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/starlark/compile"
@@ -48,6 +50,12 @@ def constants():
 
 adder = make_adder(3)
 `
+	// Add functions containing large constants, so that the code
+	// of functions spans multiple objects when using a small
+	// object size.
+	for i := range 3 {
+		source += fmt.Sprintf("\ndef padding%d():\n    return %q\n", i, strings.Repeat("x", 1000))
+	}
 
 	// Compile and execute the file. Canonicalize the imports, so
 	// that the code of functions can be written to storage.
@@ -72,21 +80,30 @@ adder = make_adder(3)
 	})
 	require.NoError(t, eval.ExecFile(newTestThread(t), program, module))
 
-	for _, maximumSizeBytes := range []int{1024 * 1024, 64} {
-		t.Run(fmt.Sprintf("MaximumSize%d", maximumSizeBytes), func(t *testing.T) {
+	for _, tc := range []struct {
+		minimumSizeBytes     int
+		spansMultipleObjects bool
+	}{
+		{minimumSizeBytes: 256 * 1024, spansMultipleObjects: false},
+		{minimumSizeBytes: 1024, spansMultipleObjects: true},
+	} {
+		minimumSizeBytes := tc.minimumSizeBytes
+		t.Run(fmt.Sprintf("MinimumSize%d", minimumSizeBytes), func(t *testing.T) {
 			// Write the globals of the file to storage. With a
-			// small maximum object size, the B-tree containing
+			// small object size, the B-tree containing
 			// the code of functions spans multiple objects.
 			encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 			store := &inMemoryObjectStore{objects: map[object.LocalReference]*object.Contents{}}
 			encodingOptions := &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.NoopReferenceMetadata]{
-				CurrentFilename:        &filename,
-				Context:                t.Context(),
-				ObjectEncoder:          encoder,
-				ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-				ObjectCapturer:         store,
-				ObjectMinimumSizeBytes: maximumSizeBytes / 4,
-				ObjectHorizonSizeBytes: maximumSizeBytes * 2,
+				CurrentFilename:       &filename,
+				Context:               t.Context(),
+				ObjectEncoder:         encoder,
+				ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+				ObjectCapturer:        store,
+				ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+					MinimumSizeBytes: uint32(minimumSizeBytes),
+					HorizonSizeBytes: uint32(8 * minimumSizeBytes),
+				}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 			}
 			encodingThread := newTestThread(t)
 			encodedProgram, err := model_starlark.EncodeCompiledProgram(encodingThread, program, module.Globals(), encodingOptions)
@@ -96,7 +113,8 @@ adder = make_adder(3)
 
 			// Only public globals and private globals that are
 			// referenced by functions should be encoded.
-			require.Equal(t, []string{"_PREFIX", "adder", "constants", "greet", "make_adder", "make_multiplier"}, globals.Message.Globals.Keys)
+			require.Equal(t, []string{"_PREFIX", "adder", "constants", "greet", "make_adder", "make_multiplier", "padding0", "padding1", "padding2"}, globals.Message.Globals.Keys)
+			require.Equal(t, tc.spansMultipleObjects, globals.Message.Functions[0].GetParent() != nil)
 
 			// Load the functions on another thread, resolving
 			// globals through the GlobalResolver.
@@ -178,9 +196,10 @@ adder = make_adder(3)
 func TestFunctionStorageLines(t *testing.T) {
 	// Declare enough functions for the B-tree to span multiple
 	// levels. Names don't sort in the order of declaration.
+	const functionCount = 1000
 	var source strings.Builder
 	expectedLines := map[string]int32{}
-	for i := range 100 {
+	for i := range functionCount {
 		name := fmt.Sprintf("f%d", i)
 		expectedLines[name] = int32(3*i + 1)
 		fmt.Fprintf(&source, "def %s():\n    return %d\n\n", name, i)
@@ -203,13 +222,15 @@ func TestFunctionStorageLines(t *testing.T) {
 		module := eval.NewInMemoryModule(filename.String(), nil, nil)
 		require.NoError(t, eval.ExecFile(newTestThread(t), program, module))
 		encodedProgram, err := model_starlark.EncodeCompiledProgram(newTestThread(t), program, module.Globals(), &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.NoopReferenceMetadata]{
-			CurrentFilename:        &filename,
-			Context:                t.Context(),
-			ObjectEncoder:          encoder,
-			ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-			ObjectCapturer:         store,
-			ObjectMinimumSizeBytes: objectMinimumSizeBytes,
-			ObjectHorizonSizeBytes: objectMinimumSizeBytes * 8,
+			CurrentFilename:       &filename,
+			Context:               t.Context(),
+			ObjectEncoder:         encoder,
+			ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+			ObjectCapturer:        store,
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: uint32(objectMinimumSizeBytes),
+				HorizonSizeBytes: uint32(8 * objectMinimumSizeBytes),
+			}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 		})
 		require.NoError(t, err)
 		topLevel, _ := encodedProgram.SortAndSetReferences()
@@ -241,7 +262,7 @@ func TestFunctionStorageLines(t *testing.T) {
 		}
 	}
 
-	original := encode(source.String(), 16)
+	original := encode(source.String(), 1024)
 	require.NotEmpty(t, original.Message.Functions)
 	require.NotNil(t, original.Message.Functions[0].GetParent())
 	check(original, 0)
@@ -250,7 +271,7 @@ func TestFunctionStorageLines(t *testing.T) {
 	// list of lines. The objects holding the code of the functions
 	// should remain identical, meaning no new objects get created.
 	objectsCount := len(store.objects)
-	shifted := encode("\n\n\n"+source.String(), 16)
+	shifted := encode("\n\n\n"+source.String(), 1024)
 	require.Len(t, store.objects, objectsCount)
 	check(shifted, 3)
 
@@ -259,20 +280,20 @@ func TestFunctionStorageLines(t *testing.T) {
 		// elements of the B-trees should be moved to separate
 		// objects. Keys and line numbers have no external form.
 		require.Len(t, original.Message.Functions, 1)
-		require.Equal(t, uint32(100), original.Message.Functions[0].GetParent().GetFunctionCount())
+		require.Equal(t, uint32(functionCount), original.Message.Functions[0].GetParent().GetFunctionCount())
 		require.Len(t, original.Message.Globals.Values, 1)
 		require.NotNil(t, original.Message.Globals.Values[0].GetParent())
-		require.Len(t, original.Message.Globals.Keys, 100)
-		require.Len(t, original.Message.TopLevelFunctionLines, 100)
+		require.Len(t, original.Message.Globals.Keys, functionCount)
+		require.Len(t, original.Message.TopLevelFunctionLines, functionCount)
 	})
 
 	t.Run("InlineGlobalsAndFunctions", func(t *testing.T) {
 		// With a sufficiently large object size, everything
 		// should fit in a single message.
-		inline := encode(source.String(), 64*1024)
-		require.Len(t, inline.Message.Functions, 100)
+		inline := encode(source.String(), 512*1024)
+		require.Len(t, inline.Message.Functions, functionCount)
 		require.Nil(t, inline.Message.Functions[0].GetParent())
-		require.Len(t, inline.Message.Globals.Values, 100)
+		require.Len(t, inline.Message.Globals.Values, functionCount)
 		require.Nil(t, inline.Message.Globals.Values[0].GetParent())
 		check(inline, 0)
 	})
@@ -330,13 +351,15 @@ def factorial(n):
 		require.NoError(t, eval.ExecFile(newTestThread(t), program, module))
 
 		encodedProgram, err := model_starlark.EncodeCompiledProgram(newTestThread(t), program, module.Globals(), &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.NoopReferenceMetadata]{
-			CurrentFilename:        &filename,
-			Context:                t.Context(),
-			ObjectEncoder:          encoder,
-			ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-			ObjectCapturer:         store,
-			ObjectMinimumSizeBytes: 1024,
-			ObjectHorizonSizeBytes: 8 * 1024,
+			CurrentFilename:       &filename,
+			Context:               t.Context(),
+			ObjectEncoder:         encoder,
+			ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+			ObjectCapturer:        store,
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1024,
+				HorizonSizeBytes: 8 * 1024,
+			}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 		})
 		require.NoError(t, err)
 		topLevel, _ := encodedProgram.SortAndSetReferences()
@@ -385,13 +408,15 @@ func TestFunctionNamePaths(t *testing.T) {
 	encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 	store := &inMemoryObjectStore{objects: map[object.LocalReference]*object.Contents{}}
 	encodingOptions := &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.NoopReferenceMetadata]{
-		CurrentFilename:        &filename,
-		Context:                t.Context(),
-		ObjectEncoder:          encoder,
-		ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-		ObjectCapturer:         store,
-		ObjectMinimumSizeBytes: 256,
-		ObjectHorizonSizeBytes: 8 * 256,
+		CurrentFilename:       &filename,
+		Context:               t.Context(),
+		ObjectEncoder:         encoder,
+		ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+		ObjectCapturer:        store,
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			MinimumSizeBytes: 1024,
+			HorizonSizeBytes: 8 * 1024,
+		}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 	}
 
 	// execAndEncode executes the provided source, and encodes the

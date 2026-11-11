@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"bonanza.build/pkg/encoding/varint"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 
 	"google.golang.org/protobuf/proto"
@@ -34,9 +35,9 @@ type prollyChunkerFactory[TNode proto.Message, TMetadata model_core.ReferenceMet
 //
 // Each position at which a cut may be placed is assigned the sequence
 // of hashes of the nodes starting at the node preceding it, limited to
-// the nodes that start within minimumSizeBytes. Starting at the first
+// the nodes that start within the minimum size. Starting at the first
 // position at which a cut may be placed, the position whose sequence of
-// hashes is lexicographically maximal within horizonSizeBytes is
+// hashes is lexicographically maximal within the horizon size is
 // selected. As hashes are 64 bits in size, this is almost always
 // decided by the hash of the node preceding the cut. Only if nodes are
 // repeated, the nodes succeeding it are considered. This prevents the
@@ -49,23 +50,23 @@ type prollyChunkerFactory[TNode proto.Message, TMetadata model_core.ReferenceMet
 // permit the previously selected position to be used as a cut
 // afterwards.
 //
-// Objects are thus at least minimumSizeBytes in size. If nodes were
-// infinitesimally small, objects would be at most 2*minimumSizeBytes-1
-// bytes in size. In practice the maximum size is somewhat higher, as
-// nodes cannot be split. Increasing horizonSizeBytes improves the
-// stability of the cuts, at the cost of buffering more nodes before
-// objects can be emitted.
+// Objects are thus at least the minimum size. If nodes were
+// infinitesimally small, objects would be at most the maximum size
+// (twice the minimum size, minus one byte). In practice objects may be
+// somewhat larger, as nodes cannot be split. Increasing the horizon
+// size improves the stability of the cuts, at the cost of buffering
+// more nodes before objects can be emitted.
 //
 // The size computation that is used by this type assumes that the
 // resulting nodes are stored in an object where each node is prefixed
 // with a variable length integer indicating the node's size.
 func NewProllyChunkerFactory[TMetadata model_core.ReferenceMetadata, TNode proto.Message](
-	minimumSizeBytes, horizonSizeBytes int,
+	parameters chunking.Parameters,
 	isParent func(TNode) bool,
 ) ChunkerFactory[TNode, TMetadata] {
 	return &prollyChunkerFactory[TNode, TMetadata]{
-		minimumSizeBytes: minimumSizeBytes,
-		horizonSizeBytes: horizonSizeBytes,
+		minimumSizeBytes: parameters.GetMinimumSizeBytes(),
+		horizonSizeBytes: parameters.GetHorizonSizeBytes(),
 		isParent:         isParent,
 	}
 }

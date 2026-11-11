@@ -4,9 +4,11 @@ import (
 	"testing"
 
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
@@ -63,12 +65,14 @@ func TestRepositoryRuleReference(t *testing.T) {
 	thread.SetLocal(model_starlark.RepoRegistrarKey, repoRegistrar)
 	thread.SetLocal(model_starlark.CanonicalPackageKey, util.Must(label.NewCanonicalPackage("@@rules+")))
 	thread.SetLocal(model_starlark.ValueEncodingOptionsKey, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.NoopReferenceMetadata]{
-		Context:                t.Context(),
-		ObjectEncoder:          model_encoding.NewChainedDeterministicBinaryEncoder(nil),
-		ObjectReferenceFormat:  object.SHA256V1ReferenceFormat,
-		ObjectCapturer:         model_core.NewDiscardingObjectCapturer[object.LocalReference](),
-		ObjectMinimumSizeBytes: 1024,
-		ObjectHorizonSizeBytes: 8 * 1024,
+		Context:               t.Context(),
+		ObjectEncoder:         model_encoding.NewChainedDeterministicBinaryEncoder(nil),
+		ObjectReferenceFormat: object.SHA256V1ReferenceFormat,
+		ObjectCapturer:        model_core.NewDiscardingObjectCapturer[object.LocalReference](),
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			MinimumSizeBytes: 1024,
+			HorizonSizeBytes: 8 * 1024,
+		}, object.SHA256V1ReferenceFormat)),
 	})
 
 	_, err = eval.Call(thread, repositoryRule, eval.Args{

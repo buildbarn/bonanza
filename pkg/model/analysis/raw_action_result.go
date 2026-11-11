@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"bonanza.build/pkg/crypto"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	model_encoding "bonanza.build/pkg/model/encoding"
@@ -16,8 +17,11 @@ import (
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 	"bonanza.build/pkg/storage/object"
+
+	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
 var commandActionObjectFormat = model_core.NewProtoObjectFormat(&model_command_pb.Action{})
@@ -112,8 +116,10 @@ func convertDictToEnvironmentVariableList[TMetadata model_core.ReferenceMetadata
 	})
 	environmentVariablesBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			/* minimumSizeBytes = */ 1<<16,
-			/* horizonSizeBytes = */ 8<<16,
+			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 16,
+				HorizonSizeBytes: 8 << 16,
+			}, referenceFormat)),
 			/* isParent = */ func(element *model_command_pb.EnvironmentVariableList_Element) bool {
 				return element.GetParent() != nil
 			},

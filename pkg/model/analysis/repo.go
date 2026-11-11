@@ -20,6 +20,7 @@ import (
 
 	"bonanza.build/pkg/diff"
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_command "bonanza.build/pkg/model/command"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
@@ -30,6 +31,7 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
@@ -1906,8 +1908,10 @@ func newArgumentsBuilder[TMetadata model_core.ReferenceMetadata](ctx context.Con
 	})
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			/* minimumSizeBytes = */ 1<<16,
-			/* horizonSizeBytes = */ 8<<16,
+			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 16,
+				HorizonSizeBytes: 8 << 16,
+			}, referenceFormat)),
 			/* isParent = */ func(element *model_command_pb.ArgumentList_Element) bool {
 				return element.GetParent() != nil
 			},

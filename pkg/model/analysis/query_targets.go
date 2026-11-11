@@ -7,13 +7,17 @@ import (
 	"strings"
 
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
+
+	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
 // pruneQueryTargetDefinition returns a copy of the definition of a
@@ -78,8 +82,10 @@ func pruneQueryTargetDefinition(definition *model_starlark_pb.Target_Definition)
 func (c *baseComputer[TReference, TMetadata]) newQueryTargetTreeBuilder(ctx context.Context, capturer model_core.CreatedObjectCapturer[TMetadata]) btree.Builder[*model_analysis_pb.QueryTarget, TMetadata] {
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			/* minimumSizeBytes = */ 32*1024,
-			/* horizonSizeBytes = */ 8*32*1024,
+			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 32 * 1024,
+				HorizonSizeBytes: 8 * 32 * 1024,
+			}, c.referenceFormat)),
 			/* isParent = */ func(target *model_analysis_pb.QueryTarget) bool {
 				return target.GetParent() != nil
 			},

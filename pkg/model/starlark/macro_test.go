@@ -10,10 +10,12 @@ import (
 
 	"bonanza.build/pkg/glob"
 	"bonanza.build/pkg/label"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/starlark/eval"
@@ -52,12 +54,14 @@ func TestMacro(t *testing.T) {
 		thread.SetLocal(model_starlark.CanonicalPackageKey, util.Must(label.NewCanonicalPackage("@@main+//foo")))
 		thread.SetLocal(model_starlark.LabelResolverKey, NewMockLabelResolver(ctrl))
 		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
-			Context:                ctx,
-			ObjectEncoder:          encoder,
-			ObjectReferenceFormat:  referenceFormat,
-			ObjectCapturer:         objectManager,
-			ObjectMinimumSizeBytes: 32 * 1024,
-			ObjectHorizonSizeBytes: 8 * 32 * 1024,
+			Context:               ctx,
+			ObjectEncoder:         encoder,
+			ObjectReferenceFormat: referenceFormat,
+			ObjectCapturer:        objectManager,
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 32 * 1024,
+				HorizonSizeBytes: 8 * 32 * 1024,
+			}, referenceFormat)),
 		})
 		thread.SetLocal(model_starlark.ValueDecodingOptionsKey, &model_starlark.ValueDecodingOptions[object.LocalReference]{
 			Readers: &model_starlark.ValueReaders[object.LocalReference]{},
@@ -561,18 +565,22 @@ func TestMacro(t *testing.T) {
 			objectManager.EXPECT().CaptureCreatedObject(gomock.Any(), gomock.Any()).AnyTimes()
 			targetRegistrar := model_starlark.NewTargetRegistrar(ctx, encoder, inlinedTreeOptions, objectManager, defaultInheritableAttrs)
 			thread := newThread(t, targetRegistrar, objectManager)
-			for _, name := range []string{"m", "m_a", "m_b", "m_c", "m_d", "m_e", "m_f", "m_g", "m_h"} {
+			require.NoError(t, callMacro(thread, "m"))
+			for i := range 100 {
+				name := fmt.Sprintf("m_%03d", i)
 				require.NoError(t, callMacro(thread, name), name)
 			}
 			require.NoError(t, targetRegistrar.Finalize(
 				util.Must(label.NewCanonicalPackage("@@main+//foo")),
 				&model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
-					Context:                ctx,
-					ObjectEncoder:          encoder,
-					ObjectReferenceFormat:  referenceFormat,
-					ObjectCapturer:         objectManager,
-					ObjectMinimumSizeBytes: 100,
-					ObjectHorizonSizeBytes: 8 * 100,
+					Context:               ctx,
+					ObjectEncoder:         encoder,
+					ObjectReferenceFormat: referenceFormat,
+					ObjectCapturer:        objectManager,
+					ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+						MinimumSizeBytes: 1024,
+						HorizonSizeBytes: 8 * 1024,
+					}, referenceFormat)),
 				},
 			))
 
@@ -903,17 +911,19 @@ func TestMacroExpansionContextListBuilder(t *testing.T) {
 	objectManager := NewMockObjectManagerForTesting(ctrl)
 	objectManager.EXPECT().CaptureCreatedObject(gomock.Any(), gomock.Any()).AnyTimes()
 	treeBuilder := model_starlark.NewMacroExpansionContextListBuilder(&model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
-		Context:                ctx,
-		ObjectEncoder:          model_encoding.NewChainedDeterministicBinaryEncoder(nil),
-		ObjectReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-		ObjectCapturer:         objectManager,
-		ObjectMinimumSizeBytes: 100,
-		ObjectHorizonSizeBytes: 8 * 100,
+		Context:               ctx,
+		ObjectEncoder:         model_encoding.NewChainedDeterministicBinaryEncoder(nil),
+		ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+		ObjectCapturer:        objectManager,
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			MinimumSizeBytes: 1024,
+			HorizonSizeBytes: 8 * 1024,
+		}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 	})
 	defer treeBuilder.Discard()
 	var nameSuffixes []string
-	for i := range 50 {
-		nameSuffix := fmt.Sprintf("m%02d", i)
+	for i := range 500 {
+		nameSuffix := fmt.Sprintf("m%03d", i)
 		nameSuffixes = append(nameSuffixes, nameSuffix)
 		require.NoError(t, treeBuilder.PushChild(model_core.NewSimplePatchedMessage[model_core.CreatedObjectTree](&model_starlark_pb.MacroExpansionContext_Entry{
 			Level: &model_starlark_pb.MacroExpansionContext_Entry_Leaf{
@@ -933,7 +943,7 @@ func TestMacroExpansionContextListBuilder(t *testing.T) {
 		require.Contains(t, nameSuffixes, parent.FirstNameSuffix)
 		firstNameSuffixes = append(firstNameSuffixes, parent.FirstNameSuffix)
 	}
-	require.Equal(t, "m00", firstNameSuffixes[0])
+	require.Equal(t, "m000", firstNameSuffixes[0])
 	require.True(t, slices.IsSorted(firstNameSuffixes))
 }
 
@@ -942,12 +952,14 @@ func TestMacroInheritAttrs(t *testing.T) {
 	referenceFormat := util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1))
 	encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 	valueEncodingOptions := &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
-		Context:                ctx,
-		ObjectEncoder:          encoder,
-		ObjectReferenceFormat:  referenceFormat,
-		ObjectCapturer:         createdObjectTreeCapturer{},
-		ObjectMinimumSizeBytes: 32 * 1024,
-		ObjectHorizonSizeBytes: 8 * 32 * 1024,
+		Context:               ctx,
+		ObjectEncoder:         encoder,
+		ObjectReferenceFormat: referenceFormat,
+		ObjectCapturer:        createdObjectTreeCapturer{},
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			MinimumSizeBytes: 32 * 1024,
+			HorizonSizeBytes: 8 * 32 * 1024,
+		}, referenceFormat)),
 	}
 	canonicalLabel := util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl"))
 

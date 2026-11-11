@@ -53,6 +53,7 @@ go_library(
     deps = [
         "//pkg/glob",
         "//pkg/label",
+        "//pkg/model/chunking",
         "//pkg/model/core",
         "//pkg/model/core/btree",
         "//pkg/model/core/inlinedtree",
@@ -110,6 +111,7 @@ go_test(
     deps = [
         "//pkg/glob",
         "//pkg/label",
+        "//pkg/model/chunking",
         "//pkg/model/core",
         "//pkg/model/core/inlinedtree",
         "//pkg/model/encoding",
