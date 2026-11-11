@@ -266,6 +266,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			return PatchedVisibleTargetValue[TMetadata]{}, errors.New("actual target of alias is not a label")
 		}
 	case *model_starlark_pb.Target_Definition_LabelSetting:
+		// The label setting itself needs to be visible.
+		if err := c.checkVisibility(
+			ctx,
+			e,
+			valueReaders,
+			fromPackage,
+			toLabel,
+			model_core.Nested(targetValue, definition.LabelSetting.Visibility),
+		); err != nil {
+			return PatchedVisibleTargetValue[TMetadata]{}, err
+		}
+
 		if key.Message.StopAtLabelSetting {
 			// We are applying a transition and want to
 			// resolve the label of a label_setting().
