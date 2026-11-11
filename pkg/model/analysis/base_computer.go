@@ -18,7 +18,6 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
-	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/remoteexecution"
 	"bonanza.build/pkg/starlark/compile"
@@ -101,7 +100,6 @@ type baseComputer[TReference object.BasicReference, TMetadata model_core.Referen
 	argsReader                          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args]
 	argsAddReader                       model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args_Leaf_Add]
 	buildSettingOverrideReader          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.BuildSettingOverride]
-	commandOutputsReader                model_parser.MessageObjectReader[TReference, *model_command_pb.Outputs]
 	configuredTargetActionReader        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Action]
 	configuredTargetOutputReader        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Output]
 	filesToRunProviderReader            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.FilesToRunProvider]
@@ -151,10 +149,6 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 		configuredTargetOutputReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ConfiguredTarget_Value_Output](),
-		),
-		commandOutputsReader: model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewProtoObjectParser[TReference, model_command_pb.Outputs](),
 		),
 		configuredTargetActionReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
