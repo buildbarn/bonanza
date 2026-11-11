@@ -3766,16 +3766,16 @@ func (c *baseComputer[TReference, TMetadata]) returnRepoMerkleTree(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Context, key *model_analysis_pb.Repo_Key, e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue[TMetadata], error) {
-	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
-	if err != nil {
-		return PatchedRepoValue[TMetadata]{}, err
-	}
+	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	canonicalRepo, err := label.NewCanonicalRepo(key.CanonicalRepo)
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid canonical repo: %w", err)
 	}
 
+	if !gotStarlarkValueEncoders {
+		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
 	if _, _, ok := canonicalRepo.GetModuleExtension(); ok {
 		return c.fetchModuleExtensionRepo(ctx, canonicalRepo, canonicalRepo.GetModuleInstance().GetModule().ToApparentRepo(), e, starlarkValueEncoders)
 	}

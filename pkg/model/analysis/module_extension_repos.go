@@ -139,11 +139,7 @@ func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRe
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepos_Key, e ModuleExtensionReposEnvironment[TReference, TMetadata]) (PatchedModuleExtensionReposValue[TMetadata], error) {
-	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
-	if err != nil {
-		return PatchedModuleExtensionReposValue[TMetadata]{}, err
-	}
-	valueReaders := &starlarkValueEncoders.Readers
+	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
 	if err != nil {
@@ -191,6 +187,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 	if err != nil {
 		return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("invalid module extension: %w", err)
 	}
+
+	if !gotStarlarkValueEncoders {
+		return PatchedModuleExtensionReposValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+	valueReaders := &starlarkValueEncoders.Readers
 	if moduleExtension.GetExtensionName() == repoRulesExtensionName {
 		// "_repo_rules" is used as a fictive extension name to
 		// hold all repos declared using use_repo_rule() in

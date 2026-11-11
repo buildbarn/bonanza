@@ -21,10 +21,7 @@ import (
 var configSettingInfoProviderIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%ConfigSettingInfo"))
 
 func (c *baseComputer[TReference, TMetadata]) ComputeSelectValue(ctx context.Context, key model_core.Message[*model_analysis_pb.Select_Key, TReference], e SelectEnvironment[TReference, TMetadata]) (PatchedSelectValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedSelectValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	fromPackage, err := label.NewCanonicalPackage(key.Message.FromPackage)
 	if err != nil {
@@ -39,6 +36,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeSelectValue(ctx context.Con
 	missingDependencies := false
 	var platformConstraints []*model_analysis_pb.Constraint
 	var matchingIndices []uint32
+	if !gotValueReaders {
+		return PatchedSelectValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
 CheckConditions:
 	for i, conditionIdentifier := range key.Message.ConditionIdentifiers {
 		configSettingInfo, configSettingLabelStr, err := getProviderFromVisibleConfiguredTarget(

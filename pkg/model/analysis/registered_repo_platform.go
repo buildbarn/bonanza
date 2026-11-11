@@ -55,15 +55,12 @@ func decodeStringDict[TReference object.BasicReference](ctx context.Context, val
 }
 
 func (*baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue(ctx context.Context, key *model_analysis_pb.RegisteredRepoPlatform_Key, e RegisteredRepoPlatformEnvironment[TReference, TMetadata]) (PatchedRegisteredRepoPlatformValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	// Obtain the label of the repo platform that was provided by
 	// the client through the --repo_platform command line flag.
 	buildSpecificationValue := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
-	if !buildSpecificationValue.IsSet() {
+	if !buildSpecificationValue.IsSet() || !gotValueReaders {
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	buildSpecification := buildSpecificationValue.Message

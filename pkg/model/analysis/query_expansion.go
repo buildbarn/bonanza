@@ -1930,10 +1930,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryTests(ctx context.Conte
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx context.Context, key *model_analysis_pb.QueryExpansion_Key, e QueryExpansionEnvironment[TReference, TMetadata]) (PatchedQueryExpansionValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedQueryExpansionValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	query, err := label.NewQuery(key.Query, label.NewCanonicalTargetPattern)
 	if err != nil {
@@ -1952,6 +1949,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx con
 
 	var targetLabels model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]
 	expressions := query.GetExpressions()
+
+	if !gotValueReaders {
+		return PatchedQueryExpansionValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
 	if set, ok := expressions[len(expressions)-1].(*label.QuerySet[label.CanonicalTargetPattern]); ok {
 		targetLabels, err = c.expandQuerySet(ctx, e, set.TargetPatterns)
 	} else if perPackageQuery, base, exclusions, ok := getQueryExcludedDirectories(query); ok {

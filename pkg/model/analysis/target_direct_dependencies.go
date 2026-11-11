@@ -13,17 +13,14 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesValue(ctx context.Context, key *model_analysis_pb.TargetDirectDependencies_Key, e TargetDirectDependenciesEnvironment[TReference, TMetadata]) (PatchedTargetDirectDependenciesValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedTargetDirectDependenciesValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	targetLabel, err := label.NewCanonicalLabel(key.Label)
 	if err != nil {
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
 	target := e.GetTargetValue(&model_analysis_pb.Target_Key{Label: key.Label})
-	if !target.IsSet() {
+	if !target.IsSet() || !gotValueReaders {
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if target.Message.Definition == nil {

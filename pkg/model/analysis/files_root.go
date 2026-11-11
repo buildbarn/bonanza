@@ -101,14 +101,11 @@ func addFileToChangeTrackingDirectory[TReference object.BasicReference, TMetadat
 }
 
 func (*baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.FilesRoot_Key, TReference], e FilesRootEnvironment[TReference, TMetadata]) (PatchedFilesRootValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedFilesRootValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
-	if !gotDirectoryCreationParameters || !gotDirectoryReaders {
+	if !gotDirectoryCreationParameters || !gotDirectoryReaders || !gotValueReaders {
 		return PatchedFilesRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 

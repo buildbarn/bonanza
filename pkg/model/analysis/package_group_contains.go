@@ -101,10 +101,7 @@ func (*baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Con
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(ctx context.Context, key *model_analysis_pb.PackageGroupContains_Key, e PackageGroupContainsEnvironment[TReference, TMetadata]) (PatchedPackageGroupContainsValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedPackageGroupContainsValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	fromPackage, err := label.NewCanonicalPackage(key.Package)
 	if err != nil {
@@ -114,7 +111,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(c
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
 		Label: key.PackageGroupLabel,
 	})
-	if !targetValue.IsSet() {
+	if !targetValue.IsSet() || !gotValueReaders {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if targetValue.Message.Definition == nil {

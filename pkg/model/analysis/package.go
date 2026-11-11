@@ -34,14 +34,15 @@ var buildDotBazelTargetNames = []label.TargetName{
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Context, key *model_analysis_pb.Package_Key, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
-	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
-	if err != nil {
-		return PatchedPackageValue[TMetadata]{}, err
-	}
+	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	canonicalPackage, err := label.NewCanonicalPackage(key.Label)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid package label: %w", err)
+	}
+
+	if !gotStarlarkValueEncoders {
+		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if len(key.MacroInstanceName) > 0 {
 		value, err := c.computeMacroInstancePackageValue(ctx, canonicalPackage, key.MacroInstanceName, e, starlarkValueEncoders)

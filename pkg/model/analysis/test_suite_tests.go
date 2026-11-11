@@ -59,13 +59,10 @@ func newTargetLabelLeaves[TReference any](labels labelSet) model_core.Message[[]
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx context.Context, key *model_analysis_pb.TestSuiteTests_Key, e TestSuiteTestsEnvironment[TReference, TMetadata]) (PatchedTestSuiteTestsValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedTestSuiteTestsValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{Label: key.Label})
-	if !targetValue.IsSet() {
+	if !targetValue.IsSet() || !gotValueReaders {
 		return PatchedTestSuiteTestsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if targetValue.Message.Definition == nil {

@@ -167,10 +167,7 @@ func getTargetVisibility[TReference any](e TargetValueGetter[TReference], target
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.VisibleTarget_Key, TReference], e VisibleTargetEnvironment[TReference, TMetadata]) (PatchedVisibleTargetValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedVisibleTargetValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	fromPackage, err := label.NewCanonicalPackage(key.Message.FromPackage)
 	if err != nil {
@@ -184,7 +181,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
 		Label: key.Message.ToLabel,
 	})
-	if !targetValue.IsSet() {
+	if !targetValue.IsSet() || !gotValueReaders {
 		return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if targetValue.Message.Definition == nil {

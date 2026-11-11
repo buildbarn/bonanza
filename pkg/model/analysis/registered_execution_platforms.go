@@ -10,6 +10,7 @@ import (
 
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
+	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
@@ -182,12 +183,13 @@ func (registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMe
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredExecutionPlatformsValue(ctx context.Context, key *model_analysis_pb.RegisteredExecutionPlatforms_Key, e RegisteredExecutionPlatformsEnvironment[TReference, TMetadata]) (PatchedRegisteredExecutionPlatformsValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedRegisteredExecutionPlatformsValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	var executionPlatforms []*model_analysis_pb.ExecutionPlatform
+
+	if !gotValueReaders {
+		return PatchedRegisteredExecutionPlatformsValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
 	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler {
 		return &registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMetadata]{
 			computer:              c,

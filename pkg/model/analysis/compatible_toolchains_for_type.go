@@ -42,15 +42,12 @@ func getTargetPlatformInfoProvider[TReference object.BasicReference, TMetadata m
 }
 
 func (*baseComputer[TReference, TMetadata]) ComputeCompatibleToolchainsForTypeValue(ctx context.Context, key model_core.Message[*model_analysis_pb.CompatibleToolchainsForType_Key, TReference], e CompatibleToolchainsForTypeEnvironment[TReference, TMetadata]) (PatchedCompatibleToolchainsForTypeValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	registeredToolchains := e.GetRegisteredToolchainsForTypeValue(&model_analysis_pb.RegisteredToolchainsForType_Key{
 		ToolchainType: key.Message.ToolchainType,
 	})
-	if !registeredToolchains.IsSet() {
+	if !registeredToolchains.IsSet() || !gotValueReaders {
 		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 

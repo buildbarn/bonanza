@@ -908,11 +908,11 @@ func (c *baseComputer[TReference, TMetadata]) performTransition(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeUserDefinedTransitionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.UserDefinedTransition_Key, TReference], e UserDefinedTransitionEnvironment[TReference, TMetadata]) (PatchedUserDefinedTransitionValue[TMetadata], error) {
-	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
-	if err != nil {
-		return PatchedUserDefinedTransitionValue[TMetadata]{}, err
-	}
+	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
+	if !gotStarlarkValueEncoders {
+		return PatchedUserDefinedTransitionValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
 	entries, err := c.performAndApplyUserDefinedTransition(
 		ctx,
 		e,

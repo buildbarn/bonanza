@@ -520,15 +520,12 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
+	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
+
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
-	if err != nil {
-		return PatchedConfiguredTargetValue[TMetadata]{}, err
-	}
-	valueReaders := &starlarkValueEncoders.Readers
 
 	targetLabel, err := label.NewCanonicalLabel(key.Message.Label)
 	if err != nil {
@@ -538,9 +535,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
 		Label: targetLabel.String(),
 	})
-	if !emptyDefaultInfoValue.IsSet() || !targetValue.IsSet() {
+	if !emptyDefaultInfoValue.IsSet() || !targetValue.IsSet() || !gotStarlarkValueEncoders {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	valueReaders := &starlarkValueEncoders.Readers
 	if targetValue.Message.Definition == nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("target does not exist")
 	}

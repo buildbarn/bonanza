@@ -313,13 +313,14 @@ func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata])
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(ctx context.Context, key *model_analysis_pb.RegisteredToolchains_Key, e RegisteredToolchainsEnvironment[TReference, TMetadata]) (PatchedRegisteredToolchainsValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedRegisteredToolchainsValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	registeredToolchainsByType := map[string][]*model_analysis_pb.RegisteredToolchain{}
 	missingDependencies := false
+
+	if !gotValueReaders {
+		return PatchedRegisteredToolchainsValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
 	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler {
 		return &registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]{
 			context:                    ctx,

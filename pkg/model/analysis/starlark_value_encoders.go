@@ -85,21 +85,19 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStarlarkValueEncodersObject
 }
 
 // getStarlarkValueEncoders returns the encoders and readers that need
-// to be used to access objects containing Starlark values.
-func getStarlarkValueEncoders[TReference object.BasicReference](e StarlarkValueEncodersObjectGetter[TReference]) (*StarlarkValueEncoders[TReference], error) {
-	encoders, ok := e.GetStarlarkValueEncodersObject(&model_analysis_pb.StarlarkValueEncoders_Key{})
-	if !ok {
-		return nil, evaluation.ErrMissingDependency
-	}
-	return encoders, nil
+// to be used to access objects containing Starlark values. If they are
+// not available yet, ok is set to false.
+func getStarlarkValueEncoders[TReference object.BasicReference](e StarlarkValueEncodersObjectGetter[TReference]) (*StarlarkValueEncoders[TReference], bool) {
+	return e.GetStarlarkValueEncodersObject(&model_analysis_pb.StarlarkValueEncoders_Key{})
 }
 
 // getStarlarkValueReaders returns readers that can be used to follow
-// references to objects containing Starlark values.
-func getStarlarkValueReaders[TReference object.BasicReference](e StarlarkValueEncodersObjectGetter[TReference]) (*model_starlark.ValueReaders[TReference], error) {
-	encoders, err := getStarlarkValueEncoders(e)
-	if err != nil {
-		return nil, err
+// references to objects containing Starlark values. If they are not
+// available yet, ok is set to false.
+func getStarlarkValueReaders[TReference object.BasicReference](e StarlarkValueEncodersObjectGetter[TReference]) (*model_starlark.ValueReaders[TReference], bool) {
+	encoders, ok := getStarlarkValueEncoders(e)
+	if !ok {
+		return nil, false
 	}
-	return &encoders.Readers, nil
+	return &encoders.Readers, true
 }

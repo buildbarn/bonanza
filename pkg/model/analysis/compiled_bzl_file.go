@@ -56,11 +56,7 @@ func (c *baseComputer[TReference, TMetadata]) getReferenceEqualIdentifierGenerat
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFile_Key, e CompiledBzlFileEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileValue[TMetadata], error) {
-	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
-	if err != nil {
-		return PatchedCompiledBzlFileValue[TMetadata]{}, err
-	}
-	valueReaders := &starlarkValueEncoders.Readers
+	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
 	if err != nil {
@@ -74,6 +70,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	canonicalPackage := canonicalLabel.GetCanonicalPackage()
 	canonicalRepo := canonicalPackage.GetCanonicalRepo()
 
+	if !gotStarlarkValueEncoders {
+		return PatchedCompiledBzlFileValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+	valueReaders := &starlarkValueEncoders.Readers
 	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, key.BuiltinsModuleNames)
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
@@ -135,10 +135,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 }
 
 func (*baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFileGlobal_Key, e CompiledBzlFileGlobalEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileGlobalValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	identifier, err := label.NewCanonicalStarlarkIdentifier(key.Identifier)
 	if err != nil {
@@ -146,7 +143,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(ct
 	}
 
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
-	if !allBuiltinsModulesNames.IsSet() {
+	if !allBuiltinsModulesNames.IsSet() || !gotValueReaders {
 		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 

@@ -13,10 +13,7 @@ import (
 )
 
 func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetCompletion_Key, TReference], e TargetCompletionEnvironment[TReference, TMetadata]) (PatchedTargetCompletionValue[TMetadata], error) {
-	valueReaders, err := getStarlarkValueReaders(e)
-	if err != nil {
-		return PatchedTargetCompletionValue[TMetadata]{}, err
-	}
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	// TODO: This should also respect --output_groups.
 	defaultInfo, err := getProviderFromConfiguredTarget(
@@ -29,6 +26,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 		return PatchedTargetCompletionValue[TMetadata]{}, err
 	}
 
+	if !gotValueReaders {
+		return PatchedTargetCompletionValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
 	files, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, defaultInfo, "files")
 	if err != nil {
 		return PatchedTargetCompletionValue[TMetadata]{}, err

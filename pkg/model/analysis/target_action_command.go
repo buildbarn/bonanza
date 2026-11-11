@@ -265,10 +265,7 @@ func expandFileIfDirectory[TReference object.BasicReference, TMetadata model_cor
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionCommand_Key, TReference], e TargetActionCommandEnvironment[TReference, TMetadata]) (PatchedTargetActionCommandValue[TMetadata], error) {
-	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
-	if err != nil {
-		return PatchedTargetActionCommandValue[TMetadata]{}, err
-	}
+	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	id := model_core.Nested(key, key.Message.Id)
 	if id.Message == nil {
@@ -311,6 +308,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	// TODO: Respect use_param_file().
 	referenceFormat := c.referenceFormat
 	argumentsBuilder, argumentsParentNodeComputer := newArgumentsBuilder(ctx, actionEncoders.Encoder, referenceFormat, e)
+
+	if !gotStarlarkValueEncoders {
+		return PatchedTargetActionCommandValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
 	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
 	if err != nil {
 		return PatchedTargetActionCommandValue[TMetadata]{}, err
