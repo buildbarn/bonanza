@@ -1452,7 +1452,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					},
 				),
 				btree.NewObjectCreatingNodeMerger(
-					c.getValueObjectEncoder(),
+					getValueObjectEncoder(),
 					c.referenceFormat,
 					/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
 						var firstPackageRelativePath string
@@ -1516,7 +1516,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					},
 				),
 				btree.NewObjectCreatingNodeMerger(
-					c.getValueObjectEncoder(),
+					getValueObjectEncoder(),
 					c.referenceFormat,
 					/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
 						var firstID []byte

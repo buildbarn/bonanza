@@ -258,7 +258,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 			},
 		),
 		btree.NewObjectCreatingNodeMerger(
-			c.getValueObjectEncoder(),
+			getValueObjectEncoder(),
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.BuildSettingOverride, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.BuildSettingOverride, TMetadata] {
 				var firstLabel string
@@ -358,7 +358,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 	createdConfiguration, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.ProtoListToBinaryMarshaler(buildSettingOverrides),
 		c.referenceFormat,
-		c.getValueObjectEncoder(),
+		getValueObjectEncoder(),
 	)
 	if err != nil {
 		return model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata]{}, fmt.Errorf("failed to marshal configuration: %w", err)

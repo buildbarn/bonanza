@@ -215,7 +215,7 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 	}
 }
 
-func (baseComputer[TReference, TMetadata]) getValueObjectEncoder() model_encoding.DeterministicBinaryEncoder {
+func getValueObjectEncoder() model_encoding.DeterministicBinaryEncoder {
 	// TODO: Use a proper encoder!
 	return model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 }
@@ -285,7 +285,7 @@ func (f *valueEncodingOptionsFactory[TReference, TMetadata]) newValueEncodingOpt
 	return &model_starlark.ValueEncodingOptions[TReference, TMetadata]{
 		CurrentFilename:       currentFilename,
 		Context:               ctx,
-		ObjectEncoder:         f.computer.getValueObjectEncoder(),
+		ObjectEncoder:         getValueObjectEncoder(),
 		ObjectReferenceFormat: f.computer.referenceFormat,
 		ObjectCapturer:        f.objectCapturer,
 		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
@@ -383,7 +383,7 @@ func canonicalizeLoadLabel[TReference any](e labelResolverEnvironment[TReference
 // and it is validated that the symbols that are loaded exist. This
 // mirrors Bazel, which reports missing symbols before executing any
 // code.
-func (*baseComputer[TReference, TMetadata]) loadProgram(e loadBzlGlobalsEnvironment[TReference], filename label.CanonicalLabel, contents []byte, dialect *resolve.Dialect, predeclared map[string]eval.Value, builtinsModuleNames []string) (*compile.Program, error) {
+func loadProgram[TReference object.BasicReference](e loadBzlGlobalsEnvironment[TReference], filename label.CanonicalLabel, contents []byte, dialect *resolve.Dialect, predeclared map[string]eval.Value, builtinsModuleNames []string) (*compile.Program, error) {
 	f, err := syntax.Parse(filename.String(), contents, syntax.Options{})
 	if err != nil {
 		return nil, err
@@ -511,7 +511,7 @@ func (c *baseComputer[TReference, TMetadata]) newStarlarkThread(ctx context.Cont
 	thread.MaximumLargeStringConversionBytes = maximumLargeStringSizeBytes
 	thread.SetLocal(model_starlark.LabelResolverKey, newLabelResolver(e))
 	thread.SetLocal(model_starlark.GlobalResolverKey, c.newGlobalResolver(ctx, e, builtinsModuleNames))
-	thread.SetLocal(model_starlark.CompiledProgramResolverKey, c.newCompiledProgramResolver(e, builtinsModuleNames))
+	thread.SetLocal(model_starlark.CompiledProgramResolverKey, newCompiledProgramResolver(e, builtinsModuleNames))
 
 	decodingOptions := decodingOptionsFactory.newValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
 		return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
@@ -692,7 +692,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 			ctx,
 			string(repoFileData),
 			canonicalRepo.GetRootPackage().AppendTargetName(repoFileName),
-			c.getValueObjectEncoder(),
+			getValueObjectEncoder(),
 			c.getInlinedTreeOptions(),
 			e,
 			newLabelResolver(e),

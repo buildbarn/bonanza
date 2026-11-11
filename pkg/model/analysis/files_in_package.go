@@ -175,14 +175,14 @@ func (emptyCapturableFile[TMetadata]) CreateFileMerkleTree(ctx context.Context) 
 }
 func (emptyCapturableFile[TMetadata]) Discard() {}
 
-func (c *baseComputer[TReference, TMetadata]) ComputeFilesInPackageValue(ctx context.Context, key *model_analysis_pb.FilesInPackage_Key, e FilesInPackageEnvironment[TReference, TMetadata]) (PatchedFilesInPackageValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeFilesInPackageValue(ctx context.Context, key *model_analysis_pb.FilesInPackage_Key, e FilesInPackageEnvironment[TReference, TMetadata]) (PatchedFilesInPackageValue[TMetadata], error) {
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	if !gotDirectoryCreationParameters || !gotDirectoryReaders {
 		return PatchedFilesInPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	packageDirectory, err := c.getPackageDirectory(ctx, e, directoryReaders.DirectoryContents, key.Package)
+	packageDirectory, err := getPackageDirectory(ctx, e, directoryReaders.DirectoryContents, key.Package)
 	if err != nil {
 		return PatchedFilesInPackageValue[TMetadata]{}, err
 	}

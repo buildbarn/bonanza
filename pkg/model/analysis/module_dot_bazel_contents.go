@@ -25,7 +25,7 @@ type parseLocalModuleDotBazelEnvironment[TReference object.BasicReference] inter
 	FilePropertiesValueGetter[TReference]
 }
 
-func (c *baseComputer[TReference, TMetadata]) parseLocalModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseLocalModuleDotBazelEnvironment[TReference], handler moduledotbazel.RootHandler) error {
+func (*baseComputer[TReference, TMetadata]) parseLocalModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseLocalModuleDotBazelEnvironment[TReference], handler moduledotbazel.RootHandler) error {
 	// Load a file that we know exists in storage already.
 	moduleFileProperties := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
 		CanonicalRepo: moduleInstance.String(),
@@ -38,7 +38,7 @@ func (c *baseComputer[TReference, TMetadata]) parseLocalModuleInstanceModuleDotB
 		return fmt.Errorf("file %#v does not exist", moduleDotBazelTargetName.String())
 	}
 
-	return c.parseModuleDotBazel(
+	return parseModuleDotBazel(
 		ctx,
 		model_core.Nested(moduleFileProperties, moduleFileProperties.Message.Exists.Contents),
 		moduleInstance,
@@ -52,7 +52,7 @@ type parseActiveModuleDotBazelEnvironment[TReference object.BasicReference] inte
 	ModuleDotBazelContentsValueGetter[TReference]
 }
 
-func (c *baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseActiveModuleDotBazelEnvironment[TReference], handler moduledotbazel.RootHandler) error {
+func (*baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseActiveModuleDotBazelEnvironment[TReference], handler moduledotbazel.RootHandler) error {
 	// This module file might have to be loaded.
 	moduleFileContentsValue := e.GetModuleDotBazelContentsValue(&model_analysis_pb.ModuleDotBazelContents_Key{
 		ModuleInstance: moduleInstance.String(),
@@ -60,7 +60,7 @@ func (c *baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDot
 	if !moduleFileContentsValue.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
-	return c.parseModuleDotBazel(
+	return parseModuleDotBazel(
 		ctx,
 		model_core.Nested(moduleFileContentsValue, moduleFileContentsValue.Message.Contents),
 		moduleInstance,
@@ -71,7 +71,7 @@ func (c *baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDot
 
 var bazelToolsModule = util.Must(label.NewModule("bazel_tools"))
 
-func (baseComputer[TReference, TMetadata]) parseModuleDotBazel(ctx context.Context, moduleContentsMsg model_core.Message[*model_filesystem_pb.FileContents, TReference], moduleInstance label.ModuleInstance, e FileAccessParametersObjectGetter[TReference], handler moduledotbazel.RootHandler) error {
+func parseModuleDotBazel[TReference object.BasicReference](ctx context.Context, moduleContentsMsg model_core.Message[*model_filesystem_pb.FileContents, TReference], moduleInstance label.ModuleInstance, e FileAccessParametersObjectGetter[TReference], handler moduledotbazel.RootHandler) error {
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	if !gotFileReader {
 		return evaluation.ErrMissingDependency

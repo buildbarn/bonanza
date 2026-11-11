@@ -91,7 +91,7 @@ func (c *baseComputer[TReference, TMetadata]) newQueryTargetTreeBuilder(ctx cont
 			},
 		),
 		btree.NewObjectCreatingNodeMerger(
-			c.getValueObjectEncoder(),
+			getValueObjectEncoder(),
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.QueryTarget, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata] {
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.QueryTarget {

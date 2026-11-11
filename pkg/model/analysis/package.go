@@ -103,7 +103,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 			return PatchedPackageValue[TMetadata]{}, err
 		}
 
-		program, err := c.loadProgram(e, buildFileLabel, buildFileData, &resolve.BuildDialect, buildFileBuiltins, builtinsModuleNames)
+		program, err := loadProgram(e, buildFileLabel, buildFileData, &resolve.BuildDialect, buildFileBuiltins, builtinsModuleNames)
 		if err != nil {
 			if errors.Is(err, evaluation.ErrMissingDependency) {
 				return PatchedPackageValue[TMetadata]{}, err
@@ -149,7 +149,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 
 		targetRegistrar := model_starlark.NewTargetRegistrar(
 			ctx,
-			c.getValueObjectEncoder(),
+			getValueObjectEncoder(),
 			c.getInlinedTreeOptions(),
 			e,
 			model_core.Nested(repoDefaultAttrsValue, repoDefaultAttrsValue.Message.InheritableAttrs),
@@ -192,7 +192,7 @@ func (c *baseComputer[TReference, TMetadata]) newPackageTargetsTreeBuilder(ctx c
 			},
 		),
 		btree.NewObjectCreatingNodeMerger(
-			c.getValueObjectEncoder(),
+			getValueObjectEncoder(),
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Package_Value_Target, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Package_Value_Target, TMetadata] {
 				var firstName, lastName string
@@ -308,7 +308,7 @@ func (c *baseComputer[TReference, TMetadata]) newGlobalResolver(ctx context.Cont
 // newCompiledProgramResolver creates a function that can be used to
 // obtain the compiled programs of .bzl files, which contain the code of
 // the functions declared in them.
-func (*baseComputer[TReference, TMetadata]) newCompiledProgramResolver(e CompiledBzlFileValueGetter[TReference], builtinsModuleNames []string) model_starlark.CompiledProgramResolver[TReference] {
+func newCompiledProgramResolver[TReference object.BasicReference](e CompiledBzlFileValueGetter[TReference], builtinsModuleNames []string) model_starlark.CompiledProgramResolver[TReference] {
 	return func(filename label.CanonicalLabel) (model_core.Message[*model_starlark_pb.CompiledProgram, TReference], error) {
 		compiledBzlFile := e.GetCompiledBzlFileValue(&model_analysis_pb.CompiledBzlFile_Key{
 			Label:               filename.String(),
@@ -499,7 +499,7 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	// implicitly.
 	targetRegistrar := model_starlark.NewMacroTargetRegistrar(
 		ctx,
-		c.getValueObjectEncoder(),
+		getValueObjectEncoder(),
 		c.getInlinedTreeOptions(),
 		e,
 		macroInstanceName,

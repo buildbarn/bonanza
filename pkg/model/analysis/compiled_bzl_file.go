@@ -99,7 +99,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
 
-	program, err := c.loadProgram(e, canonicalLabel, bzlFileData, &resolve.BzlDialect, bzlFileBuiltins, key.BuiltinsModuleNames)
+	program, err := loadProgram(e, canonicalLabel, bzlFileData, &resolve.BzlDialect, bzlFileBuiltins, key.BuiltinsModuleNames)
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}

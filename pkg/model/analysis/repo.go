@@ -1220,7 +1220,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 	patchedFilesWriter := model_filesystem.NewSectionWriter(patchedFiles)
 
 	for _, patch := range patches {
-		err = c.applyPatch(
+		err = applyPatch(
 			ctx,
 			rootDirectory,
 			loadOptions,
@@ -1248,7 +1248,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 	)
 }
 
-func (baseComputer[TReference, TMetadata]) applyPatch(
+func applyPatch[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	ctx context.Context,
 	rootDirectory *changeTrackingDirectory[TReference, TMetadata],
 	loadOptions *changeTrackingDirectoryLoadOptions[TReference],
@@ -3382,7 +3382,7 @@ func (rc *repositoryContext[TReference, TMetadata]) doPatch(thread *eval.Thread,
 	}
 
 	// Apply the patch to the current repository.
-	err = mrc.computer.applyPatch(
+	err = applyPatch(
 		mrc.context,
 		repoDirectory,
 		mrc.directoryLoadOptions,

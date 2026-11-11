@@ -15,6 +15,7 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
+	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -25,7 +26,7 @@ import (
 // expand recursive target patterns (e.g., "//foo/...").
 var allPackagesPattern = util.Must(glob.NewNFAFromPatterns([]string{"**"}, nil)).Bytes()
 
-func (baseComputer[TReference, TMetadata]) getPackageDirectory(
+func getPackageDirectory[TReference object.BasicReference](
 	ctx context.Context,
 	e RepoValueGetter[TReference],
 	directoryContentsReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents],
@@ -75,13 +76,13 @@ func (baseComputer[TReference, TMetadata]) getPackageDirectory(
 	return baseDirectory, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx context.Context, key *model_analysis_pb.PackagesAtAndBelow_Key, e PackagesAtAndBelowEnvironment[TReference, TMetadata]) (PatchedPackagesAtAndBelowValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx context.Context, key *model_analysis_pb.PackagesAtAndBelow_Key, e PackagesAtAndBelowEnvironment[TReference, TMetadata]) (PatchedPackagesAtAndBelowValue[TMetadata], error) {
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	if !gotDirectoryReaders {
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	packageDirectory, err := c.getPackageDirectory(ctx, e, directoryReaders.DirectoryContents, key.BasePackage)
+	packageDirectory, err := getPackageDirectory(ctx, e, directoryReaders.DirectoryContents, key.BasePackage)
 	if err != nil {
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, err
 	}

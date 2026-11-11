@@ -10,6 +10,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/storage/object"
 )
 
 // getRepositoryRuleDefinition obtains the definition of a repository
@@ -51,8 +52,8 @@ func getRepositoryRuleDefinition[TReference any](e CompiledBzlFileGlobalValueGet
 
 // decodeRepositoryRule decodes the definition of a repository rule, so
 // that its implementation function can be invoked.
-func (c *baseComputer[TReference, TMetadata]) decodeRepositoryRule(thread *eval.Thread, definition model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]) (eval.Value, AttrsDict[TReference, TMetadata], error) {
-	attrs, err := c.decodeAttrsDict(thread, model_core.Nested(definition, definition.Message.Attrs))
+func (*baseComputer[TReference, TMetadata]) decodeRepositoryRule(thread *eval.Thread, definition model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]) (eval.Value, AttrsDict[TReference, TMetadata], error) {
+	attrs, err := decodeAttrsDict[TReference, TMetadata](thread, model_core.Nested(definition, definition.Message.Attrs))
 	if err != nil {
 		return nil, AttrsDict[TReference, TMetadata]{}, err
 	}
@@ -77,7 +78,7 @@ type AttrsDict[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	Private map[string]eval.Value
 }
 
-func (*baseComputer[TReference, TMetadata]) decodeAttrsDict(thread *eval.Thread, encodedAttrs model_core.Message[[]*model_starlark_pb.NamedAttr, TReference]) (AttrsDict[TReference, TMetadata], error) {
+func decodeAttrsDict[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, encodedAttrs model_core.Message[[]*model_starlark_pb.NamedAttr, TReference]) (AttrsDict[TReference, TMetadata], error) {
 	attrsDict := AttrsDict[TReference, TMetadata]{
 		Private: map[string]eval.Value{},
 	}
