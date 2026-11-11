@@ -1,0 +1,4 @@
+# Test vectors are compared byte for byte, and contain markers that are
+# matched including the surrounding newlines. Prevent them from being
+# converted to CRLF on checkout (e.g., on Windows with core.autocrlf).
+pkg/starlark/*/testdata/** -text
