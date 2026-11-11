@@ -28,6 +28,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/encoding/varint",
+        "//pkg/model/chunking",
         "//pkg/model/core",
         "//pkg/model/core/btree",
         "//pkg/model/core/inlinedtree",
@@ -70,6 +71,7 @@ go_test(
         "//pkg/encoding/varint",
         "//pkg/model/core",
         "//pkg/model/encoding",
+        "//pkg/proto/model/chunking",
         "//pkg/proto/model/core",
         "//pkg/proto/model/filesystem",
         "//pkg/proto/storage/object",

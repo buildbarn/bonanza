@@ -7,6 +7,7 @@
 package filesystem
 
 import (
+	chunking "bonanza.build/pkg/proto/model/chunking"
 	core "bonanza.build/pkg/proto/model/core"
 	encoding "bonanza.build/pkg/proto/model/encoding"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -906,15 +907,13 @@ func (x *FileAccessParameters) GetFileContentsListEncoders() []*encoding.BinaryE
 }
 
 type FileCreationParameters struct {
-	state                            protoimpl.MessageState `protogen:"open.v1"`
-	Access                           *FileAccessParameters  `protobuf:"bytes,1,opt,name=access,proto3" json:"access,omitempty"`
-	ChunkMinimumSizeBytes            uint32                 `protobuf:"varint,2,opt,name=chunk_minimum_size_bytes,json=chunkMinimumSizeBytes,proto3" json:"chunk_minimum_size_bytes,omitempty"`
-	ChunkHorizonSizeBytes            uint32                 `protobuf:"varint,3,opt,name=chunk_horizon_size_bytes,json=chunkHorizonSizeBytes,proto3" json:"chunk_horizon_size_bytes,omitempty"`
-	ChunkGearTableSeed               []byte                 `protobuf:"bytes,6,opt,name=chunk_gear_table_seed,json=chunkGearTableSeed,proto3" json:"chunk_gear_table_seed,omitempty"`
-	FileContentsListMinimumSizeBytes uint32                 `protobuf:"varint,4,opt,name=file_contents_list_minimum_size_bytes,json=fileContentsListMinimumSizeBytes,proto3" json:"file_contents_list_minimum_size_bytes,omitempty"`
-	FileContentsListHorizonSizeBytes uint32                 `protobuf:"varint,5,opt,name=file_contents_list_horizon_size_bytes,json=fileContentsListHorizonSizeBytes,proto3" json:"file_contents_list_horizon_size_bytes,omitempty"`
-	unknownFields                    protoimpl.UnknownFields
-	sizeCache                        protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"open.v1"`
+	Access                     *FileAccessParameters  `protobuf:"bytes,1,opt,name=access,proto3" json:"access,omitempty"`
+	ChunkParameters            *chunking.Parameters   `protobuf:"bytes,2,opt,name=chunk_parameters,json=chunkParameters,proto3" json:"chunk_parameters,omitempty"`
+	ChunkGearTableSeed         []byte                 `protobuf:"bytes,3,opt,name=chunk_gear_table_seed,json=chunkGearTableSeed,proto3" json:"chunk_gear_table_seed,omitempty"`
+	FileContentsListParameters *chunking.Parameters   `protobuf:"bytes,4,opt,name=file_contents_list_parameters,json=fileContentsListParameters,proto3" json:"file_contents_list_parameters,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *FileCreationParameters) Reset() {
@@ -954,18 +953,11 @@ func (x *FileCreationParameters) GetAccess() *FileAccessParameters {
 	return nil
 }
 
-func (x *FileCreationParameters) GetChunkMinimumSizeBytes() uint32 {
+func (x *FileCreationParameters) GetChunkParameters() *chunking.Parameters {
 	if x != nil {
-		return x.ChunkMinimumSizeBytes
+		return x.ChunkParameters
 	}
-	return 0
-}
-
-func (x *FileCreationParameters) GetChunkHorizonSizeBytes() uint32 {
-	if x != nil {
-		return x.ChunkHorizonSizeBytes
-	}
-	return 0
+	return nil
 }
 
 func (x *FileCreationParameters) GetChunkGearTableSeed() []byte {
@@ -975,18 +967,11 @@ func (x *FileCreationParameters) GetChunkGearTableSeed() []byte {
 	return nil
 }
 
-func (x *FileCreationParameters) GetFileContentsListMinimumSizeBytes() uint32 {
+func (x *FileCreationParameters) GetFileContentsListParameters() *chunking.Parameters {
 	if x != nil {
-		return x.FileContentsListMinimumSizeBytes
+		return x.FileContentsListParameters
 	}
-	return 0
-}
-
-func (x *FileCreationParameters) GetFileContentsListHorizonSizeBytes() uint32 {
-	if x != nil {
-		return x.FileContentsListHorizonSizeBytes
-	}
-	return 0
+	return nil
 }
 
 type FileContents_List struct {
@@ -1045,7 +1030,7 @@ var File_bonanza_build_pkg_proto_model_filesystem_filesystem_proto protoreflect.
 
 const file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "" +
 	"\n" +
-	"9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x12\x18bonanza.model.filesystem\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x85\x01\n" +
+	"9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x12\x18bonanza.model.filesystem\x1a5bonanza.build/pkg/proto/model/chunking/chunking.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x85\x01\n" +
 	"\x06Leaves\x128\n" +
 	"\x05files\x18\x01 \x03(\v2\".bonanza.model.filesystem.FileNodeR\x05files\x12A\n" +
 	"\bsymlinks\x18\x02 \x03(\v2%.bonanza.model.filesystem.SymlinkNodeR\bsymlinks\"\xe7\x01\n" +
@@ -1101,14 +1086,12 @@ const file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "
 	"\x1cdirectory_maximum_size_bytes\x18\x02 \x01(\rR\x19directoryMaximumSizeBytes\"\xca\x01\n" +
 	"\x14FileAccessParameters\x12L\n" +
 	"\x0echunk_encoders\x18\x01 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\rchunkEncoders\x12d\n" +
-	"\x1bfile_contents_list_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x18fileContentsListEncoders\"\xa7\x03\n" +
+	"\x1bfile_contents_list_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x18fileContentsListEncoders\"\xc9\x02\n" +
 	"\x16FileCreationParameters\x12F\n" +
-	"\x06access\x18\x01 \x01(\v2..bonanza.model.filesystem.FileAccessParametersR\x06access\x127\n" +
-	"\x18chunk_minimum_size_bytes\x18\x02 \x01(\rR\x15chunkMinimumSizeBytes\x127\n" +
-	"\x18chunk_horizon_size_bytes\x18\x03 \x01(\rR\x15chunkHorizonSizeBytes\x121\n" +
-	"\x15chunk_gear_table_seed\x18\x06 \x01(\fR\x12chunkGearTableSeed\x12O\n" +
-	"%file_contents_list_minimum_size_bytes\x18\x04 \x01(\rR fileContentsListMinimumSizeBytes\x12O\n" +
-	"%file_contents_list_horizon_size_bytes\x18\x05 \x01(\rR fileContentsListHorizonSizeBytesB*Z(bonanza.build/pkg/proto/model/filesystemb\x06proto3"
+	"\x06access\x18\x01 \x01(\v2..bonanza.model.filesystem.FileAccessParametersR\x06access\x12M\n" +
+	"\x10chunk_parameters\x18\x02 \x01(\v2\".bonanza.model.chunking.ParametersR\x0fchunkParameters\x121\n" +
+	"\x15chunk_gear_table_seed\x18\x03 \x01(\fR\x12chunkGearTableSeed\x12e\n" +
+	"\x1dfile_contents_list_parameters\x18\x04 \x01(\v2\".bonanza.model.chunking.ParametersR\x1afileContentsListParametersB*Z(bonanza.build/pkg/proto/model/filesystemb\x06proto3"
 
 var (
 	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescOnce sync.Once
@@ -1144,6 +1127,7 @@ var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_goTypes = []a
 	(*wrapperspb.UInt32Value)(nil),      // 17: google.protobuf.UInt32Value
 	(*emptypb.Empty)(nil),               // 18: google.protobuf.Empty
 	(*encoding.BinaryEncoder)(nil),      // 19: bonanza.model.encoding.BinaryEncoder
+	(*chunking.Parameters)(nil),         // 20: bonanza.model.chunking.Parameters
 }
 var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_depIdxs = []int32{
 	3,  // 0: bonanza.model.filesystem.Leaves.files:type_name -> bonanza.model.filesystem.FileNode
@@ -1169,12 +1153,14 @@ var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_depIdxs = []i
 	19, // 20: bonanza.model.filesystem.FileAccessParameters.chunk_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
 	19, // 21: bonanza.model.filesystem.FileAccessParameters.file_contents_list_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
 	13, // 22: bonanza.model.filesystem.FileCreationParameters.access:type_name -> bonanza.model.filesystem.FileAccessParameters
-	16, // 23: bonanza.model.filesystem.FileContents.List.reference:type_name -> bonanza.model.core.DecodableReference
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	20, // 23: bonanza.model.filesystem.FileCreationParameters.chunk_parameters:type_name -> bonanza.model.chunking.Parameters
+	20, // 24: bonanza.model.filesystem.FileCreationParameters.file_contents_list_parameters:type_name -> bonanza.model.chunking.Parameters
+	16, // 25: bonanza.model.filesystem.FileContents.List.reference:type_name -> bonanza.model.core.DecodableReference
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_init() }

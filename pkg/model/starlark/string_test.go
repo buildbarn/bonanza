@@ -10,6 +10,7 @@ import (
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
@@ -34,11 +35,15 @@ func TestStringStorage(t *testing.T) {
 	store := &inMemoryObjectStore{objects: map[object.LocalReference]*object.Contents{}}
 	fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(
 		&model_filesystem_pb.FileCreationParameters{
-			Access:                           &model_filesystem_pb.FileAccessParameters{},
-			ChunkMinimumSizeBytes:            1 << 12,
-			ChunkHorizonSizeBytes:            1 << 14,
-			FileContentsListMinimumSizeBytes: 1 << 10,
-			FileContentsListHorizonSizeBytes: 8 << 10,
+			Access: &model_filesystem_pb.FileAccessParameters{},
+			ChunkParameters: &model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 12,
+				HorizonSizeBytes: 1 << 14,
+			},
+			FileContentsListParameters: &model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 10,
+				HorizonSizeBytes: 8 << 10,
+			},
 		},
 		referenceFormat,
 		model_encoding.NewBinaryEncoderFactory(true),

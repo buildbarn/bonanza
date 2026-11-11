@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package bonanza.model.chunking;
+
+option go_package = "bonanza.build/pkg/proto/model/chunking";
+
+// Parameters of a chunking algorithm that partitions data into objects
+// whose sizes fall within a given range, such as content defined
+// chunking of file contents, or partitioning lists of messages into
+// the leaves and parents of a B-tree.
+message Parameters {
+  // The minimum size of an object in bytes, prior to applying any
+  // encoding steps and deduplicating any outgoing references. The
+  // resulting objects may be smaller than the minimum size, if and
+  // only if the input is too small to reach the limit. The maximum
+  // size of objects is approximately as follows:
+  //
+  //     maximum_size_bytes = minimum_size_bytes * 2 - 1
+  //
+  // Algorithms that are unable to split elements in the input (e.g.,
+  // individual messages in a list) may yield objects that slightly
+  // exceed this size.
+  uint32 minimum_size_bytes = 1;
+
+  // The amount of data the chunking algorithm may look ahead to
+  // determine the optimal set of cutting points. The higher this value
+  // is set, the better the quality of the chunking will be.
+  //
+  // When set to zero, the algorithm may not perform any lookahead,
+  // meaning that all resulting objects (except the last one) will be
+  // of size minimum_size_bytes.
+  //
+  // Setting this field to 8 times the minimum size already seems to
+  // yield optimal results for most data sets. To limit memory usage,
+  // this implementation forbids setting it to a value larger than 32
+  // times the minimum size.
+  uint32 horizon_size_bytes = 2;
+}

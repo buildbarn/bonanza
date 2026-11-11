@@ -3,11 +3,13 @@ package filesystem
 import (
 	"bytes"
 
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
+	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/buildbarn/go-cdc"
 
 	"google.golang.org/grpc/codes"
@@ -19,10 +21,9 @@ import (
 // Merkle trees of files.
 type FileCreationParameters struct {
 	*FileAccessParameters
-	referenceFormat                  object.ReferenceFormat
-	contentDefinedChunker            cdc.ContentDefinedChunker
-	fileContentsListMinimumSizeBytes int
-	fileContentsListHorizonSizeBytes int
+	referenceFormat            object.ReferenceFormat
+	contentDefinedChunker      cdc.ContentDefinedChunker
+	fileContentsListParameters chunking.Parameters
 }
 
 // NewFileCreationParametersFromProto converts the file creation
@@ -38,29 +39,13 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 		return nil, err
 	}
 
-	// Ensure that the provided object size limits are within
-	// bounds. Prevent creating objects that are tiny, as that
-	// increases memory usage and running times of the content
-	// defined chunking and B-tree algorithms.
-	maximumObjectSizeBytes := uint32(referenceFormat.GetMaximumObjectSizeBytes())
-	if limit := uint32(1024); m.ChunkMinimumSizeBytes < limit {
-		return nil, status.Errorf(codes.InvalidArgument, "Minimum size of chunks is below %d bytes", limit)
+	chunkParameters, err := chunking.NewParametersFromProto(m.ChunkParameters, referenceFormat)
+	if err != nil {
+		return nil, util.StatusWrap(err, "Invalid chunk parameters")
 	}
-	if m.ChunkMinimumSizeBytes > maximumObjectSizeBytes {
-		return nil, status.Errorf(codes.InvalidArgument, "Minimum size of chunks is above maximum object size of %d bytes", maximumObjectSizeBytes)
-	}
-	if maxMultiplier := uint64(32); uint64(m.ChunkHorizonSizeBytes) > maxMultiplier*uint64(m.ChunkMinimumSizeBytes) {
-		return nil, status.Errorf(codes.InvalidArgument, "Horizon size of chunks is more than %d times as large as the minimum object size", maxMultiplier)
-	}
-
-	if limit := uint32(1024); m.FileContentsListMinimumSizeBytes < limit {
-		return nil, status.Errorf(codes.InvalidArgument, "Minimum size of file contents list is below %d bytes", limit)
-	}
-	if uint64(m.FileContentsListMinimumSizeBytes)*2-1 > uint64(maximumObjectSizeBytes) {
-		return nil, status.Errorf(codes.InvalidArgument, "Maximum size of file contents list (twice the minimum size) is above maximum object size of %d bytes", maximumObjectSizeBytes)
-	}
-	if maxMultiplier := uint64(32); uint64(m.FileContentsListHorizonSizeBytes) > maxMultiplier*uint64(m.FileContentsListMinimumSizeBytes) {
-		return nil, status.Errorf(codes.InvalidArgument, "Horizon size of file contents list is more than %d times as large as the minimum size", maxMultiplier)
+	fileContentsListParameters, err := chunking.NewParametersFromProto(m.FileContentsListParameters, referenceFormat)
+	if err != nil {
+		return nil, util.StatusWrap(err, "Invalid file contents list parameters")
 	}
 
 	return &FileCreationParameters{
@@ -68,11 +53,10 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 		referenceFormat:      referenceFormat,
 		contentDefinedChunker: cdc.NewRepMaxContentDefinedChunker(
 			cdc.NewSeededGearTable(m.ChunkGearTableSeed),
-			int(m.ChunkMinimumSizeBytes),
-			int(m.ChunkHorizonSizeBytes),
+			chunkParameters.GetMinimumSizeBytes(),
+			chunkParameters.GetHorizonSizeBytes(),
 		),
-		fileContentsListMinimumSizeBytes: int(m.FileContentsListMinimumSizeBytes),
-		fileContentsListHorizonSizeBytes: int(m.FileContentsListHorizonSizeBytes),
+		fileContentsListParameters: fileContentsListParameters,
 	}, nil
 }
 

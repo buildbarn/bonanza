@@ -12,6 +12,7 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	object_pb "bonanza.build/pkg/proto/storage/object"
@@ -111,11 +112,15 @@ func (baseComputerTester) expectGetFileCreationParametersObject(t *testing.T, e 
 		testutil.EqProto(t, &model_analysis_pb.FileCreationParameters_Key{}),
 	).Return(util.Must(model_filesystem.NewFileCreationParametersFromProto(
 		&model_filesystem_pb.FileCreationParameters{
-			Access:                           &model_filesystem_pb.FileAccessParameters{},
-			ChunkMinimumSizeBytes:            1 << 16,
-			ChunkHorizonSizeBytes:            1 << 19,
-			FileContentsListMinimumSizeBytes: 1 << 16,
-			FileContentsListHorizonSizeBytes: 8 << 16,
+			Access: &model_filesystem_pb.FileAccessParameters{},
+			ChunkParameters: &model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 16,
+				HorizonSizeBytes: 1 << 19,
+			},
+			FileContentsListParameters: &model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 16,
+				HorizonSizeBytes: 8 << 16,
+			},
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),

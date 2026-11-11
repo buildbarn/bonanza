@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package bonanza.model.filesystem;
 
+import "bonanza.build/pkg/proto/model/chunking/chunking.proto";
 import "bonanza.build/pkg/proto/model/core/core.proto";
 import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
 import "google/protobuf/empty.proto";
@@ -219,52 +220,21 @@ message FileCreationParameters {
   // objects containing file contents.
   FileAccessParameters access = 1;
 
-  // The minimum size of a chunk in bytes, prior to applying any
-  // encoding steps. The resulting chunks may be smaller than the
-  // minimum size, if and only if the file consists of a single chunk.
-  // The maximum size of a chunk is as follows:
-  //
-  //     chunk_maximum_size_bytes = chunk_minimum_size_bytes * 2 - 1
-  uint32 chunk_minimum_size_bytes = 2;
-
-  // The amount of data the content defined chunking algorithm may look
-  // ahead to determine the optimal set of cutting points. The higher
-  // this value is set, the better the quality of the chunking will be.
-  //
-  // When set to zero, the algorithm may not perform any lookahead,
-  // meaning that all resulting chunks (except the last one) will be of
-  // size chunk_minimum_size_bytes.
-  //
-  // Setting this field to 8 times the minimum chunk size already seems
-  // to yield optimal results for most data sets. To limit memory usage,
-  // this implementation forbids setting it to a value larger than 32
-  // times the minimum chunk size.
-  uint32 chunk_horizon_size_bytes = 3;
+  // Parameters of the content defined chunking algorithm that is used
+  // to partition the contents of files into chunks. The resulting
+  // chunks may be smaller than the minimum size, if and only if the
+  // file consists of a single chunk.
+  bonanza.model.chunking.Parameters chunk_parameters = 2;
 
   // Seed to derive values for the Gear table of the content defined
   // chunking algorithm that is used to chunk files.
-  bytes chunk_gear_table_seed = 6;
+  bytes chunk_gear_table_seed = 3;
 
-  // The minimum size of objects containing lists of FileContents
-  // messages, prior to applying any encoding steps and deduplicating
-  // any outgoing references.
-  //
-  // The resulting objects may be smaller than the minimum size, if and
-  // only if the file consists of fewer chunks than are needed to reach
-  // the limit. The maximum size of these objects is approximately as
-  // follows:
-  //
-  //     file_contents_list_maximum_size_bytes =
-  //         file_contents_list_minimum_size_bytes * 2 - 1
-  //
-  // The resulting objects may slightly exceed this size, as individual
-  // FileContents messages cannot be split.
-  uint32 file_contents_list_minimum_size_bytes = 4;
-
-  // The amount of data the chunking algorithm may look ahead to
-  // determine the optimal set of cutting points between objects
-  // containing lists of FileContents messages. This field has the same
-  // semantics as chunk_horizon_size_bytes. This implementation forbids
-  // setting it to a value larger than 32 times the minimum size.
-  uint32 file_contents_list_horizon_size_bytes = 5;
+  // Parameters of the chunking algorithm that is used to partition
+  // lists of FileContents messages into objects. The resulting objects
+  // may be smaller than the minimum size, if and only if the file
+  // consists of fewer chunks than are needed to reach the limit. They
+  // may slightly exceed the maximum size, as individual FileContents
+  // messages cannot be split.
+  bonanza.model.chunking.Parameters file_contents_list_parameters = 4;
 }

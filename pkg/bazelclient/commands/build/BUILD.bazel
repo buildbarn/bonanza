@@ -28,6 +28,7 @@ go_library(
         "//pkg/moduledotbazel",
         "//pkg/proto/encryptedaction",
         "//pkg/proto/model/analysis",
+        "//pkg/proto/model/chunking",
         "//pkg/proto/model/core",
         "//pkg/proto/model/encoding",
         "//pkg/proto/model/evaluation",

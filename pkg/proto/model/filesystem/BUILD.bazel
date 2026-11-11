@@ -8,6 +8,7 @@ proto_library(
     import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/proto/model/chunking:chunking_proto",
         "//pkg/proto/model/core:core_proto",
         "//pkg/proto/model/encoding:encoding_proto",
         "@protobuf//:empty_proto",
@@ -21,6 +22,7 @@ go_proto_library(
     proto = ":filesystem_proto",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/proto/model/chunking",
         "//pkg/proto/model/core",
         "//pkg/proto/model/encoding",
     ],

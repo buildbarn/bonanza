@@ -1,0 +1,24 @@
+load("@protobuf//bazel:proto_library.bzl", "proto_library")
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+
+proto_library(
+    name = "chunking_proto",
+    srcs = ["chunking.proto"],
+    import_prefix = "bonanza.build",
+    visibility = ["//visibility:public"],
+)
+
+go_proto_library(
+    name = "chunking_go_proto",
+    importpath = "bonanza.build/pkg/proto/model/chunking",
+    proto = ":chunking_proto",
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "chunking",
+    embed = [":chunking_go_proto"],
+    importpath = "bonanza.build/pkg/proto/model/chunking",
+    visibility = ["//visibility:public"],
+)

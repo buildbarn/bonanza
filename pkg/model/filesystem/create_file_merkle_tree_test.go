@@ -10,6 +10,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	object_pb "bonanza.build/pkg/proto/storage/object"
@@ -27,11 +28,15 @@ func TestCreateFileMerkleTree(t *testing.T) {
 
 	fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(
 		&model_filesystem_pb.FileCreationParameters{
-			Access:                           &model_filesystem_pb.FileAccessParameters{},
-			ChunkMinimumSizeBytes:            1 << 16,
-			ChunkHorizonSizeBytes:            1 << 19,
-			FileContentsListMinimumSizeBytes: 1 << 12,
-			FileContentsListHorizonSizeBytes: 8 << 12,
+			Access: &model_filesystem_pb.FileAccessParameters{},
+			ChunkParameters: &model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 16,
+				HorizonSizeBytes: 1 << 19,
+			},
+			FileContentsListParameters: &model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 12,
+				HorizonSizeBytes: 8 << 12,
+			},
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),

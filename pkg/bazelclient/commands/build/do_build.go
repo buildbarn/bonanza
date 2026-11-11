@@ -30,6 +30,7 @@ import (
 	"bonanza.build/pkg/moduledotbazel"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_encoding_pb "bonanza.build/pkg/proto/model/encoding"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
@@ -332,11 +333,15 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			ChunkEncoders:            chunkEncoders,
 			FileContentsListEncoders: defaultEncoders,
 		},
-		ChunkMinimumSizeBytes:            64 * 1024,
-		ChunkHorizonSizeBytes:            512 * 1024,
-		ChunkGearTableSeed:               encryptionKeyBytes,
-		FileContentsListMinimumSizeBytes: 4 * 1024,
-		FileContentsListHorizonSizeBytes: 8 * 4 * 1024,
+		ChunkParameters: &model_chunking_pb.Parameters{
+			MinimumSizeBytes: 64 * 1024,
+			HorizonSizeBytes: 512 * 1024,
+		},
+		ChunkGearTableSeed: encryptionKeyBytes,
+		FileContentsListParameters: &model_chunking_pb.Parameters{
+			MinimumSizeBytes: 4 * 1024,
+			HorizonSizeBytes: 8 * 4 * 1024,
+		},
 	}
 	fileParameters, err := model_filesystem.NewFileCreationParametersFromProto(fileParametersMessage, referenceFormat, binaryEncoderFactory)
 	if err != nil {

@@ -73,8 +73,8 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 	)
 	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[T](
-			parameters.fileContentsListMinimumSizeBytes,
-			parameters.fileContentsListHorizonSizeBytes,
+			parameters.fileContentsListParameters.GetMinimumSizeBytes(),
+			parameters.fileContentsListParameters.GetHorizonSizeBytes(),
 			/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
 				return contents.GetList() != nil
 			},
