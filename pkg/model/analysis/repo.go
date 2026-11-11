@@ -3152,7 +3152,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) relativizeSymlinks(
 	return sr.relativizeSymlinksRecursively(dStack, dPath, maximumEscapementLevels)
 }
 
-func (c *baseComputer[TReference, TMetadata]) fetchModuleExtensionRepo(ctx context.Context, canonicalRepo label.CanonicalRepo, apparentRepo label.ApparentRepo, e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) fetchModuleExtensionRepo(ctx context.Context, canonicalRepo label.CanonicalRepo, apparentRepo label.ApparentRepo, e RepoEnvironment[TReference, TMetadata], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedRepoValue[TMetadata], error) {
 	// Obtain the definition of the declared repo.
 	repoValue := e.GetModuleExtensionRepoValue(&model_analysis_pb.ModuleExtensionRepo_Key{
 		CanonicalRepo: canonicalRepo.String(),
@@ -3170,6 +3170,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleExtensionRepo(ctx conte
 		apparentRepo,
 		model_core.Nested(repoValue, repo),
 		e,
+		starlarkValueEncoders,
 	)
 }
 
@@ -3542,7 +3543,8 @@ func (rc *repositoryContext[TReference, TMetadata]) doTemplate(thread *eval.Thre
 	return eval.None, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, canonicalRepo label.CanonicalRepo, apparentRepo label.ApparentRepo, repo model_core.Message[*model_starlark_pb.Repo_Definition, TReference], e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, canonicalRepo label.CanonicalRepo, apparentRepo label.ApparentRepo, repo model_core.Message[*model_starlark_pb.Repo_Definition, TReference], e RepoEnvironment[TReference, TMetadata], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedRepoValue[TMetadata], error) {
+	valueReaders := &starlarkValueEncoders.Readers
 	// Obtain the definition of the repository rule used by the repo.
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
@@ -3562,7 +3564,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 	rootRepo := rootModuleName.ToModuleInstance(nil).GetBareCanonicalRepo()
 	rootPackage := rootRepo.GetRootPackage()
 
-	thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, err
 	}
@@ -3578,7 +3580,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 	attrValues := maps.Collect(
 		model_starlark.AllStructFields(
 			ctx,
-			c.valueReaders.List,
+			valueReaders.List,
 			model_core.Nested(repo, repo.Message.AttrValues),
 			&errIter,
 		),
@@ -3764,13 +3766,18 @@ func (c *baseComputer[TReference, TMetadata]) returnRepoMerkleTree(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Context, key *model_analysis_pb.Repo_Key, e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue[TMetadata], error) {
+	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
+	if err != nil {
+		return PatchedRepoValue[TMetadata]{}, err
+	}
+
 	canonicalRepo, err := label.NewCanonicalRepo(key.CanonicalRepo)
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid canonical repo: %w", err)
 	}
 
 	if _, _, ok := canonicalRepo.GetModuleExtension(); ok {
-		return c.fetchModuleExtensionRepo(ctx, canonicalRepo, canonicalRepo.GetModuleInstance().GetModule().ToApparentRepo(), e)
+		return c.fetchModuleExtensionRepo(ctx, canonicalRepo, canonicalRepo.GetModuleInstance().GetModule().ToApparentRepo(), e, starlarkValueEncoders)
 	}
 
 	moduleInstance := canonicalRepo.GetModuleInstance()
@@ -3826,6 +3833,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 					canonicalRepo.GetModuleInstance().GetModule().ToApparentRepo(),
 					model_core.Nested(remoteOverridesValue, override.RepositoryRule),
 					e,
+					starlarkValueEncoders,
 				)
 			case *model_analysis_pb.ModuleOverride_SingleVersion_:
 				if override.SingleVersion.Version != "" {

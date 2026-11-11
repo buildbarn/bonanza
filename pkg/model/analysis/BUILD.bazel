@@ -68,6 +68,7 @@ go_library(
         "rule_implementation_wrappers.go",
         "select.go",
         "stable_input_root_path.go",
+        "starlark_value_encoders.go",
         "successful_action_result.go",
         "target.go",
         "target_action.go",

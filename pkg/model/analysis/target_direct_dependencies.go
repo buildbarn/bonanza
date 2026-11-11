@@ -13,6 +13,11 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesValue(ctx context.Context, key *model_analysis_pb.TargetDirectDependencies_Key, e TargetDirectDependenciesEnvironment[TReference, TMetadata]) (PatchedTargetDirectDependenciesValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedTargetDirectDependenciesValue[TMetadata]{}, err
+	}
+
 	targetLabel, err := label.NewCanonicalLabel(key.Label)
 	if err != nil {
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
@@ -46,7 +51,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 	case *model_starlark_pb.Target_Definition_Alias:
 		var attr queryAttr[TReference]
 		attr.appendSelectGroup(model_core.Nested(target, kind.Alias.Actual))
-		if err := c.visitQueryAttrLabels(ctx, &attr, true, addDependency); err != nil {
+		if err := visitQueryAttrLabels(ctx, valueReaders, &attr, true, addDependency); err != nil {
 			return PatchedTargetDirectDependenciesValue[TMetadata]{}, err
 		}
 	case *model_starlark_pb.Target_Definition_LabelSetting:
@@ -79,7 +84,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 			if attr.isOutput || (!attr.isExplicit && !key.IncludeImplicitDeps) {
 				continue
 			}
-			if err := c.visitQueryAttrLabels(ctx, attr, true, addDependency); err != nil {
+			if err := visitQueryAttrLabels(ctx, valueReaders, attr, true, addDependency); err != nil {
 				return PatchedTargetDirectDependenciesValue[TMetadata]{}, fmt.Errorf("attr %#v: %w", attr.name, err)
 			}
 		}
@@ -88,7 +93,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 	case *model_starlark_pb.Target_Definition_TestSuite:
 		testSuite := kind.TestSuite
 		var errIter error
-		for l := range c.allTestSuiteTests(ctx, model_core.Nested(target, testSuite.Tests), &errIter) {
+		for l := range allTestSuiteTests(ctx, valueReaders, model_core.Nested(target, testSuite.Tests), &errIter) {
 			if err := addDependencyString(l); err != nil {
 				return PatchedTargetDirectDependenciesValue[TMetadata]{}, err
 			}

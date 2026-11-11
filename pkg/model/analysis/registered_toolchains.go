@@ -30,6 +30,7 @@ type registeredToolchainExtractingModuleDotBazelHandler[TReference object.BasicR
 	context                    context.Context
 	computer                   *baseComputer[TReference, TMetadata]
 	environment                RegisteredToolchainsEnvironment[TReference, TMetadata]
+	valueReaders               *model_starlark.ValueReaders[TReference]
 	labelResolver              label.Resolver
 	moduleInstance             label.ModuleInstance
 	ignoreDevDependencies      bool
@@ -51,7 +52,7 @@ func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata])
 
 func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]) RegisterToolchains(toolchainTargetPatterns []label.ApparentTargetPattern, devDependency bool) error {
 	if !devDependency || !h.ignoreDevDependencies {
-		listReader := h.computer.valueReaders.List
+		listReader := h.valueReaders.List
 		for _, apparentToolchainTargetPattern := range toolchainTargetPatterns {
 			canonicalToolchainTargetPattern, err := label.Canonicalize(h.labelResolver, h.moduleInstance.GetBareCanonicalRepo(), apparentToolchainTargetPattern)
 			if err != nil {
@@ -190,9 +191,10 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				}
 
 				toolchainPackage := toolchainLabel.GetCanonicalPackage()
-				execCompatibleWith, err := h.computer.constraintValuesToConstraints(
+				execCompatibleWith, err := constraintValuesToConstraints(
 					h.context,
 					h.environment,
+					h.valueReaders,
 					toolchainPackage,
 					ruleTarget.RuleTarget.ExecCompatibleWith,
 				)
@@ -248,9 +250,10 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					}
 				}
 
-				targetCompatibleWith, err := h.computer.constraintValuesToConstraints(
+				targetCompatibleWith, err := constraintValuesToConstraints(
 					h.context,
 					h.environment,
+					h.valueReaders,
 					toolchainPackage,
 					targetCompatibleWithLabels,
 				)
@@ -310,6 +313,11 @@ func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata])
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(ctx context.Context, key *model_analysis_pb.RegisteredToolchains_Key, e RegisteredToolchainsEnvironment[TReference, TMetadata]) (PatchedRegisteredToolchainsValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedRegisteredToolchainsValue[TMetadata]{}, err
+	}
+
 	registeredToolchainsByType := map[string][]*model_analysis_pb.RegisteredToolchain{}
 	missingDependencies := false
 	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler {
@@ -317,6 +325,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(c
 			context:                    ctx,
 			computer:                   c,
 			environment:                e,
+			valueReaders:               valueReaders,
 			labelResolver:              newLabelResolver(e),
 			moduleInstance:             moduleInstance,
 			ignoreDevDependencies:      ignoreDevDependencies,

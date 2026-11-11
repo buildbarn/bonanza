@@ -1956,6 +1956,16 @@ message StableInputRootPath {
   }
 }
 
+message StarlarkValueEncoders {
+  message Key {}
+
+  message Value {
+    // Parameters that need to be used to access the contents of large
+    // strings, which are stored in the same way as file contents.
+    bonanza.model.filesystem.FileAccessParameters file_access_parameters = 1;
+  }
+}
+
 message SuccessfulActionResult {
   message Key {
     ExecuteRequest execute_request = 1;

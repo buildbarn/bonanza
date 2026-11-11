@@ -185,6 +185,7 @@ func TestQueryExpansion(t *testing.T) {
 
 	t.Run("SinglePackageTargetPattern", func(t *testing.T) {
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectPackage(e, "@@main+//foo", ruleTarget("a", "manual"), ruleTarget("b"), sourceFileTarget("c.txt"), ruleTarget("foo"))
 
@@ -299,6 +300,7 @@ func TestQueryExpansion(t *testing.T) {
 		// should contain the first and last label stored in
 		// the objects they reference.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectCaptureObjects(e)
 		var targets []*model_starlark_pb.Target
@@ -327,6 +329,7 @@ func TestQueryExpansion(t *testing.T) {
 		// "@@main+//foo/bar:y" sorts after "@@main+//foo/bar2:z" when
 		// compared as strings.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		e.EXPECT().GetPackagesAtAndBelowValue(
 			testutil.EqProto(t, &model_analysis_pb.PackagesAtAndBelow_Key{BasePackage: "@@main+//foo", Pattern: allPackagesPattern}),
@@ -347,6 +350,7 @@ func TestQueryExpansion(t *testing.T) {
 		// Each target pattern in a set should be expanded using a
 		// separate key, so that results can be reused.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//foo/...", newQueryExpansionValue("@@main+//foo:x", "@@main+//foo/bar:y"))
 		expectQueryExpansion(e, "@@main+//bar:all", newQueryExpansionValue("@@main+//bar:z"))
@@ -361,6 +365,7 @@ func TestQueryExpansion(t *testing.T) {
 		// don't follow dependencies, so keys should not request
 		// them.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		for _, query := range []string{
 			"@@main+//foo/...",
@@ -393,6 +398,7 @@ func TestQueryExpansion(t *testing.T) {
 
 		t.Run("Kind", func(t *testing.T) {
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackagesAtAndBelow(e, true)
 			expectQueryExpansion(e, "kind(rule, rules(siblings(@@main+//foo:*)))", newQueryExpansionValue("@@main+//foo:x"))
@@ -408,6 +414,7 @@ func TestQueryExpansion(t *testing.T) {
 			// need to filter the targets in the base
 			// package using rules().
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackagesAtAndBelow(e, true)
 			expectQueryExpansion(e, "packages(siblings(@@main+//foo:*))", newQueryExpansionValue("@@main+//foo"))
@@ -420,6 +427,7 @@ func TestQueryExpansion(t *testing.T) {
 
 		t.Run("ExcludeTag", func(t *testing.T) {
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackagesAtAndBelow(e, true)
 			expectQueryExpansion(e, normalizeCanonicalQuery("rules(siblings(@@main+//foo:*)) - tag(manual, rules(siblings(@@main+//foo:*)))"), newQueryExpansionValue("@@main+//foo:x"))
@@ -434,6 +442,7 @@ func TestQueryExpansion(t *testing.T) {
 			// If the base package does not exist, only the
 			// subpackages should be evaluated.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackagesAtAndBelow(e, false)
 			expectQueryExpansion(e, "kind(rule, @@main+//foo/bar/...)", newQueryExpansionValue("@@main+//foo/bar:z"))
@@ -448,6 +457,7 @@ func TestQueryExpansion(t *testing.T) {
 			// results of the base package are not available
 			// yet.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackagesAtAndBelow(e, true)
 			expectQueryExpansion(e, "kind(rule, rules(siblings(@@main+//foo:*)))", model_core.Message[*model_analysis_pb.QueryExpansion_Value, model_core.CreatedObjectTree]{})
@@ -461,6 +471,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Queries involving other target patterns can't
 			// be evaluated for each package separately.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectQueryExpansion(e, "@@main+//foo/...", newQueryExpansionValue("@@main+//foo:x", "@@main+//foo/bar:z"))
 			expectQueryExpansion(e, "@@main+//foo:x", newQueryExpansionValue("@@main+//foo:x"))
@@ -487,6 +498,7 @@ func TestQueryExpansion(t *testing.T) {
 		t.Run("ExcludeTag", func(t *testing.T) {
 			// rules() should exclude file targets.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			x, y, z := ruleTarget("x"), ruleTarget("y", "manual"), sourceFileTarget("z")
 			expectPackage(e, "@@main+//foo", x, y, z)
@@ -503,6 +515,7 @@ func TestQueryExpansion(t *testing.T) {
 			// rules(siblings(//foo:*)) can be evaluated
 			// using the definitions stored in the package.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackage(e, "@@main+//foo", ruleTarget("x"), sourceFileTarget("y"))
 
@@ -517,6 +530,7 @@ func TestQueryExpansion(t *testing.T) {
 			// The results of its operand should be
 			// requested separately.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			x, y := ruleTarget("x"), sourceFileTarget("y")
 			x.Definition.GetRuleTarget().Test = &model_starlark_pb.RuleTarget_Test{}
@@ -533,6 +547,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Targets don't need to be loaded to compute
 			// the labels of their packages.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackage(e, "@@main+//foo", ruleTarget("x"), sourceFileTarget("y"))
 
@@ -543,6 +558,7 @@ func TestQueryExpansion(t *testing.T) {
 
 		t.Run("MissingPackage", func(t *testing.T) {
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			e.EXPECT().GetPackageTargetsValue(
 				testutil.EqProto(t, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo"}),
@@ -556,6 +572,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Queries that use siblings() multiple times
 			// can't be evaluated as a single package.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectQueryExpansion(e, "siblings(@@main+//foo:*)", newQueryExpansionValue("@@main+//foo:x"))
 			expectQueryExpansion(e, "siblings(@@main+//bar:*)", newQueryExpansionValue("@@main+//bar:y"))
@@ -576,6 +593,7 @@ func TestQueryExpansion(t *testing.T) {
 			// named "*", which "@@main+//a:*" would match
 			// exclusively.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackage(e, "@@main+//a", ruleTarget("*"), sourceFileTarget("x"))
 			expectPackage(e, "@@main+//b", ruleTarget("y"))
@@ -590,6 +608,7 @@ func TestQueryExpansion(t *testing.T) {
 			// package only contains file targets, meaning
 			// it needs to be expanded.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectQueryExpansion(e, "@@main+//a:all", newQueryExpansionValue("@@main+//a:y"))
 			expectPackage(e, "@@main+//a", sourceFileTarget("x"), ruleTarget("y"))
@@ -604,6 +623,7 @@ func TestQueryExpansion(t *testing.T) {
 		// Rule targets and targets that behave like rules should
 		// be matched. File targets and package groups should not.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b", "@@main+//:c", "@@main+//:d", "@@main+//:e"))
 		expectTarget := func(l string, definition *model_starlark_pb.Target_Definition) {
@@ -632,6 +652,7 @@ func TestQueryExpansion(t *testing.T) {
 
 	t.Run("NotInNormalForm", func(t *testing.T) {
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		_, err := bct.computer.ComputeQueryExpansionValue(ctx, &model_analysis_pb.QueryExpansion_Key{
 			Query: "@@main+//:a union @@main+//:b",
@@ -642,6 +663,7 @@ func TestQueryExpansion(t *testing.T) {
 	t.Run("SingleTarget", func(t *testing.T) {
 		// Single targets are checked for existence.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:b"}),
@@ -657,6 +679,7 @@ func TestQueryExpansion(t *testing.T) {
 
 	t.Run("SetOperation", func(t *testing.T) {
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "set(@@main+//:a @@main+//:b)", newQueryExpansionValue("@@main+//:a", "@@main+//:b"))
 		expectQueryExpansion(e, "deps(@@main+//:c)", newQueryExpansionValue("@@main+//:b", "@@main+//:c"))
@@ -674,6 +697,7 @@ func TestQueryExpansion(t *testing.T) {
 			// operand should be copied as is, without
 			// loading the objects they reference.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectQueryExpansion(e, "@@main+//b/...", newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.QueryExpansion_Value {
@@ -711,6 +735,7 @@ func TestQueryExpansion(t *testing.T) {
 			// present in both operands should only be
 			// returned once.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectQueryExpansion(e, "@@main+//a/...", newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.QueryExpansion_Value {
@@ -748,6 +773,7 @@ func TestQueryExpansion(t *testing.T) {
 			// should be copied once, without descending
 			// into them.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			for _, query := range []string{"@@main+//a/...", "@@main+//a:*"} {
@@ -772,6 +798,7 @@ func TestQueryExpansion(t *testing.T) {
 			// third operand, they should be descended into,
 			// so that duplicate labels are removed.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			for _, query := range []string{"@@main+//a/...", "@@main+//a:*"} {
@@ -796,6 +823,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Parent nodes that lack the range of labels
 			// they contain should be rejected.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectQueryExpansion(e, "@@main+//a/...", newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.QueryExpansion_Value {
 				return &model_analysis_pb.QueryExpansion_Value{
@@ -837,6 +865,7 @@ func TestQueryExpansion(t *testing.T) {
 			// operand should be skipped, without loading
 			// the objects they reference.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectTargetLabels(e, "@@main+//a/...", func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
@@ -862,6 +891,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Nodes that overlap with the other operand
 			// should be descended into.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectTargetLabels(e, "@@main+//a/...", func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
@@ -881,6 +911,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Identical parent nodes should be copied as
 			// is.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectTargetLabels(e, "@@main+//a/...", func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
@@ -912,6 +943,7 @@ func TestQueryExpansion(t *testing.T) {
 			// skipped. In both cases the objects they
 			// reference should not be loaded.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectTargetLabels(e, "@@main+//a/...", func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
@@ -942,6 +974,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Nodes that overlap with the other operand
 			// should be descended into.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectTargetLabels(e, "@@main+//a/...", func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
@@ -967,6 +1000,7 @@ func TestQueryExpansion(t *testing.T) {
 			// target patterns cheaply, as the B-trees share
 			// these nodes.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectTargetLabels(e, "kind(rule, @@main+//a/...)", func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
@@ -1007,6 +1041,7 @@ func TestQueryExpansion(t *testing.T) {
 			// requested using the original query, so that
 			// their results can be shared.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackagesAtAndBelow(e, "@@main+", true, "a", "b", "c/d")
 			expectQueryExpansion(e, "rules(siblings(@@main+//:*))", newQueryExpansionValue("@@main+//:x"))
@@ -1025,6 +1060,7 @@ func TestQueryExpansion(t *testing.T) {
 			// other exclusions should be omitted, and
 			// exclusions should be sorted.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackagesAtAndBelow(e, "@@main+", false, "a", "b", "c")
 			expectQueryExpansion(e, "@@main+//a/... - @@main+//a/x/... - @@main+//a/y/...", newQueryExpansionValue("@@main+//a:x"))
@@ -1039,6 +1075,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Exclusions should also work for queries
 			// created by NewQueryFromTargetPatternArguments().
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectPackagesAtAndBelow(e, "@@main+", false, "a", "b")
 			expectQueryExpansion(e, normalizeCanonicalQuery("tag(x, @@main+//a/...) - tag(manual, @@main+//a/...)"), newQueryExpansionValue("@@main+//a:x"))
@@ -1052,6 +1089,7 @@ func TestQueryExpansion(t *testing.T) {
 			// If the base package is excluded, nothing
 			// needs to be evaluated.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			for _, query := range []string{
 				"@@main+//... - @@main+//...",
@@ -1068,6 +1106,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Exclusions that are not below the base
 			// package have no effect.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectQueryExpansion(e, "@@main+//a/...", newQueryExpansionValue("@@main+//a:x"))
 
@@ -1081,6 +1120,7 @@ func TestQueryExpansion(t *testing.T) {
 			// exclusion does not, directories can't be
 			// skipped.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectQueryExpansion(e, "@@main+//...:*", newQueryExpansionValue("@@main+//b:file", "@@main+//b:rule"))
 			expectQueryExpansion(e, "@@main+//b/...", newQueryExpansionValue("@@main+//b:rule"))
@@ -1095,6 +1135,7 @@ func TestQueryExpansion(t *testing.T) {
 			// necessarily matched by the excluded target
 			// patterns.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectQueryExpansion(e, "packages(@@main+//...)", newQueryExpansionValue("@@main+//b"))
 			expectQueryExpansion(e, "@@main+//b/...", newQueryExpansionValue("@@main+//b:x"))
@@ -1146,6 +1187,7 @@ func TestQueryExpansion(t *testing.T) {
 			}
 			for _, operator := range []string{"+", "^", "-"} {
 				e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+				e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 				e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 				expectCaptureObjects(e)
 				expectTargetLabels(e, "@@main+//a/...", func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
@@ -1176,6 +1218,7 @@ func TestQueryExpansion(t *testing.T) {
 		// Both operands should be requested, even if the first
 		// one is not available yet.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "deps(@@main+//:a)", model_core.Message[*model_analysis_pb.QueryExpansion_Value, model_core.CreatedObjectTree]{})
 		expectQueryExpansion(e, "deps(@@main+//:b)", newQueryExpansionValue("@@main+//:b"))
@@ -1188,6 +1231,7 @@ func TestQueryExpansion(t *testing.T) {
 		// With a maximum depth of two, the dependencies of the
 		// targets at depth two should not be requested.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:a", newQueryExpansionValue("@@main+//:a"))
 		expectDirectDependencies(e, map[string][]string{
@@ -1204,6 +1248,7 @@ func TestQueryExpansion(t *testing.T) {
 		// Within the universe, :a depends on :b, which depends
 		// on :c. :x depends on nothing.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//...", newQueryExpansionValue("@@main+//:a", "@@main+//:x")).Times(2)
 		expectQueryExpansion(e, "@@main+//:c", newQueryExpansionValue("@@main+//:c")).Times(2)
@@ -1226,6 +1271,7 @@ func TestQueryExpansion(t *testing.T) {
 	t.Run("Filter", func(t *testing.T) {
 		// Canonical labels are matched.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:ab", "@@other+//:a")).Times(2)
 
@@ -1240,6 +1286,7 @@ func TestQueryExpansion(t *testing.T) {
 
 	t.Run("Kind", func(t *testing.T) {
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b"))
 		e.EXPECT().GetTargetValue(
@@ -1265,6 +1312,7 @@ func TestQueryExpansion(t *testing.T) {
 	t.Run("AttrDict", func(t *testing.T) {
 		// Dict attributes are matched as "{key=value, ...}".
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:t", newQueryExpansionValue("@@main+//:t")).Times(2)
 		e.EXPECT().GetTargetValue(
@@ -1348,6 +1396,7 @@ func TestQueryExpansion(t *testing.T) {
 			})
 		}
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b")).AnyTimes()
 		e.EXPECT().GetTargetValue(
@@ -1395,6 +1444,7 @@ func TestQueryExpansion(t *testing.T) {
 		// exponentially. Instead of only considering some of
 		// them, attr() should fail.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:t", newQueryExpansionValue("@@main+//:t"))
 		newSelectGroup := func(prefix string) *model_starlark_pb.Select_Group {
@@ -1448,6 +1498,7 @@ func TestQueryExpansion(t *testing.T) {
 		// other packages, and the results should be
 		// deduplicated.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b", "@@main+//:c", "@@main+//:d"))
 		expectTarget := func(l string, definition *model_starlark_pb.Target_Definition) {
@@ -1490,6 +1541,7 @@ func TestQueryExpansion(t *testing.T) {
 		// positive tags of test suites and "manual". Negative
 		// tags and sizes are only used to filter tests.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:suite", newQueryExpansionValue("@@main+//:suite")).AnyTimes()
 		e.EXPECT().GetTargetValue(
@@ -1579,6 +1631,7 @@ func TestQueryExpansion(t *testing.T) {
 		inputLabels := slices.Sorted(maps.Keys(definitions))
 		computeVisible := func(t *testing.T, predicate string, predicatePackages ...string) []string {
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectQueryExpansion(e, normalizeCanonicalQuery("packages("+predicate+")"), newQueryExpansionValue(predicatePackages...))
 			expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue(inputLabels...))
@@ -1628,6 +1681,7 @@ func TestQueryExpansion(t *testing.T) {
 		// yielded. Tests are executable as well, but should only
 		// be yielded by tests().
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b", "@@main+//:c", "@@main+//:d"))
 		expectTarget := func(l, ruleIdentifier string) {
@@ -1675,6 +1729,7 @@ func TestQueryExpansion(t *testing.T) {
 		// Tags are matched exactly. Targets other than rule
 		// targets don't have any tags, and should not match.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b", "@@main+//:c")).Times(2)
 		expectTarget := func(l string, definition *model_starlark_pb.Target_Definition) {
@@ -1701,6 +1756,7 @@ func TestQueryExpansion(t *testing.T) {
 		// Each package should only be returned once. The root
 		// package of a repo is identified by the repo's label.
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, normalizeCanonicalQuery("set(@@main+//a:b @@main+//a:c @@main+//:d @@other+//:e)"), newQueryExpansionValue("@@main+//:d", "@@main+//a:b", "@@main+//a:c", "@@other+//:e"))
 
@@ -1717,6 +1773,7 @@ func TestQueryExpansion(t *testing.T) {
 			// some() should stop reading its operand once
 			// enough labels have been obtained.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectTargetLabels(e, "deps(@@main+//:x)", func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
@@ -1736,6 +1793,7 @@ func TestQueryExpansion(t *testing.T) {
 			// cause evaluation to fail, as opposed to the
 			// operand being truncated.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectTargetLabels(e, "deps(@@main+//:x)", func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
@@ -1758,6 +1816,7 @@ func TestQueryExpansion(t *testing.T) {
 
 		t.Run("FilterAcrossBatches", func(t *testing.T) {
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectQueryExpansion(e, "deps(@@main+//:x)", newQueryExpansionValue(operandLabels...))
@@ -1776,6 +1835,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Packages spanning multiple batches should only
 			// be yielded once.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectQueryExpansion(e, "deps(@@main+//:x)", newQueryExpansionValue(operandLabels...))
@@ -1789,6 +1849,7 @@ func TestQueryExpansion(t *testing.T) {
 			// targets in other batches should still be
 			// requested.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectQueryExpansion(e, "deps(@@main+//:x)", newQueryExpansionValue(operandLabels...))
@@ -1812,6 +1873,7 @@ func TestQueryExpansion(t *testing.T) {
 			// Each package should only be loaded once, even
 			// if the operand contains multiple targets in it.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectQueryExpansion(e, "deps(@@main+//:x)", newQueryExpansionValue("@@main+//a:x", "@@main+//a:y", "@@main+//b:z"))
@@ -1839,6 +1901,7 @@ func TestQueryExpansion(t *testing.T) {
 			// which differs from the order of packages.
 			// Packages should be visited in label order.
 			e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			expectCaptureObjects(e)
 			expectPackage(e, "@@main+//a", ruleTarget("x"))
@@ -1852,6 +1915,7 @@ func TestQueryExpansion(t *testing.T) {
 
 	t.Run("Some", func(t *testing.T) {
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//...", newQueryExpansionValue("@@main+//:a", "@@main+//:b", "@@main+//:c"))
 
@@ -1862,6 +1926,7 @@ func TestQueryExpansion(t *testing.T) {
 
 	t.Run("SomeEmpty", func(t *testing.T) {
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//...", newQueryExpansionValue())
 
@@ -1871,6 +1936,7 @@ func TestQueryExpansion(t *testing.T) {
 
 	t.Run("Unsupported", func(t *testing.T) {
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		_, err := computeQueryExpansion(e, "somepath(@@main+//:a, @@main+//:b)")
 		require.EqualError(t, err, "somepath() is not supported yet")

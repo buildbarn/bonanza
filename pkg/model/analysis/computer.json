@@ -27,6 +27,7 @@
             "FileCreationParameters",
             "QueryExpansion",
             "RootModule",
+            "StarlarkValueEncoders",
             "Target",
             "TargetCompletion",
             "VisibleTarget"
@@ -54,6 +55,7 @@
          "dependsOn": [
             "RegisteredToolchainsForType",
             "Select",
+            "StarlarkValueEncoders",
             "Target",
             "TargetProvider",
             "VisibleTarget"
@@ -69,7 +71,8 @@
             "FileAccessParameters",
             "FileCreationParameters",
             "FileProperties",
-            "RootModule"
+            "RootModule",
+            "StarlarkValueEncoders"
          ]
       },
       "CompiledBzlFileGlobal": {
@@ -77,7 +80,8 @@
             "BuiltinsModuleNames",
             "CompiledBzlFile",
             "FileAccessParameters",
-            "FileCreationParameters"
+            "FileCreationParameters",
+            "StarlarkValueEncoders"
          ]
       },
       "ConfiguredTarget": {
@@ -96,6 +100,7 @@
             "RootModule",
             "RuleImplementationWrappers",
             "Select",
+            "StarlarkValueEncoders",
             "Target",
             "TargetProvider",
             "TargetProviders",
@@ -133,7 +138,8 @@
             "CompiledBzlFileGlobal",
             "FileAccessParameters",
             "FileCreationParameters",
-            "RootModule"
+            "RootModule",
+            "StarlarkValueEncoders"
          ]
       },
       "ExecTransition": {
@@ -145,6 +151,7 @@
             "FileAccessParameters",
             "FileCreationParameters",
             "RootModule",
+            "StarlarkValueEncoders",
             "Target",
             "TargetProvider",
             "VisibleTarget"
@@ -209,7 +216,8 @@
             "DirectoryAccessParameters",
             "DirectoryCreationParameters",
             "FileRoot",
-            "FilesRoot"
+            "FilesRoot",
+            "StarlarkValueEncoders"
          ],
          "keyContainsReferences": true
       },
@@ -278,6 +286,7 @@
             "RepoPlatformHostPath",
             "RootModule",
             "StableInputRootPath",
+            "StarlarkValueEncoders",
             "SuccessfulActionResult",
             "UsedModuleExtension"
          ]
@@ -352,6 +361,7 @@
             "PackagesAtAndBelow",
             "RepoDefaultAttrs",
             "RootModule",
+            "StarlarkValueEncoders",
             "Target"
          ]
       },
@@ -382,6 +392,7 @@
             "PackageTargets",
             "PackagesAtAndBelow",
             "QueryExpansion",
+            "StarlarkValueEncoders",
             "Target",
             "TargetDirectDependencies",
             "TestSuiteTests"
@@ -424,6 +435,7 @@
             "ModulesWithMultipleVersions",
             "QueryExpansion",
             "RootModule",
+            "StarlarkValueEncoders",
             "TargetProvider"
          ]
       },
@@ -439,6 +451,7 @@
             "CanonicalRepoName",
             "FileAccessParameters",
             "RootModule",
+            "StarlarkValueEncoders",
             "TargetProvider"
          ]
       },
@@ -451,6 +464,7 @@
             "QueryExpansion",
             "RootModule",
             "Select",
+            "StarlarkValueEncoders",
             "Target",
             "TargetProvider",
             "VisibleTarget"
@@ -485,6 +499,7 @@
             "RepoPlatformHostPath",
             "RootModule",
             "StableInputRootPath",
+            "StarlarkValueEncoders",
             "SuccessfulActionResult"
          ]
       },
@@ -534,6 +549,7 @@
             "CanonicalRepoName",
             "FileAccessParameters",
             "RootModule",
+            "StarlarkValueEncoders",
             "Target",
             "TargetProvider",
             "VisibleTarget"
@@ -555,6 +571,16 @@
                "model_starlark": "bonanza.build/pkg/model/starlark"
             },
             "type": "*model_starlark.BarePath"
+         }
+      },
+      "StarlarkValueEncoders": {
+         "dependsOn": [
+            "BuildSpecification"
+         ],
+         "isLookup": true,
+         "objectType": {
+            "referenceConstraint": "object.BasicReference",
+            "type": "*StarlarkValueEncoders[TReference]"
          }
       },
       "SuccessfulActionResult": {
@@ -588,6 +614,7 @@
             "FileRoot",
             "FilesRoot",
             "RootModule",
+            "StarlarkValueEncoders",
             "TargetAction"
          ],
          "keyContainsReferences": true
@@ -617,6 +644,7 @@
       "TargetCompletion": {
          "dependsOn": [
             "FileRoot",
+            "StarlarkValueEncoders",
             "TargetProvider"
          ],
          "keyContainsReferences": true
@@ -626,6 +654,7 @@
             "CompiledBzlFileGlobal",
             "FileAccessParameters",
             "FileCreationParameters",
+            "StarlarkValueEncoders",
             "Target"
          ]
       },
@@ -649,6 +678,7 @@
       },
       "TestSuiteTests": {
          "dependsOn": [
+            "StarlarkValueEncoders",
             "Target",
             "TestSuiteTests"
          ]
@@ -677,6 +707,7 @@
             "FileAccessParameters",
             "FileCreationParameters",
             "RootModule",
+            "StarlarkValueEncoders",
             "Target",
             "TargetProvider",
             "VisibleTarget"

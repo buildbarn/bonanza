@@ -6,7 +6,9 @@ import (
 	"sort"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_parser "bonanza.build/pkg/model/parser"
+	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
@@ -39,6 +41,40 @@ func NewFileReader[TReference object.BasicReference](
 		fileChunkReader:            fileChunkReader,
 		fileChunkReaderConcurrency: fileChunkReaderConcurrency,
 	}
+}
+
+// NewFileReaderFromProto creates a FileReader that is capable of
+// reading files whose objects are encoded according to the file access
+// parameters stored in a Protobuf message. Objects are parsed through
+// the provided ParsedObjectPoolIngester, so that they may be cached.
+func NewFileReaderFromProto[TReference object.BasicReference](
+	m *model_filesystem_pb.FileAccessParameters,
+	referenceFormat object.ReferenceFormat,
+	binaryEncoderFactory model_encoding.BinaryEncoderFactory,
+	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference],
+	fileChunkReaderConcurrency *semaphore.Weighted,
+) (*FileReader[TReference], error) {
+	fileAccessParameters, err := NewFileAccessParametersFromProto(m, referenceFormat, binaryEncoderFactory)
+	if err != nil {
+		return nil, err
+	}
+	return NewFileReader(
+		model_parser.LookupParsedObjectReader(
+			parsedObjectPoolIngester,
+			model_parser.NewChainedObjectParser(
+				model_parser.NewEncodedObjectParser[TReference](fileAccessParameters.GetFileContentsListEncoder()),
+				NewFileContentsListObjectParser[TReference](),
+			),
+		),
+		model_parser.LookupParsedObjectReader(
+			parsedObjectPoolIngester,
+			model_parser.NewChainedObjectParser(
+				model_parser.NewEncodedObjectParser[TReference](fileAccessParameters.GetChunkEncoder()),
+				model_parser.NewRawObjectParser[TReference](),
+			),
+		),
+		fileChunkReaderConcurrency,
+	), nil
 }
 
 // GetDecodingParametersSizeBytes returns the expected size of the

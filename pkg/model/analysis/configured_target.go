@@ -53,7 +53,7 @@ var (
 // values to a list of Constraint messages that include both the
 // constraint setting and constraint value labels. These can be used to
 // perform matching of constraints.
-func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx context.Context, e getProviderFromVisibleConfiguredTargetEnvironment[TReference, TMetadata], fromPackage label.CanonicalPackage, constraintValues []string) ([]*model_analysis_pb.Constraint, error) {
+func constraintValuesToConstraints[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, e getProviderFromVisibleConfiguredTargetEnvironment[TReference, TMetadata], valueReaders *model_starlark.ValueReaders[TReference], fromPackage label.CanonicalPackage, constraintValues []string) ([]*model_analysis_pb.Constraint, error) {
 	constraints := make(map[string]string, len(constraintValues))
 	missingDependencies := false
 	for _, constraintValue := range constraintValues {
@@ -74,8 +74,7 @@ func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx 
 
 		var actualConstraintSetting, actualConstraintValue, defaultConstraintValue *string
 		var errIter error
-		listReader := c.valueReaders.List
-		for key, value := range model_starlark.AllStructFields(ctx, listReader, constrainValueInfoProvider, &errIter) {
+		for key, value := range model_starlark.AllStructFields(ctx, valueReaders.List, constrainValueInfoProvider, &errIter) {
 			switch key {
 			case "constraint":
 				constraintSettingInfoProvider, ok := value.Message.Kind.(*model_starlark_pb.Value_Struct)
@@ -85,7 +84,7 @@ func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx 
 				var errIter error
 				for key, value := range model_starlark.AllStructFields(
 					ctx,
-					listReader,
+					valueReaders.List,
 					model_core.Nested(value, constraintSettingInfoProvider.Struct.Fields),
 					&errIter,
 				) {
@@ -160,6 +159,7 @@ func (c *baseComputer[TReference, TMetadata]) constraintValuesToConstraints(ctx 
 func (c *baseComputer[TReference, TMetadata]) mapStructFields(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
+	valueReaders *model_starlark.ValueReaders[TReference],
 	in model_core.Message[*model_starlark_pb.Struct, TReference],
 	fieldMapper func(name string, value model_core.Message[*model_starlark_pb.Value, TReference]) (any, error),
 ) (model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata], error) {
@@ -167,12 +167,11 @@ func (c *baseComputer[TReference, TMetadata]) mapStructFields(
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata]{}, err
 	}
-
 	fields := map[string]any{}
 	var errIter error
 	for name, value := range model_starlark.AllStructFields(
 		ctx,
-		c.valueReaders.List,
+		valueReaders.List,
 		model_core.Nested(in, in.Message.GetFields()),
 		&errIter,
 	) {
@@ -214,6 +213,7 @@ func (c *baseComputer[TReference, TMetadata]) mapStructFields(
 func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
+	valueReaders *model_starlark.ValueReaders[TReference],
 	emptyDefaultInfo model_core.Message[*model_starlark_pb.Struct, TReference],
 	file model_core.Message[*model_starlark_pb.File, TReference],
 	identifierGenerator model_starlark.ReferenceEqualIdentifierGenerator,
@@ -221,6 +221,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 	newDefaultInfo, err := c.mapStructFields(
 		ctx,
 		e,
+		valueReaders,
 		emptyDefaultInfo,
 		func(name string, value model_core.Message[*model_starlark_pb.Value, TReference]) (any, error) {
 			switch name {
@@ -253,6 +254,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 				patchedFilesToRun, err := c.mapStructFields(
 					ctx,
 					e,
+					valueReaders,
 					model_core.Nested(value, filesToRun.Struct),
 					func(name string, value model_core.Message[*model_starlark_pb.Value, TReference]) (any, error) {
 						switch name {
@@ -357,6 +359,7 @@ func getAttrValueParts[TReference object.BasicReference, TMetadata model_core.Re
 func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
+	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	thread *eval.Thread,
 	namedAttr model_core.Message[*model_starlark_pb.NamedAttr, TReference],
 	valueParts model_core.Message[[]*model_starlark_pb.Value, TReference],
@@ -364,11 +367,6 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 	visibilityFromPackage label.CanonicalPackage,
 	execGroupPlatformLabels map[string]string,
 ) (eval.Value, error) {
-	valueDecodingOptionsFactory, err := c.newValueDecodingOptionsFactory(e)
-	if err != nil {
-		return nil, err
-	}
-
 	// See if any transitions need to be applied.
 	var cfg *model_starlark_pb.Transition
 	isScalar := false
@@ -390,6 +388,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 		patchedResult, mayHaveMultipleConfigurations, err = c.performTransition(
 			ctx,
 			e,
+			starlarkValueEncoders,
 			model_core.Nested(namedAttr, cfg),
 			configurationReference,
 			model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
@@ -411,7 +410,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 		for _, valuePart := range valueParts.Message {
 			decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
 				thread, model_core.Nested(valueParts, valuePart),
-				valueDecodingOptionsFactory.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
+				starlarkValueEncoders.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 					// We should leave the target
 					// unconfigured. Provide a
 					// target reference that does
@@ -432,7 +431,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 	} else {
 		missingDependencies := false
 		for _, configurationReference := range configurationReferences {
-			valueDecodingOptions := valueDecodingOptionsFactory.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
+			valueDecodingOptions := starlarkValueEncoders.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 				// Resolve the label.
 				canonicalOriginalLabel, err := originalLabel.AsCanonical()
 				if err != nil {
@@ -525,10 +524,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	valueDecodingOptionsFactory, err := c.newValueDecodingOptionsFactory(e)
+	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
+	valueReaders := &starlarkValueEncoders.Readers
 
 	targetLabel, err := label.NewCanonicalLabel(key.Message.Label)
 	if err != nil {
@@ -573,6 +573,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		return c.getSingleFileConfiguredTargetValue(
 			ctx,
 			e,
+			valueReaders,
 			emptyDefaultInfo,
 			model_core.Nested(
 				key,
@@ -620,7 +621,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		}
 		ruleDefinition := model_core.Nested(ruleValue, d.Definition)
 
-		thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+		thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
 		if err != nil {
 			return PatchedConfiguredTargetValue[TMetadata]{}, err
 		}
@@ -704,7 +705,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			for _, valuePart := range valueParts {
 				decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
 					thread, valuePart,
-					valueDecodingOptionsFactory.newValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
+					starlarkValueEncoders.newValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
 						return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
 					}),
 				)
@@ -741,6 +742,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			patchedConfigurationReferences, err := c.performUserDefinedTransitionCached(
 				ctx,
 				e,
+				starlarkValueEncoders,
 				model_core.Nested(ruleDefinition, cfgTransition),
 				configurationReference,
 				model_starlark.NewStructFromDict[TReference, TMetadata](nil, edgeTransitionAttrValues),
@@ -814,7 +816,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			for _, valuePart := range valueParts.Message {
 				decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
 					thread, model_core.Nested(valueParts, valuePart),
-					valueDecodingOptionsFactory.newValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
+					starlarkValueEncoders.newValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
 						switch namedAttr.Attr.GetType().(type) {
 						case *model_starlark_pb.Attr_Output, *model_starlark_pb.Attr_OutputList:
 							canonicalLabel, err := resolvedLabel.AsCanonical()
@@ -873,9 +875,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			if execGroupDefinition == nil {
 				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("missing definition of exec group %#v", namedExecGroup.Name)
 			}
-			execCompatibleWith, err := c.constraintValuesToConstraints(
+			execCompatibleWith, err := constraintValuesToConstraints(
 				ctx,
 				e,
+				valueReaders,
 				targetPackage,
 				execGroupDefinition.ExecCompatibleWith,
 			)
@@ -961,6 +964,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			patchedTransition, mayHaveMultipleConfigurations, err := c.performTransition(
 				ctx,
 				e,
+				starlarkValueEncoders,
 				model_core.Nested(ruleDefinition, labelOptions.Cfg),
 				configurationReference,
 				edgeTransitionAttrValuesStruct,
@@ -1003,7 +1007,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				for _, valuePart := range valueParts.Message {
 					decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
 						thread, model_core.Nested(valueParts, valuePart),
-						valueDecodingOptionsFactory.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
+						starlarkValueEncoders.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 							return model_starlark.NewTargetReference[TReference, TMetadata](
 								originalLabel,
 								/* configured = */ nil,
@@ -1052,7 +1056,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					}
 
 					var splitAttrEntryBuilder model_starlark.AttrValueBuilder
-					valueDecodingOptions := valueDecodingOptionsFactory.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
+					valueDecodingOptions := starlarkValueEncoders.newValueDecodingOptions(func(originalLabel label.ResolvedLabel) (eval.Value, error) {
 						// Resolve the label.
 						canonicalOriginalLabel, err := originalLabel.AsCanonical()
 						if err != nil {
@@ -1112,7 +1116,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 
 						files, err := model_starlark.GetStructFieldValue(
 							ctx,
-							c.valueReaders.List,
+							valueReaders.List,
 							model_core.Nested(providerInstances, providerInstances.Message[defaultInfoIndex].Fields),
 							"files",
 						)
@@ -1131,7 +1135,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						if executable {
 							filesToRun, err := model_starlark.GetStructFieldValue(
 								ctx,
-								c.valueReaders.List,
+								valueReaders.List,
 								model_core.Nested(providerInstances, providerInstances.Message[defaultInfoIndex].Fields),
 								"files_to_run",
 							)
@@ -1145,7 +1149,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 							filesToRunStruct := model_core.Nested(filesToRun, filesToRunStructValue.Struct)
 							executableField, err := model_starlark.GetStructFieldValue(
 								ctx,
-								c.valueReaders.List,
+								valueReaders.List,
 								model_core.Nested(filesToRunStruct, filesToRunStruct.Message.Fields),
 								"executable",
 							)
@@ -1250,6 +1254,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			computer:                    c,
 			context:                     ctx,
 			valueEncodingOptionsFactory: valueEncodingOptionsFactory,
+			starlarkValueEncoders:       starlarkValueEncoders,
 			environment:                 e,
 			ruleIdentifier:              ruleIdentifier,
 			targetLabel:                 targetLabel,
@@ -1322,6 +1327,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				value, err := rc.computer.configureAttrValueParts(
 					rc.context,
 					rc.environment,
+					rc.starlarkValueEncoders,
 					thread,
 					model_core.Nested(subruleDefinition, namedAttr),
 					model_core.Nested(rc.ruleDefinition, []*model_starlark_pb.Value{defaultValue}),
@@ -1581,6 +1587,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		return c.getSingleFileConfiguredTargetValue(
 			ctx,
 			e,
+			valueReaders,
 			emptyDefaultInfo,
 			model_core.NewSimpleMessage[TReference](
 				&model_starlark_pb.File{
@@ -1709,6 +1716,7 @@ type ruleContext[TReference object.BasicReference, TMetadata model_core.Referenc
 	context                     context.Context
 	environment                 ConfiguredTargetEnvironment[TReference, TMetadata]
 	valueEncodingOptionsFactory *valueEncodingOptionsFactory[TReference, TMetadata]
+	starlarkValueEncoders       *StarlarkValueEncoders[TReference]
 	ruleIdentifier              label.CanonicalStarlarkIdentifier
 	targetLabel                 label.CanonicalLabel
 	configurationReference      model_core.Message[*model_core_pb.DecodableReference, TReference]

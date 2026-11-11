@@ -41,7 +41,12 @@ func getTargetPlatformInfoProvider[TReference object.BasicReference, TMetadata m
 	return platformInfoProvider, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeCompatibleToolchainsForTypeValue(ctx context.Context, key model_core.Message[*model_analysis_pb.CompatibleToolchainsForType_Key, TReference], e CompatibleToolchainsForTypeEnvironment[TReference, TMetadata]) (PatchedCompatibleToolchainsForTypeValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeCompatibleToolchainsForTypeValue(ctx context.Context, key model_core.Message[*model_analysis_pb.CompatibleToolchainsForType_Key, TReference], e CompatibleToolchainsForTypeEnvironment[TReference, TMetadata]) (PatchedCompatibleToolchainsForTypeValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, err
+	}
+
 	registeredToolchains := e.GetRegisteredToolchainsForTypeValue(&model_analysis_pb.RegisteredToolchainsForType_Key{
 		ToolchainType: key.Message.ToolchainType,
 	})
@@ -55,11 +60,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompatibleToolchainsForType
 		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, err
 	}
 
-	constraintsValue, err := model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, platformInfoProvider, "constraints")
+	constraintsValue, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, platformInfoProvider, "constraints")
 	if err != nil {
 		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, fmt.Errorf("failed to obtain constraints field of PlatformInfo provider of target platform: %w", err)
 	}
-	constraints, err := c.extractFromPlatformInfoConstraints(ctx, constraintsValue)
+	constraints, err := extractFromPlatformInfoConstraints(ctx, valueReaders, constraintsValue)
 	if err != nil {
 		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, fmt.Errorf("failed to extract constraints from PlatformInfo provider of target platform: %w", err)
 	}

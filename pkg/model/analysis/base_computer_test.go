@@ -146,6 +146,17 @@ func (bct *baseComputerTester) expectGetFileAccessParametersObject(t *testing.T,
 	), true)
 }
 
+// newStarlarkValueEncoders creates the object that analysis functions
+// obtain from StarlarkValueEncoders, which tests can return when the
+// analysis function requests it.
+func (bct *baseComputerTester) newStarlarkValueEncoders() *model_analysis.StarlarkValueEncoders[model_core.CreatedObjectTree] {
+	return util.Must(bct.computer.ComputeStarlarkValueEncodersObject(
+		model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.StarlarkValueEncoders_Value{
+			FileAccessParameters: &model_filesystem_pb.FileAccessParameters{},
+		}),
+	))
+}
+
 // expectGetDirectoryAccessParametersObject can be called by tests to indicate
 // that the analysis function needs read access to directories.
 func (bct *baseComputerTester) expectGetDirectoryAccessParametersObject(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {

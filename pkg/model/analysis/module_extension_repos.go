@@ -139,6 +139,12 @@ func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRe
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepos_Key, e ModuleExtensionReposEnvironment[TReference, TMetadata]) (PatchedModuleExtensionReposValue[TMetadata], error) {
+	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
+	if err != nil {
+		return PatchedModuleExtensionReposValue[TMetadata]{}, err
+	}
+	valueReaders := &starlarkValueEncoders.Readers
+
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
 	if err != nil {
 		return PatchedModuleExtensionReposValue[TMetadata]{}, err
@@ -250,7 +256,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		}
 		moduleExtensionDefinition := v.ModuleExtension
 
-		thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+		thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
 		if err != nil {
 			return PatchedModuleExtensionReposValue[TMetadata]{}, err
 		}
@@ -259,7 +265,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		// this module extension.
 		moduleExtensionUsers := usedModuleExtension.GetUsers()
 		modules := make([]eval.Value, 0, len(moduleExtensionUsers))
-		listReader := c.valueReaders.List
+		listReader := valueReaders.List
 		tagClassAttrTypes := make([][]model_starlark.AttrType[TReference, TMetadata], len(moduleExtensionDefinition.TagClasses))
 		tagClassAttrDefaults := make([][]eval.Value, len(moduleExtensionDefinition.TagClasses))
 		for _, user := range moduleExtensionUsers {

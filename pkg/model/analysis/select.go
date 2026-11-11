@@ -21,6 +21,11 @@ import (
 var configSettingInfoProviderIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%ConfigSettingInfo"))
 
 func (c *baseComputer[TReference, TMetadata]) ComputeSelectValue(ctx context.Context, key model_core.Message[*model_analysis_pb.Select_Key, TReference], e SelectEnvironment[TReference, TMetadata]) (PatchedSelectValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedSelectValue[TMetadata]{}, err
+	}
+
 	fromPackage, err := label.NewCanonicalPackage(key.Message.FromPackage)
 	if err != nil {
 		return PatchedSelectValue[TMetadata]{}, fmt.Errorf("invalid package: %w", err)
@@ -52,11 +57,11 @@ CheckConditions:
 		}
 
 		// Check target platform constraints.
-		configSettingConstraintsField, err := model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, configSettingInfo, "constraints")
+		configSettingConstraintsField, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, configSettingInfo, "constraints")
 		if err != nil {
 			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to obtain \"constraints\" field of ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, err)
 		}
-		configSettingConstraints, err := c.extractFromPlatformInfoConstraints(ctx, configSettingConstraintsField)
+		configSettingConstraints, err := extractFromPlatformInfoConstraints(ctx, valueReaders, configSettingConstraintsField)
 		if err != nil {
 			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to extract constraints from ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, err)
 		}
@@ -71,11 +76,11 @@ CheckConditions:
 					return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to obtain PlatformInfo provider of target platform: %w", err)
 				}
 
-				platformConstraintsField, err := model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, platformInfo, "constraints")
+				platformConstraintsField, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, platformInfo, "constraints")
 				if err != nil {
 					return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to obtain constraints field of PlatformInfo provider of target platform: %w", err)
 				}
-				platformConstraints, err = c.extractFromPlatformInfoConstraints(ctx, platformConstraintsField)
+				platformConstraints, err = extractFromPlatformInfoConstraints(ctx, valueReaders, platformConstraintsField)
 				if err != nil {
 					return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to extract constraints from ConfigSettingInfo provider of target platform: %w", err)
 				}
@@ -89,7 +94,7 @@ CheckConditions:
 		}
 
 		// Check flag values.
-		flagValuesField, err := model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, configSettingInfo, "flag_values")
+		flagValuesField, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, configSettingInfo, "flag_values")
 		if err != nil {
 			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to obtain \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, err)
 		}
@@ -104,7 +109,7 @@ CheckConditions:
 		var errIter error
 		for key, value := range model_starlark.AllDictLeafEntries(
 			ctx,
-			c.valueReaders.Dict,
+			valueReaders.Dict,
 			model_core.Nested(flagValuesField, flagValuesDict.Dict),
 			&errIter,
 		) {
@@ -123,6 +128,7 @@ CheckConditions:
 			actualValue, err := c.getBuildSettingValue(
 				ctx,
 				e,
+				valueReaders,
 				configSettingLabel.GetCanonicalPackage(),
 				buildSettingLabel.Label,
 				configurationReference,
@@ -137,7 +143,7 @@ CheckConditions:
 
 			comparer := buildSettingValueComparer[TReference]{
 				context:       ctx,
-				listReader:    c.valueReaders.List,
+				listReader:    valueReaders.List,
 				fileReader:    fileReader,
 				labelResolver: labelResolver,
 				expectedValue: expectedValue,

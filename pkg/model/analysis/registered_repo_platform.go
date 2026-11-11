@@ -16,9 +16,10 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/storage/object"
 )
 
-func (c *baseComputer[TReference, TMetadata]) decodeStringDict(ctx context.Context, fileReader *model_filesystem.FileReader[TReference], d model_core.Message[*model_starlark_pb.Value, TReference]) (map[string]string, error) {
+func decodeStringDict[TReference object.BasicReference](ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], fileReader *model_filesystem.FileReader[TReference], d model_core.Message[*model_starlark_pb.Value, TReference]) (map[string]string, error) {
 	dict, ok := d.Message.GetKind().(*model_starlark_pb.Value_Dict)
 	if !ok {
 		return nil, errors.New("not a dict")
@@ -27,7 +28,7 @@ func (c *baseComputer[TReference, TMetadata]) decodeStringDict(ctx context.Conte
 	o := map[string]string{}
 	for key, value := range model_starlark.AllDictLeafEntries(
 		ctx,
-		c.valueReaders.Dict,
+		valueReaders.Dict,
 		model_core.Nested(d, dict.Dict),
 		&iterErr,
 	) {
@@ -53,7 +54,12 @@ func (c *baseComputer[TReference, TMetadata]) decodeStringDict(ctx context.Conte
 	return o, nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue(ctx context.Context, key *model_analysis_pb.RegisteredRepoPlatform_Key, e RegisteredRepoPlatformEnvironment[TReference, TMetadata]) (PatchedRegisteredRepoPlatformValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue(ctx context.Context, key *model_analysis_pb.RegisteredRepoPlatform_Key, e RegisteredRepoPlatformEnvironment[TReference, TMetadata]) (PatchedRegisteredRepoPlatformValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, err
+	}
+
 	// Obtain the label of the repo platform that was provided by
 	// the client through the --repo_platform command line flag.
 	buildSpecificationValue := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
@@ -108,7 +114,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue
 	var errIter error
 	for key, value := range model_starlark.AllStructFields(
 		ctx,
-		c.valueReaders.List,
+		valueReaders.List,
 		platformInfoProvider,
 		&errIter,
 	) {
@@ -135,7 +141,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue
 			}
 			repositoryOSArch = str
 		case "repository_os_environ":
-			p, err := c.decodeStringDict(ctx, fileReader, value)
+			p, err := decodeStringDict(ctx, valueReaders, fileReader, value)
 			if err != nil {
 				return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_environ field of PlatformInfo of repo platform %#v: %w", repoPlatformLabelStr, err)
 			}

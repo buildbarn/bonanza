@@ -98,7 +98,6 @@ type baseComputer[TReference object.BasicReference, TMetadata model_core.Referen
 	// Readers for various message types.
 	// TODO: These should likely be removed and instantiated later
 	// on, so that we can encrypt all data in storage.
-	valueReaders                        model_starlark.ValueReaders[TReference]
 	argsReader                          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args]
 	argsAddReader                       model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args_Leaf_Add]
 	buildSettingOverrideReader          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.BuildSettingOverride]
@@ -137,29 +136,6 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 		objectStoreSemaphore:     objectStoreSemaphore,
 		binaryEncoderFactory:     binaryEncoderFactory,
 
-		// TODO: Set up encoding!
-		valueReaders: model_starlark.ValueReaders[TReference]{
-			CompiledProgramFunctions: model_parser.LookupParsedObjectReader(
-				parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.CompiledProgram_FunctionEntry](),
-			),
-			Dict: model_parser.LookupParsedObjectReader(
-				parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.Dict_Entry](),
-			),
-			List: model_parser.LookupParsedObjectReader(
-				parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.List_Element](),
-			),
-			PackageGroupOverrides: model_parser.LookupParsedObjectReader(
-				parsedObjectPoolIngester,
-				model_parser.NewProtoObjectParser[TReference, model_starlark_pb.PackageGroup_Subpackages_Overrides](),
-			),
-			TestSuiteTest: model_parser.LookupParsedObjectReader(
-				parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.TestSuite_Test](),
-			),
-		},
 		argsReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Args](),
@@ -296,42 +272,6 @@ func (f *valueEncodingOptionsFactory[TReference, TMetadata]) newValueEncodingOpt
 	}
 }
 
-// valueDecodingOptionsFactory can be used to create instances of
-// ValueDecodingOptions, whose dependencies have already been obtained
-// from the environment.
-type valueDecodingOptionsFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	computer *baseComputer[TReference, TMetadata]
-	readers  model_starlark.ValueReaders[TReference]
-}
-
-// newValueDecodingOptionsFactory creates a valueDecodingOptionsFactory,
-// obtaining all of its dependencies from the environment.
-func (c *baseComputer[TReference, TMetadata]) newValueDecodingOptionsFactory(e FileAccessParametersObjectGetter[TReference]) (*valueDecodingOptionsFactory[TReference, TMetadata], error) {
-	fileReader, err := getFileReader(e)
-	if err != nil {
-		return nil, err
-	}
-	// The file reader depends on parameters obtained from the
-	// environment, meaning it cannot be set on the readers that are
-	// shared by all evaluations.
-	readers := c.valueReaders
-	readers.FileReader = fileReader
-	return &valueDecodingOptionsFactory[TReference, TMetadata]{
-		computer: c,
-		readers:  readers,
-	}, nil
-}
-
-// newValueDecodingOptions creates ValueDecodingOptions that can be used
-// to decode Starlark values.
-func (f *valueDecodingOptionsFactory[TReference, TMetadata]) newValueDecodingOptions(labelCreator func(label.ResolvedLabel) (eval.Value, error)) *model_starlark.ValueDecodingOptions[TReference] {
-	return &model_starlark.ValueDecodingOptions[TReference]{
-		Readers:         &f.readers,
-		LabelCreator:    labelCreator,
-		BzlFileBuiltins: f.computer.bzlFileBuiltins,
-	}
-}
-
 func (c *baseComputer[TReference, TMetadata]) getInlinedTreeOptions() inlinedtree.Options {
 	return inlinedtree.Options{
 		ReferenceFormat:  c.referenceFormat,
@@ -349,7 +289,7 @@ type loadBzlGlobalsEnvironment[TReference any] interface {
 // getBzlGlobal returns the value of a global variable that is declared
 // in a .bzl file, which is compiled using a given set of builtins
 // modules.
-func (c *baseComputer[TReference, TMetadata]) getBzlGlobal(ctx context.Context, e CompiledBzlFileValueGetter[TReference], identifier label.CanonicalStarlarkIdentifier, builtinsModuleNames []string) (model_core.Message[*model_starlark_pb.Value, TReference], error) {
+func getBzlGlobal[TReference object.BasicReference](ctx context.Context, e CompiledBzlFileValueGetter[TReference], valueReaders *model_starlark.ValueReaders[TReference], identifier label.CanonicalStarlarkIdentifier, builtinsModuleNames []string) (model_core.Message[*model_starlark_pb.Value, TReference], error) {
 	compiledBzlFile := e.GetCompiledBzlFileValue(&model_analysis_pb.CompiledBzlFile_Key{
 		Label:               identifier.GetCanonicalLabel().String(),
 		BuiltinsModuleNames: builtinsModuleNames,
@@ -361,7 +301,7 @@ func (c *baseComputer[TReference, TMetadata]) getBzlGlobal(ctx context.Context, 
 	if _, ok := slices.BinarySearch(globals.Message.GetKeys(), identifier.GetStarlarkIdentifier().String()); !ok {
 		return model_core.Message[*model_starlark_pb.Value, TReference]{}, fmt.Errorf("file %#v does not contain global %#v", identifier.GetCanonicalLabel().String(), identifier.GetStarlarkIdentifier().String())
 	}
-	return model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, globals, identifier.GetStarlarkIdentifier().String())
+	return model_starlark.GetStructFieldValue(ctx, valueReaders.List, globals, identifier.GetStarlarkIdentifier().String())
 }
 
 // canonicalizeLoadLabel converts the label provided to a load()
@@ -446,7 +386,7 @@ func loadProgram[TReference object.BasicReference](e loadBzlGlobalsEnvironment[T
 // newBzlImporter returns a function that can be provided to
 // eval.NewInMemoryModule() to resolve the symbols that are loaded by a
 // .bzl or BUILD file. Symbols are only decoded when they are used.
-func (c *baseComputer[TReference, TMetadata]) newBzlImporter(ctx context.Context, e loadBzlGlobalsEnvironment[TReference], builtinsModuleNames []string) func(thread *eval.Thread, imp compile.Import) (eval.Value, error) {
+func newBzlImporter[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, e loadBzlGlobalsEnvironment[TReference], valueReaders *model_starlark.ValueReaders[TReference], builtinsModuleNames []string) func(thread *eval.Thread, imp compile.Import) (eval.Value, error) {
 	return func(thread *eval.Thread, imp compile.Import) (eval.Value, error) {
 		filename, err := label.NewCanonicalLabel(imp.Module)
 		if err != nil {
@@ -457,7 +397,7 @@ func (c *baseComputer[TReference, TMetadata]) newBzlImporter(ctx context.Context
 			return nil, err
 		}
 		identifier := filename.AppendStarlarkIdentifier(name)
-		value, err := c.getBzlGlobal(ctx, e, identifier, builtinsModuleNames)
+		value, err := getBzlGlobal(ctx, e, valueReaders, identifier, builtinsModuleNames)
 		if err != nil {
 			return nil, err
 		}
@@ -475,11 +415,6 @@ func formatStarlarkError(err error) error {
 		}
 	}
 	return err
-}
-
-type starlarkThreadEnvironment[TReference object.BasicReference] interface {
-	loadBzlGlobalsEnvironment[TReference]
-	FileAccessParametersObjectGetter[TReference]
 }
 
 // trimBuiltinModuleNames truncates the list of built-in module names up
@@ -501,26 +436,23 @@ func trimBuiltinModuleNames(builtinsModuleNames []string, module label.Module) [
 // CompiledBzlFile, while predeclared names are resolved against the
 // builtins of .bzl files, including the ones declared by builtins
 // modules. These builtins are only computed when needed.
-func (c *baseComputer[TReference, TMetadata]) newStarlarkThread(ctx context.Context, e starlarkThreadEnvironment[TReference], builtinsModuleNames []string) (*eval.Thread, error) {
-	decodingOptionsFactory, err := c.newValueDecodingOptionsFactory(e)
-	if err != nil {
-		return nil, err
-	}
+func (c *baseComputer[TReference, TMetadata]) newStarlarkThread(ctx context.Context, e loadBzlGlobalsEnvironment[TReference], starlarkValueEncoders *StarlarkValueEncoders[TReference], builtinsModuleNames []string) (*eval.Thread, error) {
+	valueReaders := &starlarkValueEncoders.Readers
 
 	thread := eval.NewThread(ctx, eval.Universe())
 	thread.MaximumLargeStringConversionBytes = maximumLargeStringSizeBytes
 	thread.SetLocal(model_starlark.LabelResolverKey, newLabelResolver(e))
-	thread.SetLocal(model_starlark.GlobalResolverKey, c.newGlobalResolver(ctx, e, builtinsModuleNames))
+	thread.SetLocal(model_starlark.GlobalResolverKey, newGlobalResolver(ctx, e, valueReaders, builtinsModuleNames))
 	thread.SetLocal(model_starlark.CompiledProgramResolverKey, newCompiledProgramResolver(e, builtinsModuleNames))
 
-	decodingOptions := decodingOptionsFactory.newValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
+	decodingOptions := starlarkValueEncoders.newValueDecodingOptions(func(resolvedLabel label.ResolvedLabel) (eval.Value, error) {
 		return model_starlark.NewLabel[TReference, TMetadata](resolvedLabel), nil
 	})
 	var bzlFileBuiltins map[string]eval.Value
 	decodingOptions.PredeclaredResolver = func(thread *eval.Thread, name string) (eval.Value, error) {
 		if bzlFileBuiltins == nil {
 			var err error
-			bzlFileBuiltins, err = c.getBzlFileBuiltins(thread, e, builtinsModuleNames)
+			bzlFileBuiltins, err = c.getBzlFileBuiltins(thread, e, valueReaders, builtinsModuleNames)
 			if err != nil {
 				return nil, err
 			}
@@ -535,6 +467,11 @@ func (c *baseComputer[TReference, TMetadata]) newStarlarkThread(ctx context.Cont
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx context.Context, key *model_analysis_pb.BuildResult_Key, e BuildResultEnvironment[TReference, TMetadata]) (PatchedBuildResultValue[TMetadata], error) {
+	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
+	if err != nil {
+		return PatchedBuildResultValue[TMetadata]{}, err
+	}
+
 	buildSpecificationMessage := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
 	if !buildSpecificationMessage.IsSet() {
 		return PatchedBuildResultValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -549,7 +486,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	rootRepo := rootModule.ToModuleInstance(nil).GetBareCanonicalRepo()
 	rootPackage := rootRepo.GetRootPackage()
 
-	thread, err := c.newStarlarkThread(ctx, e, buildSpecification.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, buildSpecification.BuiltinsModuleNames)
 	if err != nil {
 		return PatchedBuildResultValue[TMetadata]{}, err
 	}

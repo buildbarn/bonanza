@@ -12,7 +12,12 @@ import (
 	"bonanza.build/pkg/storage/object"
 )
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetCompletion_Key, TReference], e TargetCompletionEnvironment[TReference, TMetadata]) (PatchedTargetCompletionValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetCompletion_Key, TReference], e TargetCompletionEnvironment[TReference, TMetadata]) (PatchedTargetCompletionValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedTargetCompletionValue[TMetadata]{}, err
+	}
+
 	// TODO: This should also respect --output_groups.
 	defaultInfo, err := getProviderFromConfiguredTarget(
 		e,
@@ -24,7 +29,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx c
 		return PatchedTargetCompletionValue[TMetadata]{}, err
 	}
 
-	files, err := model_starlark.GetStructFieldValue(ctx, c.valueReaders.List, defaultInfo, "files")
+	files, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, defaultInfo, "files")
 	if err != nil {
 		return PatchedTargetCompletionValue[TMetadata]{}, err
 	}
@@ -37,7 +42,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx c
 	missingDependencies := false
 	for element := range model_starlark.AllListLeafElementsSkippingDuplicateParents(
 		ctx,
-		c.valueReaders.List,
+		valueReaders.List,
 		model_core.Nested(files, filesDepset.Depset.Elements),
 		map[model_core.Decodable[object.LocalReference]]struct{}{},
 		&errIter,

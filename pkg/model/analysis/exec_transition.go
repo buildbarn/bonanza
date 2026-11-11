@@ -118,6 +118,12 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ExecTransition_Key, TReference], e ExecTransitionEnvironment[TReference, TMetadata]) (PatchedExecTransitionValue[TMetadata], error) {
+	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
+	if err != nil {
+		return PatchedExecTransitionValue[TMetadata]{}, err
+	}
+	valueReaders := &starlarkValueEncoders.Readers
+
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
 	if err != nil {
 		return PatchedExecTransitionValue[TMetadata]{}, err
@@ -156,6 +162,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 	execConfigValue, err := c.getBuildSettingValue(
 		ctx,
 		e,
+		valueReaders,
 		rootPackage,
 		execConfigCommandLineOption,
 		inputConfigurationReference,
@@ -176,13 +183,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 	}
 
 	// Invoke the exec transition.
-	thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
 	if err != nil {
 		return PatchedExecTransitionValue[TMetadata]{}, err
 	}
 	expectedOutputs, outputsDict, err := c.performUserDefinedTransition(
 		ctx,
 		e,
+		valueReaders,
 		thread,
 		model_core.NewSimpleMessage[TReference](
 			&model_starlark_pb.Transition_UserDefined{

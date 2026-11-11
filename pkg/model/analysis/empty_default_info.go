@@ -15,6 +15,11 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx context.Context, key *model_analysis_pb.EmptyDefaultInfo_Key, e EmptyDefaultInfoEnvironment[TReference, TMetadata]) (PatchedEmptyDefaultInfoValue[TMetadata], error) {
+	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
+	if err != nil {
+		return PatchedEmptyDefaultInfoValue[TMetadata]{}, err
+	}
+
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
 	if err != nil {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, err
@@ -40,7 +45,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx c
 	}
 
 	// Call into the DefaultInfo provider to create a new instance.
-	thread, err := c.newStarlarkThread(ctx, e, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
 	if err != nil {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, err
 	}

@@ -34,25 +34,30 @@ var buildDotBazelTargetNames = []label.TargetName{
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Context, key *model_analysis_pb.Package_Key, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
+	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
+	if err != nil {
+		return PatchedPackageValue[TMetadata]{}, err
+	}
+
 	canonicalPackage, err := label.NewCanonicalPackage(key.Label)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid package label: %w", err)
 	}
 	if len(key.MacroInstanceName) > 0 {
-		value, err := c.computeMacroInstancePackageValue(ctx, canonicalPackage, key.MacroInstanceName, e)
+		value, err := c.computeMacroInstancePackageValue(ctx, canonicalPackage, key.MacroInstanceName, e, starlarkValueEncoders)
 		if err != nil && !errors.Is(err, evaluation.ErrMissingDependency) {
 			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("macro instance %#v: %w", strings.Join(key.MacroInstanceName, ""), err)
 		}
 		return value, err
 	}
-	return c.computeTopLevelPackageValue(ctx, canonicalPackage, e)
+	return c.computeTopLevelPackageValue(ctx, canonicalPackage, e, starlarkValueEncoders)
 }
 
 // computeTopLevelPackageValue computes the value of the Package key
 // for the top level of a package. It evaluates the package's
 // BUILD.bazel file to obtain the targets and macro instances declared
 // within.
-func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, e PackageEnvironment[TReference, TMetadata], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedPackageValue[TMetadata], error) {
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, err
@@ -70,11 +75,12 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 	}
 
 	builtinsModuleNames := allBuiltinsModulesNames.Message.BuiltinsModuleNames
-	thread, err := c.newStarlarkThread(ctx, e, builtinsModuleNames)
+	valueReaders := &starlarkValueEncoders.Readers
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, builtinsModuleNames)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, err
 	}
-	buildFileBuiltins, err := c.getBuildFileBuiltins(thread, e, builtinsModuleNames)
+	buildFileBuiltins, err := c.getBuildFileBuiltins(thread, e, valueReaders, builtinsModuleNames)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, err
 	}
@@ -157,11 +163,11 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 		defer targetRegistrar.Discard()
 		thread.SetLocal(model_starlark.TargetRegistrarKey, targetRegistrar)
 
-		thread.SetLocal(model_starlark.GlobalResolverKey, c.newGlobalResolver(ctx, e, builtinsModuleNames))
+		thread.SetLocal(model_starlark.GlobalResolverKey, newGlobalResolver(ctx, e, valueReaders, builtinsModuleNames))
 
 		// Execute the BUILD.bazel file, so that all targets
 		// contained within are instantiated.
-		module := eval.NewInMemoryModule(buildFileLabel.String(), buildFileBuiltins, c.newBzlImporter(ctx, e, builtinsModuleNames))
+		module := eval.NewInMemoryModule(buildFileLabel.String(), buildFileBuiltins, newBzlImporter[TReference, TMetadata](ctx, e, valueReaders, builtinsModuleNames))
 		if err := eval.ExecFile(thread, program, module); err != nil {
 			return PatchedPackageValue[TMetadata]{}, formatStarlarkError(err)
 		}
@@ -286,7 +292,7 @@ func (c *baseComputer[TReference, TMetadata]) buildPackageDeclarations(ctx conte
 // newGlobalResolver creates a function that can be used to look up the
 // values of globals declared in .bzl files. It is used to obtain the
 // definitions of rules and macros that are referenced by identifier.
-func (c *baseComputer[TReference, TMetadata]) newGlobalResolver(ctx context.Context, e CompiledBzlFileValueGetter[TReference], builtinsModuleNames []string) model_starlark.GlobalResolver[TReference] {
+func newGlobalResolver[TReference object.BasicReference](ctx context.Context, e CompiledBzlFileValueGetter[TReference], valueReaders *model_starlark.ValueReaders[TReference], builtinsModuleNames []string) model_starlark.GlobalResolver[TReference] {
 	return func(identifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, TReference], error) {
 		canonicalLabel := identifier.GetCanonicalLabel()
 		compiledBzlFile := e.GetCompiledBzlFileValue(&model_analysis_pb.CompiledBzlFile_Key{
@@ -298,7 +304,7 @@ func (c *baseComputer[TReference, TMetadata]) newGlobalResolver(ctx context.Cont
 		}
 		return model_starlark.GetStructFieldValue(
 			ctx,
-			c.valueReaders.List,
+			valueReaders.List,
 			model_core.Nested(compiledBzlFile, compiledBzlFile.Message.CompiledProgram.GetGlobals()),
 			identifier.GetStarlarkIdentifier().String(),
 		)
@@ -426,7 +432,7 @@ func (r *existingRulesResolver[TReference, TMetadata]) ForEachExistingRule(yield
 // key for a macro instance. It invokes the macro's implementation
 // function to obtain the targets and macro instances declared by the
 // macro instance.
-func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, macroInstanceNameSuffixes []string, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, macroInstanceNameSuffixes []string, e PackageEnvironment[TReference, TMetadata], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedPackageValue[TMetadata], error) {
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, err
@@ -473,14 +479,15 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	}
 
 	builtinsModuleNames := allBuiltinsModulesNames.Message.BuiltinsModuleNames
-	thread, err := c.newStarlarkThread(ctx, e, builtinsModuleNames)
+	valueReaders := &starlarkValueEncoders.Readers
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, builtinsModuleNames)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, err
 	}
 	thread.SetLocal(model_starlark.CanonicalPackageKey, canonicalPackage)
 	valueEncodingOptions := valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil)
 	thread.SetLocal(model_starlark.ValueEncodingOptionsKey, valueEncodingOptions)
-	thread.SetLocal(model_starlark.GlobalResolverKey, c.newGlobalResolver(ctx, e, builtinsModuleNames))
+	thread.SetLocal(model_starlark.GlobalResolverKey, newGlobalResolver(ctx, e, valueReaders, builtinsModuleNames))
 	if rootMacroInstanceDefinition.Message.Finalizer == model_starlark_pb.MacroInstance_FINALIZER {
 		// Finalizers may observe the targets in the package
 		// that are not declared by finalizers.

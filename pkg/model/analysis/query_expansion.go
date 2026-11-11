@@ -343,10 +343,10 @@ func getQueryRuleTarget[TReference any](
 // As the list of tests of a test suite is stored as a B-tree, it needs
 // to be loaded into memory to provide it as the value of the "tests"
 // attribute.
-func (c *baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx context.Context, targetLabel label.CanonicalLabel, testSuite model_core.Message[*model_starlark_pb.TestSuite, TReference]) (*queryRuleTarget[TReference], error) {
+func (*baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], targetLabel label.CanonicalLabel, testSuite model_core.Message[*model_starlark_pb.TestSuite, TReference]) (*queryRuleTarget[TReference], error) {
 	var tests []string
 	var errIter error
-	for test := range c.allTestSuiteTests(ctx, model_core.Nested(testSuite, testSuite.Message.Tests), &errIter) {
+	for test := range allTestSuiteTests(ctx, valueReaders, model_core.Nested(testSuite, testSuite.Message.Tests), &errIter) {
 		tests = append(tests, test)
 	}
 	if errIter != nil {
@@ -396,7 +396,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx contex
 // visitQueryAttrLabels calls a function for each label contained in
 // all possible values of an attribute, and optionally the labels of
 // the conditions of select() expressions.
-func (c *baseComputer[TReference, TMetadata]) visitQueryAttrLabels(ctx context.Context, attr *queryAttr[TReference], includeConditions bool, visitor model_starlark.LabelVisitor) error {
+func visitQueryAttrLabels[TReference object.BasicReference](ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], attr *queryAttr[TReference], includeConditions bool, visitor model_starlark.LabelVisitor) error {
 	if includeConditions {
 		for _, conditionLabel := range attr.conditionLabels {
 			resolvedLabel, err := label.NewResolvedLabel(conditionLabel)
@@ -410,7 +410,7 @@ func (c *baseComputer[TReference, TMetadata]) visitQueryAttrLabels(ctx context.C
 	}
 	for _, alternatives := range attr.parts {
 		for _, alternative := range alternatives {
-			if err := model_starlark.VisitAttrValueLabels(ctx, &c.valueReaders, alternative, visitor); err != nil {
+			if err := model_starlark.VisitAttrValueLabels(ctx, valueReaders, alternative, visitor); err != nil {
 				return err
 			}
 		}
@@ -438,7 +438,7 @@ func (s *queryValueString) String() string {
 // dicts are converted to "{a=b, c=d}", labels are converted to
 // canonical labels, and Booleans are converted to "0" and "1". It
 // returns false if the value has no string representation.
-func (c *baseComputer[TReference, TMetadata]) stringifyQueryValue(ctx context.Context, fileReader *model_filesystem.FileReader[TReference], value model_core.Message[*model_starlark_pb.Value, TReference]) (queryValueString, bool, error) {
+func (c *baseComputer[TReference, TMetadata]) stringifyQueryValue(ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], fileReader *model_filesystem.FileReader[TReference], value model_core.Message[*model_starlark_pb.Value, TReference]) (queryValueString, bool, error) {
 	switch kind := value.Message.GetKind().(type) {
 	case *model_starlark_pb.Value_Bool:
 		if kind.Bool {
@@ -464,8 +464,8 @@ func (c *baseComputer[TReference, TMetadata]) stringifyQueryValue(ctx context.Co
 	case *model_starlark_pb.Value_List:
 		s := queryValueString{isList: true}
 		var errIter error
-		for element := range model_starlark.AllListLeafElements(ctx, c.valueReaders.List, model_core.Nested(value, kind.List.Elements), &errIter) {
-			elementString, ok, err := c.stringifyQueryValue(ctx, fileReader, element)
+		for element := range model_starlark.AllListLeafElements(ctx, valueReaders.List, model_core.Nested(value, kind.List.Elements), &errIter) {
+			elementString, ok, err := c.stringifyQueryValue(ctx, valueReaders, fileReader, element)
 			if err != nil || !ok {
 				return queryValueString{}, ok, err
 			}
@@ -475,12 +475,12 @@ func (c *baseComputer[TReference, TMetadata]) stringifyQueryValue(ctx context.Co
 	case *model_starlark_pb.Value_Dict:
 		var entries []string
 		var errIter error
-		for key, value := range model_starlark.AllDictLeafEntries(ctx, c.valueReaders.Dict, model_core.Nested(value, kind.Dict), &errIter) {
-			keyString, ok, err := c.stringifyQueryValue(ctx, fileReader, key)
+		for key, value := range model_starlark.AllDictLeafEntries(ctx, valueReaders.Dict, model_core.Nested(value, kind.Dict), &errIter) {
+			keyString, ok, err := c.stringifyQueryValue(ctx, valueReaders, fileReader, key)
 			if err != nil || !ok {
 				return queryValueString{}, ok, err
 			}
-			valueString, ok, err := c.stringifyQueryValue(ctx, fileReader, value)
+			valueString, ok, err := c.stringifyQueryValue(ctx, valueReaders, fileReader, value)
 			if err != nil || !ok {
 				return queryValueString{}, ok, err
 			}
@@ -503,14 +503,14 @@ const maximumQueryAttrStrings = 1000
 
 // stringifyQueryAttr returns string representations of all possible
 // values of an attribute.
-func (c *baseComputer[TReference, TMetadata]) stringifyQueryAttr(ctx context.Context, fileReader *model_filesystem.FileReader[TReference], attr *queryAttr[TReference]) ([]string, error) {
+func (c *baseComputer[TReference, TMetadata]) stringifyQueryAttr(ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], fileReader *model_filesystem.FileReader[TReference], attr *queryAttr[TReference]) ([]string, error) {
 	// Compute the cartesian product of the values of all parts,
 	// concatenating them.
 	combinations := []queryValueString{{}}
 	for i, alternatives := range attr.parts {
 		var newCombinations []queryValueString
 		for _, alternative := range alternatives {
-			alternativeString, ok, err := c.stringifyQueryValue(ctx, fileReader, alternative)
+			alternativeString, ok, err := c.stringifyQueryValue(ctx, valueReaders, fileReader, alternative)
 			if err != nil {
 				return nil, err
 			}
@@ -737,7 +737,7 @@ func getPerTargetQueryOperand(expression label.QueryExpression[label.CanonicalTa
 // applyPerTargetQueryExpression evaluates a query expression that
 // processes targets individually, given the labels of the targets
 // yielded by its operand.
-func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], expression label.QueryExpression[label.CanonicalTargetPattern], labels []label.CanonicalLabel) (labelSet, error) {
+func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], valueReaders *model_starlark.ValueReaders[TReference], expression label.QueryExpression[label.CanonicalTargetPattern], labels []label.CanonicalLabel) (labelSet, error) {
 	switch expression := expression.(type) {
 	case *label.QueryFilter[label.CanonicalTargetPattern]:
 		pattern, err := regexp.Compile(expression.Pattern)
@@ -783,8 +783,8 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 			return nil, err
 		}
 		results := labelSet{}
-		if err := c.forEachQueryRuleTargetAttr(ctx, e, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
-			attrStrings, err := c.stringifyQueryAttr(ctx, fileReader, attr)
+		if err := c.forEachQueryRuleTargetAttr(ctx, e, valueReaders, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
+			attrStrings, err := c.stringifyQueryAttr(ctx, valueReaders, fileReader, attr)
 			if err != nil {
 				return err
 			}
@@ -1071,7 +1071,7 @@ const queryStreamingBatchSize = 1000
 // sorted if the results of their operands are sorted, such as
 // expressions that process targets individually, some(), siblings()
 // and visible().
-func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], valueReaders *model_starlark.ValueReaders[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
 	expressions := query.GetExpressions()
 	expression := expressions[len(expressions)-1]
 
@@ -1112,7 +1112,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 
 	var operand int
 	applyToBatch := func(batch []label.CanonicalLabel) (labelSet, error) {
-		return c.applyPerTargetQueryExpression(ctx, e, expression, batch)
+		return c.applyPerTargetQueryExpression(ctx, e, valueReaders, expression, batch)
 	}
 	missingDependencies := false
 	switch expr := expression.(type) {
@@ -1264,7 +1264,7 @@ func (c *baseComputer[TReference, TMetadata]) pushQueryPackageTargets(ctx contex
 // computed without loading them into memory (e.g., deps()). Other
 // expressions are evaluated by expandQuerySet(),
 // expandQuerySetOperation() and expandQueryStreaming().
-func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (labelSet, error) {
+func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], valueReaders *model_starlark.ValueReaders[TReference], query label.Query[label.CanonicalTargetPattern], includeImplicitDeps bool) (labelSet, error) {
 	expressions := query.GetExpressions()
 	getOperand := func(operand int) ([]label.CanonicalLabel, error) {
 		return c.getQueryLabels(ctx, e, query.GetSubquery(operand), includeImplicitDeps)
@@ -1329,8 +1329,8 @@ func (c *baseComputer[TReference, TMetadata]) evaluateQuery(ctx context.Context,
 			return nil, err
 		}
 		results := labelSet{}
-		if err := c.forEachQueryRuleTargetAttr(ctx, e, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
-			return c.visitQueryAttrLabels(ctx, attr, false, func(attrLabel label.ResolvedLabel) error {
+		if err := c.forEachQueryRuleTargetAttr(ctx, e, valueReaders, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {
+			return visitQueryAttrLabels(ctx, valueReaders, attr, false, func(attrLabel label.ResolvedLabel) error {
 				canonicalLabel, err := canonicalizeResolvedQueryLabel(attrLabel)
 				if err != nil {
 					return err
@@ -1365,7 +1365,7 @@ type forEachQueryRuleTargetAttrEnvironment[TReference any] interface {
 
 // forEachQueryRuleTargetAttr calls a function for each rule target in
 // a set of targets that has an attribute with a given name.
-func (c *baseComputer[TReference, TMetadata]) forEachQueryRuleTargetAttr(ctx context.Context, e forEachQueryRuleTargetAttrEnvironment[TReference], labels []label.CanonicalLabel, attrName string, f func(l label.CanonicalLabel, attr *queryAttr[TReference]) error) error {
+func (c *baseComputer[TReference, TMetadata]) forEachQueryRuleTargetAttr(ctx context.Context, e forEachQueryRuleTargetAttrEnvironment[TReference], valueReaders *model_starlark.ValueReaders[TReference], labels []label.CanonicalLabel, attrName string, f func(l label.CanonicalLabel, attr *queryAttr[TReference]) error) error {
 	definitions, err := getQueryTargetDefinitions(e, labels)
 	if err != nil {
 		return err
@@ -1378,7 +1378,7 @@ func (c *baseComputer[TReference, TMetadata]) forEachQueryRuleTargetAttr(ctx con
 		case *model_starlark_pb.Target_Definition_RuleTarget:
 			t, err = getQueryRuleTarget(e, labels[i], model_core.Nested(definition, kind.RuleTarget))
 		case *model_starlark_pb.Target_Definition_TestSuite:
-			t, err = c.getQueryTestSuiteTarget(ctx, labels[i], model_core.Nested(definition, kind.TestSuite))
+			t, err = c.getQueryTestSuiteTarget(ctx, valueReaders, labels[i], model_core.Nested(definition, kind.TestSuite))
 		default:
 			continue
 		}
@@ -1930,6 +1930,11 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryTests(ctx context.Conte
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx context.Context, key *model_analysis_pb.QueryExpansion_Key, e QueryExpansionEnvironment[TReference, TMetadata]) (PatchedQueryExpansionValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedQueryExpansionValue[TMetadata]{}, err
+	}
+
 	query, err := label.NewQuery(key.Query, label.NewCanonicalTargetPattern)
 	if err != nil {
 		return PatchedQueryExpansionValue[TMetadata]{}, fmt.Errorf("invalid query: %w", err)
@@ -1958,7 +1963,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx con
 			targetLabels, err = c.expandQueryPerPackage(ctx, e, query, base.canonicalPackage, base.includeFileTargets, nil)
 		} else {
 			var labels labelSet
-			labels, err = c.evaluateSinglePackageQuery(ctx, e, query, base.canonicalPackage)
+			labels, err = c.evaluateSinglePackageQuery(ctx, e, valueReaders, query, base.canonicalPackage)
 			if err == nil {
 				targetLabels, err = c.buildTargetLabels(ctx, e, labels)
 			}
@@ -1968,10 +1973,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx con
 	} else if tests, ok := expressions[len(expressions)-1].(*label.QueryTests[label.CanonicalTargetPattern]); ok {
 		targetLabels, err = c.expandQueryTests(ctx, e, query.GetSubquery(tests.Expression), key.IncludeImplicitDeps)
 	} else if isStreamingQueryExpression(expressions[len(expressions)-1]) {
-		targetLabels, err = c.expandQueryStreaming(ctx, e, query, key.IncludeImplicitDeps)
+		targetLabels, err = c.expandQueryStreaming(ctx, e, valueReaders, query, key.IncludeImplicitDeps)
 	} else {
 		var labels labelSet
-		labels, err = c.evaluateQuery(ctx, e, query, key.IncludeImplicitDeps)
+		labels, err = c.evaluateQuery(ctx, e, valueReaders, query, key.IncludeImplicitDeps)
 		if err == nil {
 			targetLabels, err = c.buildTargetLabels(ctx, e, labels)
 		}
@@ -2357,7 +2362,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackage(ctx context.
 // getPerPackageQueryBase() returns a base that is not recursive in
 // memory. As the query only processes the targets in a single package,
 // the amount of memory needed is bounded by the size of the package.
-func (c *baseComputer[TReference, TMetadata]) evaluateSinglePackageQuery(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], query label.Query[label.CanonicalTargetPattern], canonicalPackage label.CanonicalPackage) (labelSet, error) {
+func (c *baseComputer[TReference, TMetadata]) evaluateSinglePackageQuery(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], valueReaders *model_starlark.ValueReaders[TReference], query label.Query[label.CanonicalTargetPattern], canonicalPackage label.CanonicalPackage) (labelSet, error) {
 	packageTargets, packageRuleTargets, err := c.getQueryPackageTargets(ctx, e, canonicalPackage)
 	if err != nil {
 		return nil, err
@@ -2397,7 +2402,7 @@ func (c *baseComputer[TReference, TMetadata]) evaluateSinglePackageQuery(ctx con
 			if results[expr.Expression] == nil {
 				continue
 			}
-			result, err := c.applyPerTargetQueryExpression(ctx, e, expression, results[expr.Expression].sorted())
+			result, err := c.applyPerTargetQueryExpression(ctx, e, valueReaders, expression, results[expr.Expression].sorted())
 			if err != nil {
 				if !errors.Is(err, evaluation.ErrMissingDependency) {
 					return nil, err
@@ -2411,7 +2416,7 @@ func (c *baseComputer[TReference, TMetadata]) evaluateSinglePackageQuery(ctx con
 			if results[operand] == nil {
 				continue
 			}
-			result, err := c.applyPerTargetQueryExpression(ctx, e, expression, results[operand].sorted())
+			result, err := c.applyPerTargetQueryExpression(ctx, e, valueReaders, expression, results[operand].sorted())
 			if err != nil {
 				if !errors.Is(err, evaluation.ErrMissingDependency) {
 					return nil, err

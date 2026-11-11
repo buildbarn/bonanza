@@ -15,6 +15,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/starlark/resolve"
+	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 
@@ -55,6 +56,12 @@ func (c *baseComputer[TReference, TMetadata]) getReferenceEqualIdentifierGenerat
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFile_Key, e CompiledBzlFileEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileValue[TMetadata], error) {
+	starlarkValueEncoders, err := getStarlarkValueEncoders(e)
+	if err != nil {
+		return PatchedCompiledBzlFileValue[TMetadata]{}, err
+	}
+	valueReaders := &starlarkValueEncoders.Readers
+
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
@@ -67,7 +74,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	canonicalPackage := canonicalLabel.GetCanonicalPackage()
 	canonicalRepo := canonicalPackage.GetCanonicalRepo()
 
-	thread, err := c.newStarlarkThread(ctx, e, key.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, key.BuiltinsModuleNames)
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
@@ -77,7 +84,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 		Path:          canonicalLabel.GetRepoRelativePath(),
 	})
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
-	bzlFileBuiltins, bzlFileBuiltinsErr := c.getBzlFileBuiltins(thread, e, key.BuiltinsModuleNames)
+	bzlFileBuiltins, bzlFileBuiltinsErr := c.getBzlFileBuiltins(thread, e, valueReaders, key.BuiltinsModuleNames)
 	if !bzlFileProperties.IsSet() || !gotFileReader {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -110,7 +117,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	}
 	thread.SetLocal(model_starlark.ReferenceEqualIdentifierGeneratorKey, identifierGenerator)
 
-	module := model_starlark.NewBzlModule(canonicalLabel, bzlFileBuiltins, c.newBzlImporter(ctx, e, key.BuiltinsModuleNames))
+	module := model_starlark.NewBzlModule(canonicalLabel, bzlFileBuiltins, newBzlImporter[TReference, TMetadata](ctx, e, valueReaders, key.BuiltinsModuleNames))
 	if err := eval.ExecFile(thread, program, module); err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, formatStarlarkError(err)
 	}
@@ -127,7 +134,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	})
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFileGlobal_Key, e CompiledBzlFileGlobalEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileGlobalValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFileGlobal_Key, e CompiledBzlFileGlobalEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileGlobalValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, err
+	}
+
 	identifier, err := label.NewCanonicalStarlarkIdentifier(key.Identifier)
 	if err != nil {
 		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, fmt.Errorf("invalid identifier: %w", err)
@@ -148,7 +160,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(
 
 	global, err := model_starlark.GetStructFieldValue(
 		ctx,
-		c.valueReaders.List,
+		valueReaders.List,
 		model_core.Nested(compiledBzlFile, compiledBzlFile.Message.CompiledProgram.GetGlobals()),
 		identifier.GetStarlarkIdentifier().String(),
 	)
@@ -170,7 +182,7 @@ var exportsBzlTargetName = util.Must(label.NewTargetName("exports.bzl"))
 // forEachBuiltinsModuleExport calls a function for each entry of a dict
 // that is exported by the exports.bzl file of each builtins module. The
 // values of the dicts are decoded on the provided thread.
-func (c *baseComputer[TReference, TMetadata]) forEachBuiltinsModuleExport(thread *eval.Thread, e CompiledBzlFileValueGetter[TReference], builtinsModuleNames []string, globalName string, yield func(name string, value eval.Value)) error {
+func forEachBuiltinsModuleExport[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, e CompiledBzlFileValueGetter[TReference], valueReaders *model_starlark.ValueReaders[TReference], builtinsModuleNames []string, globalName string, yield func(name string, value eval.Value)) error {
 	missingDependencies := false
 	for i, builtinsModuleNameStr := range builtinsModuleNames {
 		builtinsModuleName, err := label.NewModule(builtinsModuleNameStr)
@@ -183,7 +195,7 @@ func (c *baseComputer[TReference, TMetadata]) forEachBuiltinsModuleExport(thread
 			GetRootPackage().
 			AppendTargetName(exportsBzlTargetName)
 		identifier := exportsFile.AppendStarlarkIdentifier(util.Must(label.NewStarlarkIdentifier(globalName)))
-		encodedValue, err := c.getBzlGlobal(thread.Context(), e, identifier, builtinsModuleNames[:i])
+		encodedValue, err := getBzlGlobal(thread.Context(), e, valueReaders, identifier, builtinsModuleNames[:i])
 		if err != nil {
 			if errors.Is(err, evaluation.ErrMissingDependency) {
 				missingDependencies = true
@@ -226,15 +238,15 @@ func (c *baseComputer[TReference, TMetadata]) forEachBuiltinsModuleExport(thread
 // getBzlFileBuiltins returns the names that are predeclared by .bzl
 // files. In addition to the builtins provided by Bonanza, these include
 // the ones exported by builtins modules.
-func (c *baseComputer[TReference, TMetadata]) getBzlFileBuiltins(thread *eval.Thread, e CompiledBzlFileValueGetter[TReference], builtinsModuleNames []string) (map[string]eval.Value, error) {
+func (c *baseComputer[TReference, TMetadata]) getBzlFileBuiltins(thread *eval.Thread, e CompiledBzlFileValueGetter[TReference], valueReaders *model_starlark.ValueReaders[TReference], builtinsModuleNames []string) (map[string]eval.Value, error) {
 	allToplevels := maps.Clone(c.bzlFileBuiltins)
-	if err := c.forEachBuiltinsModuleExport(thread, e, builtinsModuleNames, "exported_toplevels", func(name string, value eval.Value) {
+	if err := forEachBuiltinsModuleExport[TReference, TMetadata](thread, e, valueReaders, builtinsModuleNames, "exported_toplevels", func(name string, value eval.Value) {
 		allToplevels[name] = value
 	}); err != nil {
 		return nil, err
 	}
 	newNative := map[string]any{}
-	if err := c.forEachBuiltinsModuleExport(thread, e, builtinsModuleNames, "exported_rules", func(name string, value eval.Value) {
+	if err := forEachBuiltinsModuleExport[TReference, TMetadata](thread, e, valueReaders, builtinsModuleNames, "exported_rules", func(name string, value eval.Value) {
 		newNative[name] = value
 	}); err != nil {
 		return nil, err
@@ -257,9 +269,9 @@ func (c *baseComputer[TReference, TMetadata]) getBzlFileBuiltins(thread *eval.Th
 // getBuildFileBuiltins returns the names that are predeclared by BUILD
 // files. In addition to the builtins provided by Bonanza, these include
 // the rules exported by builtins modules.
-func (c *baseComputer[TReference, TMetadata]) getBuildFileBuiltins(thread *eval.Thread, e CompiledBzlFileValueGetter[TReference], builtinsModuleNames []string) (map[string]eval.Value, error) {
+func (c *baseComputer[TReference, TMetadata]) getBuildFileBuiltins(thread *eval.Thread, e CompiledBzlFileValueGetter[TReference], valueReaders *model_starlark.ValueReaders[TReference], builtinsModuleNames []string) (map[string]eval.Value, error) {
 	allRules := maps.Clone(c.buildFileBuiltins)
-	if err := c.forEachBuiltinsModuleExport(thread, e, builtinsModuleNames, "exported_rules", func(name string, value eval.Value) {
+	if err := forEachBuiltinsModuleExport[TReference, TMetadata](thread, e, valueReaders, builtinsModuleNames, "exported_rules", func(name string, value eval.Value) {
 		allRules[name] = value
 	}); err != nil {
 		return nil, err

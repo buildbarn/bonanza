@@ -14,16 +14,17 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+	"bonanza.build/pkg/storage/object"
 )
 
 // allTestSuiteTests returns the labels of the tests and test suites
 // that are listed in the "tests" attribute of a test suite. As this
 // list may be large, it is stored as a B-tree.
-func (c *baseComputer[TReference, TMetadata]) allTestSuiteTests(ctx context.Context, tests model_core.Message[[]*model_starlark_pb.TestSuite_Test, TReference], errOut *error) iter.Seq[string] {
+func allTestSuiteTests[TReference object.BasicReference](ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], tests model_core.Message[[]*model_starlark_pb.TestSuite_Test, TReference], errOut *error) iter.Seq[string] {
 	return func(yield func(string) bool) {
 		for entry := range btree.AllLeaves(
 			ctx,
-			c.valueReaders.TestSuiteTest,
+			valueReaders.TestSuiteTest,
 			tests,
 			func(entry model_core.Message[*model_starlark_pb.TestSuite_Test, TReference]) (*model_core_pb.DecodableReference, error) {
 				return entry.Message.GetParent().GetReference(), nil
@@ -58,6 +59,11 @@ func newTargetLabelLeaves[TReference any](labels labelSet) model_core.Message[[]
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx context.Context, key *model_analysis_pb.TestSuiteTests_Key, e TestSuiteTestsEnvironment[TReference, TMetadata]) (PatchedTestSuiteTestsValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedTestSuiteTestsValue[TMetadata]{}, err
+	}
+
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{Label: key.Label})
 	if !targetValue.IsSet() {
 		return PatchedTestSuiteTestsValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -118,7 +124,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx con
 		return nil
 	}
 	var errIter error
-	for testLabelStr := range c.allTestSuiteTests(ctx, model_core.Nested(targetValue, testSuite.Tests), &errIter) {
+	for testLabelStr := range allTestSuiteTests(ctx, valueReaders, model_core.Nested(targetValue, testSuite.Tests), &errIter) {
 		testLabel, err := canonicalizeQueryLabel(testLabelStr)
 		if err != nil {
 			return PatchedTestSuiteTestsValue[TMetadata]{}, err

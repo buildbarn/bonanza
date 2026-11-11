@@ -100,14 +100,19 @@ func addFileToChangeTrackingDirectory[TReference object.BasicReference, TMetadat
 	return nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.FilesRoot_Key, TReference], e FilesRootEnvironment[TReference, TMetadata]) (PatchedFilesRootValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.FilesRoot_Key, TReference], e FilesRootEnvironment[TReference, TMetadata]) (PatchedFilesRootValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedFilesRootValue[TMetadata]{}, err
+	}
+
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	if !gotDirectoryCreationParameters || !gotDirectoryReaders {
 		return PatchedFilesRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	files, err := model_parser.Dereference(ctx, c.valueReaders.List, model_core.Nested(key, key.Message.ListReference))
+	files, err := model_parser.Dereference(ctx, valueReaders.List, model_core.Nested(key, key.Message.ListReference))
 	if err != nil {
 		return PatchedFilesRootValue[TMetadata]{}, err
 	}

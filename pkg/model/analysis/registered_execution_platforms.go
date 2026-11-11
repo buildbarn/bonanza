@@ -27,6 +27,7 @@ type registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference objec
 	computer              *baseComputer[TReference, TMetadata]
 	context               context.Context
 	environment           RegisteredExecutionPlatformsEnvironment[TReference, TMetadata]
+	valueReaders          *model_starlark.ValueReaders[TReference]
 	labelResolver         label.Resolver
 	moduleInstance        label.ModuleInstance
 	ignoreDevDependencies bool
@@ -41,7 +42,7 @@ func (registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMe
 	return nil
 }
 
-func (c *baseComputer[TReference, TMetadata]) extractFromPlatformInfoConstraints(ctx context.Context, value model_core.Message[*model_starlark_pb.Value, TReference]) ([]*model_analysis_pb.Constraint, error) {
+func extractFromPlatformInfoConstraints[TReference object.BasicReference](ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], value model_core.Message[*model_starlark_pb.Value, TReference]) ([]*model_analysis_pb.Constraint, error) {
 	dict, ok := value.Message.Kind.(*model_starlark_pb.Value_Dict)
 	if !ok {
 		return nil, errors.New("constraints field of PlatformInfo")
@@ -50,7 +51,7 @@ func (c *baseComputer[TReference, TMetadata]) extractFromPlatformInfoConstraints
 	constraints := map[string]string{}
 	for key, value := range model_starlark.AllDictLeafEntries(
 		ctx,
-		c.valueReaders.Dict,
+		valueReaders.Dict,
 		model_core.Nested(value, dict.Dict),
 		&iterErr,
 	) {
@@ -79,7 +80,7 @@ func (c *baseComputer[TReference, TMetadata]) extractFromPlatformInfoConstraints
 
 func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMetadata]) RegisterExecutionPlatforms(platformTargetPatterns []label.ApparentTargetPattern, devDependency bool) error {
 	if !devDependency || !h.ignoreDevDependencies {
-		listReader := h.computer.valueReaders.List
+		listReader := h.valueReaders.List
 		for _, apparentPlatformTargetPattern := range platformTargetPatterns {
 			canonicalPlatformTargetPattern, err := label.Canonicalize(h.labelResolver, h.moduleInstance.GetBareCanonicalRepo(), apparentPlatformTargetPattern)
 			if err != nil {
@@ -119,7 +120,7 @@ func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, 
 				) {
 					switch key {
 					case "constraints":
-						constraints, err = h.computer.extractFromPlatformInfoConstraints(h.context, value)
+						constraints, err = extractFromPlatformInfoConstraints(h.context, h.valueReaders, value)
 						if err != nil {
 							return fmt.Errorf("failed to extract constraints from execution platform %#v: %w", canonicalPlatformLabelStr, err)
 						}
@@ -181,12 +182,18 @@ func (registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMe
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredExecutionPlatformsValue(ctx context.Context, key *model_analysis_pb.RegisteredExecutionPlatforms_Key, e RegisteredExecutionPlatformsEnvironment[TReference, TMetadata]) (PatchedRegisteredExecutionPlatformsValue[TMetadata], error) {
+	valueReaders, err := getStarlarkValueReaders(e)
+	if err != nil {
+		return PatchedRegisteredExecutionPlatformsValue[TMetadata]{}, err
+	}
+
 	var executionPlatforms []*model_analysis_pb.ExecutionPlatform
 	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler {
 		return &registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMetadata]{
 			computer:              c,
 			context:               ctx,
 			environment:           e,
+			valueReaders:          valueReaders,
 			labelResolver:         newLabelResolver(e),
 			moduleInstance:        moduleInstance,
 			ignoreDevDependencies: ignoreDevDependencies,
