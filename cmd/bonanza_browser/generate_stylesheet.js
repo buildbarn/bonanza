@@ -50,6 +50,23 @@ async function main() {
     .message-contents table.compact tr > :last-child:not([colspan]) {
       width: 100%;
     }
+
+    .text-lines {
+      flex-grow: 1;
+      min-width: max-content;
+      padding-left: 1rem;
+    }
+
+    .text-lines > span {
+      display: block;
+      min-height: 1lh;
+      /* Prevent horizontal scrolling when jumping to a line. */
+      scroll-margin-left: 100vw;
+    }
+
+    .text-lines > span:target {
+      background-color: rgb(255 255 255 / 0.15);
+    }
   `, {
     base: process.cwd(),
     onDependency(path) {},
@@ -110,6 +127,7 @@ async function main() {
     'overflow-x-hidden',
     'p-4',
     'rounded-box',
+    'select-none',
     'shadow-sm',
     'shadow',
     'space-x-4',
@@ -128,6 +146,7 @@ async function main() {
     'text-fuchsia-300',
     'text-gray-500',
     'text-left',
+    'text-lines',
     'text-neutral-content!',
     'text-neutral-content',
     'text-primary-content',

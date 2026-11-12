@@ -2161,7 +2161,7 @@ func (textPayloadRenderer) render(r *http.Request, o model_core.Decodable[*objec
 
 	if utf8.Valid(decodedObject) {
 		// Fast path: byte slice is already valid UTF-8.
-		return []g.Node{h.Pre(g.Text(string(decodedObject)))}, usedEncoderIndex, nil
+		return renderTextWithLineNumbers(string(decodedObject)), usedEncoderIndex, nil
 	}
 
 	// Slow path: byte slice contains one or more invalid sequences.
@@ -2186,7 +2186,45 @@ func (textPayloadRenderer) render(r *http.Request, o model_core.Decodable[*objec
 		return renderErrorAlert(errors.New("object contains binary data, or the encoder configuration is incorrect")), usedEncoderIndex, nil
 	}
 
-	return []g.Node{h.Pre(g.Text(sb.String()))}, usedEncoderIndex, nil
+	return renderTextWithLineNumbers(sb.String()), usedEncoderIndex, nil
+}
+
+// renderTextWithLineNumbers renders plain text, prefixed with line
+// numbers. Line numbers are placed in a separate column, so that they
+// are not included when copying the text. Each line number is a link
+// to an anchor placed on the corresponding line of text, so that
+// individual lines can be referenced and highlighted.
+func renderTextWithLineNumbers(text string) []g.Node {
+	lines := strings.SplitAfter(text, "\n")
+	if lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
+
+	lineNumberNodes := make([]g.Node, 0, 2*len(lines)+1)
+	lineNumberNodes = append(lineNumberNodes, h.Class("text-right text-gray-500 select-none"))
+	lineNodes := make([]g.Node, 0, len(lines)+1)
+	lineNodes = append(lineNodes, h.Class("text-lines"))
+	for i, line := range lines {
+		lineNumber := strconv.Itoa(i + 1)
+		anchor := "L" + lineNumber
+		lineNumberNodes = append(
+			lineNumberNodes,
+			h.A(h.Href("#"+anchor), g.Text(lineNumber)),
+			g.Text("\n"),
+		)
+		lineNodes = append(
+			lineNodes,
+			h.Span(h.ID(anchor), g.Text(line)),
+		)
+	}
+
+	return []g.Node{
+		h.Div(
+			h.Class("flex"),
+			h.Pre(lineNumberNodes...),
+			h.Pre(lineNodes...),
+		),
+	}
 }
 
 // messagePayloadRenderer renders the decoded payload of an object,
