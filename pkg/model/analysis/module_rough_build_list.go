@@ -7,12 +7,12 @@ import (
 	"net/url"
 	"sort"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/ds"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
-	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
@@ -20,10 +20,6 @@ import (
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
-
-const moduleDotBazelFilename = "MODULE.bazel"
-
-var moduleDotBazelTargetName = util.Must(label.NewTargetName(moduleDotBazelFilename))
 
 type bazelDepCapturingModuleDotBazelHandler struct {
 	ignoreDevDependencies bool
@@ -53,11 +49,11 @@ func (bazelDepCapturingModuleDotBazelHandler) RegisterToolchains(toolchainTarget
 	return nil
 }
 
-func (bazelDepCapturingModuleDotBazelHandler) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
-	return moduledotbazel.NullModuleExtensionProxy, nil
+func (bazelDepCapturingModuleDotBazelHandler) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (dotbazel.ModuleExtensionProxy, error) {
+	return dotbazel.NullModuleExtensionProxy, nil
 }
 
-func (bazelDepCapturingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
+func (bazelDepCapturingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (dotbazel.RepoRuleProxy, error) {
 	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		return nil
 	}, nil
@@ -134,7 +130,7 @@ func parseOverridesList(overridesList []*model_analysis_pb.OverridesListModule) 
 }
 
 func getModuleDotBazelURL(registryURL string, module label.Module, moduleVersion label.ModuleVersion) (string, error) {
-	return url.JoinPath(registryURL, "modules", module.String(), moduleVersion.String(), moduleDotBazelFilename)
+	return url.JoinPath(registryURL, "modules", module.String(), moduleVersion.String(), dotbazel.ModuleFilename)
 }
 
 func (baseComputer[TReference, TMetadata]) ComputeModuleRoughBuildListValue(ctx context.Context, key *model_analysis_pb.ModuleRoughBuildList_Key, e ModuleRoughBuildListEnvironment[TReference, TMetadata]) (PatchedModuleRoughBuildListValue[TMetadata], error) {
@@ -254,15 +250,15 @@ ProcessModule:
 			dependencies:          map[label.Module]*label.ModuleVersion{},
 		}
 		ignoreDevDependencies = true
-		if err := moduledotbazel.Parse(
+		if err := dotbazel.ParseModule(
 			string(moduleFileData),
 			module.name.
 				ToModuleInstance(nil).
 				GetBareCanonicalRepo().
 				GetRootPackage().
-				AppendTargetName(moduleDotBazelTargetName),
+				AppendTargetName(dotbazel.ModuleTargetName),
 			nil,
-			moduledotbazel.NewOverrideIgnoringRootHandler(&handler),
+			dotbazel.NewOverrideIgnoringRootHandler(&handler),
 		); err != nil {
 			return PatchedModuleRoughBuildListValue[TMetadata]{}, formatStarlarkError(err)
 		}

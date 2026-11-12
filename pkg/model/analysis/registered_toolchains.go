@@ -7,12 +7,12 @@ import (
 	"maps"
 	"slices"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
-	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -304,11 +304,11 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 	return nil
 }
 
-func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
-	return moduledotbazel.NullModuleExtensionProxy, nil
+func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (dotbazel.ModuleExtensionProxy, error) {
+	return dotbazel.NullModuleExtensionProxy, nil
 }
 
-func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
+func (registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (dotbazel.RepoRuleProxy, error) {
 	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		return nil
 	}, nil
@@ -324,7 +324,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(c
 	if !gotAnalysisReaders || !gotValueReaders {
 		return PatchedRegisteredToolchainsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler {
+	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) dotbazel.ChildHandler {
 		return &registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadata]{
 			context:                    ctx,
 			computer:                   c,

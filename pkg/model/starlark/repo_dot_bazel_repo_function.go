@@ -9,97 +9,57 @@ import (
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/starlark/compile"
 	"bonanza.build/pkg/starlark/eval"
-	"bonanza.build/pkg/starlark/resolve"
-	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 )
 
 // DefaultInheritableAttrs contains the default values of the
 // inheritable attributes of rule targets. These are used when no
-// REPO.bazel file is present, and a BUILD file contains no call to
-// package().
+// REPO.bazel file is present, REPO.bazel contains no call to repo(),
+// and a BUILD file contains no call to package().
 var DefaultInheritableAttrs = model_starlark_pb.InheritableAttrs{
 	Visibility: &model_starlark_pb.PackageGroup{
 		Tree: &model_starlark_pb.PackageGroup_Subpackages{},
 	},
 }
 
-// ParseRepoDotBazel parses a REPO.bazel file that may be stored at the
-// root of a repository.
-func ParseRepoDotBazel[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
-	ctx context.Context,
-	contents string,
-	filename pg_label.CanonicalLabel,
+// NewRepoDotBazelRepoFunction creates an implementation of the repo()
+// function that may be invoked from within REPO.bazel files. Upon
+// invocation, the default inheritable attributes are extracted from
+// the arguments and stored in defaultAttrs. The function may only be
+// invoked once.
+//
+// The resulting function is intended to be provided to
+// dotbazel.ParseRepo(). Labels provided as strings are resolved using
+// the label resolver that is stored in the thread under
+// LabelResolverKey.
+func NewRepoDotBazelRepoFunction[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	encoder model_encoding.DeterministicBinaryEncoder,
 	inlinedTreeOptions inlinedtree.Options,
 	objectCapturer model_core.ObjectCapturer[TReference, TMetadata],
-	labelResolver pg_label.Resolver,
-) (model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata], error) {
-	var defaultAttrs model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]
-	predeclared := map[string]eval.Value{
-		"repo": eval.NewBuiltin("repo", func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
-			if defaultAttrs.IsSet() {
-				return nil, fmt.Errorf("%s: function can only be invoked once", b.Name())
-			}
-			newDefaultAttrs, err := getDefaultInheritableAttrs[TReference, TMetadata](
-				ctx,
-				thread,
-				b,
-				args,
-				model_core.NewSimpleMessage[TReference](&DefaultInheritableAttrs),
-				encoder,
-				inlinedTreeOptions,
-				objectCapturer,
-			)
-			if err != nil {
-				return nil, err
-			}
-			defaultAttrs = newDefaultAttrs
-			return eval.None, nil
-		}),
+	defaultAttrs *model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata],
+) eval.BuiltinFunc {
+	return func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+		if defaultAttrs.IsSet() {
+			return nil, fmt.Errorf("%s: function can only be invoked once", b.Name())
+		}
+		newDefaultAttrs, err := getDefaultInheritableAttrs[TReference, TMetadata](
+			thread.Context(),
+			thread,
+			b,
+			args,
+			model_core.NewSimpleMessage[TReference](&DefaultInheritableAttrs),
+			encoder,
+			inlinedTreeOptions,
+			objectCapturer,
+		)
+		if err != nil {
+			return nil, err
+		}
+		*defaultAttrs = newDefaultAttrs
+		return eval.None, nil
 	}
-
-	// Parse, resolve and compile the file.
-	filenameStr := filename.String()
-	f, err := syntax.Parse(filenameStr, []byte(contents), syntax.Options{})
-	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, err
-	}
-	universe := eval.Universe()
-	m, err := resolve.File(
-		f,
-		&resolve.RepoDotBazelDialect,
-		func(name string) bool {
-			_, ok := predeclared[name]
-			return ok
-		},
-		func(name string) bool {
-			_, ok := universe[name]
-			return ok
-		},
-	)
-	if err != nil {
-		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, err
-	}
-
-	// Execute the file. The filename of the module needs to be a
-	// canonical label, so that labels can be resolved relative to
-	// the root package of the repository.
-	thread := eval.NewThread(ctx, universe)
-	thread.Print = func(_ *eval.Thread, msg string) error {
-		// TODO: Provide logging sink.
-		fmt.Println(msg)
-		return nil
-	}
-	thread.SetLocal(LabelResolverKey, labelResolver)
-	err = eval.ExecFile(thread, compile.File(f, m), eval.NewInMemoryModule(filenameStr, predeclared, nil))
-	if !defaultAttrs.IsSet() {
-		defaultAttrs = model_core.NewSimplePatchedMessage[TMetadata](&DefaultInheritableAttrs)
-	}
-	return defaultAttrs, err
 }
 
 // getDefaultInheritableAttrs parses the arguments provided to

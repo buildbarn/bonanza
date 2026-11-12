@@ -8,12 +8,12 @@ import (
 	"sort"
 	"strings"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
-	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
@@ -98,11 +98,11 @@ func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) Register
 	return nil
 }
 
-func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
-	return moduledotbazel.NullModuleExtensionProxy, nil
+func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (dotbazel.ModuleExtensionProxy, error) {
+	return dotbazel.NullModuleExtensionProxy, nil
 }
 
-func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
+func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (dotbazel.RepoRuleProxy, error) {
 	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		if devDependency && h.ignoreDevDependencies {
 			return nil
@@ -218,7 +218,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			ctx,
 			moduleInstance,
 			e,
-			moduledotbazel.NewOverrideIgnoringRootHandler(&handler),
+			dotbazel.NewOverrideIgnoringRootHandler(&handler),
 		); err != nil {
 			return PatchedModuleExtensionReposValue[TMetadata]{}, err
 		}

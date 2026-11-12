@@ -1,11 +1,11 @@
-package moduledotbazel_test
+package dotbazel_test
 
 import (
 	"net/url"
 	"testing"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/label"
-	"bonanza.build/pkg/moduledotbazel"
 	"bonanza.build/pkg/starlark/eval"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -15,7 +15,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestParse(t *testing.T) {
+func TestParseModule(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	t.Run("AllDirectives", func(t *testing.T) {
@@ -167,13 +167,13 @@ func TestParse(t *testing.T) {
 				/* moduleName = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ nil,
 				/* registry = */ nil,
-				/* patchOptions = */ &moduledotbazel.PatchOptions{},
+				/* patchOptions = */ &dotbazel.PatchOptions{},
 			),
 			handler.EXPECT().SingleVersionOverride(
 				/* moduleName = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ nil,
 				/* registry = */ nil,
-				/* patchOptions = */ &moduledotbazel.PatchOptions{
+				/* patchOptions = */ &dotbazel.PatchOptions{
 					Patches:   []label.ApparentLabel{},
 					PatchCmds: []string{},
 				},
@@ -182,7 +182,7 @@ func TestParse(t *testing.T) {
 				/* moduleName = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ &version2,
 				/* registry = */ registry,
-				/* patchOptions = */ &moduledotbazel.PatchOptions{
+				/* patchOptions = */ &dotbazel.PatchOptions{
 					Patches: []label.ApparentLabel{
 						util.Must(label.NewApparentLabel("@@my_module_name+//:patches/foo1.diff")),
 						util.Must(label.NewApparentLabel("@@my_module_name+//:patches/foo2.diff")),
@@ -258,7 +258,7 @@ func TestParse(t *testing.T) {
 			),
 		)
 
-		require.NoError(t, moduledotbazel.Parse(
+		require.NoError(t, dotbazel.ParseModule(
 			`
 archive_override(
     module_name = "my_module_name",
@@ -457,7 +457,7 @@ http_archive(
 			/* path = */ nil,
 		)
 
-		require.NoError(t, moduledotbazel.Parse(
+		require.NoError(t, dotbazel.ParseModule(
 			`
 local_path_override(
     module_name = "my_module_name",

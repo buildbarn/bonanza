@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
-	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
@@ -25,17 +25,17 @@ type parseLocalModuleDotBazelEnvironment[TReference object.BasicReference] inter
 	FilePropertiesValueGetter[TReference]
 }
 
-func (*baseComputer[TReference, TMetadata]) parseLocalModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseLocalModuleDotBazelEnvironment[TReference], handler moduledotbazel.RootHandler) error {
+func (*baseComputer[TReference, TMetadata]) parseLocalModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseLocalModuleDotBazelEnvironment[TReference], handler dotbazel.RootHandler) error {
 	// Load a file that we know exists in storage already.
 	moduleFileProperties := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
 		CanonicalRepo: moduleInstance.String(),
-		Path:          moduleDotBazelFilename,
+		Path:          dotbazel.ModuleFilename,
 	})
 	if !moduleFileProperties.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
 	if moduleFileProperties.Message.Exists == nil {
-		return fmt.Errorf("file %#v does not exist", moduleDotBazelTargetName.String())
+		return fmt.Errorf("file %#v does not exist", dotbazel.ModuleTargetName.String())
 	}
 
 	return parseModuleDotBazel(
@@ -52,7 +52,7 @@ type parseActiveModuleDotBazelEnvironment[TReference object.BasicReference] inte
 	ModuleDotBazelContentsValueGetter[TReference]
 }
 
-func (*baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseActiveModuleDotBazelEnvironment[TReference], handler moduledotbazel.RootHandler) error {
+func (*baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseActiveModuleDotBazelEnvironment[TReference], handler dotbazel.RootHandler) error {
 	// This module file might have to be loaded.
 	moduleFileContentsValue := e.GetModuleDotBazelContentsValue(&model_analysis_pb.ModuleDotBazelContents_Key{
 		ModuleInstance: moduleInstance.String(),
@@ -71,13 +71,13 @@ func (*baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDotBa
 
 var bazelToolsModule = util.Must(label.NewModule("bazel_tools"))
 
-func parseModuleDotBazel[TReference object.BasicReference](ctx context.Context, moduleContentsMsg model_core.Message[*model_filesystem_pb.FileContents, TReference], moduleInstance label.ModuleInstance, e FileAccessParametersObjectGetter[TReference], handler moduledotbazel.RootHandler) error {
+func parseModuleDotBazel[TReference object.BasicReference](ctx context.Context, moduleContentsMsg model_core.Message[*model_filesystem_pb.FileContents, TReference], moduleInstance label.ModuleInstance, e FileAccessParametersObjectGetter[TReference], handler dotbazel.RootHandler) error {
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	if !gotFileReader {
 		return evaluation.ErrMissingDependency
 	}
 
-	moduleTarget := moduleInstance.GetBareCanonicalRepo().GetRootPackage().AppendTargetName(moduleDotBazelTargetName)
+	moduleTarget := moduleInstance.GetBareCanonicalRepo().GetRootPackage().AppendTargetName(dotbazel.ModuleTargetName)
 	moduleFileContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
 		moduleContentsMsg,
 	)
@@ -89,7 +89,7 @@ func parseModuleDotBazel[TReference object.BasicReference](ctx context.Context, 
 		return err
 	}
 
-	if err := moduledotbazel.Parse(
+	if err := dotbazel.ParseModule(
 		string(moduleFileContents),
 		moduleTarget,
 		nil,
@@ -124,7 +124,7 @@ type visitModuleDotBazelFilesBreadthFirstEnvironment[TReference object.BasicRefe
 }
 
 type dependencQueueingModuleDotBazelHandler struct {
-	moduledotbazel.ChildHandler
+	dotbazel.ChildHandler
 
 	modulesWithMultipleVersions map[label.Module]OverrideVersions
 	moduleInstancesToCheck      *[]label.ModuleInstance
@@ -160,7 +160,7 @@ func (h *dependencQueueingModuleDotBazelHandler) BazelDep(name label.Module, ver
 func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFirst(
 	ctx context.Context,
 	e visitModuleDotBazelFilesBreadthFirstEnvironment[TReference],
-	createHandler func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler,
+	createHandler func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) dotbazel.ChildHandler,
 ) error {
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	modulesWithMultipleVersions, gotModulesWithMultipleVersions := e.GetModulesWithMultipleVersionsObject(&model_analysis_pb.ModulesWithMultipleVersions_Key{})
@@ -189,7 +189,7 @@ func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFir
 			ctx,
 			moduleInstance,
 			e,
-			moduledotbazel.NewOverrideIgnoringRootHandler(&dependencQueueingModuleDotBazelHandler{
+			dotbazel.NewOverrideIgnoringRootHandler(&dependencQueueingModuleDotBazelHandler{
 				ChildHandler:                createHandler(moduleInstance, ignoreDevDependencies),
 				modulesWithMultipleVersions: modulesWithMultipleVersions,
 				moduleInstancesToCheck:      &moduleInstancesToCheck,
@@ -238,7 +238,7 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 		// Access the MODULE.bazel file that is part of the module's sources.
 		filePropertiesValue := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
 			CanonicalRepo: canonicalRepo.String(),
-			Path:          moduleDotBazelFilename,
+			Path:          dotbazel.ModuleFilename,
 		})
 		if !filePropertiesValue.IsSet() {
 			return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency

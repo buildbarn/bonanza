@@ -100,6 +100,7 @@ go_library(
     deps = [
         "//pkg/crypto",
         "//pkg/diff",
+        "//pkg/dotbazel",
         "//pkg/ds",
         "//pkg/glob",
         "//pkg/label",
@@ -114,7 +115,6 @@ go_library(
         "//pkg/model/filesystem",
         "//pkg/model/parser",
         "//pkg/model/starlark",
-        "//pkg/moduledotbazel",
         "//pkg/proto/encryptedaction",
         "//pkg/proto/model/analysis",
         "//pkg/proto/model/chunking",

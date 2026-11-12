@@ -9,11 +9,11 @@ import (
 	"sort"
 	"strings"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
-	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
@@ -172,7 +172,7 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Reposit
 	})
 }
 
-func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) SingleVersionOverride(moduleName label.Module, version *label.ModuleVersion, registryURL *url.URL, patchOptions *moduledotbazel.PatchOptions) error {
+func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) SingleVersionOverride(moduleName label.Module, version *label.ModuleVersion, registryURL *url.URL, patchOptions *dotbazel.PatchOptions) error {
 	var vers, registry string
 	if version != nil {
 		vers = version.String()
@@ -196,11 +196,11 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) SingleV
 	})
 }
 
-func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
-	return moduledotbazel.NullModuleExtensionProxy, nil
+func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (dotbazel.ModuleExtensionProxy, error) {
+	return dotbazel.NullModuleExtensionProxy, nil
 }
 
-func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
+func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (dotbazel.RepoRuleProxy, error) {
 	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		return nil
 	}, nil

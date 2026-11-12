@@ -1,14 +1,19 @@
 package starlark_test
 
 import (
+	"context"
 	"testing"
+
+	"bonanza.build/pkg/dotbazel"
 
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
+	model_encoding "bonanza.build/pkg/model/encoding"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
+	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
@@ -18,7 +23,43 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestParseRepoDotBazel(t *testing.T) {
+// parseRepoDotBazel parses a REPO.bazel file, only capturing the
+// default inheritable attributes provided to repo().
+func parseRepoDotBazel[TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
+	encoder model_encoding.DeterministicBinaryEncoder,
+	contents string,
+	objectCapturer model_core.ObjectCapturer[object.LocalReference, TMetadata],
+	labelResolver label.Resolver,
+) (model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata], error) {
+	thread := eval.NewThread(ctx, eval.Universe())
+	thread.SetLocal(model_starlark.LabelResolverKey, labelResolver)
+
+	var defaultAttrs model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]
+	if err := dotbazel.ParseRepo(
+		thread,
+		contents,
+		util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
+		dotbazel.DiscardCall,
+		model_starlark.NewRepoDotBazelRepoFunction[object.LocalReference](
+			encoder,
+			inlinedtree.Options{
+				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
+				MaximumSizeBytes: 0,
+			},
+			objectCapturer,
+			&defaultAttrs,
+		),
+	); err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, err
+	}
+	if !defaultAttrs.IsSet() {
+		defaultAttrs = model_core.NewSimplePatchedMessage[TMetadata](&model_starlark.DefaultInheritableAttrs)
+	}
+	return defaultAttrs, nil
+}
+
+func TestNewRepoDotBazelRepoFunction(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(t.Context(), t)
 
 	encoder := NewMockDeterministicBinaryEncoder(ctrl)
@@ -30,15 +71,10 @@ func TestParseRepoDotBazel(t *testing.T) {
 		// message value we provide.
 		labelResolver := NewMockLabelResolver(ctrl)
 
-		defaultAttrs, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
+		defaultAttrs, err := parseRepoDotBazel(
 			ctx,
-			"",
-			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
-			inlinedtree.Options{
-				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-				MaximumSizeBytes: 0,
-			},
+			"",
 			model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata](nil),
 			labelResolver,
 		)
@@ -52,15 +88,26 @@ func TestParseRepoDotBazel(t *testing.T) {
 		// should also be equal to the default.
 		labelResolver := NewMockLabelResolver(ctrl)
 
-		defaultAttrs, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
+		defaultAttrs, err := parseRepoDotBazel(
 			ctx,
-			"repo()",
-			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
-			inlinedtree.Options{
-				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-				MaximumSizeBytes: 0,
-			},
+			"repo()",
+			model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata](nil),
+			labelResolver,
+		)
+		require.NoError(t, err)
+		testutil.RequireEqualProto(t, &model_starlark.DefaultInheritableAttrs, defaultAttrs.Message)
+	})
+
+	t.Run("IgnoreDirectories", func(t *testing.T) {
+		// Calls to ignore_directories() should have no effect
+		// on the default inheritable attributes.
+		labelResolver := NewMockLabelResolver(ctrl)
+
+		defaultAttrs, err := parseRepoDotBazel(
+			ctx,
+			encoder,
+			`ignore_directories([".git"])`,
 			model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata](nil),
 			labelResolver,
 		)
@@ -72,15 +119,10 @@ func TestParseRepoDotBazel(t *testing.T) {
 		// Calling repo() times is not permitted.
 		labelResolver := NewMockLabelResolver(ctrl)
 
-		_, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
+		_, err := parseRepoDotBazel(
 			ctx,
-			"repo()\nrepo()",
-			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
 			encoder,
-			inlinedtree.Options{
-				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-				MaximumSizeBytes: 0,
-			},
+			"repo()\nrepo()",
 			model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata](nil),
 			labelResolver,
 		)
@@ -93,18 +135,13 @@ func TestParseRepoDotBazel(t *testing.T) {
 		// provide both arguments at once.
 		labelResolver := NewMockLabelResolver(ctrl)
 
-		_, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
+		_, err := parseRepoDotBazel(
 			ctx,
+			encoder,
 			`repo(
 				default_applicable_licenses = ["//:license"],
 				default_package_metadata = ["//:metadata"],
 			)`,
-			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
-			encoder,
-			inlinedtree.Options{
-				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-				MaximumSizeBytes: 0,
-			},
 			model_core.ObjectManager[object.LocalReference, model_core.ReferenceMetadata](nil),
 			labelResolver,
 		)
@@ -118,8 +155,9 @@ func TestParseRepoDotBazel(t *testing.T) {
 		objectManager.EXPECT().CaptureCreatedObject(gomock.Any(), gomock.Any()).AnyTimes()
 		labelResolver := NewMockLabelResolver(ctrl)
 
-		defaultAttrs, err := model_starlark.ParseRepoDotBazel[object.LocalReference](
+		defaultAttrs, err := parseRepoDotBazel(
 			ctx,
+			encoder,
 			`repo(
 				default_deprecation = "All code in this repository is deprecated.",
 				default_package_metadata = ["//:metadata"],
@@ -128,12 +166,6 @@ func TestParseRepoDotBazel(t *testing.T) {
 					"//somepackage:__pkg__",
 				],
 			)`,
-			util.Must(label.NewCanonicalLabel("@@foo+//:REPO.bazel")),
-			encoder,
-			inlinedtree.Options{
-				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-				MaximumSizeBytes: 0,
-			},
 			objectManager,
 			labelResolver,
 		)

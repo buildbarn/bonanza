@@ -14,6 +14,7 @@ import (
 	commands_version "bonanza.build/pkg/bazelclient/commands/version"
 	"bonanza.build/pkg/bazelclient/formatted"
 	"bonanza.build/pkg/bazelclient/logging"
+	"bonanza.build/pkg/dotbazel"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -42,7 +43,7 @@ func main() {
 	var workspacePath path.Parser
 	workspacePathStr := workingDirectory
 	for {
-		moduleBazelPath := filepath.Join(workspacePathStr, "MODULE.bazel")
+		moduleBazelPath := filepath.Join(workspacePathStr, dotbazel.ModuleFilename)
 		if _, err := os.Stat(moduleBazelPath); err == nil {
 			workspacePath = path.LocalFormat.NewParser(workspacePathStr)
 			break

@@ -20,6 +20,8 @@ import (
 	"bonanza.build/pkg/bazelclient/formatted"
 	"bonanza.build/pkg/bazelclient/logging"
 	"bonanza.build/pkg/crypto"
+	"bonanza.build/pkg/dotbazel"
+	"bonanza.build/pkg/glob"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
@@ -27,7 +29,6 @@ import (
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
 	"bonanza.build/pkg/model/render"
-	"bonanza.build/pkg/moduledotbazel"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
@@ -100,6 +101,27 @@ type localCapturableDirectoryOptions[TFile model_core.ReferenceMetadata] struct 
 type localCapturableDirectory[TDirectory, TFile model_core.ReferenceMetadata] struct {
 	filesystem.DirectoryCloser
 	options *localCapturableDirectoryOptions[TFile]
+
+	// Matcher for patterns provided to REPO.bazel's
+	// ignore_directories(), positioned at the path of the current
+	// directory. Nil if none of the patterns can match any of the
+	// directory's descendants, so that matching can be skipped for
+	// the entire subtree.
+	ignoredDirectoriesMatcher *glob.Matcher
+}
+
+func (d *localCapturableDirectory[TDirectory, TFile]) ReadDir() ([]filesystem.FileInfo, error) {
+	entries, err := d.DirectoryCloser.ReadDir()
+	if err != nil || d.ignoredDirectoriesMatcher == nil {
+		return entries, err
+	}
+	return slices.DeleteFunc(entries, func(entry filesystem.FileInfo) bool {
+		if entry.Type() != filesystem.FileTypeDirectory {
+			return false
+		}
+		ignored, _ := matchIgnoredDirectory(d.ignoredDirectoriesMatcher, entry.Name())
+		return ignored
+	}), nil
 }
 
 func (d *localCapturableDirectory[TDirectory, TFile]) EnterCapturableDirectory(name path.Component) (*model_filesystem.CreatedDirectory[TDirectory], model_filesystem.CapturableDirectory[TDirectory, TFile], error) {
@@ -107,9 +129,11 @@ func (d *localCapturableDirectory[TDirectory, TFile]) EnterCapturableDirectory(n
 	if err != nil {
 		return nil, nil, err
 	}
+	_, childMatcher := matchIgnoredDirectory(d.ignoredDirectoriesMatcher, name)
 	return nil, &localCapturableDirectory[TDirectory, TFile]{
-		DirectoryCloser: child,
-		options:         d.options,
+		DirectoryCloser:           child,
+		options:                   d.options,
+		ignoredDirectoriesMatcher: childMatcher,
 	}, nil
 }
 
@@ -246,7 +270,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to open workspace directory: %s", err))
 	}
-	moduleDotBazelFile, err := workspaceDirectory.OpenRead(path.MustNewComponent("MODULE.bazel"))
+	moduleDotBazelFile, err := workspaceDirectory.OpenRead(path.MustNewComponent(dotbazel.ModuleFilename))
 	workspaceDirectory.Close()
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to open MODULE.bazel: %s", err))
@@ -258,7 +282,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	}
 	modulePaths := map[label.Module]path.Parser{}
 	moduleDotBazelHandler := NewLocalPathExtractingModuleDotBazelHandler(modulePaths, workspacePath)
-	if err := moduledotbazel.Parse(
+	if err := dotbazel.ParseModule(
 		string(moduleDotBazelContents),
 		util.Must(label.NewCanonicalLabel("@@main+//:MODULE.bazel")),
 		path.LocalFormat,
@@ -366,6 +390,12 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			moduleRootDirectories = append(moduleRootDirectories, localCapturedDirectory{
 				DirectoryCloser: moduleRootDirectory,
 			})
+			ignoredDirectoriesNFA, err := getIgnoredDirectoriesNFA(groupCtx, moduleRootDirectory, moduleName)
+			if err != nil {
+				return util.StatusWrapf(err, "Failed to obtain ignored directories of module %#v", moduleName.String())
+			}
+			var ignoredDirectoriesMatcher glob.Matcher
+			ignoredDirectoriesMatcher.Initialize(ignoredDirectoriesNFA)
 			if err := model_filesystem.CreateDirectoryMerkleTree(
 				groupCtx,
 				createMerkleTreesConcurrency,
@@ -377,6 +407,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 						fileParameters: fileParameters,
 						capturer:       model_filesystem.NewSimpleFileMerkleTreeCapturer(model_core.DiscardingCreatedObjectCapturer),
 					},
+					ignoredDirectoriesMatcher: &ignoredDirectoriesMatcher,
 				},
 				model_filesystem.FileDiscardingDirectoryMerkleTreeCapturer,
 				&createdModuleRootDirectories[i],

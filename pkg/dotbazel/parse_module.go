@@ -1,4 +1,4 @@
-package moduledotbazel
+package dotbazel
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
-// ModuleExtensionProxy is called into by Parse() whenever
+// ModuleExtensionProxy is called into by ParseModule() whenever
 // module extension tags are declared, or if use_repo() is called
 // against a given module extension.
 type ModuleExtensionProxy interface {
@@ -39,7 +39,7 @@ func (nullModuleExtensionProxy) UseRepo(repos map[label.ApparentRepo]label.Appar
 // that merely discards any tag declarations and use_repo() calls.
 var NullModuleExtensionProxy ModuleExtensionProxy = nullModuleExtensionProxy{}
 
-// RepoRuleProxy is called into by Parse() whenever a
+// RepoRuleProxy is called into by ParseModule() whenever a
 // repository rule is invoked.
 type RepoRuleProxy func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error
 
@@ -52,7 +52,7 @@ type PatchOptions struct {
 	PatchStrip int
 }
 
-// RootHandler is called into by Parse() for
+// RootHandler is called into by ParseModule() for
 // each top-level declaration. It contains all methods that have an
 // effect within the root module.
 type RootHandler interface {
@@ -183,9 +183,9 @@ func newRepositoryRuleOverrideBuiltin(name string, targetIdentifier label.Canoni
 	})
 }
 
-// Parse parses a MODULE.bazel file, and calls into the provided
+// ParseModule parses a MODULE.bazel file, and calls into the provided
 // RootHandler for every observed declaration.
-func Parse(contents string, filename label.CanonicalLabel, localPathFormat path.Format, handler RootHandler) error {
+func ParseModule(contents string, filename label.CanonicalLabel, localPathFormat path.Format, handler RootHandler) error {
 	predeclared := map[string]eval.Value{
 		"archive_override": newRepositoryRuleOverrideBuiltin("archive_override", targetIdentifierHTTPArchive, handler),
 		"bazel_dep": eval.NewBuiltin("bazel_dep", func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {

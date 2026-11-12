@@ -107,17 +107,21 @@ func (f *memFunction) NamePath() []compile.FunctionName {
 	return append(slices.Clone(f.parent.NamePath()), f.parentFuncode.GetNestedFunctionName(f.indexInParent))
 }
 
+// BuiltinFunc is the signature of the Go function that implements a
+// Builtin.
+type BuiltinFunc func(t *Thread, b *Builtin, args Args) (Value, error)
+
 // Builtin is a function implemented in Go.
 type Builtin struct {
 	name     string
-	fn       func(t *Thread, b *Builtin, args Args) (Value, error)
+	fn       BuiltinFunc
 	receiver Value
 }
 
 var _ Callable = (*Builtin)(nil)
 
 // NewBuiltin creates a function that is implemented in Go.
-func NewBuiltin(name string, fn func(t *Thread, b *Builtin, args Args) (Value, error)) *Builtin {
+func NewBuiltin(name string, fn BuiltinFunc) *Builtin {
 	return &Builtin{name: name, fn: fn}
 }
 

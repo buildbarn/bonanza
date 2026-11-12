@@ -7,11 +7,11 @@ import (
 	"slices"
 	"strings"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
-	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
@@ -90,9 +90,9 @@ func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata])
 	return nil
 }
 
-func (h *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
+func (h *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (dotbazel.ModuleExtensionProxy, error) {
 	if devDependency && h.ignoreDevDependencies {
-		return moduledotbazel.NullModuleExtensionProxy, nil
+		return dotbazel.NullModuleExtensionProxy, nil
 	}
 
 	// Look up the module extension properties, so that we obtain
@@ -153,7 +153,7 @@ func (h *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadat
 	}, nil
 }
 
-func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
+func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (dotbazel.RepoRuleProxy, error) {
 	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		return nil
 	}, nil
@@ -176,7 +176,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(c
 	}
 	usedModuleExtensions := map[label.ModuleExtension]*usedModuleExtension{}
 	isRoot := true
-	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) moduledotbazel.ChildHandler {
+	if err := c.visitModuleDotBazelFilesBreadthFirst(ctx, e, func(moduleInstance label.ModuleInstance, ignoreDevDependencies bool) dotbazel.ChildHandler {
 		h := &usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]{
 			options:               &options,
 			moduleInstance:        moduleInstance,

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/label"
-	"bonanza.build/pkg/moduledotbazel"
 	"bonanza.build/pkg/starlark/eval"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -101,19 +101,19 @@ func (LocalPathExtractingModuleDotBazelHandler) RepositoryRuleOverride(thread *e
 // SingleVersionOverride can normally be used to capture calls in
 // MODULE.bazel to single_version_override(). This implementation does
 // not need to do that.
-func (LocalPathExtractingModuleDotBazelHandler) SingleVersionOverride(moduleName label.Module, version *label.ModuleVersion, registry *url.URL, patchOptions *moduledotbazel.PatchOptions) error {
+func (LocalPathExtractingModuleDotBazelHandler) SingleVersionOverride(moduleName label.Module, version *label.ModuleVersion, registry *url.URL, patchOptions *dotbazel.PatchOptions) error {
 	return nil
 }
 
 // UseExtension can normally be used to capture calls in MODULE.bazel to
 // use_extension(). This implementation does not need to do that.
-func (LocalPathExtractingModuleDotBazelHandler) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (moduledotbazel.ModuleExtensionProxy, error) {
-	return moduledotbazel.NullModuleExtensionProxy, nil
+func (LocalPathExtractingModuleDotBazelHandler) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (dotbazel.ModuleExtensionProxy, error) {
+	return dotbazel.NullModuleExtensionProxy, nil
 }
 
 // UseRepoRule can normally be used to capture calls in MODULE.bazel to
 // use_repo_rule(). This implementation does not need to do that.
-func (LocalPathExtractingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (moduledotbazel.RepoRuleProxy, error) {
+func (LocalPathExtractingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.ApparentLabel, repoRuleName label.StarlarkIdentifier) (dotbazel.RepoRuleProxy, error) {
 	return func(thread *eval.Thread, name label.ApparentRepo, devDependency bool, attrs map[string]eval.Value) error {
 		return nil
 	}, nil

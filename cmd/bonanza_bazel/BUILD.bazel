@@ -14,6 +14,7 @@ go_library(
         "//pkg/bazelclient/commands/version",
         "//pkg/bazelclient/formatted",
         "//pkg/bazelclient/logging",
+        "//pkg/dotbazel",
         "@com_github_buildbarn_bb_storage//pkg/filesystem",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
     ],
