@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "remoteworker",
@@ -29,5 +29,27 @@ go_library(
         "@org_golang_google_protobuf//types/known/durationpb",
         "@org_golang_google_protobuf//types/known/emptypb",
         "@org_golang_x_sync//errgroup",
+    ],
+)
+
+go_test(
+    name = "remoteworker_test",
+    srcs = ["client_test.go"],
+    deps = [
+        ":remoteworker",
+        "//pkg/encryptedaction",
+        "//pkg/proto/encryptedaction",
+        "//pkg/proto/remoteworker",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
+        "@com_github_buildbarn_bb_storage//pkg/jmespath",
+        "@com_github_buildbarn_bb_storage//pkg/random",
+        "@com_github_buildbarn_bb_storage//pkg/testutil",
+        "@com_github_buildbarn_bb_storage//pkg/x509",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
 )

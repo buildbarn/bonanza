@@ -236,6 +236,10 @@ func (c *Client) startExecution(desiredState *remoteworker_pb.DesiredState_Execu
 		<-storedAllExecutionEvents
 		c.latestExecutionEvent.Store(nil)
 
+		// Overwrite all completion fields, so that no outcome of
+		// a previous execution is reported for this one.
+		c.completionEvent = nil
+		c.completionRejectionError = err
 		if err == nil {
 			// Discard the completion event if execution failed and
 			// the worker doesn't belong to the largest size class.
@@ -260,8 +264,6 @@ func (c *Client) startExecution(desiredState *remoteworker_pb.DesiredState_Execu
 			// Synchronize() request.
 			c.completionVirtualExecutionDuration = virtualExecutionDuration
 			c.completionResult = result
-		} else {
-			c.completionRejectionError = err
 		}
 		close(executionCompleted)
 	}()
