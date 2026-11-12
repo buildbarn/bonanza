@@ -3795,20 +3795,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 		// This allows any files contained within to be accessed
 		// without processing MODULE.bazel. This prevents cyclic
 		// dependencies.
-		buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
-		if !buildSpecification.IsSet() {
-			return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
-		}
-
+		//
 		// Check to see if the client overrode this module manually.
 		moduleName := moduleInstance.GetModule().String()
-		modules := buildSpecification.Message.Modules
-		if i, ok := sort.Find(
-			len(modules),
-			func(i int) int { return strings.Compare(moduleName, modules[i].Name) },
-		); ok {
+		localOverride := e.GetModuleWithLocalOverrideRootDirectoryValue(&model_analysis_pb.ModuleWithLocalOverrideRootDirectory_Key{
+			ModuleName: moduleName,
+		})
+		if !localOverride.IsSet() {
+			return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
+		}
+		if localOverride.Message.RootDirectoryReference != nil {
 			// Found matching module.
-			rootDirectoryReference := model_core.Patch(e, model_core.Nested(buildSpecification, modules[i].RootDirectoryReference))
+			rootDirectoryReference := model_core.Patch(e, model_core.Nested(localOverride, localOverride.Message.RootDirectoryReference))
 			return model_core.NewPatchedMessage(
 				&model_analysis_pb.Repo_Value{
 					RootDirectoryReference: rootDirectoryReference.Message,

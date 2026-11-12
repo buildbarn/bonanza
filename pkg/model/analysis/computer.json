@@ -335,6 +335,12 @@
             "RootModule"
          ]
       },
+      "ModuleWithLocalOverrideRootDirectory": {
+         "dependsOn": [
+            "BuildSpecification"
+         ],
+         "isLookup": true
+      },
       "ModulesWithLocalOverrides": {
          "dependsOn": [
             "BuildSpecification"
@@ -509,7 +515,6 @@
          "dependsOn": [
             "ActionEncoders",
             "ActionResult",
-            "BuildSpecification",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
@@ -523,6 +528,7 @@
             "HTTPFileContents",
             "ModuleExtensionRepo",
             "ModuleFinalBuildList",
+            "ModuleWithLocalOverrideRootDirectory",
             "ModulesWithRemoteOverrides",
             "RegisteredRepoPlatform",
             "Repo",

@@ -47,6 +47,7 @@ go_library(
         "module_registry_urls.go",
         "module_repo_mapping.go",
         "module_rough_build_list.go",
+        "module_with_local_override_root_directory.go",
         "modules_with_local_overrides.go",
         "modules_with_multiple_versions.go",
         "modules_with_overrides.go",

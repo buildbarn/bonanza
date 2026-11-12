@@ -1245,6 +1245,25 @@ message OverridesListModule {
   repeated string versions = 2;
 }
 
+message ModuleWithLocalOverrideRootDirectory {
+  message Key {
+    // The name of the module, without the leading "@" (e.g.,
+    // "rules_go").
+    string module_name = 1;
+  }
+
+  message Value {
+    // Reference to a Directory message that describes the root
+    // directory of the module, if the client provided an explicit copy
+    // of its source code as part of the build specification. If not
+    // set, no such copy was provided.
+    //
+    // This is provided on a per-module basis, so that changes to the
+    // source code of one module don't affect the repos of others.
+    bonanza.model.filesystem.DirectoryReference root_directory_reference = 1;
+  }
+}
+
 message ModulesWithLocalOverrides {
   message Key {}
 
