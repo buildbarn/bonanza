@@ -1245,6 +1245,22 @@ message OverridesListModule {
   repeated string versions = 2;
 }
 
+message ModulesWithLocalOverrides {
+  message Key {}
+
+  message Value {
+    // Alphabetically sorted list of names of modules for which the
+    // client provided explicit copies of source code as part of the
+    // build specification.
+    //
+    // This value intentionally only contains the names of these
+    // modules, and not the references to their root directories. This
+    // ensures that this value remains stable when the contents of
+    // these modules change.
+    repeated string module_names = 1;
+  }
+}
+
 message ModulesWithMultipleVersions {
   message Key {}
 

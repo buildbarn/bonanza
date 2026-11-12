@@ -11,27 +11,27 @@ import (
 
 func (baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(ctx context.Context, key *model_analysis_pb.ModulesWithOverrides_Key, e ModulesWithOverridesEnvironment[TReference, TMetadata]) (PatchedModulesWithOverridesValue[TMetadata], error) {
 	remoteOverrides := e.GetModulesWithRemoteOverridesValue(&model_analysis_pb.ModulesWithRemoteOverrides_Key{})
-	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
-	if !remoteOverrides.IsSet() || !buildSpecification.IsSet() {
+	localOverrides := e.GetModulesWithLocalOverridesValue(&model_analysis_pb.ModulesWithLocalOverrides_Key{})
+	if !remoteOverrides.IsSet() || !localOverrides.IsSet() {
 		return PatchedModulesWithOverridesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	moduleOverrides := remoteOverrides.Message.GetModuleOverrides()
-	clientOverrides := buildSpecification.Message.Modules
+	clientOverrides := localOverrides.Message.ModuleNames
 	overrideList := make([]*model_analysis_pb.OverridesListModule, 0, len(moduleOverrides)+len(clientOverrides))
 
 	// Merge sort - both lists are already sorted for caching.
 	for len(moduleOverrides) > 0 && len(clientOverrides) > 0 {
-		cmp := strings.Compare(moduleOverrides[0].GetName(), clientOverrides[0].GetName())
+		cmp := strings.Compare(moduleOverrides[0].GetName(), clientOverrides[0])
 		switch {
 		case cmp < 0:
 			overrideList = append(overrideList, moduleOverrideToOverrideModule(moduleOverrides[0])...)
 			moduleOverrides = moduleOverrides[1:]
 		case cmp > 0:
-			overrideList = append(overrideList, &model_analysis_pb.OverridesListModule{Name: clientOverrides[0].GetName()})
+			overrideList = append(overrideList, &model_analysis_pb.OverridesListModule{Name: clientOverrides[0]})
 			clientOverrides = clientOverrides[1:]
 		default: // Same values - use client override instead of module as its explicate to this run.
-			overrideList = append(overrideList, &model_analysis_pb.OverridesListModule{Name: clientOverrides[0].GetName()})
+			overrideList = append(overrideList, &model_analysis_pb.OverridesListModule{Name: clientOverrides[0]})
 			clientOverrides = clientOverrides[1:]
 			moduleOverrides = moduleOverrides[1:]
 		}
@@ -42,7 +42,7 @@ func (baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(ctx 
 		overrideList = append(overrideList, moduleOverrideToOverrideModule(o)...)
 	}
 	for _, o := range clientOverrides {
-		overrideList = append(overrideList, &model_analysis_pb.OverridesListModule{Name: o.GetName()})
+		overrideList = append(overrideList, &model_analysis_pb.OverridesListModule{Name: o})
 	}
 
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModulesWithOverrides_Value{
