@@ -128,9 +128,9 @@ func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, 
 							return fmt.Errorf("failed to extract constraints from execution platform %#v: %w", canonicalPlatformLabelStr, err)
 						}
 					case "exec_pkix_public_key":
-						fileReader, err := getFileReader(h.environment)
-						if err != nil {
-							return err
+						fileReader, ok := getFileReader(h.environment)
+						if !ok {
+							return evaluation.ErrMissingDependency
 						}
 						str, ok, err := getStringValue(h.context, fileReader, value)
 						if err != nil {

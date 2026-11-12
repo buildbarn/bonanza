@@ -129,17 +129,6 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 // directly.
 const maximumLargeStringSizeBytes = 64 << 20
 
-// getFileReader returns the FileReader that can be used to read the
-// contents of files, and strings that are too large to be stored
-// inline.
-func getFileReader[TReference object.BasicReference](e FileAccessParametersObjectGetter[TReference]) (*model_filesystem.FileReader[TReference], error) {
-	fileReader, ok := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
-	if !ok {
-		return nil, evaluation.ErrMissingDependency
-	}
-	return fileReader, nil
-}
-
 // getStringValue returns the contents of a Value message containing a
 // string. If the message does not contain a string, ok is false.
 func getStringValue[TReference object.BasicReference](ctx context.Context, fileReader *model_filesystem.FileReader[TReference], value model_core.Message[*model_starlark_pb.Value, TReference]) (s string, ok bool, err error) {

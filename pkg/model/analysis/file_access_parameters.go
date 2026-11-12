@@ -7,6 +7,7 @@ import (
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	"bonanza.build/pkg/storage/object"
 )
 
 func (baseComputer[TReference, TMetadata]) ComputeFileAccessParametersValue(ctx context.Context, key *model_analysis_pb.FileAccessParameters_Key, e FileAccessParametersEnvironment[TReference, TMetadata]) (PatchedFileAccessParametersValue[TMetadata], error) {
@@ -27,4 +28,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeFileAccessParametersObject(
 		c.parsedObjectPoolIngester,
 		c.objectStoreSemaphore,
 	)
+}
+
+// getFileReader returns the FileReader that can be used to read the
+// contents of files, and strings that are too large to be stored
+// inline. If it is not available yet, ok is set to false.
+func getFileReader[TReference object.BasicReference](e FileAccessParametersObjectGetter[TReference]) (*model_filesystem.FileReader[TReference], bool) {
+	return e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 }

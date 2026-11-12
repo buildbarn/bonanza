@@ -29,15 +29,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeSelectValue(ctx context.Con
 		return PatchedSelectValue[TMetadata]{}, fmt.Errorf("invalid package: %w", err)
 	}
 	labelResolver := newLabelResolver(e)
-	fileReader, err := getFileReader(e)
-	if err != nil {
-		return PatchedSelectValue[TMetadata]{}, err
-	}
+	fileReader, gotFileReader := getFileReader(e)
 	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
 	missingDependencies := false
 	var platformConstraints []*model_analysis_pb.Constraint
 	var matchingIndices []uint32
-	if !gotAnalysisReaders || !gotValueReaders {
+	if !gotAnalysisReaders || !gotValueReaders || !gotFileReader {
 		return PatchedSelectValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 CheckConditions:

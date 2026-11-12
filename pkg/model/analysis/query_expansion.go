@@ -774,9 +774,9 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 		if err != nil {
 			return nil, fmt.Errorf("invalid regular expression %#v: %w", expression.Pattern, err)
 		}
-		fileReader, err := getFileReader(e)
-		if err != nil {
-			return nil, err
+		fileReader, ok := getFileReader(e)
+		if !ok {
+			return nil, evaluation.ErrMissingDependency
 		}
 		results := labelSet{}
 		if err := c.forEachQueryRuleTargetAttr(ctx, e, analysisReaders, valueReaders, labels, expression.AttrName, func(l label.CanonicalLabel, attr *queryAttr[TReference]) error {

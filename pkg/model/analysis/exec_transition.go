@@ -123,6 +123,7 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ExecTransition_Key, TReference], e ExecTransitionEnvironment[TReference, TMetadata]) (PatchedExecTransitionValue[TMetadata], error) {
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
+	fileReader, gotFileReader := getFileReader(e)
 
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
@@ -131,7 +132,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
-	if !allBuiltinsModulesNames.IsSet() || !rootModuleValue.IsSet() || !gotAnalysisEncoders || !gotStarlarkValueEncoders {
+	if !allBuiltinsModulesNames.IsSet() || !rootModuleValue.IsSet() || !gotAnalysisEncoders || !gotStarlarkValueEncoders || !gotFileReader {
 		return PatchedExecTransitionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	analysisReaders := &analysisEncoders.Readers
@@ -170,10 +171,6 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		execConfigCommandLineOption,
 		inputConfigurationReference,
 	)
-	if err != nil {
-		return PatchedExecTransitionValue[TMetadata]{}, err
-	}
-	fileReader, err := getFileReader(e)
 	if err != nil {
 		return PatchedExecTransitionValue[TMetadata]{}, err
 	}
