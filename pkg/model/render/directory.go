@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"bonanza.build/pkg/encoding/utf8stat"
 	model_core "bonanza.build/pkg/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
@@ -20,6 +21,7 @@ func renderDirectory(directory model_core.Message[*model_filesystem_pb.Directory
 		[]TableColumn{
 			{Name: "Type"},
 			{Name: "Size", AlignRight: true},
+			{Name: "Lines", AlignRight: true},
 			{Name: "Path"},
 		},
 		renderDirectoryRows(directory, ""),
@@ -62,7 +64,7 @@ func renderDirectoryRows(dirMessage model_core.Message[*model_filesystem_pb.Dire
 
 	if len(names) == 0 {
 		// Directory has no contents. Render it as just itself.
-		return append(rows, []Doc{Text("dr-x"), Text(""), Text(path)})
+		return append(rows, []Doc{Text("dr-x"), Text(""), Text(""), Text(path)})
 	}
 
 	slices.Sort(names)
@@ -87,6 +89,7 @@ func renderDirectoryRows(dirMessage model_core.Message[*model_filesystem_pb.Dire
 				rows = append(rows, []Doc{
 					Text("dr-x"),
 					Text(""),
+					Text(""),
 					Concat(
 						getPathPrefix(path),
 						Text(name+"/"),
@@ -109,6 +112,7 @@ func renderDirectoryRows(dirMessage model_core.Message[*model_filesystem_pb.Dire
 			rows = append(rows, []Doc{
 				Text("dr-x"),
 				Text(""),
+				Text(""),
 				Concat(
 					getPathPrefix(path),
 					fieldReferenceLink(
@@ -127,6 +131,8 @@ func renderDirectoryRows(dirMessage model_core.Message[*model_filesystem_pb.Dire
 
 			pathDoc := Text(file.Name)
 			var totalSizeBytes uint64
+			// Empty files are valid text files without any lines.
+			linesDoc := Text("0")
 			if contents := file.Properties.GetContents(); contents != nil {
 				switch reference := contents.Level.(type) {
 				case *model_filesystem_pb.FileContents_ChunkReference:
@@ -143,16 +149,19 @@ func renderDirectoryRows(dirMessage model_core.Message[*model_filesystem_pb.Dire
 					)
 				}
 				totalSizeBytes = contents.TotalSizeBytes
+				linesDoc = renderLines(utf8stat.Stat(contents.Utf8Stat))
 			}
 			rows = append(rows, []Doc{
 				Text(mode),
 				renderSize(totalSizeBytes),
+				linesDoc,
 				Concat(getPathPrefix(path), pathDoc),
 			})
 
 		case *model_filesystem_pb.SymlinkNode:
 			rows = append(rows, []Doc{
 				Text("lr-x"),
+				Text(""),
 				Text(""),
 				Concat(
 					getPathPrefix(path),
@@ -171,12 +180,22 @@ func renderSize(bytes uint64) Doc {
 	if bytes < 1024 {
 		return size
 	}
-	return Title(formatBytes(bytes)+" bytes", size)
+	return Title(formatThousands(bytes)+" bytes", size)
 }
 
-// formatBytes formats a number of bytes with thousands separators.
-func formatBytes(bytes uint64) string {
-	digits := strconv.FormatUint(bytes, 10)
+// renderLines renders the number of lines in a file. Nothing is
+// rendered for files that are not valid UTF-8 text, as the notion of
+// lines is meaningless for binary data.
+func renderLines(stat utf8stat.Stat) Doc {
+	if !stat.IsValidFile() {
+		return Text("")
+	}
+	return Text(formatThousands(stat.LineBreaks() + 1))
+}
+
+// formatThousands formats a number with thousands separators.
+func formatThousands(n uint64) string {
+	digits := strconv.FormatUint(n, 10)
 	var sb strings.Builder
 	for i, digit := range digits {
 		if i > 0 && (len(digits)-i)%3 == 0 {

@@ -364,9 +364,17 @@ func TestRendererDirectory(t *testing.T) {
 						},
 					},
 					{
+						Name:       "empty",
+						Properties: &model_filesystem_pb.FileProperties{},
+					},
+					{
 						Name: "small",
 						Properties: &model_filesystem_pb.FileProperties{
-							Contents: &model_filesystem_pb.FileContents{TotalSizeBytes: 412},
+							Contents: &model_filesystem_pb.FileContents{
+								TotalSizeBytes: 412,
+								// 1,233 line breaks, ending with a newline.
+								Utf8Stat: 1233<<2 | 1<<1 | 1,
+							},
 						},
 					},
 				},
@@ -383,20 +391,22 @@ func TestRendererDirectory(t *testing.T) {
 	require.Equal(t, []render.TableColumn{
 		{Name: "Type"},
 		{Name: "Size", AlignRight: true},
+		{Name: "Lines", AlignRight: true},
 		{Name: "Path"},
 	}, blocks[0].Table.Columns)
 	require.Equal(
 		t,
-		"-r-x\t1.8 MiB\tfile\n"+
-			"-r--\t412   B\tsmall\n"+
-			"lr-x\t\tsub/link → ../file",
+		"-r--\t0   B\t0\tempty\n"+
+			"-r-x\t1.8 MiB\t\tfile\n"+
+			"-r--\t412   B\t1,234\tsmall\n"+
+			"lr-x\t\t\tsub/link → ../file",
 		render.PlainText(blocks, ""),
 	)
 
 	// Rounded sizes should have the exact size as a title.
 	rows := blocks[0].Table.Rows
-	require.Equal(t, []render.Segment{{Text: "1.8 MiB", Title: "1,843,200 bytes"}}, rows[0][1])
-	require.Equal(t, []render.Segment{{Text: "412   B"}}, rows[1][1])
+	require.Equal(t, []render.Segment{{Text: "1.8 MiB", Title: "1,843,200 bytes"}}, rows[1][1])
+	require.Equal(t, []render.Segment{{Text: "412   B"}}, rows[2][1])
 }
 
 func TestRendererLeaves(t *testing.T) {
@@ -418,8 +428,8 @@ func TestRendererLeaves(t *testing.T) {
 	require.Len(t, blocks, 1)
 	require.Equal(
 		t,
-		"-r--\t412   B\tfile\n"+
-			"lr-x\t\tlink → file",
+		"-r--\t412   B\t\tfile\n"+
+			"lr-x\t\t\tlink → file",
 		render.PlainText(blocks, ""),
 	)
 }
