@@ -15,14 +15,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
-	buildSpecificationMessage := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
-	if !buildSpecificationMessage.IsSet() || !gotAnalysisEncoders || !gotStarlarkValueEncoders {
+	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
+	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
+	if !rootModuleValue.IsSet() || !allBuiltinsModulesNames.IsSet() || !gotAnalysisEncoders || !gotStarlarkValueEncoders {
 		return PatchedBuildResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	analysisReaders := &analysisEncoders.Readers
-	buildSpecification := buildSpecificationMessage.Message
 
-	rootModuleName := buildSpecification.RootModuleName
+	rootModuleName := rootModuleValue.Message.RootModuleName
 	rootModule, err := label.NewModule(rootModuleName)
 	if err != nil {
 		return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleName, err)
@@ -30,7 +30,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	rootRepo := rootModule.ToModuleInstance(nil).GetBareCanonicalRepo()
 	rootPackage := rootRepo.GetRootPackage()
 
-	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, buildSpecification.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
 	if err != nil {
 		return PatchedBuildResultValue[TMetadata]{}, err
 	}

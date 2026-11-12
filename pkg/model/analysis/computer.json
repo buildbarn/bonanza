@@ -28,7 +28,6 @@
       "BuildResult": {
          "dependsOn": [
             "AnalysisEncoders",
-            "BuildSpecification",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
