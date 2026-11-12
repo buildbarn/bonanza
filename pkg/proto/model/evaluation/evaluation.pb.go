@@ -7,6 +7,7 @@
 package evaluation
 
 import (
+	chunking "bonanza.build/pkg/proto/model/chunking"
 	core "bonanza.build/pkg/proto/model/core"
 	status "google.golang.org/genproto/googleapis/rpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -334,6 +335,7 @@ type Action struct {
 	state              protoimpl.MessageState   `protogen:"open.v1"`
 	OverridesReference *core.DecodableReference `protobuf:"bytes,1,opt,name=overrides_reference,json=overridesReference,proto3" json:"overrides_reference,omitempty"`
 	RequestedKeys      []*Keys                  `protobuf:"bytes,2,rep,name=requested_keys,json=requestedKeys,proto3" json:"requested_keys,omitempty"`
+	ChunkingParameters *chunking.Parameters     `protobuf:"bytes,3,opt,name=chunking_parameters,json=chunkingParameters,proto3" json:"chunking_parameters,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -378,6 +380,13 @@ func (x *Action) GetOverridesReference() *core.DecodableReference {
 func (x *Action) GetRequestedKeys() []*Keys {
 	if x != nil {
 		return x.RequestedKeys
+	}
+	return nil
+}
+
+func (x *Action) GetChunkingParameters() *chunking.Parameters {
+	if x != nil {
+		return x.ChunkingParameters
 	}
 	return nil
 }
@@ -798,7 +807,7 @@ var File_bonanza_build_pkg_proto_model_evaluation_evaluation_proto protoreflect.
 
 const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "" +
 	"\n" +
-	"9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x12\x18bonanza.model.evaluation\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\"\xf4\x01\n" +
+	"9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x12\x18bonanza.model.evaluation\x1a5bonanza.build/pkg/proto/model/chunking/chunking.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\"\xf4\x01\n" +
 	"\x04Keys\x12-\n" +
 	"\x04leaf\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyH\x00R\x04leaf\x12?\n" +
 	"\x06parent\x18\x02 \x01(\v2%.bonanza.model.evaluation.Keys.ParentH\x00R\x06parent\x1as\n" +
@@ -824,10 +833,11 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	"\x04Leaf\x12#\n" +
 	"\rkey_reference\x18\x01 \x01(\fR\fkeyReference\x12>\n" +
 	"\bgraphlet\x18\x02 \x01(\v2\".bonanza.model.evaluation.GraphletR\bgraphletB\a\n" +
-	"\x05level\"\xd5\x01\n" +
+	"\x05level\"\xaa\x02\n" +
 	"\x06Action\x12\x83\x01\n" +
 	"\x13overrides_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB*\xea\xd7 &\x1a$bonanza.model.evaluation.EvaluationsR\x12overridesReference\x12E\n" +
-	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\"\xb6\x05\n" +
+	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\x12S\n" +
+	"\x13chunking_parameters\x18\x03 \x01(\v2\".bonanza.model.chunking.ParametersR\x12chunkingParameters\"\xb6\x05\n" +
 	"\bProgress\x12,\n" +
 	"\x12blocked_keys_count\x18\x01 \x01(\x04R\x10blockedKeysCount\x124\n" +
 	"\x16evaluatable_keys_count\x18\x02 \x01(\x04R\x14evaluatableKeysCount\x12f\n" +
@@ -876,8 +886,9 @@ var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_goTypes = []a
 	(*Result_Failure)(nil),          // 11: bonanza.model.evaluation.Result.Failure
 	(*core.Any)(nil),                // 12: bonanza.model.core.Any
 	(*core.DecodableReference)(nil), // 13: bonanza.model.core.DecodableReference
-	(*timestamppb.Timestamp)(nil),   // 14: google.protobuf.Timestamp
-	(*status.Status)(nil),           // 15: google.rpc.Status
+	(*chunking.Parameters)(nil),     // 14: bonanza.model.chunking.Parameters
+	(*timestamppb.Timestamp)(nil),   // 15: google.protobuf.Timestamp
+	(*status.Status)(nil),           // 16: google.rpc.Status
 }
 var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
 	12, // 0: bonanza.model.evaluation.Keys.leaf:type_name -> bonanza.model.core.Any
@@ -891,22 +902,23 @@ var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []i
 	8,  // 8: bonanza.model.evaluation.Evaluations.parent:type_name -> bonanza.model.evaluation.Evaluations.Parent
 	13, // 9: bonanza.model.evaluation.Action.overrides_reference:type_name -> bonanza.model.core.DecodableReference
 	0,  // 10: bonanza.model.evaluation.Action.requested_keys:type_name -> bonanza.model.evaluation.Keys
-	10, // 11: bonanza.model.evaluation.Progress.oldest_evaluating_keys:type_name -> bonanza.model.evaluation.Progress.EvaluatingKey
-	11, // 12: bonanza.model.evaluation.Result.failure:type_name -> bonanza.model.evaluation.Result.Failure
-	13, // 13: bonanza.model.evaluation.Result.outcomes_reference:type_name -> bonanza.model.core.DecodableReference
-	13, // 14: bonanza.model.evaluation.Keys.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	13, // 15: bonanza.model.evaluation.Evaluations.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	2,  // 16: bonanza.model.evaluation.Evaluations.Leaf.graphlet:type_name -> bonanza.model.evaluation.Graphlet
-	12, // 17: bonanza.model.evaluation.Progress.EvaluatingKey.key:type_name -> bonanza.model.core.Any
-	14, // 18: bonanza.model.evaluation.Progress.EvaluatingKey.first_evaluation_start:type_name -> google.protobuf.Timestamp
-	14, // 19: bonanza.model.evaluation.Progress.EvaluatingKey.current_evaluation_start:type_name -> google.protobuf.Timestamp
-	12, // 20: bonanza.model.evaluation.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
-	15, // 21: bonanza.model.evaluation.Result.Failure.status:type_name -> google.rpc.Status
-	22, // [22:22] is the sub-list for method output_type
-	22, // [22:22] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	14, // 11: bonanza.model.evaluation.Action.chunking_parameters:type_name -> bonanza.model.chunking.Parameters
+	10, // 12: bonanza.model.evaluation.Progress.oldest_evaluating_keys:type_name -> bonanza.model.evaluation.Progress.EvaluatingKey
+	11, // 13: bonanza.model.evaluation.Result.failure:type_name -> bonanza.model.evaluation.Result.Failure
+	13, // 14: bonanza.model.evaluation.Result.outcomes_reference:type_name -> bonanza.model.core.DecodableReference
+	13, // 15: bonanza.model.evaluation.Keys.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	13, // 16: bonanza.model.evaluation.Evaluations.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	2,  // 17: bonanza.model.evaluation.Evaluations.Leaf.graphlet:type_name -> bonanza.model.evaluation.Graphlet
+	12, // 18: bonanza.model.evaluation.Progress.EvaluatingKey.key:type_name -> bonanza.model.core.Any
+	15, // 19: bonanza.model.evaluation.Progress.EvaluatingKey.first_evaluation_start:type_name -> google.protobuf.Timestamp
+	15, // 20: bonanza.model.evaluation.Progress.EvaluatingKey.current_evaluation_start:type_name -> google.protobuf.Timestamp
+	12, // 21: bonanza.model.evaluation.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
+	16, // 22: bonanza.model.evaluation.Result.Failure.status:type_name -> google.rpc.Status
+	23, // [23:23] is the sub-list for method output_type
+	23, // [23:23] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_init() }

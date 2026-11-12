@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package bonanza.model.evaluation.cache;
 
+import "bonanza.build/pkg/proto/model/chunking/chunking.proto";
 import "bonanza.build/pkg/proto/model/core/core.proto";
 import "bonanza.build/pkg/proto/model/evaluation/evaluation.proto";
 import "bonanza.build/pkg/proto/model/tag/tag.proto";
@@ -19,6 +20,12 @@ message ActionTagKeyData {
   // message, in the order in which they are stored (i.e., sorted by
   // key reference).
   bytes key_references_with_overrides_hash = 2;
+
+  // The chunking parameters that were specified in the
+  // bonanza.model.evaluation.Action message. As these affect the shape
+  // of the objects that are written to the cache, actions using
+  // different chunking parameters should not share cache entries.
+  bonanza.model.chunking.Parameters chunking_parameters = 3;
 }
 
 message DependenciesHashRecord {

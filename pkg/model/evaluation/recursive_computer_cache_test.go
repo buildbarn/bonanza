@@ -261,6 +261,7 @@ func (h *cacheTestHarness) build(
 		computer,
 		queues,
 		object.SHA256V1ReferenceFormat,
+		testChunkingParameters,
 		h.storage,
 		h.storage,
 		/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("9aa6b4ec3b3a1b6c3c4d7b0b07dcb1f3ee5e2e2a59a4b2e5e1f4e0de8d0e5c1a", 100, 0, 0, 0),

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"time"
 
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/core/buffered"
@@ -196,6 +197,13 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 			}
 			return &result
 		}
+		chunkingParameters, err := chunking.NewParametersFromProto(actionMessage.Message.ChunkingParameters, referenceFormat)
+		if err != nil {
+			result.Failure = &model_evaluation_pb.Result_Failure{
+				Status: status.Convert(util.StatusWrap(err, "Invalid chunking parameters")).Proto(),
+			}
+			return &result
+		}
 
 		// Keys for which we have overrides in place.
 		evaluationsReader := model_parser.LookupParsedObjectReader(
@@ -283,6 +291,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 						ObjectEncoders:     action.Encoders,
 					},
 					KeyReferencesWithOverridesHash: keyReferencesWithOverridesHash,
+					ChunkingParameters:             actionMessage.Message.ChunkingParameters,
 				}
 			},
 		).SortAndSetReferences()
@@ -316,6 +325,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 			),
 			queues,
 			referenceFormat,
+			chunkingParameters,
 			objectManager,
 			model_tag.NewBoundStore(
 				model_tag.NewObjectImportingBoundResolver(

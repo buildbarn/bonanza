@@ -7,9 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_evaluation "bonanza.build/pkg/model/evaluation"
+	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
@@ -30,6 +32,16 @@ import (
 
 	"go.uber.org/mock/gomock"
 )
+
+// testChunkingParameters are the chunking parameters that are used by
+// RecursiveComputer in these tests.
+var testChunkingParameters = util.Must(chunking.NewParametersFromProto(
+	&model_chunking_pb.Parameters{
+		MinimumSizeBytes: 1 << 16,
+		HorizonSizeBytes: 8 << 16,
+	},
+	object.SHA256V1ReferenceFormat,
+))
 
 func TestRecursiveComputer(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
@@ -86,6 +98,7 @@ func TestRecursiveComputer(t *testing.T) {
 			computer,
 			queues,
 			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
 			objectManager,
 			tagStore,
 			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("f07997aa26d63ad33c8b2e6f920ae9b42c93bacb67c84ae529d065c6d572d342", 2323, 0, 0, 0),
@@ -220,6 +233,7 @@ func TestRecursiveComputer(t *testing.T) {
 			computer,
 			queues,
 			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
 			objectManager,
 			tagStore,
 			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("0e847672a7a34ba848ec92f4000a9f86049e5557496cfcede0db7744bf77c12b", 8575, 0, 0, 0),
@@ -298,6 +312,7 @@ func TestRecursiveComputer(t *testing.T) {
 			computer,
 			queues,
 			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
 			objectManager,
 			tagStore,
 			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("e5283197708f96f2368701a89fcdd72367106497f0335bd2d5f3403a826d71da", 8584, 0, 0, 0),
@@ -422,6 +437,7 @@ func TestRecursiveComputer(t *testing.T) {
 			computer,
 			queues,
 			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
 			objectManager,
 			tagStore,
 			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("10479a81dafa74a2f72438cbce7d472cb9e8ea3648a9a2ec3622a27620a02925", 23721, 0, 0, 0),
@@ -499,6 +515,7 @@ func TestRecursiveComputer(t *testing.T) {
 			computer,
 			queues,
 			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
 			objectManager,
 			tagStore,
 			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("0c1c0eacebd721476e1a158da2e3ee0281c9c6fe9e8f9e2941f2a05153869b32", 48374, 0, 0, 0),
@@ -589,6 +606,7 @@ func TestRecursiveComputer(t *testing.T) {
 			computer,
 			queues,
 			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
 			objectManager,
 			tagStore,
 			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("4466f601ba900ce4e0d606dc68dd0c35c5e976792784400514f42905d6deba6e", 64722, 0, 0, 0),
@@ -684,6 +702,7 @@ func TestRecursiveComputer(t *testing.T) {
 			computer,
 			queues,
 			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
 			objectManager,
 			tagStore,
 			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("2fbd13f1ee48876ec1e85961b59877c3916fb10ae23e7e1e45083feecafe1804", 57483, 0, 0, 0),
@@ -779,6 +798,7 @@ func TestRecursiveComputer(t *testing.T) {
 			computer,
 			queues,
 			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
 			objectManager,
 			tagStore,
 			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("bf1b2cdd5f58461827eb9285ee37dd45fea02ebc4e278f28678ea2722f590337", 57483, 0, 0, 0),
@@ -878,6 +898,7 @@ func TestRecursiveComputerObject(t *testing.T) {
 			computer,
 			queues,
 			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
 			NewMockObjectManagerForTesting(ctrl),
 			tagStore,
 			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("f07997aa26d63ad33c8b2e6f920ae9b42c93bacb67c84ae529d065c6d572d342", 2323, 0, 0, 0),

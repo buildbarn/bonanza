@@ -19,7 +19,6 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_tag "bonanza.build/pkg/model/tag"
-	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
@@ -78,6 +77,7 @@ type RecursiveComputer[TReference object.BasicReference, TMetadata model_core.Re
 	base                      Computer[TReference, TMetadata]
 	evaluationQueuePicker     RecursiveComputerEvaluationQueuePicker[TReference, TMetadata]
 	referenceFormat           object.ReferenceFormat
+	chunkingParameters        chunking.Parameters
 	objectManager             model_core.ObjectManager[TReference, TMetadata]
 	tagStore                  model_tag.BoundStore[TReference]
 	actionTagKeyReference     object.LocalReference
@@ -124,6 +124,7 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 	base Computer[TReference, TMetadata],
 	evaluationQueuePicker RecursiveComputerEvaluationQueuePicker[TReference, TMetadata],
 	referenceFormat object.ReferenceFormat,
+	chunkingParameters chunking.Parameters,
 	objectManager model_core.ObjectManager[TReference, TMetadata],
 	tagStore model_tag.BoundStore[TReference],
 	actionTagKeyReference object.LocalReference,
@@ -139,6 +140,7 @@ func NewRecursiveComputer[TReference object.BasicReference, TMetadata model_core
 		base:                      base,
 		evaluationQueuePicker:     evaluationQueuePicker,
 		referenceFormat:           referenceFormat,
+		chunkingParameters:        chunkingParameters,
 		objectManager:             objectManager,
 		tagStore:                  tagStore,
 		actionTagKeyReference:     actionTagKeyReference,
@@ -556,10 +558,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsParentNodeComp
 func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(ctx context.Context, sortedKeyStates []*KeyState[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_evaluation_pb.Evaluations, TMetadata], error) {
 	evaluationsBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
-				MinimumSizeBytes: 1 << 16,
-				HorizonSizeBytes: 8 << 16,
-			}, rc.referenceFormat)),
+			rc.chunkingParameters,
 			/* isParent = */ func(evaluations *model_evaluation_pb.Evaluations) bool {
 				return evaluations.GetParent() != nil
 			},
@@ -616,10 +615,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getKeysParentNodeComputer(ct
 func (rc *RecursiveComputer[TReference, TMetadata]) getKeysForSortedList(ctx context.Context, sortedKeyStates []*KeyState[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_evaluation_pb.Keys, TMetadata], error) {
 	keysBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
-				MinimumSizeBytes: 1 << 16,
-				HorizonSizeBytes: 8 << 16,
-			}, rc.referenceFormat)),
+			rc.chunkingParameters,
 			/* isParent = */ func(keys *model_evaluation_pb.Keys) bool {
 				return keys.GetParent() != nil
 			},
@@ -903,10 +899,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) buildEvaluation(ctx context.
 
 	return inlinedtree.Build(
 		inlineCandidates,
-		inlinedtree.Options{
-			ReferenceFormat:  rc.referenceFormat,
-			MaximumSizeBytes: 1 << 16,
-		},
+		rc.chunkingParameters.GetInlinedTreeOptions(),
 	)
 }
 
@@ -1563,10 +1556,7 @@ func (vs *evaluationFailedValueState[TReference, TMetadata]) getGraphlet(ctx con
 	}
 	patchedGraphlet, err := inlinedtree.Build(
 		inlinedtree.CandidateList[*model_evaluation_pb.Graphlet, TMetadata]{graphletEvaluation},
-		inlinedtree.Options{
-			ReferenceFormat:  rc.referenceFormat,
-			MaximumSizeBytes: 1 << 16,
-		},
+		rc.chunkingParameters.GetInlinedTreeOptions(),
 	)
 	return vs, model_core.Unpatch(rc.objectManager, patchedGraphlet).Decay(), nil
 }
@@ -1675,10 +1665,7 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGr
 
 	patchedGraphlet, err := inlinedtree.Build(
 		inlineCandidates,
-		inlinedtree.Options{
-			ReferenceFormat:  rc.referenceFormat,
-			MaximumSizeBytes: 1 << 16,
-		},
+		rc.chunkingParameters.GetInlinedTreeOptions(),
 	)
 	if err != nil {
 		return variableDependenciesMarshaledValueState[TReference, TMetadata]{}, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
@@ -2507,10 +2494,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) storeInitialLookupResult(
 
 	lookupResultInitial, err := inlinedtree.Build(
 		inlineCandidates,
-		inlinedtree.Options{
-			ReferenceFormat:  rc.referenceFormat,
-			MaximumSizeBytes: 1 << 16,
-		},
+		rc.chunkingParameters.GetInlinedTreeOptions(),
 	)
 	if err != nil {
 		return err
@@ -2554,10 +2538,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) storeMissingDependenciesLook
 	}
 	lookupResultMissingDependencies, err := inlinedtree.Build(
 		inlinedtree.CandidateList[*model_evaluation_cache_pb.LookupResult_MissingDependencies, TMetadata]{keysCandidate},
-		inlinedtree.Options{
-			ReferenceFormat:  rc.referenceFormat,
-			MaximumSizeBytes: 1 << 16,
-		},
+		rc.chunkingParameters.GetInlinedTreeOptions(),
 	)
 	if err != nil {
 		return err

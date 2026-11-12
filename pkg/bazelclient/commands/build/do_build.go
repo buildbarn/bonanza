@@ -606,6 +606,13 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 					Leaf: patchedRequestedKeyAny.Merge(patcher),
 				},
 			}},
+			// Keep these parameters constant, so that the
+			// graphlets that are returned remain comparable
+			// across evaluations.
+			ChunkingParameters: &model_chunking_pb.Parameters{
+				MinimumSizeBytes: 64 * 1024,
+				HorizonSizeBytes: 8 * 64 * 1024,
+			},
 		}), nil
 	})
 	if err != nil {

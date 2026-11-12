@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package bonanza.model.evaluation;
 
+import "bonanza.build/pkg/proto/model/chunking/chunking.proto";
 import "bonanza.build/pkg/proto/model/core/core.proto";
 import "google/protobuf/timestamp.proto";
 import "google/rpc/status.proto";
@@ -141,6 +142,13 @@ message Action {
 
   // Keys for which evaluation function should be invoked.
   repeated Keys requested_keys = 2;
+
+  // Parameters for partitioning lists of keys and evaluations into
+  // objects, and for limiting the size of graphlets. As these also
+  // control the shape of the evaluations that are returned, clients
+  // may want to keep these stable, so that results of separate
+  // evaluations can be compared.
+  bonanza.model.chunking.Parameters chunking_parameters = 3;
 }
 
 message Progress {

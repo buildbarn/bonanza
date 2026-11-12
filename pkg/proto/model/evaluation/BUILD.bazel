@@ -8,6 +8,7 @@ proto_library(
     import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/proto/model/chunking:chunking_proto",
         "//pkg/proto/model/core:core_proto",
         "@googleapis//google/rpc:status_proto",
         "@protobuf//:timestamp_proto",
@@ -20,6 +21,7 @@ go_proto_library(
     proto = ":evaluation_proto",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/proto/model/chunking",
         "//pkg/proto/model/core",
         "@org_golang_google_genproto_googleapis_rpc//status",
     ],

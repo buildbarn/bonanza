@@ -7,6 +7,7 @@
 package cache
 
 import (
+	chunking "bonanza.build/pkg/proto/model/chunking"
 	core "bonanza.build/pkg/proto/model/core"
 	evaluation "bonanza.build/pkg/proto/model/evaluation"
 	tag "bonanza.build/pkg/proto/model/tag"
@@ -78,6 +79,7 @@ type ActionTagKeyData struct {
 	state                          protoimpl.MessageState `protogen:"open.v1"`
 	CommonTagKeyData               *tag.CommonKeyData     `protobuf:"bytes,1,opt,name=common_tag_key_data,json=commonTagKeyData,proto3" json:"common_tag_key_data,omitempty"`
 	KeyReferencesWithOverridesHash []byte                 `protobuf:"bytes,2,opt,name=key_references_with_overrides_hash,json=keyReferencesWithOverridesHash,proto3" json:"key_references_with_overrides_hash,omitempty"`
+	ChunkingParameters             *chunking.Parameters   `protobuf:"bytes,3,opt,name=chunking_parameters,json=chunkingParameters,proto3" json:"chunking_parameters,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache
 }
@@ -122,6 +124,13 @@ func (x *ActionTagKeyData) GetCommonTagKeyData() *tag.CommonKeyData {
 func (x *ActionTagKeyData) GetKeyReferencesWithOverridesHash() []byte {
 	if x != nil {
 		return x.KeyReferencesWithOverridesHash
+	}
+	return nil
+}
+
+func (x *ActionTagKeyData) GetChunkingParameters() *chunking.Parameters {
+	if x != nil {
+		return x.ChunkingParameters
 	}
 	return nil
 }
@@ -512,10 +521,11 @@ var File_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto protoreflect
 
 const file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc = "" +
 	"\n" +
-	":bonanza.build/pkg/proto/model/evaluation/cache/cache.proto\x12\x1ebonanza.model.evaluation.cache\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x1a+bonanza.build/pkg/proto/model/tag/tag.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\x01\n" +
+	":bonanza.build/pkg/proto/model/evaluation/cache/cache.proto\x12\x1ebonanza.model.evaluation.cache\x1a5bonanza.build/pkg/proto/model/chunking/chunking.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x1a+bonanza.build/pkg/proto/model/tag/tag.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x84\x02\n" +
 	"\x10ActionTagKeyData\x12O\n" +
 	"\x13common_tag_key_data\x18\x01 \x01(\v2 .bonanza.model.tag.CommonKeyDataR\x10commonTagKeyData\x12J\n" +
-	"\"key_references_with_overrides_hash\x18\x02 \x01(\fR\x1ekeyReferencesWithOverridesHash\"\x8b\x01\n" +
+	"\"key_references_with_overrides_hash\x18\x02 \x01(\fR\x1ekeyReferencesWithOverridesHash\x12S\n" +
+	"\x13chunking_parameters\x18\x03 \x01(\v2\".bonanza.model.chunking.ParametersR\x12chunkingParameters\"\x8b\x01\n" +
 	"\x16DependenciesHashRecord\x12B\n" +
 	"\rkey_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\fkeyReference\x12-\n" +
 	"\x05value\x18\x02 \x01(\v2\x17.bonanza.model.core.AnyR\x05value\"\x83\x04\n" +
@@ -567,33 +577,35 @@ var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_goTypes = []
 	(*LookupResult_Initial)(nil),                 // 6: bonanza.model.evaluation.cache.LookupResult.Initial
 	(*LookupResult_MissingDependencies)(nil),     // 7: bonanza.model.evaluation.cache.LookupResult.MissingDependencies
 	(*tag.CommonKeyData)(nil),                    // 8: bonanza.model.tag.CommonKeyData
-	(*core.Reference)(nil),                       // 9: bonanza.model.core.Reference
-	(*core.Any)(nil),                             // 10: bonanza.model.core.Any
-	(*evaluation.Graphlet)(nil),                  // 11: bonanza.model.evaluation.Graphlet
-	(*evaluation.Keys)(nil),                      // 12: bonanza.model.evaluation.Keys
-	(*timestamppb.Timestamp)(nil),                // 13: google.protobuf.Timestamp
+	(*chunking.Parameters)(nil),                  // 9: bonanza.model.chunking.Parameters
+	(*core.Reference)(nil),                       // 10: bonanza.model.core.Reference
+	(*core.Any)(nil),                             // 11: bonanza.model.core.Any
+	(*evaluation.Graphlet)(nil),                  // 12: bonanza.model.evaluation.Graphlet
+	(*evaluation.Keys)(nil),                      // 13: bonanza.model.evaluation.Keys
+	(*timestamppb.Timestamp)(nil),                // 14: google.protobuf.Timestamp
 }
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_depIdxs = []int32{
 	8,  // 0: bonanza.model.evaluation.cache.ActionTagKeyData.common_tag_key_data:type_name -> bonanza.model.tag.CommonKeyData
-	9,  // 1: bonanza.model.evaluation.cache.DependenciesHashRecord.key_reference:type_name -> bonanza.model.core.Reference
-	10, // 2: bonanza.model.evaluation.cache.DependenciesHashRecord.value:type_name -> bonanza.model.core.Any
-	9,  // 3: bonanza.model.evaluation.cache.LookupTagKeyData.action_tag_key_reference:type_name -> bonanza.model.core.Reference
-	9,  // 4: bonanza.model.evaluation.cache.LookupTagKeyData.evaluation_key_reference:type_name -> bonanza.model.core.Reference
-	5,  // 5: bonanza.model.evaluation.cache.LookupTagKeyData.subsequent_lookup:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
-	6,  // 6: bonanza.model.evaluation.cache.LookupResult.initial:type_name -> bonanza.model.evaluation.cache.LookupResult.Initial
-	7,  // 7: bonanza.model.evaluation.cache.LookupResult.missing_dependencies:type_name -> bonanza.model.evaluation.cache.LookupResult.MissingDependencies
-	11, // 8: bonanza.model.evaluation.cache.LookupResult.hit_graphlet:type_name -> bonanza.model.evaluation.Graphlet
-	10, // 9: bonanza.model.evaluation.cache.LookupResult.hit_value:type_name -> bonanza.model.core.Any
-	0,  // 10: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.scope:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.Scope
-	12, // 11: bonanza.model.evaluation.cache.LookupResult.Initial.graphlet_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
-	12, // 12: bonanza.model.evaluation.cache.LookupResult.Initial.value_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
-	13, // 13: bonanza.model.evaluation.cache.LookupResult.Initial.contains_indirection_since:type_name -> google.protobuf.Timestamp
-	12, // 14: bonanza.model.evaluation.cache.LookupResult.MissingDependencies.additional_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	9,  // 1: bonanza.model.evaluation.cache.ActionTagKeyData.chunking_parameters:type_name -> bonanza.model.chunking.Parameters
+	10, // 2: bonanza.model.evaluation.cache.DependenciesHashRecord.key_reference:type_name -> bonanza.model.core.Reference
+	11, // 3: bonanza.model.evaluation.cache.DependenciesHashRecord.value:type_name -> bonanza.model.core.Any
+	10, // 4: bonanza.model.evaluation.cache.LookupTagKeyData.action_tag_key_reference:type_name -> bonanza.model.core.Reference
+	10, // 5: bonanza.model.evaluation.cache.LookupTagKeyData.evaluation_key_reference:type_name -> bonanza.model.core.Reference
+	5,  // 6: bonanza.model.evaluation.cache.LookupTagKeyData.subsequent_lookup:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
+	6,  // 7: bonanza.model.evaluation.cache.LookupResult.initial:type_name -> bonanza.model.evaluation.cache.LookupResult.Initial
+	7,  // 8: bonanza.model.evaluation.cache.LookupResult.missing_dependencies:type_name -> bonanza.model.evaluation.cache.LookupResult.MissingDependencies
+	12, // 9: bonanza.model.evaluation.cache.LookupResult.hit_graphlet:type_name -> bonanza.model.evaluation.Graphlet
+	11, // 10: bonanza.model.evaluation.cache.LookupResult.hit_value:type_name -> bonanza.model.core.Any
+	0,  // 11: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.scope:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.Scope
+	13, // 12: bonanza.model.evaluation.cache.LookupResult.Initial.graphlet_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	13, // 13: bonanza.model.evaluation.cache.LookupResult.Initial.value_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	14, // 14: bonanza.model.evaluation.cache.LookupResult.Initial.contains_indirection_since:type_name -> google.protobuf.Timestamp
+	13, // 15: bonanza.model.evaluation.cache.LookupResult.MissingDependencies.additional_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_init() }
