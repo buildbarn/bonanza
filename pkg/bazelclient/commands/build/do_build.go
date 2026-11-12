@@ -411,6 +411,8 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		RepoPlatform:                           commonFlags.RepoPlatform,
 		FetchPlatformPkixPublicKey:             fetcherPKIXPublicKey,
 		ActionEncoders:                         defaultEncoders,
+		AnalysisEncoders:                       defaultEncoders,
+		StarlarkValueEncoders:                  defaultEncoders,
 		RuleImplementationWrapperIdentifier:    commonFlags.RuleImplementationWrapperIdentifier,
 		SubruleImplementationWrapperIdentifier: commonFlags.SubruleImplementationWrapperIdentifier,
 	}
@@ -483,6 +485,20 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	)
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to create action encoder: %s", err))
+	}
+	analysisEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
+		buildSpecification.AnalysisEncoders,
+		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
+	)
+	if err != nil {
+		logger.Fatal(formatted.Textf("Failed to create analysis encoder: %s", err))
+	}
+	starlarkValueEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
+		buildSpecification.StarlarkValueEncoders,
+		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
+	)
+	if err != nil {
+		logger.Fatal(formatted.Textf("Failed to create Starlark value encoder: %s", err))
 	}
 
 	// TODO: Should these be moved into special overrides?
@@ -867,6 +883,8 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		referenceFormat:          referenceFormat,
 		parsedObjectPoolIngester: parsedObjectPoolIngester,
 		actionEncoder:            actionEncoder,
+		analysisEncoder:          analysisEncoder,
+		starlarkValueEncoder:     starlarkValueEncoder,
 		requestedKey:             requestedKeyAny,
 		marshaledRequestedKey:    marshaledRequestedKey,
 		outcomesReference:        outcomesReference,

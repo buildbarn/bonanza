@@ -17,7 +17,6 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
-	model_encoding "bonanza.build/pkg/model/encoding"
 	model_parser "bonanza.build/pkg/model/parser"
 	"bonanza.build/pkg/model/render"
 	model_starlark "bonanza.build/pkg/model/starlark"
@@ -143,14 +142,15 @@ func printQueryResult(ctx context.Context, evaluation *build.Evaluation, output 
 	}
 
 	// Objects containing parents of the B-tree of targets and
-	// Starlark values are created by the analysis functions, which
-	// currently don't apply any encoding to them.
+	// Starlark values are created by the analysis functions, using
+	// the encoders that were provided in the BuildSpecification.
 	parsedObjectPoolIngester := evaluation.GetParsedObjectPoolIngester()
-	valueObjectEncoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
+	analysisEncoder := evaluation.GetAnalysisEncoder()
+	starlarkValueEncoder := evaluation.GetStarlarkValueEncoder()
 	targetReader := model_parser.LookupParsedObjectReader(
 		parsedObjectPoolIngester,
 		model_parser.NewChainedObjectParser(
-			model_parser.NewEncodedObjectParser[object.LocalReference](valueObjectEncoder),
+			model_parser.NewEncodedObjectParser[object.LocalReference](analysisEncoder),
 			model_parser.NewProtoListObjectParser[object.LocalReference, model_analysis_pb.QueryTarget](),
 		),
 	)
@@ -159,21 +159,21 @@ func printQueryResult(ctx context.Context, evaluation *build.Evaluation, output 
 		DictReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[object.LocalReference](valueObjectEncoder),
+				model_parser.NewEncodedObjectParser[object.LocalReference](starlarkValueEncoder),
 				model_parser.NewProtoListObjectParser[object.LocalReference, model_starlark_pb.Dict_Entry](),
 			),
 		),
 		ListReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[object.LocalReference](valueObjectEncoder),
+				model_parser.NewEncodedObjectParser[object.LocalReference](starlarkValueEncoder),
 				model_parser.NewProtoListObjectParser[object.LocalReference, model_starlark_pb.List_Element](),
 			),
 		),
 		TestSuiteTestReader: model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[object.LocalReference](valueObjectEncoder),
+				model_parser.NewEncodedObjectParser[object.LocalReference](analysisEncoder),
 				model_parser.NewProtoListObjectParser[object.LocalReference, model_starlark_pb.TestSuite_Test](),
 			),
 		),

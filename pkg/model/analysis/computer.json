@@ -17,6 +17,10 @@
          "keyContainsReferences": true
       },
       "AnalysisEncoders": {
+         "dependsOn": [
+            "BuildSpecification"
+         ],
+         "isLookup": true,
          "objectType": {
             "type": "*AnalysisEncoders[TReference]"
          }

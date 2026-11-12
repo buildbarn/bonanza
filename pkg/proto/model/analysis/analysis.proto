@@ -45,7 +45,11 @@ message ExecuteRequest {
 message AnalysisEncoders {
   message Key {}
 
-  message Value {}
+  message Value {
+    // Encoders that should be used when creating objects containing
+    // data that is computed by analysis functions.
+    repeated bonanza.model.encoding.BinaryEncoder analysis_encoders = 1;
+  }
 }
 
 message ActionResult {
@@ -153,6 +157,15 @@ message BuildSpecification {
     // Encoders that should be used when creating Action and Result
     // messages that are processed and created by workers.
     repeated bonanza.model.encoding.BinaryEncoder action_encoders = 11;
+
+    // Encoders that should be used when creating objects containing
+    // data that is computed by analysis functions, such as lists of
+    // targets, configured target actions and build setting overrides.
+    repeated bonanza.model.encoding.BinaryEncoder analysis_encoders = 16;
+
+    // Encoders that should be used when creating objects that are
+    // part of Starlark values and compiled programs.
+    repeated bonanza.model.encoding.BinaryEncoder starlark_value_encoders = 17;
 
     // If set, name of the Starlark function to invoke to wrap the
     // execution of rule implementation functions. This can be used to
@@ -1969,6 +1982,10 @@ message StarlarkValueEncoders {
     // Parameters that need to be used to access the contents of large
     // strings, which are stored in the same way as file contents.
     bonanza.model.filesystem.FileAccessParameters file_access_parameters = 1;
+
+    // Encoders that should be used when creating objects that are
+    // part of Starlark values and compiled programs.
+    repeated bonanza.model.encoding.BinaryEncoder starlark_value_encoders = 2;
   }
 }
 

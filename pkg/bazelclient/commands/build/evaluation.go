@@ -29,6 +29,8 @@ type Evaluation struct {
 	referenceFormat          object.ReferenceFormat
 	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[object.LocalReference]
 	actionEncoder            model_encoding.DeterministicBinaryEncoder
+	analysisEncoder          model_encoding.DeterministicBinaryEncoder
+	starlarkValueEncoder     model_encoding.DeterministicBinaryEncoder
 	requestedKey             model_core.TopLevelMessage[*anypb.Any, object.LocalReference]
 	marshaledRequestedKey    []byte
 	outcomesReference        *model_core.Decodable[object.LocalReference]
@@ -57,6 +59,19 @@ func (e *Evaluation) GetOutcomesLink() (formatted.Node, bool) {
 		}
 	}
 	return node, true
+}
+
+// GetAnalysisEncoder returns the encoder that was used by analysis
+// functions to create objects containing data computed by them, such as
+// lists of targets.
+func (e *Evaluation) GetAnalysisEncoder() model_encoding.DeterministicBinaryEncoder {
+	return e.analysisEncoder
+}
+
+// GetStarlarkValueEncoder returns the encoder that was used by analysis
+// functions to create objects that are part of Starlark values.
+func (e *Evaluation) GetStarlarkValueEncoder() model_encoding.DeterministicBinaryEncoder {
+	return e.starlarkValueEncoder
 }
 
 // GetParsedObjectPoolIngester returns the ingester of the parsed

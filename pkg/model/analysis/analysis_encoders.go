@@ -5,13 +5,20 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	"bonanza.build/pkg/model/evaluation"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )
 
 func (baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersValue(ctx context.Context, key *model_analysis_pb.AnalysisEncoders_Key, e AnalysisEncodersEnvironment[TReference, TMetadata]) (PatchedAnalysisEncodersValue[TMetadata], error) {
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.AnalysisEncoders_Value{}), nil
+	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
+	if !buildSpecification.IsSet() {
+		return PatchedAnalysisEncodersValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.AnalysisEncoders_Value{
+		AnalysisEncoders: buildSpecification.Message.AnalysisEncoders,
+	}), nil
 }
 
 // AnalysisReaders contains ObjectReaders that can be used to follow
@@ -40,57 +47,100 @@ type AnalysisEncoders[TReference any] struct {
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersObject(value model_core.Message[*model_analysis_pb.AnalysisEncoders_Value, TReference]) (*AnalysisEncoders[TReference], error) {
-	// TODO: Set up encoding!
+	encoder, err := c.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
+		value.Message.AnalysisEncoders,
+		uint32(c.referenceFormat.GetMaximumObjectSizeBytes()),
+	)
+	if err != nil {
+		return nil, err
+	}
+	encodedObjectParser := model_parser.NewEncodedObjectParser[TReference](encoder)
 	return &AnalysisEncoders[TReference]{
-		Encoder: model_encoding.NewChainedDeterministicBinaryEncoder(nil),
+		Encoder: encoder,
 		Readers: AnalysisReaders[TReference]{
 			Args: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Args](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Args](),
+				),
 			),
 			ArgsAdd: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Args_Leaf_Add](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Args_Leaf_Add](),
+				),
 			),
 			BuildSettingOverride: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.BuildSettingOverride](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.BuildSettingOverride](),
+				),
 			),
 			ConfiguredTargetAction: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ConfiguredTarget_Value_Action](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ConfiguredTarget_Value_Action](),
+				),
 			),
 			ConfiguredTargetOutput: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ConfiguredTarget_Value_Output](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ConfiguredTarget_Value_Output](),
+				),
 			),
 			FilesToRunProvider: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.FilesToRunProvider](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.FilesToRunProvider](),
+				),
 			),
 			MacroExpansionContextEntry: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.MacroExpansionContext_Entry](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.MacroExpansionContext_Entry](),
+				),
 			),
 			MacroInstanceEntry: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.MacroInstance_Entry](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.MacroInstance_Entry](),
+				),
 			),
 			ModuleExtensionReposValueRepo: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ModuleExtensionRepos_Value_Repo](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ModuleExtensionRepos_Value_Repo](),
+				),
 			),
 			PackageValueTarget: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Package_Value_Target](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Package_Value_Target](),
+				),
 			),
 			TargetLabel: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.TargetLabel](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.TargetLabel](),
+				),
 			),
 			TestSuiteTest: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.TestSuite_Test](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.TestSuite_Test](),
+				),
 			),
 		},
 	}, nil

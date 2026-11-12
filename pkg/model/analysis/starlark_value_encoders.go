@@ -22,7 +22,8 @@ func (baseComputer[TReference, TMetadata]) ComputeStarlarkValueEncodersValue(ctx
 		return PatchedStarlarkValueEncodersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.StarlarkValueEncoders_Value{
-		FileAccessParameters: buildSpecification.Message.FileCreationParameters.GetAccess(),
+		FileAccessParameters:  buildSpecification.Message.FileCreationParameters.GetAccess(),
+		StarlarkValueEncoders: buildSpecification.Message.StarlarkValueEncoders,
 	}), nil
 }
 
@@ -58,25 +59,44 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStarlarkValueEncodersObject
 		return nil, err
 	}
 
-	// TODO: Set up encoding!
+	encoder, err := c.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
+		value.Message.StarlarkValueEncoders,
+		uint32(c.referenceFormat.GetMaximumObjectSizeBytes()),
+	)
+	if err != nil {
+		return nil, err
+	}
+	encodedObjectParser := model_parser.NewEncodedObjectParser[TReference](encoder)
 	return &StarlarkValueEncoders[TReference]{
-		Encoder: model_encoding.NewChainedDeterministicBinaryEncoder(nil),
+		Encoder: encoder,
 		Readers: model_starlark.ValueReaders[TReference]{
 			CompiledProgramFunctions: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.CompiledProgram_FunctionEntry](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.CompiledProgram_FunctionEntry](),
+				),
 			),
 			Dict: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.Dict_Entry](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.Dict_Entry](),
+				),
 			),
 			List: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.List_Element](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.List_Element](),
+				),
 			),
 			PackageGroupOverrides: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
-				model_parser.NewProtoObjectParser[TReference, model_starlark_pb.PackageGroup_Subpackages_Overrides](),
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoObjectParser[TReference, model_starlark_pb.PackageGroup_Subpackages_Overrides](),
+				),
 			),
 			FileReader: fileReader,
 		},
