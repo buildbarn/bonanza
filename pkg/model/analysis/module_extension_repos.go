@@ -139,14 +139,19 @@ func (h *useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) UseRe
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepos_Key, e ModuleExtensionReposEnvironment[TReference, TMetadata]) (PatchedModuleExtensionReposValue[TMetadata], error) {
+	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
-	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
 		return PatchedModuleExtensionReposValue[TMetadata]{}, err
 	}
 
 	// Store all repos in a B-tree.
+
+	if !gotAnalysisEncoders {
+		return PatchedModuleExtensionReposValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
 	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
@@ -158,7 +163,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			},
 		),
 		btree.NewObjectCreatingNodeMerger(
-			getValueObjectEncoder(),
+			analysisEncoders.Encoder,
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ModuleExtensionRepos_Value_Repo, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TMetadata] {
 				var firstName string

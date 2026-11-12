@@ -146,10 +146,10 @@ func (bct *baseComputerTester) expectGetFileAccessParametersObject(t *testing.T,
 	), true)
 }
 
-// newAnalysisReaders creates the object that analysis functions
+// newAnalysisEncoders creates the object that analysis functions
 // obtain from AnalysisEncoders, which tests can return when the
 // analysis function requests it.
-func (bct *baseComputerTester) newAnalysisReaders() *model_analysis.AnalysisReaders[model_core.CreatedObjectTree] {
+func (bct *baseComputerTester) newAnalysisEncoders() *model_analysis.AnalysisEncoders[model_core.CreatedObjectTree] {
 	return util.Must(bct.computer.ComputeAnalysisEncodersObject(
 		model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.AnalysisEncoders_Value{}),
 	))

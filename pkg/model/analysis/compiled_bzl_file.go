@@ -58,7 +58,7 @@ func (c *baseComputer[TReference, TMetadata]) getReferenceEqualIdentifierGenerat
 func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFile_Key, e CompiledBzlFileEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileValue[TMetadata], error) {
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
-	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}

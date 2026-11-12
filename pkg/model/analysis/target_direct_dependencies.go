@@ -13,8 +13,7 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesValue(ctx context.Context, key *model_analysis_pb.TargetDirectDependencies_Key, e TargetDirectDependenciesEnvironment[TReference, TMetadata]) (PatchedTargetDirectDependenciesValue[TMetadata], error) {
-	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
-
+	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
 	targetLabel, err := label.NewCanonicalLabel(key.Label)
@@ -22,9 +21,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
 	target := e.GetTargetValue(&model_analysis_pb.Target_Key{Label: key.Label})
-	if !target.IsSet() || !gotValueReaders || !gotAnalysisReaders {
+	if !target.IsSet() || !gotValueReaders || !gotAnalysisEncoders {
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	analysisReaders := &analysisEncoders.Readers
 	if target.Message.Definition == nil {
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, errors.New("target does not exist")
 	}
@@ -104,7 +104,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, errors.New("unknown target kind")
 	}
 
-	targetLabels, err := c.buildTargetLabels(ctx, e, dependencies)
+	targetLabels, err := c.buildTargetLabels(ctx, analysisEncoders, e, dependencies)
 	if err != nil {
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, err
 	}

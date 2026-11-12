@@ -5,6 +5,7 @@ import (
 
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
+	model_encoding "bonanza.build/pkg/model/encoding"
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_parser "bonanza.build/pkg/model/parser"
@@ -25,9 +26,11 @@ func (baseComputer[TReference, TMetadata]) ComputeStarlarkValueEncodersValue(ctx
 	}), nil
 }
 
-// StarlarkValueEncoders contains readers that can be used to follow
-// references to objects containing Starlark values.
+// StarlarkValueEncoders contains the encoder that needs to be used to
+// create objects containing Starlark values, and readers that can be
+// used to follow references to such objects.
 type StarlarkValueEncoders[TReference any] struct {
+	Encoder model_encoding.DeterministicBinaryEncoder
 	Readers model_starlark.ValueReaders[TReference]
 
 	bzlFileBuiltins map[string]eval.Value
@@ -57,6 +60,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStarlarkValueEncodersObject
 
 	// TODO: Set up encoding!
 	return &StarlarkValueEncoders[TReference]{
+		Encoder: model_encoding.NewChainedDeterministicBinaryEncoder(nil),
 		Readers: model_starlark.ValueReaders[TReference]{
 			CompiledProgramFunctions: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,

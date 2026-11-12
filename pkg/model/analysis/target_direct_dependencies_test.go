@@ -120,7 +120,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 			// Both branches of select() and the condition
 			// are dependencies. Outputs are not.
 			e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)
-			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
+			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			expectRule(e)
 			value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
@@ -139,7 +139,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 			// Private attributes, default values and package
 			// metadata are implicit dependencies.
 			e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)
-			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
+			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			expectRule(e)
 			value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
@@ -163,7 +163,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 		// Conditions of select() expressions in attributes that
 		// are specific to tests are dependencies as well.
 		e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)
-		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:t"}),
@@ -213,7 +213,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 	t.Run("PredeclaredOutputFileTarget", func(t *testing.T) {
 		// Output files depend on the rule that generates them.
 		e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)
-		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:out.txt"}),
@@ -235,7 +235,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 
 	t.Run("Alias", func(t *testing.T) {
 		e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)
-		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:alias"}),
@@ -257,7 +257,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 
 	t.Run("DoesNotExist", func(t *testing.T) {
 		e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)
-		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:missing"}),
@@ -273,7 +273,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 		// dependencies, regardless of the test suite's filters.
 		for _, includeImplicitDeps := range []bool{false, true} {
 			e := NewMockTargetDirectDependenciesEnvironmentForTesting(ctrl)
-			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisReaders(), true).AnyTimes()
+			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetTargetValue(
 				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:suite"}),

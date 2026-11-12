@@ -12,13 +12,14 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx context.Context, key *model_analysis_pb.BuildResult_Key, e BuildResultEnvironment[TReference, TMetadata]) (PatchedBuildResultValue[TMetadata], error) {
-	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	buildSpecificationMessage := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
-	if !buildSpecificationMessage.IsSet() || !gotAnalysisReaders || !gotStarlarkValueEncoders {
+	if !buildSpecificationMessage.IsSet() || !gotAnalysisEncoders || !gotStarlarkValueEncoders {
 		return PatchedBuildResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	analysisReaders := &analysisEncoders.Readers
 	buildSpecification := buildSpecificationMessage.Message
 
 	rootModuleName := buildSpecification.RootModuleName
@@ -48,7 +49,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	}
 
 	for i, configuration := range key.Configurations {
-		targetPlatformConfigurationReference, err := c.createInitialConfiguration(ctx, e, analysisReaders, thread, rootPackage, configuration)
+		targetPlatformConfigurationReference, err := c.createInitialConfiguration(ctx, e, analysisEncoders, starlarkValueEncoders, thread, rootPackage, configuration)
 		if err != nil {
 			if !errors.Is(err, evaluation.ErrMissingDependency) {
 				return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("failed to create initial configuration for configuration at index %d: %w", i, err)

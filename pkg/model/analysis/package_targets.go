@@ -89,15 +89,16 @@ func (h packageTargetsCursorHeap[TReference]) Less(i, j int) bool {
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx context.Context, key *model_analysis_pb.PackageTargets_Key, e PackageTargetsEnvironment[TReference, TMetadata]) (PatchedPackageTargetsValue[TMetadata], error) {
-	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 
 	packageValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
 		Label:             key.Package,
 		MacroInstanceName: key.MacroInstanceName,
 	})
-	if !packageValue.IsSet() || !gotAnalysisReaders {
+	if !packageValue.IsSet() || !gotAnalysisEncoders {
 		return PatchedPackageTargetsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	analysisReaders := &analysisEncoders.Readers
 	// Create cursors for the targets declared by the package or
 	// macro instance itself, and for all targets declared by the
 	// macro instances it declares.
@@ -175,7 +176,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx con
 	// any of the other lists are copied without being traversed.
 	heap.Init(&cursors)
 
-	treeBuilder := c.newPackageTargetsTreeBuilder(ctx, e)
+	treeBuilder := c.newPackageTargetsTreeBuilder(ctx, analysisEncoders, e)
 	defer treeBuilder.Discard()
 	for cursors.Len() > 0 {
 		cursor := heap.Pop(&cursors).(*packageTargetsCursor[TReference])

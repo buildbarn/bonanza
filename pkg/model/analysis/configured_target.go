@@ -159,11 +159,12 @@ func constraintValuesToConstraints[TReference object.BasicReference, TMetadata m
 func (c *baseComputer[TReference, TMetadata]) mapStructFields(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
-	valueReaders *model_starlark.ValueReaders[TReference],
+	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	in model_core.Message[*model_starlark_pb.Struct, TReference],
 	fieldMapper func(name string, value model_core.Message[*model_starlark_pb.Value, TReference]) (any, error),
 ) (model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata], error) {
-	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	valueReaders := &starlarkValueEncoders.Readers
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.Struct, TMetadata]{}, err
 	}
@@ -213,7 +214,7 @@ func (c *baseComputer[TReference, TMetadata]) mapStructFields(
 func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
-	valueReaders *model_starlark.ValueReaders[TReference],
+	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	emptyDefaultInfo model_core.Message[*model_starlark_pb.Struct, TReference],
 	file model_core.Message[*model_starlark_pb.File, TReference],
 	identifierGenerator model_starlark.ReferenceEqualIdentifierGenerator,
@@ -221,7 +222,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 	newDefaultInfo, err := c.mapStructFields(
 		ctx,
 		e,
-		valueReaders,
+		starlarkValueEncoders,
 		emptyDefaultInfo,
 		func(name string, value model_core.Message[*model_starlark_pb.Value, TReference]) (any, error) {
 			switch name {
@@ -254,7 +255,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 				patchedFilesToRun, err := c.mapStructFields(
 					ctx,
 					e,
-					valueReaders,
+					starlarkValueEncoders,
 					model_core.Nested(value, filesToRun.Struct),
 					func(name string, value model_core.Message[*model_starlark_pb.Value, TReference]) (any, error) {
 						switch name {
@@ -359,7 +360,7 @@ func getAttrValueParts[TReference object.BasicReference, TMetadata model_core.Re
 func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
-	analysisReaders *AnalysisReaders[TReference],
+	analysisEncoders *AnalysisEncoders[TReference],
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	thread *eval.Thread,
 	namedAttr model_core.Message[*model_starlark_pb.NamedAttr, TReference],
@@ -389,7 +390,7 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 		patchedResult, mayHaveMultipleConfigurations, err = c.performTransition(
 			ctx,
 			e,
-			analysisReaders,
+			analysisEncoders,
 			starlarkValueEncoders,
 			model_core.Nested(namedAttr, cfg),
 			configurationReference,
@@ -522,10 +523,10 @@ func (c *baseComputer[TReference, TMetadata]) configureAttrValueParts(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
-	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
-	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
@@ -538,7 +539,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
 		Label: targetLabel.String(),
 	})
-	if !emptyDefaultInfoValue.IsSet() || !targetValue.IsSet() || !gotAnalysisReaders || !gotStarlarkValueEncoders {
+	if !emptyDefaultInfoValue.IsSet() || !targetValue.IsSet() || !gotAnalysisEncoders || !gotStarlarkValueEncoders {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	valueReaders := &starlarkValueEncoders.Readers
@@ -574,7 +575,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		return c.getSingleFileConfiguredTargetValue(
 			ctx,
 			e,
-			valueReaders,
+			starlarkValueEncoders,
 			emptyDefaultInfo,
 			model_core.Nested(
 				key,
@@ -743,7 +744,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			patchedConfigurationReferences, err := c.performUserDefinedTransitionCached(
 				ctx,
 				e,
-				analysisReaders,
+				analysisEncoders,
 				starlarkValueEncoders,
 				model_core.Nested(ruleDefinition, cfgTransition),
 				configurationReference,
@@ -966,7 +967,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			patchedTransition, mayHaveMultipleConfigurations, err := c.performTransition(
 				ctx,
 				e,
-				analysisReaders,
+				analysisEncoders,
 				starlarkValueEncoders,
 				model_core.Nested(ruleDefinition, labelOptions.Cfg),
 				configurationReference,
@@ -1258,7 +1259,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			context:                     ctx,
 			valueEncodingOptionsFactory: valueEncodingOptionsFactory,
 			starlarkValueEncoders:       starlarkValueEncoders,
-			analysisReaders:             analysisReaders,
+			analysisEncoders:            analysisEncoders,
 			environment:                 e,
 			ruleIdentifier:              ruleIdentifier,
 			targetLabel:                 targetLabel,
@@ -1331,7 +1332,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 				value, err := rc.computer.configureAttrValueParts(
 					rc.context,
 					rc.environment,
-					analysisReaders,
+					analysisEncoders,
 					rc.starlarkValueEncoders,
 					thread,
 					model_core.Nested(subruleDefinition, namedAttr),
@@ -1463,7 +1464,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					},
 				),
 				btree.NewObjectCreatingNodeMerger(
-					getValueObjectEncoder(),
+					analysisEncoders.Encoder,
 					c.referenceFormat,
 					/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
 						var firstPackageRelativePath string
@@ -1527,7 +1528,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 					},
 				),
 				btree.NewObjectCreatingNodeMerger(
-					getValueObjectEncoder(),
+					analysisEncoders.Encoder,
 					c.referenceFormat,
 					/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
 						var firstID []byte
@@ -1592,7 +1593,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		return c.getSingleFileConfiguredTargetValue(
 			ctx,
 			e,
-			valueReaders,
+			starlarkValueEncoders,
 			emptyDefaultInfo,
 			model_core.NewSimpleMessage[TReference](
 				&model_starlark_pb.File{
@@ -1722,7 +1723,7 @@ type ruleContext[TReference object.BasicReference, TMetadata model_core.Referenc
 	environment                 ConfiguredTargetEnvironment[TReference, TMetadata]
 	valueEncodingOptionsFactory *valueEncodingOptionsFactory[TReference, TMetadata]
 	starlarkValueEncoders       *StarlarkValueEncoders[TReference]
-	analysisReaders             *AnalysisReaders[TReference]
+	analysisEncoders            *AnalysisEncoders[TReference]
 	ruleIdentifier              label.CanonicalStarlarkIdentifier
 	targetLabel                 label.CanonicalLabel
 	configurationReference      model_core.Message[*model_core_pb.DecodableReference, TReference]
@@ -1787,7 +1788,7 @@ func (rc *ruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name str
 			targetLabelStr := rc.targetLabel.String()
 			override, err := btree.Find(
 				rc.context,
-				rc.analysisReaders.BuildSettingOverride,
+				rc.analysisEncoders.Readers.BuildSettingOverride,
 				getBuildSettingOverridesFromReference(rc.configurationReference),
 				func(entry model_core.Message[*model_analysis_pb.BuildSettingOverride, TReference]) (int, *model_core_pb.DecodableReference) {
 					switch level := entry.Message.Level.(type) {
@@ -2041,8 +2042,9 @@ func (ruleContextActions[TReference, TMetadata]) AttrNames(*eval.Thread) ([]stri
 	return ruleContextActionsAttrNames, nil
 }
 
-func (ruleContextActions[TReference, TMetadata]) doArgs(thread *eval.Thread, b *eval.Builtin, arguments eval.Args) (eval.Value, error) {
+func (rca *ruleContextActions[TReference, TMetadata]) doArgs(thread *eval.Thread, b *eval.Builtin, arguments eval.Args) (eval.Value, error) {
 	return &args[TReference, TMetadata]{
+		encoder:         rca.ruleContext.analysisEncoders.Encoder,
 		paramFileFormat: model_analysis_pb.Args_Leaf_UseParamFile_SHELL,
 	}, nil
 }
@@ -2245,7 +2247,7 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 			// Fields that can be stored externally if needed.
 			{
 				ExternalMessage: model_core.ProtoListToBinaryMarshaler(runfilesFiles),
-				Encoder:         valueEncodingOptions.ObjectEncoder,
+				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
@@ -2269,7 +2271,7 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 			},
 			{
 				ExternalMessage: model_core.ProtoListToBinaryMarshaler(runfilesSymlinks),
-				Encoder:         valueEncodingOptions.ObjectEncoder,
+				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
@@ -2293,7 +2295,7 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 			},
 			{
 				ExternalMessage: model_core.ProtoListToBinaryMarshaler(runfilesRootSymlinks),
-				Encoder:         valueEncodingOptions.ObjectEncoder,
+				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
@@ -2404,7 +2406,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 			},
 		),
 		btree.NewObjectCreatingNodeMerger(
-			valueEncodingOptions.ObjectEncoder,
+			rc.analysisEncoders.Encoder,
 			valueEncodingOptions.ObjectReferenceFormat,
 			toolsParentNodeComputer,
 		),
@@ -2505,7 +2507,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 			},
 		),
 		btree.NewObjectCreatingNodeMerger(
-			valueEncodingOptions.ObjectEncoder,
+			rc.analysisEncoders.Encoder,
 			valueEncodingOptions.ObjectReferenceFormat,
 			argsParentNodeComputer,
 		),
@@ -2728,7 +2730,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 			// Fields that can be stored externally if needed.
 			{
 				ExternalMessage: model_core.ProtoListToBinaryMarshaler(argsList),
-				Encoder:         valueEncodingOptions.ObjectEncoder,
+				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
@@ -2768,7 +2770,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 			},
 			{
 				ExternalMessage: model_core.ProtoListToBinaryMarshaler(encodedInputs),
-				Encoder:         valueEncodingOptions.ObjectEncoder,
+				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
@@ -2792,7 +2794,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 			},
 			{
 				ExternalMessage: model_core.ProtoListToBinaryMarshaler(toolsList),
-				Encoder:         valueEncodingOptions.ObjectEncoder,
+				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
 					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
@@ -3313,6 +3315,7 @@ type argsUseParamFile struct {
 // args records the state of an Args object created through
 // ctx.actions.args().
 type args[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	encoder         model_encoding.DeterministicBinaryEncoder
 	adds            []argsAdd[TReference, TMetadata]
 	paramFileFormat model_analysis_pb.Args_Leaf_UseParamFile_Format
 	useParamFile    *argsUseParamFile
@@ -3381,7 +3384,7 @@ func (a *args[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Va
 			},
 		),
 		btree.NewObjectCreatingNodeMerger(
-			options.ObjectEncoder,
+			a.encoder,
 			options.ObjectReferenceFormat,
 			btree.Capturing(options.Context, options.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Args_Leaf_Add, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Args_Leaf_Add, TMetadata] {
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args_Leaf_Add {

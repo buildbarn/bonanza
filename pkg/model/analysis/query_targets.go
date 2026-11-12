@@ -79,7 +79,7 @@ func pruneQueryTargetDefinition(definition *model_starlark_pb.Target_Definition)
 // newQueryTargetTreeBuilder creates a B-tree builder for storing lists
 // of QueryTarget messages, as used by the values of QueryResult and
 // QueryTargets.
-func (c *baseComputer[TReference, TMetadata]) newQueryTargetTreeBuilder(ctx context.Context, capturer model_core.CreatedObjectCapturer[TMetadata]) btree.Builder[*model_analysis_pb.QueryTarget, TMetadata] {
+func (c *baseComputer[TReference, TMetadata]) newQueryTargetTreeBuilder(ctx context.Context, analysisEncoders *AnalysisEncoders[TReference], capturer model_core.CreatedObjectCapturer[TMetadata]) btree.Builder[*model_analysis_pb.QueryTarget, TMetadata] {
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
@@ -91,7 +91,7 @@ func (c *baseComputer[TReference, TMetadata]) newQueryTargetTreeBuilder(ctx cont
 			},
 		),
 		btree.NewObjectCreatingNodeMerger(
-			getValueObjectEncoder(),
+			analysisEncoders.Encoder,
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.QueryTarget, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata] {
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.QueryTarget {
@@ -208,6 +208,7 @@ type buildQueryTargetsEnvironment[TReference any, TMetadata model_core.Reference
 func (c *baseComputer[TReference, TMetadata]) buildQueryTargets(
 	ctx context.Context,
 	e buildQueryTargetsEnvironment[TReference, TMetadata],
+	analysisEncoders *AnalysisEncoders[TReference],
 	targetLabels model_core.Message[[]*model_analysis_pb.TargetLabel, TReference],
 	definitionDetail model_analysis_pb.QueryTarget_DefinitionDetail,
 ) (model_core.PatchedMessage[[]*model_analysis_pb.QueryTarget, TMetadata], error) {
@@ -217,7 +218,7 @@ func (c *baseComputer[TReference, TMetadata]) buildQueryTargets(
 		return model_core.PatchedMessage[[]*model_analysis_pb.QueryTarget, TMetadata]{}, errors.New("unknown target definition detail")
 	}
 
-	treeBuilder := c.newQueryTargetTreeBuilder(ctx, e)
+	treeBuilder := c.newQueryTargetTreeBuilder(ctx, analysisEncoders, e)
 	defer treeBuilder.Discard()
 	missingDependencies := false
 	for i, targetLabel := range targetLabels.Message {
@@ -272,16 +273,17 @@ func (c *baseComputer[TReference, TMetadata]) buildQueryTargets(
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeQueryTargetsValue(ctx context.Context, key model_core.Message[*model_analysis_pb.QueryTargets_Key, TReference], e QueryTargetsEnvironment[TReference, TMetadata]) (PatchedQueryTargetsValue[TMetadata], error) {
-	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 
-	if !gotAnalysisReaders {
+	if !gotAnalysisEncoders {
 		return PatchedQueryTargetsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	analysisReaders := &analysisEncoders.Readers
 	targetLabels, err := model_parser.Dereference(ctx, analysisReaders.TargetLabel, model_core.Nested(key, key.Message.TargetLabelsReference))
 	if err != nil {
 		return PatchedQueryTargetsValue[TMetadata]{}, err
 	}
-	targets, err := c.buildQueryTargets(ctx, e, targetLabels, key.Message.DefinitionDetail)
+	targets, err := c.buildQueryTargets(ctx, e, analysisEncoders, targetLabels, key.Message.DefinitionDetail)
 	if err != nil {
 		return PatchedQueryTargetsValue[TMetadata]{}, err
 	}

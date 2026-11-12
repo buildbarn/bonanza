@@ -120,11 +120,6 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 	}
 }
 
-func getValueObjectEncoder() model_encoding.DeterministicBinaryEncoder {
-	// TODO: Use a proper encoder!
-	return model_encoding.NewChainedDeterministicBinaryEncoder(nil)
-}
-
 // maximumLargeStringSizeBytes limits the amount of memory that may be
 // used to hold strings that are too large to be stored inline. It is
 // both the maximum number of bytes of such strings that a single
@@ -165,11 +160,12 @@ type valueEncodingOptionsFactory[TReference object.BasicReference, TMetadata mod
 	computer               *baseComputer[TReference, TMetadata]
 	objectCapturer         model_core.ObjectCapturer[TReference, TMetadata]
 	fileCreationParameters *model_filesystem.FileCreationParameters
+	objectEncoder          model_encoding.DeterministicBinaryEncoder
 }
 
 // newValueEncodingOptionsFactory creates a valueEncodingOptionsFactory,
 // obtaining all of its dependencies from the environment.
-func (c *baseComputer[TReference, TMetadata]) newValueEncodingOptionsFactory(e valueEncodingEnvironment[TReference, TMetadata]) (*valueEncodingOptionsFactory[TReference, TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) newValueEncodingOptionsFactory(e valueEncodingEnvironment[TReference, TMetadata], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (*valueEncodingOptionsFactory[TReference, TMetadata], error) {
 	// Strings that are too large to be stored inline are stored
 	// using the same parameters as files, so that they can share
 	// data with files.
@@ -181,6 +177,7 @@ func (c *baseComputer[TReference, TMetadata]) newValueEncodingOptionsFactory(e v
 		computer:               c,
 		objectCapturer:         e,
 		fileCreationParameters: fileCreationParameters,
+		objectEncoder:          starlarkValueEncoders.Encoder,
 	}, nil
 }
 
@@ -190,7 +187,7 @@ func (f *valueEncodingOptionsFactory[TReference, TMetadata]) newValueEncodingOpt
 	return &model_starlark.ValueEncodingOptions[TReference, TMetadata]{
 		CurrentFilename:       currentFilename,
 		Context:               ctx,
-		ObjectEncoder:         getValueObjectEncoder(),
+		ObjectEncoder:         f.objectEncoder,
 		ObjectReferenceFormat: f.computer.referenceFormat,
 		ObjectCapturer:        f.objectCapturer,
 		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{

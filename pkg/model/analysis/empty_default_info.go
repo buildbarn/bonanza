@@ -17,7 +17,7 @@ import (
 func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx context.Context, key *model_analysis_pb.EmptyDefaultInfo_Key, e EmptyDefaultInfoEnvironment[TReference, TMetadata]) (PatchedEmptyDefaultInfoValue[TMetadata], error) {
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
-	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, err
 	}

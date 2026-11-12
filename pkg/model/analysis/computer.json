@@ -18,7 +18,7 @@
       },
       "AnalysisEncoders": {
          "objectType": {
-            "type": "*AnalysisReaders[TReference]"
+            "type": "*AnalysisEncoders[TReference]"
          }
       },
       "BuildResult": {
@@ -281,6 +281,7 @@
          "dependsOn": [
             "ActionEncoders",
             "ActionResult",
+            "AnalysisEncoders",
             "BuiltinsModuleNames",
             "CanonicalRepoName",
             "CompiledBzlFile",
@@ -354,7 +355,8 @@
             "FileCreationParameters",
             "FileProperties",
             "ModuleDotBazelContents",
-            "RootModule"
+            "RootModule",
+            "StarlarkValueEncoders"
          ]
       },
       "Package": {
@@ -415,6 +417,7 @@
       },
       "QueryResult": {
          "dependsOn": [
+            "AnalysisEncoders",
             "CanonicalRepoName",
             "CompiledBzlFileGlobal",
             "FileAccessParameters",
@@ -526,7 +529,8 @@
             "CanonicalRepoName",
             "FileAccessParameters",
             "FileProperties",
-            "RootModule"
+            "RootModule",
+            "StarlarkValueEncoders"
          ]
       },
       "RepoPlatformHostPath": {
@@ -720,7 +724,8 @@
             "FileCreationParameters",
             "ModuleDotBazelContents",
             "ModulesWithMultipleVersions",
-            "RootModule"
+            "RootModule",
+            "StarlarkValueEncoders"
          ]
       },
       "UserDefinedTransition": {

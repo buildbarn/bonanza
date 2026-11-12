@@ -35,7 +35,7 @@ var buildDotBazelTargetNames = []label.TargetName{
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Context, key *model_analysis_pb.Package_Key, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
-	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
+	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
 	canonicalPackage, err := label.NewCanonicalPackage(key.Label)
@@ -43,25 +43,25 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid package label: %w", err)
 	}
 
-	if !gotAnalysisReaders || !gotStarlarkValueEncoders {
+	if !gotAnalysisEncoders || !gotStarlarkValueEncoders {
 		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	if len(key.MacroInstanceName) > 0 {
-		value, err := c.computeMacroInstancePackageValue(ctx, canonicalPackage, key.MacroInstanceName, e, analysisReaders, starlarkValueEncoders)
+		value, err := c.computeMacroInstancePackageValue(ctx, canonicalPackage, key.MacroInstanceName, e, analysisEncoders, starlarkValueEncoders)
 		if err != nil && !errors.Is(err, evaluation.ErrMissingDependency) {
 			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("macro instance %#v: %w", strings.Join(key.MacroInstanceName, ""), err)
 		}
 		return value, err
 	}
-	return c.computeTopLevelPackageValue(ctx, canonicalPackage, e, starlarkValueEncoders)
+	return c.computeTopLevelPackageValue(ctx, canonicalPackage, e, analysisEncoders, starlarkValueEncoders)
 }
 
 // computeTopLevelPackageValue computes the value of the Package key
 // for the top level of a package. It evaluates the package's
 // BUILD.bazel file to obtain the targets and macro instances declared
 // within.
-func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, e PackageEnvironment[TReference, TMetadata], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedPackageValue[TMetadata], error) {
-	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, e PackageEnvironment[TReference, TMetadata], analysisEncoders *AnalysisEncoders[TReference], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedPackageValue[TMetadata], error) {
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, err
 	}
@@ -158,7 +158,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 
 		targetRegistrar := model_starlark.NewTargetRegistrar(
 			ctx,
-			getValueObjectEncoder(),
+			starlarkValueEncoders.Encoder,
 			c.getInlinedTreeOptions(),
 			e,
 			model_core.Nested(repoDefaultAttrsValue, repoDefaultAttrsValue.Message.InheritableAttrs),
@@ -180,7 +180,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 		}
 
 		// Store all targets and macro instances in B-trees.
-		return c.buildPackageDeclarations(ctx, e, targetRegistrar, valueEncodingOptions)
+		return c.buildPackageDeclarations(ctx, analysisEncoders, e, targetRegistrar, valueEncodingOptions)
 	}
 
 	return PatchedPackageValue[TMetadata]{}, errors.New("BUILD.bazel does not exist")
@@ -188,7 +188,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 
 // newPackageTargetsTreeBuilder creates a B-tree builder for lists of
 // targets, as stored in the values of Package and PackageTargets.
-func (c *baseComputer[TReference, TMetadata]) newPackageTargetsTreeBuilder(ctx context.Context, capturer model_core.CreatedObjectCapturer[TMetadata]) btree.Builder[*model_analysis_pb.Package_Value_Target, TMetadata] {
+func (c *baseComputer[TReference, TMetadata]) newPackageTargetsTreeBuilder(ctx context.Context, analysisEncoders *AnalysisEncoders[TReference], capturer model_core.CreatedObjectCapturer[TMetadata]) btree.Builder[*model_analysis_pb.Package_Value_Target, TMetadata] {
 	// TODO: Use a proper encoder!
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
@@ -201,7 +201,7 @@ func (c *baseComputer[TReference, TMetadata]) newPackageTargetsTreeBuilder(ctx c
 			},
 		),
 		btree.NewObjectCreatingNodeMerger(
-			getValueObjectEncoder(),
+			analysisEncoders.Encoder,
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Package_Value_Target, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Package_Value_Target, TMetadata] {
 				var firstName, lastName string
@@ -236,8 +236,8 @@ func (c *baseComputer[TReference, TMetadata]) newPackageTargetsTreeBuilder(ctx c
 // buildPackageDeclarations extracts all targets and macro instances
 // from a TargetRegistrar, and stores them in B-trees that are sorted by
 // name.
-func (c *baseComputer[TReference, TMetadata]) buildPackageDeclarations(ctx context.Context, capturer model_core.CreatedObjectCapturer[TMetadata], targetRegistrar *model_starlark.TargetRegistrar[TReference, TMetadata], valueEncodingOptions *model_starlark.ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_analysis_pb.Package_Value, TMetadata], error) {
-	targetsBuilder := c.newPackageTargetsTreeBuilder(ctx, capturer)
+func (c *baseComputer[TReference, TMetadata]) buildPackageDeclarations(ctx context.Context, analysisEncoders *AnalysisEncoders[TReference], capturer model_core.CreatedObjectCapturer[TMetadata], targetRegistrar *model_starlark.TargetRegistrar[TReference, TMetadata], valueEncodingOptions *model_starlark.ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_analysis_pb.Package_Value, TMetadata], error) {
+	targetsBuilder := c.newPackageTargetsTreeBuilder(ctx, analysisEncoders, capturer)
 	defer targetsBuilder.Discard()
 	for _, name := range targetRegistrar.GetTargetNames() {
 		target := targetRegistrar.GetAndRemoveTarget(name)
@@ -440,8 +440,9 @@ func (r *existingRulesResolver[TReference, TMetadata]) ForEachExistingRule(yield
 // key for a macro instance. It invokes the macro's implementation
 // function to obtain the targets and macro instances declared by the
 // macro instance.
-func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, macroInstanceNameSuffixes []string, e PackageEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedPackageValue[TMetadata], error) {
-	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(ctx context.Context, canonicalPackage label.CanonicalPackage, macroInstanceNameSuffixes []string, e PackageEnvironment[TReference, TMetadata], analysisEncoders *AnalysisEncoders[TReference], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedPackageValue[TMetadata], error) {
+	analysisReaders := &analysisEncoders.Readers
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, err
 	}
@@ -515,7 +516,7 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	// implicitly.
 	targetRegistrar := model_starlark.NewMacroTargetRegistrar(
 		ctx,
-		getValueObjectEncoder(),
+		starlarkValueEncoders.Encoder,
 		c.getInlinedTreeOptions(),
 		e,
 		macroInstanceName,
@@ -625,7 +626,7 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 		return PatchedPackageValue[TMetadata]{}, err
 	}
 
-	return c.buildPackageDeclarations(ctx, e, targetRegistrar, valueEncodingOptions)
+	return c.buildPackageDeclarations(ctx, analysisEncoders, e, targetRegistrar, valueEncodingOptions)
 }
 
 // PackageEnvironmentForTesting is used to generate mocks for testing

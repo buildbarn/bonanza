@@ -15,6 +15,8 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx context.Context, key *model_analysis_pb.RepoDefaultAttrs_Key, e RepoDefaultAttrsEnvironment[TReference, TMetadata]) (PatchedRepoDefaultAttrsValue[TMetadata], error) {
+	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
+
 	canonicalRepo, err := label.NewCanonicalRepo(key.CanonicalRepo)
 	if err != nil {
 		return PatchedRepoDefaultAttrsValue[TMetadata]{}, fmt.Errorf("invalid canonical repo: %w", err)
@@ -27,7 +29,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 	})
 
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
-	if !repoFileProperties.IsSet() || !gotFileReader {
+	if !repoFileProperties.IsSet() || !gotFileReader || !gotStarlarkValueEncoders {
 		return PatchedRepoDefaultAttrsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
@@ -55,7 +57,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 			ctx,
 			string(repoFileData),
 			canonicalRepo.GetRootPackage().AppendTargetName(repoFileName),
-			getValueObjectEncoder(),
+			starlarkValueEncoders.Encoder,
 			c.getInlinedTreeOptions(),
 			e,
 			newLabelResolver(e),

@@ -23,7 +23,12 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesValue(ctx context.Context, key *model_analysis_pb.ModulesWithRemoteOverrides_Key, e ModulesWithRemoteOverridesEnvironment[TReference, TMetadata]) (PatchedModulesWithRemoteOverridesValue[TMetadata], error) {
-	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
+
+	if !gotStarlarkValueEncoders {
+		return PatchedModulesWithRemoteOverridesValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
 		return PatchedModulesWithRemoteOverridesValue[TMetadata]{}, err
 	}

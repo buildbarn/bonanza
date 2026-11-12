@@ -21,6 +21,7 @@ func TestQueryResult(t *testing.T) {
 	// of the root module. The resulting canonical query should be
 	// requested in normal form.
 	e := NewMockQueryResultEnvironmentForTesting(ctrl)
+	e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 	e.EXPECT().GetRootModuleValue(
 		testutil.EqProto(t, &model_analysis_pb.RootModule_Key{}),
 	).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.RootModule_Value{

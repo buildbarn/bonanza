@@ -9,6 +9,7 @@ import (
 
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
+	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
@@ -159,7 +160,12 @@ func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata])
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(ctx context.Context, key *model_analysis_pb.UsedModuleExtensions_Key, e UsedModuleExtensionsEnvironment[TReference, TMetadata]) (PatchedUsedModuleExtensionsValue[TMetadata], error) {
-	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e)
+	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
+
+	if !gotStarlarkValueEncoders {
+		return PatchedUsedModuleExtensionsValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
 		return PatchedUsedModuleExtensionsValue[TMetadata]{}, err
 	}
