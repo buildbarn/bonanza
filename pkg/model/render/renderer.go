@@ -276,6 +276,15 @@ func (*Renderer) renderPretty(m model_core.Message[protoreflect.Message, object.
 	switch v := m.Message.Interface().(type) {
 	case *model_filesystem_pb.DirectoryContents:
 		return renderDirectory(model_core.Nested(m, v))
+	case *model_filesystem_pb.Leaves:
+		// Leaves may be stored externally if a directory is
+		// large. Render them as a directory without any
+		// subdirectories.
+		return renderDirectory(model_core.Nested(m, &model_filesystem_pb.DirectoryContents{
+			Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
+				LeavesInline: v,
+			},
+		}))
 	case *model_starlark_pb.CompiledProgram_FunctionEntry_Leaf:
 		return renderFunctionEntryLeaf(v)
 	}

@@ -399,6 +399,31 @@ func TestRendererDirectory(t *testing.T) {
 	require.Equal(t, []render.Segment{{Text: "412   B"}}, rows[1][1])
 }
 
+func TestRendererLeaves(t *testing.T) {
+	leaves := &model_filesystem_pb.Leaves{
+		Files: []*model_filesystem_pb.FileNode{{
+			Name: "file",
+			Properties: &model_filesystem_pb.FileProperties{
+				Contents: &model_filesystem_pb.FileContents{TotalSizeBytes: 412},
+			},
+		}},
+		Symlinks: []*model_filesystem_pb.SymlinkNode{{Name: "link", Target: "file"}},
+	}
+
+	r := render.Renderer{Pretty: true}
+	blocks := render.Layout(
+		r.Message(model_core.NewSimpleMessage[object.LocalReference](leaves.ProtoReflect())),
+		render.LayoutOptions{Width: 80},
+	)
+	require.Len(t, blocks, 1)
+	require.Equal(
+		t,
+		"-r--\t412   B\tfile\n"+
+			"lr-x\t\tlink → file",
+		render.PlainText(blocks, ""),
+	)
+}
+
 // newStringValue creates a Value message containing a string that is
 // stored inline.
 func newStringValue(s string) *model_starlark_pb.Value {
