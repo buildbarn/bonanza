@@ -272,7 +272,7 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 				return cmp
 			}
 			if hasVersion {
-				if version, err := label.NewModuleVersion(module.Version); err == nil {
+				if version, err := label.NewModuleVersion(module.Definition.GetVersion()); err == nil {
 					if cmp := expectedVersion.Compare(version); cmp != 0 {
 						return cmp
 					}
@@ -282,14 +282,14 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 		},
 	); ok {
 		foundModule := buildList[i]
-		foundVersion, err := label.NewModuleVersion(foundModule.Version)
+		foundVersion, err := label.NewModuleVersion(foundModule.Definition.GetVersion())
 		if err != nil {
-			return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("invalid version %#v for module %#v: %w", foundModule.Version, foundModule.Name, err)
+			return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("invalid version %#v for module %#v: %w", foundModule.Definition.GetVersion(), foundModule.Name, err)
 		}
 		if !hasVersion || expectedVersion.Compare(foundVersion) == 0 {
-			moduleFileURL, err := getModuleDotBazelURL(foundModule.RegistryUrl, expectedName, foundVersion)
+			moduleFileURL, err := getModuleDotBazelURL(foundModule.Definition.GetRegistryUrl(), expectedName, foundVersion)
 			if err != nil {
-				return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", foundModule.Name, foundModule.Version, foundModule.RegistryUrl, err)
+				return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", foundModule.Name, foundModule.Definition.GetVersion(), foundModule.Definition.GetRegistryUrl(), err)
 			}
 
 			fileContentsValue := e.GetHTTPFileContentsValue(

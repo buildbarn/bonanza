@@ -130,10 +130,12 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Multipl
 
 	return h.addOverrideModule(&model_analysis_pb.ModuleOverride{
 		Name: moduleName.String(),
-		Kind: &model_analysis_pb.ModuleOverride_MultipleVersions_{
-			MultipleVersions: &model_analysis_pb.ModuleOverride_MultipleVersions{
-				Versions: vers,
-				Registry: registry,
+		Definition: &model_analysis_pb.ModuleOverride_Definition{
+			Kind: &model_analysis_pb.ModuleOverride_Definition_MultipleVersions{
+				MultipleVersions: &model_analysis_pb.ModuleOverride_MultipleVersions{
+					Versions: vers,
+					Registry: registry,
+				},
 			},
 		},
 	})
@@ -159,10 +161,12 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Reposit
 
 	return h.addOverrideModule(&model_analysis_pb.ModuleOverride{
 		Name: moduleName.String(),
-		Kind: &model_analysis_pb.ModuleOverride_RepositoryRule{
-			RepositoryRule: &model_starlark_pb.Repo_Definition{
-				RepositoryRuleIdentifier: repositoryRuleIdentifier.String(),
-				AttrValues:               fields.Message,
+		Definition: &model_analysis_pb.ModuleOverride_Definition{
+			Kind: &model_analysis_pb.ModuleOverride_Definition_RepositoryRule{
+				RepositoryRule: &model_starlark_pb.Repo_Definition{
+					RepositoryRuleIdentifier: repositoryRuleIdentifier.String(),
+					AttrValues:               fields.Message,
+				},
 			},
 		},
 	})
@@ -178,13 +182,15 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) SingleV
 	}
 	return h.addOverrideModule(&model_analysis_pb.ModuleOverride{
 		Name: moduleName.String(),
-		Kind: &model_analysis_pb.ModuleOverride_SingleVersion_{
-			SingleVersion: &model_analysis_pb.ModuleOverride_SingleVersion{
-				Version:       vers,
-				Registry:      registry,
-				PatchLabels:   stringersToStrings(patchOptions.Patches),
-				PatchCommands: patchOptions.PatchCmds,
-				PatchStrip:    int64(patchOptions.PatchStrip),
+		Definition: &model_analysis_pb.ModuleOverride_Definition{
+			Kind: &model_analysis_pb.ModuleOverride_Definition_SingleVersion{
+				SingleVersion: &model_analysis_pb.ModuleOverride_SingleVersion{
+					Version:       vers,
+					Registry:      registry,
+					PatchLabels:   stringersToStrings(patchOptions.Patches),
+					PatchCommands: patchOptions.PatchCmds,
+					PatchStrip:    int64(patchOptions.PatchStrip),
+				},
 			},
 		},
 	})

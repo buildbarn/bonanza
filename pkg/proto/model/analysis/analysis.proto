@@ -1208,14 +1208,17 @@ message BuildListModule {
   // The name of the module.
   string name = 1;
 
-  // The version of the module.
-  string version = 2;
+  message Definition {
+    // The version of the module.
+    string version = 1;
 
-  // Was 'compatibility_level'.
-  reserved 3;
+    // The URL of the registry in which the module was found.
+    string registry_url = 2;
+  }
 
-  // The URL of the registry in which the module was found.
-  string registry_url = 4;
+  // Properties of the module that are needed to download it from the
+  // registry.
+  Definition definition = 2;
 }
 
 message ModuleFinalBuildList {
@@ -1225,6 +1228,24 @@ message ModuleFinalBuildList {
     // Modules that were referenced by the main module, or one of
     // transitive dependencies, sorted by name and version.
     repeated BuildListModule build_list = 1;
+  }
+}
+
+message FinalBuildListModuleDefinition {
+  message Key {
+    // The name of the module, without the leading "@" (e.g.,
+    // "rules_go").
+    string module_name = 1;
+  }
+
+  message Value {
+    // The definition of the module in the final build list, if the
+    // module is part of the final build list. If not set, the module
+    // is not part of the final build list.
+    //
+    // This is provided on a per-module basis, so that changes to the
+    // versions of other modules don't affect the repo of this module.
+    BuildListModule.Definition definition = 1;
   }
 }
 
@@ -1335,20 +1356,26 @@ message ModuleOverride {
     string registry = 2;
   }
 
-  // Kind of the override for the module name.
-  oneof kind {
-    // See: https://bazel.build/rules/lib/globals/module#single_version_override
-    SingleVersion single_version = 2;
+  message Definition {
+    // Kind of the override for the module name.
+    oneof kind {
+      // See:
+      // https://bazel.build/rules/lib/globals/module#single_version_override
+      SingleVersion single_version = 1;
 
-    // See:
-    // https://bazel.build/rules/lib/globals/module#multiple_version_override
-    MultipleVersions multiple_versions = 3;
+      // See:
+      // https://bazel.build/rules/lib/globals/module#multiple_version_override
+      MultipleVersions multiple_versions = 2;
 
-    // Repository rule is the definition for the rule.
-    // See: https://bazel.build/rules/lib/globals/module#archive_override
-    // See: https://bazel.build/rules/lib/globals/module#git_override
-    bonanza.model.starlark.Repo.Definition repository_rule = 4;
+      // Repository rule is the definition for the rule.
+      // See: https://bazel.build/rules/lib/globals/module#archive_override
+      // See: https://bazel.build/rules/lib/globals/module#git_override
+      bonanza.model.starlark.Repo.Definition repository_rule = 3;
+    }
   }
+
+  // The override that is declared for the module.
+  Definition definition = 2;
 }
 
 message ModulesWithRemoteOverrides {
@@ -1358,6 +1385,23 @@ message ModulesWithRemoteOverrides {
     // Alphabetically sorted list of modules for which remote overrides are in
     // place.
     repeated ModuleOverride module_overrides = 1;
+  }
+}
+
+message ModuleOverrideDefinition {
+  message Key {
+    // The name of the module, without the leading "@" (e.g.,
+    // "rules_go").
+    string module_name = 1;
+  }
+
+  message Value {
+    // The override that the root module's MODULE.bazel file declares
+    // for the module. If not set, no such override is declared.
+    //
+    // This is provided on a per-module basis, so that changes to the
+    // overrides of other modules don't affect the repo of this module.
+    ModuleOverride.Definition definition = 1;
   }
 }
 

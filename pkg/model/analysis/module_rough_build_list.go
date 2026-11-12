@@ -82,12 +82,12 @@ func (l roughBuildList) Less(i, j int) bool {
 
 	// Compare by version, falling back to string comparison if
 	// their canonical values are the same.
-	if cmp := util.Must(label.NewModuleVersion(ei.Version)).Compare(util.Must(label.NewModuleVersion(ej.Version))); cmp < 0 {
+	if cmp := util.Must(label.NewModuleVersion(ei.Definition.GetVersion())).Compare(util.Must(label.NewModuleVersion(ej.Definition.GetVersion()))); cmp < 0 {
 		return true
 	} else if cmp > 0 {
 		return false
 	}
-	return ei.Version < ej.Version
+	return ei.Definition.GetVersion() < ej.Definition.GetVersion()
 }
 
 // OverrideVersions is a list of module versions that was provided to
@@ -222,9 +222,11 @@ ProcessModule:
 				if httpFileContents.Message.Exists != nil {
 					moduleFileContents = model_core.Nested(httpFileContents, httpFileContents.Message.Exists.Contents)
 					buildListEntry = &model_analysis_pb.BuildListModule{
-						Name:        module.name.String(),
-						Version:     module.version.String(),
-						RegistryUrl: registryURL,
+						Name: module.name.String(),
+						Definition: &model_analysis_pb.BuildListModule_Definition{
+							Version:     module.version.String(),
+							RegistryUrl: registryURL,
+						},
 					}
 					goto GotModuleFileContents
 				}

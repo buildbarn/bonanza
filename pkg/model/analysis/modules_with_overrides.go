@@ -54,10 +54,10 @@ func moduleOverrideToOverrideModule(mo *model_analysis_pb.ModuleOverride) []*mod
 	olm := &model_analysis_pb.OverridesListModule{
 		Name: mo.GetName(),
 	}
-	switch override := mo.Kind.(type) {
-	case *model_analysis_pb.ModuleOverride_MultipleVersions_:
+	switch override := mo.Definition.GetKind().(type) {
+	case *model_analysis_pb.ModuleOverride_Definition_MultipleVersions:
 		olm.Versions = override.MultipleVersions.Versions
-	case *model_analysis_pb.ModuleOverride_SingleVersion_:
+	case *model_analysis_pb.ModuleOverride_Definition_SingleVersion:
 		if override.SingleVersion.Version == "" {
 			// If no version number is specified, we must
 			// still go through minimal version selection to

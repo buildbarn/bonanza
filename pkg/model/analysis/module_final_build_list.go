@@ -21,9 +21,9 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleFinalBuildListValue(ctx 
 	var previousVersion label.ModuleVersion
 	roughBuildList := roughBuildListValue.Message.BuildList
 	for i, module := range roughBuildList {
-		version, err := label.NewModuleVersion(module.Version)
+		version, err := label.NewModuleVersion(module.Definition.GetVersion())
 		if err != nil {
-			return PatchedModuleFinalBuildListValue[TMetadata]{}, fmt.Errorf("module %#v has invalid version %#v: %w", module.Name, module.Version, err)
+			return PatchedModuleFinalBuildListValue[TMetadata]{}, fmt.Errorf("module %#v has invalid version %#v: %w", module.Name, module.Definition.GetVersion(), err)
 		}
 
 		if len(buildList) == 0 || buildList[len(buildList)-1].Name != module.Name {
@@ -35,10 +35,10 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleFinalBuildListValue(ctx 
 		} else if cmp == 0 && (i+1 >= len(roughBuildList) || module.Name != roughBuildList[i+1].Name) {
 			// Prevent selection process from being
 			// non-deterministic.
-			return PatchedModuleFinalBuildListValue[TMetadata]{}, fmt.Errorf("module %#v has ambiguous highest versions %#v and %#v", module.Name, previousVersionStr, module.Version)
+			return PatchedModuleFinalBuildListValue[TMetadata]{}, fmt.Errorf("module %#v has ambiguous highest versions %#v and %#v", module.Name, previousVersionStr, module.Definition.GetVersion())
 		}
 
-		previousVersionStr = module.Version
+		previousVersionStr = module.Definition.GetVersion()
 		previousVersion = version
 	}
 

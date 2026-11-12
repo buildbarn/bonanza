@@ -890,7 +890,8 @@ func parseSubresourceIntegrityOrSHA256(integrity, sha256 string) (*model_fetch_p
 
 func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	ctx context.Context,
-	module *model_analysis_pb.BuildListModule,
+	moduleName string,
+	moduleDefinition *model_analysis_pb.BuildListModule_Definition,
 	e RepoEnvironment[TReference, TMetadata],
 	singleVersionOverridePatchLabels []string,
 	singleVersionOverridePatchCommands []string,
@@ -902,14 +903,14 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	}
 
 	sourceJSONURL, err := url.JoinPath(
-		module.RegistryUrl,
+		moduleDefinition.RegistryUrl,
 		"modules",
-		module.Name,
-		module.Version,
+		moduleName,
+		moduleDefinition.Version,
 		"source.json",
 	)
 	if err != nil {
-		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", module.Name, module.Version, module.RegistryUrl, err)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", moduleName, moduleDefinition.Version, moduleDefinition.RegistryUrl, err)
 	}
 
 	sourceJSONContentsValue := e.GetHTTPFileContentsValue(
@@ -976,15 +977,15 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	overlayFiles := make([]overlayFile[TReference], 0, len(sourceJSON.Overlay))
 	for _, overlayEntry := range sourceJSON.Overlay {
 		overlayURL, err := url.JoinPath(
-			module.RegistryUrl,
+			moduleDefinition.RegistryUrl,
 			"modules",
-			module.Name,
-			module.Version,
+			moduleName,
+			moduleDefinition.Version,
 			"overlay",
 			overlayEntry.key,
 		)
 		if err != nil {
-			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for overlay file %s of module %s with version %s in registry %#v: %w", overlayEntry.key, module.Name, module.Version, module.RegistryUrl, err)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for overlay file %s of module %s with version %s in registry %#v: %w", overlayEntry.key, moduleName, moduleDefinition.Version, moduleDefinition.RegistryUrl, err)
 		}
 
 		integrity, err := parseSubresourceIntegrity(overlayEntry.value)
@@ -1018,15 +1019,15 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	patchesToApply := make([]patchToApply[TReference], 0, len(sourceJSON.Patches)+len(singleVersionOverridePatchLabels))
 	for _, patchEntry := range sourceJSON.Patches {
 		patchURL, err := url.JoinPath(
-			module.RegistryUrl,
+			moduleDefinition.RegistryUrl,
 			"modules",
-			module.Name,
-			module.Version,
+			moduleName,
+			moduleDefinition.Version,
 			"patches",
 			patchEntry.key,
 		)
 		if err != nil {
-			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for patch %s of module %s with version %s in registry %#v: %w", patchEntry.key, module.Name, module.Version, module.RegistryUrl, err)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for patch %s of module %s with version %s in registry %#v: %w", patchEntry.key, moduleName, moduleDefinition.Version, moduleDefinition.RegistryUrl, err)
 		}
 
 		integrity, err := parseSubresourceIntegrity(patchEntry.value)
@@ -3818,28 +3819,25 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 		// Check to see if there is a MODULE.bazel override for this module.
 		var singleVersionOverridePatchLabels, singleVersionOverridePatchCommands []string
 		var singleVersionOverridePatchStrip int
-		remoteOverridesValue := e.GetModulesWithRemoteOverridesValue(&model_analysis_pb.ModulesWithRemoteOverrides_Key{})
-		if !remoteOverridesValue.IsSet() {
+		overrideDefinitionValue := e.GetModuleOverrideDefinitionValue(&model_analysis_pb.ModuleOverrideDefinition_Key{
+			ModuleName: moduleName,
+		})
+		if !overrideDefinitionValue.IsSet() {
 			return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		remoteOverrides := remoteOverridesValue.Message.ModuleOverrides
-		if i := sort.Search(
-			len(remoteOverrides),
-			func(i int) bool { return remoteOverrides[i].Name >= moduleName },
-		); i < len(remoteOverrides) && remoteOverrides[i].Name == moduleName {
+		if overrideDefinition := overrideDefinitionValue.Message.Definition; overrideDefinition != nil {
 			// Found the remote override
-			remoteOverride := remoteOverrides[i]
-			switch override := remoteOverride.Kind.(type) {
-			case *model_analysis_pb.ModuleOverride_RepositoryRule:
+			switch override := overrideDefinition.Kind.(type) {
+			case *model_analysis_pb.ModuleOverride_Definition_RepositoryRule:
 				return c.fetchRepo(
 					ctx,
 					canonicalRepo,
 					canonicalRepo.GetModuleInstance().GetModule().ToApparentRepo(),
-					model_core.Nested(remoteOverridesValue, override.RepositoryRule),
+					model_core.Nested(overrideDefinitionValue, override.RepositoryRule),
 					e,
 					starlarkValueEncoders,
 				)
-			case *model_analysis_pb.ModuleOverride_SingleVersion_:
+			case *model_analysis_pb.ModuleOverride_Definition_SingleVersion:
 				if override.SingleVersion.Version != "" {
 					// TODO: Implement!
 					return PatchedRepoValue[TMetadata]{}, errors.New("single version override with exact version should skip Minimal Version Selection")
@@ -3847,7 +3845,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 				singleVersionOverridePatchLabels = override.SingleVersion.PatchLabels
 				singleVersionOverridePatchCommands = override.SingleVersion.PatchCommands
 				singleVersionOverridePatchStrip = int(override.SingleVersion.PatchStrip)
-			case *model_analysis_pb.ModuleOverride_MultipleVersions_:
+			case *model_analysis_pb.ModuleOverride_Definition_MultipleVersions:
 				return PatchedRepoValue[TMetadata]{}, errors.New("module has a multiple version override, meaning that the module instance must contain a version number")
 			default:
 				return PatchedRepoValue[TMetadata]{}, errors.New("unknown module override type")
@@ -3857,18 +3855,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 		// If a version of the module is selected as
 		// part of the final build list, we can download
 		// that exact version.
-		buildListValue := e.GetModuleFinalBuildListValue(&model_analysis_pb.ModuleFinalBuildList_Key{})
-		if !buildListValue.IsSet() {
+		moduleDefinitionValue := e.GetFinalBuildListModuleDefinitionValue(&model_analysis_pb.FinalBuildListModuleDefinition_Key{
+			ModuleName: moduleName,
+		})
+		if !moduleDefinitionValue.IsSet() {
 			return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		buildList := buildListValue.Message.BuildList
-		if i, ok := sort.Find(
-			len(buildList),
-			func(i int) int { return strings.Compare(moduleName, buildList[i].Name) },
-		); ok {
+		if moduleDefinition := moduleDefinitionValue.Message.Definition; moduleDefinition != nil {
 			return c.fetchModuleFromRegistry(
 				ctx,
-				buildList[i],
+				moduleName,
+				moduleDefinition,
 				e,
 				singleVersionOverridePatchLabels,
 				singleVersionOverridePatchCommands,
