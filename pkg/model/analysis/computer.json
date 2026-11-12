@@ -476,9 +476,9 @@
       },
       "RegisteredRepoPlatform": {
          "dependsOn": [
-            "BuildSpecification",
             "CanonicalRepoName",
             "FileAccessParameters",
+            "RepoPlatformLabel",
             "RootModule",
             "StarlarkValueEncoders",
             "TargetProvider"
@@ -552,6 +552,12 @@
             "RepoPlatformHostPath",
             "SuccessfulActionResult"
          ]
+      },
+      "RepoPlatformLabel": {
+         "dependsOn": [
+            "BuildSpecification"
+         ],
+         "isLookup": true
       },
       "ResolvedToolchains": {
          "dependsOn": [

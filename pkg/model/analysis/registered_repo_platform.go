@@ -60,20 +60,20 @@ func (*baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue(c
 
 	// Obtain the label of the repo platform that was provided by
 	// the client through the --repo_platform command line flag.
-	buildSpecificationValue := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
-	if !buildSpecificationValue.IsSet() || !gotValueReaders || !gotFileReader {
+	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
+	repoPlatformLabelValue := e.GetRepoPlatformLabelValue(&model_analysis_pb.RepoPlatformLabel_Key{})
+	if !rootModuleValue.IsSet() || !repoPlatformLabelValue.IsSet() || !gotValueReaders || !gotFileReader {
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	buildSpecification := buildSpecificationValue.Message
 
-	rootModuleName := buildSpecification.RootModuleName
+	rootModuleName := rootModuleValue.Message.RootModuleName
 	rootModule, err := label.NewModule(rootModuleName)
 	if err != nil {
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleName, err)
 	}
 	rootRepo := rootModule.ToModuleInstance(nil).GetBareCanonicalRepo()
 
-	repoPlatformStr := buildSpecification.RepoPlatform
+	repoPlatformStr := repoPlatformLabelValue.Message.ApparentLabel
 	if repoPlatformStr == "" {
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, errors.New("no repo platform specified, meaning module extensions and repository rules cannot be evaluated")
 	}

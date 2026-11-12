@@ -152,7 +152,7 @@ message BuildSpecification {
     //
     // If this field is not set, the build will be unable to evaluate
     // module extensions and repository rules.
-    string repo_platform = 10;
+    string repo_platform_label = 10;
 
     // Encoders that should be used when creating Action and Result
     // messages that are processed and created by workers.
@@ -1868,6 +1868,22 @@ message RepoPlatformHostPath {
       // encountered when creating this directory, they are expanded.
       bonanza.model.filesystem.DirectoryContents directory = 2;
     }
+  }
+}
+
+message RepoPlatformLabel {
+  message Key {}
+
+  message Value {
+    // Apparent label of the platform() that should be used for
+    // executing commands as part of module extensions and repository
+    // rules, as provided by the client through the --repo_platform
+    // command line flag. The label is relative to the root package of
+    // the root module.
+    //
+    // If this field is not set, the build will be unable to evaluate
+    // module extensions and repository rules.
+    string apparent_label = 1;
   }
 }
 

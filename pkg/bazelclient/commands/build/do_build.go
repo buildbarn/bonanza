@@ -408,7 +408,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		FileCreationParameters:                 fileParametersMessage,
 		IgnoreRootModuleDevDependencies:        commonFlags.IgnoreDevDependency,
 		BuiltinsModuleNames:                    commonFlags.BuiltinsModule,
-		RepoPlatform:                           commonFlags.RepoPlatform,
+		RepoPlatformLabel:                      commonFlags.RepoPlatform,
 		FetchPlatformPkixPublicKey:             fetcherPKIXPublicKey,
 		ActionEncoders:                         defaultEncoders,
 		AnalysisEncoders:                       defaultEncoders,

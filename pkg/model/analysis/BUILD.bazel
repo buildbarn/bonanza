@@ -67,6 +67,7 @@ go_library(
         "repo.go",
         "repo_default_attrs.go",
         "repo_platform_host_path.go",
+        "repo_platform_label.go",
         "repository_rule.go",
         "resolved_toolchains.go",
         "root_module.go",
