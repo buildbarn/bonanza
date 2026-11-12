@@ -3,6 +3,7 @@ package filesystem
 import (
 	"io"
 
+	"bonanza.build/pkg/encoding/utf8stat"
 	"bonanza.build/pkg/encoding/varint"
 	model_core "bonanza.build/pkg/model/core"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -20,7 +21,8 @@ import (
 // file. This type is equivalent to the FileContents message, except
 // that counters like size and sparseness are cumulative with respect to
 // the list in which the entries are stored. This allows for efficient
-// lookups.
+// lookups. The UTF-8 stat is not cumulative, as it always describes the
+// current entry.
 type FileContentsEntry[TReference object.BasicReference] struct {
 	// Cumulative size of the file, up to and including the current entry.
 	endBytes uint64
@@ -40,6 +42,10 @@ type FileContentsEntry[TReference object.BasicReference] struct {
 	// When contiguousCount is zero or greater, a reference to a
 	// chunk or a nested FileContents list.
 	reference model_core.Decodable[TReference]
+
+	// Summary of whether the data of the current entry is valid
+	// UTF-8 and how many line breaks it contains.
+	utf8Stat utf8stat.Stat
 }
 
 // NewFileContentsEntryFromProto constructs a FileContentsEntry based on
@@ -94,6 +100,7 @@ func NewFileContentsEntryFromProto[TReference object.BasicReference](fileContent
 		endBytes:        fileContents.Message.TotalSizeBytes,
 		contiguousCount: contiguousCount,
 		reference:       reference,
+		utf8Stat:        utf8stat.Stat(fileContents.Message.Utf8Stat),
 	}, nil
 }
 
@@ -107,6 +114,7 @@ func NewFileContentsEntryFromBinary(r io.ByteReader, getDecodingParametersSizeBy
 	}
 	contiguousCount := -1
 	var reference model_core.Decodable[object.LocalReference]
+	var utf8Stat utf8stat.Stat
 	if endBytes > 0 {
 		isNotHole, err := r.ReadByte()
 		if err != nil {
@@ -159,12 +167,17 @@ func NewFileContentsEntryFromBinary(r io.ByteReader, getDecodingParametersSizeBy
 					contiguousCount = 0
 				}
 			}
+			utf8Stat, err = varint.ReadForward[utf8stat.Stat](r)
+			if err != nil {
+				return FileContentsEntry[object.LocalReference]{}, err
+			}
 		}
 	}
 	return FileContentsEntry[object.LocalReference]{
 		endBytes:        endBytes,
 		contiguousCount: contiguousCount,
 		reference:       reference,
+		utf8Stat:        utf8Stat,
 	}, nil
 }
 
@@ -172,6 +185,14 @@ func NewFileContentsEntryFromBinary(r io.ByteReader, getDecodingParametersSizeBy
 // with respect to the file contents list in which the entry is placed.
 func (fce *FileContentsEntry[TReference]) GetEndBytes() uint64 {
 	return fce.endBytes
+}
+
+// GetUTF8Stat returns a summary of whether the data of the current
+// entry is valid UTF-8 and how many line breaks it contains. Unlike
+// GetEndBytes(), the value is not cumulative with respect to the file
+// contents list in which the entry is placed.
+func (fce *FileContentsEntry[TReference]) GetUTF8Stat() utf8stat.Stat {
+	return fce.utf8Stat
 }
 
 // GetReference returns the reference of the chunk or file contents list
@@ -208,6 +229,7 @@ func (fce *FileContentsEntry[TReference]) AppendBinary(b []byte) []byte {
 					b = append(b, 0x00)
 				}
 			}
+			b = varint.AppendForward(b, fce.utf8Stat)
 		}
 	}
 	return b
@@ -252,6 +274,7 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 					},
 				},
 				TotalSizeBytes: entry.endBytes,
+				Utf8Stat:       uint64(entry.utf8Stat),
 			}
 		})
 	}
@@ -269,6 +292,7 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 				},
 			},
 			TotalSizeBytes: entry.endBytes,
+			Utf8Stat:       uint64(entry.utf8Stat),
 		}
 	})
 }

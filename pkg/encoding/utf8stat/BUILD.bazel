@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "utf8stat",
+    srcs = ["utf8stat.go"],
+    importpath = "bonanza.build/pkg/encoding/utf8stat",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "utf8stat_test",
+    srcs = ["utf8stat_test.go"],
+    embed = [":utf8stat"],
+)

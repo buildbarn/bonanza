@@ -170,6 +170,21 @@ message FileContents {
   // The total size of all chunks of data and holes in this file. The
   // size has to be greater than zero.
   uint64 total_size_bytes = 4;
+
+  // Summary of the data covered by this node, as computed by package
+  // bonanza.build/pkg/encoding/utf8stat. It indicates whether the data
+  // is valid UTF-8 without any NUL bytes, the number of line breaks it
+  // contains, whether it ends with a newline, and any partial runes at
+  // its start or end. This allows obtaining the line count of a file,
+  // or translating offsets to line numbers, without reading chunks.
+  //
+  // - For chunk_reference, it is equal to utf8stat.Compute() of the
+  //   chunk's data.
+  // - For list, it is equal to utf8stat.Combine() of all parts in the
+  //   list, in order.
+  // - For hole, it is always zero (i.e., invalid), as holes consist of
+  //   NUL bytes.
+  uint64 utf8_stat = 5;
 }
 
 // Data that is stored inline if it is small enough, and as file

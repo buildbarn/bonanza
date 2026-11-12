@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
+	"bonanza.build/pkg/encoding/utf8stat"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
@@ -90,6 +91,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 				},
 			},
 			TotalSizeBytes: 5,
+			Utf8Stat:       1,
 		}, rootFileContents.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
 			object.MustNewSHA256V1LocalReference("185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969", 5, 0, 0, 0),
@@ -128,5 +130,35 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
 			object.MustNewSHA256V1LocalReference("fe7615d5abef587dc4fc97a76155c7c7ddee0f2664104f08246e945567b0e0a5", 6726, 2, 118, 8154),
 		}, references)
+	})
+
+	t.Run("UTF8Text", func(t *testing.T) {
+		// Create a Merkle tree for a large text file containing
+		// multi-byte runes, so that chunk boundaries are likely
+		// to split runes. The UTF-8 stat of the root should be
+		// identical to that of the file as a whole.
+		rng := rand.New(rand.NewPCG(1, 2))
+		pieces := []string{"a", "b", " ", "\n", "é", "€", "𝄞"}
+		var text bytes.Buffer
+		for text.Len() < 64<<20 {
+			text.WriteString(pieces[rng.IntN(len(pieces))])
+		}
+		text.WriteString("\n")
+		expectedStat := utf8stat.Compute(text.Bytes())
+		require.True(t, expectedStat.IsValidFile())
+		require.True(t, expectedStat.HasTrailingNewline())
+
+		rootFileContents, err := model_filesystem.CreateFileMerkleTree(
+			ctx,
+			fileCreationParameters,
+			&text,
+			model_filesystem.NewSimpleFileMerkleTreeCapturer(model_core.DiscardingCreatedObjectCapturer),
+		)
+		require.NoError(t, err)
+
+		references, _ := rootFileContents.Patcher.SortAndSetReferences()
+		require.Len(t, references, 1)
+		require.Greater(t, references[0].GetHeight(), 1)
+		require.Equal(t, uint64(expectedStat), rootFileContents.Message.Utf8Stat)
 	})
 }

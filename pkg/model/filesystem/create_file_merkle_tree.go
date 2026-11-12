@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 
+	"bonanza.build/pkg/encoding/utf8stat"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -89,8 +90,12 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 					// in the parent FileContents node.
 					var totalSizeBytes uint64
 					sparse := false
-					for _, childNode := range childNodes.Message {
+					utf8Stat := utf8stat.Stat(childNodes.Message[0].Utf8Stat)
+					for i, childNode := range childNodes.Message {
 						totalSizeBytes += childNode.TotalSizeBytes
+						if i > 0 {
+							utf8Stat = utf8stat.Combine(utf8Stat, utf8stat.Stat(childNode.Utf8Stat))
+						}
 						switch childLevel := childNode.Level.(type) {
 						case *model_filesystem_pb.FileContents_List_:
 							sparse = sparse || childLevel.List.Sparse
@@ -108,6 +113,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 								},
 							},
 							TotalSizeBytes: totalSizeBytes,
+							Utf8Stat:       uint64(utf8Stat),
 						}
 					})
 				},
@@ -168,6 +174,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 							},
 						},
 						TotalSizeBytes: uint64(len(chunk)),
+						Utf8Stat:       uint64(utf8stat.Compute(chunk)),
 					}
 				}),
 			); err != nil {

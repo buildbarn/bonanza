@@ -123,6 +123,7 @@ func TestMaybeInlineFileContents(t *testing.T) {
 						},
 					},
 					TotalSizeBytes: 5,
+					Utf8Stat:       1,
 				},
 			},
 		}, contents.Message)

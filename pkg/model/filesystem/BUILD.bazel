@@ -27,6 +27,7 @@ go_library(
     importpath = "bonanza.build/pkg/model/filesystem",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/encoding/utf8stat",
         "//pkg/encoding/varint",
         "//pkg/model/chunking",
         "//pkg/model/core",
@@ -68,6 +69,7 @@ go_test(
     ],
     embed = [":filesystem"],
     deps = [
+        "//pkg/encoding/utf8stat",
         "//pkg/encoding/varint",
         "//pkg/model/core",
         "//pkg/model/encoding",

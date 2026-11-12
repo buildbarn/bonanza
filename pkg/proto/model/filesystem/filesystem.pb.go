@@ -579,6 +579,7 @@ type FileContents struct {
 	//	*FileContents_Hole
 	Level          isFileContents_Level `protobuf_oneof:"level"`
 	TotalSizeBytes uint64               `protobuf:"varint,4,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
+	Utf8Stat       uint64               `protobuf:"varint,5,opt,name=utf8_stat,json=utf8Stat,proto3" json:"utf8_stat,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -650,6 +651,13 @@ func (x *FileContents) GetHole() *emptypb.Empty {
 func (x *FileContents) GetTotalSizeBytes() uint64 {
 	if x != nil {
 		return x.TotalSizeBytes
+	}
+	return 0
+}
+
+func (x *FileContents) GetUtf8Stat() uint64 {
+	if x != nil {
+		return x.Utf8Stat
 	}
 	return 0
 }
@@ -1064,13 +1072,14 @@ const file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "
 	"\x12DirectoryReference\x12v\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB0\xea\xd7 ,\x12*bonanza.model.filesystem.DirectoryContentsR\treference\x12+\n" +
 	"\x11directories_count\x18\x02 \x01(\rR\x10directoriesCount\x12g\n" +
-	"!maximum_symlink_escapement_levels\x18\x03 \x01(\v2\x1c.google.protobuf.UInt32ValueR\x1emaximumSymlinkEscapementLevels\"\xa1\x03\n" +
+	"!maximum_symlink_escapement_levels\x18\x03 \x01(\v2\x1c.google.protobuf.UInt32ValueR\x1emaximumSymlinkEscapementLevels\"\xbe\x03\n" +
 	"\fFileContents\x12A\n" +
 	"\x04list\x18\x01 \x01(\v2+.bonanza.model.filesystem.FileContents.ListH\x00R\x04list\x12Y\n" +
 	"\x0fchunk_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB\x06\xea\xd7 \x02\n" +
 	"\x00H\x00R\x0echunkReference\x12,\n" +
 	"\x04hole\x18\x03 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x04hole\x12(\n" +
-	"\x10total_size_bytes\x18\x04 \x01(\x04R\x0etotalSizeBytes\x1a\x91\x01\n" +
+	"\x10total_size_bytes\x18\x04 \x01(\x04R\x0etotalSizeBytes\x12\x1b\n" +
+	"\tutf8_stat\x18\x05 \x01(\x04R\butf8Stat\x1a\x91\x01\n" +
 	"\x04List\x12q\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB+\xea\xd7 '\x1a%bonanza.model.filesystem.FileContentsR\treference\x12\x16\n" +
 	"\x06sparse\x18\x02 \x01(\bR\x06sparseB\a\n" +
