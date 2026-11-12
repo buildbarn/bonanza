@@ -2037,7 +2037,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 	// final contents. Construct a pattern for capturing the
 	// directory in the input root belonging to the repo.
 	outputPathPatternChildren := model_core.NewSimplePatchedMessage[TMetadata]((*model_command_pb.PathPattern_Children)(nil))
-	inlinedTreeOptions := mrc.computer.getInlinedTreeOptions()
+	// TODO: These objects are part of actions that are sent to
+	// workers. Their size should be configured in the same way as
+	// other objects belonging to actions.
+	inlinedTreeOptions := inlinedtree.Options{
+		ReferenceFormat:  mrc.computer.referenceFormat,
+		MaximumSizeBytes: 32 * 1024,
+	}
 	for i := len(mrc.subdirectoryComponents); i > 0; i-- {
 		outputPathPatternChildren, err = model_command.PrependDirectoryToPathPatternChildren(
 			mrc.context,

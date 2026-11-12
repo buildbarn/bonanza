@@ -640,7 +640,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		return PatchedTargetActionCommandValue[TMetadata]{}, err
 	}
 	outputPathPatternChildren := model_core.Patch(e, packageRelativeOutputPathPatternChildren)
-	inlinedTreeOptions := c.getInlinedTreeOptions()
+	// TODO: These objects are part of actions that are sent to
+	// workers. Their size should be configured in the same way as
+	// other objects belonging to actions.
+	inlinedTreeOptions := inlinedtree.Options{
+		ReferenceFormat:  c.referenceFormat,
+		MaximumSizeBytes: 32 * 1024,
+	}
 	targetPackage := targetLabel.GetCanonicalPackage()
 	packageComponents := strings.FieldsFunc(targetPackage.GetPackagePath(), func(r rune) bool { return r == '/' })
 	for i := len(packageComponents) - 1; i >= 0; i-- {

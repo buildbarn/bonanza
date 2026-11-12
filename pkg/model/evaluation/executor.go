@@ -48,6 +48,7 @@ type ComputerFactory[TReference any, TMetadata model_core.ReferenceMetadata] int
 		namespace object.Namespace,
 		parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference],
 		objectExporter model_core.ObjectExporter[TReference, object.LocalReference],
+		chunkingParameters chunking.Parameters,
 	) Computer[TReference, TMetadata]
 }
 
@@ -321,6 +322,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 					action.Reference.Value.GetNamespace(),
 					parsedObjectPoolIngester,
 					objectExporter,
+					chunkingParameters,
 				),
 			),
 			queues,

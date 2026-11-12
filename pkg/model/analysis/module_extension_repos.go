@@ -9,14 +9,12 @@ import (
 	"strings"
 
 	"bonanza.build/pkg/label"
-	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	"bonanza.build/pkg/moduledotbazel"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/starlark/unpack"
@@ -154,10 +152,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 	}
 	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
-				MinimumSizeBytes: 32 * 1024,
-				HorizonSizeBytes: 8 * 32 * 1024,
-			}, c.referenceFormat)),
+			c.chunkingParameters,
 			/* isParent = */ func(repo *model_analysis_pb.ModuleExtensionRepos_Value_Repo) bool {
 				return repo.GetParent() != nil
 			},

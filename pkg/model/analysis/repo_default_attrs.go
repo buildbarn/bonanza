@@ -58,7 +58,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 			string(repoFileData),
 			canonicalRepo.GetRootPackage().AppendTargetName(repoFileName),
 			starlarkValueEncoders.Encoder,
-			c.getInlinedTreeOptions(),
+			c.chunkingParameters.GetInlinedTreeOptions(),
 			e,
 			newLabelResolver(e),
 		)

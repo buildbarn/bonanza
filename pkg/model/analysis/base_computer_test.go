@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	model_analysis "bonanza.build/pkg/model/analysis"
+	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
@@ -58,6 +59,13 @@ func newBaseComputerTester(ctrl *gomock.Controller) *baseComputerTester {
 		computer: model_analysis.NewBaseComputer[model_core.CreatedObjectTree, model_core.CreatedObjectTree](
 			parsedObjectPoolIngester,
 			object.SHA256V1ReferenceFormat,
+			util.Must(chunking.NewParametersFromProto(
+				&model_chunking_pb.Parameters{
+					MinimumSizeBytes: 32 * 1024,
+					HorizonSizeBytes: 8 * 32 * 1024,
+				},
+				object.SHA256V1ReferenceFormat,
+			)),
 			filePool,
 			executionClient,
 			bzlFileBuiltins,

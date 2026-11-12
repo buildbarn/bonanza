@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"bonanza.build/pkg/label"
-	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
@@ -19,13 +18,10 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
-
-	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
 // labelSet is a set of canonical labels of targets, as yielded by the
@@ -1408,10 +1404,7 @@ func (c *baseComputer[TReference, TMetadata]) forEachQueryRuleTargetAttr(ctx con
 func (c *baseComputer[TReference, TMetadata]) newTargetLabelTreeBuilder(ctx context.Context, analysisEncoders *AnalysisEncoders[TReference], capturer model_core.CreatedObjectCapturer[TMetadata]) btree.Builder[*model_analysis_pb.TargetLabel, TMetadata] {
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
-				MinimumSizeBytes: 32 * 1024,
-				HorizonSizeBytes: 8 * 32 * 1024,
-			}, c.referenceFormat)),
+			c.chunkingParameters,
 			/* isParent = */ func(targetLabel *model_analysis_pb.TargetLabel) bool {
 				return targetLabel.GetParent() != nil
 			},

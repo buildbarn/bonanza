@@ -10,7 +10,6 @@ import (
 
 	"bonanza.build/pkg/glob"
 	"bonanza.build/pkg/label"
-	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
@@ -18,7 +17,6 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
@@ -159,7 +157,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 		targetRegistrar := model_starlark.NewTargetRegistrar(
 			ctx,
 			starlarkValueEncoders.Encoder,
-			c.getInlinedTreeOptions(),
+			c.chunkingParameters.GetInlinedTreeOptions(),
 			e,
 			model_core.Nested(repoDefaultAttrsValue, repoDefaultAttrsValue.Message.InheritableAttrs),
 		)
@@ -192,10 +190,7 @@ func (c *baseComputer[TReference, TMetadata]) newPackageTargetsTreeBuilder(ctx c
 	// TODO: Use a proper encoder!
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
-				MinimumSizeBytes: 32 * 1024,
-				HorizonSizeBytes: 8 * 32 * 1024,
-			}, c.referenceFormat)),
+			c.chunkingParameters,
 			/* isParent = */ func(target *model_analysis_pb.Package_Value_Target) bool {
 				return target.GetParent() != nil
 			},
@@ -517,7 +512,7 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	targetRegistrar := model_starlark.NewMacroTargetRegistrar(
 		ctx,
 		starlarkValueEncoders.Encoder,
-		c.getInlinedTreeOptions(),
+		c.chunkingParameters.GetInlinedTreeOptions(),
 		e,
 		macroInstanceName,
 		macroIdentifier.GetCanonicalLabel().GetCanonicalPackage(),

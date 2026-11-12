@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"bonanza.build/pkg/label"
-	"bonanza.build/pkg/model/chunking"
 	model_command "bonanza.build/pkg/model/command"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
@@ -22,7 +21,6 @@ import (
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -1455,10 +1453,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			// Construct list of outputs of the target.
 			outputsTreeBuilder := btree.NewHeightAwareBuilder(
 				btree.NewProllyChunkerFactory[TMetadata](
-					util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
-						MinimumSizeBytes: 32 * 1024,
-						HorizonSizeBytes: 8 * 32 * 1024,
-					}, c.referenceFormat)),
+					c.chunkingParameters,
 					/* isParent = */ func(output *model_analysis_pb.ConfiguredTarget_Value_Output) bool {
 						return output.GetParent() != nil
 					},
@@ -1519,10 +1514,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			// Construct list of actions of the target.
 			actionsTreeBuilder := btree.NewHeightAwareBuilder(
 				btree.NewProllyChunkerFactory[TMetadata](
-					util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
-						MinimumSizeBytes: 32 * 1024,
-						HorizonSizeBytes: 8 * 32 * 1024,
-					}, c.referenceFormat)),
+					c.chunkingParameters,
 					/* isParent = */ func(action *model_analysis_pb.ConfiguredTarget_Value_Action) bool {
 						return action.GetParent() != nil
 					},
@@ -2318,7 +2310,7 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 				},
 			},
 		},
-		rc.computer.getInlinedTreeOptions(),
+		rc.computer.chunkingParameters.GetInlinedTreeOptions(),
 	)
 	return patchedFilesToRunProvider, fields.executable, err
 }
@@ -2617,7 +2609,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 	outputPathPatternChildren, err := outputPathPatternSet.ToProto(
 		rc.context,
 		rc.actionEncoder,
-		rc.computer.getInlinedTreeOptions(),
+		rc.computer.chunkingParameters.GetInlinedTreeOptions(),
 		rc.environment,
 	)
 	if err != nil {
@@ -2841,7 +2833,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 				}),
 			},
 		},
-		rc.computer.getInlinedTreeOptions(),
+		rc.computer.chunkingParameters.GetInlinedTreeOptions(),
 	)
 	if err != nil {
 		return nil, err

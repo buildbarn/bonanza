@@ -9,7 +9,6 @@ import (
 	"bonanza.build/pkg/label"
 	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
-	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	"bonanza.build/pkg/model/evaluation"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
@@ -17,7 +16,6 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/remoteexecution"
 	"bonanza.build/pkg/starlark/compile"
@@ -27,7 +25,6 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
-	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"golang.org/x/sync/semaphore"
 )
@@ -62,11 +59,12 @@ func NewBaseComputerFactory[TReference object.BasicReference, TMetadata model_co
 	}
 }
 
-func (cf *baseComputerFactory[TReference, TMetadata]) NewComputer(namespace object.Namespace, parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference], objectExporter model_core.ObjectExporter[TReference, object.LocalReference]) evaluation.Computer[TReference, TMetadata] {
+func (cf *baseComputerFactory[TReference, TMetadata]) NewComputer(namespace object.Namespace, parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference], objectExporter model_core.ObjectExporter[TReference, object.LocalReference], chunkingParameters chunking.Parameters) evaluation.Computer[TReference, TMetadata] {
 	return NewTypedComputer(
 		NewBaseComputer[TReference, TMetadata](
 			parsedObjectPoolIngester,
 			namespace.ReferenceFormat,
+			chunkingParameters,
 			cf.filePool,
 			model_executewithstorage.NewObjectExportingClient(
 				model_executewithstorage.NewNamespaceAddingClient(
@@ -86,6 +84,7 @@ func (cf *baseComputerFactory[TReference, TMetadata]) NewComputer(namespace obje
 type baseComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference]
 	referenceFormat          object.ReferenceFormat
+	chunkingParameters       chunking.Parameters
 	filePool                 pool.FilePool
 	executionClient          remoteexecution.Client[*model_executewithstorage.Action[TReference], model_core.Decodable[TReference], model_core.Decodable[TReference]]
 	bzlFileBuiltins          map[string]eval.Value
@@ -100,6 +99,7 @@ type baseComputer[TReference object.BasicReference, TMetadata model_core.Referen
 func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[TReference],
 	referenceFormat object.ReferenceFormat,
+	chunkingParameters chunking.Parameters,
 	filePool pool.FilePool,
 	executionClient remoteexecution.Client[*model_executewithstorage.Action[TReference], model_core.Decodable[TReference], model_core.Decodable[TReference]],
 	bzlFileBuiltins map[string]eval.Value,
@@ -110,6 +110,7 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 	return &baseComputer[TReference, TMetadata]{
 		parsedObjectPoolIngester: parsedObjectPoolIngester,
 		referenceFormat:          referenceFormat,
+		chunkingParameters:       chunkingParameters,
 		filePool:                 filePool,
 		executionClient:          executionClient,
 		bzlFileBuiltins:          bzlFileBuiltins,
@@ -185,23 +186,13 @@ func (c *baseComputer[TReference, TMetadata]) newValueEncodingOptionsFactory(e v
 // used to encode Starlark values.
 func (f *valueEncodingOptionsFactory[TReference, TMetadata]) newValueEncodingOptions(ctx context.Context, currentFilename *label.CanonicalLabel) *model_starlark.ValueEncodingOptions[TReference, TMetadata] {
 	return &model_starlark.ValueEncodingOptions[TReference, TMetadata]{
-		CurrentFilename:       currentFilename,
-		Context:               ctx,
-		ObjectEncoder:         f.objectEncoder,
-		ObjectReferenceFormat: f.computer.referenceFormat,
-		ObjectCapturer:        f.objectCapturer,
-		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
-			MinimumSizeBytes: 32 * 1024,
-			HorizonSizeBytes: 8 * 32 * 1024,
-		}, f.computer.referenceFormat)),
-		FileCreationParameters: f.fileCreationParameters,
-	}
-}
-
-func (c *baseComputer[TReference, TMetadata]) getInlinedTreeOptions() inlinedtree.Options {
-	return inlinedtree.Options{
-		ReferenceFormat:  c.referenceFormat,
-		MaximumSizeBytes: 32 * 1024,
+		CurrentFilename:          currentFilename,
+		Context:                  ctx,
+		ObjectEncoder:            f.objectEncoder,
+		ObjectReferenceFormat:    f.computer.referenceFormat,
+		ObjectCapturer:           f.objectCapturer,
+		ObjectChunkingParameters: f.computer.chunkingParameters,
+		FileCreationParameters:   f.fileCreationParameters,
 	}
 }
 
