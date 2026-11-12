@@ -18,11 +18,11 @@ func TestRuleImplementationWrappers(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(t.Context(), t)
 	bct := newBaseComputerTester(ctrl)
 
-	expectBuildSpecification := func(e *MockRuleImplementationWrappersEnvironmentForTesting) {
-		e.EXPECT().GetBuildSpecificationValue(gomock.Any()).
-			Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.BuildSpecification_Value{
-				RuleImplementationWrapperIdentifier:    "@@rules+//:wrappers.bzl%rule_wrapper",
-				SubruleImplementationWrapperIdentifier: "@@rules+//:wrappers.bzl%subrule_wrapper",
+	expectIdentifiers := func(e *MockRuleImplementationWrappersEnvironmentForTesting) {
+		e.EXPECT().GetRuleImplementationWrappersIdentifiersValue(gomock.Any()).
+			Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.RuleImplementationWrappersIdentifiers_Value{
+				RuleIdentifier:    "@@rules+//:wrappers.bzl%rule_wrapper",
+				SubruleIdentifier: "@@rules+//:wrappers.bzl%subrule_wrapper",
 			}))
 	}
 
@@ -55,7 +55,7 @@ func TestRuleImplementationWrappers(t *testing.T) {
 		// them is unavailable. As no value is returned, no
 		// objects may be captured.
 		e := NewMockRuleImplementationWrappersEnvironmentForTesting(ctrl)
-		expectBuildSpecification(e)
+		expectIdentifiers(e)
 		expectGlobal(e, "@@rules+//:wrappers.bzl%rule_wrapper", "rule_wrapper")
 		expectGlobal(e, "@@rules+//:wrappers.bzl%subrule_wrapper", "")
 
@@ -65,7 +65,7 @@ func TestRuleImplementationWrappers(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		e := NewMockRuleImplementationWrappersEnvironmentForTesting(ctrl)
-		expectBuildSpecification(e)
+		expectIdentifiers(e)
 		expectGlobal(e, "@@rules+//:wrappers.bzl%rule_wrapper", "rule_wrapper")
 		expectGlobal(e, "@@rules+//:wrappers.bzl%subrule_wrapper", "subrule_wrapper")
 

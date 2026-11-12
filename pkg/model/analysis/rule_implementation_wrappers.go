@@ -43,16 +43,16 @@ func getImplementationWrapper[TReference object.BasicReference, TMetadata model_
 }
 
 func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersValue(ctx context.Context, key *model_analysis_pb.RuleImplementationWrappers_Key, e RuleImplementationWrappersEnvironment[TReference, TMetadata]) (PatchedRuleImplementationWrappersValue[TMetadata], error) {
-	buildSpecificationValue := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
-	if !buildSpecificationValue.IsSet() {
+	identifiersValue := e.GetRuleImplementationWrappersIdentifiersValue(&model_analysis_pb.RuleImplementationWrappersIdentifiers_Key{})
+	if !identifiersValue.IsSet() {
 		return PatchedRuleImplementationWrappersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	buildSpecification := buildSpecificationValue.Message
+	identifiers := identifiersValue.Message
 
 	// Look up both wrappers before patching any messages, so that
 	// no metadata is leaked if either of them is unavailable.
-	ruleImplementationWrapper, ruleErr := getImplementationWrapper(e, buildSpecification.RuleImplementationWrapperIdentifier)
-	subruleImplementationWrapper, subruleErr := getImplementationWrapper(e, buildSpecification.SubruleImplementationWrapperIdentifier)
+	ruleImplementationWrapper, ruleErr := getImplementationWrapper(e, identifiers.RuleIdentifier)
+	subruleImplementationWrapper, subruleErr := getImplementationWrapper(e, identifiers.SubruleIdentifier)
 	if ruleErr != nil {
 		return PatchedRuleImplementationWrappersValue[TMetadata]{}, fmt.Errorf("failed to get rule implementation wrapper: %w", ruleErr)
 	}
@@ -69,6 +69,17 @@ func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersValu
 			value.Subrule = model_core.Patch(e, subruleImplementationWrapper).Merge(patcher)
 		}
 		return value
+	}), nil
+}
+
+func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersIdentifiersValue(ctx context.Context, key *model_analysis_pb.RuleImplementationWrappersIdentifiers_Key, e RuleImplementationWrappersIdentifiersEnvironment[TReference, TMetadata]) (PatchedRuleImplementationWrappersIdentifiersValue[TMetadata], error) {
+	buildSpecification := e.GetBuildSpecificationValue(&model_analysis_pb.BuildSpecification_Key{})
+	if !buildSpecification.IsSet() {
+		return PatchedRuleImplementationWrappersIdentifiersValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RuleImplementationWrappersIdentifiers_Value{
+		RuleIdentifier:    buildSpecification.Message.RuleImplementationWrapperIdentifier,
+		SubruleIdentifier: buildSpecification.Message.SubruleImplementationWrapperIdentifier,
 	}), nil
 }
 

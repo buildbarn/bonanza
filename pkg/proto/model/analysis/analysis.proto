@@ -1945,6 +1945,22 @@ message RuleImplementationWrappers {
   }
 }
 
+message RuleImplementationWrappersIdentifiers {
+  message Key {}
+
+  message Value {
+    // Identifier of the Starlark function that needs to be invoked
+    // instead of the implementation function of rules. If not set, the
+    // implementation function is invoked directly.
+    string rule_identifier = 1;
+
+    // Identifier of the Starlark function that needs to be invoked
+    // instead of the implementation function of subrules. If not set,
+    // the implementation function is invoked directly.
+    string subrule_identifier = 2;
+  }
+}
+
 message Select {
   message Key {
     // Condition identifiers from which a selection needs to be made.

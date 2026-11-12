@@ -570,11 +570,15 @@
       },
       "RuleImplementationWrappers": {
          "dependsOn": [
-            "BuildSpecification",
             "CompiledBzlFileGlobal",
-            "FileAccessParameters",
-            "FileCreationParameters"
+            "RuleImplementationWrappersIdentifiers"
          ]
+      },
+      "RuleImplementationWrappersIdentifiers": {
+         "dependsOn": [
+            "BuildSpecification"
+         ],
+         "isLookup": true
       },
       "Select": {
          "dependsOn": [
