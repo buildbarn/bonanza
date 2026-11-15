@@ -24,6 +24,7 @@ go_library(
         "compatible_toolchains_for_type.go",
         "compiled_bzl_file.go",
         "computer.go",
+        "configured_rule_target.go",
         "configured_target.go",
         "directory_access_parameters.go",
         "directory_creation_parameters.go",
