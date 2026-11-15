@@ -93,6 +93,44 @@
             "StarlarkValueEncoders"
          ]
       },
+      "ConfiguredRule": {
+         "dependsOn": [
+            "AnalysisEncoders",
+            "BuiltinsModuleNames",
+            "CanonicalRepoName",
+            "CompiledBzlFile",
+            "CompiledBzlFileGlobal",
+            "ExecTransition",
+            "FileCreationParameters",
+            "ResolvedToolchains",
+            "RootModule",
+            "StarlarkValueEncoders",
+            "Target",
+            "TargetProvider",
+            "UserDefinedTransition",
+            "VisibleTarget"
+         ],
+         "keyContainsReferences": true
+      },
+      "ConfiguredRuleUsage": {
+         "dependsOn": [
+            "AnalysisEncoders",
+            "BuiltinsModuleNames",
+            "CanonicalRepoName",
+            "CompiledBzlFile",
+            "CompiledBzlFileGlobal",
+            "ConfiguredRule",
+            "ExecTransition",
+            "FileCreationParameters",
+            "RootModule",
+            "StarlarkValueEncoders",
+            "Target",
+            "TargetProvider",
+            "UserDefinedTransition",
+            "VisibleTarget"
+         ],
+         "keyContainsReferences": true
+      },
       "ConfiguredTarget": {
          "dependsOn": [
             "ActionEncoders",
@@ -101,12 +139,12 @@
             "CanonicalRepoName",
             "CompiledBzlFile",
             "CompiledBzlFileGlobal",
+            "ConfiguredRule",
+            "ConfiguredRuleUsage",
             "DirectoryCreationParameters",
             "EmptyDefaultInfo",
             "ExecTransition",
-            "FileAccessParameters",
             "FileCreationParameters",
-            "ResolvedToolchains",
             "RootModule",
             "RuleImplementationWrappers",
             "Select",
@@ -601,6 +639,23 @@
          ],
          "isLookup": true
       },
+      "RuleUsageIncomingEdgeTransition": {
+         "dependsOn": [
+            "AnalysisEncoders",
+            "BuiltinsModuleNames",
+            "CanonicalRepoName",
+            "CompiledBzlFile",
+            "CompiledBzlFileGlobal",
+            "FileCreationParameters",
+            "RootModule",
+            "StarlarkValueEncoders",
+            "Target",
+            "TargetProvider",
+            "UserDefinedTransition",
+            "VisibleTarget"
+         ],
+         "keyContainsReferences": true
+      },
       "Select": {
          "dependsOn": [
             "AnalysisEncoders",
@@ -721,6 +776,25 @@
             "Target"
          ]
       },
+      "TargetIncomingEdgeTransition": {
+         "dependsOn": [
+            "AnalysisEncoders",
+            "BuiltinsModuleNames",
+            "CanonicalRepoName",
+            "CompiledBzlFile",
+            "CompiledBzlFileGlobal",
+            "FileCreationParameters",
+            "RootModule",
+            "RuleUsageIncomingEdgeTransition",
+            "StarlarkValueEncoders",
+            "Target",
+            "TargetIncomingEdgeTransition",
+            "TargetProvider",
+            "UserDefinedTransition",
+            "VisibleTarget"
+         ],
+         "keyContainsReferences": true
+      },
       "TargetOutput": {
          "dependsOn": [
             "AnalysisEncoders",
@@ -736,7 +810,8 @@
       },
       "TargetProviders": {
          "dependsOn": [
-            "ConfiguredTarget"
+            "ConfiguredTarget",
+            "TargetIncomingEdgeTransition"
          ],
          "keyContainsReferences": true
       },

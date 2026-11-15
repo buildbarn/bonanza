@@ -1,0 +1,257 @@
+package analysis_test
+
+import (
+	"encoding"
+	"testing"
+
+	model_core "bonanza.build/pkg/model/core"
+	"bonanza.build/pkg/model/evaluation"
+	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+
+	"github.com/buildbarn/bb-storage/pkg/testutil"
+	"github.com/stretchr/testify/require"
+
+	"go.uber.org/mock/gomock"
+)
+
+func TestTargetIncomingEdgeTransition(t *testing.T) {
+	ctrl, ctx := gomock.WithContext(t.Context(), t)
+	bct := newBaseComputerTester(ctrl)
+
+	newConfiguration := func(platform string) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
+		return newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+			return model_core.NewProtoListBinaryMarshaler([]*model_analysis_pb.BuildSettingOverride{{
+				Level: &model_analysis_pb.BuildSettingOverride_Leaf_{
+					Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
+						Label: "@@bazel_tools+//command_line_option:platforms",
+						Value: labelValue(platform),
+					},
+				},
+			}})
+		})
+	}
+	requestedConfiguration := newConfiguration("@@platforms+//requested")
+	transitionedConfiguration := newConfiguration("@@platforms+//transitioned")
+
+	newEnvironment := func() *MockTargetIncomingEdgeTransitionEnvironmentForTesting {
+		e := NewMockTargetIncomingEdgeTransitionEnvironmentForTesting(ctrl)
+		e.EXPECT().CaptureExistingObject(gomock.Any()).
+			DoAndReturn(func(reference model_core.CreatedObjectTree) model_core.CreatedObjectTree {
+				return reference
+			}).
+			AnyTimes()
+		return e
+	}
+	expectTarget := func(e *MockTargetIncomingEdgeTransitionEnvironmentForTesting, label string, definition *model_starlark_pb.Target_Definition) {
+		e.EXPECT().GetTargetValue(
+			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: label}),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			Definition: definition,
+		}))
+	}
+	expectRule := func(e *MockTargetIncomingEdgeTransitionEnvironmentForTesting, definition *model_starlark_pb.Rule_Definition) {
+		e.EXPECT().GetCompiledBzlFileGlobalValue(
+			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
+			Global: &model_starlark_pb.Value{
+				Kind: &model_starlark_pb.Value_Rule{
+					Rule: &model_starlark_pb.Rule{
+						Kind: &model_starlark_pb.Rule_Definition_{
+							Definition: definition,
+						},
+					},
+				},
+			},
+		}))
+	}
+	ruleTargetDefinition := &model_starlark_pb.Target_Definition{
+		Kind: &model_starlark_pb.Target_Definition_RuleTarget{
+			RuleTarget: &model_starlark_pb.RuleTarget{
+				RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
+				PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{
+					{
+						// Left at its default value.
+						ValueParts: []*model_starlark_pb.Select_Group{
+							valueSelectGroup(&model_starlark_pb.Value{
+								Kind: &model_starlark_pb.Value_None{},
+							}),
+						},
+					},
+					{
+						// Explicitly set.
+						ValueParts: []*model_starlark_pb.Select_Group{
+							valueSelectGroup(labelValue("@@main+//:dep")),
+						},
+					},
+				},
+			},
+		},
+	}
+	compute := func(e *MockTargetIncomingEdgeTransitionEnvironmentForTesting, label string) (model_core.PatchedMessage[*model_analysis_pb.TargetIncomingEdgeTransition_Value, model_core.CreatedObjectTree], error) {
+		return bct.computer.ComputeTargetIncomingEdgeTransitionValue(
+			ctx,
+			newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
+				return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
+					Label:                  label,
+					ConfigurationReference: attachObject(patcher, requestedConfiguration),
+				}
+			}),
+			e,
+		)
+	}
+	requireOutputConfiguration := func(t *testing.T, want model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]], got model_core.PatchedMessage[*model_analysis_pb.TargetIncomingEdgeTransition_Value, model_core.CreatedObjectTree]) {
+		require.True(t, model_core.PatchedMessagesEqual(
+			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetIncomingEdgeTransition_Value {
+				return &model_analysis_pb.TargetIncomingEdgeTransition_Value{
+					OutputConfigurationReference: attachObject(patcher, want),
+				}
+			}),
+			got,
+		))
+	}
+
+	t.Run("MissingTarget", func(t *testing.T) {
+		e := newEnvironment()
+		e.EXPECT().GetTargetValue(gomock.Any()).
+			Return(model_core.Message[*model_analysis_pb.Target_Value, model_core.CreatedObjectTree]{})
+
+		_, err := compute(e, "@@main+//:foo")
+		require.Equal(t, evaluation.ErrMissingDependency, err)
+	})
+
+	t.Run("SourceFile", func(t *testing.T) {
+		// The properties of source files don't depend on the
+		// configuration, so they should transition to the empty
+		// configuration.
+		e := newEnvironment()
+		expectTarget(e, "@@main+//:foo.txt", &model_starlark_pb.Target_Definition{
+			Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
+				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
+			},
+		})
+
+		value, err := compute(e, "@@main+//:foo.txt")
+		require.NoError(t, err)
+		testutil.RequireEqualProto(t, &model_analysis_pb.TargetIncomingEdgeTransition_Value{}, value.Message)
+	})
+
+	t.Run("PackageGroup", func(t *testing.T) {
+		e := newEnvironment()
+		expectTarget(e, "@@main+//:group", &model_starlark_pb.Target_Definition{
+			Kind: &model_starlark_pb.Target_Definition_PackageGroup{
+				PackageGroup: &model_starlark_pb.PackageGroup{},
+			},
+		})
+
+		value, err := compute(e, "@@main+//:group")
+		require.NoError(t, err)
+		testutil.RequireEqualProto(t, &model_analysis_pb.TargetIncomingEdgeTransition_Value{}, value.Message)
+	})
+
+	t.Run("TestSuite", func(t *testing.T) {
+		// Test suites use an identity transition.
+		e := newEnvironment()
+		expectTarget(e, "@@main+//:tests", &model_starlark_pb.Target_Definition{
+			Kind: &model_starlark_pb.Target_Definition_TestSuite{
+				TestSuite: &model_starlark_pb.TestSuite{},
+			},
+		})
+
+		value, err := compute(e, "@@main+//:tests")
+		require.NoError(t, err)
+		requireOutputConfiguration(t, requestedConfiguration, value)
+	})
+
+	t.Run("PredeclaredOutputFile", func(t *testing.T) {
+		// Predeclared output files should use the incoming edge
+		// transition of the rule target that owns them.
+		e := newEnvironment()
+		expectTarget(e, "@@main+//:foo.out", &model_starlark_pb.Target_Definition{
+			Kind: &model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget{
+				PredeclaredOutputFileTarget: &model_starlark_pb.PredeclaredOutputFileTarget{
+					OwnerTargetName: "foo",
+				},
+			},
+		})
+		e.EXPECT().GetTargetIncomingEdgeTransitionValue(
+			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
+				return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
+					Label:                  "@@main+//:foo",
+					ConfigurationReference: attachObject(patcher, requestedConfiguration),
+				}
+			}),
+		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetIncomingEdgeTransition_Value {
+			return &model_analysis_pb.TargetIncomingEdgeTransition_Value{
+				OutputConfigurationReference: attachObject(patcher, transitionedConfiguration),
+			}
+		}))
+
+		value, err := compute(e, "@@main+//:foo.out")
+		require.NoError(t, err)
+		requireOutputConfiguration(t, transitionedConfiguration, value)
+	})
+
+	t.Run("RuleTargetWithoutTransition", func(t *testing.T) {
+		// Rules without an incoming edge transition use an
+		// identity transition.
+		e := newEnvironment()
+		expectTarget(e, "@@main+//:foo", ruleTargetDefinition)
+		expectRule(e, &model_starlark_pb.Rule_Definition{})
+
+		value, err := compute(e, "@@main+//:foo")
+		require.NoError(t, err)
+		requireOutputConfiguration(t, requestedConfiguration, value)
+	})
+
+	t.Run("RuleTargetWithTransition", func(t *testing.T) {
+		// Rules with an incoming edge transition should apply it
+		// through RuleUsageIncomingEdgeTransition, providing the
+		// indices of the public attrs that are explicitly set.
+		e := newEnvironment()
+		expectTarget(e, "@@main+//:foo", ruleTargetDefinition)
+		expectRule(e, &model_starlark_pb.Rule_Definition{
+			CfgTransition: &model_starlark_pb.Transition_UserDefined{
+				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
+					Identifier: "@@rules+//:defs.bzl%my_transition",
+				},
+			},
+		})
+		e.EXPECT().GetRuleUsageIncomingEdgeTransitionValue(
+			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.RuleUsageIncomingEdgeTransition_Key {
+				return &model_analysis_pb.RuleUsageIncomingEdgeTransition_Key{
+					Identifier:                "@@rules+//:defs.bzl%my_rule",
+					ConfigurationReference:    attachObject(patcher, requestedConfiguration),
+					ExplicitPublicAttrIndices: []uint32{1},
+				}
+			}),
+		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.RuleUsageIncomingEdgeTransition_Value {
+			return &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value{
+				Result: &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_OutputConfigurationReference{
+					OutputConfigurationReference: attachObject(patcher, transitionedConfiguration),
+				},
+			}
+		}))
+
+		value, err := compute(e, "@@main+//:foo")
+		require.NoError(t, err)
+		requireOutputConfiguration(t, transitionedConfiguration, value)
+	})
+
+	t.Run("RuleTargetWithTransitionMissingDependency", func(t *testing.T) {
+		e := newEnvironment()
+		expectTarget(e, "@@main+//:foo", ruleTargetDefinition)
+		expectRule(e, &model_starlark_pb.Rule_Definition{
+			CfgTransition: &model_starlark_pb.Transition_UserDefined{
+				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
+					Identifier: "@@rules+//:defs.bzl%my_transition",
+				},
+			},
+		})
+		e.EXPECT().GetRuleUsageIncomingEdgeTransitionValue(gomock.Any()).
+			Return(model_core.Message[*model_analysis_pb.RuleUsageIncomingEdgeTransition_Value, model_core.CreatedObjectTree]{})
+
+		_, err := compute(e, "@@main+//:foo")
+		require.Equal(t, evaluation.ErrMissingDependency, err)
+	})
+}

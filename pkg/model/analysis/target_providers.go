@@ -9,11 +9,27 @@ import (
 )
 
 func (baseComputer[TReference, TMetadata]) ComputeTargetProvidersValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetProviders_Key, TReference], e TargetProvidersEnvironment[TReference, TMetadata]) (PatchedTargetProvidersValue[TMetadata], error) {
+	// Targets are only analyzed in the configuration yielded by
+	// their incoming edge transition. This ensures that targets that
+	// are requested in different configurations that transition to
+	// the same configuration are only analyzed once.
+	incomingEdgeTransition := e.GetTargetIncomingEdgeTransitionValue(
+		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
+			return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
+				Label:                  key.Message.Label,
+				ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference)).Merge(patcher),
+			}
+		}),
+	)
+	if !incomingEdgeTransition.IsSet() {
+		return PatchedTargetProvidersValue[TMetadata]{}, model_evaluation.ErrMissingDependency
+	}
+
 	configuredTarget := e.GetConfiguredTargetValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
 			return &model_analysis_pb.ConfiguredTarget_Key{
 				Label:                  key.Message.Label,
-				ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference)).Merge(patcher),
+				ConfigurationReference: model_core.Patch(e, model_core.Nested(incomingEdgeTransition, incomingEdgeTransition.Message.OutputConfigurationReference)).Merge(patcher),
 			}
 		}),
 	)

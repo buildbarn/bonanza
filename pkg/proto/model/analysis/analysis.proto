@@ -670,6 +670,14 @@ message ConfiguredTarget {
 
     // Platform constraints and build settings that are currently active.
     //
+    // This is the configuration in which the target is analyzed. It
+    // MUST be the output configuration of the target's incoming edge
+    // transition, as computed by TargetIncomingEdgeTransition. This
+    // means, for example, that package groups and source file targets
+    // MUST be configured without a configuration. Callers that obtain
+    // a configuration from a dependency edge should use
+    // TargetProviders, which applies the incoming edge transition.
+    //
     // If this reference is not set, the target is configured without
     // any platform constraints and build settings in place.
     bonanza.model.core.DecodableReference configuration_reference = 2
@@ -758,6 +766,281 @@ message ConfiguredTarget {
     }
 
     repeated Action actions = 3;
+  }
+}
+
+// The value of a label, label_keyed_string_dict or label_list attr of
+// a rule or subrule, after its outgoing edge transition has been
+// applied.
+message ConfiguredLabelAttr {
+  message Entry {
+    // Key by which the output configuration is identified, as returned
+    // by the outgoing edge transition.
+    string key = 1;
+
+    // Output configuration in which the dependencies need to be
+    // configured.
+    bonanza.model.core.DecodableReference output_configuration_reference = 2
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.BuildSettingOverride";
+        }];
+
+    // If default_value_labels_resolved is set, the labels contained in
+    // the attr's default value, resolved in the context of the output
+    // configuration. These are the labels of the targets that are
+    // referenced, after resolving aliases and checking visibility. If a
+    // label resolves to None, the empty string is used.
+    //
+    // Entries correspond to the unique labels contained in the attr's
+    // default value, in canonical form, sorted alphabetically. These
+    // original labels are not stored, as they can be derived from the
+    // attr's definition.
+    repeated string resolved_labels = 3;
+  }
+
+  // The output configurations yielded by the outgoing edge transition,
+  // sorted alphabetically by key. If empty, the attr's dependencies
+  // should be left unconfigured.
+  repeated Entry entries = 1;
+
+  // Whether the attr's value is equal to its default value, and the
+  // labels contained in the default value have been resolved. If not
+  // set, the caller is responsible for obtaining the attr's value and
+  // resolving any labels contained within.
+  bool default_value_labels_resolved = 2;
+}
+
+// IndexedConfiguredLabelAttr is the value of a label attr of a rule,
+// as computed by ConfiguredRule or ConfiguredRuleUsage. These are
+// stored in sparse lists, only containing entries for attrs whose value
+// could be computed.
+message IndexedConfiguredLabelAttr {
+  // The index of the attr in the attrs of the rule definition. Indices
+  // count all attrs, not just label attrs.
+  uint32 attr_index = 1;
+
+  // The value of the attr after applying its outgoing edge transition.
+  ConfiguredLabelAttr configured = 2;
+}
+
+// ConfiguredRule contains properties of a rule that only depend on the
+// rule definition and the configuration in which it is evaluated, but
+// not on the values of any of its public attrs. These properties are
+// shared by all targets of the same rule that are configured in the
+// same configuration.
+message ConfiguredRule {
+  message Key {
+    // The Starlark identifier of the rule.
+    string identifier = 1;
+
+    // The configuration in which the rule is evaluated, after any
+    // incoming edge transition has been applied.
+    bonanza.model.core.DecodableReference configuration_reference = 2
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.BuildSettingOverride";
+        }];
+  }
+
+  message Value {
+    message ExecGroup {
+      // Identifiers of the resolved toolchains, using the same order as
+      // the toolchain types in the exec group definition. Any optional
+      // toolchains that could not be resolved will have their
+      // identifier set to the empty string.
+      repeated string toolchain_identifiers = 1;
+
+      // Label of the execution platform that was selected for the exec
+      // group.
+      string platform_label = 2;
+
+      // The elliptic-curve public key that identifies the execution
+      // platform that was selected for the exec group, in PKIX, ASN.1
+      // DER form.
+      bytes platform_pkix_public_key = 3;
+    }
+
+    // Exec groups of the rule, using the same order as the exec groups
+    // in the rule definition.
+    repeated ExecGroup exec_groups = 1;
+
+    message Subrule {
+      // The Starlark identifier of the subrule.
+      string identifier = 1;
+
+      // The values of the subrule's attrs, using the same order as the
+      // attrs in the subrule definition. As subrule attrs are always
+      // private and cannot use user-defined transitions, the labels
+      // contained in these attrs are always resolved.
+      repeated ConfiguredLabelAttr attrs = 2;
+    }
+
+    // All subrules that may be invoked by the rule, either directly
+    // or through other subrules, sorted alphabetically by identifier.
+    repeated Subrule subrules = 2;
+
+    // The values of label attrs whose outgoing edge transition does
+    // not read the values of public attrs, sorted by attr index.
+    // Transitions that do read the values of public attrs need to be
+    // applied by ConfiguredRuleUsage or the target.
+    //
+    // For private attrs, the labels contained in the default value are
+    // resolved as well. For public attrs, they are not, as the default
+    // value may not be used by any targets. For targets that leave a
+    // public attr unset, ConfiguredRuleUsage.Value.label_attrs
+    // contains an entry for the same attr in which the labels are
+    // resolved. That entry takes precedence over the one in this list.
+    repeated IndexedConfiguredLabelAttr label_attrs = 3;
+  }
+}
+
+// ConfiguredRuleUsage contains properties of a rule that only depend on
+// the rule definition, the configuration in which it is evaluated, and
+// the set of public attrs that are explicitly set by a target. Targets
+// that leave the same set of public attrs at their default values can
+// share these properties.
+//
+// This function only computes properties that ConfiguredRule can't
+// compute: outgoing edge transitions that read the values of public
+// attrs that are left at their default values, and the labels contained
+// in the default values of public attrs that are left unset. If
+// neither applies to a target, it does not need to use this function.
+message ConfiguredRuleUsage {
+  message Key {
+    // The Starlark identifier of the rule.
+    string identifier = 1;
+
+    // The configuration in which the target is analyzed, after the
+    // rule's incoming edge transition has been applied.
+    bonanza.model.core.DecodableReference configuration_reference = 2
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.BuildSettingOverride";
+        }];
+
+    // Indices of public attrs in the rule definition that are
+    // explicitly set by the target. Indices only count public attrs,
+    // meaning that index zero corresponds to the first attr in the
+    // rule definition whose name does not start with an underscore.
+    // Indices MUST be sorted in strictly increasing order.
+    //
+    // A public attr is considered to be set explicitly if its value
+    // either uses select() or is not None.
+    //
+    // If none of the rule's label attrs use user-defined transitions,
+    // only the indices of public label attrs that have a default value
+    // other than None need to be provided, as the explicitness of
+    // other attrs does not affect the value. This permits more targets
+    // to share the same value.
+    repeated uint32 explicit_public_attr_indices = 3;
+  }
+
+  message Value {
+    // The values of label attrs that depend on which public attrs are
+    // explicitly set, sorted by attr index. Entries are present for:
+    //
+    // - Public attrs whose outgoing edge transition was applied by
+    //   ConfiguredRule, but which are left unset. These contain the
+    //   same configurations as the entry in
+    //   ConfiguredRule.Value.label_attrs, but also have the labels in
+    //   the default value resolved. These entries take precedence over
+    //   the ones in ConfiguredRule.Value.label_attrs.
+    //
+    // - Attrs whose outgoing edge transition reads the values of public
+    //   attrs, but none that are explicitly set. These don't have an
+    //   entry in ConfiguredRule.Value.label_attrs.
+    //
+    // Attrs whose outgoing edge transition reads the values of public
+    // attrs that are explicitly set are absent from both lists. Their
+    // transition needs to be applied by the target.
+    repeated IndexedConfiguredLabelAttr label_attrs = 1;
+  }
+}
+
+// RuleUsageIncomingEdgeTransition applies the incoming edge transition of a
+// rule, for all targets of the rule that explicitly set the same public
+// attrs. The transition can only be applied if it does not read the
+// values of any attrs that are explicitly set.
+message RuleUsageIncomingEdgeTransition {
+  message Key {
+    // The Starlark identifier of the rule.
+    string identifier = 1;
+
+    // The configuration in which the target is requested.
+    bonanza.model.core.DecodableReference configuration_reference = 2
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.BuildSettingOverride";
+        }];
+
+    // Indices of public attrs in the rule definition that are
+    // explicitly set by the target, using the same format as
+    // ConfiguredRuleUsage.Key.explicit_public_attr_indices.
+    repeated uint32 explicit_public_attr_indices = 3;
+  }
+
+  message Value {
+    oneof result {
+      // The configuration yielded by the incoming edge transition. If
+      // the rule does not have an incoming edge transition, this is
+      // equal to the configuration provided in the key.
+      bonanza.model.core.DecodableReference output_configuration_reference = 1
+          [(bonanza.model.core.object_format) = {
+            proto_list_type_name:
+              "bonanza.model.analysis.BuildSettingOverride";
+          }];
+
+      // The incoming edge transition reads the values of attrs that are
+      // explicitly set. The caller needs to apply the incoming edge
+      // transition for each target individually.
+      google.protobuf.Empty depends_on_explicit_attrs = 2;
+    }
+  }
+}
+
+// TargetIncomingEdgeTransition applies the incoming edge transition of
+// a target to the configuration in which it is requested. The output
+// configuration is the configuration in which the target is analyzed.
+//
+// Only rule targets can have user-defined incoming edge transitions.
+// Other kinds of targets have built-in incoming edge transitions:
+//
+// - Rule targets use the incoming edge transition of the target's
+//   rule. It is applied through RuleUsageIncomingEdgeTransition if
+//   possible, so that it can be shared with other targets of the same
+//   rule.
+//
+// - Predeclared output file targets use the incoming edge transition
+//   of the rule target that owns the output file, so that they are
+//   analyzed in the same configuration as their owner.
+//
+// - Package groups and source file targets don't depend on the
+//   configuration. They use a transition to the empty configuration,
+//   so that they are only analyzed once.
+//
+// - All other targets currently use an identity transition.
+message TargetIncomingEdgeTransition {
+  message Key {
+    // The label of the target.
+    string label = 1;
+
+    // The configuration in which the target is requested.
+    bonanza.model.core.DecodableReference configuration_reference = 2
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.BuildSettingOverride";
+        }];
+  }
+
+  message Value {
+    // The configuration yielded by the incoming edge transition, in
+    // which the target is analyzed.
+    bonanza.model.core.DecodableReference output_configuration_reference = 1
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.BuildSettingOverride";
+        }];
   }
 }
 
