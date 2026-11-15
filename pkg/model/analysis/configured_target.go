@@ -1885,33 +1885,6 @@ func (rc *ruleContext[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string,
 	return attrNames, nil
 }
 
-func toSymlinkEntryDepset[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](v any, identifierGenerator model_starlark.ReferenceEqualIdentifierGenerator) *model_starlark.Depset[TReference, TMetadata] {
-	var entries []any
-	switch typedV := v.(type) {
-	case *model_starlark.Depset[TReference, TMetadata]:
-		return typedV
-	case map[string]string:
-		entries = make([]any, 0, len(typedV))
-		for _, path := range slices.Sorted(maps.Keys(typedV)) {
-			entries = append(entries, model_starlark.NewStructFromDict[TReference, TMetadata](
-				nil,
-				map[string]any{
-					"path":        path,
-					"target_file": typedV[path],
-				},
-			))
-		}
-	case nil:
-		// Return an empty depset.
-	default:
-		panic("unknown type")
-	}
-	return model_starlark.NewDepset(
-		model_starlark.NewDepsetContentsFromList[TReference, TMetadata](entries, model_starlark_pb.Depset_DEFAULT),
-		identifierGenerator,
-	)
-}
-
 func (rc *ruleContext[TReference, TMetadata]) setOutputToStaticDirectory(output *targetOutput[TMetadata], capturableDirectory model_filesystem.CapturableDirectory[TMetadata, TMetadata]) error {
 	var createdDirectory model_filesystem.CreatedDirectory[TMetadata]
 	group, groupCtx := errgroup.WithContext(rc.context)
