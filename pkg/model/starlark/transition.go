@@ -65,6 +65,11 @@ type TransitionDefinition[TReference any, TMetadata model_core.ReferenceMetadata
 	AssignIdentifier(identifier pg_label.CanonicalStarlarkIdentifier)
 	Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata], error)
 	EncodeUserDefinedTransition(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error)
+
+	// isUserDefinedTransition returns true if the transition is a
+	// user-defined transition, as opposed to a predeclared
+	// transition ("exec", "target", config.none(), etc.).
+	isUserDefinedTransition() bool
 }
 
 type protoTransitionDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -80,6 +85,11 @@ func NewProtoTransitionDefinition[TReference object.BasicReference, TMetadata mo
 	return &protoTransitionDefinition[TReference, TMetadata]{
 		definition: definition,
 	}
+}
+
+func (td *protoTransitionDefinition[TReference, TMetadata]) isUserDefinedTransition() bool {
+	_, ok := td.definition.Message.Kind.(*model_starlark_pb.Transition_UserDefined_)
+	return ok
 }
 
 func (td *protoTransitionDefinition[TReference, TMetadata]) AssignIdentifier(identifier pg_label.CanonicalStarlarkIdentifier) {
@@ -260,6 +270,10 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) Encode(thread 
 			}
 		},
 	), nil
+}
+
+func (userDefinedTransitionDefinition[TReference, TMetadata]) isUserDefinedTransition() bool {
+	return true
 }
 
 func (td *userDefinedTransitionDefinition[TReference, TMetadata]) EncodeUserDefinedTransition(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error) {

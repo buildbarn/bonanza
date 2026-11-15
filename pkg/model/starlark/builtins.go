@@ -1861,6 +1861,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				if err := checkAttrsConfigurable(attrs); err != nil {
 					return nil, fmt.Errorf("%s: %w", b.Name(), err)
 				}
+				if err := checkSubruleAttrs(attrs); err != nil {
+					return nil, fmt.Errorf("%s: %w", b.Name(), err)
+				}
 
 				if err := convertFragmentsToAttr(fragments, attrs, targetTransitionDefinition); err != nil {
 					return nil, err

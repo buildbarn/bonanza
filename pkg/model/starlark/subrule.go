@@ -3,8 +3,10 @@ package starlark
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
+	"strings"
 
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
@@ -69,6 +71,44 @@ func (sr *Subrule[TReference, TMetadata]) Name() string {
 		return "subrule"
 	}
 	return sr.Identifier.GetStarlarkIdentifier().String()
+}
+
+// checkSubruleAttrs validates that the attrs of a subrule only use
+// the subset of features that are permitted for subrules. Subrule attrs
+// must be private, must be of type label or label_list, must have a
+// default value, and may not use user-defined transitions.
+//
+// These restrictions guarantee that the values of subrule attrs only
+// depend on the subrule and the configuration of the rule invoking
+// it, which allows them to be configured eagerly, prior to invoking
+// the rule's implementation function.
+func checkSubruleAttrs[TReference any, TMetadata model_core.ReferenceMetadata](attrs map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]) error {
+	for _, name := range slices.SortedFunc(
+		maps.Keys(attrs),
+		func(a, b pg_label.StarlarkIdentifier) int { return strings.Compare(a.String(), b.String()) },
+	) {
+		nameStr := name.String()
+		if !strings.HasPrefix(nameStr, "_") {
+			return fmt.Errorf("attr %#v: subrule attrs must be private", nameStr)
+		}
+		attr := attrs[name]
+		var cfg TransitionDefinition[TReference, TMetadata]
+		switch attrType := attr.attrType.(type) {
+		case *labelAttrType[TReference, TMetadata]:
+			cfg = attrType.valueCfg
+		case *labelListAttrType[TReference, TMetadata]:
+			cfg = attrType.listValueCfg
+		default:
+			return fmt.Errorf("attr %#v: subrule attrs must be of type label or label_list, not %s", nameStr, attrType.Type())
+		}
+		if attr.defaultValue == nil {
+			return fmt.Errorf("attr %#v: subrule attrs must have a default value", nameStr)
+		}
+		if cfg.isUserDefinedTransition() {
+			return fmt.Errorf("attr %#v: subrule attrs cannot use user-defined transitions", nameStr)
+		}
+	}
+	return nil
 }
 
 // SubruleInvokerKey is the key under which the SubruleInvoker should be

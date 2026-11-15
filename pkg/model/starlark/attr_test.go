@@ -38,7 +38,6 @@ func TestAttrConfigurable(t *testing.T) {
 		"aspect(implementation = _impl, attrs = %s)",
 		"repository_rule(implementation = _impl, attrs = %s)",
 		"rule(implementation = _impl, attrs = %s)",
-		"subrule(implementation = _impl, attrs = %s)",
 		"tag_class(attrs = %s)",
 	} {
 		require.NoError(t, exec(fmt.Sprintf(call, `{"a": attr.string(configurable = True), "b": attr.output()}`)))
@@ -85,6 +84,64 @@ func TestAttrConfigurable(t *testing.T) {
 			require.NoError(t, err)
 			testutil.RequireEqualProto(t, encodedAttr.Message, reencodedAttr.Message)
 		}
+	})
+}
+
+func TestSubruleAttrs(t *testing.T) {
+	exec := func(code string) error {
+		_, err := execBzlFile(
+			newTestThread(t),
+			util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl")),
+			"def _impl(ctx):\n    pass\n"+code,
+			nil,
+		)
+		return err
+	}
+
+	t.Run("Valid", func(t *testing.T) {
+		require.NoError(t, exec(`subrule(implementation = _impl, attrs = {
+    "_a": attr.label(),
+    "_b": attr.label(cfg = "exec", executable = True),
+    "_c": attr.label_list(cfg = config.none()),
+})`))
+	})
+
+	t.Run("Public", func(t *testing.T) {
+		require.ErrorContains(
+			t,
+			exec(`subrule(implementation = _impl, attrs = {"a": attr.label()})`),
+			"attr \"a\": subrule attrs must be private",
+		)
+	})
+
+	t.Run("NonLabel", func(t *testing.T) {
+		require.ErrorContains(
+			t,
+			exec(`subrule(implementation = _impl, attrs = {"_a": attr.string()})`),
+			"attr \"_a\": subrule attrs must be of type label or label_list, not string",
+		)
+	})
+
+	t.Run("Mandatory", func(t *testing.T) {
+		require.ErrorContains(
+			t,
+			exec(`subrule(implementation = _impl, attrs = {"_a": attr.label(mandatory = True)})`),
+			"attr \"_a\": subrule attrs must have a default value",
+		)
+	})
+
+	t.Run("UserDefinedTransition", func(t *testing.T) {
+		require.ErrorContains(
+			t,
+			exec(`
+def _transition_impl(settings, attr):
+    return {}
+
+_transition = transition(implementation = _transition_impl, inputs = [], outputs = [])
+
+subrule(implementation = _impl, attrs = {"_a": attr.label(cfg = _transition)})`),
+			"attr \"_a\": subrule attrs cannot use user-defined transitions",
+		)
 	})
 }
 
