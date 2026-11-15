@@ -22,16 +22,17 @@ import (
 // allowFilesUnpackerInto can be used to unpack allow_files arguments,
 // which either take a list of permitted file extensions or a Boolean
 // value. When the Boolean value is set to true, all file extensions are
-// accepted.
+// accepted. When set to false, no file targets are accepted, which is
+// indicated by setting the resulting message to nil.
 type allowFilesUnpackerInto struct{}
 
-func (allowFilesUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst **glob.NFA) error {
+func (allowFilesUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst **model_starlark_pb.Attr_AllowFiles) error {
 	switch typedV := v.(type) {
 	case eval.Bool:
 		if typedV {
-			*dst = &glob.NFAMatchingEverything
+			*dst = &model_starlark_pb.Attr_AllowFiles{}
 		} else {
-			*dst = &glob.NFAMatchingNothing
+			*dst = nil
 		}
 	default:
 		var suffixes []string
@@ -42,7 +43,9 @@ func (allowFilesUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst 
 		if err != nil {
 			return err
 		}
-		*dst = nfa
+		*dst = &model_starlark_pb.Attr_AllowFiles{
+			FilenamePattern: nfa.Bytes(),
+		}
 	}
 	return nil
 }
@@ -199,9 +202,8 @@ func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_co
 		}
 		attrs[fragmentsAttrIdentifier] = NewAttr[TReference, TMetadata](
 			NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
-				AllowFiles: glob.NFAMatchingNothing.Bytes(),
-				Cfg:        cfg,
-				Providers:  fragmentInfoProviderSets,
+				Cfg:       cfg,
+				Providers: fragmentInfoProviderSets,
 			}),
 			eval.NewList(fragmentsLabels),
 			/* configurable = */ true,
@@ -233,18 +235,16 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 
 	configurationAttr := NewAttr[TReference, TMetadata](
 		NewLabelAttrType(false, false, false, LabelOptions[TReference, TMetadata]{
-			AllowFiles: glob.NFAMatchingNothing.Bytes(),
-			Cfg:        targetTransitionDefinition,
-			Providers:  fragmentInfoProviderSets,
+			Cfg:       targetTransitionDefinition,
+			Providers: fragmentInfoProviderSets,
 		}),
 		NewLabel[TReference, TMetadata](configurationFragmentLabel.AsResolved()),
 		/* configurable = */ true,
 	)
 	defaultToolchainsAttr := NewAttr[TReference, TMetadata](
 		NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
-			AllowFiles: glob.NFAMatchingNothing.Bytes(),
-			Cfg:        targetTransitionDefinition,
-			Providers:  templateVariableInfoProviderSets,
+			Cfg:       targetTransitionDefinition,
+			Providers: templateVariableInfoProviderSets,
 		}),
 		eval.NewList([]eval.Value{
 			NewLabel[TReference, TMetadata](defaultMakeVariablesLabel.AsResolved()),
@@ -253,18 +253,16 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 	)
 	toolchainsAttr := NewAttr[TReference, TMetadata](
 		NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
-			AllowFiles: glob.NFAMatchingNothing.Bytes(),
-			Cfg:        targetTransitionDefinition,
-			Providers:  templateVariableInfoProviderSets,
+			Cfg:       targetTransitionDefinition,
+			Providers: templateVariableInfoProviderSets,
 		}),
 		eval.NewList(nil),
 		/* configurable = */ true,
 	)
 	targetPlatformAttr := NewAttr[TReference, TMetadata](
 		NewLabelAttrType(false, false, false, LabelOptions[TReference, TMetadata]{
-			AllowFiles: glob.NFAMatchingNothing.Bytes(),
-			Cfg:        targetTransitionDefinition,
-			Providers:  platformInfoProviderSets,
+			Cfg:       targetTransitionDefinition,
+			Providers: platformInfoProviderSets,
 		}),
 		NewLabel[TReference, TMetadata](commandLineOptionPlatformsLabel.AsResolved()),
 		/* configurable = */ true,
@@ -417,9 +415,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 					}
 
-					var allowFiles *glob.NFA
+					var allowFiles *model_starlark_pb.Attr_AllowFiles
 					var allowRules []string
-					var allowSingleFile *glob.NFA
+					var allowSingleFile *model_starlark_pb.Attr_AllowFiles
 					var aspects []*Aspect[TReference, TMetadata]
 					var cfg TransitionDefinition[TReference, TMetadata]
 					configurable := true
@@ -451,8 +449,6 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 							return nil, errors.New("allow_files and allow_single_file cannot be specified at the same time")
 						}
 						allowFiles = allowSingleFile
-					} else if allowFiles == nil {
-						allowFiles = &glob.NFAMatchingNothing
 					}
 					if cfg == nil {
 						if executable {
@@ -466,7 +462,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
 					}
 					labelOptions := LabelOptions[TReference, TMetadata]{
-						AllowFiles: allowFiles.Bytes(),
+						AllowFiles: allowFiles,
 						Cfg:        cfg,
 						Providers:  encodedProviders,
 					}
@@ -496,7 +492,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					}
 
 					allowEmpty := true
-					allowFiles := &glob.NFAMatchingNothing
+					var allowFiles *model_starlark_pb.Attr_AllowFiles
 					var aspects []*Aspect[TReference, TMetadata]
 					cfg := targetTransitionDefinition
 					configurable := true
@@ -526,7 +522,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
 					}
 					labelOptions := LabelOptions[TReference, TMetadata]{
-						AllowFiles: allowFiles.Bytes(),
+						AllowFiles: allowFiles,
 						Cfg:        cfg,
 						Providers:  encodedProviders,
 					}
@@ -556,7 +552,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					}
 
 					allowEmpty := true
-					allowFiles := &glob.NFAMatchingNothing
+					var allowFiles *model_starlark_pb.Attr_AllowFiles
 					var allowRules []string
 					var aspects []*Aspect[TReference, TMetadata]
 					cfg := targetTransitionDefinition
@@ -590,7 +586,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
 					}
 					labelOptions := LabelOptions[TReference, TMetadata]{
-						AllowFiles: allowFiles.Bytes(),
+						AllowFiles: allowFiles,
 						Cfg:        cfg,
 						Providers:  encodedProviders,
 					}
@@ -748,7 +744,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					}
 
 					allowEmpty := true
-					allowFiles := &glob.NFAMatchingNothing
+					var allowFiles *model_starlark_pb.Attr_AllowFiles
 					var aspects []*Aspect[TReference, TMetadata]
 					cfg := targetTransitionDefinition
 					configurable := true
@@ -778,7 +774,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
 					}
 					labelOptions := LabelOptions[TReference, TMetadata]{
-						AllowFiles: allowFiles.Bytes(),
+						AllowFiles: allowFiles,
 						Cfg:        cfg,
 						Providers:  encodedProviders,
 					}

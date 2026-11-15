@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"bonanza.build/pkg/glob"
 	"bonanza.build/pkg/label"
 	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
@@ -104,7 +103,7 @@ func TestMacro(t *testing.T) {
 		),
 		util.Must(label.NewStarlarkIdentifier("srcs")): model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
 			model_starlark.NewLabelListAttrType(model_starlark.LabelOptions[object.LocalReference, model_core.CreatedObjectTree]{
-				AllowFiles: glob.NFAMatchingEverything.Bytes(),
+				AllowFiles: &model_starlark_pb.Attr_AllowFiles{},
 				Providers:  []*model_starlark_pb.ProviderSet{{}},
 			}),
 			eval.NewList(nil),

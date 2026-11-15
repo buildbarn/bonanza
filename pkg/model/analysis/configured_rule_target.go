@@ -283,7 +283,10 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 		executable = attrType.Label.Executable
 	}
 
-	labelOptions, _, _ := getLabelAttrOptions(namedAttr.Attr)
+	requirements, err := newLabelAttrRequirements[TReference, TMetadata](a.context, a.thread, &a.starlarkValueEncoders.Readers, namedAttr.Attr)
+	if err != nil {
+		return fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+	}
 
 	thread := a.thread
 	targetPackage := a.targetLabel.GetCanonicalPackage()
@@ -381,7 +384,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 					configuration,
 					entry,
 					visibilityFromPackage,
-					labelOptions.GetProviders(),
+					requirements,
 					&missingDependencies,
 					func(resolvedLabel string, providerInstances model_core.Message[[]*model_starlark_pb.Struct, TReference]) error {
 						return a.collectDefaultInfo(namedAttr.Name, executable, resolvedLabel, providerInstances, &filesDepsetElements)
@@ -476,29 +479,12 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) collectDefaultInfo(
 ) error {
 	ctx := a.context
 	valueReaders := &a.starlarkValueEncoders.Readers
-	defaultInfoProviderIdentifierStr := defaultInfoProviderIdentifier.String()
-	defaultInfoIndex, ok := sort.Find(
-		len(providerInstances.Message),
-		func(i int) int {
-			return strings.Compare(defaultInfoProviderIdentifierStr, providerInstances.Message[i].ProviderInstanceProperties.GetProviderIdentifier())
-		},
-	)
-	if !ok {
-		return fmt.Errorf("target with label %#v did not yield provider %#v", resolvedLabel, defaultInfoProviderIdentifierStr)
-	}
-	defaultInfoFields := model_core.Nested(providerInstances, providerInstances.Message[defaultInfoIndex].Fields)
-
-	files, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, defaultInfoFields, "files")
+	defaultInfoFields, filesDepset, err := getDefaultInfoFilesDepset(ctx, valueReaders, resolvedLabel, providerInstances)
 	if err != nil {
-		return fmt.Errorf("failed to obtain field \"files\" of DefaultInfo provider of target with label %#v: %w", resolvedLabel, err)
+		return err
 	}
-	valueDepset, ok := files.Message.Kind.(*model_starlark_pb.Value_Depset)
-	if !ok {
-		return fmt.Errorf("field \"files\" of DefaultInfo provider of target with label %#v is not a depset", resolvedLabel)
-	}
-	for _, element := range valueDepset.Depset.Elements {
-		// TODO: Validate extensions.
-		*filesDepsetElements = append(*filesDepsetElements, model_core.Nested(files, element))
+	for _, element := range filesDepset.Message.Elements {
+		*filesDepsetElements = append(*filesDepsetElements, model_core.Nested(filesDepset, element))
 	}
 
 	if executable {

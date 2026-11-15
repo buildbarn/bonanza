@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"bonanza.build/pkg/glob"
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -278,9 +277,8 @@ func (bst labelListBuildSettingType[TReference, TMetadata]) GetCanonicalizer(cur
 
 func (labelListBuildSettingType[TReference, TMetadata]) GetAttrType() AttrType[TReference, TMetadata] {
 	return NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
-		AllowFiles: glob.NFAMatchingNothing.Bytes(),
-		Cfg:        NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
-		Providers:  anyProviderSets,
+		Cfg:       NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
+		Providers: anyProviderSets,
 	})
 }
 

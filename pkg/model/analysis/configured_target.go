@@ -280,6 +280,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 			ProviderInstances: []*model_starlark_pb.Struct{
 				newDefaultInfo.Message,
 			},
+			IsFileTarget: true,
 		},
 		newDefaultInfo.Patcher,
 	), nil

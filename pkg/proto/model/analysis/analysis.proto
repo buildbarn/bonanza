@@ -766,6 +766,13 @@ message ConfiguredTarget {
     }
 
     repeated Action actions = 3;
+
+    // Whether the target is a file target, being either a source file
+    // or a predeclared output file. File targets are subject to
+    // different rules when referenced by label attrs. For example, they
+    // are not checked against the providers specified in
+    // attr.label(providers = ...).
+    bool is_file_target = 4;
   }
 }
 
@@ -2599,6 +2606,10 @@ message TargetProviders {
     // The values of the provider instances that this target produced,
     // sorted alphabetically by provider identifier.
     repeated bonanza.model.starlark.Struct provider_instances = 1;
+
+    // Whether the target is a file target, being either a source file
+    // or a predeclared output file.
+    bool is_file_target = 2;
   }
 }
 

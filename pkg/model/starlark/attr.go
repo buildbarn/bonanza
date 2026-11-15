@@ -278,9 +278,10 @@ func (intListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 // LabelOptions contains the options that apply to all attribute types
 // containing labels.
 type LabelOptions[TReference any, TMetadata model_core.ReferenceMetadata] struct {
-	// Pattern of filenames of files that may be referenced, encoded
-	// as a nondeterministic finite automaton.
-	AllowFiles []byte
+	// Whether file targets are permitted, and the pattern of files
+	// that referenced targets need to yield. If nil, no file targets
+	// are permitted.
+	AllowFiles *model_starlark_pb.Attr_AllowFiles
 
 	// The transition to apply when configuring the target associated
 	// with the label.

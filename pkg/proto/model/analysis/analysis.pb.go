@@ -6886,6 +6886,7 @@ type ConfiguredTarget_Value struct {
 	ProviderInstances []*starlark.Struct               `protobuf:"bytes,1,rep,name=provider_instances,json=providerInstances,proto3" json:"provider_instances,omitempty"`
 	Outputs           []*ConfiguredTarget_Value_Output `protobuf:"bytes,2,rep,name=outputs,proto3" json:"outputs,omitempty"`
 	Actions           []*ConfiguredTarget_Value_Action `protobuf:"bytes,3,rep,name=actions,proto3" json:"actions,omitempty"`
+	IsFileTarget      bool                             `protobuf:"varint,4,opt,name=is_file_target,json=isFileTarget,proto3" json:"is_file_target,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -6939,6 +6940,13 @@ func (x *ConfiguredTarget_Value) GetActions() []*ConfiguredTarget_Value_Action {
 		return x.Actions
 	}
 	return nil
+}
+
+func (x *ConfiguredTarget_Value) GetIsFileTarget() bool {
+	if x != nil {
+		return x.IsFileTarget
+	}
+	return false
 }
 
 type ConfiguredTarget_Value_Output struct {
@@ -14676,6 +14684,7 @@ func (x *TargetProviders_Key) GetConfigurationReference() *core.DecodableReferen
 type TargetProviders_Value struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	ProviderInstances []*starlark.Struct     `protobuf:"bytes,1,rep,name=provider_instances,json=providerInstances,proto3" json:"provider_instances,omitempty"`
+	IsFileTarget      bool                   `protobuf:"varint,2,opt,name=is_file_target,json=isFileTarget,proto3" json:"is_file_target,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -14715,6 +14724,13 @@ func (x *TargetProviders_Value) GetProviderInstances() []*starlark.Struct {
 		return x.ProviderInstances
 	}
 	return nil
+}
+
+func (x *TargetProviders_Value) GetIsFileTarget() bool {
+	if x != nil {
+		return x.IsFileTarget
+	}
+	return false
 }
 
 type TestSuiteTests_Key struct {
@@ -15678,15 +15694,17 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x05Write\x12;\n" +
 	"\acontent\x18\x01 \x01(\v2!.bonanza.model.analysis.Args.LeafR\acontent\x12#\n" +
 	"\ris_executable\x18\x02 \x01(\bR\fisExecutableB\b\n" +
-	"\x06source\"\xa7\v\n" +
+	"\x06source\"\xcd\v\n" +
 	"\x10ConfiguredTarget\x1a\xb0\x01\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x92\x01\n" +
-	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x1a\xdf\t\n" +
+	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x1a\x85\n" +
+	"\n" +
 	"\x05Value\x12M\n" +
 	"\x12provider_instances\x18\x01 \x03(\v2\x1e.bonanza.model.starlark.StructR\x11providerInstances\x12O\n" +
 	"\aoutputs\x18\x02 \x03(\v25.bonanza.model.analysis.ConfiguredTarget.Value.OutputR\aoutputs\x12O\n" +
-	"\aactions\x18\x03 \x03(\v25.bonanza.model.analysis.ConfiguredTarget.Value.ActionR\aactions\x1a\x95\x04\n" +
+	"\aactions\x18\x03 \x03(\v25.bonanza.model.analysis.ConfiguredTarget.Value.ActionR\aactions\x12$\n" +
+	"\x0eis_file_target\x18\x04 \x01(\bR\fisFileTarget\x1a\x95\x04\n" +
 	"\x06Output\x12P\n" +
 	"\x04leaf\x18\x01 \x01(\v2:.bonanza.model.analysis.ConfiguredTarget.Value.Output.LeafH\x00R\x04leaf\x12V\n" +
 	"\x06parent\x18\x02 \x01(\v2<.bonanza.model.analysis.ConfiguredTarget.Value.Output.ParentH\x00R\x06parent\x1a\xca\x01\n" +
@@ -16249,13 +16267,14 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x12/\n" +
 	"\x13provider_identifier\x18\x03 \x01(\tR\x12providerIdentifier\x1aF\n" +
 	"\x05Value\x12=\n" +
-	"\x06fields\x18\x01 \x01(\v2%.bonanza.model.starlark.Struct.FieldsR\x06fields\"\x9c\x02\n" +
+	"\x06fields\x18\x01 \x01(\v2%.bonanza.model.starlark.Struct.FieldsR\x06fields\"\xc2\x02\n" +
 	"\x0fTargetProviders\x1a\xb0\x01\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x92\x01\n" +
-	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x1aV\n" +
+	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x1a|\n" +
 	"\x05Value\x12M\n" +
-	"\x12provider_instances\x18\x01 \x03(\v2\x1e.bonanza.model.starlark.StructR\x11providerInstances\"\x80\x01\n" +
+	"\x12provider_instances\x18\x01 \x03(\v2\x1e.bonanza.model.starlark.StructR\x11providerInstances\x12$\n" +
+	"\x0eis_file_target\x18\x02 \x01(\bR\fisFileTarget\"\x80\x01\n" +
 	"\x0eTestSuiteTests\x1a\x1b\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x1aQ\n" +

@@ -244,7 +244,17 @@ func (sr *StarlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_p
 			arguments = append(arguments, starlarkKeywordArgument("configurable", starlarkBool(false)))
 		}
 	}
-	addLabelOptions := func(labelOptions *model_starlark_pb.Attr_LabelOptions) {
+	addLabelOptions := func(labelOptions *model_starlark_pb.Attr_LabelOptions, allowFilesKeyword string) {
+		// Omit allow_files if file targets are not permitted, as
+		// that is the default. The original list of file
+		// extensions cannot be recovered from the pattern.
+		if allowFiles := labelOptions.GetAllowFiles(); allowFiles != nil {
+			if len(allowFiles.FilenamePattern) == 0 {
+				arguments = append(arguments, starlarkKeywordArgument(allowFilesKeyword, starlarkBool(true)))
+			} else {
+				arguments = append(arguments, starlarkKeywordArgument(allowFilesKeyword, starlarkOpaque("filename pattern")))
+			}
+		}
 		// Omit providers if they are set to the default value,
 		// being a single empty set that is satisfied by any target.
 		if providerSets := labelOptions.GetProviders(); len(providerSets) != 1 || len(providerSets[0].ProviderIdentifiers) > 0 {
@@ -279,23 +289,24 @@ func (sr *StarlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_p
 			arguments = append(arguments, starlarkKeywordArgument("values", Sequence(Text("["), Text("]"), elements, true, false)))
 		}
 	case *model_starlark_pb.Attr_Label:
-		addLabelOptions(attrType.Label.ValueOptions)
+		if attrType.Label.AllowSingleFile {
+			addLabelOptions(attrType.Label.ValueOptions, "allow_single_file")
+		} else {
+			addLabelOptions(attrType.Label.ValueOptions, "allow_files")
+		}
 		if attrType.Label.Executable {
 			arguments = append(arguments, starlarkKeywordArgument("executable", starlarkBool(true)))
 		}
-		if attrType.Label.AllowSingleFile {
-			arguments = append(arguments, starlarkKeywordArgument("allow_single_file", starlarkBool(true)))
-		}
 	case *model_starlark_pb.Attr_LabelKeyedStringDict:
-		addLabelOptions(attrType.LabelKeyedStringDict.DictKeyOptions)
+		addLabelOptions(attrType.LabelKeyedStringDict.DictKeyOptions, "allow_files")
 	case *model_starlark_pb.Attr_LabelList:
-		addLabelOptions(attrType.LabelList.ListValueOptions)
+		addLabelOptions(attrType.LabelList.ListValueOptions, "allow_files")
 	case *model_starlark_pb.Attr_String_:
 		if values := attrType.String_.Values; len(values) > 0 {
 			arguments = append(arguments, starlarkKeywordArgument("values", starlarkStringList(values)))
 		}
 	case *model_starlark_pb.Attr_StringKeyedLabelDict:
-		addLabelOptions(attrType.StringKeyedLabelDict.DictValueOptions)
+		addLabelOptions(attrType.StringKeyedLabelDict.DictValueOptions, "allow_files")
 	}
 
 	return starlarkCall(starlarkCallee("attr."+string(typeField.Name()), ""), arguments)

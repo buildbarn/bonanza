@@ -109,7 +109,6 @@ go_test(
     embed = [":starlark"],
     deps = [
         "//pkg/dotbazel",
-        "//pkg/glob",
         "//pkg/label",
         "//pkg/model/chunking",
         "//pkg/model/core",

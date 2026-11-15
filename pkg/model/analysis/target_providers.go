@@ -40,6 +40,7 @@ func (baseComputer[TReference, TMetadata]) ComputeTargetProvidersValue(ctx conte
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProviders_Value {
 		return &model_analysis_pb.TargetProviders_Value{
 			ProviderInstances: model_core.PatchList(e, model_core.Nested(configuredTarget, configuredTarget.Message.ProviderInstances)).Merge(patcher),
+			IsFileTarget:      configuredTarget.Message.IsFileTarget,
 		}
 	}), nil
 }

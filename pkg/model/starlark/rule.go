@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"bonanza.build/pkg/glob"
 	pg_label "bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -716,9 +715,8 @@ func getImplicitRuleAttrs[TReference object.BasicReference, TMetadata model_core
 	}
 	boolType := NewBoolAttrType[TReference, TMetadata]()
 	labelListType := NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
-		AllowFiles: glob.NFAMatchingNothing.Bytes(),
-		Cfg:        NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
-		Providers:  anyProviderSets,
+		Cfg:       NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
+		Providers: anyProviderSets,
 	})
 	stringType := NewStringAttrType[TReference, TMetadata](nil)
 	stringListType := NewStringListAttrType[TReference, TMetadata]()

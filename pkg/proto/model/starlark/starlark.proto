@@ -133,6 +133,29 @@ message Attr {
   // of symbolic macros may set this field to false.
   bool configurable = 15;
 
+  // Restrictions on the files yielded by targets referenced by an
+  // attribute containing labels, corresponding to the "allow_files"
+  // and "allow_single_file" parameters of attr.label() and friends.
+  message AllowFiles {
+    // A nondeterministic finite automaton (NFA) that describes the
+    // pattern of package relative paths of files.
+    //
+    // If set, targets are only accepted if DefaultInfo.files contains
+    // at least one file whose package relative path matches the
+    // pattern, or a directory. As the DefaultInfo provider of file
+    // targets only contains the file itself, this effectively matches
+    // the name of file targets against the pattern. This corresponds
+    // to setting allow_files to a list of file extensions.
+    //
+    // Like Bazel, this is merely a sanity check. Files that do not
+    // match the pattern are not filtered out, meaning they remain
+    // visible through ctx.files.
+    //
+    // If not set, targets are accepted regardless of the files they
+    // yield. This corresponds to allow_files = True.
+    bytes filename_pattern = 1;
+  }
+
   // Options that apply to all attribute types containing labels.
   message LabelOptions {
     // Sets of providers that rule targets referenced by this attribute
@@ -164,15 +187,13 @@ message Attr {
     // with the label.
     Transition cfg = 3;
 
-    // A nondeterministic finite automaton (NFA) that describes the
-    // pattern of package relative paths of file targets that this
-    // attribute accepts.
+    // Whether file targets are permitted and which files the targets
+    // referenced by this attribute need to yield, corresponding to
+    // attr.label(allow_files = ...).
     //
-    // If this attribute accepts file targets with arbitrary names, this
-    // field is set to an NFA that matches all paths. Conversely, if
-    // this attribute accepts no file targets, it is set to an NFA that
-    // does not match any paths.
-    bytes allow_files = 4;
+    // If this field is not set, file targets are not permitted. This
+    // corresponds to allow_files = False.
+    AllowFiles allow_files = 4;
   }
 
   // Options that apply to all attribute types containing dicts or
@@ -196,7 +217,9 @@ message Attr {
 
     bool allow_none = 2;
 
-    // Only allow file targets corresponding to a single file.
+    // Only allow targets corresponding to a single file, meaning that
+    // DefaultInfo.files contains exactly one file. If set,
+    // value_options.allow_files MUST also be set.
     bool allow_single_file = 3;
 
     // True if the dependency has to be executable. This means the label
