@@ -842,12 +842,42 @@ func (c *baseComputer[TReference, TMetadata]) performTransition(
 	attrParameter eval.Value,
 	execGroupPlatformLabels map[string]string,
 ) (performAndApplyUserDefinedTransitionResult[TMetadata], bool, error) {
-	// See if any transitions need to be applied.
+	if tr, ok := transition.Message.GetKind().(*model_starlark_pb.Transition_UserDefined_); ok {
+		configurationReferences, err := c.performUserDefinedTransitionCached(
+			ctx,
+			e,
+			analysisEncoders,
+			starlarkValueEncoders,
+			model_core.Nested(transition, tr.UserDefined),
+			configurationReference,
+			attrParameter,
+		)
+		return configurationReferences, true, err
+	}
+	configurationReferences, err := performBuiltinTransition(e, transition, configurationReference, execGroupPlatformLabels)
+	return configurationReferences, false, err
+}
+
+type performBuiltinTransitionEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
+	model_core.ObjectManager[TReference, TMetadata]
+	ExecTransitionValueGetter[TReference, TMetadata]
+}
+
+// performBuiltinTransition applies a transition that is not user
+// defined (e.g., "exec", "target", config.none()). These transitions
+// never yield more than one configuration, and don't depend on the
+// values of any attrs.
+func performBuiltinTransition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	e performBuiltinTransitionEnvironment[TReference, TMetadata],
+	transition model_core.Message[*model_starlark_pb.Transition, TReference],
+	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
+	execGroupPlatformLabels map[string]string,
+) (performAndApplyUserDefinedTransitionResult[TMetadata], error) {
 	switch tr := transition.Message.GetKind().(type) {
 	case *model_starlark_pb.Transition_ExecGroup:
 		platformLabel, ok := execGroupPlatformLabels[tr.ExecGroup]
 		if !ok {
-			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, false, fmt.Errorf("unknown exec group %#v", tr.ExecGroup)
+			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, fmt.Errorf("unknown exec group %#v", tr.ExecGroup)
 		}
 
 		inputConfigurationReference := model_core.Patch(e, configurationReference)
@@ -861,7 +891,7 @@ func (c *baseComputer[TReference, TMetadata]) performTransition(
 			),
 		)
 		if !execTransition.IsSet() {
-			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, false, evaluation.ErrMissingDependency
+			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
 		outputConfigurationReference := model_core.Patch(e, model_core.Nested(execTransition, execTransition.Message.OutputConfigurationReference))
@@ -872,14 +902,14 @@ func (c *baseComputer[TReference, TMetadata]) performTransition(
 				}},
 			},
 			outputConfigurationReference.Patcher,
-		), false, nil
+		), nil
 	case *model_starlark_pb.Transition_None:
 		// Use the empty configuration.
 		return model_core.NewSimplePatchedMessage[TMetadata](
 			&model_analysis_pb.UserDefinedTransition_Value_Success{
 				Entries: []*model_analysis_pb.UserDefinedTransition_Value_Success_Entry{{}},
 			},
-		), false, nil
+		), nil
 	case *model_starlark_pb.Transition_Target:
 		// Don't transition. Use the current target.
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
@@ -890,25 +920,16 @@ func (c *baseComputer[TReference, TMetadata]) performTransition(
 				}},
 			},
 			patchedConfigurationReference.Patcher,
-		), false, nil
+		), nil
 	case *model_starlark_pb.Transition_Unconfigured:
 		// Leave targets unconfigured.
 		return model_core.NewSimplePatchedMessage[TMetadata](
 			&model_analysis_pb.UserDefinedTransition_Value_Success{},
-		), false, nil
+		), nil
 	case *model_starlark_pb.Transition_UserDefined_:
-		configurationReferences, err := c.performUserDefinedTransitionCached(
-			ctx,
-			e,
-			analysisEncoders,
-			starlarkValueEncoders,
-			model_core.Nested(transition, tr.UserDefined),
-			configurationReference,
-			attrParameter,
-		)
-		return configurationReferences, true, err
+		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, errors.New("user-defined transitions cannot be used in this context")
 	default:
-		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, false, errors.New("unknown transition type")
+		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, errors.New("unknown transition type")
 	}
 }
 
