@@ -245,10 +245,16 @@ func (sr *StarlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_p
 		}
 	}
 	addLabelOptions := func(labelOptions *model_starlark_pb.Attr_LabelOptions) {
-		if providers := labelOptions.GetProviders(); len(providers) > 0 {
-			elements := make([]Doc, 0, len(providers))
-			for _, provider := range providers {
-				elements = append(elements, starlarkOpaqueIdentifier("provider", provider))
+		// Omit providers if they are set to the default value,
+		// being a single empty set that is satisfied by any target.
+		if providerSets := labelOptions.GetProviders(); len(providerSets) != 1 || len(providerSets[0].ProviderIdentifiers) > 0 {
+			elements := make([]Doc, 0, len(providerSets))
+			for _, providerSet := range providerSets {
+				providers := make([]Doc, 0, len(providerSet.ProviderIdentifiers))
+				for _, provider := range providerSet.ProviderIdentifiers {
+					providers = append(providers, starlarkOpaqueIdentifier("provider", provider))
+				}
+				elements = append(elements, Sequence(Text("["), Text("]"), providers, true, false))
 			}
 			arguments = append(arguments, starlarkKeywordArgument("providers", Sequence(Text("["), Text("]"), elements, true, false)))
 		}

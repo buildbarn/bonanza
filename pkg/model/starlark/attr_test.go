@@ -87,6 +87,80 @@ func TestAttrConfigurable(t *testing.T) {
 	})
 }
 
+func TestAttrProviders(t *testing.T) {
+	encodeProviders := func(t *testing.T, providers string) []*model_starlark_pb.ProviderSet {
+		globals, err := execBzlFile(
+			newTestThread(t),
+			util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl")),
+			"A = provider()\nB = provider()\nC = provider()\nATTR = attr.label_list(providers = "+providers+")\n",
+			nil,
+		)
+		require.NoError(t, err)
+		encodedAttr, err := globals["ATTR"].(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(newTestThread(t), nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+		require.NoError(t, err)
+		return encodedAttr.Message.GetAttr().GetLabelList().GetListValueOptions().GetProviders()
+	}
+	newProviderSet := func(providerIdentifiers ...string) *model_starlark_pb.ProviderSet {
+		return &model_starlark_pb.ProviderSet{ProviderIdentifiers: providerIdentifiers}
+	}
+
+	t.Run("Default", func(t *testing.T) {
+		// Not specifying any providers yields a single empty
+		// set, which is satisfied by any target.
+		providerSets := encodeProviders(t, "[]")
+		require.Len(t, providerSets, 1)
+		testutil.RequireEqualProto(t, newProviderSet(), providerSets[0])
+	})
+
+	t.Run("FlatList", func(t *testing.T) {
+		// A flat list of providers corresponds to a single set.
+		// Providers in a set are sorted and deduplicated.
+		testutil.RequireEqualProto(
+			t,
+			newProviderSet("@@rules+//:defs.bzl%A", "@@rules+//:defs.bzl%B"),
+			encodeProviders(t, "[B, A, B]")[0],
+		)
+	})
+
+	t.Run("NestedLists", func(t *testing.T) {
+		// Sets are sorted and deduplicated as well.
+		providerSets := encodeProviders(t, "[[C], [B, A], [A, B]]")
+		require.Len(t, providerSets, 2)
+		testutil.RequireEqualProto(t, newProviderSet("@@rules+//:defs.bzl%A", "@@rules+//:defs.bzl%B"), providerSets[0])
+		testutil.RequireEqualProto(t, newProviderSet("@@rules+//:defs.bzl%C"), providerSets[1])
+	})
+
+	t.Run("Supersets", func(t *testing.T) {
+		// Sets that are a superset of another set are
+		// redundant, and should be removed.
+		providerSets := encodeProviders(t, "[[A, B, C], [B], [A, C], [C, B]]")
+		require.Len(t, providerSets, 2)
+		testutil.RequireEqualProto(t, newProviderSet("@@rules+//:defs.bzl%A", "@@rules+//:defs.bzl%C"), providerSets[0])
+		testutil.RequireEqualProto(t, newProviderSet("@@rules+//:defs.bzl%B"), providerSets[1])
+	})
+
+	t.Run("EmptySet", func(t *testing.T) {
+		// An empty set is satisfied by any target, meaning that
+		// it subsumes all other sets.
+		providerSets := encodeProviders(t, "[[A], []]")
+		require.Len(t, providerSets, 1)
+		testutil.RequireEqualProto(t, newProviderSet(), providerSets[0])
+	})
+
+	t.Run("UnnamedProvider", func(t *testing.T) {
+		// Providers are named when they are assigned to a
+		// global. Providers that are not assigned to a global
+		// can't be referenced by identifier.
+		_, err := execBzlFile(
+			newTestThread(t),
+			util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl")),
+			"ATTR = attr.label_list(providers = [provider()])\n",
+			nil,
+		)
+		require.ErrorContains(t, err, "attr.label_list: for parameter providers: provider does not have a name")
+	})
+}
+
 func TestSubruleAttrs(t *testing.T) {
 	exec := func(code string) error {
 		_, err := execBzlFile(

@@ -277,10 +277,11 @@ func (bst labelListBuildSettingType[TReference, TMetadata]) GetCanonicalizer(cur
 }
 
 func (labelListBuildSettingType[TReference, TMetadata]) GetAttrType() AttrType[TReference, TMetadata] {
-	return NewLabelListAttrType(
-		glob.NFAMatchingNothing.Bytes(),
-		NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
-	)
+	return NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
+		AllowFiles: glob.NFAMatchingNothing.Bytes(),
+		Cfg:        NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
+		Providers:  anyProviderSets,
+	})
 }
 
 type labelListBuildSettingCanonicalizer[TReference any, TMetadata model_core.ReferenceMetadata] struct {

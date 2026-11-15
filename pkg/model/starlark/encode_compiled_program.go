@@ -285,38 +285,28 @@ func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.Refer
 	case *model_starlark_pb.Attr_IntList:
 		return NewIntListAttrType[TReference, TMetadata](), nil
 	case *model_starlark_pb.Attr_Label:
-		if attrTypeInfo.Label.ValueOptions == nil || attrTypeInfo.Label.ValueOptions.Cfg == nil {
-			return nil, errors.New("missing value options")
+		valueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.Label.ValueOptions))
+		if err != nil {
+			return nil, fmt.Errorf("value options: %w", err)
 		}
 		return NewLabelAttrType[TReference, TMetadata](
 			attrTypeInfo.Label.AllowNone,
 			attrTypeInfo.Label.AllowSingleFile,
 			attrTypeInfo.Label.Executable,
-			attrTypeInfo.Label.ValueOptions.AllowFiles,
-			NewProtoTransitionDefinition[TReference, TMetadata](
-				model_core.Nested(attr, attrTypeInfo.Label.ValueOptions.Cfg),
-			),
+			valueOptions,
 		), nil
 	case *model_starlark_pb.Attr_LabelKeyedStringDict:
-		if attrTypeInfo.LabelKeyedStringDict.DictKeyOptions == nil || attrTypeInfo.LabelKeyedStringDict.DictKeyOptions.Cfg == nil {
-			return nil, errors.New("missing dict key options")
+		dictKeyOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.LabelKeyedStringDict.DictKeyOptions))
+		if err != nil {
+			return nil, fmt.Errorf("dict key options: %w", err)
 		}
-		return NewLabelKeyedStringDictAttrType[TReference, TMetadata](
-			attrTypeInfo.LabelKeyedStringDict.DictKeyOptions.AllowFiles,
-			NewProtoTransitionDefinition[TReference, TMetadata](
-				model_core.Nested(attr, attrTypeInfo.LabelKeyedStringDict.DictKeyOptions.Cfg),
-			),
-		), nil
+		return NewLabelKeyedStringDictAttrType[TReference, TMetadata](dictKeyOptions), nil
 	case *model_starlark_pb.Attr_LabelList:
-		if attrTypeInfo.LabelList.ListValueOptions == nil || attrTypeInfo.LabelList.ListValueOptions.Cfg == nil {
-			return nil, errors.New("missing list value options")
+		listValueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.LabelList.ListValueOptions))
+		if err != nil {
+			return nil, fmt.Errorf("list value options: %w", err)
 		}
-		return NewLabelListAttrType[TReference, TMetadata](
-			attrTypeInfo.LabelList.ListValueOptions.AllowFiles,
-			NewProtoTransitionDefinition[TReference, TMetadata](
-				model_core.Nested(attr, attrTypeInfo.LabelList.ListValueOptions.Cfg),
-			),
-		), nil
+		return NewLabelListAttrType[TReference, TMetadata](listValueOptions), nil
 	case *model_starlark_pb.Attr_Output:
 		return NewOutputAttrType[TReference, TMetadata](attrTypeInfo.Output.FilenameTemplate), nil
 	case *model_starlark_pb.Attr_OutputList:
@@ -326,15 +316,11 @@ func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.Refer
 	case *model_starlark_pb.Attr_StringDict:
 		return NewStringDictAttrType[TReference, TMetadata](), nil
 	case *model_starlark_pb.Attr_StringKeyedLabelDict:
-		if attrTypeInfo.StringKeyedLabelDict.DictValueOptions == nil || attrTypeInfo.StringKeyedLabelDict.DictValueOptions.Cfg == nil {
-			return nil, errors.New("missing dict value options")
+		dictValueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.StringKeyedLabelDict.DictValueOptions))
+		if err != nil {
+			return nil, fmt.Errorf("dict value options: %w", err)
 		}
-		return NewStringKeyedLabelDictAttrType[TReference, TMetadata](
-			attrTypeInfo.StringKeyedLabelDict.DictValueOptions.AllowFiles,
-			NewProtoTransitionDefinition[TReference, TMetadata](
-				model_core.Nested(attr, attrTypeInfo.StringKeyedLabelDict.DictValueOptions.Cfg),
-			),
-		), nil
+		return NewStringKeyedLabelDictAttrType[TReference, TMetadata](dictValueOptions), nil
 	case *model_starlark_pb.Attr_StringList:
 		return NewStringListAttrType[TReference, TMetadata](), nil
 	case *model_starlark_pb.Attr_StringListDict:

@@ -155,7 +155,27 @@ var (
 	toolchainsAttrIdentifier        = util.Must(pg_label.NewStarlarkIdentifier("toolchains"))
 	targetPlatformAttrIdentifier    = util.Must(pg_label.NewStarlarkIdentifier("__target_platform"))
 	commandLineOptionPlatformsLabel = util.Must(pg_label.NewCanonicalLabel("@@bazel_tools+//command_line_option:platforms"))
+
+	// Provider sets that are satisfied by any target. This is the
+	// default for label attrs that don't specify any providers.
+	anyProviderSets = []*model_starlark_pb.ProviderSet{{}}
+
+	// Providers that need to be yielded by the targets referenced by
+	// attrs that are injected into rules and subrules.
+	fragmentInfoProviderSets         = newSingleProviderSets("@@bazel_tools+//fragments:fragment_info.bzl%FragmentInfo")
+	platformInfoProviderSets         = newSingleProviderSets("@@builtins_core+//:exports.bzl%PlatformInfo")
+	templateVariableInfoProviderSets = newSingleProviderSets("@@builtins_core+//:exports.bzl%TemplateVariableInfo")
 )
+
+// newSingleProviderSets returns a list of sets of providers that only
+// requires a single provider to be present.
+func newSingleProviderSets(providerIdentifier string) []*model_starlark_pb.ProviderSet {
+	return []*model_starlark_pb.ProviderSet{{
+		ProviderIdentifiers: []string{
+			util.Must(pg_label.NewCanonicalStarlarkIdentifier(providerIdentifier)).String(),
+		},
+	}}
+}
 
 // convertFragmentsToAttr converts a list of fragment dependencies of a
 // (sub)rule to an attribute that depends on targets yielding providers
@@ -178,7 +198,11 @@ func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_co
 			)
 		}
 		attrs[fragmentsAttrIdentifier] = NewAttr[TReference, TMetadata](
-			NewLabelListAttrType[TReference, TMetadata](glob.NFAMatchingNothing.Bytes(), cfg),
+			NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
+				AllowFiles: glob.NFAMatchingNothing.Bytes(),
+				Cfg:        cfg,
+				Providers:  fragmentInfoProviderSets,
+			}),
 			eval.NewList(fragmentsLabels),
 			/* configurable = */ true,
 		)
@@ -208,24 +232,40 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 	)
 
 	configurationAttr := NewAttr[TReference, TMetadata](
-		NewLabelAttrType[TReference, TMetadata](false, false, false, glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
+		NewLabelAttrType(false, false, false, LabelOptions[TReference, TMetadata]{
+			AllowFiles: glob.NFAMatchingNothing.Bytes(),
+			Cfg:        targetTransitionDefinition,
+			Providers:  fragmentInfoProviderSets,
+		}),
 		NewLabel[TReference, TMetadata](configurationFragmentLabel.AsResolved()),
 		/* configurable = */ true,
 	)
 	defaultToolchainsAttr := NewAttr[TReference, TMetadata](
-		NewLabelListAttrType[TReference, TMetadata](glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
+		NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
+			AllowFiles: glob.NFAMatchingNothing.Bytes(),
+			Cfg:        targetTransitionDefinition,
+			Providers:  templateVariableInfoProviderSets,
+		}),
 		eval.NewList([]eval.Value{
 			NewLabel[TReference, TMetadata](defaultMakeVariablesLabel.AsResolved()),
 		}),
 		/* configurable = */ true,
 	)
 	toolchainsAttr := NewAttr[TReference, TMetadata](
-		NewLabelListAttrType[TReference, TMetadata](glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
+		NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
+			AllowFiles: glob.NFAMatchingNothing.Bytes(),
+			Cfg:        targetTransitionDefinition,
+			Providers:  templateVariableInfoProviderSets,
+		}),
 		eval.NewList(nil),
 		/* configurable = */ true,
 	)
 	targetPlatformAttr := NewAttr[TReference, TMetadata](
-		NewLabelAttrType[TReference, TMetadata](false, false, false, glob.NFAMatchingNothing.Bytes(), targetTransitionDefinition),
+		NewLabelAttrType(false, false, false, LabelOptions[TReference, TMetadata]{
+			AllowFiles: glob.NFAMatchingNothing.Bytes(),
+			Cfg:        targetTransitionDefinition,
+			Providers:  platformInfoProviderSets,
+		}),
 		NewLabel[TReference, TMetadata](commandLineOptionPlatformsLabel.AsResolved()),
 		/* configurable = */ true,
 	)
@@ -421,7 +461,16 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						cfg = targetTransitionDefinition
 					}
 
-					attrType := NewLabelAttrType[TReference, TMetadata](!mandatory, allowSingleFile != nil, executable, allowFiles.Bytes(), cfg)
+					encodedProviders, err := EncodeProviderSets(providers)
+					if err != nil {
+						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
+					}
+					labelOptions := LabelOptions[TReference, TMetadata]{
+						AllowFiles: allowFiles.Bytes(),
+						Cfg:        cfg,
+						Providers:  encodedProviders,
+					}
+					attrType := NewLabelAttrType(!mandatory, allowSingleFile != nil, executable, labelOptions)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -472,7 +521,16 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					attrType := NewLabelKeyedStringDictAttrType[TReference, TMetadata](allowFiles.Bytes(), cfg)
+					encodedProviders, err := EncodeProviderSets(providers)
+					if err != nil {
+						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
+					}
+					labelOptions := LabelOptions[TReference, TMetadata]{
+						AllowFiles: allowFiles.Bytes(),
+						Cfg:        cfg,
+						Providers:  encodedProviders,
+					}
+					attrType := NewLabelKeyedStringDictAttrType(labelOptions)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -527,7 +585,16 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					attrType := NewLabelListAttrType[TReference, TMetadata](allowFiles.Bytes(), cfg)
+					encodedProviders, err := EncodeProviderSets(providers)
+					if err != nil {
+						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
+					}
+					labelOptions := LabelOptions[TReference, TMetadata]{
+						AllowFiles: allowFiles.Bytes(),
+						Cfg:        cfg,
+						Providers:  encodedProviders,
+					}
+					attrType := NewLabelListAttrType(labelOptions)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -706,7 +773,16 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					attrType := NewStringKeyedLabelDictAttrType[TReference, TMetadata](allowFiles.Bytes(), cfg)
+					encodedProviders, err := EncodeProviderSets(providers)
+					if err != nil {
+						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
+					}
+					labelOptions := LabelOptions[TReference, TMetadata]{
+						AllowFiles: allowFiles.Bytes(),
+						Cfg:        cfg,
+						Providers:  encodedProviders,
+					}
+					attrType := NewStringKeyedLabelDictAttrType(labelOptions)
 					if mandatory {
 						defaultValue = nil
 					} else {

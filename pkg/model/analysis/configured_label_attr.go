@@ -2,7 +2,9 @@ package analysis
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
@@ -155,7 +157,76 @@ func (c *indexedConfiguredLabelAttrCursor[TReference]) finish() error {
 type configuredTargetReferenceCreatorEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ObjectManager[TReference, TMetadata]
 	TargetProvidersValueGetter[TReference, TMetadata]
+	TargetValueGetter[TReference]
 	VisibleTargetValueGetter[TReference, TMetadata]
+}
+
+// checkRequiredProviders checks whether a target yields all providers
+// of at least one of the provider sets that are required by a label
+// attr, as specified through attr.label(providers = ...). Only rule
+// targets are checked. File targets are always accepted, regardless
+// of the providers they yield.
+func checkRequiredProviders[TReference any](
+	e TargetValueGetter[TReference],
+	resolvedLabel string,
+	providerInstances []*model_starlark_pb.Struct,
+	requiredProviders []*model_starlark_pb.ProviderSet,
+) error {
+	// Empty sets are satisfied by any target.
+	for _, providerSet := range requiredProviders {
+		if len(providerSet.ProviderIdentifiers) == 0 {
+			return nil
+		}
+	}
+
+	// Both the provider instances and the identifiers in each of the
+	// provider sets are sorted. Perform a single forward pass over
+	// the provider instances, while keeping track of the next
+	// provider to match for each set. Sets for which a provider is
+	// found to be missing are marked with a negative index.
+	nextIndices := make([]int, len(requiredProviders))
+	for _, providerInstance := range providerInstances {
+		providerIdentifier := providerInstance.ProviderInstanceProperties.GetProviderIdentifier()
+		for i, providerSet := range requiredProviders {
+			nextIndex := nextIndices[i]
+			if nextIndex < 0 {
+				continue
+			}
+			switch strings.Compare(providerSet.ProviderIdentifiers[nextIndex], providerIdentifier) {
+			case -1:
+				// The provider to match sorts before the
+				// current provider instance, meaning it
+				// is not present.
+				nextIndices[i] = -1
+			case 0:
+				nextIndex++
+				if nextIndex == len(providerSet.ProviderIdentifiers) {
+					return nil
+				}
+				nextIndices[i] = nextIndex
+			}
+		}
+	}
+
+	// None of the provider sets are satisfied. This is only an
+	// error if the target is a rule target. Only load the target
+	// at this point, so that we don't depend on it in the common
+	// case.
+	target := e.GetTargetValue(&model_analysis_pb.Target_Key{
+		Label: resolvedLabel,
+	})
+	if !target.IsSet() {
+		return evaluation.ErrMissingDependency
+	}
+	if _, ok := target.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget); !ok {
+		return nil
+	}
+
+	sets := make([]string, 0, len(requiredProviders))
+	for _, providerSet := range requiredProviders {
+		sets = append(sets, "["+strings.Join(providerSet.ProviderIdentifiers, ", ")+"]")
+	}
+	return fmt.Errorf("target %#v does not have all mandatory providers of any of the sets %s", resolvedLabel, strings.Join(sets, ", "))
 }
 
 // newConfiguredTargetReferenceCreator returns a function that can be
@@ -165,13 +236,15 @@ type configuredTargetReferenceCreatorEnvironment[TReference any, TMetadata model
 // labelAttrConfiguration.
 //
 // If any dependencies are missing, missingDependencies is set, and None
-// is returned. If onConfiguredTarget is provided, it is called for every
-// target that is referenced.
+// is returned. Rule targets that don't yield any of the sets of
+// requiredProviders cause an error to be returned. If onConfiguredTarget
+// is provided, it is called for every target that is referenced.
 func newConfiguredTargetReferenceCreator[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	e configuredTargetReferenceCreatorEnvironment[TReference, TMetadata],
 	configuration *labelAttrConfiguration[TReference],
 	entry *labelAttrConfigurationEntry[TReference],
 	visibilityFromPackage label.CanonicalPackage,
+	requiredProviders []*model_starlark_pb.ProviderSet,
 	missingDependencies *bool,
 	onConfiguredTarget func(resolvedLabel string, providerInstances model_core.Message[[]*model_starlark_pb.Struct, TReference]) error,
 ) func(label.ResolvedLabel) (eval.Value, error) {
@@ -232,6 +305,13 @@ func newConfiguredTargetReferenceCreator[TReference object.BasicReference, TMeta
 			return eval.None, nil
 		}
 		providerInstances := model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances)
+		if err := checkRequiredProviders(e, resolvedLabelStr, providerInstances.Message, requiredProviders); err != nil {
+			if errors.Is(err, evaluation.ErrMissingDependency) {
+				*missingDependencies = true
+				return eval.None, nil
+			}
+			return nil, err
+		}
 		if onConfiguredTarget != nil {
 			if err := onConfiguredTarget(resolvedLabelStr, providerInstances); err != nil {
 				return nil, err
@@ -327,6 +407,7 @@ func configureSubruleAttrs[TReference object.BasicReference, TMetadata model_cor
 							&configuration,
 							&configuration.entries[i],
 							/* visibilityFromPackage = */ label.CanonicalPackage{},
+							labelOptions.GetProviders(),
 							&missingDependencies,
 							/* onConfiguredTarget = */ nil,
 						),

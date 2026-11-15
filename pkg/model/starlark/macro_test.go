@@ -103,7 +103,10 @@ func TestMacro(t *testing.T) {
 			/* configurable = */ true,
 		),
 		util.Must(label.NewStarlarkIdentifier("srcs")): model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
-			model_starlark.NewLabelListAttrType[object.LocalReference, model_core.CreatedObjectTree](glob.NFAMatchingEverything.Bytes(), nil),
+			model_starlark.NewLabelListAttrType(model_starlark.LabelOptions[object.LocalReference, model_core.CreatedObjectTree]{
+				AllowFiles: glob.NFAMatchingEverything.Bytes(),
+				Providers:  []*model_starlark_pb.ProviderSet{{}},
+			}),
 			eval.NewList(nil),
 			/* configurable = */ true,
 		),

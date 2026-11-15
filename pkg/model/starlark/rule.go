@@ -715,10 +715,11 @@ func getImplicitRuleAttrs[TReference object.BasicReference, TMetadata model_core
 		return NewAttr(attrType, eval.None, false)
 	}
 	boolType := NewBoolAttrType[TReference, TMetadata]()
-	labelListType := NewLabelListAttrType(
-		glob.NFAMatchingNothing.Bytes(),
-		NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
-	)
+	labelListType := NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
+		AllowFiles: glob.NFAMatchingNothing.Bytes(),
+		Cfg:        NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
+		Providers:  anyProviderSets,
+	})
 	stringType := NewStringAttrType[TReference, TMetadata](nil)
 	stringListType := NewStringListAttrType[TReference, TMetadata]()
 

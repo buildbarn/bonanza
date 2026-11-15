@@ -95,9 +95,9 @@ func checkSubruleAttrs[TReference any, TMetadata model_core.ReferenceMetadata](a
 		var cfg TransitionDefinition[TReference, TMetadata]
 		switch attrType := attr.attrType.(type) {
 		case *labelAttrType[TReference, TMetadata]:
-			cfg = attrType.valueCfg
+			cfg = attrType.valueOptions.Cfg
 		case *labelListAttrType[TReference, TMetadata]:
-			cfg = attrType.listValueCfg
+			cfg = attrType.listValueOptions.Cfg
 		default:
 			return fmt.Errorf("attr %#v: subrule attrs must be of type label or label_list, not %s", nameStr, attrType.Type())
 		}

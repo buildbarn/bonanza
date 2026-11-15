@@ -283,6 +283,8 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 		executable = attrType.Label.Executable
 	}
 
+	labelOptions, _, _ := getLabelAttrOptions(namedAttr.Attr)
+
 	thread := a.thread
 	targetPackage := a.targetLabel.GetCanonicalPackage()
 	missingDependencies := false
@@ -379,6 +381,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 					configuration,
 					entry,
 					visibilityFromPackage,
+					labelOptions.GetProviders(),
 					&missingDependencies,
 					func(resolvedLabel string, providerInstances model_core.Message[[]*model_starlark_pb.Struct, TReference]) error {
 						return a.collectDefaultInfo(namedAttr.Name, executable, resolvedLabel, providerInstances, &filesDepsetElements)

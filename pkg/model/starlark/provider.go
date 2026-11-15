@@ -3,6 +3,7 @@ package starlark
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -204,4 +205,64 @@ func DecodeProvider[TReference object.BasicReference, TMetadata model_core.Refer
 		m.Message.Fields,
 		initFunction,
 	), nil
+}
+
+// EncodeProviderSets converts a list of sets of providers, as provided
+// to the "providers" parameter of attr.label() and friends, to its
+// Protobuf representation.
+//
+// Providers within each set are sorted and deduplicated. As a target
+// that satisfies a set also satisfies all of its subsets, sets that
+// are a superset of another set are redundant, and are removed. The
+// remaining sets are sorted.
+func EncodeProviderSets[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](providerSets [][]*Provider[TReference, TMetadata]) ([]*model_starlark_pb.ProviderSet, error) {
+	encodedProviderSets := make([]*model_starlark_pb.ProviderSet, 0, len(providerSets))
+	for _, providerSet := range providerSets {
+		providerIdentifiers := make([]string, 0, len(providerSet))
+		for _, provider := range providerSet {
+			if provider.Identifier == nil {
+				return nil, errors.New("provider does not have a name")
+			}
+			providerIdentifiers = append(providerIdentifiers, provider.Identifier.String())
+		}
+		slices.Sort(providerIdentifiers)
+		encodedProviderSets = append(encodedProviderSets, &model_starlark_pb.ProviderSet{
+			ProviderIdentifiers: slices.Compact(providerIdentifiers),
+		})
+	}
+
+	compareProviderSets := func(a, b *model_starlark_pb.ProviderSet) int {
+		return slices.Compare(a.ProviderIdentifiers, b.ProviderIdentifiers)
+	}
+	slices.SortFunc(encodedProviderSets, compareProviderSets)
+	encodedProviderSets = slices.CompactFunc(encodedProviderSets, func(a, b *model_starlark_pb.ProviderSet) bool {
+		return compareProviderSets(a, b) == 0
+	})
+
+	// Remove sets that are a proper superset of another set. As
+	// sets are unique at this point, this is the case if any other
+	// set is a subset of it.
+	return slices.DeleteFunc(slices.Clone(encodedProviderSets), func(superset *model_starlark_pb.ProviderSet) bool {
+		for _, subset := range encodedProviderSets {
+			if subset != superset && isSortedSubset(subset.ProviderIdentifiers, superset.ProviderIdentifiers) {
+				return true
+			}
+		}
+		return false
+	}), nil
+}
+
+// isSortedSubset returns true if all elements of a sorted list are
+// also contained in another sorted list.
+func isSortedSubset(subset, superset []string) bool {
+	for _, element := range subset {
+		for len(superset) > 0 && superset[0] < element {
+			superset = superset[1:]
+		}
+		if len(superset) == 0 || superset[0] != element {
+			return false
+		}
+		superset = superset[1:]
+	}
+	return true
 }

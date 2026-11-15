@@ -135,7 +135,28 @@ message Attr {
 
   // Options that apply to all attribute types containing labels.
   message LabelOptions {
-    repeated string providers = 1;
+    // Sets of providers that rule targets referenced by this attribute
+    // need to provide, corresponding to attr.label(providers = ...). A
+    // rule target is accepted if it provides all providers of at least
+    // one of the sets. File targets are always accepted, regardless of
+    // the providers they yield.
+    //
+    // As an empty set is satisfied by any target, all rule targets are
+    // accepted if this list contains a single empty set. This is the
+    // default if no providers are specified. Conversely, if this list
+    // is empty, no rule targets are accepted.
+    //
+    // Unlike Bazel, the deprecated "allow_rules" parameter of
+    // attr.label() is not supported. Bazel accepts rule targets whose
+    // rule class is listed in "allow_rules", regardless of whether they
+    // yield the required providers.
+    //
+    // Sets are sorted lexicographically by their provider identifiers.
+    // No set may be a subset of another set in this list. As any target
+    // satisfying a set also satisfies all of its subsets, such sets are
+    // redundant. This also means that sets are unique, and that an
+    // empty set is the only set in the list if present.
+    repeated ProviderSet providers = 1;
 
     repeated string aspects = 2;
 
@@ -970,6 +991,13 @@ message TargetReference {
   // If set, the target has been configured. meaning it is possible to
   // access its providers.
   Configured configured = 2;
+}
+
+// A set of providers, all of which need to be present.
+message ProviderSet {
+  // Identifiers of the providers, sorted alphabetically. If empty, the
+  // set is satisfied by any target.
+  repeated string provider_identifiers = 1;
 }
 
 message ToolchainType {

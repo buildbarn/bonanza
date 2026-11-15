@@ -160,6 +160,7 @@ go_test(
     name = "analysis_test",
     srcs = [
         "base_computer_test.go",
+        "configured_label_attr_internal_test.go",
         "configured_rule_usage_internal_test.go",
         "file_root_test.go",
         "macro_expansion_context_test.go",

@@ -2,6 +2,7 @@ package starlark
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -274,23 +275,67 @@ func (intListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
+// LabelOptions contains the options that apply to all attribute types
+// containing labels.
+type LabelOptions[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	// Pattern of filenames of files that may be referenced, encoded
+	// as a nondeterministic finite automaton.
+	AllowFiles []byte
+
+	// The transition to apply when configuring the target associated
+	// with the label.
+	Cfg TransitionDefinition[TReference, TMetadata]
+
+	// Sets of providers that rule targets referenced by the attribute
+	// need to provide, as returned by EncodeProviderSets.
+	Providers []*model_starlark_pb.ProviderSet
+}
+
+// DecodeLabelOptions converts the options of an attribute type
+// containing labels from its Protobuf message.
+func DecodeLabelOptions[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](labelOptions model_core.Message[*model_starlark_pb.Attr_LabelOptions, TReference]) (LabelOptions[TReference, TMetadata], error) {
+	if labelOptions.Message == nil || labelOptions.Message.Cfg == nil {
+		return LabelOptions[TReference, TMetadata]{}, errors.New("missing label options")
+	}
+	return LabelOptions[TReference, TMetadata]{
+		AllowFiles: labelOptions.Message.AllowFiles,
+		Cfg: NewProtoTransitionDefinition[TReference, TMetadata](
+			model_core.Nested(labelOptions, labelOptions.Message.Cfg),
+		),
+		Providers: labelOptions.Message.Providers,
+	}, nil
+}
+
+func (lo *LabelOptions[TReference, TMetadata]) encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Attr_LabelOptions, TMetadata], error) {
+	cfg, err := lo.Cfg.Encode(thread, path, options)
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.Attr_LabelOptions, TMetadata]{}, err
+	}
+	return model_core.NewPatchedMessage(
+		&model_starlark_pb.Attr_LabelOptions{
+			AllowFiles: lo.AllowFiles,
+			Cfg:        cfg.Message,
+			Providers:  lo.Providers,
+		},
+		cfg.Patcher,
+	), nil
+}
+
 type labelAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	allowNone       bool
 	allowSingleFile bool
 	executable      bool
-	valueAllowFiles []byte
-	valueCfg        TransitionDefinition[TReference, TMetadata]
+	valueOptions    LabelOptions[TReference, TMetadata]
 }
 
 // NewLabelAttrType creates a label attribute type. These are normally
 // constructed by calling config.label().
-func NewLabelAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowNone, allowSingleFile, executable bool, valueAllowFiles []byte, valueCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+func NewLabelAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowNone, allowSingleFile, executable bool, valueOptions LabelOptions[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelAttrType[TReference, TMetadata]{
 		allowNone:       allowNone,
 		allowSingleFile: allowSingleFile,
 		executable:      executable,
-		valueAllowFiles: valueAllowFiles,
-		valueCfg:        valueCfg,
+		valueOptions:    valueOptions,
 	}
 }
 
@@ -299,7 +344,7 @@ func (labelAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *labelAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	valueCfg, err := at.valueCfg.Encode(thread, path, options)
+	valueOptions, err := at.valueOptions.encode(thread, path, options)
 	if err != nil {
 		return err
 	}
@@ -308,10 +353,7 @@ func (at *labelAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path
 			AllowNone:       at.allowNone,
 			AllowSingleFile: at.allowSingleFile,
 			Executable:      at.executable,
-			ValueOptions: &model_starlark_pb.Attr_LabelOptions{
-				AllowFiles: at.valueAllowFiles,
-				Cfg:        valueCfg.Merge(out.Patcher),
-			},
+			ValueOptions:    valueOptions.Merge(out.Patcher),
 		},
 	}
 	return nil
@@ -330,17 +372,15 @@ func (labelAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 }
 
 type labelKeyedStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
-	dictKeyAllowFiles []byte
-	dictKeyCfg        TransitionDefinition[TReference, TMetadata]
+	dictKeyOptions LabelOptions[TReference, TMetadata]
 }
 
 // NewLabelKeyedStringDictAttrType creates a dictionary attribute type,
 // where keys are labels and values are strings. These are normally
 // constructed by calling config.string_keyed_label_dict().
-func NewLabelKeyedStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](dictKeyAllowFiles []byte, dictKeyCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+func NewLabelKeyedStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](dictKeyOptions LabelOptions[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelKeyedStringDictAttrType[TReference, TMetadata]{
-		dictKeyAllowFiles: dictKeyAllowFiles,
-		dictKeyCfg:        dictKeyCfg,
+		dictKeyOptions: dictKeyOptions,
 	}
 }
 
@@ -349,16 +389,13 @@ func (labelKeyedStringDictAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *labelKeyedStringDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	dictKeyCfg, err := at.dictKeyCfg.Encode(thread, path, options)
+	dictKeyOptions, err := at.dictKeyOptions.encode(thread, path, options)
 	if err != nil {
 		return err
 	}
 	out.Message.Type = &model_starlark_pb.Attr_LabelKeyedStringDict{
 		LabelKeyedStringDict: &model_starlark_pb.Attr_LabelKeyedStringDictType{
-			DictKeyOptions: &model_starlark_pb.Attr_LabelOptions{
-				AllowFiles: at.dictKeyAllowFiles,
-				Cfg:        dictKeyCfg.Merge(out.Patcher),
-			},
+			DictKeyOptions: dictKeyOptions.Merge(out.Patcher),
 		},
 	}
 	return nil
@@ -373,17 +410,15 @@ func (labelKeyedStringDictAttrType[TReference, TMetadata]) IsOutput() (string, b
 }
 
 type labelListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
-	listValueAllowFiles []byte
-	listValueCfg        TransitionDefinition[TReference, TMetadata]
+	listValueOptions LabelOptions[TReference, TMetadata]
 }
 
 // NewLabelListAttrType creates a list attribute type, where elements
 // are labels. These are normally constructed by calling
 // config.label_list().
-func NewLabelListAttrType[TReference any, TMetadata model_core.ReferenceMetadata](listValueAllowFiles []byte, listValueCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+func NewLabelListAttrType[TReference any, TMetadata model_core.ReferenceMetadata](listValueOptions LabelOptions[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelListAttrType[TReference, TMetadata]{
-		listValueAllowFiles: listValueAllowFiles,
-		listValueCfg:        listValueCfg,
+		listValueOptions: listValueOptions,
 	}
 }
 
@@ -392,16 +427,13 @@ func (labelListAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *labelListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	listValueCfg, err := at.listValueCfg.Encode(thread, path, options)
+	listValueOptions, err := at.listValueOptions.encode(thread, path, options)
 	if err != nil {
 		return err
 	}
 	out.Message.Type = &model_starlark_pb.Attr_LabelList{
 		LabelList: &model_starlark_pb.Attr_LabelListType{
-			ListValueOptions: &model_starlark_pb.Attr_LabelOptions{
-				AllowFiles: at.listValueAllowFiles,
-				Cfg:        listValueCfg.Merge(out.Patcher),
-			},
+			ListValueOptions: listValueOptions.Merge(out.Patcher),
 		},
 	}
 	return nil
@@ -564,17 +596,15 @@ func (stringListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 }
 
 type stringKeyedLabelDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
-	dictKeyAllowFiles []byte
-	dictValueCfg      TransitionDefinition[TReference, TMetadata]
+	dictValueOptions LabelOptions[TReference, TMetadata]
 }
 
 // NewStringKeyedLabelDictAttrType creates a dictionary attribute type,
 // where keys are labels and values are strings. These are normally
 // constructed by calling config.string_keyed_label_dict().
-func NewStringKeyedLabelDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](dictKeyAllowFiles []byte, dictValueCfg TransitionDefinition[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+func NewStringKeyedLabelDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](dictValueOptions LabelOptions[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &stringKeyedLabelDictAttrType[TReference, TMetadata]{
-		dictKeyAllowFiles: dictKeyAllowFiles,
-		dictValueCfg:      dictValueCfg,
+		dictValueOptions: dictValueOptions,
 	}
 }
 
@@ -583,16 +613,13 @@ func (stringKeyedLabelDictAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *stringKeyedLabelDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	dictValueCfg, err := at.dictValueCfg.Encode(thread, path, options)
+	dictValueOptions, err := at.dictValueOptions.encode(thread, path, options)
 	if err != nil {
 		return err
 	}
 	out.Message.Type = &model_starlark_pb.Attr_StringKeyedLabelDict{
 		StringKeyedLabelDict: &model_starlark_pb.Attr_StringKeyedLabelDictType{
-			DictValueOptions: &model_starlark_pb.Attr_LabelOptions{
-				AllowFiles: at.dictKeyAllowFiles,
-				Cfg:        dictValueCfg.Merge(out.Patcher),
-			},
+			DictValueOptions: dictValueOptions.Merge(out.Patcher),
 		},
 	}
 	return nil

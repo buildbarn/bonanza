@@ -222,7 +222,7 @@ func TestRendererStarlarkRule(t *testing.T) {
 				Name: "deps",
 				Attr: &model_starlark_pb.Attr{
 					Type: &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{
-						ListValueOptions: &model_starlark_pb.Attr_LabelOptions{Providers: []string{"@@rules_cc+//cc:defs.bzl%CcInfo"}},
+						ListValueOptions: &model_starlark_pb.Attr_LabelOptions{Providers: []*model_starlark_pb.ProviderSet{{ProviderIdentifiers: []string{"@@rules_cc+//cc:defs.bzl%CcInfo"}}}},
 					}},
 					Configurable: true,
 				},
@@ -232,8 +232,11 @@ func TestRendererStarlarkRule(t *testing.T) {
 				Attr: &model_starlark_pb.Attr{
 					Default: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: "@@//tools:tool"}},
 					Type: &model_starlark_pb.Attr_Label{Label: &model_starlark_pb.Attr_LabelType{
-						Executable:   true,
-						ValueOptions: &model_starlark_pb.Attr_LabelOptions{Cfg: &model_starlark_pb.Transition{Kind: &model_starlark_pb.Transition_ExecGroup{}}},
+						Executable: true,
+						ValueOptions: &model_starlark_pb.Attr_LabelOptions{
+							Cfg:       &model_starlark_pb.Transition{Kind: &model_starlark_pb.Transition_ExecGroup{}},
+							Providers: []*model_starlark_pb.ProviderSet{{}},
+						},
 					}},
 					Configurable: true,
 				},
@@ -259,7 +262,7 @@ func TestRendererStarlarkRule(t *testing.T) {
 			"    implementation = <function _impl>,\n"+
 			"    test = True,\n"+
 			"    attrs = {\n"+
-			"        \"deps\": attr.label_list(providers = [<provider CcInfo>]),\n"+
+			"        \"deps\": attr.label_list(providers = [[<provider CcInfo>]]),\n"+
 			"        \"_tool\": attr.label(\n"+
 			"            default = Label(\"@@//tools:tool\"),\n"+
 			"            cfg = config.exec(),\n"+
