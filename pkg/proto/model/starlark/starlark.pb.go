@@ -177,7 +177,7 @@ func (x Depset_Order) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Depset_Order.Descriptor instead.
 func (Depset_Order) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{7, 0}
 }
 
 type File_Owner_Type int32
@@ -226,7 +226,7 @@ func (x File_Owner_Type) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use File_Owner_Type.Descriptor instead.
 func (File_Owner_Type) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{9, 0, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{10, 0, 0}
 }
 
 type MacroInstance_Finalizer int32
@@ -275,7 +275,7 @@ func (x MacroInstance_Finalizer) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MacroInstance_Finalizer.Descriptor instead.
 func (MacroInstance_Finalizer) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{18, 0}
 }
 
 type Rule_Definition_Type int32
@@ -324,7 +324,7 @@ func (x Rule_Definition_Type) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Rule_Definition_Type.Descriptor instead.
 func (Rule_Definition_Type) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{32, 0, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{33, 0, 0}
 }
 
 type Select_ConcatenationOperator int32
@@ -373,7 +373,7 @@ func (x Select_ConcatenationOperator) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Select_ConcatenationOperator.Descriptor instead.
 func (Select_ConcatenationOperator) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{36, 0}
 }
 
 type CompiledProgram struct {
@@ -1084,6 +1084,58 @@ func (*Aspect_Reference) isAspect_Kind() {}
 
 func (*Aspect_Definition_) isAspect_Kind() {}
 
+type AppliedAspect struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Identifier    string                   `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	Parameters    *core.DecodableReference `protobuf:"bytes,2,opt,name=parameters,proto3" json:"parameters,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppliedAspect) Reset() {
+	*x = AppliedAspect{}
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppliedAspect) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppliedAspect) ProtoMessage() {}
+
+func (x *AppliedAspect) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppliedAspect.ProtoReflect.Descriptor instead.
+func (*AppliedAspect) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AppliedAspect) GetIdentifier() string {
+	if x != nil {
+		return x.Identifier
+	}
+	return ""
+}
+
+func (x *AppliedAspect) GetParameters() *core.DecodableReference {
+	if x != nil {
+		return x.Parameters
+	}
+	return nil
+}
+
 type Attr struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	Default      *Value                 `protobuf:"bytes,1,opt,name=default,proto3" json:"default,omitempty"`
@@ -1110,7 +1162,7 @@ type Attr struct {
 
 func (x *Attr) Reset() {
 	*x = Attr{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1122,7 +1174,7 @@ func (x *Attr) String() string {
 func (*Attr) ProtoMessage() {}
 
 func (x *Attr) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1135,7 +1187,7 @@ func (x *Attr) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr.ProtoReflect.Descriptor instead.
 func (*Attr) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Attr) GetDefault() *Value {
@@ -1375,7 +1427,7 @@ type BuildSetting struct {
 
 func (x *BuildSetting) Reset() {
 	*x = BuildSetting{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1387,7 +1439,7 @@ func (x *BuildSetting) String() string {
 func (*BuildSetting) ProtoMessage() {}
 
 func (x *BuildSetting) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1400,7 +1452,7 @@ func (x *BuildSetting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildSetting.ProtoReflect.Descriptor instead.
 func (*BuildSetting) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *BuildSetting) GetFlag() bool {
@@ -1507,7 +1559,7 @@ type Depset struct {
 
 func (x *Depset) Reset() {
 	*x = Depset{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1519,7 +1571,7 @@ func (x *Depset) String() string {
 func (*Depset) ProtoMessage() {}
 
 func (x *Depset) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[6]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1532,7 +1584,7 @@ func (x *Depset) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Depset.ProtoReflect.Descriptor instead.
 func (*Depset) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Depset) GetElements() []*List_Element {
@@ -1565,7 +1617,7 @@ type Dict struct {
 
 func (x *Dict) Reset() {
 	*x = Dict{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1577,7 +1629,7 @@ func (x *Dict) String() string {
 func (*Dict) ProtoMessage() {}
 
 func (x *Dict) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1590,7 +1642,7 @@ func (x *Dict) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Dict.ProtoReflect.Descriptor instead.
 func (*Dict) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{7}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Dict) GetEntries() []*Dict_Entry {
@@ -1610,7 +1662,7 @@ type ExecGroup struct {
 
 func (x *ExecGroup) Reset() {
 	*x = ExecGroup{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1622,7 +1674,7 @@ func (x *ExecGroup) String() string {
 func (*ExecGroup) ProtoMessage() {}
 
 func (x *ExecGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1635,7 +1687,7 @@ func (x *ExecGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecGroup.ProtoReflect.Descriptor instead.
 func (*ExecGroup) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{8}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ExecGroup) GetExecCompatibleWith() []string {
@@ -1662,7 +1714,7 @@ type File struct {
 
 func (x *File) Reset() {
 	*x = File{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1674,7 +1726,7 @@ func (x *File) String() string {
 func (*File) ProtoMessage() {}
 
 func (x *File) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1687,7 +1739,7 @@ func (x *File) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use File.ProtoReflect.Descriptor instead.
 func (*File) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{9}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *File) GetOwner() *File_Owner {
@@ -1715,7 +1767,7 @@ type Function struct {
 
 func (x *Function) Reset() {
 	*x = Function{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1727,7 +1779,7 @@ func (x *Function) String() string {
 func (*Function) ProtoMessage() {}
 
 func (x *Function) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1740,7 +1792,7 @@ func (x *Function) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Function.ProtoReflect.Descriptor instead.
 func (*Function) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{10}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Function) GetFilename() string {
@@ -1789,7 +1841,7 @@ type Funcode struct {
 
 func (x *Funcode) Reset() {
 	*x = Funcode{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[11]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1801,7 +1853,7 @@ func (x *Funcode) String() string {
 func (*Funcode) ProtoMessage() {}
 
 func (x *Funcode) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[11]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1814,7 +1866,7 @@ func (x *Funcode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Funcode.ProtoReflect.Descriptor instead.
 func (*Funcode) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{11}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Funcode) GetColumn() uint32 {
@@ -1948,7 +2000,7 @@ type InheritableAttrs struct {
 
 func (x *InheritableAttrs) Reset() {
 	*x = InheritableAttrs{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[12]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1960,7 +2012,7 @@ func (x *InheritableAttrs) String() string {
 func (*InheritableAttrs) ProtoMessage() {}
 
 func (x *InheritableAttrs) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[12]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1973,7 +2025,7 @@ func (x *InheritableAttrs) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InheritableAttrs.ProtoReflect.Descriptor instead.
 func (*InheritableAttrs) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{12}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *InheritableAttrs) GetDeprecation() string {
@@ -2016,7 +2068,7 @@ type LabelSetting struct {
 
 func (x *LabelSetting) Reset() {
 	*x = LabelSetting{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[13]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2028,7 +2080,7 @@ func (x *LabelSetting) String() string {
 func (*LabelSetting) ProtoMessage() {}
 
 func (x *LabelSetting) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[13]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2041,7 +2093,7 @@ func (x *LabelSetting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LabelSetting.ProtoReflect.Descriptor instead.
 func (*LabelSetting) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{13}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *LabelSetting) GetBuildSettingDefault() string {
@@ -2081,7 +2133,7 @@ type List struct {
 
 func (x *List) Reset() {
 	*x = List{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[14]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2093,7 +2145,7 @@ func (x *List) String() string {
 func (*List) ProtoMessage() {}
 
 func (x *List) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[14]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2106,7 +2158,7 @@ func (x *List) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use List.ProtoReflect.Descriptor instead.
 func (*List) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{14}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *List) GetElements() []*List_Element {
@@ -2129,7 +2181,7 @@ type Macro struct {
 
 func (x *Macro) Reset() {
 	*x = Macro{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[15]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2141,7 +2193,7 @@ func (x *Macro) String() string {
 func (*Macro) ProtoMessage() {}
 
 func (x *Macro) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[15]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2154,7 +2206,7 @@ func (x *Macro) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Macro.ProtoReflect.Descriptor instead.
 func (*Macro) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{15}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Macro) GetKind() isMacro_Kind {
@@ -2208,7 +2260,7 @@ type MacroExpansionContext struct {
 
 func (x *MacroExpansionContext) Reset() {
 	*x = MacroExpansionContext{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[16]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2220,7 +2272,7 @@ func (x *MacroExpansionContext) String() string {
 func (*MacroExpansionContext) ProtoMessage() {}
 
 func (x *MacroExpansionContext) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[16]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2233,7 +2285,7 @@ func (x *MacroExpansionContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MacroExpansionContext.ProtoReflect.Descriptor instead.
 func (*MacroExpansionContext) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{16}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *MacroExpansionContext) GetNameSuffix() string {
@@ -2260,7 +2312,7 @@ type MacroInstance struct {
 
 func (x *MacroInstance) Reset() {
 	*x = MacroInstance{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[17]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2272,7 +2324,7 @@ func (x *MacroInstance) String() string {
 func (*MacroInstance) ProtoMessage() {}
 
 func (x *MacroInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[17]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2285,7 +2337,7 @@ func (x *MacroInstance) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MacroInstance.ProtoReflect.Descriptor instead.
 func (*MacroInstance) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *MacroInstance) GetNameSuffix() string {
@@ -2312,7 +2364,7 @@ type ModuleExtension struct {
 
 func (x *ModuleExtension) Reset() {
 	*x = ModuleExtension{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[18]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2324,7 +2376,7 @@ func (x *ModuleExtension) String() string {
 func (*ModuleExtension) ProtoMessage() {}
 
 func (x *ModuleExtension) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[18]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2337,7 +2389,7 @@ func (x *ModuleExtension) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModuleExtension.ProtoReflect.Descriptor instead.
 func (*ModuleExtension) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{18}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ModuleExtension) GetImplementation() *Function {
@@ -2363,7 +2415,7 @@ type PredeclaredOutputFileTarget struct {
 
 func (x *PredeclaredOutputFileTarget) Reset() {
 	*x = PredeclaredOutputFileTarget{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[19]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2375,7 +2427,7 @@ func (x *PredeclaredOutputFileTarget) String() string {
 func (*PredeclaredOutputFileTarget) ProtoMessage() {}
 
 func (x *PredeclaredOutputFileTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[19]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2388,7 +2440,7 @@ func (x *PredeclaredOutputFileTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PredeclaredOutputFileTarget.ProtoReflect.Descriptor instead.
 func (*PredeclaredOutputFileTarget) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{19}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *PredeclaredOutputFileTarget) GetOwnerTargetName() string {
@@ -2408,7 +2460,7 @@ type PackageGroup struct {
 
 func (x *PackageGroup) Reset() {
 	*x = PackageGroup{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[20]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2420,7 +2472,7 @@ func (x *PackageGroup) String() string {
 func (*PackageGroup) ProtoMessage() {}
 
 func (x *PackageGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[20]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2433,7 +2485,7 @@ func (x *PackageGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PackageGroup.ProtoReflect.Descriptor instead.
 func (*PackageGroup) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{20}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *PackageGroup) GetTree() *PackageGroup_Subpackages {
@@ -2461,7 +2513,7 @@ type Provider struct {
 
 func (x *Provider) Reset() {
 	*x = Provider{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[21]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2473,7 +2525,7 @@ func (x *Provider) String() string {
 func (*Provider) ProtoMessage() {}
 
 func (x *Provider) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[21]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2486,7 +2538,7 @@ func (x *Provider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Provider.ProtoReflect.Descriptor instead.
 func (*Provider) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{21}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Provider) GetInstanceProperties() *Provider_InstanceProperties {
@@ -2520,7 +2572,7 @@ type Struct struct {
 
 func (x *Struct) Reset() {
 	*x = Struct{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[22]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2532,7 +2584,7 @@ func (x *Struct) String() string {
 func (*Struct) ProtoMessage() {}
 
 func (x *Struct) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[22]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2545,7 +2597,7 @@ func (x *Struct) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Struct.ProtoReflect.Descriptor instead.
 func (*Struct) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{22}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *Struct) GetFields() *Struct_Fields {
@@ -2571,7 +2623,7 @@ type TagClass struct {
 
 func (x *TagClass) Reset() {
 	*x = TagClass{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[23]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2583,7 +2635,7 @@ func (x *TagClass) String() string {
 func (*TagClass) ProtoMessage() {}
 
 func (x *TagClass) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[23]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2596,7 +2648,7 @@ func (x *TagClass) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TagClass.ProtoReflect.Descriptor instead.
 func (*TagClass) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{23}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *TagClass) GetAttrs() []*NamedAttr {
@@ -2616,7 +2668,7 @@ type TargetReference struct {
 
 func (x *TargetReference) Reset() {
 	*x = TargetReference{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[24]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2628,7 +2680,7 @@ func (x *TargetReference) String() string {
 func (*TargetReference) ProtoMessage() {}
 
 func (x *TargetReference) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[24]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2641,7 +2693,7 @@ func (x *TargetReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TargetReference.ProtoReflect.Descriptor instead.
 func (*TargetReference) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{24}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *TargetReference) GetOriginalLabel() string {
@@ -2667,7 +2719,7 @@ type ProviderSet struct {
 
 func (x *ProviderSet) Reset() {
 	*x = ProviderSet{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[25]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2679,7 +2731,7 @@ func (x *ProviderSet) String() string {
 func (*ProviderSet) ProtoMessage() {}
 
 func (x *ProviderSet) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[25]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2692,7 +2744,7 @@ func (x *ProviderSet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderSet.ProtoReflect.Descriptor instead.
 func (*ProviderSet) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{25}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ProviderSet) GetProviderIdentifiers() []string {
@@ -2712,7 +2764,7 @@ type ToolchainType struct {
 
 func (x *ToolchainType) Reset() {
 	*x = ToolchainType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[26]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2724,7 +2776,7 @@ func (x *ToolchainType) String() string {
 func (*ToolchainType) ProtoMessage() {}
 
 func (x *ToolchainType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[26]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2737,7 +2789,7 @@ func (x *ToolchainType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolchainType.ProtoReflect.Descriptor instead.
 func (*ToolchainType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{26}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ToolchainType) GetToolchainType() string {
@@ -2763,7 +2815,7 @@ type Tuple struct {
 
 func (x *Tuple) Reset() {
 	*x = Tuple{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[27]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2775,7 +2827,7 @@ func (x *Tuple) String() string {
 func (*Tuple) ProtoMessage() {}
 
 func (x *Tuple) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[27]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2788,7 +2840,7 @@ func (x *Tuple) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Tuple.ProtoReflect.Descriptor instead.
 func (*Tuple) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{27}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *Tuple) GetElements() []*Value {
@@ -2808,7 +2860,7 @@ type NamedAttr struct {
 
 func (x *NamedAttr) Reset() {
 	*x = NamedAttr{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[28]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2820,7 +2872,7 @@ func (x *NamedAttr) String() string {
 func (*NamedAttr) ProtoMessage() {}
 
 func (x *NamedAttr) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[28]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2833,7 +2885,7 @@ func (x *NamedAttr) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NamedAttr.ProtoReflect.Descriptor instead.
 func (*NamedAttr) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{28}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *NamedAttr) GetName() string {
@@ -2860,7 +2912,7 @@ type NamedExecGroup struct {
 
 func (x *NamedExecGroup) Reset() {
 	*x = NamedExecGroup{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[29]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2872,7 +2924,7 @@ func (x *NamedExecGroup) String() string {
 func (*NamedExecGroup) ProtoMessage() {}
 
 func (x *NamedExecGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[29]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2885,7 +2937,7 @@ func (x *NamedExecGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NamedExecGroup.ProtoReflect.Descriptor instead.
 func (*NamedExecGroup) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{29}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *NamedExecGroup) GetName() string {
@@ -2912,7 +2964,7 @@ type Repo struct {
 
 func (x *Repo) Reset() {
 	*x = Repo{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[30]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2924,7 +2976,7 @@ func (x *Repo) String() string {
 func (*Repo) ProtoMessage() {}
 
 func (x *Repo) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[30]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2937,7 +2989,7 @@ func (x *Repo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Repo.ProtoReflect.Descriptor instead.
 func (*Repo) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{30}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *Repo) GetName() string {
@@ -2967,7 +3019,7 @@ type RepositoryRule struct {
 
 func (x *RepositoryRule) Reset() {
 	*x = RepositoryRule{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[31]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2979,7 +3031,7 @@ func (x *RepositoryRule) String() string {
 func (*RepositoryRule) ProtoMessage() {}
 
 func (x *RepositoryRule) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[31]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2992,7 +3044,7 @@ func (x *RepositoryRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepositoryRule.ProtoReflect.Descriptor instead.
 func (*RepositoryRule) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{31}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *RepositoryRule) GetKind() isRepositoryRule_Kind {
@@ -3049,7 +3101,7 @@ type Rule struct {
 
 func (x *Rule) Reset() {
 	*x = Rule{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[32]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3061,7 +3113,7 @@ func (x *Rule) String() string {
 func (*Rule) ProtoMessage() {}
 
 func (x *Rule) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[32]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3074,7 +3126,7 @@ func (x *Rule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Rule.ProtoReflect.Descriptor instead.
 func (*Rule) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{32}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *Rule) GetKind() isRule_Kind {
@@ -3134,7 +3186,7 @@ type RuleTarget struct {
 
 func (x *RuleTarget) Reset() {
 	*x = RuleTarget{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[33]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3146,7 +3198,7 @@ func (x *RuleTarget) String() string {
 func (*RuleTarget) ProtoMessage() {}
 
 func (x *RuleTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[33]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3159,7 +3211,7 @@ func (x *RuleTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuleTarget.ProtoReflect.Descriptor instead.
 func (*RuleTarget) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{33}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *RuleTarget) GetRuleIdentifier() string {
@@ -3232,7 +3284,7 @@ type TestSuite struct {
 
 func (x *TestSuite) Reset() {
 	*x = TestSuite{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[34]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3244,7 +3296,7 @@ func (x *TestSuite) String() string {
 func (*TestSuite) ProtoMessage() {}
 
 func (x *TestSuite) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[34]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3257,7 +3309,7 @@ func (x *TestSuite) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestSuite.ProtoReflect.Descriptor instead.
 func (*TestSuite) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{34}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *TestSuite) GetTests() []*TestSuite_Test {
@@ -3312,7 +3364,7 @@ type Select struct {
 
 func (x *Select) Reset() {
 	*x = Select{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[35]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3324,7 +3376,7 @@ func (x *Select) String() string {
 func (*Select) ProtoMessage() {}
 
 func (x *Select) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[35]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3337,7 +3389,7 @@ func (x *Select) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Select.ProtoReflect.Descriptor instead.
 func (*Select) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *Select) GetGroups() []*Select_Group {
@@ -3363,7 +3415,7 @@ type Set struct {
 
 func (x *Set) Reset() {
 	*x = Set{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[36]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3375,7 +3427,7 @@ func (x *Set) String() string {
 func (*Set) ProtoMessage() {}
 
 func (x *Set) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[36]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3388,7 +3440,7 @@ func (x *Set) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Set.ProtoReflect.Descriptor instead.
 func (*Set) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{36}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *Set) GetElements() []*List_Element {
@@ -3407,7 +3459,7 @@ type SourceFileTarget struct {
 
 func (x *SourceFileTarget) Reset() {
 	*x = SourceFileTarget{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[37]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3419,7 +3471,7 @@ func (x *SourceFileTarget) String() string {
 func (*SourceFileTarget) ProtoMessage() {}
 
 func (x *SourceFileTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[37]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3432,7 +3484,7 @@ func (x *SourceFileTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceFileTarget.ProtoReflect.Descriptor instead.
 func (*SourceFileTarget) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{37}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *SourceFileTarget) GetVisibility() *PackageGroup {
@@ -3455,7 +3507,7 @@ type Subrule struct {
 
 func (x *Subrule) Reset() {
 	*x = Subrule{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[38]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3467,7 +3519,7 @@ func (x *Subrule) String() string {
 func (*Subrule) ProtoMessage() {}
 
 func (x *Subrule) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[38]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3480,7 +3532,7 @@ func (x *Subrule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Subrule.ProtoReflect.Descriptor instead.
 func (*Subrule) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{38}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *Subrule) GetKind() isSubrule_Kind {
@@ -3534,7 +3586,7 @@ type Target struct {
 
 func (x *Target) Reset() {
 	*x = Target{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[39]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3546,7 +3598,7 @@ func (x *Target) String() string {
 func (*Target) ProtoMessage() {}
 
 func (x *Target) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[39]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3559,7 +3611,7 @@ func (x *Target) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Target.ProtoReflect.Descriptor instead.
 func (*Target) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{39}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *Target) GetName() string {
@@ -3592,7 +3644,7 @@ type Transition struct {
 
 func (x *Transition) Reset() {
 	*x = Transition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[40]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3604,7 +3656,7 @@ func (x *Transition) String() string {
 func (*Transition) ProtoMessage() {}
 
 func (x *Transition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[40]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3617,7 +3669,7 @@ func (x *Transition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Transition.ProtoReflect.Descriptor instead.
 func (*Transition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{40}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *Transition) GetKind() isTransition_Kind {
@@ -3719,7 +3771,7 @@ type CompiledProgram_FunctionEntry struct {
 
 func (x *CompiledProgram_FunctionEntry) Reset() {
 	*x = CompiledProgram_FunctionEntry{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[41]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3731,7 +3783,7 @@ func (x *CompiledProgram_FunctionEntry) String() string {
 func (*CompiledProgram_FunctionEntry) ProtoMessage() {}
 
 func (x *CompiledProgram_FunctionEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[41]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3798,7 +3850,7 @@ type CompiledProgram_FunctionEntry_Leaf struct {
 
 func (x *CompiledProgram_FunctionEntry_Leaf) Reset() {
 	*x = CompiledProgram_FunctionEntry_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[42]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3810,7 +3862,7 @@ func (x *CompiledProgram_FunctionEntry_Leaf) String() string {
 func (*CompiledProgram_FunctionEntry_Leaf) ProtoMessage() {}
 
 func (x *CompiledProgram_FunctionEntry_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[42]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3851,7 +3903,7 @@ type CompiledProgram_FunctionEntry_Parent struct {
 
 func (x *CompiledProgram_FunctionEntry_Parent) Reset() {
 	*x = CompiledProgram_FunctionEntry_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[43]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3863,7 +3915,7 @@ func (x *CompiledProgram_FunctionEntry_Parent) String() string {
 func (*CompiledProgram_FunctionEntry_Parent) ProtoMessage() {}
 
 func (x *CompiledProgram_FunctionEntry_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[43]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3920,7 +3972,7 @@ type Aspect_Definition struct {
 
 func (x *Aspect_Definition) Reset() {
 	*x = Aspect_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[44]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3932,7 +3984,7 @@ func (x *Aspect_Definition) String() string {
 func (*Aspect_Definition) ProtoMessage() {}
 
 func (x *Aspect_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[44]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4041,7 +4093,7 @@ type Attr_AllowFiles struct {
 
 func (x *Attr_AllowFiles) Reset() {
 	*x = Attr_AllowFiles{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[45]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4053,7 +4105,7 @@ func (x *Attr_AllowFiles) String() string {
 func (*Attr_AllowFiles) ProtoMessage() {}
 
 func (x *Attr_AllowFiles) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[45]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4066,7 +4118,7 @@ func (x *Attr_AllowFiles) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_AllowFiles.ProtoReflect.Descriptor instead.
 func (*Attr_AllowFiles) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 0}
 }
 
 func (x *Attr_AllowFiles) GetFilenamePattern() []byte {
@@ -4088,7 +4140,7 @@ type Attr_LabelOptions struct {
 
 func (x *Attr_LabelOptions) Reset() {
 	*x = Attr_LabelOptions{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[46]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4100,7 +4152,7 @@ func (x *Attr_LabelOptions) String() string {
 func (*Attr_LabelOptions) ProtoMessage() {}
 
 func (x *Attr_LabelOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[46]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4113,7 +4165,7 @@ func (x *Attr_LabelOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_LabelOptions.ProtoReflect.Descriptor instead.
 func (*Attr_LabelOptions) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 1}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 1}
 }
 
 func (x *Attr_LabelOptions) GetProviders() []*ProviderSet {
@@ -4153,7 +4205,7 @@ type Attr_CompositeOptions struct {
 
 func (x *Attr_CompositeOptions) Reset() {
 	*x = Attr_CompositeOptions{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[47]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4165,7 +4217,7 @@ func (x *Attr_CompositeOptions) String() string {
 func (*Attr_CompositeOptions) ProtoMessage() {}
 
 func (x *Attr_CompositeOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[47]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4178,7 +4230,7 @@ func (x *Attr_CompositeOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_CompositeOptions.ProtoReflect.Descriptor instead.
 func (*Attr_CompositeOptions) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 2}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 2}
 }
 
 func (x *Attr_CompositeOptions) GetAllowEmpty() bool {
@@ -4197,7 +4249,7 @@ type Attr_IntType struct {
 
 func (x *Attr_IntType) Reset() {
 	*x = Attr_IntType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[48]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4209,7 +4261,7 @@ func (x *Attr_IntType) String() string {
 func (*Attr_IntType) ProtoMessage() {}
 
 func (x *Attr_IntType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[48]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4222,7 +4274,7 @@ func (x *Attr_IntType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_IntType.ProtoReflect.Descriptor instead.
 func (*Attr_IntType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 3}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 3}
 }
 
 func (x *Attr_IntType) GetValues() []int32 {
@@ -4241,7 +4293,7 @@ type Attr_IntListType struct {
 
 func (x *Attr_IntListType) Reset() {
 	*x = Attr_IntListType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[49]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4253,7 +4305,7 @@ func (x *Attr_IntListType) String() string {
 func (*Attr_IntListType) ProtoMessage() {}
 
 func (x *Attr_IntListType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[49]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4266,7 +4318,7 @@ func (x *Attr_IntListType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_IntListType.ProtoReflect.Descriptor instead.
 func (*Attr_IntListType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 4}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 4}
 }
 
 func (x *Attr_IntListType) GetListOptions() *Attr_CompositeOptions {
@@ -4288,7 +4340,7 @@ type Attr_LabelType struct {
 
 func (x *Attr_LabelType) Reset() {
 	*x = Attr_LabelType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[50]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4300,7 +4352,7 @@ func (x *Attr_LabelType) String() string {
 func (*Attr_LabelType) ProtoMessage() {}
 
 func (x *Attr_LabelType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[50]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4313,7 +4365,7 @@ func (x *Attr_LabelType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_LabelType.ProtoReflect.Descriptor instead.
 func (*Attr_LabelType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 5}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 5}
 }
 
 func (x *Attr_LabelType) GetValueOptions() *Attr_LabelOptions {
@@ -4354,7 +4406,7 @@ type Attr_LabelKeyedStringDictType struct {
 
 func (x *Attr_LabelKeyedStringDictType) Reset() {
 	*x = Attr_LabelKeyedStringDictType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[51]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4366,7 +4418,7 @@ func (x *Attr_LabelKeyedStringDictType) String() string {
 func (*Attr_LabelKeyedStringDictType) ProtoMessage() {}
 
 func (x *Attr_LabelKeyedStringDictType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[51]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4379,7 +4431,7 @@ func (x *Attr_LabelKeyedStringDictType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_LabelKeyedStringDictType.ProtoReflect.Descriptor instead.
 func (*Attr_LabelKeyedStringDictType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 6}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 6}
 }
 
 func (x *Attr_LabelKeyedStringDictType) GetDictOptions() *Attr_CompositeOptions {
@@ -4406,7 +4458,7 @@ type Attr_LabelListType struct {
 
 func (x *Attr_LabelListType) Reset() {
 	*x = Attr_LabelListType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[52]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4418,7 +4470,7 @@ func (x *Attr_LabelListType) String() string {
 func (*Attr_LabelListType) ProtoMessage() {}
 
 func (x *Attr_LabelListType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[52]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4431,7 +4483,7 @@ func (x *Attr_LabelListType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_LabelListType.ProtoReflect.Descriptor instead.
 func (*Attr_LabelListType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 7}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 7}
 }
 
 func (x *Attr_LabelListType) GetListOptions() *Attr_CompositeOptions {
@@ -4457,7 +4509,7 @@ type Attr_OutputType struct {
 
 func (x *Attr_OutputType) Reset() {
 	*x = Attr_OutputType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[53]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4469,7 +4521,7 @@ func (x *Attr_OutputType) String() string {
 func (*Attr_OutputType) ProtoMessage() {}
 
 func (x *Attr_OutputType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[53]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4482,7 +4534,7 @@ func (x *Attr_OutputType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_OutputType.ProtoReflect.Descriptor instead.
 func (*Attr_OutputType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 8}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 8}
 }
 
 func (x *Attr_OutputType) GetFilenameTemplate() string {
@@ -4501,7 +4553,7 @@ type Attr_OutputListType struct {
 
 func (x *Attr_OutputListType) Reset() {
 	*x = Attr_OutputListType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[54]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4513,7 +4565,7 @@ func (x *Attr_OutputListType) String() string {
 func (*Attr_OutputListType) ProtoMessage() {}
 
 func (x *Attr_OutputListType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[54]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4526,7 +4578,7 @@ func (x *Attr_OutputListType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_OutputListType.ProtoReflect.Descriptor instead.
 func (*Attr_OutputListType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 9}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 9}
 }
 
 func (x *Attr_OutputListType) GetListOptions() *Attr_CompositeOptions {
@@ -4545,7 +4597,7 @@ type Attr_StringType struct {
 
 func (x *Attr_StringType) Reset() {
 	*x = Attr_StringType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[55]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4557,7 +4609,7 @@ func (x *Attr_StringType) String() string {
 func (*Attr_StringType) ProtoMessage() {}
 
 func (x *Attr_StringType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[55]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4570,7 +4622,7 @@ func (x *Attr_StringType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_StringType.ProtoReflect.Descriptor instead.
 func (*Attr_StringType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 10}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 10}
 }
 
 func (x *Attr_StringType) GetValues() []string {
@@ -4589,7 +4641,7 @@ type Attr_StringDictType struct {
 
 func (x *Attr_StringDictType) Reset() {
 	*x = Attr_StringDictType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[56]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4601,7 +4653,7 @@ func (x *Attr_StringDictType) String() string {
 func (*Attr_StringDictType) ProtoMessage() {}
 
 func (x *Attr_StringDictType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[56]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4614,7 +4666,7 @@ func (x *Attr_StringDictType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_StringDictType.ProtoReflect.Descriptor instead.
 func (*Attr_StringDictType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 11}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 11}
 }
 
 func (x *Attr_StringDictType) GetDictOptions() *Attr_CompositeOptions {
@@ -4633,7 +4685,7 @@ type Attr_StringListType struct {
 
 func (x *Attr_StringListType) Reset() {
 	*x = Attr_StringListType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[57]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4645,7 +4697,7 @@ func (x *Attr_StringListType) String() string {
 func (*Attr_StringListType) ProtoMessage() {}
 
 func (x *Attr_StringListType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[57]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4658,7 +4710,7 @@ func (x *Attr_StringListType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_StringListType.ProtoReflect.Descriptor instead.
 func (*Attr_StringListType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 12}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 12}
 }
 
 func (x *Attr_StringListType) GetListOptions() *Attr_CompositeOptions {
@@ -4678,7 +4730,7 @@ type Attr_StringKeyedLabelDictType struct {
 
 func (x *Attr_StringKeyedLabelDictType) Reset() {
 	*x = Attr_StringKeyedLabelDictType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[58]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4690,7 +4742,7 @@ func (x *Attr_StringKeyedLabelDictType) String() string {
 func (*Attr_StringKeyedLabelDictType) ProtoMessage() {}
 
 func (x *Attr_StringKeyedLabelDictType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[58]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4703,7 +4755,7 @@ func (x *Attr_StringKeyedLabelDictType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_StringKeyedLabelDictType.ProtoReflect.Descriptor instead.
 func (*Attr_StringKeyedLabelDictType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 13}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 13}
 }
 
 func (x *Attr_StringKeyedLabelDictType) GetDictOptions() *Attr_CompositeOptions {
@@ -4729,7 +4781,7 @@ type Attr_StringListDictType struct {
 
 func (x *Attr_StringListDictType) Reset() {
 	*x = Attr_StringListDictType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[59]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4741,7 +4793,7 @@ func (x *Attr_StringListDictType) String() string {
 func (*Attr_StringListDictType) ProtoMessage() {}
 
 func (x *Attr_StringListDictType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[59]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4754,7 +4806,7 @@ func (x *Attr_StringListDictType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attr_StringListDictType.ProtoReflect.Descriptor instead.
 func (*Attr_StringListDictType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4, 14}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 14}
 }
 
 func (x *Attr_StringListDictType) GetDictOptions() *Attr_CompositeOptions {
@@ -4773,7 +4825,7 @@ type BuildSetting_ListType struct {
 
 func (x *BuildSetting_ListType) Reset() {
 	*x = BuildSetting_ListType{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[60]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4785,7 +4837,7 @@ func (x *BuildSetting_ListType) String() string {
 func (*BuildSetting_ListType) ProtoMessage() {}
 
 func (x *BuildSetting_ListType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[60]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4798,7 +4850,7 @@ func (x *BuildSetting_ListType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildSetting_ListType.ProtoReflect.Descriptor instead.
 func (*BuildSetting_ListType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 0}
 }
 
 func (x *BuildSetting_ListType) GetRepeatable() bool {
@@ -4821,7 +4873,7 @@ type Dict_Entry struct {
 
 func (x *Dict_Entry) Reset() {
 	*x = Dict_Entry{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[61]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4833,7 +4885,7 @@ func (x *Dict_Entry) String() string {
 func (*Dict_Entry) ProtoMessage() {}
 
 func (x *Dict_Entry) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[61]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4846,7 +4898,7 @@ func (x *Dict_Entry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Dict_Entry.ProtoReflect.Descriptor instead.
 func (*Dict_Entry) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{7, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{8, 0}
 }
 
 func (x *Dict_Entry) GetLevel() isDict_Entry_Level {
@@ -4900,7 +4952,7 @@ type Dict_Entry_Leaf struct {
 
 func (x *Dict_Entry_Leaf) Reset() {
 	*x = Dict_Entry_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[62]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4912,7 +4964,7 @@ func (x *Dict_Entry_Leaf) String() string {
 func (*Dict_Entry_Leaf) ProtoMessage() {}
 
 func (x *Dict_Entry_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[62]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4925,7 +4977,7 @@ func (x *Dict_Entry_Leaf) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Dict_Entry_Leaf.ProtoReflect.Descriptor instead.
 func (*Dict_Entry_Leaf) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{7, 0, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{8, 0, 0}
 }
 
 func (x *Dict_Entry_Leaf) GetKey() *Value {
@@ -4951,7 +5003,7 @@ type Dict_Entry_Parent struct {
 
 func (x *Dict_Entry_Parent) Reset() {
 	*x = Dict_Entry_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[63]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4963,7 +5015,7 @@ func (x *Dict_Entry_Parent) String() string {
 func (*Dict_Entry_Parent) ProtoMessage() {}
 
 func (x *Dict_Entry_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[63]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4976,7 +5028,7 @@ func (x *Dict_Entry_Parent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Dict_Entry_Parent.ProtoReflect.Descriptor instead.
 func (*Dict_Entry_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{7, 0, 1}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{8, 0, 1}
 }
 
 func (x *Dict_Entry_Parent) GetReference() *core.DecodableReference {
@@ -4997,7 +5049,7 @@ type File_Owner struct {
 
 func (x *File_Owner) Reset() {
 	*x = File_Owner{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[64]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5009,7 +5061,7 @@ func (x *File_Owner) String() string {
 func (*File_Owner) ProtoMessage() {}
 
 func (x *File_Owner) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[64]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5022,7 +5074,7 @@ func (x *File_Owner) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use File_Owner.ProtoReflect.Descriptor instead.
 func (*File_Owner) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{9, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{10, 0}
 }
 
 func (x *File_Owner) GetConfigurationReference() *core.DecodableReference {
@@ -5056,7 +5108,7 @@ type Function_Name struct {
 
 func (x *Function_Name) Reset() {
 	*x = Function_Name{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[65]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5068,7 +5120,7 @@ func (x *Function_Name) String() string {
 func (*Function_Name) ProtoMessage() {}
 
 func (x *Function_Name) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[65]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5081,7 +5133,7 @@ func (x *Function_Name) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Function_Name.ProtoReflect.Descriptor instead.
 func (*Function_Name) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{10, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{11, 0}
 }
 
 func (x *Function_Name) GetName() string {
@@ -5108,7 +5160,7 @@ type Function_Closure struct {
 
 func (x *Function_Closure) Reset() {
 	*x = Function_Closure{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[66]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5120,7 +5172,7 @@ func (x *Function_Closure) String() string {
 func (*Function_Closure) ProtoMessage() {}
 
 func (x *Function_Closure) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[66]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5133,7 +5185,7 @@ func (x *Function_Closure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Function_Closure.ProtoReflect.Descriptor instead.
 func (*Function_Closure) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{10, 1}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{11, 1}
 }
 
 func (x *Function_Closure) GetDefaultParameters() []*Function_Closure_DefaultParameter {
@@ -5159,7 +5211,7 @@ type Function_Closure_DefaultParameter struct {
 
 func (x *Function_Closure_DefaultParameter) Reset() {
 	*x = Function_Closure_DefaultParameter{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[67]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5171,7 +5223,7 @@ func (x *Function_Closure_DefaultParameter) String() string {
 func (*Function_Closure_DefaultParameter) ProtoMessage() {}
 
 func (x *Function_Closure_DefaultParameter) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[67]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5184,7 +5236,7 @@ func (x *Function_Closure_DefaultParameter) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use Function_Closure_DefaultParameter.ProtoReflect.Descriptor instead.
 func (*Function_Closure_DefaultParameter) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{10, 1, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{11, 1, 0}
 }
 
 func (x *Function_Closure_DefaultParameter) GetValue() *Value {
@@ -5205,7 +5257,7 @@ type Funcode_NestedFunction struct {
 
 func (x *Funcode_NestedFunction) Reset() {
 	*x = Funcode_NestedFunction{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[68]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5217,7 +5269,7 @@ func (x *Funcode_NestedFunction) String() string {
 func (*Funcode_NestedFunction) ProtoMessage() {}
 
 func (x *Funcode_NestedFunction) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[68]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5230,7 +5282,7 @@ func (x *Funcode_NestedFunction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Funcode_NestedFunction.ProtoReflect.Descriptor instead.
 func (*Funcode_NestedFunction) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{11, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{12, 0}
 }
 
 func (x *Funcode_NestedFunction) GetName() string {
@@ -5267,7 +5319,7 @@ type List_Element struct {
 
 func (x *List_Element) Reset() {
 	*x = List_Element{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[69]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5279,7 +5331,7 @@ func (x *List_Element) String() string {
 func (*List_Element) ProtoMessage() {}
 
 func (x *List_Element) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[69]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5292,7 +5344,7 @@ func (x *List_Element) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use List_Element.ProtoReflect.Descriptor instead.
 func (*List_Element) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{14, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{15, 0}
 }
 
 func (x *List_Element) GetLevel() isList_Element_Level {
@@ -5346,7 +5398,7 @@ type List_Element_Parent struct {
 
 func (x *List_Element_Parent) Reset() {
 	*x = List_Element_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[70]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5358,7 +5410,7 @@ func (x *List_Element_Parent) String() string {
 func (*List_Element_Parent) ProtoMessage() {}
 
 func (x *List_Element_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[70]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5371,7 +5423,7 @@ func (x *List_Element_Parent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use List_Element_Parent.ProtoReflect.Descriptor instead.
 func (*List_Element_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{14, 0, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{15, 0, 0}
 }
 
 func (x *List_Element_Parent) GetReference() *core.DecodableReference {
@@ -5399,7 +5451,7 @@ type Macro_Definition struct {
 
 func (x *Macro_Definition) Reset() {
 	*x = Macro_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[71]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5411,7 +5463,7 @@ func (x *Macro_Definition) String() string {
 func (*Macro_Definition) ProtoMessage() {}
 
 func (x *Macro_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[71]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5424,7 +5476,7 @@ func (x *Macro_Definition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Macro_Definition.ProtoReflect.Descriptor instead.
 func (*Macro_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{15, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{16, 0}
 }
 
 func (x *Macro_Definition) GetAttrs() []*NamedAttr {
@@ -5460,7 +5512,7 @@ type MacroExpansionContext_Definition struct {
 
 func (x *MacroExpansionContext_Definition) Reset() {
 	*x = MacroExpansionContext_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[72]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5472,7 +5524,7 @@ func (x *MacroExpansionContext_Definition) String() string {
 func (*MacroExpansionContext_Definition) ProtoMessage() {}
 
 func (x *MacroExpansionContext_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[72]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5485,7 +5537,7 @@ func (x *MacroExpansionContext_Definition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MacroExpansionContext_Definition.ProtoReflect.Descriptor instead.
 func (*MacroExpansionContext_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{16, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17, 0}
 }
 
 func (x *MacroExpansionContext_Definition) GetRootMacroInstanceDefinition() *MacroInstance_Definition {
@@ -5529,7 +5581,7 @@ type MacroExpansionContext_Entry struct {
 
 func (x *MacroExpansionContext_Entry) Reset() {
 	*x = MacroExpansionContext_Entry{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[73]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5541,7 +5593,7 @@ func (x *MacroExpansionContext_Entry) String() string {
 func (*MacroExpansionContext_Entry) ProtoMessage() {}
 
 func (x *MacroExpansionContext_Entry) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[73]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5554,7 +5606,7 @@ func (x *MacroExpansionContext_Entry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MacroExpansionContext_Entry.ProtoReflect.Descriptor instead.
 func (*MacroExpansionContext_Entry) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{16, 1}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17, 1}
 }
 
 func (x *MacroExpansionContext_Entry) GetLevel() isMacroExpansionContext_Entry_Level {
@@ -5608,7 +5660,7 @@ type MacroExpansionContext_Entry_Parent struct {
 
 func (x *MacroExpansionContext_Entry_Parent) Reset() {
 	*x = MacroExpansionContext_Entry_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[74]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5620,7 +5672,7 @@ func (x *MacroExpansionContext_Entry_Parent) String() string {
 func (*MacroExpansionContext_Entry_Parent) ProtoMessage() {}
 
 func (x *MacroExpansionContext_Entry_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[74]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5633,7 +5685,7 @@ func (x *MacroExpansionContext_Entry_Parent) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use MacroExpansionContext_Entry_Parent.ProtoReflect.Descriptor instead.
 func (*MacroExpansionContext_Entry_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{16, 1, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17, 1, 0}
 }
 
 func (x *MacroExpansionContext_Entry_Parent) GetReference() *core.DecodableReference {
@@ -5662,7 +5714,7 @@ type MacroInstance_Definition struct {
 
 func (x *MacroInstance_Definition) Reset() {
 	*x = MacroInstance_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[75]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5674,7 +5726,7 @@ func (x *MacroInstance_Definition) String() string {
 func (*MacroInstance_Definition) ProtoMessage() {}
 
 func (x *MacroInstance_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[75]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5687,7 +5739,7 @@ func (x *MacroInstance_Definition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MacroInstance_Definition.ProtoReflect.Descriptor instead.
 func (*MacroInstance_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{18, 0}
 }
 
 func (x *MacroInstance_Definition) GetMacroIdentifier() string {
@@ -5731,7 +5783,7 @@ type MacroInstance_Entry struct {
 
 func (x *MacroInstance_Entry) Reset() {
 	*x = MacroInstance_Entry{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[76]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5743,7 +5795,7 @@ func (x *MacroInstance_Entry) String() string {
 func (*MacroInstance_Entry) ProtoMessage() {}
 
 func (x *MacroInstance_Entry) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[76]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5756,7 +5808,7 @@ func (x *MacroInstance_Entry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MacroInstance_Entry.ProtoReflect.Descriptor instead.
 func (*MacroInstance_Entry) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17, 1}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{18, 1}
 }
 
 func (x *MacroInstance_Entry) GetLevel() isMacroInstance_Entry_Level {
@@ -5809,7 +5861,7 @@ type MacroInstance_Entry_Parent struct {
 
 func (x *MacroInstance_Entry_Parent) Reset() {
 	*x = MacroInstance_Entry_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[77]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5821,7 +5873,7 @@ func (x *MacroInstance_Entry_Parent) String() string {
 func (*MacroInstance_Entry_Parent) ProtoMessage() {}
 
 func (x *MacroInstance_Entry_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[77]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5834,7 +5886,7 @@ func (x *MacroInstance_Entry_Parent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MacroInstance_Entry_Parent.ProtoReflect.Descriptor instead.
 func (*MacroInstance_Entry_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17, 1, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{18, 1, 0}
 }
 
 func (x *MacroInstance_Entry_Parent) GetReference() *core.DecodableReference {
@@ -5854,7 +5906,7 @@ type ModuleExtension_NamedTagClass struct {
 
 func (x *ModuleExtension_NamedTagClass) Reset() {
 	*x = ModuleExtension_NamedTagClass{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[78]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5866,7 +5918,7 @@ func (x *ModuleExtension_NamedTagClass) String() string {
 func (*ModuleExtension_NamedTagClass) ProtoMessage() {}
 
 func (x *ModuleExtension_NamedTagClass) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[78]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5879,7 +5931,7 @@ func (x *ModuleExtension_NamedTagClass) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModuleExtension_NamedTagClass.ProtoReflect.Descriptor instead.
 func (*ModuleExtension_NamedTagClass) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{18, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{19, 0}
 }
 
 func (x *ModuleExtension_NamedTagClass) GetName() string {
@@ -5907,7 +5959,7 @@ type PackageGroup_Package struct {
 
 func (x *PackageGroup_Package) Reset() {
 	*x = PackageGroup_Package{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[79]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5919,7 +5971,7 @@ func (x *PackageGroup_Package) String() string {
 func (*PackageGroup_Package) ProtoMessage() {}
 
 func (x *PackageGroup_Package) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[79]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5932,7 +5984,7 @@ func (x *PackageGroup_Package) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PackageGroup_Package.ProtoReflect.Descriptor instead.
 func (*PackageGroup_Package) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{20, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{21, 0}
 }
 
 func (x *PackageGroup_Package) GetComponent() string {
@@ -5970,7 +6022,7 @@ type PackageGroup_Subpackages struct {
 
 func (x *PackageGroup_Subpackages) Reset() {
 	*x = PackageGroup_Subpackages{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[80]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5982,7 +6034,7 @@ func (x *PackageGroup_Subpackages) String() string {
 func (*PackageGroup_Subpackages) ProtoMessage() {}
 
 func (x *PackageGroup_Subpackages) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[80]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5995,7 +6047,7 @@ func (x *PackageGroup_Subpackages) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PackageGroup_Subpackages.ProtoReflect.Descriptor instead.
 func (*PackageGroup_Subpackages) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{20, 1}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{21, 1}
 }
 
 func (x *PackageGroup_Subpackages) GetIncludeSubpackages() bool {
@@ -6055,7 +6107,7 @@ type PackageGroup_Subpackages_Overrides struct {
 
 func (x *PackageGroup_Subpackages_Overrides) Reset() {
 	*x = PackageGroup_Subpackages_Overrides{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[81]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6067,7 +6119,7 @@ func (x *PackageGroup_Subpackages_Overrides) String() string {
 func (*PackageGroup_Subpackages_Overrides) ProtoMessage() {}
 
 func (x *PackageGroup_Subpackages_Overrides) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[81]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6080,7 +6132,7 @@ func (x *PackageGroup_Subpackages_Overrides) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use PackageGroup_Subpackages_Overrides.ProtoReflect.Descriptor instead.
 func (*PackageGroup_Subpackages_Overrides) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{20, 1, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{21, 1, 0}
 }
 
 func (x *PackageGroup_Subpackages_Overrides) GetPackages() []*PackageGroup_Package {
@@ -6102,7 +6154,7 @@ type Provider_InstanceProperties struct {
 
 func (x *Provider_InstanceProperties) Reset() {
 	*x = Provider_InstanceProperties{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[82]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6114,7 +6166,7 @@ func (x *Provider_InstanceProperties) String() string {
 func (*Provider_InstanceProperties) ProtoMessage() {}
 
 func (x *Provider_InstanceProperties) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[82]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6127,7 +6179,7 @@ func (x *Provider_InstanceProperties) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Provider_InstanceProperties.ProtoReflect.Descriptor instead.
 func (*Provider_InstanceProperties) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{21, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{22, 0}
 }
 
 func (x *Provider_InstanceProperties) GetProviderIdentifier() string {
@@ -6168,7 +6220,7 @@ type Provider_InstanceProperties_ComputedField struct {
 
 func (x *Provider_InstanceProperties_ComputedField) Reset() {
 	*x = Provider_InstanceProperties_ComputedField{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[83]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6180,7 +6232,7 @@ func (x *Provider_InstanceProperties_ComputedField) String() string {
 func (*Provider_InstanceProperties_ComputedField) ProtoMessage() {}
 
 func (x *Provider_InstanceProperties_ComputedField) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[83]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6193,7 +6245,7 @@ func (x *Provider_InstanceProperties_ComputedField) ProtoReflect() protoreflect.
 
 // Deprecated: Use Provider_InstanceProperties_ComputedField.ProtoReflect.Descriptor instead.
 func (*Provider_InstanceProperties_ComputedField) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{21, 0, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{22, 0, 0}
 }
 
 func (x *Provider_InstanceProperties_ComputedField) GetName() string {
@@ -6220,7 +6272,7 @@ type Struct_Fields struct {
 
 func (x *Struct_Fields) Reset() {
 	*x = Struct_Fields{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[84]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6232,7 +6284,7 @@ func (x *Struct_Fields) String() string {
 func (*Struct_Fields) ProtoMessage() {}
 
 func (x *Struct_Fields) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[84]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6245,7 +6297,7 @@ func (x *Struct_Fields) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Struct_Fields.ProtoReflect.Descriptor instead.
 func (*Struct_Fields) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{22, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{23, 0}
 }
 
 func (x *Struct_Fields) GetKeys() []string {
@@ -6272,7 +6324,7 @@ type TargetReference_Configured struct {
 
 func (x *TargetReference_Configured) Reset() {
 	*x = TargetReference_Configured{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[85]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6284,7 +6336,7 @@ func (x *TargetReference_Configured) String() string {
 func (*TargetReference_Configured) ProtoMessage() {}
 
 func (x *TargetReference_Configured) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[85]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6297,7 +6349,7 @@ func (x *TargetReference_Configured) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TargetReference_Configured.ProtoReflect.Descriptor instead.
 func (*TargetReference_Configured) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{24, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{25, 0}
 }
 
 func (x *TargetReference_Configured) GetLabel() string {
@@ -6324,7 +6376,7 @@ type Repo_Definition struct {
 
 func (x *Repo_Definition) Reset() {
 	*x = Repo_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[86]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6336,7 +6388,7 @@ func (x *Repo_Definition) String() string {
 func (*Repo_Definition) ProtoMessage() {}
 
 func (x *Repo_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[86]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6349,7 +6401,7 @@ func (x *Repo_Definition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Repo_Definition.ProtoReflect.Descriptor instead.
 func (*Repo_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{30, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{31, 0}
 }
 
 func (x *Repo_Definition) GetRepositoryRuleIdentifier() string {
@@ -6376,7 +6428,7 @@ type RepositoryRule_Definition struct {
 
 func (x *RepositoryRule_Definition) Reset() {
 	*x = RepositoryRule_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[87]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6388,7 +6440,7 @@ func (x *RepositoryRule_Definition) String() string {
 func (*RepositoryRule_Definition) ProtoMessage() {}
 
 func (x *RepositoryRule_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[87]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6401,7 +6453,7 @@ func (x *RepositoryRule_Definition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepositoryRule_Definition.ProtoReflect.Descriptor instead.
 func (*RepositoryRule_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{31, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{32, 0}
 }
 
 func (x *RepositoryRule_Definition) GetAttrs() []*NamedAttr {
@@ -6435,7 +6487,7 @@ type Rule_Definition struct {
 
 func (x *Rule_Definition) Reset() {
 	*x = Rule_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[88]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6447,7 +6499,7 @@ func (x *Rule_Definition) String() string {
 func (*Rule_Definition) ProtoMessage() {}
 
 func (x *Rule_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[88]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6460,7 +6512,7 @@ func (x *Rule_Definition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Rule_Definition.ProtoReflect.Descriptor instead.
 func (*Rule_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{32, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{33, 0}
 }
 
 func (x *Rule_Definition) GetAttrs() []*NamedAttr {
@@ -6535,7 +6587,7 @@ type RuleTarget_PublicAttrValue struct {
 
 func (x *RuleTarget_PublicAttrValue) Reset() {
 	*x = RuleTarget_PublicAttrValue{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[89]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6547,7 +6599,7 @@ func (x *RuleTarget_PublicAttrValue) String() string {
 func (*RuleTarget_PublicAttrValue) ProtoMessage() {}
 
 func (x *RuleTarget_PublicAttrValue) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[89]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6560,7 +6612,7 @@ func (x *RuleTarget_PublicAttrValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuleTarget_PublicAttrValue.ProtoReflect.Descriptor instead.
 func (*RuleTarget_PublicAttrValue) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{33, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{34, 0}
 }
 
 func (x *RuleTarget_PublicAttrValue) GetValueParts() []*Select_Group {
@@ -6584,7 +6636,7 @@ type RuleTarget_Test struct {
 
 func (x *RuleTarget_Test) Reset() {
 	*x = RuleTarget_Test{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[90]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6596,7 +6648,7 @@ func (x *RuleTarget_Test) String() string {
 func (*RuleTarget_Test) ProtoMessage() {}
 
 func (x *RuleTarget_Test) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[90]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6609,7 +6661,7 @@ func (x *RuleTarget_Test) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuleTarget_Test.ProtoReflect.Descriptor instead.
 func (*RuleTarget_Test) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{33, 1}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{34, 1}
 }
 
 func (x *RuleTarget_Test) GetSize() TestSize {
@@ -6667,7 +6719,7 @@ type TestSuite_Test struct {
 
 func (x *TestSuite_Test) Reset() {
 	*x = TestSuite_Test{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[91]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6679,7 +6731,7 @@ func (x *TestSuite_Test) String() string {
 func (*TestSuite_Test) ProtoMessage() {}
 
 func (x *TestSuite_Test) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[91]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6692,7 +6744,7 @@ func (x *TestSuite_Test) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestSuite_Test.ProtoReflect.Descriptor instead.
 func (*TestSuite_Test) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{34, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35, 0}
 }
 
 func (x *TestSuite_Test) GetLevel() isTestSuite_Test_Level {
@@ -6745,7 +6797,7 @@ type TestSuite_Test_Parent struct {
 
 func (x *TestSuite_Test_Parent) Reset() {
 	*x = TestSuite_Test_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[92]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6757,7 +6809,7 @@ func (x *TestSuite_Test_Parent) String() string {
 func (*TestSuite_Test_Parent) ProtoMessage() {}
 
 func (x *TestSuite_Test_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[92]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6770,7 +6822,7 @@ func (x *TestSuite_Test_Parent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestSuite_Test_Parent.ProtoReflect.Descriptor instead.
 func (*TestSuite_Test_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{34, 0, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35, 0, 0}
 }
 
 func (x *TestSuite_Test_Parent) GetReference() *core.DecodableReference {
@@ -6790,7 +6842,7 @@ type Select_Condition struct {
 
 func (x *Select_Condition) Reset() {
 	*x = Select_Condition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[93]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6802,7 +6854,7 @@ func (x *Select_Condition) String() string {
 func (*Select_Condition) ProtoMessage() {}
 
 func (x *Select_Condition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[93]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6815,7 +6867,7 @@ func (x *Select_Condition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Select_Condition.ProtoReflect.Descriptor instead.
 func (*Select_Condition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{36, 0}
 }
 
 func (x *Select_Condition) GetConditionIdentifier() string {
@@ -6846,7 +6898,7 @@ type Select_Group struct {
 
 func (x *Select_Group) Reset() {
 	*x = Select_Group{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[94]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6858,7 +6910,7 @@ func (x *Select_Group) String() string {
 func (*Select_Group) ProtoMessage() {}
 
 func (x *Select_Group) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[94]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6871,7 +6923,7 @@ func (x *Select_Group) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Select_Group.ProtoReflect.Descriptor instead.
 func (*Select_Group) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35, 1}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{36, 1}
 }
 
 func (x *Select_Group) GetConditions() []*Select_Condition {
@@ -6933,7 +6985,7 @@ type Subrule_Definition struct {
 
 func (x *Subrule_Definition) Reset() {
 	*x = Subrule_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[95]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6945,7 +6997,7 @@ func (x *Subrule_Definition) String() string {
 func (*Subrule_Definition) ProtoMessage() {}
 
 func (x *Subrule_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[95]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6958,7 +7010,7 @@ func (x *Subrule_Definition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Subrule_Definition.ProtoReflect.Descriptor instead.
 func (*Subrule_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{38, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{39, 0}
 }
 
 func (x *Subrule_Definition) GetAttrs() []*NamedAttr {
@@ -7000,7 +7052,7 @@ type Target_Definition struct {
 
 func (x *Target_Definition) Reset() {
 	*x = Target_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[96]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7012,7 +7064,7 @@ func (x *Target_Definition) String() string {
 func (*Target_Definition) ProtoMessage() {}
 
 func (x *Target_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[96]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7025,7 +7077,7 @@ func (x *Target_Definition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Target_Definition.ProtoReflect.Descriptor instead.
 func (*Target_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{39, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{40, 0}
 }
 
 func (x *Target_Definition) GetKind() isTarget_Definition_Kind {
@@ -7157,7 +7209,7 @@ type Transition_UserDefined struct {
 
 func (x *Transition_UserDefined) Reset() {
 	*x = Transition_UserDefined{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[97]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7169,7 +7221,7 @@ func (x *Transition_UserDefined) String() string {
 func (*Transition_UserDefined) ProtoMessage() {}
 
 func (x *Transition_UserDefined) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[97]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7182,7 +7234,7 @@ func (x *Transition_UserDefined) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Transition_UserDefined.ProtoReflect.Descriptor instead.
 func (*Transition_UserDefined) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{40, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{41, 0}
 }
 
 func (x *Transition_UserDefined) GetKind() isTransition_UserDefined_Kind {
@@ -7238,7 +7290,7 @@ type Transition_UserDefined_Definition struct {
 
 func (x *Transition_UserDefined_Definition) Reset() {
 	*x = Transition_UserDefined_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[98]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7250,7 +7302,7 @@ func (x *Transition_UserDefined_Definition) String() string {
 func (*Transition_UserDefined_Definition) ProtoMessage() {}
 
 func (x *Transition_UserDefined_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[98]
+	mi := &file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7263,7 +7315,7 @@ func (x *Transition_UserDefined_Definition) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use Transition_UserDefined_Definition.ProtoReflect.Descriptor instead.
 func (*Transition_UserDefined_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{40, 0, 0}
+	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{41, 0, 0}
 }
 
 func (x *Transition_UserDefined_Definition) GetImplementation() *Function {
@@ -7376,7 +7428,14 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	" \x03(\tR\x12subruleIdentifiers\x12-\n" +
 	"\x12toolchains_aspects\x18\v \x03(\tR\x11toolchainsAspects\x12U\n" +
 	"\x15propagation_predicate\x18\f \x01(\v2 .bonanza.model.starlark.FunctionR\x14propagationPredicateB\x06\n" +
-	"\x04kind\"\xc1\x16\n" +
+	"\x04kind\"\xa3\x01\n" +
+	"\rAppliedAspect\x12\x1e\n" +
+	"\n" +
+	"identifier\x18\x01 \x01(\tR\n" +
+	"identifier\x12r\n" +
+	"\n" +
+	"parameters\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB*\xea\xd7 &\x12$bonanza.model.starlark.Struct.FieldsR\n" +
+	"parameters\"\xc1\x16\n" +
 	"\x04Attr\x127\n" +
 	"\adefault\x18\x01 \x01(\v2\x1d.bonanza.model.starlark.ValueR\adefault\x12\"\n" +
 	"\fconfigurable\x18\x0f \x01(\bR\fconfigurable\x12,\n" +
@@ -7857,7 +7916,7 @@ func file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP() []
 }
 
 var file_bonanza_build_pkg_proto_model_starlark_starlark_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes = make([]protoimpl.MessageInfo, 99)
+var file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes = make([]protoimpl.MessageInfo, 100)
 var file_bonanza_build_pkg_proto_model_starlark_starlark_proto_goTypes = []any{
 	(TestSize)(0),                                     // 0: bonanza.model.starlark.TestSize
 	(TestTimeout)(0),                                  // 1: bonanza.model.starlark.TestTimeout
@@ -7870,301 +7929,303 @@ var file_bonanza_build_pkg_proto_model_starlark_starlark_proto_goTypes = []any{
 	(*Value)(nil),                                     // 8: bonanza.model.starlark.Value
 	(*Alias)(nil),                                     // 9: bonanza.model.starlark.Alias
 	(*Aspect)(nil),                                    // 10: bonanza.model.starlark.Aspect
-	(*Attr)(nil),                                      // 11: bonanza.model.starlark.Attr
-	(*BuildSetting)(nil),                              // 12: bonanza.model.starlark.BuildSetting
-	(*Depset)(nil),                                    // 13: bonanza.model.starlark.Depset
-	(*Dict)(nil),                                      // 14: bonanza.model.starlark.Dict
-	(*ExecGroup)(nil),                                 // 15: bonanza.model.starlark.ExecGroup
-	(*File)(nil),                                      // 16: bonanza.model.starlark.File
-	(*Function)(nil),                                  // 17: bonanza.model.starlark.Function
-	(*Funcode)(nil),                                   // 18: bonanza.model.starlark.Funcode
-	(*InheritableAttrs)(nil),                          // 19: bonanza.model.starlark.InheritableAttrs
-	(*LabelSetting)(nil),                              // 20: bonanza.model.starlark.LabelSetting
-	(*List)(nil),                                      // 21: bonanza.model.starlark.List
-	(*Macro)(nil),                                     // 22: bonanza.model.starlark.Macro
-	(*MacroExpansionContext)(nil),                     // 23: bonanza.model.starlark.MacroExpansionContext
-	(*MacroInstance)(nil),                             // 24: bonanza.model.starlark.MacroInstance
-	(*ModuleExtension)(nil),                           // 25: bonanza.model.starlark.ModuleExtension
-	(*PredeclaredOutputFileTarget)(nil),               // 26: bonanza.model.starlark.PredeclaredOutputFileTarget
-	(*PackageGroup)(nil),                              // 27: bonanza.model.starlark.PackageGroup
-	(*Provider)(nil),                                  // 28: bonanza.model.starlark.Provider
-	(*Struct)(nil),                                    // 29: bonanza.model.starlark.Struct
-	(*TagClass)(nil),                                  // 30: bonanza.model.starlark.TagClass
-	(*TargetReference)(nil),                           // 31: bonanza.model.starlark.TargetReference
-	(*ProviderSet)(nil),                               // 32: bonanza.model.starlark.ProviderSet
-	(*ToolchainType)(nil),                             // 33: bonanza.model.starlark.ToolchainType
-	(*Tuple)(nil),                                     // 34: bonanza.model.starlark.Tuple
-	(*NamedAttr)(nil),                                 // 35: bonanza.model.starlark.NamedAttr
-	(*NamedExecGroup)(nil),                            // 36: bonanza.model.starlark.NamedExecGroup
-	(*Repo)(nil),                                      // 37: bonanza.model.starlark.Repo
-	(*RepositoryRule)(nil),                            // 38: bonanza.model.starlark.RepositoryRule
-	(*Rule)(nil),                                      // 39: bonanza.model.starlark.Rule
-	(*RuleTarget)(nil),                                // 40: bonanza.model.starlark.RuleTarget
-	(*TestSuite)(nil),                                 // 41: bonanza.model.starlark.TestSuite
-	(*Select)(nil),                                    // 42: bonanza.model.starlark.Select
-	(*Set)(nil),                                       // 43: bonanza.model.starlark.Set
-	(*SourceFileTarget)(nil),                          // 44: bonanza.model.starlark.SourceFileTarget
-	(*Subrule)(nil),                                   // 45: bonanza.model.starlark.Subrule
-	(*Target)(nil),                                    // 46: bonanza.model.starlark.Target
-	(*Transition)(nil),                                // 47: bonanza.model.starlark.Transition
-	(*CompiledProgram_FunctionEntry)(nil),             // 48: bonanza.model.starlark.CompiledProgram.FunctionEntry
-	(*CompiledProgram_FunctionEntry_Leaf)(nil),        // 49: bonanza.model.starlark.CompiledProgram.FunctionEntry.Leaf
-	(*CompiledProgram_FunctionEntry_Parent)(nil),      // 50: bonanza.model.starlark.CompiledProgram.FunctionEntry.Parent
-	(*Aspect_Definition)(nil),                         // 51: bonanza.model.starlark.Aspect.Definition
-	(*Attr_AllowFiles)(nil),                           // 52: bonanza.model.starlark.Attr.AllowFiles
-	(*Attr_LabelOptions)(nil),                         // 53: bonanza.model.starlark.Attr.LabelOptions
-	(*Attr_CompositeOptions)(nil),                     // 54: bonanza.model.starlark.Attr.CompositeOptions
-	(*Attr_IntType)(nil),                              // 55: bonanza.model.starlark.Attr.IntType
-	(*Attr_IntListType)(nil),                          // 56: bonanza.model.starlark.Attr.IntListType
-	(*Attr_LabelType)(nil),                            // 57: bonanza.model.starlark.Attr.LabelType
-	(*Attr_LabelKeyedStringDictType)(nil),             // 58: bonanza.model.starlark.Attr.LabelKeyedStringDictType
-	(*Attr_LabelListType)(nil),                        // 59: bonanza.model.starlark.Attr.LabelListType
-	(*Attr_OutputType)(nil),                           // 60: bonanza.model.starlark.Attr.OutputType
-	(*Attr_OutputListType)(nil),                       // 61: bonanza.model.starlark.Attr.OutputListType
-	(*Attr_StringType)(nil),                           // 62: bonanza.model.starlark.Attr.StringType
-	(*Attr_StringDictType)(nil),                       // 63: bonanza.model.starlark.Attr.StringDictType
-	(*Attr_StringListType)(nil),                       // 64: bonanza.model.starlark.Attr.StringListType
-	(*Attr_StringKeyedLabelDictType)(nil),             // 65: bonanza.model.starlark.Attr.StringKeyedLabelDictType
-	(*Attr_StringListDictType)(nil),                   // 66: bonanza.model.starlark.Attr.StringListDictType
-	(*BuildSetting_ListType)(nil),                     // 67: bonanza.model.starlark.BuildSetting.ListType
-	(*Dict_Entry)(nil),                                // 68: bonanza.model.starlark.Dict.Entry
-	(*Dict_Entry_Leaf)(nil),                           // 69: bonanza.model.starlark.Dict.Entry.Leaf
-	(*Dict_Entry_Parent)(nil),                         // 70: bonanza.model.starlark.Dict.Entry.Parent
-	(*File_Owner)(nil),                                // 71: bonanza.model.starlark.File.Owner
-	(*Function_Name)(nil),                             // 72: bonanza.model.starlark.Function.Name
-	(*Function_Closure)(nil),                          // 73: bonanza.model.starlark.Function.Closure
-	(*Function_Closure_DefaultParameter)(nil),         // 74: bonanza.model.starlark.Function.Closure.DefaultParameter
-	(*Funcode_NestedFunction)(nil),                    // 75: bonanza.model.starlark.Funcode.NestedFunction
-	(*List_Element)(nil),                              // 76: bonanza.model.starlark.List.Element
-	(*List_Element_Parent)(nil),                       // 77: bonanza.model.starlark.List.Element.Parent
-	(*Macro_Definition)(nil),                          // 78: bonanza.model.starlark.Macro.Definition
-	(*MacroExpansionContext_Definition)(nil),          // 79: bonanza.model.starlark.MacroExpansionContext.Definition
-	(*MacroExpansionContext_Entry)(nil),               // 80: bonanza.model.starlark.MacroExpansionContext.Entry
-	(*MacroExpansionContext_Entry_Parent)(nil),        // 81: bonanza.model.starlark.MacroExpansionContext.Entry.Parent
-	(*MacroInstance_Definition)(nil),                  // 82: bonanza.model.starlark.MacroInstance.Definition
-	(*MacroInstance_Entry)(nil),                       // 83: bonanza.model.starlark.MacroInstance.Entry
-	(*MacroInstance_Entry_Parent)(nil),                // 84: bonanza.model.starlark.MacroInstance.Entry.Parent
-	(*ModuleExtension_NamedTagClass)(nil),             // 85: bonanza.model.starlark.ModuleExtension.NamedTagClass
-	(*PackageGroup_Package)(nil),                      // 86: bonanza.model.starlark.PackageGroup.Package
-	(*PackageGroup_Subpackages)(nil),                  // 87: bonanza.model.starlark.PackageGroup.Subpackages
-	(*PackageGroup_Subpackages_Overrides)(nil),        // 88: bonanza.model.starlark.PackageGroup.Subpackages.Overrides
-	(*Provider_InstanceProperties)(nil),               // 89: bonanza.model.starlark.Provider.InstanceProperties
-	(*Provider_InstanceProperties_ComputedField)(nil), // 90: bonanza.model.starlark.Provider.InstanceProperties.ComputedField
-	(*Struct_Fields)(nil),                             // 91: bonanza.model.starlark.Struct.Fields
-	(*TargetReference_Configured)(nil),                // 92: bonanza.model.starlark.TargetReference.Configured
-	(*Repo_Definition)(nil),                           // 93: bonanza.model.starlark.Repo.Definition
-	(*RepositoryRule_Definition)(nil),                 // 94: bonanza.model.starlark.RepositoryRule.Definition
-	(*Rule_Definition)(nil),                           // 95: bonanza.model.starlark.Rule.Definition
-	(*RuleTarget_PublicAttrValue)(nil),                // 96: bonanza.model.starlark.RuleTarget.PublicAttrValue
-	(*RuleTarget_Test)(nil),                           // 97: bonanza.model.starlark.RuleTarget.Test
-	(*TestSuite_Test)(nil),                            // 98: bonanza.model.starlark.TestSuite.Test
-	(*TestSuite_Test_Parent)(nil),                     // 99: bonanza.model.starlark.TestSuite.Test.Parent
-	(*Select_Condition)(nil),                          // 100: bonanza.model.starlark.Select.Condition
-	(*Select_Group)(nil),                              // 101: bonanza.model.starlark.Select.Group
-	(*Subrule_Definition)(nil),                        // 102: bonanza.model.starlark.Subrule.Definition
-	(*Target_Definition)(nil),                         // 103: bonanza.model.starlark.Target.Definition
-	(*Transition_UserDefined)(nil),                    // 104: bonanza.model.starlark.Transition.UserDefined
-	(*Transition_UserDefined_Definition)(nil),         // 105: bonanza.model.starlark.Transition.UserDefined.Definition
-	(*filesystem.MaybeInlineFileContents)(nil),        // 106: bonanza.model.filesystem.MaybeInlineFileContents
-	(*emptypb.Empty)(nil),                             // 107: google.protobuf.Empty
-	(*core.DecodableReference)(nil),                   // 108: bonanza.model.core.DecodableReference
+	(*AppliedAspect)(nil),                             // 11: bonanza.model.starlark.AppliedAspect
+	(*Attr)(nil),                                      // 12: bonanza.model.starlark.Attr
+	(*BuildSetting)(nil),                              // 13: bonanza.model.starlark.BuildSetting
+	(*Depset)(nil),                                    // 14: bonanza.model.starlark.Depset
+	(*Dict)(nil),                                      // 15: bonanza.model.starlark.Dict
+	(*ExecGroup)(nil),                                 // 16: bonanza.model.starlark.ExecGroup
+	(*File)(nil),                                      // 17: bonanza.model.starlark.File
+	(*Function)(nil),                                  // 18: bonanza.model.starlark.Function
+	(*Funcode)(nil),                                   // 19: bonanza.model.starlark.Funcode
+	(*InheritableAttrs)(nil),                          // 20: bonanza.model.starlark.InheritableAttrs
+	(*LabelSetting)(nil),                              // 21: bonanza.model.starlark.LabelSetting
+	(*List)(nil),                                      // 22: bonanza.model.starlark.List
+	(*Macro)(nil),                                     // 23: bonanza.model.starlark.Macro
+	(*MacroExpansionContext)(nil),                     // 24: bonanza.model.starlark.MacroExpansionContext
+	(*MacroInstance)(nil),                             // 25: bonanza.model.starlark.MacroInstance
+	(*ModuleExtension)(nil),                           // 26: bonanza.model.starlark.ModuleExtension
+	(*PredeclaredOutputFileTarget)(nil),               // 27: bonanza.model.starlark.PredeclaredOutputFileTarget
+	(*PackageGroup)(nil),                              // 28: bonanza.model.starlark.PackageGroup
+	(*Provider)(nil),                                  // 29: bonanza.model.starlark.Provider
+	(*Struct)(nil),                                    // 30: bonanza.model.starlark.Struct
+	(*TagClass)(nil),                                  // 31: bonanza.model.starlark.TagClass
+	(*TargetReference)(nil),                           // 32: bonanza.model.starlark.TargetReference
+	(*ProviderSet)(nil),                               // 33: bonanza.model.starlark.ProviderSet
+	(*ToolchainType)(nil),                             // 34: bonanza.model.starlark.ToolchainType
+	(*Tuple)(nil),                                     // 35: bonanza.model.starlark.Tuple
+	(*NamedAttr)(nil),                                 // 36: bonanza.model.starlark.NamedAttr
+	(*NamedExecGroup)(nil),                            // 37: bonanza.model.starlark.NamedExecGroup
+	(*Repo)(nil),                                      // 38: bonanza.model.starlark.Repo
+	(*RepositoryRule)(nil),                            // 39: bonanza.model.starlark.RepositoryRule
+	(*Rule)(nil),                                      // 40: bonanza.model.starlark.Rule
+	(*RuleTarget)(nil),                                // 41: bonanza.model.starlark.RuleTarget
+	(*TestSuite)(nil),                                 // 42: bonanza.model.starlark.TestSuite
+	(*Select)(nil),                                    // 43: bonanza.model.starlark.Select
+	(*Set)(nil),                                       // 44: bonanza.model.starlark.Set
+	(*SourceFileTarget)(nil),                          // 45: bonanza.model.starlark.SourceFileTarget
+	(*Subrule)(nil),                                   // 46: bonanza.model.starlark.Subrule
+	(*Target)(nil),                                    // 47: bonanza.model.starlark.Target
+	(*Transition)(nil),                                // 48: bonanza.model.starlark.Transition
+	(*CompiledProgram_FunctionEntry)(nil),             // 49: bonanza.model.starlark.CompiledProgram.FunctionEntry
+	(*CompiledProgram_FunctionEntry_Leaf)(nil),        // 50: bonanza.model.starlark.CompiledProgram.FunctionEntry.Leaf
+	(*CompiledProgram_FunctionEntry_Parent)(nil),      // 51: bonanza.model.starlark.CompiledProgram.FunctionEntry.Parent
+	(*Aspect_Definition)(nil),                         // 52: bonanza.model.starlark.Aspect.Definition
+	(*Attr_AllowFiles)(nil),                           // 53: bonanza.model.starlark.Attr.AllowFiles
+	(*Attr_LabelOptions)(nil),                         // 54: bonanza.model.starlark.Attr.LabelOptions
+	(*Attr_CompositeOptions)(nil),                     // 55: bonanza.model.starlark.Attr.CompositeOptions
+	(*Attr_IntType)(nil),                              // 56: bonanza.model.starlark.Attr.IntType
+	(*Attr_IntListType)(nil),                          // 57: bonanza.model.starlark.Attr.IntListType
+	(*Attr_LabelType)(nil),                            // 58: bonanza.model.starlark.Attr.LabelType
+	(*Attr_LabelKeyedStringDictType)(nil),             // 59: bonanza.model.starlark.Attr.LabelKeyedStringDictType
+	(*Attr_LabelListType)(nil),                        // 60: bonanza.model.starlark.Attr.LabelListType
+	(*Attr_OutputType)(nil),                           // 61: bonanza.model.starlark.Attr.OutputType
+	(*Attr_OutputListType)(nil),                       // 62: bonanza.model.starlark.Attr.OutputListType
+	(*Attr_StringType)(nil),                           // 63: bonanza.model.starlark.Attr.StringType
+	(*Attr_StringDictType)(nil),                       // 64: bonanza.model.starlark.Attr.StringDictType
+	(*Attr_StringListType)(nil),                       // 65: bonanza.model.starlark.Attr.StringListType
+	(*Attr_StringKeyedLabelDictType)(nil),             // 66: bonanza.model.starlark.Attr.StringKeyedLabelDictType
+	(*Attr_StringListDictType)(nil),                   // 67: bonanza.model.starlark.Attr.StringListDictType
+	(*BuildSetting_ListType)(nil),                     // 68: bonanza.model.starlark.BuildSetting.ListType
+	(*Dict_Entry)(nil),                                // 69: bonanza.model.starlark.Dict.Entry
+	(*Dict_Entry_Leaf)(nil),                           // 70: bonanza.model.starlark.Dict.Entry.Leaf
+	(*Dict_Entry_Parent)(nil),                         // 71: bonanza.model.starlark.Dict.Entry.Parent
+	(*File_Owner)(nil),                                // 72: bonanza.model.starlark.File.Owner
+	(*Function_Name)(nil),                             // 73: bonanza.model.starlark.Function.Name
+	(*Function_Closure)(nil),                          // 74: bonanza.model.starlark.Function.Closure
+	(*Function_Closure_DefaultParameter)(nil),         // 75: bonanza.model.starlark.Function.Closure.DefaultParameter
+	(*Funcode_NestedFunction)(nil),                    // 76: bonanza.model.starlark.Funcode.NestedFunction
+	(*List_Element)(nil),                              // 77: bonanza.model.starlark.List.Element
+	(*List_Element_Parent)(nil),                       // 78: bonanza.model.starlark.List.Element.Parent
+	(*Macro_Definition)(nil),                          // 79: bonanza.model.starlark.Macro.Definition
+	(*MacroExpansionContext_Definition)(nil),          // 80: bonanza.model.starlark.MacroExpansionContext.Definition
+	(*MacroExpansionContext_Entry)(nil),               // 81: bonanza.model.starlark.MacroExpansionContext.Entry
+	(*MacroExpansionContext_Entry_Parent)(nil),        // 82: bonanza.model.starlark.MacroExpansionContext.Entry.Parent
+	(*MacroInstance_Definition)(nil),                  // 83: bonanza.model.starlark.MacroInstance.Definition
+	(*MacroInstance_Entry)(nil),                       // 84: bonanza.model.starlark.MacroInstance.Entry
+	(*MacroInstance_Entry_Parent)(nil),                // 85: bonanza.model.starlark.MacroInstance.Entry.Parent
+	(*ModuleExtension_NamedTagClass)(nil),             // 86: bonanza.model.starlark.ModuleExtension.NamedTagClass
+	(*PackageGroup_Package)(nil),                      // 87: bonanza.model.starlark.PackageGroup.Package
+	(*PackageGroup_Subpackages)(nil),                  // 88: bonanza.model.starlark.PackageGroup.Subpackages
+	(*PackageGroup_Subpackages_Overrides)(nil),        // 89: bonanza.model.starlark.PackageGroup.Subpackages.Overrides
+	(*Provider_InstanceProperties)(nil),               // 90: bonanza.model.starlark.Provider.InstanceProperties
+	(*Provider_InstanceProperties_ComputedField)(nil), // 91: bonanza.model.starlark.Provider.InstanceProperties.ComputedField
+	(*Struct_Fields)(nil),                             // 92: bonanza.model.starlark.Struct.Fields
+	(*TargetReference_Configured)(nil),                // 93: bonanza.model.starlark.TargetReference.Configured
+	(*Repo_Definition)(nil),                           // 94: bonanza.model.starlark.Repo.Definition
+	(*RepositoryRule_Definition)(nil),                 // 95: bonanza.model.starlark.RepositoryRule.Definition
+	(*Rule_Definition)(nil),                           // 96: bonanza.model.starlark.Rule.Definition
+	(*RuleTarget_PublicAttrValue)(nil),                // 97: bonanza.model.starlark.RuleTarget.PublicAttrValue
+	(*RuleTarget_Test)(nil),                           // 98: bonanza.model.starlark.RuleTarget.Test
+	(*TestSuite_Test)(nil),                            // 99: bonanza.model.starlark.TestSuite.Test
+	(*TestSuite_Test_Parent)(nil),                     // 100: bonanza.model.starlark.TestSuite.Test.Parent
+	(*Select_Condition)(nil),                          // 101: bonanza.model.starlark.Select.Condition
+	(*Select_Group)(nil),                              // 102: bonanza.model.starlark.Select.Group
+	(*Subrule_Definition)(nil),                        // 103: bonanza.model.starlark.Subrule.Definition
+	(*Target_Definition)(nil),                         // 104: bonanza.model.starlark.Target.Definition
+	(*Transition_UserDefined)(nil),                    // 105: bonanza.model.starlark.Transition.UserDefined
+	(*Transition_UserDefined_Definition)(nil),         // 106: bonanza.model.starlark.Transition.UserDefined.Definition
+	(*filesystem.MaybeInlineFileContents)(nil),        // 107: bonanza.model.filesystem.MaybeInlineFileContents
+	(*emptypb.Empty)(nil),                             // 108: google.protobuf.Empty
+	(*core.DecodableReference)(nil),                   // 109: bonanza.model.core.DecodableReference
 }
 var file_bonanza_build_pkg_proto_model_starlark_starlark_proto_depIdxs = []int32{
-	91,  // 0: bonanza.model.starlark.CompiledProgram.globals:type_name -> bonanza.model.starlark.Struct.Fields
-	48,  // 1: bonanza.model.starlark.CompiledProgram.functions:type_name -> bonanza.model.starlark.CompiledProgram.FunctionEntry
+	92,  // 0: bonanza.model.starlark.CompiledProgram.globals:type_name -> bonanza.model.starlark.Struct.Fields
+	49,  // 1: bonanza.model.starlark.CompiledProgram.functions:type_name -> bonanza.model.starlark.CompiledProgram.FunctionEntry
 	10,  // 2: bonanza.model.starlark.Value.aspect:type_name -> bonanza.model.starlark.Aspect
-	11,  // 3: bonanza.model.starlark.Value.attr:type_name -> bonanza.model.starlark.Attr
-	106, // 4: bonanza.model.starlark.Value.bytes:type_name -> bonanza.model.filesystem.MaybeInlineFileContents
-	13,  // 5: bonanza.model.starlark.Value.depset:type_name -> bonanza.model.starlark.Depset
-	14,  // 6: bonanza.model.starlark.Value.dict:type_name -> bonanza.model.starlark.Dict
-	15,  // 7: bonanza.model.starlark.Value.exec_group:type_name -> bonanza.model.starlark.ExecGroup
-	16,  // 8: bonanza.model.starlark.Value.file:type_name -> bonanza.model.starlark.File
-	17,  // 9: bonanza.model.starlark.Value.function:type_name -> bonanza.model.starlark.Function
-	21,  // 10: bonanza.model.starlark.Value.list:type_name -> bonanza.model.starlark.List
-	22,  // 11: bonanza.model.starlark.Value.macro:type_name -> bonanza.model.starlark.Macro
-	25,  // 12: bonanza.model.starlark.Value.module_extension:type_name -> bonanza.model.starlark.ModuleExtension
-	107, // 13: bonanza.model.starlark.Value.none:type_name -> google.protobuf.Empty
-	28,  // 14: bonanza.model.starlark.Value.provider:type_name -> bonanza.model.starlark.Provider
-	38,  // 15: bonanza.model.starlark.Value.repository_rule:type_name -> bonanza.model.starlark.RepositoryRule
-	39,  // 16: bonanza.model.starlark.Value.rule:type_name -> bonanza.model.starlark.Rule
-	42,  // 17: bonanza.model.starlark.Value.select:type_name -> bonanza.model.starlark.Select
-	43,  // 18: bonanza.model.starlark.Value.set:type_name -> bonanza.model.starlark.Set
-	106, // 19: bonanza.model.starlark.Value.str:type_name -> bonanza.model.filesystem.MaybeInlineFileContents
-	29,  // 20: bonanza.model.starlark.Value.struct:type_name -> bonanza.model.starlark.Struct
-	45,  // 21: bonanza.model.starlark.Value.subrule:type_name -> bonanza.model.starlark.Subrule
-	30,  // 22: bonanza.model.starlark.Value.tag_class:type_name -> bonanza.model.starlark.TagClass
-	31,  // 23: bonanza.model.starlark.Value.target_reference:type_name -> bonanza.model.starlark.TargetReference
-	33,  // 24: bonanza.model.starlark.Value.toolchain_type:type_name -> bonanza.model.starlark.ToolchainType
-	47,  // 25: bonanza.model.starlark.Value.transition:type_name -> bonanza.model.starlark.Transition
-	34,  // 26: bonanza.model.starlark.Value.tuple:type_name -> bonanza.model.starlark.Tuple
-	101, // 27: bonanza.model.starlark.Alias.actual:type_name -> bonanza.model.starlark.Select.Group
-	27,  // 28: bonanza.model.starlark.Alias.visibility:type_name -> bonanza.model.starlark.PackageGroup
-	51,  // 29: bonanza.model.starlark.Aspect.definition:type_name -> bonanza.model.starlark.Aspect.Definition
-	8,   // 30: bonanza.model.starlark.Attr.default:type_name -> bonanza.model.starlark.Value
-	107, // 31: bonanza.model.starlark.Attr.bool:type_name -> google.protobuf.Empty
-	55,  // 32: bonanza.model.starlark.Attr.int:type_name -> bonanza.model.starlark.Attr.IntType
-	56,  // 33: bonanza.model.starlark.Attr.int_list:type_name -> bonanza.model.starlark.Attr.IntListType
-	57,  // 34: bonanza.model.starlark.Attr.label:type_name -> bonanza.model.starlark.Attr.LabelType
-	58,  // 35: bonanza.model.starlark.Attr.label_keyed_string_dict:type_name -> bonanza.model.starlark.Attr.LabelKeyedStringDictType
-	59,  // 36: bonanza.model.starlark.Attr.label_list:type_name -> bonanza.model.starlark.Attr.LabelListType
-	60,  // 37: bonanza.model.starlark.Attr.output:type_name -> bonanza.model.starlark.Attr.OutputType
-	61,  // 38: bonanza.model.starlark.Attr.output_list:type_name -> bonanza.model.starlark.Attr.OutputListType
-	62,  // 39: bonanza.model.starlark.Attr.string:type_name -> bonanza.model.starlark.Attr.StringType
-	63,  // 40: bonanza.model.starlark.Attr.string_dict:type_name -> bonanza.model.starlark.Attr.StringDictType
-	64,  // 41: bonanza.model.starlark.Attr.string_list:type_name -> bonanza.model.starlark.Attr.StringListType
-	65,  // 42: bonanza.model.starlark.Attr.string_keyed_label_dict:type_name -> bonanza.model.starlark.Attr.StringKeyedLabelDictType
-	66,  // 43: bonanza.model.starlark.Attr.string_list_dict:type_name -> bonanza.model.starlark.Attr.StringListDictType
-	107, // 44: bonanza.model.starlark.BuildSetting.bool:type_name -> google.protobuf.Empty
-	107, // 45: bonanza.model.starlark.BuildSetting.int:type_name -> google.protobuf.Empty
-	67,  // 46: bonanza.model.starlark.BuildSetting.label_list:type_name -> bonanza.model.starlark.BuildSetting.ListType
-	107, // 47: bonanza.model.starlark.BuildSetting.string:type_name -> google.protobuf.Empty
-	67,  // 48: bonanza.model.starlark.BuildSetting.string_list:type_name -> bonanza.model.starlark.BuildSetting.ListType
-	76,  // 49: bonanza.model.starlark.Depset.elements:type_name -> bonanza.model.starlark.List.Element
-	2,   // 50: bonanza.model.starlark.Depset.order:type_name -> bonanza.model.starlark.Depset.Order
-	68,  // 51: bonanza.model.starlark.Dict.entries:type_name -> bonanza.model.starlark.Dict.Entry
-	33,  // 52: bonanza.model.starlark.ExecGroup.toolchains:type_name -> bonanza.model.starlark.ToolchainType
-	71,  // 53: bonanza.model.starlark.File.owner:type_name -> bonanza.model.starlark.File.Owner
-	72,  // 54: bonanza.model.starlark.Function.name_path:type_name -> bonanza.model.starlark.Function.Name
-	73,  // 55: bonanza.model.starlark.Function.closure:type_name -> bonanza.model.starlark.Function.Closure
-	75,  // 56: bonanza.model.starlark.Funcode.functions:type_name -> bonanza.model.starlark.Funcode.NestedFunction
-	27,  // 57: bonanza.model.starlark.InheritableAttrs.visibility:type_name -> bonanza.model.starlark.PackageGroup
-	27,  // 58: bonanza.model.starlark.LabelSetting.visibility:type_name -> bonanza.model.starlark.PackageGroup
-	76,  // 59: bonanza.model.starlark.List.elements:type_name -> bonanza.model.starlark.List.Element
-	78,  // 60: bonanza.model.starlark.Macro.definition:type_name -> bonanza.model.starlark.Macro.Definition
-	79,  // 61: bonanza.model.starlark.MacroExpansionContext.definition:type_name -> bonanza.model.starlark.MacroExpansionContext.Definition
-	82,  // 62: bonanza.model.starlark.MacroInstance.definition:type_name -> bonanza.model.starlark.MacroInstance.Definition
-	17,  // 63: bonanza.model.starlark.ModuleExtension.implementation:type_name -> bonanza.model.starlark.Function
-	85,  // 64: bonanza.model.starlark.ModuleExtension.tag_classes:type_name -> bonanza.model.starlark.ModuleExtension.NamedTagClass
-	87,  // 65: bonanza.model.starlark.PackageGroup.tree:type_name -> bonanza.model.starlark.PackageGroup.Subpackages
-	89,  // 66: bonanza.model.starlark.Provider.instance_properties:type_name -> bonanza.model.starlark.Provider.InstanceProperties
-	17,  // 67: bonanza.model.starlark.Provider.init_function:type_name -> bonanza.model.starlark.Function
-	91,  // 68: bonanza.model.starlark.Struct.fields:type_name -> bonanza.model.starlark.Struct.Fields
-	89,  // 69: bonanza.model.starlark.Struct.provider_instance_properties:type_name -> bonanza.model.starlark.Provider.InstanceProperties
-	35,  // 70: bonanza.model.starlark.TagClass.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	92,  // 71: bonanza.model.starlark.TargetReference.configured:type_name -> bonanza.model.starlark.TargetReference.Configured
-	8,   // 72: bonanza.model.starlark.Tuple.elements:type_name -> bonanza.model.starlark.Value
-	11,  // 73: bonanza.model.starlark.NamedAttr.attr:type_name -> bonanza.model.starlark.Attr
-	15,  // 74: bonanza.model.starlark.NamedExecGroup.exec_group:type_name -> bonanza.model.starlark.ExecGroup
-	93,  // 75: bonanza.model.starlark.Repo.definition:type_name -> bonanza.model.starlark.Repo.Definition
-	94,  // 76: bonanza.model.starlark.RepositoryRule.definition:type_name -> bonanza.model.starlark.RepositoryRule.Definition
-	95,  // 77: bonanza.model.starlark.Rule.definition:type_name -> bonanza.model.starlark.Rule.Definition
-	96,  // 78: bonanza.model.starlark.RuleTarget.public_attr_values:type_name -> bonanza.model.starlark.RuleTarget.PublicAttrValue
-	101, // 79: bonanza.model.starlark.RuleTarget.target_compatible_with:type_name -> bonanza.model.starlark.Select.Group
-	19,  // 80: bonanza.model.starlark.RuleTarget.inheritable_attrs:type_name -> bonanza.model.starlark.InheritableAttrs
-	8,   // 81: bonanza.model.starlark.RuleTarget.build_setting_default:type_name -> bonanza.model.starlark.Value
-	97,  // 82: bonanza.model.starlark.RuleTarget.test:type_name -> bonanza.model.starlark.RuleTarget.Test
-	98,  // 83: bonanza.model.starlark.TestSuite.tests:type_name -> bonanza.model.starlark.TestSuite.Test
-	0,   // 84: bonanza.model.starlark.TestSuite.sizes:type_name -> bonanza.model.starlark.TestSize
-	27,  // 85: bonanza.model.starlark.TestSuite.visibility:type_name -> bonanza.model.starlark.PackageGroup
-	101, // 86: bonanza.model.starlark.Select.groups:type_name -> bonanza.model.starlark.Select.Group
-	6,   // 87: bonanza.model.starlark.Select.concatenation_operator:type_name -> bonanza.model.starlark.Select.ConcatenationOperator
-	76,  // 88: bonanza.model.starlark.Set.elements:type_name -> bonanza.model.starlark.List.Element
-	27,  // 89: bonanza.model.starlark.SourceFileTarget.visibility:type_name -> bonanza.model.starlark.PackageGroup
-	102, // 90: bonanza.model.starlark.Subrule.definition:type_name -> bonanza.model.starlark.Subrule.Definition
-	103, // 91: bonanza.model.starlark.Target.definition:type_name -> bonanza.model.starlark.Target.Definition
-	107, // 92: bonanza.model.starlark.Transition.none:type_name -> google.protobuf.Empty
-	107, // 93: bonanza.model.starlark.Transition.target:type_name -> google.protobuf.Empty
-	104, // 94: bonanza.model.starlark.Transition.user_defined:type_name -> bonanza.model.starlark.Transition.UserDefined
-	107, // 95: bonanza.model.starlark.Transition.unconfigured:type_name -> google.protobuf.Empty
-	49,  // 96: bonanza.model.starlark.CompiledProgram.FunctionEntry.leaf:type_name -> bonanza.model.starlark.CompiledProgram.FunctionEntry.Leaf
-	50,  // 97: bonanza.model.starlark.CompiledProgram.FunctionEntry.parent:type_name -> bonanza.model.starlark.CompiledProgram.FunctionEntry.Parent
-	72,  // 98: bonanza.model.starlark.CompiledProgram.FunctionEntry.Leaf.name:type_name -> bonanza.model.starlark.Function.Name
-	18,  // 99: bonanza.model.starlark.CompiledProgram.FunctionEntry.Leaf.code:type_name -> bonanza.model.starlark.Funcode
-	108, // 100: bonanza.model.starlark.CompiledProgram.FunctionEntry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	72,  // 101: bonanza.model.starlark.CompiledProgram.FunctionEntry.Parent.first_name:type_name -> bonanza.model.starlark.Function.Name
-	35,  // 102: bonanza.model.starlark.Aspect.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	36,  // 103: bonanza.model.starlark.Aspect.Definition.exec_groups:type_name -> bonanza.model.starlark.NamedExecGroup
-	17,  // 104: bonanza.model.starlark.Aspect.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	32,  // 105: bonanza.model.starlark.Aspect.Definition.required_providers:type_name -> bonanza.model.starlark.ProviderSet
-	32,  // 106: bonanza.model.starlark.Aspect.Definition.required_aspect_providers:type_name -> bonanza.model.starlark.ProviderSet
-	17,  // 107: bonanza.model.starlark.Aspect.Definition.propagation_predicate:type_name -> bonanza.model.starlark.Function
-	32,  // 108: bonanza.model.starlark.Attr.LabelOptions.providers:type_name -> bonanza.model.starlark.ProviderSet
-	47,  // 109: bonanza.model.starlark.Attr.LabelOptions.cfg:type_name -> bonanza.model.starlark.Transition
-	52,  // 110: bonanza.model.starlark.Attr.LabelOptions.allow_files:type_name -> bonanza.model.starlark.Attr.AllowFiles
-	54,  // 111: bonanza.model.starlark.Attr.IntListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	53,  // 112: bonanza.model.starlark.Attr.LabelType.value_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
-	54,  // 113: bonanza.model.starlark.Attr.LabelKeyedStringDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	53,  // 114: bonanza.model.starlark.Attr.LabelKeyedStringDictType.dict_key_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
-	54,  // 115: bonanza.model.starlark.Attr.LabelListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	53,  // 116: bonanza.model.starlark.Attr.LabelListType.list_value_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
-	54,  // 117: bonanza.model.starlark.Attr.OutputListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	54,  // 118: bonanza.model.starlark.Attr.StringDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	54,  // 119: bonanza.model.starlark.Attr.StringListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	54,  // 120: bonanza.model.starlark.Attr.StringKeyedLabelDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	53,  // 121: bonanza.model.starlark.Attr.StringKeyedLabelDictType.dict_value_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
-	54,  // 122: bonanza.model.starlark.Attr.StringListDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
-	69,  // 123: bonanza.model.starlark.Dict.Entry.leaf:type_name -> bonanza.model.starlark.Dict.Entry.Leaf
-	70,  // 124: bonanza.model.starlark.Dict.Entry.parent:type_name -> bonanza.model.starlark.Dict.Entry.Parent
-	8,   // 125: bonanza.model.starlark.Dict.Entry.Leaf.key:type_name -> bonanza.model.starlark.Value
-	8,   // 126: bonanza.model.starlark.Dict.Entry.Leaf.value:type_name -> bonanza.model.starlark.Value
-	108, // 127: bonanza.model.starlark.Dict.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	108, // 128: bonanza.model.starlark.File.Owner.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	3,   // 129: bonanza.model.starlark.File.Owner.type:type_name -> bonanza.model.starlark.File.Owner.Type
-	74,  // 130: bonanza.model.starlark.Function.Closure.default_parameters:type_name -> bonanza.model.starlark.Function.Closure.DefaultParameter
-	8,   // 131: bonanza.model.starlark.Function.Closure.free_variables:type_name -> bonanza.model.starlark.Value
-	8,   // 132: bonanza.model.starlark.Function.Closure.DefaultParameter.value:type_name -> bonanza.model.starlark.Value
-	18,  // 133: bonanza.model.starlark.Funcode.NestedFunction.funcode:type_name -> bonanza.model.starlark.Funcode
-	8,   // 134: bonanza.model.starlark.List.Element.leaf:type_name -> bonanza.model.starlark.Value
-	77,  // 135: bonanza.model.starlark.List.Element.parent:type_name -> bonanza.model.starlark.List.Element.Parent
-	108, // 136: bonanza.model.starlark.List.Element.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	35,  // 137: bonanza.model.starlark.Macro.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	17,  // 138: bonanza.model.starlark.Macro.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	82,  // 139: bonanza.model.starlark.MacroExpansionContext.Definition.root_macro_instance_definition:type_name -> bonanza.model.starlark.MacroInstance.Definition
-	83,  // 140: bonanza.model.starlark.MacroExpansionContext.Definition.nested_macro_instances:type_name -> bonanza.model.starlark.MacroInstance.Entry
-	23,  // 141: bonanza.model.starlark.MacroExpansionContext.Entry.leaf:type_name -> bonanza.model.starlark.MacroExpansionContext
-	81,  // 142: bonanza.model.starlark.MacroExpansionContext.Entry.parent:type_name -> bonanza.model.starlark.MacroExpansionContext.Entry.Parent
-	108, // 143: bonanza.model.starlark.MacroExpansionContext.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	96,  // 144: bonanza.model.starlark.MacroInstance.Definition.public_attr_values:type_name -> bonanza.model.starlark.RuleTarget.PublicAttrValue
-	19,  // 145: bonanza.model.starlark.MacroInstance.Definition.inheritable_attrs:type_name -> bonanza.model.starlark.InheritableAttrs
-	4,   // 146: bonanza.model.starlark.MacroInstance.Definition.finalizer:type_name -> bonanza.model.starlark.MacroInstance.Finalizer
-	24,  // 147: bonanza.model.starlark.MacroInstance.Entry.leaf:type_name -> bonanza.model.starlark.MacroInstance
-	84,  // 148: bonanza.model.starlark.MacroInstance.Entry.parent:type_name -> bonanza.model.starlark.MacroInstance.Entry.Parent
-	108, // 149: bonanza.model.starlark.MacroInstance.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	30,  // 150: bonanza.model.starlark.ModuleExtension.NamedTagClass.tag_class:type_name -> bonanza.model.starlark.TagClass
-	87,  // 151: bonanza.model.starlark.PackageGroup.Package.subpackages:type_name -> bonanza.model.starlark.PackageGroup.Subpackages
-	108, // 152: bonanza.model.starlark.PackageGroup.Subpackages.overrides_external:type_name -> bonanza.model.core.DecodableReference
-	88,  // 153: bonanza.model.starlark.PackageGroup.Subpackages.overrides_inline:type_name -> bonanza.model.starlark.PackageGroup.Subpackages.Overrides
-	86,  // 154: bonanza.model.starlark.PackageGroup.Subpackages.Overrides.packages:type_name -> bonanza.model.starlark.PackageGroup.Package
-	90,  // 155: bonanza.model.starlark.Provider.InstanceProperties.computed_fields:type_name -> bonanza.model.starlark.Provider.InstanceProperties.ComputedField
-	17,  // 156: bonanza.model.starlark.Provider.InstanceProperties.ComputedField.function:type_name -> bonanza.model.starlark.Function
-	76,  // 157: bonanza.model.starlark.Struct.Fields.values:type_name -> bonanza.model.starlark.List.Element
-	29,  // 158: bonanza.model.starlark.TargetReference.Configured.providers:type_name -> bonanza.model.starlark.Struct
-	91,  // 159: bonanza.model.starlark.Repo.Definition.attr_values:type_name -> bonanza.model.starlark.Struct.Fields
-	35,  // 160: bonanza.model.starlark.RepositoryRule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	17,  // 161: bonanza.model.starlark.RepositoryRule.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	35,  // 162: bonanza.model.starlark.Rule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	12,  // 163: bonanza.model.starlark.Rule.Definition.build_setting:type_name -> bonanza.model.starlark.BuildSetting
-	104, // 164: bonanza.model.starlark.Rule.Definition.cfg_transition:type_name -> bonanza.model.starlark.Transition.UserDefined
-	36,  // 165: bonanza.model.starlark.Rule.Definition.exec_groups:type_name -> bonanza.model.starlark.NamedExecGroup
-	17,  // 166: bonanza.model.starlark.Rule.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	17,  // 167: bonanza.model.starlark.Rule.Definition.initializer:type_name -> bonanza.model.starlark.Function
-	5,   // 168: bonanza.model.starlark.Rule.Definition.type:type_name -> bonanza.model.starlark.Rule.Definition.Type
-	101, // 169: bonanza.model.starlark.RuleTarget.PublicAttrValue.value_parts:type_name -> bonanza.model.starlark.Select.Group
-	0,   // 170: bonanza.model.starlark.RuleTarget.Test.size:type_name -> bonanza.model.starlark.TestSize
-	1,   // 171: bonanza.model.starlark.RuleTarget.Test.timeout:type_name -> bonanza.model.starlark.TestTimeout
-	101, // 172: bonanza.model.starlark.RuleTarget.Test.shard_count:type_name -> bonanza.model.starlark.Select.Group
-	101, // 173: bonanza.model.starlark.RuleTarget.Test.args:type_name -> bonanza.model.starlark.Select.Group
-	99,  // 174: bonanza.model.starlark.TestSuite.Test.parent:type_name -> bonanza.model.starlark.TestSuite.Test.Parent
-	108, // 175: bonanza.model.starlark.TestSuite.Test.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	8,   // 176: bonanza.model.starlark.Select.Condition.value:type_name -> bonanza.model.starlark.Value
-	100, // 177: bonanza.model.starlark.Select.Group.conditions:type_name -> bonanza.model.starlark.Select.Condition
-	8,   // 178: bonanza.model.starlark.Select.Group.no_match_value:type_name -> bonanza.model.starlark.Value
-	35,  // 179: bonanza.model.starlark.Subrule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	17,  // 180: bonanza.model.starlark.Subrule.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	9,   // 181: bonanza.model.starlark.Target.Definition.alias:type_name -> bonanza.model.starlark.Alias
-	20,  // 182: bonanza.model.starlark.Target.Definition.label_setting:type_name -> bonanza.model.starlark.LabelSetting
-	27,  // 183: bonanza.model.starlark.Target.Definition.package_group:type_name -> bonanza.model.starlark.PackageGroup
-	26,  // 184: bonanza.model.starlark.Target.Definition.predeclared_output_file_target:type_name -> bonanza.model.starlark.PredeclaredOutputFileTarget
-	40,  // 185: bonanza.model.starlark.Target.Definition.rule_target:type_name -> bonanza.model.starlark.RuleTarget
-	44,  // 186: bonanza.model.starlark.Target.Definition.source_file_target:type_name -> bonanza.model.starlark.SourceFileTarget
-	41,  // 187: bonanza.model.starlark.Target.Definition.test_suite:type_name -> bonanza.model.starlark.TestSuite
-	105, // 188: bonanza.model.starlark.Transition.UserDefined.definition:type_name -> bonanza.model.starlark.Transition.UserDefined.Definition
-	17,  // 189: bonanza.model.starlark.Transition.UserDefined.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	190, // [190:190] is the sub-list for method output_type
-	190, // [190:190] is the sub-list for method input_type
-	190, // [190:190] is the sub-list for extension type_name
-	190, // [190:190] is the sub-list for extension extendee
-	0,   // [0:190] is the sub-list for field type_name
+	12,  // 3: bonanza.model.starlark.Value.attr:type_name -> bonanza.model.starlark.Attr
+	107, // 4: bonanza.model.starlark.Value.bytes:type_name -> bonanza.model.filesystem.MaybeInlineFileContents
+	14,  // 5: bonanza.model.starlark.Value.depset:type_name -> bonanza.model.starlark.Depset
+	15,  // 6: bonanza.model.starlark.Value.dict:type_name -> bonanza.model.starlark.Dict
+	16,  // 7: bonanza.model.starlark.Value.exec_group:type_name -> bonanza.model.starlark.ExecGroup
+	17,  // 8: bonanza.model.starlark.Value.file:type_name -> bonanza.model.starlark.File
+	18,  // 9: bonanza.model.starlark.Value.function:type_name -> bonanza.model.starlark.Function
+	22,  // 10: bonanza.model.starlark.Value.list:type_name -> bonanza.model.starlark.List
+	23,  // 11: bonanza.model.starlark.Value.macro:type_name -> bonanza.model.starlark.Macro
+	26,  // 12: bonanza.model.starlark.Value.module_extension:type_name -> bonanza.model.starlark.ModuleExtension
+	108, // 13: bonanza.model.starlark.Value.none:type_name -> google.protobuf.Empty
+	29,  // 14: bonanza.model.starlark.Value.provider:type_name -> bonanza.model.starlark.Provider
+	39,  // 15: bonanza.model.starlark.Value.repository_rule:type_name -> bonanza.model.starlark.RepositoryRule
+	40,  // 16: bonanza.model.starlark.Value.rule:type_name -> bonanza.model.starlark.Rule
+	43,  // 17: bonanza.model.starlark.Value.select:type_name -> bonanza.model.starlark.Select
+	44,  // 18: bonanza.model.starlark.Value.set:type_name -> bonanza.model.starlark.Set
+	107, // 19: bonanza.model.starlark.Value.str:type_name -> bonanza.model.filesystem.MaybeInlineFileContents
+	30,  // 20: bonanza.model.starlark.Value.struct:type_name -> bonanza.model.starlark.Struct
+	46,  // 21: bonanza.model.starlark.Value.subrule:type_name -> bonanza.model.starlark.Subrule
+	31,  // 22: bonanza.model.starlark.Value.tag_class:type_name -> bonanza.model.starlark.TagClass
+	32,  // 23: bonanza.model.starlark.Value.target_reference:type_name -> bonanza.model.starlark.TargetReference
+	34,  // 24: bonanza.model.starlark.Value.toolchain_type:type_name -> bonanza.model.starlark.ToolchainType
+	48,  // 25: bonanza.model.starlark.Value.transition:type_name -> bonanza.model.starlark.Transition
+	35,  // 26: bonanza.model.starlark.Value.tuple:type_name -> bonanza.model.starlark.Tuple
+	102, // 27: bonanza.model.starlark.Alias.actual:type_name -> bonanza.model.starlark.Select.Group
+	28,  // 28: bonanza.model.starlark.Alias.visibility:type_name -> bonanza.model.starlark.PackageGroup
+	52,  // 29: bonanza.model.starlark.Aspect.definition:type_name -> bonanza.model.starlark.Aspect.Definition
+	109, // 30: bonanza.model.starlark.AppliedAspect.parameters:type_name -> bonanza.model.core.DecodableReference
+	8,   // 31: bonanza.model.starlark.Attr.default:type_name -> bonanza.model.starlark.Value
+	108, // 32: bonanza.model.starlark.Attr.bool:type_name -> google.protobuf.Empty
+	56,  // 33: bonanza.model.starlark.Attr.int:type_name -> bonanza.model.starlark.Attr.IntType
+	57,  // 34: bonanza.model.starlark.Attr.int_list:type_name -> bonanza.model.starlark.Attr.IntListType
+	58,  // 35: bonanza.model.starlark.Attr.label:type_name -> bonanza.model.starlark.Attr.LabelType
+	59,  // 36: bonanza.model.starlark.Attr.label_keyed_string_dict:type_name -> bonanza.model.starlark.Attr.LabelKeyedStringDictType
+	60,  // 37: bonanza.model.starlark.Attr.label_list:type_name -> bonanza.model.starlark.Attr.LabelListType
+	61,  // 38: bonanza.model.starlark.Attr.output:type_name -> bonanza.model.starlark.Attr.OutputType
+	62,  // 39: bonanza.model.starlark.Attr.output_list:type_name -> bonanza.model.starlark.Attr.OutputListType
+	63,  // 40: bonanza.model.starlark.Attr.string:type_name -> bonanza.model.starlark.Attr.StringType
+	64,  // 41: bonanza.model.starlark.Attr.string_dict:type_name -> bonanza.model.starlark.Attr.StringDictType
+	65,  // 42: bonanza.model.starlark.Attr.string_list:type_name -> bonanza.model.starlark.Attr.StringListType
+	66,  // 43: bonanza.model.starlark.Attr.string_keyed_label_dict:type_name -> bonanza.model.starlark.Attr.StringKeyedLabelDictType
+	67,  // 44: bonanza.model.starlark.Attr.string_list_dict:type_name -> bonanza.model.starlark.Attr.StringListDictType
+	108, // 45: bonanza.model.starlark.BuildSetting.bool:type_name -> google.protobuf.Empty
+	108, // 46: bonanza.model.starlark.BuildSetting.int:type_name -> google.protobuf.Empty
+	68,  // 47: bonanza.model.starlark.BuildSetting.label_list:type_name -> bonanza.model.starlark.BuildSetting.ListType
+	108, // 48: bonanza.model.starlark.BuildSetting.string:type_name -> google.protobuf.Empty
+	68,  // 49: bonanza.model.starlark.BuildSetting.string_list:type_name -> bonanza.model.starlark.BuildSetting.ListType
+	77,  // 50: bonanza.model.starlark.Depset.elements:type_name -> bonanza.model.starlark.List.Element
+	2,   // 51: bonanza.model.starlark.Depset.order:type_name -> bonanza.model.starlark.Depset.Order
+	69,  // 52: bonanza.model.starlark.Dict.entries:type_name -> bonanza.model.starlark.Dict.Entry
+	34,  // 53: bonanza.model.starlark.ExecGroup.toolchains:type_name -> bonanza.model.starlark.ToolchainType
+	72,  // 54: bonanza.model.starlark.File.owner:type_name -> bonanza.model.starlark.File.Owner
+	73,  // 55: bonanza.model.starlark.Function.name_path:type_name -> bonanza.model.starlark.Function.Name
+	74,  // 56: bonanza.model.starlark.Function.closure:type_name -> bonanza.model.starlark.Function.Closure
+	76,  // 57: bonanza.model.starlark.Funcode.functions:type_name -> bonanza.model.starlark.Funcode.NestedFunction
+	28,  // 58: bonanza.model.starlark.InheritableAttrs.visibility:type_name -> bonanza.model.starlark.PackageGroup
+	28,  // 59: bonanza.model.starlark.LabelSetting.visibility:type_name -> bonanza.model.starlark.PackageGroup
+	77,  // 60: bonanza.model.starlark.List.elements:type_name -> bonanza.model.starlark.List.Element
+	79,  // 61: bonanza.model.starlark.Macro.definition:type_name -> bonanza.model.starlark.Macro.Definition
+	80,  // 62: bonanza.model.starlark.MacroExpansionContext.definition:type_name -> bonanza.model.starlark.MacroExpansionContext.Definition
+	83,  // 63: bonanza.model.starlark.MacroInstance.definition:type_name -> bonanza.model.starlark.MacroInstance.Definition
+	18,  // 64: bonanza.model.starlark.ModuleExtension.implementation:type_name -> bonanza.model.starlark.Function
+	86,  // 65: bonanza.model.starlark.ModuleExtension.tag_classes:type_name -> bonanza.model.starlark.ModuleExtension.NamedTagClass
+	88,  // 66: bonanza.model.starlark.PackageGroup.tree:type_name -> bonanza.model.starlark.PackageGroup.Subpackages
+	90,  // 67: bonanza.model.starlark.Provider.instance_properties:type_name -> bonanza.model.starlark.Provider.InstanceProperties
+	18,  // 68: bonanza.model.starlark.Provider.init_function:type_name -> bonanza.model.starlark.Function
+	92,  // 69: bonanza.model.starlark.Struct.fields:type_name -> bonanza.model.starlark.Struct.Fields
+	90,  // 70: bonanza.model.starlark.Struct.provider_instance_properties:type_name -> bonanza.model.starlark.Provider.InstanceProperties
+	36,  // 71: bonanza.model.starlark.TagClass.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	93,  // 72: bonanza.model.starlark.TargetReference.configured:type_name -> bonanza.model.starlark.TargetReference.Configured
+	8,   // 73: bonanza.model.starlark.Tuple.elements:type_name -> bonanza.model.starlark.Value
+	12,  // 74: bonanza.model.starlark.NamedAttr.attr:type_name -> bonanza.model.starlark.Attr
+	16,  // 75: bonanza.model.starlark.NamedExecGroup.exec_group:type_name -> bonanza.model.starlark.ExecGroup
+	94,  // 76: bonanza.model.starlark.Repo.definition:type_name -> bonanza.model.starlark.Repo.Definition
+	95,  // 77: bonanza.model.starlark.RepositoryRule.definition:type_name -> bonanza.model.starlark.RepositoryRule.Definition
+	96,  // 78: bonanza.model.starlark.Rule.definition:type_name -> bonanza.model.starlark.Rule.Definition
+	97,  // 79: bonanza.model.starlark.RuleTarget.public_attr_values:type_name -> bonanza.model.starlark.RuleTarget.PublicAttrValue
+	102, // 80: bonanza.model.starlark.RuleTarget.target_compatible_with:type_name -> bonanza.model.starlark.Select.Group
+	20,  // 81: bonanza.model.starlark.RuleTarget.inheritable_attrs:type_name -> bonanza.model.starlark.InheritableAttrs
+	8,   // 82: bonanza.model.starlark.RuleTarget.build_setting_default:type_name -> bonanza.model.starlark.Value
+	98,  // 83: bonanza.model.starlark.RuleTarget.test:type_name -> bonanza.model.starlark.RuleTarget.Test
+	99,  // 84: bonanza.model.starlark.TestSuite.tests:type_name -> bonanza.model.starlark.TestSuite.Test
+	0,   // 85: bonanza.model.starlark.TestSuite.sizes:type_name -> bonanza.model.starlark.TestSize
+	28,  // 86: bonanza.model.starlark.TestSuite.visibility:type_name -> bonanza.model.starlark.PackageGroup
+	102, // 87: bonanza.model.starlark.Select.groups:type_name -> bonanza.model.starlark.Select.Group
+	6,   // 88: bonanza.model.starlark.Select.concatenation_operator:type_name -> bonanza.model.starlark.Select.ConcatenationOperator
+	77,  // 89: bonanza.model.starlark.Set.elements:type_name -> bonanza.model.starlark.List.Element
+	28,  // 90: bonanza.model.starlark.SourceFileTarget.visibility:type_name -> bonanza.model.starlark.PackageGroup
+	103, // 91: bonanza.model.starlark.Subrule.definition:type_name -> bonanza.model.starlark.Subrule.Definition
+	104, // 92: bonanza.model.starlark.Target.definition:type_name -> bonanza.model.starlark.Target.Definition
+	108, // 93: bonanza.model.starlark.Transition.none:type_name -> google.protobuf.Empty
+	108, // 94: bonanza.model.starlark.Transition.target:type_name -> google.protobuf.Empty
+	105, // 95: bonanza.model.starlark.Transition.user_defined:type_name -> bonanza.model.starlark.Transition.UserDefined
+	108, // 96: bonanza.model.starlark.Transition.unconfigured:type_name -> google.protobuf.Empty
+	50,  // 97: bonanza.model.starlark.CompiledProgram.FunctionEntry.leaf:type_name -> bonanza.model.starlark.CompiledProgram.FunctionEntry.Leaf
+	51,  // 98: bonanza.model.starlark.CompiledProgram.FunctionEntry.parent:type_name -> bonanza.model.starlark.CompiledProgram.FunctionEntry.Parent
+	73,  // 99: bonanza.model.starlark.CompiledProgram.FunctionEntry.Leaf.name:type_name -> bonanza.model.starlark.Function.Name
+	19,  // 100: bonanza.model.starlark.CompiledProgram.FunctionEntry.Leaf.code:type_name -> bonanza.model.starlark.Funcode
+	109, // 101: bonanza.model.starlark.CompiledProgram.FunctionEntry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	73,  // 102: bonanza.model.starlark.CompiledProgram.FunctionEntry.Parent.first_name:type_name -> bonanza.model.starlark.Function.Name
+	36,  // 103: bonanza.model.starlark.Aspect.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	37,  // 104: bonanza.model.starlark.Aspect.Definition.exec_groups:type_name -> bonanza.model.starlark.NamedExecGroup
+	18,  // 105: bonanza.model.starlark.Aspect.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	33,  // 106: bonanza.model.starlark.Aspect.Definition.required_providers:type_name -> bonanza.model.starlark.ProviderSet
+	33,  // 107: bonanza.model.starlark.Aspect.Definition.required_aspect_providers:type_name -> bonanza.model.starlark.ProviderSet
+	18,  // 108: bonanza.model.starlark.Aspect.Definition.propagation_predicate:type_name -> bonanza.model.starlark.Function
+	33,  // 109: bonanza.model.starlark.Attr.LabelOptions.providers:type_name -> bonanza.model.starlark.ProviderSet
+	48,  // 110: bonanza.model.starlark.Attr.LabelOptions.cfg:type_name -> bonanza.model.starlark.Transition
+	53,  // 111: bonanza.model.starlark.Attr.LabelOptions.allow_files:type_name -> bonanza.model.starlark.Attr.AllowFiles
+	55,  // 112: bonanza.model.starlark.Attr.IntListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	54,  // 113: bonanza.model.starlark.Attr.LabelType.value_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
+	55,  // 114: bonanza.model.starlark.Attr.LabelKeyedStringDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	54,  // 115: bonanza.model.starlark.Attr.LabelKeyedStringDictType.dict_key_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
+	55,  // 116: bonanza.model.starlark.Attr.LabelListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	54,  // 117: bonanza.model.starlark.Attr.LabelListType.list_value_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
+	55,  // 118: bonanza.model.starlark.Attr.OutputListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	55,  // 119: bonanza.model.starlark.Attr.StringDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	55,  // 120: bonanza.model.starlark.Attr.StringListType.list_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	55,  // 121: bonanza.model.starlark.Attr.StringKeyedLabelDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	54,  // 122: bonanza.model.starlark.Attr.StringKeyedLabelDictType.dict_value_options:type_name -> bonanza.model.starlark.Attr.LabelOptions
+	55,  // 123: bonanza.model.starlark.Attr.StringListDictType.dict_options:type_name -> bonanza.model.starlark.Attr.CompositeOptions
+	70,  // 124: bonanza.model.starlark.Dict.Entry.leaf:type_name -> bonanza.model.starlark.Dict.Entry.Leaf
+	71,  // 125: bonanza.model.starlark.Dict.Entry.parent:type_name -> bonanza.model.starlark.Dict.Entry.Parent
+	8,   // 126: bonanza.model.starlark.Dict.Entry.Leaf.key:type_name -> bonanza.model.starlark.Value
+	8,   // 127: bonanza.model.starlark.Dict.Entry.Leaf.value:type_name -> bonanza.model.starlark.Value
+	109, // 128: bonanza.model.starlark.Dict.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	109, // 129: bonanza.model.starlark.File.Owner.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	3,   // 130: bonanza.model.starlark.File.Owner.type:type_name -> bonanza.model.starlark.File.Owner.Type
+	75,  // 131: bonanza.model.starlark.Function.Closure.default_parameters:type_name -> bonanza.model.starlark.Function.Closure.DefaultParameter
+	8,   // 132: bonanza.model.starlark.Function.Closure.free_variables:type_name -> bonanza.model.starlark.Value
+	8,   // 133: bonanza.model.starlark.Function.Closure.DefaultParameter.value:type_name -> bonanza.model.starlark.Value
+	19,  // 134: bonanza.model.starlark.Funcode.NestedFunction.funcode:type_name -> bonanza.model.starlark.Funcode
+	8,   // 135: bonanza.model.starlark.List.Element.leaf:type_name -> bonanza.model.starlark.Value
+	78,  // 136: bonanza.model.starlark.List.Element.parent:type_name -> bonanza.model.starlark.List.Element.Parent
+	109, // 137: bonanza.model.starlark.List.Element.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	36,  // 138: bonanza.model.starlark.Macro.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	18,  // 139: bonanza.model.starlark.Macro.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	83,  // 140: bonanza.model.starlark.MacroExpansionContext.Definition.root_macro_instance_definition:type_name -> bonanza.model.starlark.MacroInstance.Definition
+	84,  // 141: bonanza.model.starlark.MacroExpansionContext.Definition.nested_macro_instances:type_name -> bonanza.model.starlark.MacroInstance.Entry
+	24,  // 142: bonanza.model.starlark.MacroExpansionContext.Entry.leaf:type_name -> bonanza.model.starlark.MacroExpansionContext
+	82,  // 143: bonanza.model.starlark.MacroExpansionContext.Entry.parent:type_name -> bonanza.model.starlark.MacroExpansionContext.Entry.Parent
+	109, // 144: bonanza.model.starlark.MacroExpansionContext.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	97,  // 145: bonanza.model.starlark.MacroInstance.Definition.public_attr_values:type_name -> bonanza.model.starlark.RuleTarget.PublicAttrValue
+	20,  // 146: bonanza.model.starlark.MacroInstance.Definition.inheritable_attrs:type_name -> bonanza.model.starlark.InheritableAttrs
+	4,   // 147: bonanza.model.starlark.MacroInstance.Definition.finalizer:type_name -> bonanza.model.starlark.MacroInstance.Finalizer
+	25,  // 148: bonanza.model.starlark.MacroInstance.Entry.leaf:type_name -> bonanza.model.starlark.MacroInstance
+	85,  // 149: bonanza.model.starlark.MacroInstance.Entry.parent:type_name -> bonanza.model.starlark.MacroInstance.Entry.Parent
+	109, // 150: bonanza.model.starlark.MacroInstance.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	31,  // 151: bonanza.model.starlark.ModuleExtension.NamedTagClass.tag_class:type_name -> bonanza.model.starlark.TagClass
+	88,  // 152: bonanza.model.starlark.PackageGroup.Package.subpackages:type_name -> bonanza.model.starlark.PackageGroup.Subpackages
+	109, // 153: bonanza.model.starlark.PackageGroup.Subpackages.overrides_external:type_name -> bonanza.model.core.DecodableReference
+	89,  // 154: bonanza.model.starlark.PackageGroup.Subpackages.overrides_inline:type_name -> bonanza.model.starlark.PackageGroup.Subpackages.Overrides
+	87,  // 155: bonanza.model.starlark.PackageGroup.Subpackages.Overrides.packages:type_name -> bonanza.model.starlark.PackageGroup.Package
+	91,  // 156: bonanza.model.starlark.Provider.InstanceProperties.computed_fields:type_name -> bonanza.model.starlark.Provider.InstanceProperties.ComputedField
+	18,  // 157: bonanza.model.starlark.Provider.InstanceProperties.ComputedField.function:type_name -> bonanza.model.starlark.Function
+	77,  // 158: bonanza.model.starlark.Struct.Fields.values:type_name -> bonanza.model.starlark.List.Element
+	30,  // 159: bonanza.model.starlark.TargetReference.Configured.providers:type_name -> bonanza.model.starlark.Struct
+	92,  // 160: bonanza.model.starlark.Repo.Definition.attr_values:type_name -> bonanza.model.starlark.Struct.Fields
+	36,  // 161: bonanza.model.starlark.RepositoryRule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	18,  // 162: bonanza.model.starlark.RepositoryRule.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	36,  // 163: bonanza.model.starlark.Rule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	13,  // 164: bonanza.model.starlark.Rule.Definition.build_setting:type_name -> bonanza.model.starlark.BuildSetting
+	105, // 165: bonanza.model.starlark.Rule.Definition.cfg_transition:type_name -> bonanza.model.starlark.Transition.UserDefined
+	37,  // 166: bonanza.model.starlark.Rule.Definition.exec_groups:type_name -> bonanza.model.starlark.NamedExecGroup
+	18,  // 167: bonanza.model.starlark.Rule.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	18,  // 168: bonanza.model.starlark.Rule.Definition.initializer:type_name -> bonanza.model.starlark.Function
+	5,   // 169: bonanza.model.starlark.Rule.Definition.type:type_name -> bonanza.model.starlark.Rule.Definition.Type
+	102, // 170: bonanza.model.starlark.RuleTarget.PublicAttrValue.value_parts:type_name -> bonanza.model.starlark.Select.Group
+	0,   // 171: bonanza.model.starlark.RuleTarget.Test.size:type_name -> bonanza.model.starlark.TestSize
+	1,   // 172: bonanza.model.starlark.RuleTarget.Test.timeout:type_name -> bonanza.model.starlark.TestTimeout
+	102, // 173: bonanza.model.starlark.RuleTarget.Test.shard_count:type_name -> bonanza.model.starlark.Select.Group
+	102, // 174: bonanza.model.starlark.RuleTarget.Test.args:type_name -> bonanza.model.starlark.Select.Group
+	100, // 175: bonanza.model.starlark.TestSuite.Test.parent:type_name -> bonanza.model.starlark.TestSuite.Test.Parent
+	109, // 176: bonanza.model.starlark.TestSuite.Test.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	8,   // 177: bonanza.model.starlark.Select.Condition.value:type_name -> bonanza.model.starlark.Value
+	101, // 178: bonanza.model.starlark.Select.Group.conditions:type_name -> bonanza.model.starlark.Select.Condition
+	8,   // 179: bonanza.model.starlark.Select.Group.no_match_value:type_name -> bonanza.model.starlark.Value
+	36,  // 180: bonanza.model.starlark.Subrule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	18,  // 181: bonanza.model.starlark.Subrule.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	9,   // 182: bonanza.model.starlark.Target.Definition.alias:type_name -> bonanza.model.starlark.Alias
+	21,  // 183: bonanza.model.starlark.Target.Definition.label_setting:type_name -> bonanza.model.starlark.LabelSetting
+	28,  // 184: bonanza.model.starlark.Target.Definition.package_group:type_name -> bonanza.model.starlark.PackageGroup
+	27,  // 185: bonanza.model.starlark.Target.Definition.predeclared_output_file_target:type_name -> bonanza.model.starlark.PredeclaredOutputFileTarget
+	41,  // 186: bonanza.model.starlark.Target.Definition.rule_target:type_name -> bonanza.model.starlark.RuleTarget
+	45,  // 187: bonanza.model.starlark.Target.Definition.source_file_target:type_name -> bonanza.model.starlark.SourceFileTarget
+	42,  // 188: bonanza.model.starlark.Target.Definition.test_suite:type_name -> bonanza.model.starlark.TestSuite
+	106, // 189: bonanza.model.starlark.Transition.UserDefined.definition:type_name -> bonanza.model.starlark.Transition.UserDefined.Definition
+	18,  // 190: bonanza.model.starlark.Transition.UserDefined.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	191, // [191:191] is the sub-list for method output_type
+	191, // [191:191] is the sub-list for method input_type
+	191, // [191:191] is the sub-list for extension type_name
+	191, // [191:191] is the sub-list for extension extendee
+	0,   // [0:191] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_starlark_starlark_proto_init() }
@@ -8207,7 +8268,7 @@ func file_bonanza_build_pkg_proto_model_starlark_starlark_proto_init() {
 		(*Aspect_Reference)(nil),
 		(*Aspect_Definition_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[4].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[5].OneofWrappers = []any{
 		(*Attr_Bool)(nil),
 		(*Attr_Int)(nil),
 		(*Attr_IntList)(nil),
@@ -8222,69 +8283,69 @@ func file_bonanza_build_pkg_proto_model_starlark_starlark_proto_init() {
 		(*Attr_StringKeyedLabelDict)(nil),
 		(*Attr_StringListDict)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[5].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[6].OneofWrappers = []any{
 		(*BuildSetting_Bool)(nil),
 		(*BuildSetting_Int)(nil),
 		(*BuildSetting_LabelList)(nil),
 		(*BuildSetting_String_)(nil),
 		(*BuildSetting_StringList)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[15].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[16].OneofWrappers = []any{
 		(*Macro_Reference)(nil),
 		(*Macro_Definition_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[31].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[32].OneofWrappers = []any{
 		(*RepositoryRule_Reference)(nil),
 		(*RepositoryRule_Definition_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[32].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[33].OneofWrappers = []any{
 		(*Rule_Reference)(nil),
 		(*Rule_Definition_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[38].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[39].OneofWrappers = []any{
 		(*Subrule_Reference)(nil),
 		(*Subrule_Definition_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[40].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[41].OneofWrappers = []any{
 		(*Transition_ExecGroup)(nil),
 		(*Transition_None)(nil),
 		(*Transition_Target)(nil),
 		(*Transition_UserDefined_)(nil),
 		(*Transition_Unconfigured)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[41].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[42].OneofWrappers = []any{
 		(*CompiledProgram_FunctionEntry_Leaf_)(nil),
 		(*CompiledProgram_FunctionEntry_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[61].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[62].OneofWrappers = []any{
 		(*Dict_Entry_Leaf_)(nil),
 		(*Dict_Entry_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[69].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[70].OneofWrappers = []any{
 		(*List_Element_Leaf)(nil),
 		(*List_Element_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[73].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[74].OneofWrappers = []any{
 		(*MacroExpansionContext_Entry_Leaf)(nil),
 		(*MacroExpansionContext_Entry_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[76].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[77].OneofWrappers = []any{
 		(*MacroInstance_Entry_Leaf)(nil),
 		(*MacroInstance_Entry_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[80].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[81].OneofWrappers = []any{
 		(*PackageGroup_Subpackages_OverridesExternal)(nil),
 		(*PackageGroup_Subpackages_OverridesInline)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[91].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[92].OneofWrappers = []any{
 		(*TestSuite_Test_Leaf)(nil),
 		(*TestSuite_Test_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[94].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[95].OneofWrappers = []any{
 		(*Select_Group_NoMatchValue)(nil),
 		(*Select_Group_NoMatchError)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[96].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[97].OneofWrappers = []any{
 		(*Target_Definition_Alias)(nil),
 		(*Target_Definition_LabelSetting)(nil),
 		(*Target_Definition_PackageGroup)(nil),
@@ -8293,7 +8354,7 @@ func file_bonanza_build_pkg_proto_model_starlark_starlark_proto_init() {
 		(*Target_Definition_SourceFileTarget)(nil),
 		(*Target_Definition_TestSuite)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[97].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[98].OneofWrappers = []any{
 		(*Transition_UserDefined_Identifier)(nil),
 		(*Transition_UserDefined_Definition_)(nil),
 	}
@@ -8303,7 +8364,7 @@ func file_bonanza_build_pkg_proto_model_starlark_starlark_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   99,
+			NumMessages:   100,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

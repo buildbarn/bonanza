@@ -661,6 +661,17 @@ message TargetOutputDefinition {
   }
 }
 
+// ConfiguredTarget analyzes a target in a given configuration.
+//
+// If no aspects are provided, the target is analyzed by invoking the
+// implementation function of its rule. Otherwise, the last aspect is
+// applied to the target by invoking the aspect's implementation
+// function. The implementation function is provided with the providers
+// of the target with all preceding aspects applied, and ctx.
+// ctx.rule.attr contains the values of the target's attrs, configured
+// in the same way as when the target itself is analyzed. For attrs
+// listed in the aspect's attr_aspects, the aspect is also applied to
+// the targets they reference.
 message ConfiguredTarget {
   message Key {
     // The label of the package. The label MUST include a canonical repo
@@ -680,16 +691,70 @@ message ConfiguredTarget {
     //
     // If this reference is not set, the target is configured without
     // any platform constraints and build settings in place.
+    //
+    // Aspects don't apply transitions to the target to which they are
+    // applied. They are thus evaluated in the same configuration as the
+    // target itself.
     bonanza.model.core.DecodableReference configuration_reference = 2
         [(bonanza.model.core.object_format) = {
           proto_list_type_name:
             "bonanza.model.analysis.BuildSettingOverride";
         }];
+
+    // The aspects that are applied to the target, in the order in which
+    // they are applied. If non-empty, the last aspect in this list is
+    // the one whose implementation function is invoked. The preceding
+    // aspects have already been applied, and their providers are
+    // visible to the last aspect if it lists them in
+    // required_aspect_providers.
+    //
+    // Aspects listed in an aspect's Aspect.Definition.requires MUST
+    // precede it in this list. This is validated when the aspect is
+    // applied. An aspect MUST NOT occur in this list more than once,
+    // not even with different parameters.
+    //
+    // When an aspect is applied to a target, the list of aspects to
+    // apply to a target referenced through one of its label attrs is
+    // computed as follows:
+    //
+    // 1. All aspects in this list whose Aspect.Definition.attr_aspects
+    //    contains the name of the attr are retained, in the same order.
+    // 2. The aspects listed in the attr's LabelOptions.aspects are
+    //    appended, each preceded by the aspects it requires through
+    //    Aspect.Definition.requires.
+    // 3. Aspects that occur more than once with identical parameters
+    //    are removed, retaining the first occurrence. It is an error
+    //    for an aspect to occur multiple times with different
+    //    parameters.
+    //
+    // Aspects that are listed in Aspect.Definition.toolchains_aspects
+    // are propagated to toolchains in a similar way.
+    //
+    // Callers SHOULD omit aspects that don't apply to the target, so
+    // that identical results are not computed under different keys.
+    repeated bonanza.model.starlark.AppliedAspect aspects = 3;
   }
 
   message Value {
-    // The values of the provider instances that this target produced,
-    // sorted alphabetically by provider identifier.
+    // The values of the provider instances that were produced by the
+    // rule if no aspects are provided, or by the last aspect otherwise,
+    // sorted alphabetically by provider identifier. Provider instances
+    // of the rule and preceding aspects are not included. Use
+    // TargetProviders to obtain the merged set of provider instances.
+    //
+    // This list is empty if the last aspect does not apply to the
+    // target, either because it is not a rule target, or because its
+    // rule does not advertise the aspect's required providers.
+    //
+    // Aspects never apply to file targets. If the target is a
+    // predeclared output file and the last aspect sets
+    // Aspect.Definition.apply_to_generating_rules, this list instead
+    // contains the provider instances that the last aspect yields when
+    // applied to the rule target that generates the output file. Only
+    // the aspects that set apply_to_generating_rules are applied to the
+    // rule target. As predeclared output files are configured in the
+    // same configuration as the rule target that generates them, the
+    // rule target is configured in the same configuration.
     repeated bonanza.model.starlark.Struct provider_instances = 1;
 
     message Output {
@@ -723,10 +788,10 @@ message ConfiguredTarget {
       }
     }
 
-    // The output directories, files and symbolic links that this target
-    // declared as part of its implementation function using
-    // ctx.actions.declare_{directory,file,symlink}(), or predeclared
-    // using attr.output{,_list}().
+    // The output directories, files and symbolic links that the rule or
+    // the last aspect declared as part of its implementation function
+    // using ctx.actions.declare_{directory,file,symlink}(), or
+    // predeclared using attr.output{,_list}().
     //
     // Outputs are stored in a B-tree, where entries are sorted
     // alphabetically by package relative path.
@@ -2617,6 +2682,10 @@ message TargetProvider {
 
     // The identifier of the provider whose value is requested.
     string provider_identifier = 3;
+
+    // Aspects that need to be applied to the target, using the same
+    // format as TargetProviders.Key.aspects.
+    repeated bonanza.model.starlark.AppliedAspect aspects = 4;
   }
 
   message Value {
@@ -2643,6 +2712,23 @@ message TargetProviders {
           proto_list_type_name:
             "bonanza.model.analysis.BuildSettingOverride";
         }];
+
+    // Aspects that need to be applied to the target, in the order in
+    // which they are applied, including aspects required by other
+    // aspects through Aspect.Definition.requires. The same constraints
+    // as ConfiguredTarget.Key.aspects apply.
+    //
+    // The provider instances of the target are merged with those of
+    // all aspects. Instances of OutputGroupInfo are merged by combining
+    // their fields, it being an error for multiple instances to provide
+    // the same output group. As aspects may not return DefaultInfo,
+    // the target's instance is used. It is an error for the target and
+    // aspects to provide instances of any other provider.
+    //
+    // Aspects are applied in the configuration yielded by the target's
+    // incoming edge transition. Aspects that don't apply to the target
+    // don't contribute any providers.
+    repeated bonanza.model.starlark.AppliedAspect aspects = 3;
   }
 
   message Value {

@@ -286,7 +286,132 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 	), nil
 }
 
+// computeConfiguredTargetValueWithAspects applies the last aspect in
+// the list of aspects provided in the key to the target.
+func (*baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAspects(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
+	targetLabel, err := label.NewCanonicalLabel(key.Message.Label)
+	if err != nil {
+		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
+	}
+	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+		Label: targetLabel.String(),
+	})
+	if !targetValue.IsSet() {
+		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+	if targetValue.Message.Definition == nil {
+		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("target does not exist")
+	}
+
+	aspects := key.Message.Aspects
+	switch targetKind := targetValue.Message.Definition.GetKind().(type) {
+	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
+		// Aspects never apply to file targets. However, aspects
+		// that set apply_to_generating_rules are applied to the
+		// rule target that generates the output file instead,
+		// and the providers they yield are attached to the
+		// output file. This is done as follows:
+		//
+		// 1. If the last aspect does not set
+		//    apply_to_generating_rules, it cannot yield any
+		//    providers for the output file. Return an empty
+		//    set of providers, without loading the definitions
+		//    of any of the preceding aspects.
+		//
+		// 2. Otherwise, remove all preceding aspects that don't
+		//    set apply_to_generating_rules, as those could not
+		//    have been applied to the output file either.
+		//
+		// 3. Apply the remaining aspects to the rule target
+		//    that generates the output file, and return the
+		//    providers yielded by the last aspect. These are the
+		//    same for all output files of the rule target, as
+		//    they are computed by a single ConfiguredTarget
+		//    whose key does not depend on the output file.
+		//
+		// Predeclared output files are configured in the same
+		// configuration as the rule target that generates them,
+		// meaning the rule target can be configured using the
+		// configuration of the output file. The providers of
+		// the rule target itself are not attached to the output
+		// file, as TargetProviders only merges the providers of
+		// the aspects with those of the output file target.
+		lastAspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(aspects[len(aspects)-1].Identifier)
+		if err != nil {
+			return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid aspect identifier: %w", err)
+		}
+		lastAspectDefinition, err := getAspectDefinition(e, lastAspectIdentifier)
+		if err != nil {
+			return PatchedConfiguredTargetValue[TMetadata]{}, err
+		}
+		if !lastAspectDefinition.Message.ApplyToGeneratingRules {
+			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ConfiguredTarget_Value{}), nil
+		}
+
+		missingDependencies := false
+		generatingRuleAspects := make([]*model_starlark_pb.AppliedAspect, 0, len(aspects))
+		for _, aspect := range aspects[:len(aspects)-1] {
+			aspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(aspect.Identifier)
+			if err != nil {
+				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid aspect identifier %#v: %w", aspect.Identifier, err)
+			}
+			aspectDefinition, err := getAspectDefinition(e, aspectIdentifier)
+			if err != nil {
+				if errors.Is(err, evaluation.ErrMissingDependency) {
+					missingDependencies = true
+					continue
+				}
+				return PatchedConfiguredTargetValue[TMetadata]{}, err
+			}
+			if aspectDefinition.Message.ApplyToGeneratingRules {
+				generatingRuleAspects = append(generatingRuleAspects, aspect)
+			}
+		}
+		if missingDependencies {
+			return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
+		}
+		generatingRuleAspects = append(generatingRuleAspects, aspects[len(aspects)-1])
+
+		ownerTargetName, err := label.NewTargetName(targetKind.PredeclaredOutputFileTarget.OwnerTargetName)
+		if err != nil {
+			return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid owner target name: %w", err)
+		}
+		ownerConfiguredTarget := e.GetConfiguredTargetValue(
+			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
+				return &model_analysis_pb.ConfiguredTarget_Key{
+					Label:                  targetLabel.GetCanonicalPackage().AppendTargetName(ownerTargetName).String(),
+					ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference)).Merge(patcher),
+					Aspects:                model_core.PatchList(e, model_core.Nested(key, generatingRuleAspects)).Merge(patcher),
+				}
+			}),
+		)
+		if !ownerConfiguredTarget.IsSet() {
+			return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
+		}
+		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value {
+			return &model_analysis_pb.ConfiguredTarget_Value{
+				ProviderInstances: model_core.PatchList(e, model_core.Nested(ownerConfiguredTarget, ownerConfiguredTarget.Message.ProviderInstances)).Merge(patcher),
+			}
+		}), nil
+	case *model_starlark_pb.Target_Definition_RuleTarget, *model_starlark_pb.Target_Definition_TestSuite:
+		// TODO: Add support for applying aspects.
+		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("applying aspects to rule targets is not supported yet")
+	default:
+		// Aspects never apply to package groups and source
+		// files.
+		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ConfiguredTarget_Value{}), nil
+	}
+}
+
+// ConfiguredTargetEnvironmentForTesting is used to generate mocks for
+// testing ComputeConfiguredTargetValue().
+type ConfiguredTargetEnvironmentForTesting ConfiguredTargetEnvironment[model_core.CreatedObjectTree, model_core.CreatedObjectTree]
+
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
+	if len(key.Message.Aspects) > 0 {
+		return c.computeConfiguredTargetValueWithAspects(ctx, key, e)
+	}
+
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 

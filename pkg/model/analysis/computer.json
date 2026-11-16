@@ -152,6 +152,7 @@
             "CompiledBzlFileGlobal",
             "ConfiguredRule",
             "ConfiguredRuleUsage",
+            "ConfiguredTarget",
             "DirectoryCreationParameters",
             "EmptyDefaultInfo",
             "ExecTransition",
@@ -822,6 +823,7 @@
       "TargetProviders": {
          "dependsOn": [
             "ConfiguredTarget",
+            "StarlarkValueEncoders",
             "TargetIncomingEdgeTransition"
          ],
          "keyContainsReferences": true

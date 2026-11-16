@@ -209,6 +209,36 @@ message Aspect {
   }
 }
 
+// An aspect that is applied to a target, together with the values of
+// its parameters. Sequences of these messages are used to identify the
+// aspects that are applied to a target, in the order in which they are
+// applied. Each aspect is able to see the providers of the aspects
+// preceding it, if they are listed in required_aspect_providers.
+message AppliedAspect {
+  // The Starlark identifier of the aspect.
+  string identifier = 1;
+
+  // Reference to an object containing the values of the public
+  // attributes of the aspect, keyed by attribute name. Values are
+  // either a bool, int or str. Attributes whose values are equal to
+  // their default value are omitted. If no attributes are set to
+  // values that differ from their default values, this field is not
+  // set.
+  //
+  // As this message is used as part of keys of analysis functions,
+  // parameters are stored in a separate object. This keeps keys small,
+  // even if lists of aspects are repeated across many keys. It also
+  // means that equal sets of parameters yield the same reference, as
+  // long as they are encoded deterministically. Values SHOULD thus be
+  // stored inline, as opposed to using parent elements or file
+  // contents stored in separate objects.
+  bonanza.model.core.DecodableReference parameters = 2
+      [(bonanza.model.core.object_format) = {
+        proto_type_name:
+          "bonanza.model.starlark.Struct.Fields";
+      }];
+}
+
 message Attr {
   // If set, the attribute is optional, and this field denotes the value
   // that is used if no explicit value is provided. The type of the
