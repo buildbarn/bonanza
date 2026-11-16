@@ -562,7 +562,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureSubrules(configured
 // resolved toolchains, so that accessing ctx.toolchains does not cause
 // any restarts of the implementation function. Any errors are reported
 // when the toolchain is accessed.
-func (a *ruleTargetAnalysis[TReference, TMetadata]) prefetchToolchains(execGroups []ruleContextExecGroupState) {
+func (a *ruleTargetAnalysis[TReference, TMetadata]) prefetchToolchains(execGroups []targetContextExecGroupState) {
 	for _, execGroup := range execGroups {
 		for _, toolchainIdentifier := range execGroup.toolchainIdentifiers {
 			if toolchainIdentifier != "" {
@@ -583,7 +583,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) prefetchToolchains(execGroup
 // that is invoked when the rule implementation function calls into a
 // subrule.
 func (a *ruleTargetAnalysis[TReference, TMetadata]) registerSubruleInvoker(
-	rc *ruleContext[TReference, TMetadata],
+	tc *targetContext[TReference, TMetadata],
 	subrules map[string]configuredSubrule[TReference],
 	ruleImplementationWrappers model_core.Message[*model_analysis_pb.RuleImplementationWrappers_Value, TReference],
 ) {
@@ -605,7 +605,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) registerSubruleInvoker(
 		implementationArgs := append(
 			[]eval.Value{
 				model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(subrule.definition, subrule.definition.Message.Implementation)),
-				&subruleContext[TReference, TMetadata]{ruleContext: rc},
+				&subruleContext[TReference, TMetadata]{targetContext: tc},
 			},
 			args.Positional...,
 		)
@@ -811,9 +811,9 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	execGroups := make([]ruleContextExecGroupState, 0, len(configuredRule.Message.ExecGroups))
+	execGroups := make([]targetContextExecGroupState, 0, len(configuredRule.Message.ExecGroups))
 	for _, execGroup := range configuredRule.Message.ExecGroups {
-		execGroups = append(execGroups, ruleContextExecGroupState{
+		execGroups = append(execGroups, targetContextExecGroupState{
 			platformPkixPublicKey: execGroup.PlatformPkixPublicKey,
 			toolchainIdentifiers:  execGroup.ToolchainIdentifiers,
 			toolchainInfos:        make([]eval.Value, len(execGroup.ToolchainIdentifiers)),
@@ -839,35 +839,38 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 	}
 
 	rc := &ruleContext[TReference, TMetadata]{
-		computer:                    c,
-		context:                     ctx,
-		valueEncodingOptionsFactory: valueEncodingOptionsFactory,
-		starlarkValueEncoders:       starlarkValueEncoders,
-		analysisEncoders:            analysisEncoders,
-		environment:                 e,
-		ruleIdentifier:              ruleIdentifier,
-		targetLabel:                 targetLabel,
-		configurationReference:      configurationReference,
-		ruleDefinition:              ruleDefinition,
-		ruleTarget:                  ruleTarget,
-		attr:                        model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.attrValues),
-		splitAttr:                   model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.splitAttrValues),
-		executable:                  model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.executableValues),
-		executableFileToFilesToRun:  a.executableFileToFilesToRun,
-		file:                        model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.fileValues),
-		files:                       model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.filesValues),
-		outputs:                     model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.outputsValues),
-		execGroups:                  execGroups,
-		outputRegistrar:             outputRegistrar,
-		actionEncoder:               actionEncoders.Encoder,
-		directoryCreationParameters: directoryCreationParameters,
-		fileCreationParameters:      fileCreationParameters,
+		targetContext: &targetContext[TReference, TMetadata]{
+			computer:                    c,
+			context:                     ctx,
+			environment:                 e,
+			valueEncodingOptionsFactory: valueEncodingOptionsFactory,
+			starlarkValueEncoders:       starlarkValueEncoders,
+			analysisEncoders:            analysisEncoders,
+			targetLabel:                 targetLabel,
+			configurationReference:      configurationReference,
+			namedExecGroups:             model_core.Nested(ruleDefinition, ruleDefinition.Message.ExecGroups),
+			execGroups:                  execGroups,
+			executableFileToFilesToRun:  a.executableFileToFilesToRun,
+			outputRegistrar:             outputRegistrar,
+			actionEncoder:               actionEncoders.Encoder,
+			directoryCreationParameters: directoryCreationParameters,
+			fileCreationParameters:      fileCreationParameters,
+		},
+		ruleIdentifier: ruleIdentifier,
+		ruleDefinition: ruleDefinition,
+		ruleTarget:     ruleTarget,
+		attr:           model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.attrValues),
+		splitAttr:      model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.splitAttrValues),
+		executable:     model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.executableValues),
+		file:           model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.fileValues),
+		files:          model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.filesValues),
+		outputs:        model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.outputsValues),
 	}
 	defer func() {
 		rc.actions.Discard()
 	}()
 
-	a.registerSubruleInvoker(rc, subrules, ruleImplementationWrappers)
+	a.registerSubruleInvoker(rc.targetContext, subrules, ruleImplementationWrappers)
 	identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
@@ -878,7 +881,7 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	return c.encodeRuleTargetValue(ctx, e, thread, analysisEncoders, valueEncodingOptionsFactory, emptyDefaultInfo, providerInstances, ruleDefinition.Message.Provides, outputRegistrar, rc)
+	return c.encodeRuleTargetValue(ctx, e, thread, analysisEncoders, valueEncodingOptionsFactory, emptyDefaultInfo, providerInstances, ruleDefinition.Message.Provides, outputRegistrar, rc.targetContext)
 }
 
 // checkProvides checks whether the implementation function of a rule
@@ -910,7 +913,7 @@ func (c *baseComputer[TReference, TMetadata]) encodeRuleTargetValue(
 	providerInstances []*model_starlark.Struct[TReference, TMetadata],
 	provides []string,
 	outputRegistrar *targetOutputRegistrar[TReference, TMetadata],
-	rc *ruleContext[TReference, TMetadata],
+	tc *targetContext[TReference, TMetadata],
 ) (PatchedConfiguredTargetValue[TMetadata], error) {
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.ConfiguredTarget_Value, error) {
 		// Convert list of providers to a map where the provider
@@ -1055,10 +1058,10 @@ func (c *baseComputer[TReference, TMetadata]) encodeRuleTargetValue(
 		)
 		defer actionsTreeBuilder.Discard()
 
-		slices.SortFunc(rc.actions, func(a, b model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]) int {
+		slices.SortFunc(tc.actions, func(a, b model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]) int {
 			return bytes.Compare(a.Message.Id, b.Message.Id)
 		})
-		for _, action := range rc.actions {
+		for _, action := range tc.actions {
 			if err := actionsTreeBuilder.PushChild(
 				model_core.MustBuildPatchedMessage(
 					func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
@@ -1360,33 +1363,45 @@ func (targetOutputRegistrar[TReference, TMetadata]) GetConcatenationOperator() s
 	return syntax.PLUS
 }
 
-type ruleContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+// targetContext contains the state that is shared by the ctx objects
+// that are provided to the implementation functions of rules, aspects
+// and subrules. This includes the ability to declare outputs and
+// actions, and to access the toolchains of exec groups.
+type targetContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	computer                    *baseComputer[TReference, TMetadata]
 	context                     context.Context
 	environment                 ConfiguredTargetEnvironment[TReference, TMetadata]
 	valueEncodingOptionsFactory *valueEncodingOptionsFactory[TReference, TMetadata]
 	starlarkValueEncoders       *StarlarkValueEncoders[TReference]
 	analysisEncoders            *AnalysisEncoders[TReference]
-	ruleIdentifier              label.CanonicalStarlarkIdentifier
 	targetLabel                 label.CanonicalLabel
 	configurationReference      model_core.Message[*model_core_pb.DecodableReference, TReference]
-	ruleDefinition              model_core.Message[*model_starlark_pb.Rule_Definition, TReference]
-	ruleTarget                  model_core.Message[*model_starlark_pb.RuleTarget, TReference]
-	attr                        eval.Value
-	splitAttr                   eval.Value
-	buildSettingValue           eval.Value
-	executable                  eval.Value
+	namedExecGroups             model_core.Message[[]*model_starlark_pb.NamedExecGroup, TReference]
+	execGroups                  []targetContextExecGroupState
 	executableFileToFilesToRun  map[*model_starlark.File[TReference, TMetadata]]model_core.Message[*model_starlark_pb.Struct, TReference]
-	file                        eval.Value
-	files                       eval.Value
-	outputs                     eval.Value
-	execGroups                  []ruleContextExecGroupState
-	tags                        eval.List
 	outputRegistrar             *targetOutputRegistrar[TReference, TMetadata]
 	actionEncoder               model_encoding.DeterministicBinaryEncoder
 	directoryCreationParameters *model_filesystem.DirectoryCreationParameters
 	fileCreationParameters      *model_filesystem.FileCreationParameters
 	actions                     model_core.PatchedMessageList[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]
+}
+
+// ruleContext is the ctx object that is provided to the
+// implementation function of a rule.
+type ruleContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	*targetContext[TReference, TMetadata]
+
+	ruleIdentifier    label.CanonicalStarlarkIdentifier
+	ruleDefinition    model_core.Message[*model_starlark_pb.Rule_Definition, TReference]
+	ruleTarget        model_core.Message[*model_starlark_pb.RuleTarget, TReference]
+	attr              eval.Value
+	splitAttr         eval.Value
+	buildSettingValue eval.Value
+	executable        eval.Value
+	file              eval.Value
+	files             eval.Value
+	outputs           eval.Value
+	tags              eval.List
 }
 
 var _ eval.HasAttrs = (*ruleContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
@@ -1408,8 +1423,8 @@ func (ruleContext[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
 func (rc *ruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	switch name {
 	case "actions":
-		return &ruleContextActions[TReference, TMetadata]{
-			ruleContext: rc,
+		return &targetContextActions[TReference, TMetadata]{
+			targetContext: rc.targetContext,
 		}, nil
 	case "attr":
 		return rc.attr, nil
@@ -1467,8 +1482,8 @@ func (rc *ruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name str
 		}
 		return rc.buildSettingValue, nil
 	case "exec_groups":
-		return &ruleContextExecGroups[TReference, TMetadata]{
-			ruleContext: rc,
+		return &targetContextExecGroups[TReference, TMetadata]{
+			targetContext: rc.targetContext,
 		}, nil
 	case "executable":
 		return rc.executable, nil
@@ -1536,7 +1551,7 @@ func (rc *ruleContext[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string,
 	return attrNames, nil
 }
 
-func (rc *ruleContext[TReference, TMetadata]) setOutputToStaticDirectory(output *targetOutput[TMetadata], capturableDirectory model_filesystem.CapturableDirectory[TMetadata, TMetadata]) error {
+func (rc *targetContext[TReference, TMetadata]) setOutputToStaticDirectory(output *targetOutput[TMetadata], capturableDirectory model_filesystem.CapturableDirectory[TMetadata, TMetadata]) error {
 	var createdDirectory model_filesystem.CreatedDirectory[TMetadata]
 	group, groupCtx := errgroup.WithContext(rc.context)
 	group.Go(func() error {
@@ -1568,7 +1583,7 @@ func (rc *ruleContext[TReference, TMetadata]) setOutputToStaticDirectory(output 
 
 // getFileOrFilesToRunProvider takes a File or a FilesToRunProvider and
 // returns it as a typed value.
-func (rc *ruleContext[TReference, TMetadata]) getFileOrFilesToRunProvider(thread *eval.Thread, value any) (*model_starlark.File[TReference, TMetadata], *model_starlark.Struct[TReference, TMetadata], error) {
+func (rc *targetContext[TReference, TMetadata]) getFileOrFilesToRunProvider(thread *eval.Thread, value any) (*model_starlark.File[TReference, TMetadata], *model_starlark.Struct[TReference, TMetadata], error) {
 	switch typedValue := value.(type) {
 	case *model_starlark.File[TReference, TMetadata]:
 		if filesToRun, ok := rc.executableFileToFilesToRun[typedValue]; ok {
@@ -1594,27 +1609,27 @@ func (rc *ruleContext[TReference, TMetadata]) getFileOrFilesToRunProvider(thread
 	}
 }
 
-type ruleContextActions[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	ruleContext *ruleContext[TReference, TMetadata]
+type targetContextActions[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	targetContext *targetContext[TReference, TMetadata]
 }
 
-var _ eval.HasAttrs = (*ruleContextActions[object.GlobalReference, model_core.ReferenceMetadata])(nil)
+var _ eval.HasAttrs = (*targetContextActions[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
 // Repr writes the representation of the value.
-func (ruleContextActions[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+func (targetContextActions[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
 	p.WriteString("<ctx.actions>")
 	return nil
 }
 
-func (ruleContextActions[TReference, TMetadata]) Type() string {
+func (targetContextActions[TReference, TMetadata]) Type() string {
 	return "ctx.actions"
 }
 
-func (ruleContextActions[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+func (targetContextActions[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
 	return true, nil
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
+func (rca *targetContextActions[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	switch name {
 	case "args":
 		return eval.NewBuiltin("ctx.actions.args", rca.doArgs), nil
@@ -1641,7 +1656,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) Attr(thread *eval.Thread, 
 	}
 }
 
-var ruleContextActionsAttrNames = []string{
+var targetContextActionsAttrNames = []string{
 	"args",
 	"declare_directory",
 	"declare_file",
@@ -1654,24 +1669,24 @@ var ruleContextActionsAttrNames = []string{
 	"write",
 }
 
-func (ruleContextActions[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
-	return ruleContextActionsAttrNames, nil
+func (targetContextActions[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
+	return targetContextActionsAttrNames, nil
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doArgs(thread *eval.Thread, b *eval.Builtin, arguments eval.Args) (eval.Value, error) {
+func (rca *targetContextActions[TReference, TMetadata]) doArgs(thread *eval.Thread, b *eval.Builtin, arguments eval.Args) (eval.Value, error) {
 	return &args[TReference, TMetadata]{
-		encoder:         rca.ruleContext.analysisEncoders.Encoder,
+		encoder:         rca.targetContext.analysisEncoders.Encoder,
 		paramFileFormat: model_analysis_pb.Args_Leaf_UseParamFile_SHELL,
 	}, nil
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doDeclareDirectory(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+func (rca *targetContextActions[TReference, TMetadata]) doDeclareDirectory(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	if len(args.Positional) > 1 {
 		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 	}
 	var filename label.TargetName
 	var sibling *model_starlark.File[TReference, TMetadata]
-	rc := rca.ruleContext
+	rc := rca.targetContext
 	if err := eval.UnpackArgs(
 		thread, b.Name(), args,
 		"filename", unpack.Bind(&filename, unpack.TargetName),
@@ -1683,13 +1698,13 @@ func (rca *ruleContextActions[TReference, TMetadata]) doDeclareDirectory(thread 
 	return rc.outputRegistrar.registerOutput(filename, sibling, model_starlark_pb.File_Owner_DIRECTORY)
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doDeclareFile(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+func (rca *targetContextActions[TReference, TMetadata]) doDeclareFile(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	if len(args.Positional) > 1 {
 		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 	}
 	var filename label.TargetName
 	var sibling *model_starlark.File[TReference, TMetadata]
-	rc := rca.ruleContext
+	rc := rca.targetContext
 	if err := eval.UnpackArgs(
 		thread, b.Name(), args,
 		"filename", unpack.Bind(&filename, unpack.TargetName),
@@ -1701,13 +1716,13 @@ func (rca *ruleContextActions[TReference, TMetadata]) doDeclareFile(thread *eval
 	return rc.outputRegistrar.registerOutput(filename, sibling, model_starlark_pb.File_Owner_FILE)
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doDeclareSymlink(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+func (rca *targetContextActions[TReference, TMetadata]) doDeclareSymlink(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	if len(args.Positional) > 1 {
 		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 	}
 	var filename label.TargetName
 	var sibling *model_starlark.File[TReference, TMetadata]
-	rc := rca.ruleContext
+	rc := rca.targetContext
 	if err := eval.UnpackArgs(
 		thread, b.Name(), args,
 		"filename", unpack.Bind(&filename, unpack.TargetName),
@@ -1719,7 +1734,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doDeclareSymlink(thread *e
 	return rc.outputRegistrar.registerOutput(filename, sibling, model_starlark_pb.File_Owner_SYMLINK)
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doExpandTemplate(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+func (rca *targetContextActions[TReference, TMetadata]) doExpandTemplate(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	if len(args.Positional) != 0 {
 		return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
 	}
@@ -1727,7 +1742,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doExpandTemplate(thread *e
 	var template *model_starlark.File[TReference, TMetadata]
 	isExecutable := false
 	var substitutions map[string][]byte
-	rc := rca.ruleContext
+	rc := rca.targetContext
 	if err := eval.UnpackArgs(
 		thread, b.Name(), args,
 		// Required arguments.
@@ -1812,7 +1827,7 @@ func promoteStringArgumentsToArgs[TMetadata model_core.ReferenceMetadata](
 // newFilesToRunProviderFromStruct converts a Starlark
 // FilesToRunProvider object to a Protobuf message, so that it may be
 // embedded in a target action definition.
-func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(thread *eval.Thread, s *model_starlark.Struct[TReference, TMetadata]) (model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata], *model_starlark.File[TReference, TMetadata], error) {
+func (rc *targetContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(thread *eval.Thread, s *model_starlark.Struct[TReference, TMetadata]) (model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata], *model_starlark.File[TReference, TMetadata], error) {
 	// Unpack individual struct fields.
 	type filesToRunProviderFields struct {
 		executable           *model_starlark.File[TReference, TMetadata]
@@ -1939,7 +1954,7 @@ func (rc *ruleContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(th
 	return patchedFilesToRunProvider, fields.executable, err
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread, b *eval.Builtin, fnArgs eval.Args) (eval.Value, error) {
+func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Thread, b *eval.Builtin, fnArgs eval.Args) (eval.Value, error) {
 	if len(fnArgs.Positional) != 0 {
 		return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(fnArgs.Positional))
 	}
@@ -1960,7 +1975,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 	var toolchain *label.ResolvedLabel
 	var tools []any
 	useDefaultShellEnv := false
-	rc := rca.ruleContext
+	rc := rca.targetContext
 	if err := eval.UnpackArgs(
 		thread, b.Name(), fnArgs,
 		// Required arguments.
@@ -2202,7 +2217,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doRun(thread *eval.Thread,
 		return nil, err
 	}
 
-	execGroups := rc.ruleDefinition.Message.ExecGroups
+	execGroups := rc.namedExecGroups.Message
 	execGroupIndex, ok := sort.Find(
 		len(execGroups),
 		func(i int) int { return strings.Compare(execGroup, execGroups[i].Name) },
@@ -2506,14 +2521,14 @@ func (singleSymlinkDirectory[TFile, TDirectory]) OpenForFileMerkleTreeCreation(n
 	panic("directory only contains a symlink")
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doSymlink(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+func (rca *targetContextActions[TReference, TMetadata]) doSymlink(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	var output *targetOutput[TMetadata]
 	var targetFile *model_starlark.File[TReference, TMetadata]
 	var targetPath path.Parser
 	isExecutable := false
 	progressMessage := ""
 	useExecRootForSource := false
-	rc := rca.ruleContext
+	rc := rca.targetContext
 	if err := eval.UnpackArgs(
 		thread, b.Name(), args,
 		"output", unpack.Bind(&output, rc.outputRegistrar),
@@ -2577,11 +2592,11 @@ func (rca *ruleContextActions[TReference, TMetadata]) doSymlink(thread *eval.Thr
 	)
 }
 
-func (ruleContextActions[TReference, TMetadata]) doTransformInfoFile(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+func (targetContextActions[TReference, TMetadata]) doTransformInfoFile(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	return eval.None, nil
 }
 
-func (ruleContextActions[TReference, TMetadata]) doTransformVersionFile(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+func (targetContextActions[TReference, TMetadata]) doTransformVersionFile(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 	return eval.None, nil
 }
 
@@ -2623,7 +2638,7 @@ func (d *singleFileDirectory[TFile, TDirectory]) OpenForFileMerkleTreeCreation(n
 	return d.file, nil
 }
 
-func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *eval.Thread, b *eval.Builtin, fnArgs eval.Args) (eval.Value, error) {
+func (rca *targetContextActions[TReference, TMetadata]) doWrite(thread *eval.Thread, b *eval.Builtin, fnArgs eval.Args) (eval.Value, error) {
 	if len(fnArgs.Positional) > 3 {
 		return nil, fmt.Errorf("%s: got %d positional arguments, want at most 3", b.Name(), len(fnArgs.Positional))
 	}
@@ -2631,7 +2646,7 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *eval.Threa
 	var content any
 	isExecutable := false
 	mnemonic := ""
-	rc := rca.ruleContext
+	rc := rca.targetContext
 	if err := eval.UnpackArgs(
 		thread, b.Name(), fnArgs,
 		"output", unpack.Bind(&output, rc.outputRegistrar),
@@ -2705,34 +2720,34 @@ func (rca *ruleContextActions[TReference, TMetadata]) doWrite(thread *eval.Threa
 	}
 }
 
-type ruleContextExecGroups[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	ruleContext *ruleContext[TReference, TMetadata]
+type targetContextExecGroups[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	targetContext *targetContext[TReference, TMetadata]
 }
 
-var _ eval.Mapping = (*ruleContextExecGroups[object.GlobalReference, model_core.ReferenceMetadata])(nil)
+var _ eval.Mapping = (*targetContextExecGroups[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
 // Repr writes the representation of the value.
-func (ruleContextExecGroups[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+func (targetContextExecGroups[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
 	p.WriteString("<ctx.exec_groups>")
 	return nil
 }
 
-func (ruleContextExecGroups[TReference, TMetadata]) Type() string {
+func (targetContextExecGroups[TReference, TMetadata]) Type() string {
 	return "ctx.exec_groups"
 }
 
-func (ruleContextExecGroups[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+func (targetContextExecGroups[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
 	return true, nil
 }
 
-func (rca *ruleContextExecGroups[TReference, TMetadata]) Get(thread *eval.Thread, key eval.Value) (eval.Value, bool, error) {
+func (rca *targetContextExecGroups[TReference, TMetadata]) Get(thread *eval.Thread, key eval.Value) (eval.Value, bool, error) {
 	var execGroupName string
 	if err := unpack.String.UnpackInto(thread, key, &execGroupName); err != nil {
 		return nil, false, err
 	}
 
-	rc := rca.ruleContext
-	execGroups := rc.ruleDefinition.Message.ExecGroups
+	rc := rca.targetContext
+	execGroups := rc.namedExecGroups.Message
 	execGroupIndex, ok := sort.Find(
 		len(execGroups),
 		func(i int) int { return strings.Compare(execGroupName, execGroups[i].Name) },
@@ -2742,14 +2757,14 @@ func (rca *ruleContextExecGroups[TReference, TMetadata]) Get(thread *eval.Thread
 	}
 	return model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
 		"toolchains": &toolchainContext[TReference, TMetadata]{
-			ruleContext:    rc,
+			targetContext:  rc,
 			execGroupIndex: execGroupIndex,
 		},
 	}), true, nil
 }
 
 type toolchainContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	ruleContext    *ruleContext[TReference, TMetadata]
+	targetContext  *targetContext[TReference, TMetadata]
 	execGroupIndex int
 }
 
@@ -2770,7 +2785,7 @@ func (toolchainContext[TReference, TMetadata]) Truth(*eval.Thread) (bool, error)
 }
 
 func (tc *toolchainContext[TReference, TMetadata]) Get(thread *eval.Thread, v eval.Value) (eval.Value, bool, error) {
-	rc := tc.ruleContext
+	rc := tc.targetContext
 	currentFilePackage, err := model_starlark.CurrentFilePackage(thread)
 	if err != nil {
 		return nil, false, err
@@ -2781,10 +2796,10 @@ func (tc *toolchainContext[TReference, TMetadata]) Get(thread *eval.Thread, v ev
 		return nil, false, err
 	}
 
-	namedExecGroup := rc.ruleDefinition.Message.ExecGroups[tc.execGroupIndex]
+	namedExecGroup := rc.namedExecGroups.Message[tc.execGroupIndex]
 	execGroupDefinition := namedExecGroup.ExecGroup
 	if execGroupDefinition == nil {
-		return nil, false, errors.New("rule definition lacks exec group definition")
+		return nil, false, errors.New("missing definition of exec group")
 	}
 
 	toolchains := execGroupDefinition.Toolchains
@@ -2837,7 +2852,7 @@ func (tc *toolchainContext[TReference, TMetadata]) Get(thread *eval.Thread, v ev
 	return toolchainInfo, true, nil
 }
 
-type ruleContextExecGroupState struct {
+type targetContextExecGroupState struct {
 	platformPkixPublicKey []byte
 	toolchainIdentifiers  []string
 	toolchainInfos        []eval.Value
@@ -3250,14 +3265,14 @@ func (a *args[TReference, TMetadata]) doUseParamFile(thread *eval.Thread, b *eva
 }
 
 type subruleContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	ruleContext *ruleContext[TReference, TMetadata]
+	targetContext *targetContext[TReference, TMetadata]
 }
 
 var _ eval.HasAttrs = (*subruleContext[object.GlobalReference, model_core.ReferenceMetadata])(nil)
 
 // Repr writes the representation of the value.
 func (sc *subruleContext[TReference, TMetadata]) Repr(_ *eval.Thread, printer *eval.Printer) error {
-	printer.WriteString(fmt.Sprintf("<subrule_ctx for %s>", sc.ruleContext.targetLabel.String()))
+	printer.WriteString(fmt.Sprintf("<subrule_ctx for %s>", sc.targetContext.targetLabel.String()))
 	return nil
 }
 
@@ -3271,11 +3286,11 @@ func (subruleContext[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
 
 func (sc *subruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	// TODO: Add subrule_ctx.toolchains.
-	rc := sc.ruleContext
+	rc := sc.targetContext
 	switch name {
 	case "actions":
-		return &ruleContextActions[TReference, TMetadata]{
-			ruleContext: rc,
+		return &targetContextActions[TReference, TMetadata]{
+			targetContext: rc,
 		}, nil
 	case "label":
 		return model_starlark.NewLabel[TReference, TMetadata](rc.targetLabel.AsResolved()), nil
