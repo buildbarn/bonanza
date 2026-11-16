@@ -78,6 +78,7 @@ go_library(
 go_test(
     name = "starlark_test",
     srcs = [
+        "aspect_test.go",
         "attr_test.go",
         "attr_value_builder_test.go",
         "dict_test.go",

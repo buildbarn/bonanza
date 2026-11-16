@@ -285,42 +285,128 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 		"aspect": eval.NewBuiltin(
 			"aspect",
 			func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+				currentFilePackage, err := CurrentFilePackage(thread)
+				if err != nil {
+					return nil, err
+				}
 				if len(args.Positional) > 1 {
 					return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 				}
 				var implementation eval.Function
+				applyToGeneratingRules := false
 				var attrAspects []string
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				doc := ""
+				var execCompatibleWith []pg_label.ResolvedLabel
 				execGroups := map[string]*ExecGroup[TReference, TMetadata]{}
-				var fragments []string
+				var fragments []pg_label.TargetName
+				var hostFragments []string
+				var propagationPredicate eval.Function
 				var provides []*Provider[TReference, TMetadata]
 				var requiredAspectProviders [][]*Provider[TReference, TMetadata]
-				var requiredProviders [][]*Provider[TReference, TMetadata]
+				requiredProviders := [][]*Provider[TReference, TMetadata]{{}}
 				var requires []*Aspect[TReference, TMetadata]
+				var subrules []*Subrule[TReference, TMetadata]
 				var toolchains []*ToolchainType[TReference, TMetadata]
+				var toolchainsAspects []pg_label.ResolvedLabel
 				if err := eval.UnpackArgs(
 					thread, b.Name(), args,
 					// Positional arguments.
 					"implementation", unpack.Bind(&implementation, functionUnpackerInto),
 					// Keyword arguments.
+					"apply_to_generating_rules?", unpack.Bind(&applyToGeneratingRules, unpack.Bool),
 					"attr_aspects?", unpack.Bind(&attrAspects, unpack.List(unpack.String)),
 					"attrs?", unpack.Bind(&attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
-					"doc?", unpack.Bind(&doc, unpack.String),
-					"exec_groups?", unpack.Bind(&execGroups, unpack.Dict(unpack.String, unpack.Type[*ExecGroup[TReference, TMetadata]]("exec_group"))),
-					"fragments?", unpack.Bind(&fragments, unpack.List(unpack.String)),
+					"doc?", unpack.Bind(&doc, unpack.IfNotNone(unpack.String)),
+					"exec_compatible_with?", unpack.Bind(&execCompatibleWith, unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage))),
+					"exec_groups?", unpack.Bind(&execGroups, unpack.IfNotNone(unpack.Dict(unpack.String, unpack.Type[*ExecGroup[TReference, TMetadata]]("exec_group")))),
+					"fragments?", unpack.Bind(&fragments, unpack.List(unpack.TargetName)),
+					"host_fragments?", unpack.Bind(&hostFragments, unpack.List(unpack.String)),
+					"propagation_predicate?", unpack.Bind(&propagationPredicate, unpack.IfNotNone(functionUnpackerInto)),
 					"provides?", unpack.Bind(&provides, unpack.List(unpack.Type[*Provider[TReference, TMetadata]]("provider"))),
 					"required_aspect_providers?", unpack.Bind(&requiredAspectProviders, providersListUnpackerInto),
 					"required_providers?", unpack.Bind(&requiredProviders, providersListUnpackerInto),
 					"requires?", unpack.Bind(&requires, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("Aspect"))),
+					"subrules?", unpack.Bind(&subrules, unpack.List(unpack.Type[*Subrule[TReference, TMetadata]]("subrule"))),
 					"toolchains?", unpack.Bind(&toolchains, unpack.List(toolchainTypeUnpackerInto)),
+					"toolchains_aspects?", unpack.Bind(&toolchainsAspects, unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage))),
 				); err != nil {
 					return nil, err
 				}
 				if err := checkAttrsConfigurable(attrs); err != nil {
 					return nil, fmt.Errorf("%s: %w", b.Name(), err)
 				}
-				return NewAspect[TReference, TMetadata](nil, &model_starlark_pb.Aspect_Definition{}), nil
+
+				// Unlike for rules, a list of providers that
+				// is empty means that the aspect does not see
+				// providers of any other aspects. Only accept
+				// the providers of other aspects if a set is
+				// provided explicitly.
+				if len(requiredAspectProviders) == 1 && len(requiredAspectProviders[0]) == 0 {
+					requiredAspectProviders = nil
+				}
+				encodedRequiredProviders, err := EncodeProviderSets(requiredProviders)
+				if err != nil {
+					return nil, fmt.Errorf("%s: for parameter required_providers: %w", b.Name(), err)
+				}
+				encodedRequiredAspectProviders, err := EncodeProviderSets(requiredAspectProviders)
+				if err != nil {
+					return nil, fmt.Errorf("%s: for parameter required_aspect_providers: %w", b.Name(), err)
+				}
+				encodedProvides, err := EncodeProviderIdentifiers(provides)
+				if err != nil {
+					return nil, fmt.Errorf("%s: for parameter provides: %w", b.Name(), err)
+				}
+
+				// Toolchains provided to aspect() are added to
+				// the default exec group.
+				if _, ok := execGroups[""]; ok {
+					return nil, errors.New("cannot explicitly declare exec_group with name \"\"")
+				}
+				execGroups[""] = NewExecGroup(execCompatibleWith, toolchains)
+
+				// Inject the same private attrs as for rules,
+				// so that ctx.configuration, ctx.fragments,
+				// ctx.var and
+				// ctx.target_platform_has_constraint() can
+				// be implemented identically. Unlike rules,
+				// aspects don't get a public "toolchains" attr,
+				// as public attrs are parameters of aspects.
+				for _, injectedAttr := range []struct {
+					identifier pg_label.StarlarkIdentifier
+					attr       *Attr[TReference, TMetadata]
+				}{
+					{configurationAttrIdentifier, configurationAttr},
+					{defaultToolchainsAttrIdentifier, defaultToolchainsAttr},
+					{targetPlatformAttrIdentifier, targetPlatformAttr},
+				} {
+					if _, ok := attrs[injectedAttr.identifier]; ok {
+						return nil, fmt.Errorf("attr %#v cannot be declared explicitly", injectedAttr.identifier.String())
+					}
+					attrs[injectedAttr.identifier] = injectedAttr.attr
+				}
+				if err := convertFragmentsToAttr(fragments, attrs, targetTransitionDefinition); err != nil {
+					return nil, err
+				}
+
+				definition, err := NewStarlarkAspectDefinition(
+					attrs,
+					attrAspects,
+					execGroups,
+					implementation,
+					encodedRequiredProviders,
+					encodedRequiredAspectProviders,
+					encodedProvides,
+					requires,
+					applyToGeneratingRules,
+					subrules,
+					toolchainsAspects,
+					propagationPredicate,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("%s: %w", b.Name(), err)
+				}
+				return NewAspect[TReference, TMetadata](nil, definition), nil
 			},
 		),
 		"attr": NewStructFromDict[TReference, TMetadata](nil, map[string]any{
@@ -461,7 +547,12 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if err != nil {
 						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
 					}
+					encodedAspects, err := encodeAspectIdentifiers(aspects)
+					if err != nil {
+						return nil, fmt.Errorf("%s: for parameter aspects: %w", b.Name(), err)
+					}
 					labelOptions := LabelOptions[TReference, TMetadata]{
+						Aspects:    encodedAspects,
 						AllowFiles: allowFiles,
 						Cfg:        cfg,
 						Providers:  encodedProviders,
@@ -521,7 +612,12 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if err != nil {
 						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
 					}
+					encodedAspects, err := encodeAspectIdentifiers(aspects)
+					if err != nil {
+						return nil, fmt.Errorf("%s: for parameter aspects: %w", b.Name(), err)
+					}
 					labelOptions := LabelOptions[TReference, TMetadata]{
+						Aspects:    encodedAspects,
 						AllowFiles: allowFiles,
 						Cfg:        cfg,
 						Providers:  encodedProviders,
@@ -585,7 +681,12 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if err != nil {
 						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
 					}
+					encodedAspects, err := encodeAspectIdentifiers(aspects)
+					if err != nil {
+						return nil, fmt.Errorf("%s: for parameter aspects: %w", b.Name(), err)
+					}
 					labelOptions := LabelOptions[TReference, TMetadata]{
+						Aspects:    encodedAspects,
 						AllowFiles: allowFiles,
 						Cfg:        cfg,
 						Providers:  encodedProviders,
@@ -773,7 +874,12 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if err != nil {
 						return nil, fmt.Errorf("%s: for parameter providers: %w", b.Name(), err)
 					}
+					encodedAspects, err := encodeAspectIdentifiers(aspects)
+					if err != nil {
+						return nil, fmt.Errorf("%s: for parameter aspects: %w", b.Name(), err)
+					}
 					labelOptions := LabelOptions[TReference, TMetadata]{
+						Aspects:    encodedAspects,
 						AllowFiles: allowFiles,
 						Cfg:        cfg,
 						Providers:  encodedProviders,

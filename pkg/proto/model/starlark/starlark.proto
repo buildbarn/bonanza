@@ -104,7 +104,103 @@ message Alias {
 }
 
 message Aspect {
-  message Definition {}
+  message Definition {
+    // Attributes of the aspect, sorted by name.
+    //
+    // Public attributes are parameters of the aspect. Their values are
+    // taken from the attributes with the same name of the rule target
+    // that requests the aspect to be applied, or from the command line
+    // for aspects applied to top-level targets. Public attributes MUST
+    // be of type bool, int or string.
+    //
+    // Private attributes MUST have a default value. Label attributes
+    // MUST NOT use user-defined transitions. This guarantees that their
+    // values only depend on the aspect and the configuration in which
+    // it is applied, as is the case for subrules.
+    //
+    // Like for rules, private attributes are injected for providing
+    // ctx.configuration, ctx.fragments, ctx.var and
+    // ctx.target_platform_has_constraint().
+    repeated NamedAttr attrs = 1;
+
+    // Names of the attributes of rules along which the aspect
+    // propagates, sorted alphabetically. If the aspect is applied to a
+    // target, it is also applied to all targets referenced through
+    // these attributes.
+    //
+    // If this list contains "*", the aspect propagates along all
+    // attributes. In that case "*" MUST be the only element of the
+    // list. Lists such as ["*", "foo"] are invalid.
+    repeated string attr_aspects = 2;
+
+    // Execution groups of the aspect, sorted by name. The toolchains
+    // and execution constraints provided to aspect() are added to the
+    // default execution group, which is identified by the empty name.
+    repeated NamedExecGroup exec_groups = 3;
+
+    // Starlark function that implements this aspect. It is invoked
+    // with the target to which the aspect is applied and ctx as
+    // arguments. Unlike the implementation functions of rules, it MUST
+    // NOT return an instance of DefaultInfo.
+    Function implementation = 4;
+
+    // Sets of providers that the rule of a target needs to advertise
+    // through Rule.Definition.provides for the aspect to be applied. The
+    // aspect is applied if all providers of at least one of the sets
+    // are advertised. Sets are encoded in the same way as
+    // Attr.LabelOptions.providers, meaning that a single empty set
+    // causes the aspect to be applied to targets of all rules. This is
+    // the default if no required providers are specified.
+    repeated ProviderSet required_providers = 5;
+
+    // Sets of providers that other aspects applied to the same target
+    // need to advertise through Aspect.Definition.provides, for this
+    // aspect to see their providers. Sets are encoded in the same way
+    // as required_providers. Unlike required_providers, this list is
+    // empty by default, meaning that the providers of other aspects
+    // are not visible.
+    repeated ProviderSet required_aspect_providers = 6;
+
+    // Identifiers of providers that the implementation function must
+    // return, sorted alphabetically.
+    repeated string provides = 7;
+
+    // Identifiers of aspects that need to be applied to a target before
+    // this aspect, in the order in which they are provided to
+    // aspect(requires = ...). Duplicates are removed.
+    repeated string requires = 8;
+
+    // If set, the aspect is applied to the rule target that generates
+    // a predeclared output file when the output file is referenced, as
+    // opposed to being skipped.
+    bool apply_to_generating_rules = 9;
+
+    // Identifiers of subrules that may be invoked by the implementation
+    // function of this aspect, sorted alphabetically.
+    repeated string subrule_identifiers = 10;
+
+    // Labels of toolchain types, sorted alphabetically. If the aspect
+    // is applied to a target, it is also applied to the toolchains of
+    // these types that were resolved for the target, meaning their
+    // providers are visible through ctx.rule.toolchains.
+    repeated string toolchains_aspects = 11;
+
+    // If set, a Starlark function that is invoked prior to applying
+    // the aspect to a target. It is invoked with a context object as
+    // its argument, providing access to the label and kind of the
+    // target's rule through ctx.rule, and the aspect's parameters
+    // through ctx.attr. If it returns False, the aspect is not applied
+    // to the target, and is thus also not propagated further.
+    //
+    // This is complementary to attr_aspects and required_providers.
+    // attr_aspects controls along which edges the aspect propagates,
+    // while required_providers and this function control whether the
+    // aspect is applied to the targets reached.
+    //
+    // Like Bazel, this feature is experimental, and its semantics may
+    // change over time.
+    Function propagation_predicate = 12;
+  }
 
   oneof kind {
     string reference = 1;
@@ -181,6 +277,11 @@ message Attr {
     // empty set is the only set in the list if present.
     repeated ProviderSet providers = 1;
 
+    // Identifiers of aspects that need to be applied to the targets
+    // referenced by this attribute, in the order in which they are
+    // provided to attr.label(aspects = ...). Duplicates are removed.
+    // Aspects required by these aspects through
+    // Aspect.Definition.requires are not included.
     repeated string aspects = 2;
 
     // The transition to apply when configuring the target associated

@@ -28,7 +28,7 @@ func decodeFunctionValue[TReference object.BasicReference, TMetadata model_core.
 			if currentIdentifier == nil {
 				return nil, errors.New("encoded aspect does not have a name")
 			}
-			return NewAspect[TReference, TMetadata](currentIdentifier, aspectKind.Definition), nil
+			return NewAspect(currentIdentifier, NewProtoAspectDefinition[TReference, TMetadata]()), nil
 		default:
 			return nil, errors.New("encoded aspect does not have a reference or definition")
 		}

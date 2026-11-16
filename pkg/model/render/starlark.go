@@ -153,7 +153,7 @@ func (sr *StarlarkRenderer) renderMaybeInlineFileContents(contents model_core.Me
 func (sr *StarlarkRenderer) renderValue(value model_core.Message[*model_starlark_pb.Value, object.LocalReference]) Doc {
 	switch kind := value.Message.GetKind().(type) {
 	case *model_starlark_pb.Value_Aspect:
-		return starlarkOpaqueIdentifier("aspect", kind.Aspect.GetReference())
+		return sr.renderAspect(model_core.Nested(value, kind.Aspect))
 	case *model_starlark_pb.Value_Attr:
 		return sr.renderAttr(model_core.Nested(value, kind.Attr))
 	case *model_starlark_pb.Value_Bool:
@@ -257,16 +257,8 @@ func (sr *StarlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_p
 		}
 		// Omit providers if they are set to the default value,
 		// being a single empty set that is satisfied by any target.
-		if providerSets := labelOptions.GetProviders(); len(providerSets) != 1 || len(providerSets[0].ProviderIdentifiers) > 0 {
-			elements := make([]Doc, 0, len(providerSets))
-			for _, providerSet := range providerSets {
-				providers := make([]Doc, 0, len(providerSet.ProviderIdentifiers))
-				for _, provider := range providerSet.ProviderIdentifiers {
-					providers = append(providers, starlarkOpaqueIdentifier("provider", provider))
-				}
-				elements = append(elements, Sequence(Text("["), Text("]"), providers, true, false))
-			}
-			arguments = append(arguments, starlarkKeywordArgument("providers", Sequence(Text("["), Text("]"), elements, true, false)))
+		if providerSets := labelOptions.GetProviders(); !isAnyProviderSets(providerSets) {
+			arguments = append(arguments, starlarkKeywordArgument("providers", renderProviderSets(providerSets)))
 		}
 		if aspects := labelOptions.GetAspects(); len(aspects) > 0 {
 			elements := make([]Doc, 0, len(aspects))
@@ -844,6 +836,89 @@ func (sr *StarlarkRenderer) renderMacro(macro model_core.Message[*model_starlark
 	}
 }
 
+// isAnyProviderSets returns true if a list of provider sets only
+// contains a single empty set, meaning it is satisfied by any target.
+func isAnyProviderSets(providerSets []*model_starlark_pb.ProviderSet) bool {
+	return len(providerSets) == 1 && len(providerSets[0].ProviderIdentifiers) == 0
+}
+
+// renderProviderSets renders a list of provider sets, as accepted by
+// attr.label(providers = ...) and aspect(required_providers = ...), in
+// normal form.
+func renderProviderSets(providerSets []*model_starlark_pb.ProviderSet) Doc {
+	elements := make([]Doc, 0, len(providerSets))
+	for _, providerSet := range providerSets {
+		elements = append(elements, starlarkIdentifierList("provider", providerSet.ProviderIdentifiers))
+	}
+	return Sequence(Text("["), Text("]"), elements, true, false)
+}
+
+func (sr *StarlarkRenderer) renderAspect(aspect model_core.Message[*model_starlark_pb.Aspect, object.LocalReference]) Doc {
+	switch kind := aspect.Message.GetKind().(type) {
+	case *model_starlark_pb.Aspect_Reference:
+		return starlarkOpaqueIdentifier("aspect", kind.Reference)
+	case *model_starlark_pb.Aspect_Definition_:
+		definition := kind.Definition
+		var arguments []Doc
+		if implementation := definition.Implementation; implementation != nil {
+			arguments = append(arguments, starlarkKeywordArgument("implementation", sr.renderFunction(implementation)))
+		}
+		if definition.ApplyToGeneratingRules {
+			arguments = append(arguments, starlarkKeywordArgument("apply_to_generating_rules", starlarkBool(true)))
+		}
+		if len(definition.AttrAspects) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("attr_aspects", starlarkStringList(definition.AttrAspects)))
+		}
+		if len(definition.Attrs) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(aspect, definition.Attrs))))
+		}
+		if len(definition.ExecGroups) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("exec_groups", sr.renderNamedExecGroups(definition.ExecGroups)))
+		}
+		if propagationPredicate := definition.PropagationPredicate; propagationPredicate != nil {
+			arguments = append(arguments, starlarkKeywordArgument("propagation_predicate", sr.renderFunction(propagationPredicate)))
+		}
+		if len(definition.Provides) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("provides", starlarkIdentifierList("provider", definition.Provides)))
+		}
+		if providerSets := definition.RequiredAspectProviders; len(providerSets) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("required_aspect_providers", renderProviderSets(providerSets)))
+		}
+		if providerSets := definition.RequiredProviders; !isAnyProviderSets(providerSets) {
+			arguments = append(arguments, starlarkKeywordArgument("required_providers", renderProviderSets(providerSets)))
+		}
+		if len(definition.Requires) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("requires", starlarkIdentifierList("aspect", definition.Requires)))
+		}
+		if len(definition.SubruleIdentifiers) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("subrules", starlarkIdentifierList("subrule", definition.SubruleIdentifiers)))
+		}
+		if len(definition.ToolchainsAspects) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("toolchains_aspects", starlarkStringList(definition.ToolchainsAspects)))
+		}
+		return starlarkDefinitionCall("aspect", "", arguments)
+	default:
+		return starlarkOpaque("aspect")
+	}
+}
+
+// renderNamedExecGroups renders the exec groups of a rule or aspect as
+// a dict.
+func (sr *StarlarkRenderer) renderNamedExecGroups(namedExecGroups []*model_starlark_pb.NamedExecGroup) Doc {
+	entries := make([]Doc, 0, len(namedExecGroups))
+	for _, namedExecGroup := range namedExecGroups {
+		entries = append(
+			entries,
+			Concat(
+				starlarkString(namedExecGroup.Name),
+				Text(": "),
+				sr.renderExecGroup(namedExecGroup.ExecGroup),
+			),
+		)
+	}
+	return Sequence(Text("{"), Text("}"), entries, true, false)
+}
+
 func (sr *StarlarkRenderer) renderRule(rule model_core.Message[*model_starlark_pb.Rule, object.LocalReference]) Doc {
 	switch kind := rule.Message.GetKind().(type) {
 	case *model_starlark_pb.Rule_Reference:
@@ -870,18 +945,7 @@ func (sr *StarlarkRenderer) renderRule(rule model_core.Message[*model_starlark_p
 			arguments = append(arguments, starlarkKeywordArgument("cfg", sr.renderUserDefinedTransition(cfg)))
 		}
 		if len(definition.ExecGroups) > 0 {
-			entries := make([]Doc, 0, len(definition.ExecGroups))
-			for _, namedExecGroup := range definition.ExecGroups {
-				entries = append(
-					entries,
-					Concat(
-						starlarkString(namedExecGroup.Name),
-						Text(": "),
-						sr.renderExecGroup(namedExecGroup.ExecGroup),
-					),
-				)
-			}
-			arguments = append(arguments, starlarkKeywordArgument("exec_groups", Sequence(Text("{"), Text("}"), entries, true, false)))
+			arguments = append(arguments, starlarkKeywordArgument("exec_groups", sr.renderNamedExecGroups(definition.ExecGroups)))
 		}
 		if initializer := definition.Initializer; initializer != nil {
 			arguments = append(arguments, starlarkKeywordArgument("initializer", sr.renderFunction(initializer)))

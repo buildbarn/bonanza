@@ -35,7 +35,6 @@ func TestAttrConfigurable(t *testing.T) {
 	// being configurable. Explicitly marking attributes as being
 	// configurable is permitted everywhere.
 	for _, call := range []string{
-		"aspect(implementation = _impl, attrs = %s)",
 		"repository_rule(implementation = _impl, attrs = %s)",
 		"rule(implementation = _impl, attrs = %s)",
 		"tag_class(attrs = %s)",
@@ -48,6 +47,14 @@ func TestAttrConfigurable(t *testing.T) {
 		)
 	}
 	require.NoError(t, exec(`macro(implementation = _impl, attrs = {"a": attr.string(), "b": attr.string(configurable = False)})`))
+
+	// Aspects don't permit output attrs, so test them separately.
+	require.NoError(t, exec(`aspect(implementation = _impl, attrs = {"a": attr.string(configurable = True)})`))
+	require.ErrorContains(
+		t,
+		exec(`aspect(implementation = _impl, attrs = {"a": attr.string(), "b": attr.string(configurable = False)})`),
+		"attr \"b\": configurable may only be set to False for attributes of symbolic macros",
+	)
 
 	t.Run("Output", func(t *testing.T) {
 		// Outputs are never configurable.

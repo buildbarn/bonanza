@@ -281,6 +281,56 @@ func TestRendererStarlarkRule(t *testing.T) {
 	)
 }
 
+func TestRendererStarlarkAspect(t *testing.T) {
+	value := &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Aspect{Aspect: &model_starlark_pb.Aspect{Kind: &model_starlark_pb.Aspect_Definition_{Definition: &model_starlark_pb.Aspect_Definition{
+		Implementation:         function("_impl"),
+		ApplyToGeneratingRules: true,
+		AttrAspects:            []string{"deps"},
+		Attrs: []*model_starlark_pb.NamedAttr{
+			{
+				Name: "_srcs",
+				Attr: &model_starlark_pb.Attr{
+					Default: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}}},
+					Type: &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{
+						ListValueOptions: &model_starlark_pb.Attr_LabelOptions{
+							AllowFiles: &model_starlark_pb.Attr_AllowFiles{},
+							Aspects:    []string{"@@//foo:defs.bzl%other_aspect"},
+							Providers:  []*model_starlark_pb.ProviderSet{{}},
+						},
+					}},
+					Configurable: true,
+				},
+			},
+		},
+		Provides:                []string{"@@//foo:defs.bzl%FooInfo"},
+		RequiredAspectProviders: []*model_starlark_pb.ProviderSet{{ProviderIdentifiers: []string{"@@//foo:defs.bzl%BarInfo"}}},
+		RequiredProviders:       []*model_starlark_pb.ProviderSet{{}},
+		Requires:                []string{"@@//foo:defs.bzl%other_aspect"},
+		ToolchainsAspects:       []string{"@@//foo:toolchain_type"},
+	}}}}}
+
+	require.Equal(
+		t,
+		"aspect(\n"+
+			"    implementation = <function _impl>,\n"+
+			"    apply_to_generating_rules = True,\n"+
+			"    attr_aspects = [\"deps\"],\n"+
+			"    attrs = {\n"+
+			"        \"_srcs\": attr.label_list(\n"+
+			"            default = [],\n"+
+			"            allow_files = True,\n"+
+			"            aspects = [<aspect other_aspect>],\n"+
+			"        ),\n"+
+			"    },\n"+
+			"    provides = [<provider FooInfo>],\n"+
+			"    required_aspect_providers = [[<provider BarInfo>]],\n"+
+			"    requires = [<aspect other_aspect>],\n"+
+			"    toolchains_aspects = [\"@@//foo:toolchain_type\"],\n"+
+			")",
+		renderMessage(value, true, render.LayoutOptions{Width: 100}),
+	)
+}
+
 func TestRendererStarlarkExecutableRule(t *testing.T) {
 	value := &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Rule{Rule: &model_starlark_pb.Rule{Kind: &model_starlark_pb.Rule_Definition_{Definition: &model_starlark_pb.Rule_Definition{
 		Implementation: function("_impl"),

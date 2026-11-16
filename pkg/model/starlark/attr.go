@@ -283,6 +283,11 @@ type LabelOptions[TReference any, TMetadata model_core.ReferenceMetadata] struct
 	// are permitted.
 	AllowFiles *model_starlark_pb.Attr_AllowFiles
 
+	// Identifiers of aspects that need to be applied to the targets
+	// associated with the label, in the order in which they were
+	// provided to attr.label(aspects = ...).
+	Aspects []string
+
 	// The transition to apply when configuring the target associated
 	// with the label.
 	Cfg TransitionDefinition[TReference, TMetadata]
@@ -300,6 +305,7 @@ func DecodeLabelOptions[TReference object.BasicReference, TMetadata model_core.R
 	}
 	return LabelOptions[TReference, TMetadata]{
 		AllowFiles: labelOptions.Message.AllowFiles,
+		Aspects:    labelOptions.Message.Aspects,
 		Cfg: NewProtoTransitionDefinition[TReference, TMetadata](
 			model_core.Nested(labelOptions, labelOptions.Message.Cfg),
 		),
@@ -315,11 +321,29 @@ func (lo *LabelOptions[TReference, TMetadata]) encode(thread *eval.Thread, path 
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.Attr_LabelOptions{
 			AllowFiles: lo.AllowFiles,
+			Aspects:    lo.Aspects,
 			Cfg:        cfg.Message,
 			Providers:  lo.Providers,
 		},
 		cfg.Patcher,
 	), nil
+}
+
+// getAttrLabelOptions returns the options of an attr type containing
+// labels. If the attr type does not contain labels, false is returned.
+func getAttrLabelOptions[TReference any, TMetadata model_core.ReferenceMetadata](attrType AttrType[TReference, TMetadata]) (*LabelOptions[TReference, TMetadata], bool) {
+	switch typedAttrType := attrType.(type) {
+	case *labelAttrType[TReference, TMetadata]:
+		return &typedAttrType.valueOptions, true
+	case *labelKeyedStringDictAttrType[TReference, TMetadata]:
+		return &typedAttrType.dictKeyOptions, true
+	case *labelListAttrType[TReference, TMetadata]:
+		return &typedAttrType.listValueOptions, true
+	case *stringKeyedLabelDictAttrType[TReference, TMetadata]:
+		return &typedAttrType.dictValueOptions, true
+	default:
+		return nil, false
+	}
 }
 
 type labelAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
