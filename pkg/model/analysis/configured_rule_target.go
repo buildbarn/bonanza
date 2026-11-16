@@ -1064,6 +1064,139 @@ func checkProvides(providersSeen map[string]struct{}, provides []string) error {
 	return nil
 }
 
+// encodeTargetOutputsAndActions converts the outputs and actions that
+// were declared by the implementation function of a rule or aspect to
+// B-trees that can be stored in a ConfiguredTarget value.
+func (c *baseComputer[TReference, TMetadata]) encodeTargetOutputsAndActions(
+	ctx context.Context,
+	e ConfiguredTargetEnvironment[TReference, TMetadata],
+	analysisEncoders *AnalysisEncoders[TReference],
+	outputRegistrar *targetOutputRegistrar[TReference, TMetadata],
+	tc *targetContext[TReference, TMetadata],
+	patcher *model_core.ReferenceMessagePatcher[TMetadata],
+) ([]*model_analysis_pb.ConfiguredTarget_Value_Output, []*model_analysis_pb.ConfiguredTarget_Value_Action, error) {
+	// Construct list of outputs of the target.
+	outputsTreeBuilder := btree.NewHeightAwareBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			c.chunkingParameters,
+			/* isParent = */ func(output *model_analysis_pb.ConfiguredTarget_Value_Output) bool {
+				return output.GetParent() != nil
+			},
+		),
+		btree.NewObjectCreatingNodeMerger(
+			analysisEncoders.Encoder,
+			c.referenceFormat,
+			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
+				var firstPackageRelativePath string
+				switch firstElement := childNodes.Message[0].Level.(type) {
+				case *model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_:
+					firstPackageRelativePath = firstElement.Leaf.PackageRelativePath
+				case *model_analysis_pb.ConfiguredTarget_Value_Output_Parent_:
+					firstPackageRelativePath = firstElement.Parent.FirstPackageRelativePath
+				}
+				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
+					return &model_analysis_pb.ConfiguredTarget_Value_Output{
+						Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent_{
+							Parent: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent{
+								Reference:                patcher.AddDecodableReference(createdObject),
+								FirstPackageRelativePath: firstPackageRelativePath,
+							},
+						},
+					}
+				})
+			}),
+		),
+	)
+	defer outputsTreeBuilder.Discard()
+
+	outputsByPackageRelativePath := outputRegistrar.outputsByPackageRelativePath
+	for _, packageRelativePath := range slices.Sorted(maps.Keys(outputsByPackageRelativePath)) {
+		output := outputsByPackageRelativePath[packageRelativePath]
+		if !output.definition.IsSet() {
+			return nil, nil, fmt.Errorf("file %#v is not an output of any action", packageRelativePath)
+		}
+		if err := outputsTreeBuilder.PushChild(
+			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
+				return &model_analysis_pb.ConfiguredTarget_Value_Output{
+					Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_{
+						Leaf: &model_analysis_pb.ConfiguredTarget_Value_Output_Leaf{
+							PackageRelativePath: packageRelativePath,
+							Definition:          output.definition.Merge(patcher),
+						},
+					},
+				}
+			}),
+		); err != nil {
+			return nil, nil, err
+		}
+	}
+	outputsList, err := outputsTreeBuilder.FinalizeList()
+	if err != nil {
+		return nil, nil, err
+	}
+	patcher.Merge(outputsList.Patcher)
+
+	// Construct list of actions of the target.
+	actionsTreeBuilder := btree.NewHeightAwareBuilder(
+		btree.NewProllyChunkerFactory[TMetadata](
+			c.chunkingParameters,
+			/* isParent = */ func(action *model_analysis_pb.ConfiguredTarget_Value_Action) bool {
+				return action.GetParent() != nil
+			},
+		),
+		btree.NewObjectCreatingNodeMerger(
+			analysisEncoders.Encoder,
+			c.referenceFormat,
+			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
+				var firstID []byte
+				switch firstElement := childNodes.Message[0].Level.(type) {
+				case *model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_:
+					firstID = firstElement.Leaf.Id
+				case *model_analysis_pb.ConfiguredTarget_Value_Action_Parent_:
+					firstID = firstElement.Parent.FirstId
+				}
+				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
+					return &model_analysis_pb.ConfiguredTarget_Value_Action{
+						Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent_{
+							Parent: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent{
+								Reference: patcher.AddDecodableReference(createdObject),
+								FirstId:   firstID,
+							},
+						},
+					}
+				})
+			}),
+		),
+	)
+	defer actionsTreeBuilder.Discard()
+
+	slices.SortFunc(tc.actions, func(a, b model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]) int {
+		return bytes.Compare(a.Message.Id, b.Message.Id)
+	})
+	for _, action := range tc.actions {
+		if err := actionsTreeBuilder.PushChild(
+			model_core.MustBuildPatchedMessage(
+				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
+					return &model_analysis_pb.ConfiguredTarget_Value_Action{
+						Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_{
+							Leaf: action.Merge(patcher),
+						},
+					}
+				},
+			),
+		); err != nil {
+			return nil, nil, err
+		}
+	}
+	actionsList, err := actionsTreeBuilder.FinalizeList()
+	if err != nil {
+		return nil, nil, err
+	}
+	patcher.Merge(actionsList.Patcher)
+
+	return outputsList.Message, actionsList.Message, nil
+}
+
 // encodeRuleTargetValue converts the provider instances returned by
 // the rule implementation function, and the outputs and actions that
 // were declared by it, to a ConfiguredTarget value.
@@ -1127,130 +1260,16 @@ func (c *baseComputer[TReference, TMetadata]) encodeRuleTargetValue(
 			)
 		})
 
-		// Construct list of outputs of the target.
-		outputsTreeBuilder := btree.NewHeightAwareBuilder(
-			btree.NewProllyChunkerFactory[TMetadata](
-				c.chunkingParameters,
-				/* isParent = */ func(output *model_analysis_pb.ConfiguredTarget_Value_Output) bool {
-					return output.GetParent() != nil
-				},
-			),
-			btree.NewObjectCreatingNodeMerger(
-				analysisEncoders.Encoder,
-				c.referenceFormat,
-				/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
-					var firstPackageRelativePath string
-					switch firstElement := childNodes.Message[0].Level.(type) {
-					case *model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_:
-						firstPackageRelativePath = firstElement.Leaf.PackageRelativePath
-					case *model_analysis_pb.ConfiguredTarget_Value_Output_Parent_:
-						firstPackageRelativePath = firstElement.Parent.FirstPackageRelativePath
-					}
-					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
-						return &model_analysis_pb.ConfiguredTarget_Value_Output{
-							Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent_{
-								Parent: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent{
-									Reference:                patcher.AddDecodableReference(createdObject),
-									FirstPackageRelativePath: firstPackageRelativePath,
-								},
-							},
-						}
-					})
-				}),
-			),
-		)
-		defer outputsTreeBuilder.Discard()
-
-		outputsByPackageRelativePath := outputRegistrar.outputsByPackageRelativePath
-		for _, packageRelativePath := range slices.Sorted(maps.Keys(outputsByPackageRelativePath)) {
-			output := outputsByPackageRelativePath[packageRelativePath]
-			if !output.definition.IsSet() {
-				return nil, fmt.Errorf("file %#v is not an output of any action", packageRelativePath)
-			}
-			if err := outputsTreeBuilder.PushChild(
-				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
-					return &model_analysis_pb.ConfiguredTarget_Value_Output{
-						Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_{
-							Leaf: &model_analysis_pb.ConfiguredTarget_Value_Output_Leaf{
-								PackageRelativePath: packageRelativePath,
-								Definition:          output.definition.Merge(patcher),
-							},
-						},
-					}
-				}),
-			); err != nil {
-				return nil, err
-			}
-		}
-		outputsList, err := outputsTreeBuilder.FinalizeList()
+		outputs, actions, err := c.encodeTargetOutputsAndActions(ctx, e, analysisEncoders, outputRegistrar, tc, patcher)
 		if err != nil {
 			return nil, err
 		}
-		patcher.Merge(outputsList.Patcher)
-
-		// Construct list of actions of the target.
-		actionsTreeBuilder := btree.NewHeightAwareBuilder(
-			btree.NewProllyChunkerFactory[TMetadata](
-				c.chunkingParameters,
-				/* isParent = */ func(action *model_analysis_pb.ConfiguredTarget_Value_Action) bool {
-					return action.GetParent() != nil
-				},
-			),
-			btree.NewObjectCreatingNodeMerger(
-				analysisEncoders.Encoder,
-				c.referenceFormat,
-				/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
-					var firstID []byte
-					switch firstElement := childNodes.Message[0].Level.(type) {
-					case *model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_:
-						firstID = firstElement.Leaf.Id
-					case *model_analysis_pb.ConfiguredTarget_Value_Action_Parent_:
-						firstID = firstElement.Parent.FirstId
-					}
-					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
-						return &model_analysis_pb.ConfiguredTarget_Value_Action{
-							Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent_{
-								Parent: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent{
-									Reference: patcher.AddDecodableReference(createdObject),
-									FirstId:   firstID,
-								},
-							},
-						}
-					})
-				}),
-			),
-		)
-		defer actionsTreeBuilder.Discard()
-
-		slices.SortFunc(tc.actions, func(a, b model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]) int {
-			return bytes.Compare(a.Message.Id, b.Message.Id)
-		})
-		for _, action := range tc.actions {
-			if err := actionsTreeBuilder.PushChild(
-				model_core.MustBuildPatchedMessage(
-					func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
-						return &model_analysis_pb.ConfiguredTarget_Value_Action{
-							Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_{
-								Leaf: action.Merge(patcher),
-							},
-						}
-					},
-				),
-			); err != nil {
-				return nil, err
-			}
-		}
-		actionsList, err := actionsTreeBuilder.FinalizeList()
-		if err != nil {
-			return nil, err
-		}
-		patcher.Merge(actionsList.Patcher)
 
 		// TODO: We should use inlinedtree.Build() here.
 		return &model_analysis_pb.ConfiguredTarget_Value{
 			ProviderInstances: encodedProviderInstances,
-			Outputs:           outputsList.Message,
-			Actions:           actionsList.Message,
+			Outputs:           outputs,
+			Actions:           actions,
 		}, nil
 	})
 }
@@ -1455,6 +1474,12 @@ type targetOutputRegistrar[TReference object.BasicReference, TMetadata model_cor
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference]
 	targetLabel            label.CanonicalLabel
 
+	// If outputs are declared by an aspect, the aspects that are
+	// applied to the target, as stored in File.Owner.aspects. These
+	// need to be backed by the same message as
+	// configurationReference.
+	aspects []*model_starlark_pb.AppliedAspect
+
 	outputsByPackageRelativePath map[string]*targetOutput[TMetadata]
 	outputsByFile                map[*model_starlark.File[TReference, TMetadata]]*targetOutput[TMetadata]
 }
@@ -1485,6 +1510,7 @@ func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename 
 				ConfigurationReference: or.configurationReference.Message,
 				TargetName:             or.targetLabel.GetTargetName().String(),
 				Type:                   fileType,
+				Aspects:                or.aspects,
 			},
 			Label: or.targetLabel.GetCanonicalPackage().AppendTargetName(filename).String(),
 		}),

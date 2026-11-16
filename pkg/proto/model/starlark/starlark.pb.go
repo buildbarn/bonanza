@@ -5043,6 +5043,7 @@ type File_Owner struct {
 	ConfigurationReference *core.DecodableReference `protobuf:"bytes,1,opt,name=configuration_reference,json=configurationReference,proto3" json:"configuration_reference,omitempty"`
 	TargetName             string                   `protobuf:"bytes,2,opt,name=target_name,json=targetName,proto3" json:"target_name,omitempty"`
 	Type                   File_Owner_Type          `protobuf:"varint,3,opt,name=type,proto3,enum=bonanza.model.starlark.File_Owner_Type" json:"type,omitempty"`
+	Aspects                []*AppliedAspect         `protobuf:"bytes,4,rep,name=aspects,proto3" json:"aspects,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -5096,6 +5097,13 @@ func (x *File_Owner) GetType() File_Owner_Type {
 		return x.Type
 	}
 	return File_Owner_FILE
+}
+
+func (x *File_Owner) GetAspects() []*AppliedAspect {
+	if x != nil {
+		return x.Aspects
+	}
+	return nil
 }
 
 type Function_Name struct {
@@ -7545,15 +7553,16 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\x14exec_compatible_with\x18\x01 \x03(\tR\x12execCompatibleWith\x12E\n" +
 	"\n" +
 	"toolchains\x18\x02 \x03(\v2%.bonanza.model.starlark.ToolchainTypeR\n" +
-	"toolchains\"\x81\x03\n" +
+	"toolchains\"\xc2\x03\n" +
 	"\x04File\x128\n" +
 	"\x05owner\x18\x01 \x01(\v2\".bonanza.model.starlark.File.OwnerR\x05owner\x12\x14\n" +
-	"\x05label\x18\x02 \x01(\tR\x05label\x1a\xa8\x02\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x1a\xe9\x02\n" +
 	"\x05Owner\x12\x92\x01\n" +
 	"\x17configuration_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x12\x1f\n" +
 	"\vtarget_name\x18\x02 \x01(\tR\n" +
 	"targetName\x12;\n" +
-	"\x04type\x18\x03 \x01(\x0e2'.bonanza.model.starlark.File.Owner.TypeR\x04type\",\n" +
+	"\x04type\x18\x03 \x01(\x0e2'.bonanza.model.starlark.File.Owner.TypeR\x04type\x12?\n" +
+	"\aaspects\x18\x04 \x03(\v2%.bonanza.model.starlark.AppliedAspectR\aaspects\",\n" +
 	"\x04Type\x12\b\n" +
 	"\x04FILE\x10\x00\x12\r\n" +
 	"\tDIRECTORY\x10\x01\x12\v\n" +
@@ -8161,71 +8170,72 @@ var file_bonanza_build_pkg_proto_model_starlark_starlark_proto_depIdxs = []int32
 	109, // 128: bonanza.model.starlark.Dict.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
 	109, // 129: bonanza.model.starlark.File.Owner.configuration_reference:type_name -> bonanza.model.core.DecodableReference
 	3,   // 130: bonanza.model.starlark.File.Owner.type:type_name -> bonanza.model.starlark.File.Owner.Type
-	75,  // 131: bonanza.model.starlark.Function.Closure.default_parameters:type_name -> bonanza.model.starlark.Function.Closure.DefaultParameter
-	8,   // 132: bonanza.model.starlark.Function.Closure.free_variables:type_name -> bonanza.model.starlark.Value
-	8,   // 133: bonanza.model.starlark.Function.Closure.DefaultParameter.value:type_name -> bonanza.model.starlark.Value
-	19,  // 134: bonanza.model.starlark.Funcode.NestedFunction.funcode:type_name -> bonanza.model.starlark.Funcode
-	8,   // 135: bonanza.model.starlark.List.Element.leaf:type_name -> bonanza.model.starlark.Value
-	78,  // 136: bonanza.model.starlark.List.Element.parent:type_name -> bonanza.model.starlark.List.Element.Parent
-	109, // 137: bonanza.model.starlark.List.Element.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	36,  // 138: bonanza.model.starlark.Macro.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	18,  // 139: bonanza.model.starlark.Macro.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	83,  // 140: bonanza.model.starlark.MacroExpansionContext.Definition.root_macro_instance_definition:type_name -> bonanza.model.starlark.MacroInstance.Definition
-	84,  // 141: bonanza.model.starlark.MacroExpansionContext.Definition.nested_macro_instances:type_name -> bonanza.model.starlark.MacroInstance.Entry
-	24,  // 142: bonanza.model.starlark.MacroExpansionContext.Entry.leaf:type_name -> bonanza.model.starlark.MacroExpansionContext
-	82,  // 143: bonanza.model.starlark.MacroExpansionContext.Entry.parent:type_name -> bonanza.model.starlark.MacroExpansionContext.Entry.Parent
-	109, // 144: bonanza.model.starlark.MacroExpansionContext.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	97,  // 145: bonanza.model.starlark.MacroInstance.Definition.public_attr_values:type_name -> bonanza.model.starlark.RuleTarget.PublicAttrValue
-	20,  // 146: bonanza.model.starlark.MacroInstance.Definition.inheritable_attrs:type_name -> bonanza.model.starlark.InheritableAttrs
-	4,   // 147: bonanza.model.starlark.MacroInstance.Definition.finalizer:type_name -> bonanza.model.starlark.MacroInstance.Finalizer
-	25,  // 148: bonanza.model.starlark.MacroInstance.Entry.leaf:type_name -> bonanza.model.starlark.MacroInstance
-	85,  // 149: bonanza.model.starlark.MacroInstance.Entry.parent:type_name -> bonanza.model.starlark.MacroInstance.Entry.Parent
-	109, // 150: bonanza.model.starlark.MacroInstance.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	31,  // 151: bonanza.model.starlark.ModuleExtension.NamedTagClass.tag_class:type_name -> bonanza.model.starlark.TagClass
-	88,  // 152: bonanza.model.starlark.PackageGroup.Package.subpackages:type_name -> bonanza.model.starlark.PackageGroup.Subpackages
-	109, // 153: bonanza.model.starlark.PackageGroup.Subpackages.overrides_external:type_name -> bonanza.model.core.DecodableReference
-	89,  // 154: bonanza.model.starlark.PackageGroup.Subpackages.overrides_inline:type_name -> bonanza.model.starlark.PackageGroup.Subpackages.Overrides
-	87,  // 155: bonanza.model.starlark.PackageGroup.Subpackages.Overrides.packages:type_name -> bonanza.model.starlark.PackageGroup.Package
-	91,  // 156: bonanza.model.starlark.Provider.InstanceProperties.computed_fields:type_name -> bonanza.model.starlark.Provider.InstanceProperties.ComputedField
-	18,  // 157: bonanza.model.starlark.Provider.InstanceProperties.ComputedField.function:type_name -> bonanza.model.starlark.Function
-	77,  // 158: bonanza.model.starlark.Struct.Fields.values:type_name -> bonanza.model.starlark.List.Element
-	30,  // 159: bonanza.model.starlark.TargetReference.Configured.providers:type_name -> bonanza.model.starlark.Struct
-	92,  // 160: bonanza.model.starlark.Repo.Definition.attr_values:type_name -> bonanza.model.starlark.Struct.Fields
-	36,  // 161: bonanza.model.starlark.RepositoryRule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	18,  // 162: bonanza.model.starlark.RepositoryRule.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	36,  // 163: bonanza.model.starlark.Rule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	13,  // 164: bonanza.model.starlark.Rule.Definition.build_setting:type_name -> bonanza.model.starlark.BuildSetting
-	105, // 165: bonanza.model.starlark.Rule.Definition.cfg_transition:type_name -> bonanza.model.starlark.Transition.UserDefined
-	37,  // 166: bonanza.model.starlark.Rule.Definition.exec_groups:type_name -> bonanza.model.starlark.NamedExecGroup
-	18,  // 167: bonanza.model.starlark.Rule.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	18,  // 168: bonanza.model.starlark.Rule.Definition.initializer:type_name -> bonanza.model.starlark.Function
-	5,   // 169: bonanza.model.starlark.Rule.Definition.type:type_name -> bonanza.model.starlark.Rule.Definition.Type
-	102, // 170: bonanza.model.starlark.RuleTarget.PublicAttrValue.value_parts:type_name -> bonanza.model.starlark.Select.Group
-	0,   // 171: bonanza.model.starlark.RuleTarget.Test.size:type_name -> bonanza.model.starlark.TestSize
-	1,   // 172: bonanza.model.starlark.RuleTarget.Test.timeout:type_name -> bonanza.model.starlark.TestTimeout
-	102, // 173: bonanza.model.starlark.RuleTarget.Test.shard_count:type_name -> bonanza.model.starlark.Select.Group
-	102, // 174: bonanza.model.starlark.RuleTarget.Test.args:type_name -> bonanza.model.starlark.Select.Group
-	100, // 175: bonanza.model.starlark.TestSuite.Test.parent:type_name -> bonanza.model.starlark.TestSuite.Test.Parent
-	109, // 176: bonanza.model.starlark.TestSuite.Test.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	8,   // 177: bonanza.model.starlark.Select.Condition.value:type_name -> bonanza.model.starlark.Value
-	101, // 178: bonanza.model.starlark.Select.Group.conditions:type_name -> bonanza.model.starlark.Select.Condition
-	8,   // 179: bonanza.model.starlark.Select.Group.no_match_value:type_name -> bonanza.model.starlark.Value
-	36,  // 180: bonanza.model.starlark.Subrule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
-	18,  // 181: bonanza.model.starlark.Subrule.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	9,   // 182: bonanza.model.starlark.Target.Definition.alias:type_name -> bonanza.model.starlark.Alias
-	21,  // 183: bonanza.model.starlark.Target.Definition.label_setting:type_name -> bonanza.model.starlark.LabelSetting
-	28,  // 184: bonanza.model.starlark.Target.Definition.package_group:type_name -> bonanza.model.starlark.PackageGroup
-	27,  // 185: bonanza.model.starlark.Target.Definition.predeclared_output_file_target:type_name -> bonanza.model.starlark.PredeclaredOutputFileTarget
-	41,  // 186: bonanza.model.starlark.Target.Definition.rule_target:type_name -> bonanza.model.starlark.RuleTarget
-	45,  // 187: bonanza.model.starlark.Target.Definition.source_file_target:type_name -> bonanza.model.starlark.SourceFileTarget
-	42,  // 188: bonanza.model.starlark.Target.Definition.test_suite:type_name -> bonanza.model.starlark.TestSuite
-	106, // 189: bonanza.model.starlark.Transition.UserDefined.definition:type_name -> bonanza.model.starlark.Transition.UserDefined.Definition
-	18,  // 190: bonanza.model.starlark.Transition.UserDefined.Definition.implementation:type_name -> bonanza.model.starlark.Function
-	191, // [191:191] is the sub-list for method output_type
-	191, // [191:191] is the sub-list for method input_type
-	191, // [191:191] is the sub-list for extension type_name
-	191, // [191:191] is the sub-list for extension extendee
-	0,   // [0:191] is the sub-list for field type_name
+	11,  // 131: bonanza.model.starlark.File.Owner.aspects:type_name -> bonanza.model.starlark.AppliedAspect
+	75,  // 132: bonanza.model.starlark.Function.Closure.default_parameters:type_name -> bonanza.model.starlark.Function.Closure.DefaultParameter
+	8,   // 133: bonanza.model.starlark.Function.Closure.free_variables:type_name -> bonanza.model.starlark.Value
+	8,   // 134: bonanza.model.starlark.Function.Closure.DefaultParameter.value:type_name -> bonanza.model.starlark.Value
+	19,  // 135: bonanza.model.starlark.Funcode.NestedFunction.funcode:type_name -> bonanza.model.starlark.Funcode
+	8,   // 136: bonanza.model.starlark.List.Element.leaf:type_name -> bonanza.model.starlark.Value
+	78,  // 137: bonanza.model.starlark.List.Element.parent:type_name -> bonanza.model.starlark.List.Element.Parent
+	109, // 138: bonanza.model.starlark.List.Element.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	36,  // 139: bonanza.model.starlark.Macro.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	18,  // 140: bonanza.model.starlark.Macro.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	83,  // 141: bonanza.model.starlark.MacroExpansionContext.Definition.root_macro_instance_definition:type_name -> bonanza.model.starlark.MacroInstance.Definition
+	84,  // 142: bonanza.model.starlark.MacroExpansionContext.Definition.nested_macro_instances:type_name -> bonanza.model.starlark.MacroInstance.Entry
+	24,  // 143: bonanza.model.starlark.MacroExpansionContext.Entry.leaf:type_name -> bonanza.model.starlark.MacroExpansionContext
+	82,  // 144: bonanza.model.starlark.MacroExpansionContext.Entry.parent:type_name -> bonanza.model.starlark.MacroExpansionContext.Entry.Parent
+	109, // 145: bonanza.model.starlark.MacroExpansionContext.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	97,  // 146: bonanza.model.starlark.MacroInstance.Definition.public_attr_values:type_name -> bonanza.model.starlark.RuleTarget.PublicAttrValue
+	20,  // 147: bonanza.model.starlark.MacroInstance.Definition.inheritable_attrs:type_name -> bonanza.model.starlark.InheritableAttrs
+	4,   // 148: bonanza.model.starlark.MacroInstance.Definition.finalizer:type_name -> bonanza.model.starlark.MacroInstance.Finalizer
+	25,  // 149: bonanza.model.starlark.MacroInstance.Entry.leaf:type_name -> bonanza.model.starlark.MacroInstance
+	85,  // 150: bonanza.model.starlark.MacroInstance.Entry.parent:type_name -> bonanza.model.starlark.MacroInstance.Entry.Parent
+	109, // 151: bonanza.model.starlark.MacroInstance.Entry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	31,  // 152: bonanza.model.starlark.ModuleExtension.NamedTagClass.tag_class:type_name -> bonanza.model.starlark.TagClass
+	88,  // 153: bonanza.model.starlark.PackageGroup.Package.subpackages:type_name -> bonanza.model.starlark.PackageGroup.Subpackages
+	109, // 154: bonanza.model.starlark.PackageGroup.Subpackages.overrides_external:type_name -> bonanza.model.core.DecodableReference
+	89,  // 155: bonanza.model.starlark.PackageGroup.Subpackages.overrides_inline:type_name -> bonanza.model.starlark.PackageGroup.Subpackages.Overrides
+	87,  // 156: bonanza.model.starlark.PackageGroup.Subpackages.Overrides.packages:type_name -> bonanza.model.starlark.PackageGroup.Package
+	91,  // 157: bonanza.model.starlark.Provider.InstanceProperties.computed_fields:type_name -> bonanza.model.starlark.Provider.InstanceProperties.ComputedField
+	18,  // 158: bonanza.model.starlark.Provider.InstanceProperties.ComputedField.function:type_name -> bonanza.model.starlark.Function
+	77,  // 159: bonanza.model.starlark.Struct.Fields.values:type_name -> bonanza.model.starlark.List.Element
+	30,  // 160: bonanza.model.starlark.TargetReference.Configured.providers:type_name -> bonanza.model.starlark.Struct
+	92,  // 161: bonanza.model.starlark.Repo.Definition.attr_values:type_name -> bonanza.model.starlark.Struct.Fields
+	36,  // 162: bonanza.model.starlark.RepositoryRule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	18,  // 163: bonanza.model.starlark.RepositoryRule.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	36,  // 164: bonanza.model.starlark.Rule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	13,  // 165: bonanza.model.starlark.Rule.Definition.build_setting:type_name -> bonanza.model.starlark.BuildSetting
+	105, // 166: bonanza.model.starlark.Rule.Definition.cfg_transition:type_name -> bonanza.model.starlark.Transition.UserDefined
+	37,  // 167: bonanza.model.starlark.Rule.Definition.exec_groups:type_name -> bonanza.model.starlark.NamedExecGroup
+	18,  // 168: bonanza.model.starlark.Rule.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	18,  // 169: bonanza.model.starlark.Rule.Definition.initializer:type_name -> bonanza.model.starlark.Function
+	5,   // 170: bonanza.model.starlark.Rule.Definition.type:type_name -> bonanza.model.starlark.Rule.Definition.Type
+	102, // 171: bonanza.model.starlark.RuleTarget.PublicAttrValue.value_parts:type_name -> bonanza.model.starlark.Select.Group
+	0,   // 172: bonanza.model.starlark.RuleTarget.Test.size:type_name -> bonanza.model.starlark.TestSize
+	1,   // 173: bonanza.model.starlark.RuleTarget.Test.timeout:type_name -> bonanza.model.starlark.TestTimeout
+	102, // 174: bonanza.model.starlark.RuleTarget.Test.shard_count:type_name -> bonanza.model.starlark.Select.Group
+	102, // 175: bonanza.model.starlark.RuleTarget.Test.args:type_name -> bonanza.model.starlark.Select.Group
+	100, // 176: bonanza.model.starlark.TestSuite.Test.parent:type_name -> bonanza.model.starlark.TestSuite.Test.Parent
+	109, // 177: bonanza.model.starlark.TestSuite.Test.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	8,   // 178: bonanza.model.starlark.Select.Condition.value:type_name -> bonanza.model.starlark.Value
+	101, // 179: bonanza.model.starlark.Select.Group.conditions:type_name -> bonanza.model.starlark.Select.Condition
+	8,   // 180: bonanza.model.starlark.Select.Group.no_match_value:type_name -> bonanza.model.starlark.Value
+	36,  // 181: bonanza.model.starlark.Subrule.Definition.attrs:type_name -> bonanza.model.starlark.NamedAttr
+	18,  // 182: bonanza.model.starlark.Subrule.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	9,   // 183: bonanza.model.starlark.Target.Definition.alias:type_name -> bonanza.model.starlark.Alias
+	21,  // 184: bonanza.model.starlark.Target.Definition.label_setting:type_name -> bonanza.model.starlark.LabelSetting
+	28,  // 185: bonanza.model.starlark.Target.Definition.package_group:type_name -> bonanza.model.starlark.PackageGroup
+	27,  // 186: bonanza.model.starlark.Target.Definition.predeclared_output_file_target:type_name -> bonanza.model.starlark.PredeclaredOutputFileTarget
+	41,  // 187: bonanza.model.starlark.Target.Definition.rule_target:type_name -> bonanza.model.starlark.RuleTarget
+	45,  // 188: bonanza.model.starlark.Target.Definition.source_file_target:type_name -> bonanza.model.starlark.SourceFileTarget
+	42,  // 189: bonanza.model.starlark.Target.Definition.test_suite:type_name -> bonanza.model.starlark.TestSuite
+	106, // 190: bonanza.model.starlark.Transition.UserDefined.definition:type_name -> bonanza.model.starlark.Transition.UserDefined.Definition
+	18,  // 191: bonanza.model.starlark.Transition.UserDefined.Definition.implementation:type_name -> bonanza.model.starlark.Function
+	192, // [192:192] is the sub-list for method output_type
+	192, // [192:192] is the sub-list for method input_type
+	192, // [192:192] is the sub-list for extension type_name
+	192, // [192:192] is the sub-list for extension extendee
+	0,   // [0:192] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_starlark_starlark_proto_init() }

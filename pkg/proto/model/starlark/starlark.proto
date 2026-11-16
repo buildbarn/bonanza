@@ -590,6 +590,16 @@ message File {
 
     // The type of the file.
     Type type = 3;
+
+    // If set, the file is not created by the target itself, but by the
+    // last aspect in this list, applied to the target after all of the
+    // other aspects in the list.
+    //
+    // Files created by aspects are placed in the same directory as the
+    // files created by the target. It is the responsibility of the
+    // aspect to pick names that don't collide with those of files
+    // created by the target or other aspects.
+    repeated AppliedAspect aspects = 4;
   }
 
   // If set, the file is the output of a configured target. Otherwise,

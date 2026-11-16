@@ -93,6 +93,9 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	ruleImplementationWrappers := e.GetRuleImplementationWrappersValue(&model_analysis_pb.RuleImplementationWrappers_Key{})
+	actionEncoders, gotActionEncoders := e.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{})
+	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
+	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
 	aspectIdentifiers := make([]string, 0, len(aspects.Message))
 	for _, aspect := range aspects.Message {
 		aspectIdentifiers = append(aspectIdentifiers, aspect.Identifier)
@@ -120,6 +123,9 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	}
 	if !gotAnalysisEncoders ||
 		!gotStarlarkValueEncoders ||
+		!gotActionEncoders ||
+		!gotDirectoryCreationParameters ||
+		!gotFileCreationParameters ||
 		!allBuiltinsModulesNames.IsSet() ||
 		!ruleImplementationWrappers.IsSet() ||
 		!aspectChain.IsSet() ||
@@ -320,7 +326,22 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		"toolchains": ruleToolchains,
 	})
 
-	// Construct ctx for the aspect.
+	// Construct ctx for the aspect. Outputs declared by the aspect
+	// are placed in the same package as the rule target, but are
+	// owned by the aspect.
+	aspectOutputRegistrar := &targetOutputRegistrar[TReference, TMetadata]{
+		configurationReference: configurationReference,
+		targetLabel:            targetLabel,
+		aspects:                aspects.Message,
+
+		outputsByPackageRelativePath: map[string]*targetOutput[TMetadata]{},
+		outputsByFile:                map[*model_starlark.File[TReference, TMetadata]]*targetOutput[TMetadata]{},
+	}
+	defer func() {
+		for _, output := range aspectOutputRegistrar.outputsByPackageRelativePath {
+			output.definition.Discard()
+		}
+	}()
 	ac := &aspectContext[TReference, TMetadata]{
 		targetContext: &targetContext[TReference, TMetadata]{
 			computer:                    c,
@@ -334,6 +355,10 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 			namedExecGroups:             model_core.Nested(aspectDefinition, aspectDefinition.Message.ExecGroups),
 			execGroups:                  aspectExecGroupStates,
 			executableFileToFilesToRun:  aspectFiles.executableFileToFilesToRun,
+			outputRegistrar:             aspectOutputRegistrar,
+			actionEncoder:               actionEncoders.Encoder,
+			directoryCreationParameters: directoryCreationParameters,
+			fileCreationParameters:      fileCreationParameters,
 		},
 		attr:       model_starlark.NewStructFromDict[TReference, TMetadata](nil, aspectAttrValues),
 		executable: model_starlark.NewStructFromDict[TReference, TMetadata](nil, aspectFiles.executableValues),
@@ -341,6 +366,9 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		files:      model_starlark.NewStructFromDict[TReference, TMetadata](nil, aspectFiles.filesValues),
 		rule:       rule,
 	}
+	defer func() {
+		ac.actions.Discard()
+	}()
 
 	registerSubruleInvoker(thread, ac.targetContext, aspectDefinition.Message.SubruleIdentifiers, subrules, ruleImplementationWrappers)
 	identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
@@ -409,8 +437,15 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 				b.ProviderInstanceProperties.ProviderIdentifier,
 			)
 		})
+
+		outputs, actions, err := c.encodeTargetOutputsAndActions(ctx, e, analysisEncoders, aspectOutputRegistrar, ac.targetContext, patcher)
+		if err != nil {
+			return nil, err
+		}
 		return &model_analysis_pb.ConfiguredTarget_Value{
 			ProviderInstances: encodedProviderInstances,
+			Outputs:           outputs,
+			Actions:           actions,
 		}, nil
 	})
 }
@@ -562,9 +597,9 @@ func (aspectContext[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
 func (ac *aspectContext[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (eval.Value, error) {
 	switch name {
 	case "actions":
-		// TODO: Add support for declaring outputs and actions
-		// from within aspects.
-		return unsupportedAspectActions{}, nil
+		return &targetContextActions[TReference, TMetadata]{
+			targetContext: ac.targetContext,
+		}, nil
 	case "attr":
 		return ac.attr, nil
 	case "bin_dir":
@@ -608,33 +643,4 @@ var aspectContextAttrNames = []string{
 
 func (aspectContext[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
 	return aspectContextAttrNames, nil
-}
-
-// unsupportedAspectActions is the value of ctx.actions for aspects.
-// As declaring outputs and actions from within aspects is not supported
-// yet, any attempt to use it fails.
-type unsupportedAspectActions struct{}
-
-var _ eval.HasAttrs = unsupportedAspectActions{}
-
-// Repr writes the representation of the value.
-func (unsupportedAspectActions) Repr(_ *eval.Thread, printer *eval.Printer) error {
-	printer.WriteString("<actions>")
-	return nil
-}
-
-func (unsupportedAspectActions) Type() string {
-	return "actions"
-}
-
-func (unsupportedAspectActions) Truth(*eval.Thread) (bool, error) {
-	return true, nil
-}
-
-func (unsupportedAspectActions) Attr(thread *eval.Thread, name string) (eval.Value, error) {
-	return nil, fmt.Errorf("ctx.actions.%s cannot be used, as declaring outputs and actions from within aspects is not supported yet", name)
-}
-
-func (unsupportedAspectActions) AttrNames(*eval.Thread) ([]string, error) {
-	return nil, nil
 }

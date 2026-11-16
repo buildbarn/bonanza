@@ -21,6 +21,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx context
 			&model_analysis_pb.ConfiguredTarget_Key{
 				Label:                  key.Message.Label,
 				ConfigurationReference: patchedConfigurationReference.Message,
+				Aspects:                model_core.PatchList(e, model_core.Nested(key, key.Message.Aspects)).Merge(patchedConfigurationReference.Patcher),
 			},
 			patchedConfigurationReference.Patcher,
 		),

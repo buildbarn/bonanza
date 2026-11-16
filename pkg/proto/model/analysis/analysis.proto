@@ -1295,6 +1295,12 @@ message TargetOutput {
         }];
 
     string package_relative_path = 3;
+
+    // If set, the output is declared by the last aspect in this list,
+    // applied to the target. This corresponds to
+    // ConfiguredTarget.Key.aspects and
+    // bonanza.model.starlark.File.Owner.aspects.
+    repeated bonanza.model.starlark.AppliedAspect aspects = 4;
   }
 
   message Value {
@@ -2667,6 +2673,11 @@ message TargetActionId {
 
   // The identifier of the action within the configured target.
   bytes action_id = 3;
+
+  // If set, the action is declared by the last aspect in this list,
+  // applied to the target. This corresponds to
+  // bonanza.model.starlark.File.Owner.aspects.
+  repeated bonanza.model.starlark.AppliedAspect aspects = 4;
 }
 
 message TargetAction {
