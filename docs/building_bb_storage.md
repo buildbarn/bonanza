@@ -102,8 +102,9 @@ common:bonanza --builtins_module=builtins_bzl
 # various legacy features, such as ctx.expand_make_variables(),
 # ctx.genfiles_dir, and ctx.workspace_name. Bonanza doesn't provide
 # these by default. Instead, it offers a hook for wrapping the execution
-# of rule and subrule implementation functions. We use these to augment
-# the ctx arguments.
+# of rule, subrule and aspect implementation functions. We use these to
+# augment the ctx arguments.
+common:bonanza --aspect_implementation_wrapper_identifier=@@builtins_core+//:wrappers.bzl%invoke_aspect
 common:bonanza --rule_implementation_wrapper_identifier=@@builtins_core+//:wrappers.bzl%invoke_rule
 common:bonanza --subrule_implementation_wrapper_identifier=@@builtins_core+//:wrappers.bzl%invoke_subrule
 

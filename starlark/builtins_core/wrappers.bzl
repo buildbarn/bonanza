@@ -88,6 +88,59 @@ def _expand_make_variables(command, get_value):
         fail("command terminates in the middle of a $ sequence")
     return result
 
+def _add_common_ctx_fields(ctx_fields, ctx):
+    """Adds fields to ctx that are shared by rules and aspects."""
+
+    # If the rule or aspect depends on one or more fragments, an
+    # attribute with name "__fragments" of type attr.label_list() is
+    # injected. The default value of this attribute will refer to
+    # targets offering a FragmentInfo. Make these available through
+    # ctx.configuration and ctx.fragments.
+    if hasattr(ctx.attr, "__configuration"):
+        ctx_fields["configuration"] = ctx.attr.__configuration[FragmentInfo]
+    _maybe_add_ctx_fragments(ctx_fields, getattr(ctx.attr, "__fragments", []))
+
+    # If the rule or aspect has a default exec group, expose its
+    # toolchains through ctx.toolchains.
+    if "" in ctx.exec_groups:
+        ctx_fields["toolchains"] = ctx.exec_groups[""].toolchains
+
+    # If the rule or aspect has an attribute "__default_toolchains", we
+    # should add ctx.var containing all make variables such as BINDIR
+    # and COMPILATION_MODE. For rules, the targets in the "toolchains"
+    # attribute are taken into account as well. With those variables in
+    # place, we may also provide ctx.expand_make_variables().
+    if hasattr(ctx.attr, "__default_toolchains"):
+        var = {}
+        for toolchain in ctx.attr.__default_toolchains:
+            var |= toolchain[TemplateVariableInfo].variables
+        for toolchain in getattr(ctx.attr, "toolchains", []):
+            var |= toolchain[TemplateVariableInfo].variables
+
+        def ctx_expand_make_variables(attribute_name, command, additional_substitutions):
+            def get_value(variable_name):
+                if variable_name in additional_substitutions:
+                    return additional_substitutions[variable_name]
+                return var[variable_name]
+
+            return _expand_make_variables(command, get_value)
+
+        ctx_fields["expand_make_variables"] = ctx_expand_make_variables
+        ctx_fields["var"] = var
+
+    # Even though most rules and aspects depend on the target platform
+    # in an indirect way (e.g., through toolchain resolution), only the
+    # ones that call ctx.target_platform_has_constraint() depend on the
+    # actual definition of the target platform.
+    if hasattr(ctx.attr, "__target_platform"):
+        def ctx_target_platform_has_constraint(constraintValue):
+            return ctx.attr.__target_platform[PlatformInfo].constraints.get(
+                constraintValue.constraint.label,
+                constraintValue.constraint.default_constraint_value,
+            ) == constraintValue.label
+
+        ctx_fields["target_platform_has_constraint"] = ctx_target_platform_has_constraint
+
 def _wrap_rule_ctx(ctx):
     def ctx_coverage_instrumented(target = None):
         return False
@@ -170,55 +223,7 @@ def _wrap_rule_ctx(ctx):
         "workspace_name": "_main",
     }
 
-    # If the rule depends on one or more fragments, an attribute with
-    # name "__fragments" of type attr.label_list() is injected. The
-    # default value of this attribute will refer to targets offering a
-    # FragmentInfo. Make these available through ctx.configuration and
-    # ctx.fragments.
-    if hasattr(ctx.attr, "__configuration"):
-        ctx_fields["configuration"] = ctx.attr.__configuration[FragmentInfo]
-    _maybe_add_ctx_fragments(ctx_fields, getattr(ctx.attr, "__fragments", []))
-
-    # If the rule has a default exec group, expose its toolchains
-    # through ctx.toolchains.
-    if "" in ctx.exec_groups:
-        ctx_fields["toolchains"] = ctx.exec_groups[""].toolchains
-
-    # If the rule has attributes "__default_toolchains" and
-    # "toolchains", we should add ctx.var containing all make variables
-    # such as BINDIR and COMPILATION_MODE. With those variables in
-    # place, we may also provide ctx.expand_make_variables().
-    if hasattr(ctx.attr, "__default_toolchains"):
-        var = {}
-        for toolchain in ctx.attr.__default_toolchains:
-            var |= toolchain[TemplateVariableInfo].variables
-        for toolchain in ctx.attr.toolchains:
-            var |= toolchain[TemplateVariableInfo].variables
-
-        def ctx_expand_make_variables(attribute_name, command, additional_substitutions):
-            def get_value(variable_name):
-                if variable_name in additional_substitutions:
-                    return additional_substitutions[variable_name]
-                return var[variable_name]
-
-            return _expand_make_variables(command, get_value)
-
-        ctx_fields["expand_make_variables"] = ctx_expand_make_variables
-        ctx_fields["var"] = var
-
-    # Even though most rules depend on the target platform in an
-    # indirect way (e.g., through toolchain resolution), only rules that
-    # call ctx.target_platform_has_constraint() depend on the actual
-    # definition of the target platform.
-    if hasattr(ctx.attr, "__target_platform"):
-        def ctx_target_platform_has_constraint(constraintValue):
-            return ctx.attr.__target_platform[PlatformInfo].constraints.get(
-                constraintValue.constraint.label,
-                constraintValue.constraint.default_constraint_value,
-            ) == constraintValue.label
-
-        ctx_fields["target_platform_has_constraint"] = ctx_target_platform_has_constraint
-
+    _add_common_ctx_fields(ctx_fields, ctx)
     return struct(**ctx_fields)
 
 def invoke_rule(fn, ctx):
@@ -238,3 +243,19 @@ def _wrap_subrule_ctx(ctx, fragments):
 
 def invoke_subrule(fn, ctx, *args, __fragments = [], **kwargs):
     return fn(_wrap_subrule_ctx(ctx, __fragments), *args, **kwargs)
+
+def _wrap_aspect_ctx(ctx):
+    ctx_fields = {
+        field: getattr(ctx, field)
+        for field in dir(ctx)
+    } | {
+        "actions": _wrap_actions(ctx.actions, ctx.bin_dir, ctx.label),
+        "build_file_path": ctx.label.package + "/BUILD",
+        "genfiles_dir": ctx.bin_dir,
+        "workspace_name": "_main",
+    }
+    _add_common_ctx_fields(ctx_fields, ctx)
+    return struct(**ctx_fields)
+
+def invoke_aspect(fn, target, ctx):
+    return fn(target, _wrap_aspect_ctx(ctx))

@@ -179,6 +179,12 @@ message BuildSpecification {
     // or trivially implementable in pure Starlark.
     string subrule_implementation_wrapper_identifier = 14;
 
+    // If set, name of the Starlark function to invoke to wrap the
+    // execution of aspect implementation functions. This can be used to
+    // decorate ctx to contain fields that are either deprecated, or
+    // trivially implementable in pure Starlark.
+    string aspect_implementation_wrapper_identifier = 18;
+
     // The elliptic-curve public key that identifies the platform that
     // should be used to fetch files from module registries, module
     // sources, and through repository_ctx.download() in PKIX, ASN.1 DER
@@ -2442,6 +2448,11 @@ message RuleImplementationWrappers {
     // function of subrules. If not set, the implementation function
     // is invoked directly.
     bonanza.model.starlark.Function subrule = 2;
+
+    // Function that needs to be invoked instead of the implementation
+    // function of aspects. If not set, the implementation function is
+    // invoked directly.
+    bonanza.model.starlark.Function aspect = 3;
   }
 }
 
@@ -2458,6 +2469,11 @@ message RuleImplementationWrappersIdentifiers {
     // instead of the implementation function of subrules. If not set,
     // the implementation function is invoked directly.
     string subrule_identifier = 2;
+
+    // Identifier of the Starlark function that needs to be invoked
+    // instead of the implementation function of aspects. If not set,
+    // the implementation function is invoked directly.
+    string aspect_identifier = 3;
   }
 }
 

@@ -5085,6 +5085,7 @@ type BuildSpecification_Value struct {
 	StarlarkValueEncoders                  []*encoding.BinaryEncoder               `protobuf:"bytes,17,rep,name=starlark_value_encoders,json=starlarkValueEncoders,proto3" json:"starlark_value_encoders,omitempty"`
 	RuleImplementationWrapperIdentifier    string                                  `protobuf:"bytes,13,opt,name=rule_implementation_wrapper_identifier,json=ruleImplementationWrapperIdentifier,proto3" json:"rule_implementation_wrapper_identifier,omitempty"`
 	SubruleImplementationWrapperIdentifier string                                  `protobuf:"bytes,14,opt,name=subrule_implementation_wrapper_identifier,json=subruleImplementationWrapperIdentifier,proto3" json:"subrule_implementation_wrapper_identifier,omitempty"`
+	AspectImplementationWrapperIdentifier  string                                  `protobuf:"bytes,18,opt,name=aspect_implementation_wrapper_identifier,json=aspectImplementationWrapperIdentifier,proto3" json:"aspect_implementation_wrapper_identifier,omitempty"`
 	FetchPlatformPkixPublicKey             []byte                                  `protobuf:"bytes,15,opt,name=fetch_platform_pkix_public_key,json=fetchPlatformPkixPublicKey,proto3" json:"fetch_platform_pkix_public_key,omitempty"`
 	unknownFields                          protoimpl.UnknownFields
 	sizeCache                              protoimpl.SizeCache
@@ -5214,6 +5215,13 @@ func (x *BuildSpecification_Value) GetRuleImplementationWrapperIdentifier() stri
 func (x *BuildSpecification_Value) GetSubruleImplementationWrapperIdentifier() string {
 	if x != nil {
 		return x.SubruleImplementationWrapperIdentifier
+	}
+	return ""
+}
+
+func (x *BuildSpecification_Value) GetAspectImplementationWrapperIdentifier() string {
+	if x != nil {
+		return x.AspectImplementationWrapperIdentifier
 	}
 	return ""
 }
@@ -13625,6 +13633,7 @@ type RuleImplementationWrappers_Value struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Rule          *starlark.Function     `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
 	Subrule       *starlark.Function     `protobuf:"bytes,2,opt,name=subrule,proto3" json:"subrule,omitempty"`
+	Aspect        *starlark.Function     `protobuf:"bytes,3,opt,name=aspect,proto3" json:"aspect,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -13673,6 +13682,13 @@ func (x *RuleImplementationWrappers_Value) GetSubrule() *starlark.Function {
 	return nil
 }
 
+func (x *RuleImplementationWrappers_Value) GetAspect() *starlark.Function {
+	if x != nil {
+		return x.Aspect
+	}
+	return nil
+}
+
 type RuleImplementationWrappersIdentifiers_Key struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -13713,6 +13729,7 @@ type RuleImplementationWrappersIdentifiers_Value struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	RuleIdentifier    string                 `protobuf:"bytes,1,opt,name=rule_identifier,json=ruleIdentifier,proto3" json:"rule_identifier,omitempty"`
 	SubruleIdentifier string                 `protobuf:"bytes,2,opt,name=subrule_identifier,json=subruleIdentifier,proto3" json:"subrule_identifier,omitempty"`
+	AspectIdentifier  string                 `protobuf:"bytes,3,opt,name=aspect_identifier,json=aspectIdentifier,proto3" json:"aspect_identifier,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -13757,6 +13774,13 @@ func (x *RuleImplementationWrappersIdentifiers_Value) GetRuleIdentifier() string
 func (x *RuleImplementationWrappersIdentifiers_Value) GetSubruleIdentifier() string {
 	if x != nil {
 		return x.SubruleIdentifier
+	}
+	return ""
+}
+
+func (x *RuleImplementationWrappersIdentifiers_Value) GetAspectIdentifier() string {
+	if x != nil {
+		return x.AspectIdentifier
 	}
 	return ""
 }
@@ -15821,9 +15845,9 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x0fexecute_request\x18\x01 \x01(\v2&.bonanza.model.analysis.ExecuteRequestR\x0eexecuteRequest\x1a\x9e\x01\n" +
 	"\x05Value\x12\x1b\n" +
 	"\texit_code\x18\x01 \x01(\x03R\bexitCode\x12x\n" +
-	"\x11outputs_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.OutputsR\x10outputsReference\"\xc2\v\n" +
+	"\x11outputs_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.OutputsR\x10outputsReference\"\x9b\f\n" +
 	"\x12BuildSpecification\x1a\x05\n" +
-	"\x03Key\x1a\xa4\v\n" +
+	"\x03Key\x1a\xfd\v\n" +
 	"\x05Value\x12Q\n" +
 	"\amodules\x18\x01 \x03(\v27.bonanza.model.analysis.BuildSpecification.Value.ModuleR\amodules\x12(\n" +
 	"\x10root_module_name\x18\x02 \x01(\tR\x0erootModuleName\x12y\n" +
@@ -15839,7 +15863,8 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x11analysis_encoders\x18\x10 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x10analysisEncoders\x12]\n" +
 	"\x17starlark_value_encoders\x18\x11 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x15starlarkValueEncoders\x12S\n" +
 	"&rule_implementation_wrapper_identifier\x18\r \x01(\tR#ruleImplementationWrapperIdentifier\x12Y\n" +
-	")subrule_implementation_wrapper_identifier\x18\x0e \x01(\tR&subruleImplementationWrapperIdentifier\x12B\n" +
+	")subrule_implementation_wrapper_identifier\x18\x0e \x01(\tR&subruleImplementationWrapperIdentifier\x12W\n" +
+	"(aspect_implementation_wrapper_identifier\x18\x12 \x01(\tR%aspectImplementationWrapperIdentifier\x12B\n" +
 	"\x1efetch_platform_pkix_public_key\x18\x0f \x01(\fR\x1afetchPlatformPkixPublicKey\x1a\x84\x01\n" +
 	"\x06Module\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12f\n" +
@@ -16488,17 +16513,19 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x03Key\x1a\x7f\n" +
 	"\x05Value\x12(\n" +
 	"\x10root_module_name\x18\x01 \x01(\tR\x0erootModuleName\x12L\n" +
-	"#ignore_root_module_dev_dependencies\x18\x02 \x01(\bR\x1fignoreRootModuleDevDependencies\"\x9e\x01\n" +
+	"#ignore_root_module_dev_dependencies\x18\x02 \x01(\bR\x1fignoreRootModuleDevDependencies\"\xd9\x01\n" +
 	"\x1aRuleImplementationWrappers\x1a\x05\n" +
-	"\x03Key\x1ay\n" +
+	"\x03Key\x1a\xb3\x01\n" +
 	"\x05Value\x124\n" +
 	"\x04rule\x18\x01 \x01(\v2 .bonanza.model.starlark.FunctionR\x04rule\x12:\n" +
-	"\asubrule\x18\x02 \x01(\v2 .bonanza.model.starlark.FunctionR\asubrule\"\x8f\x01\n" +
+	"\asubrule\x18\x02 \x01(\v2 .bonanza.model.starlark.FunctionR\asubrule\x128\n" +
+	"\x06aspect\x18\x03 \x01(\v2 .bonanza.model.starlark.FunctionR\x06aspect\"\xbd\x01\n" +
 	"%RuleImplementationWrappersIdentifiers\x1a\x05\n" +
-	"\x03Key\x1a_\n" +
+	"\x03Key\x1a\x8c\x01\n" +
 	"\x05Value\x12'\n" +
 	"\x0frule_identifier\x18\x01 \x01(\tR\x0eruleIdentifier\x12-\n" +
-	"\x12subrule_identifier\x18\x02 \x01(\tR\x11subruleIdentifier\"\xb3\x02\n" +
+	"\x12subrule_identifier\x18\x02 \x01(\tR\x11subruleIdentifier\x12+\n" +
+	"\x11aspect_identifier\x18\x03 \x01(\tR\x10aspectIdentifier\"\xb3\x02\n" +
 	"\x06Select\x1a\xf2\x01\n" +
 	"\x03Key\x123\n" +
 	"\x15condition_identifiers\x18\x01 \x03(\tR\x14conditionIdentifiers\x12\x92\x01\n" +
@@ -17215,46 +17242,47 @@ var file_bonanza_build_pkg_proto_model_analysis_analysis_proto_depIdxs = []int32
 	366, // 177: bonanza.model.analysis.ResolvedToolchains.Key.toolchains:type_name -> bonanza.model.starlark.ToolchainType
 	349, // 178: bonanza.model.analysis.RuleImplementationWrappers.Value.rule:type_name -> bonanza.model.starlark.Function
 	349, // 179: bonanza.model.analysis.RuleImplementationWrappers.Value.subrule:type_name -> bonanza.model.starlark.Function
-	334, // 180: bonanza.model.analysis.Select.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	355, // 181: bonanza.model.analysis.StarlarkValueEncoders.Value.file_access_parameters:type_name -> bonanza.model.filesystem.FileAccessParameters
-	342, // 182: bonanza.model.analysis.StarlarkValueEncoders.Value.starlark_value_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	5,   // 183: bonanza.model.analysis.SuccessfulActionResult.Key.execute_request:type_name -> bonanza.model.analysis.ExecuteRequest
-	334, // 184: bonanza.model.analysis.SuccessfulActionResult.Value.outputs_reference:type_name -> bonanza.model.core.DecodableReference
-	364, // 185: bonanza.model.analysis.Target.Value.definition:type_name -> bonanza.model.starlark.Target.Definition
-	96,  // 186: bonanza.model.analysis.TargetAction.Key.id:type_name -> bonanza.model.analysis.TargetActionId
-	19,  // 187: bonanza.model.analysis.TargetAction.Value.definition:type_name -> bonanza.model.analysis.TargetActionDefinition
-	96,  // 188: bonanza.model.analysis.TargetActionCommand.Key.id:type_name -> bonanza.model.analysis.TargetActionId
-	334, // 189: bonanza.model.analysis.TargetActionCommand.Value.command_reference:type_name -> bonanza.model.core.DecodableReference
-	96,  // 190: bonanza.model.analysis.TargetActionInputRoot.Key.id:type_name -> bonanza.model.analysis.TargetActionId
-	345, // 191: bonanza.model.analysis.TargetActionInputRoot.Value.input_root_reference:type_name -> bonanza.model.filesystem.DirectoryReference
-	96,  // 192: bonanza.model.analysis.TargetActionResult.Key.id:type_name -> bonanza.model.analysis.TargetActionId
-	340, // 193: bonanza.model.analysis.TargetActionResult.Value.output_root:type_name -> bonanza.model.filesystem.DirectoryContents
-	334, // 194: bonanza.model.analysis.TargetCompletion.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	103, // 195: bonanza.model.analysis.TargetDirectDependencies.Value.target_labels:type_name -> bonanza.model.analysis.TargetLabel
-	334, // 196: bonanza.model.analysis.TargetLabel.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	334, // 197: bonanza.model.analysis.TargetProvider.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	351, // 198: bonanza.model.analysis.TargetProvider.Key.aspects:type_name -> bonanza.model.starlark.AppliedAspect
-	367, // 199: bonanza.model.analysis.TargetProvider.Value.fields:type_name -> bonanza.model.starlark.Struct.Fields
-	334, // 200: bonanza.model.analysis.TargetProviders.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	351, // 201: bonanza.model.analysis.TargetProviders.Key.aspects:type_name -> bonanza.model.starlark.AppliedAspect
-	352, // 202: bonanza.model.analysis.TargetProviders.Value.provider_instances:type_name -> bonanza.model.starlark.Struct
-	103, // 203: bonanza.model.analysis.TestSuiteTests.Value.target_labels:type_name -> bonanza.model.analysis.TargetLabel
-	322, // 204: bonanza.model.analysis.ModuleExtension.User.tag_classes:type_name -> bonanza.model.analysis.ModuleExtension.TagClass
-	323, // 205: bonanza.model.analysis.ModuleExtension.TagClass.tags:type_name -> bonanza.model.analysis.ModuleExtension.Tag
-	367, // 206: bonanza.model.analysis.ModuleExtension.Tag.attrs:type_name -> bonanza.model.starlark.Struct.Fields
-	107, // 207: bonanza.model.analysis.UsedModuleExtension.Value.module_extension:type_name -> bonanza.model.analysis.ModuleExtension
-	107, // 208: bonanza.model.analysis.UsedModuleExtensions.Value.module_extensions:type_name -> bonanza.model.analysis.ModuleExtension
-	334, // 209: bonanza.model.analysis.UserDefinedTransition.Key.input_configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	353, // 210: bonanza.model.analysis.UserDefinedTransition.Value.transition_depends_on_attrs:type_name -> google.protobuf.Empty
-	330, // 211: bonanza.model.analysis.UserDefinedTransition.Value.success:type_name -> bonanza.model.analysis.UserDefinedTransition.Value.Success
-	331, // 212: bonanza.model.analysis.UserDefinedTransition.Value.Success.entries:type_name -> bonanza.model.analysis.UserDefinedTransition.Value.Success.Entry
-	334, // 213: bonanza.model.analysis.UserDefinedTransition.Value.Success.Entry.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	334, // 214: bonanza.model.analysis.VisibleTarget.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	215, // [215:215] is the sub-list for method output_type
-	215, // [215:215] is the sub-list for method input_type
-	215, // [215:215] is the sub-list for extension type_name
-	215, // [215:215] is the sub-list for extension extendee
-	0,   // [0:215] is the sub-list for field type_name
+	349, // 180: bonanza.model.analysis.RuleImplementationWrappers.Value.aspect:type_name -> bonanza.model.starlark.Function
+	334, // 181: bonanza.model.analysis.Select.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	355, // 182: bonanza.model.analysis.StarlarkValueEncoders.Value.file_access_parameters:type_name -> bonanza.model.filesystem.FileAccessParameters
+	342, // 183: bonanza.model.analysis.StarlarkValueEncoders.Value.starlark_value_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	5,   // 184: bonanza.model.analysis.SuccessfulActionResult.Key.execute_request:type_name -> bonanza.model.analysis.ExecuteRequest
+	334, // 185: bonanza.model.analysis.SuccessfulActionResult.Value.outputs_reference:type_name -> bonanza.model.core.DecodableReference
+	364, // 186: bonanza.model.analysis.Target.Value.definition:type_name -> bonanza.model.starlark.Target.Definition
+	96,  // 187: bonanza.model.analysis.TargetAction.Key.id:type_name -> bonanza.model.analysis.TargetActionId
+	19,  // 188: bonanza.model.analysis.TargetAction.Value.definition:type_name -> bonanza.model.analysis.TargetActionDefinition
+	96,  // 189: bonanza.model.analysis.TargetActionCommand.Key.id:type_name -> bonanza.model.analysis.TargetActionId
+	334, // 190: bonanza.model.analysis.TargetActionCommand.Value.command_reference:type_name -> bonanza.model.core.DecodableReference
+	96,  // 191: bonanza.model.analysis.TargetActionInputRoot.Key.id:type_name -> bonanza.model.analysis.TargetActionId
+	345, // 192: bonanza.model.analysis.TargetActionInputRoot.Value.input_root_reference:type_name -> bonanza.model.filesystem.DirectoryReference
+	96,  // 193: bonanza.model.analysis.TargetActionResult.Key.id:type_name -> bonanza.model.analysis.TargetActionId
+	340, // 194: bonanza.model.analysis.TargetActionResult.Value.output_root:type_name -> bonanza.model.filesystem.DirectoryContents
+	334, // 195: bonanza.model.analysis.TargetCompletion.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	103, // 196: bonanza.model.analysis.TargetDirectDependencies.Value.target_labels:type_name -> bonanza.model.analysis.TargetLabel
+	334, // 197: bonanza.model.analysis.TargetLabel.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	334, // 198: bonanza.model.analysis.TargetProvider.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	351, // 199: bonanza.model.analysis.TargetProvider.Key.aspects:type_name -> bonanza.model.starlark.AppliedAspect
+	367, // 200: bonanza.model.analysis.TargetProvider.Value.fields:type_name -> bonanza.model.starlark.Struct.Fields
+	334, // 201: bonanza.model.analysis.TargetProviders.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	351, // 202: bonanza.model.analysis.TargetProviders.Key.aspects:type_name -> bonanza.model.starlark.AppliedAspect
+	352, // 203: bonanza.model.analysis.TargetProviders.Value.provider_instances:type_name -> bonanza.model.starlark.Struct
+	103, // 204: bonanza.model.analysis.TestSuiteTests.Value.target_labels:type_name -> bonanza.model.analysis.TargetLabel
+	322, // 205: bonanza.model.analysis.ModuleExtension.User.tag_classes:type_name -> bonanza.model.analysis.ModuleExtension.TagClass
+	323, // 206: bonanza.model.analysis.ModuleExtension.TagClass.tags:type_name -> bonanza.model.analysis.ModuleExtension.Tag
+	367, // 207: bonanza.model.analysis.ModuleExtension.Tag.attrs:type_name -> bonanza.model.starlark.Struct.Fields
+	107, // 208: bonanza.model.analysis.UsedModuleExtension.Value.module_extension:type_name -> bonanza.model.analysis.ModuleExtension
+	107, // 209: bonanza.model.analysis.UsedModuleExtensions.Value.module_extensions:type_name -> bonanza.model.analysis.ModuleExtension
+	334, // 210: bonanza.model.analysis.UserDefinedTransition.Key.input_configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	353, // 211: bonanza.model.analysis.UserDefinedTransition.Value.transition_depends_on_attrs:type_name -> google.protobuf.Empty
+	330, // 212: bonanza.model.analysis.UserDefinedTransition.Value.success:type_name -> bonanza.model.analysis.UserDefinedTransition.Value.Success
+	331, // 213: bonanza.model.analysis.UserDefinedTransition.Value.Success.entries:type_name -> bonanza.model.analysis.UserDefinedTransition.Value.Success.Entry
+	334, // 214: bonanza.model.analysis.UserDefinedTransition.Value.Success.Entry.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	334, // 215: bonanza.model.analysis.VisibleTarget.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	216, // [216:216] is the sub-list for method output_type
+	216, // [216:216] is the sub-list for method input_type
+	216, // [216:216] is the sub-list for extension type_name
+	216, // [216:216] is the sub-list for extension extendee
+	0,   // [0:216] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_analysis_analysis_proto_init() }

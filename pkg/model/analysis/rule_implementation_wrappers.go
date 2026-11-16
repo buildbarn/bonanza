@@ -49,15 +49,19 @@ func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersValu
 	}
 	identifiers := identifiersValue.Message
 
-	// Look up both wrappers before patching any messages, so that
-	// no metadata is leaked if either of them is unavailable.
+	// Look up all wrappers before patching any messages, so that
+	// no metadata is leaked if any of them is unavailable.
 	ruleImplementationWrapper, ruleErr := getImplementationWrapper(e, identifiers.RuleIdentifier)
 	subruleImplementationWrapper, subruleErr := getImplementationWrapper(e, identifiers.SubruleIdentifier)
+	aspectImplementationWrapper, aspectErr := getImplementationWrapper(e, identifiers.AspectIdentifier)
 	if ruleErr != nil {
 		return PatchedRuleImplementationWrappersValue[TMetadata]{}, fmt.Errorf("failed to get rule implementation wrapper: %w", ruleErr)
 	}
 	if subruleErr != nil {
 		return PatchedRuleImplementationWrappersValue[TMetadata]{}, fmt.Errorf("failed to get subrule implementation wrapper: %w", subruleErr)
+	}
+	if aspectErr != nil {
+		return PatchedRuleImplementationWrappersValue[TMetadata]{}, fmt.Errorf("failed to get aspect implementation wrapper: %w", aspectErr)
 	}
 
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.RuleImplementationWrappers_Value {
@@ -67,6 +71,9 @@ func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersValu
 		}
 		if subruleImplementationWrapper.IsSet() {
 			value.Subrule = model_core.Patch(e, subruleImplementationWrapper).Merge(patcher)
+		}
+		if aspectImplementationWrapper.IsSet() {
+			value.Aspect = model_core.Patch(e, aspectImplementationWrapper).Merge(patcher)
 		}
 		return value
 	}), nil
@@ -80,6 +87,7 @@ func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersIden
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RuleImplementationWrappersIdentifiers_Value{
 		RuleIdentifier:    buildSpecification.Message.RuleImplementationWrapperIdentifier,
 		SubruleIdentifier: buildSpecification.Message.SubruleImplementationWrapperIdentifier,
+		AspectIdentifier:  buildSpecification.Message.AspectImplementationWrapperIdentifier,
 	}), nil
 }
 

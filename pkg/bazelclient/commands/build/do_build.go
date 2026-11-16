@@ -444,6 +444,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		ActionEncoders:                         defaultEncoders,
 		AnalysisEncoders:                       defaultEncoders,
 		StarlarkValueEncoders:                  defaultEncoders,
+		AspectImplementationWrapperIdentifier:  commonFlags.AspectImplementationWrapperIdentifier,
 		RuleImplementationWrapperIdentifier:    commonFlags.RuleImplementationWrapperIdentifier,
 		SubruleImplementationWrapperIdentifier: commonFlags.SubruleImplementationWrapperIdentifier,
 	}

@@ -80,6 +80,11 @@ var startupFlags = []flag{
 
 var commonFlags = []flag{
 	{
+		longName:    "aspect_implementation_wrapper_identifier",
+		description: "Name of the Starlark function to invoke to wrap the execution of aspect implementation functions. This can be used to decorate ctx to contain fields that are either deprecated, or trivially implementable in pure Starlark.",
+		flagType:    stringFlagType{},
+	},
+	{
 		longName:    "browser_url",
 		description: "URL at which the Bonanza Browser service is hosted. This causes command line output to contain clickable links to the Bonanza Browser service.",
 		flagType:    stringFlagType{},

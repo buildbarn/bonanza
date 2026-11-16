@@ -23,6 +23,7 @@ func TestRuleImplementationWrappers(t *testing.T) {
 			Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.RuleImplementationWrappersIdentifiers_Value{
 				RuleIdentifier:    "@@rules+//:wrappers.bzl%rule_wrapper",
 				SubruleIdentifier: "@@rules+//:wrappers.bzl%subrule_wrapper",
+				AspectIdentifier:  "@@rules+//:wrappers.bzl%aspect_wrapper",
 			}))
 	}
 
@@ -51,13 +52,14 @@ func TestRuleImplementationWrappers(t *testing.T) {
 	}
 
 	t.Run("MissingDependency", func(t *testing.T) {
-		// Both wrappers should be requested, even if one of
+		// All wrappers should be requested, even if one of
 		// them is unavailable. As no value is returned, no
 		// objects may be captured.
 		e := NewMockRuleImplementationWrappersEnvironmentForTesting(ctrl)
 		expectIdentifiers(e)
 		expectGlobal(e, "@@rules+//:wrappers.bzl%rule_wrapper", "rule_wrapper")
 		expectGlobal(e, "@@rules+//:wrappers.bzl%subrule_wrapper", "")
+		expectGlobal(e, "@@rules+//:wrappers.bzl%aspect_wrapper", "aspect_wrapper")
 
 		_, err := bct.computer.ComputeRuleImplementationWrappersValue(ctx, &model_analysis_pb.RuleImplementationWrappers_Key{}, e)
 		require.ErrorIs(t, err, evaluation.ErrMissingDependency)
@@ -68,6 +70,7 @@ func TestRuleImplementationWrappers(t *testing.T) {
 		expectIdentifiers(e)
 		expectGlobal(e, "@@rules+//:wrappers.bzl%rule_wrapper", "rule_wrapper")
 		expectGlobal(e, "@@rules+//:wrappers.bzl%subrule_wrapper", "subrule_wrapper")
+		expectGlobal(e, "@@rules+//:wrappers.bzl%aspect_wrapper", "aspect_wrapper")
 
 		value, err := bct.computer.ComputeRuleImplementationWrappersValue(ctx, &model_analysis_pb.RuleImplementationWrappers_Key{}, e)
 		require.NoError(t, err)
@@ -75,6 +78,7 @@ func TestRuleImplementationWrappers(t *testing.T) {
 			return &model_analysis_pb.RuleImplementationWrappers_Value{
 				Rule:    newFunction(patcher, "rule_wrapper"),
 				Subrule: newFunction(patcher, "subrule_wrapper"),
+				Aspect:  newFunction(patcher, "aspect_wrapper"),
 			}
 		}, value)
 	})
