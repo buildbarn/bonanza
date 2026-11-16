@@ -96,6 +96,7 @@ go_test(
         "named_global_test.go",
         "native_test.go",
         "package_group_test.go",
+        "provider_test.go",
         "repo_dot_bazel_repo_function_test.go",
         "repository_rule_test.go",
         "rule_test.go",

@@ -25,6 +25,11 @@
             "type": "*AnalysisEncoders[TReference]"
          }
       },
+      "AspectChain": {
+         "dependsOn": [
+            "CompiledBzlFileGlobal"
+         ]
+      },
       "BuildResult": {
          "dependsOn": [
             "AnalysisEncoders",

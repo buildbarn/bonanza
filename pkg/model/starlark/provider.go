@@ -252,6 +252,19 @@ func EncodeProviderSets[TReference object.BasicReference, TMetadata model_core.R
 	}), nil
 }
 
+// ProviderSetsSatisfiedBy returns whether a sorted list of provider
+// identifiers contains all providers of at least one of the provider
+// sets. Provider sets are expected to be encoded in the form returned
+// by EncodeProviderSets().
+func ProviderSetsSatisfiedBy(providerSets []*model_starlark_pb.ProviderSet, providerIdentifiers []string) bool {
+	for _, providerSet := range providerSets {
+		if isSortedSubset(providerSet.ProviderIdentifiers, providerIdentifiers) {
+			return true
+		}
+	}
+	return false
+}
+
 // EncodeProviderIdentifiers converts a list of providers to a sorted
 // list of provider identifiers, as used by the "provides" parameter of
 // rule() and aspect().

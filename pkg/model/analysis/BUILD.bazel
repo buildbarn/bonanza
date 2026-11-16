@@ -15,6 +15,7 @@ go_library(
         "action_encoders.go",
         "action_result.go",
         "analysis_encoders.go",
+        "aspect_chain.go",
         "base_computer.go",
         "build_result.go",
         "build_specification.go",
@@ -162,6 +163,7 @@ go_library(
 go_test(
     name = "analysis_test",
     srcs = [
+        "aspect_chain_test.go",
         "base_computer_test.go",
         "configured_label_attr_internal_test.go",
         "configured_rule_target_internal_test.go",
@@ -230,6 +232,7 @@ gomock(
     name = "mocks_analysis",
     out = "mocks_analysis_test.go",
     interfaces = [
+        "AspectChainEnvironmentForTesting",
         "ConfiguredTargetEnvironmentForTesting",
         "ExecutionClientForTesting",
         "FileRootEnvironmentForTesting",

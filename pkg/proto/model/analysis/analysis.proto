@@ -667,6 +667,58 @@ message TargetOutputDefinition {
   }
 }
 
+// AspectChain computes properties of a list of aspects that are applied
+// to a target, which ConfiguredTarget needs when applying the last
+// aspect in the list. These properties only depend on the definitions
+// of the aspects.
+//
+// This function is used instead of loading the definitions of all
+// aspects directly, so that changes to other properties of the
+// preceding aspects don't cause the results of ConfiguredTarget to be
+// invalidated.
+message AspectChain {
+  message Key {
+    // The Starlark identifiers of the aspects, in the order in which
+    // they are applied. This list MUST NOT be empty, and MUST NOT
+    // contain duplicates. Aspects listed in an aspect's
+    // Aspect.Definition.requires MUST precede it.
+    repeated string aspect_identifiers = 1;
+  }
+
+  message Value {
+    // Indices of the aspects preceding the last aspect whose providers
+    // are visible to the last aspect, in increasing order. These are
+    // the aspects whose Aspect.Definition.provides satisfies the
+    // Aspect.Definition.required_aspect_providers of the last aspect.
+    repeated uint32 visible_aspect_indices = 1;
+
+    // Indices of the aspects that propagate along all attrs, in
+    // increasing order. These are the aspects whose
+    // Aspect.Definition.attr_aspects is set to ["*"], and the aspects
+    // they require through Aspect.Definition.requires.
+    repeated uint32 always_propagating_aspect_indices = 2;
+
+    message AttrPropagatingAspects {
+      // The name of the attr.
+      string attr_name = 1;
+
+      // Indices of the aspects that propagate along the attr, in
+      // increasing order. These are the aspects whose
+      // Aspect.Definition.attr_aspects contains the name of the attr,
+      // and the aspects they require through
+      // Aspect.Definition.requires. Aspects listed in
+      // always_propagating_aspect_indices are omitted.
+      repeated uint32 aspect_indices = 2;
+    }
+
+    // Aspects that propagate along specific attrs, sorted by attr name.
+    // To obtain the full list of aspects that propagate along an attr,
+    // the aspects listed in always_propagating_aspect_indices need to
+    // be added.
+    repeated AttrPropagatingAspects attr_propagating_aspects = 3;
+  }
+}
+
 // GeneratingRuleAspects determines which aspects in a list of aspects
 // set Aspect.Definition.apply_to_generating_rules. ConfiguredTarget
 // uses this to determine which aspects to apply to the rule target that
