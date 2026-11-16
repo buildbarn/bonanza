@@ -315,8 +315,7 @@ func (*baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAspe
 		// 1. If the last aspect does not set
 		//    apply_to_generating_rules, it cannot yield any
 		//    providers for the output file. Return an empty
-		//    set of providers, without loading the definitions
-		//    of any of the preceding aspects.
+		//    set of providers.
 		//
 		// 2. Otherwise, remove all preceding aspects that don't
 		//    set apply_to_generating_rules, as those could not
@@ -329,6 +328,11 @@ func (*baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAspe
 		//    they are computed by a single ConfiguredTarget
 		//    whose key does not depend on the output file.
 		//
+		// Which aspects set apply_to_generating_rules is
+		// determined by GeneratingRuleAspects, so that changes to
+		// other properties of the aspects don't invalidate this
+		// computation.
+		//
 		// Predeclared output files are configured in the same
 		// configuration as the rule target that generates them,
 		// meaning the rule target can be configured using the
@@ -336,41 +340,24 @@ func (*baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAspe
 		// the rule target itself are not attached to the output
 		// file, as TargetProviders only merges the providers of
 		// the aspects with those of the output file target.
-		lastAspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(aspects[len(aspects)-1].Identifier)
-		if err != nil {
-			return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid aspect identifier: %w", err)
+		aspectIdentifiers := make([]string, 0, len(aspects))
+		for _, aspect := range aspects {
+			aspectIdentifiers = append(aspectIdentifiers, aspect.Identifier)
 		}
-		lastAspectDefinition, err := getAspectDefinition(e, lastAspectIdentifier)
-		if err != nil {
-			return PatchedConfiguredTargetValue[TMetadata]{}, err
-		}
-		if !lastAspectDefinition.Message.ApplyToGeneratingRules {
-			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ConfiguredTarget_Value{}), nil
-		}
-
-		missingDependencies := false
-		generatingRuleAspects := make([]*model_starlark_pb.AppliedAspect, 0, len(aspects))
-		for _, aspect := range aspects[:len(aspects)-1] {
-			aspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(aspect.Identifier)
-			if err != nil {
-				return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid aspect identifier %#v: %w", aspect.Identifier, err)
-			}
-			aspectDefinition, err := getAspectDefinition(e, aspectIdentifier)
-			if err != nil {
-				if errors.Is(err, evaluation.ErrMissingDependency) {
-					missingDependencies = true
-					continue
-				}
-				return PatchedConfiguredTargetValue[TMetadata]{}, err
-			}
-			if aspectDefinition.Message.ApplyToGeneratingRules {
-				generatingRuleAspects = append(generatingRuleAspects, aspect)
-			}
-		}
-		if missingDependencies {
+		generatingRuleAspectsValue := e.GetGeneratingRuleAspectsValue(&model_analysis_pb.GeneratingRuleAspects_Key{
+			AspectIdentifiers: aspectIdentifiers,
+		})
+		if !generatingRuleAspectsValue.IsSet() {
 			return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		generatingRuleAspects = append(generatingRuleAspects, aspects[len(aspects)-1])
+		aspectIndices := generatingRuleAspectsValue.Message.AspectIndices
+		if len(aspectIndices) == 0 || aspectIndices[len(aspectIndices)-1] != uint32(len(aspects)-1) {
+			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ConfiguredTarget_Value{}), nil
+		}
+		generatingRuleAspects := make([]*model_starlark_pb.AppliedAspect, 0, len(aspectIndices))
+		for _, aspectIndex := range aspectIndices {
+			generatingRuleAspects = append(generatingRuleAspects, aspects[aspectIndex])
+		}
 
 		ownerTargetName, err := label.NewTargetName(targetKind.PredeclaredOutputFileTarget.OwnerTargetName)
 		if err != nil {

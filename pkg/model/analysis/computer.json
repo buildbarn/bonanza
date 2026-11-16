@@ -156,6 +156,7 @@
             "DirectoryCreationParameters",
             "EmptyDefaultInfo",
             "ExecTransition",
+            "GeneratingRuleAspects",
             "FileCreationParameters",
             "RootModule",
             "RuleImplementationWrappers",
@@ -285,6 +286,11 @@
       "FinalBuildListModuleDefinition": {
          "dependsOn": [
             "ModuleFinalBuildList"
+         ]
+      },
+      "GeneratingRuleAspects": {
+         "dependsOn": [
+            "CompiledBzlFileGlobal"
          ]
       },
       "Glob": {

@@ -34,21 +34,11 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 			Definition: definition,
 		}))
 	}
-	expectAspect := func(e *MockConfiguredTargetEnvironmentForTesting, aspect *model_starlark_pb.AppliedAspect, applyToGeneratingRules bool) {
-		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: aspect.Identifier}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
-			Global: &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Aspect{
-					Aspect: &model_starlark_pb.Aspect{
-						Kind: &model_starlark_pb.Aspect_Definition_{
-							Definition: &model_starlark_pb.Aspect_Definition{
-								ApplyToGeneratingRules: applyToGeneratingRules,
-							},
-						},
-					},
-				},
-			},
+	expectGeneratingRuleAspects := func(e *MockConfiguredTargetEnvironmentForTesting, aspectIdentifiers []string, aspectIndices []uint32) {
+		e.EXPECT().GetGeneratingRuleAspectsValue(
+			testutil.EqProto(t, &model_analysis_pb.GeneratingRuleAspects_Key{AspectIdentifiers: aspectIdentifiers}),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.GeneratingRuleAspects_Value{
+			AspectIndices: aspectIndices,
 		}))
 	}
 	compute := func(e *MockConfiguredTargetEnvironmentForTesting, label string, aspects ...*model_starlark_pb.AppliedAspect) (model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value, model_core.CreatedObjectTree], error) {
@@ -110,11 +100,10 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 
 	t.Run("PredeclaredOutputFileNotApplyingToGeneratingRules", func(t *testing.T) {
 		// If the last aspect does not set
-		// apply_to_generating_rules, it does not apply. The
-		// definitions of preceding aspects are not needed.
+		// apply_to_generating_rules, it does not apply.
 		e := newEnvironment()
 		expectTarget(e, "@@main+//:foo.out", predeclaredOutputFileTarget)
-		expectAspect(e, aspect2, false)
+		expectGeneratingRuleAspects(e, []string{aspect1.Identifier, aspect2.Identifier}, []uint32{0})
 
 		value, err := compute(e, "@@main+//:foo.out", aspect1, aspect2)
 		require.NoError(t, err)
@@ -128,9 +117,7 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 		// apply_to_generating_rules are omitted.
 		e := newEnvironment()
 		expectTarget(e, "@@main+//:foo.out", predeclaredOutputFileTarget)
-		expectAspect(e, aspect1, false)
-		expectAspect(e, aspect2, true)
-		expectAspect(e, aspect3, true)
+		expectGeneratingRuleAspects(e, []string{aspect1.Identifier, aspect2.Identifier, aspect3.Identifier}, []uint32{1, 2})
 		ownerProviderInstances := []*model_starlark_pb.Struct{{
 			Fields: &model_starlark_pb.Struct_Fields{},
 			ProviderInstanceProperties: &model_starlark_pb.Provider_InstanceProperties{

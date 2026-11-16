@@ -661,6 +661,29 @@ message TargetOutputDefinition {
   }
 }
 
+// GeneratingRuleAspects determines which aspects in a list of aspects
+// set Aspect.Definition.apply_to_generating_rules. ConfiguredTarget
+// uses this to determine which aspects to apply to the rule target that
+// generates a predeclared output file.
+//
+// This function is used instead of loading the definitions of the
+// aspects directly, so that changes to other properties of the aspects
+// don't cause the results of ConfiguredTarget for predeclared output
+// files to be invalidated.
+message GeneratingRuleAspects {
+  message Key {
+    // The Starlark identifiers of the aspects.
+    repeated string aspect_identifiers = 1;
+  }
+
+  message Value {
+    // Indices of the aspects in Key.aspect_identifiers that set
+    // Aspect.Definition.apply_to_generating_rules, in increasing
+    // order.
+    repeated uint32 aspect_indices = 1;
+  }
+}
+
 // ConfiguredTarget analyzes a target in a given configuration.
 //
 // If no aspects are provided, the target is analyzed by invoking the
