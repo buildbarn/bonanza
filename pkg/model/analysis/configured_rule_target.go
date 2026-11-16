@@ -878,7 +878,23 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	return c.encodeRuleTargetValue(ctx, e, thread, analysisEncoders, valueEncodingOptionsFactory, emptyDefaultInfo, providerInstances, outputRegistrar, rc)
+	return c.encodeRuleTargetValue(ctx, e, thread, analysisEncoders, valueEncodingOptionsFactory, emptyDefaultInfo, providerInstances, ruleDefinition.Message.Provides, outputRegistrar, rc)
+}
+
+// checkProvides checks whether the implementation function of a rule
+// returned instances of all providers that the rule advertises through
+// rule(provides = ...).
+func checkProvides(providersSeen map[string]struct{}, provides []string) error {
+	var missing []string
+	for _, providerIdentifier := range provides {
+		if _, ok := providersSeen[providerIdentifier]; !ok {
+			missing = append(missing, providerIdentifier)
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("implementation function did not return providers %s, even though they are listed in provides", strings.Join(missing, ", "))
+	}
+	return nil
 }
 
 // encodeRuleTargetValue converts the provider instances returned by
@@ -892,23 +908,25 @@ func (c *baseComputer[TReference, TMetadata]) encodeRuleTargetValue(
 	valueEncodingOptionsFactory *valueEncodingOptionsFactory[TReference, TMetadata],
 	emptyDefaultInfo model_core.Message[*model_starlark_pb.Struct, TReference],
 	providerInstances []*model_starlark.Struct[TReference, TMetadata],
+	provides []string,
 	outputRegistrar *targetOutputRegistrar[TReference, TMetadata],
 	rc *ruleContext[TReference, TMetadata],
 ) (PatchedConfiguredTargetValue[TMetadata], error) {
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.ConfiguredTarget_Value, error) {
 		// Convert list of providers to a map where the provider
 		// identifier is the key.
-		providersSeen := make(map[label.CanonicalStarlarkIdentifier]struct{}, len(providerInstances))
+		providersSeen := make(map[string]struct{}, len(providerInstances)+1)
 		encodedProviderInstances := make([]*model_starlark_pb.Struct, 0, len(providerInstances)+1)
 		for i, providerInstance := range providerInstances {
 			providerIdentifier, err := providerInstance.GetProviderIdentifier()
 			if err != nil {
 				return nil, fmt.Errorf("struct returned at index %d: %w", i, err)
 			}
-			if _, ok := providersSeen[providerIdentifier]; ok {
-				return nil, fmt.Errorf("implementation function returned multiple structs for provider %#v", providerIdentifier.String())
+			providerIdentifierStr := providerIdentifier.String()
+			if _, ok := providersSeen[providerIdentifierStr]; ok {
+				return nil, fmt.Errorf("implementation function returned multiple structs for provider %#v", providerIdentifierStr)
 			}
-			providersSeen[providerIdentifier] = struct{}{}
+			providersSeen[providerIdentifierStr] = struct{}{}
 
 			v, err := providerInstance.Encode(thread, nil, valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil))
 			if err != nil {
@@ -919,11 +937,20 @@ func (c *baseComputer[TReference, TMetadata]) encodeRuleTargetValue(
 
 		// If the rule did not return an instance of
 		// DefaultInfo, inject an empty instance.
-		if _, ok := providersSeen[defaultInfoProviderIdentifier]; !ok {
+		defaultInfoProviderIdentifierStr := defaultInfoProviderIdentifier.String()
+		if _, ok := providersSeen[defaultInfoProviderIdentifierStr]; !ok {
 			encodedProviderInstances = append(
 				encodedProviderInstances,
 				model_core.Patch(e, emptyDefaultInfo).Merge(patcher),
 			)
+			providersSeen[defaultInfoProviderIdentifierStr] = struct{}{}
+		}
+
+		// Like Bazel, check the advertised providers after
+		// DefaultInfo has been injected, meaning that rules
+		// listing DefaultInfo don't need to return it.
+		if err := checkProvides(providersSeen, provides); err != nil {
+			return nil, err
 		}
 
 		slices.SortFunc(encodedProviderInstances, func(a, b *model_starlark_pb.Struct) int {

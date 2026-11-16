@@ -252,6 +252,21 @@ func EncodeProviderSets[TReference object.BasicReference, TMetadata model_core.R
 	}), nil
 }
 
+// EncodeProviderIdentifiers converts a list of providers to a sorted
+// list of provider identifiers, as used by the "provides" parameter of
+// rule() and aspect().
+func EncodeProviderIdentifiers[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](providers []*Provider[TReference, TMetadata]) ([]string, error) {
+	providerIdentifiers := make([]string, 0, len(providers))
+	for _, provider := range providers {
+		if provider.Identifier == nil {
+			return nil, errors.New("provider does not have a name")
+		}
+		providerIdentifiers = append(providerIdentifiers, provider.Identifier.String())
+	}
+	slices.Sort(providerIdentifiers)
+	return slices.Compact(providerIdentifiers), nil
+}
+
 // isSortedSubset returns true if all elements of a sorted list are
 // also contained in another sorted list.
 func isSortedSubset(subset, superset []string) bool {

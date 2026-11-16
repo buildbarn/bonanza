@@ -162,6 +162,7 @@ go_test(
     srcs = [
         "base_computer_test.go",
         "configured_label_attr_internal_test.go",
+        "configured_rule_target_internal_test.go",
         "configured_rule_usage_internal_test.go",
         "file_root_test.go",
         "label_attr_requirements_internal_test.go",

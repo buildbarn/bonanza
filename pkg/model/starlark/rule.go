@@ -616,6 +616,11 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(thread *eval.Thr
 	}
 	cfgTransitionMessage := cfgTransition.Merge(patcher)
 
+	provides, err := EncodeProviderIdentifiers(rd.provides)
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.Rule_Definition, TMetadata]{}, fmt.Errorf("provides: %w", err)
+	}
+
 	subruleIdentifiers := make([]string, 0, len(rd.subrules))
 	for i, subrule := range rd.subrules {
 		if subrule.Identifier == nil {
@@ -634,6 +639,7 @@ func (rd *starlarkRuleDefinition[TReference, TMetadata]) Encode(thread *eval.Thr
 			ExecGroups:         execGroups,
 			Implementation:     implementationMessage,
 			Initializer:        initializerMessage,
+			Provides:           provides,
 			Type:               rd.ruleType,
 			SubruleIdentifiers: slices.Compact(subruleIdentifiers),
 		},
