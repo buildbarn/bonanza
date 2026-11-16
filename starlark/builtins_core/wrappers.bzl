@@ -88,7 +88,28 @@ def _expand_make_variables(command, get_value):
         fail("command terminates in the middle of a $ sequence")
     return result
 
-def _add_common_ctx_fields(ctx_fields, ctx):
+def _get_make_variables(attr, is_rule):
+    """Returns the make variables of a rule or aspect.
+
+    Make variables such as BINDIR and COMPILATION_MODE are provided by
+    the targets in the "__default_toolchains" attribute that is injected
+    into rules and aspects. For rules, the targets in the "toolchains"
+    attribute are taken into account as well. Aspects don't have such an
+    attribute, as public attributes of aspects are parameters. If the
+    rule or aspect has no "__default_toolchains" attribute, None is
+    returned.
+    """
+    if not hasattr(attr, "__default_toolchains"):
+        return None
+    var = {}
+    for toolchain in attr.__default_toolchains:
+        var |= toolchain[TemplateVariableInfo].variables
+    if is_rule:
+        for toolchain in getattr(attr, "toolchains", []):
+            var |= toolchain[TemplateVariableInfo].variables
+    return var
+
+def _add_common_ctx_fields(ctx_fields, ctx, is_rule):
     """Adds fields to ctx that are shared by rules and aspects."""
 
     # If the rule or aspect depends on one or more fragments, an
@@ -107,16 +128,10 @@ def _add_common_ctx_fields(ctx_fields, ctx):
 
     # If the rule or aspect has an attribute "__default_toolchains", we
     # should add ctx.var containing all make variables such as BINDIR
-    # and COMPILATION_MODE. For rules, the targets in the "toolchains"
-    # attribute are taken into account as well. With those variables in
-    # place, we may also provide ctx.expand_make_variables().
-    if hasattr(ctx.attr, "__default_toolchains"):
-        var = {}
-        for toolchain in ctx.attr.__default_toolchains:
-            var |= toolchain[TemplateVariableInfo].variables
-        for toolchain in getattr(ctx.attr, "toolchains", []):
-            var |= toolchain[TemplateVariableInfo].variables
-
+    # and COMPILATION_MODE. With those variables in place, we may also
+    # provide ctx.expand_make_variables().
+    var = _get_make_variables(ctx.attr, is_rule)
+    if var != None:
         def ctx_expand_make_variables(attribute_name, command, additional_substitutions):
             def get_value(variable_name):
                 if variable_name in additional_substitutions:
@@ -223,7 +238,7 @@ def _wrap_rule_ctx(ctx):
         "workspace_name": "_main",
     }
 
-    _add_common_ctx_fields(ctx_fields, ctx)
+    _add_common_ctx_fields(ctx_fields, ctx, is_rule = True)
     return struct(**ctx_fields)
 
 def invoke_rule(fn, ctx):
@@ -254,7 +269,19 @@ def _wrap_aspect_ctx(ctx):
         "genfiles_dir": ctx.bin_dir,
         "workspace_name": "_main",
     }
-    _add_common_ctx_fields(ctx_fields, ctx)
+    _add_common_ctx_fields(ctx_fields, ctx, is_rule = False)
+
+    # Provide ctx.rule.var, containing the make variables of the rule
+    # target to which the aspect is applied.
+    rule_var = _get_make_variables(ctx.rule.attr, is_rule = True)
+    if rule_var != None:
+        ctx_fields["rule"] = struct(**({
+            field: getattr(ctx.rule, field)
+            for field in dir(ctx.rule)
+        } | {
+            "var": rule_var,
+        }))
+
     return struct(**ctx_fields)
 
 def invoke_aspect(fn, target, ctx):
