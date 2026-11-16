@@ -325,25 +325,32 @@ type configuredSubrule[TReference any] struct {
 	kwargs     []eval.NamedArg
 }
 
-// configureSubruleAttrs converts the configured attrs of a subrule, as
-// computed by ConfiguredRule, to Starlark values that can be provided
-// to the subrule's implementation function.
-func configureSubruleAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+// configureResolvedLabelAttrs converts the values of label attrs that
+// always use their default value and whose labels have already been
+// resolved to Starlark values. This is the case for the attrs of
+// subrules, as computed by ConfiguredRule, and the label attrs of
+// aspects, as computed by ConfiguredAspect.
+//
+// The values are returned as keyword arguments, so that they can be
+// provided to the implementation function of a subrule. If files is
+// set, the values of ctx.executable, ctx.file and ctx.files are
+// collected as well.
+func configureResolvedLabelAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	ctx context.Context,
 	e configuredTargetReferenceCreatorEnvironment[TReference, TMetadata],
 	thread *eval.Thread,
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
-	subruleDefinition model_core.Message[*model_starlark_pb.Subrule_Definition, TReference],
+	namedAttrs model_core.Message[[]*model_starlark_pb.NamedAttr, TReference],
 	configuredAttrs model_core.Message[[]*model_analysis_pb.ConfiguredLabelAttr, TReference],
+	files *labelAttrFiles[TReference, TMetadata],
 ) ([]eval.NamedArg, error) {
-	namedAttrs := subruleDefinition.Message.Attrs
-	if len(configuredAttrs.Message) != len(namedAttrs) {
-		return nil, fmt.Errorf("subrule has %d attrs, while %d configured attrs were provided", len(namedAttrs), len(configuredAttrs.Message))
+	if len(configuredAttrs.Message) != len(namedAttrs.Message) {
+		return nil, fmt.Errorf("%d attrs were provided, while %d configured attrs were provided", len(namedAttrs.Message), len(configuredAttrs.Message))
 	}
 
 	missingDependencies := false
-	kwargs := make([]eval.NamedArg, 0, len(namedAttrs))
-	for i, namedAttr := range namedAttrs {
+	kwargs := make([]eval.NamedArg, 0, len(namedAttrs.Message))
+	for i, namedAttr := range namedAttrs.Message {
 		labelOptions, isScalar, _ := getLabelAttrOptions(namedAttr.Attr)
 		requirements, err := newLabelAttrRequirements[TReference, TMetadata](ctx, thread, &starlarkValueEncoders.Readers, namedAttr.Attr)
 		if err != nil {
@@ -360,9 +367,16 @@ func configureSubruleAttrs[TReference object.BasicReference, TMetadata model_cor
 		if defaultValue == nil {
 			return nil, fmt.Errorf("missing value for mandatory attr %#v", namedAttr.Name)
 		}
-		valuePart := model_core.Nested(subruleDefinition, defaultValue)
+		valuePart := model_core.Nested(namedAttrs, defaultValue)
 		if err := setLabelAttrConfigurationDefaultValue(ctx, &configuration, &starlarkValueEncoders.Readers, valuePart); err != nil {
 			return nil, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+		}
+
+		var filesCollector *labelAttrFilesCollector[TReference, TMetadata]
+		var onConfiguredTarget func(string, model_core.Message[[]*model_starlark_pb.Struct, TReference]) error
+		if files != nil {
+			filesCollector = files.newAttr(namedAttr)
+			onConfiguredTarget = filesCollector.addTarget
 		}
 
 		var attrBuilder model_starlark.AttrValueBuilder
@@ -379,6 +393,9 @@ func configureSubruleAttrs[TReference object.BasicReference, TMetadata model_cor
 				return nil, err
 			}
 		} else {
+			if filesCollector != nil {
+				filesCollector.setConfigured()
+			}
 			for i := range configuration.entries {
 				decodedPart, err := model_starlark.DecodeAttrValuePart[TReference, TMetadata](
 					thread,
@@ -391,7 +408,7 @@ func configureSubruleAttrs[TReference object.BasicReference, TMetadata model_cor
 							/* visibilityFromPackage = */ label.CanonicalPackage{},
 							requirements,
 							&missingDependencies,
-							/* onConfiguredTarget = */ nil,
+							onConfiguredTarget,
 						),
 					),
 				)
@@ -419,6 +436,11 @@ func configureSubruleAttrs[TReference object.BasicReference, TMetadata model_cor
 		}
 		if attr == nil {
 			return nil, fmt.Errorf("value of attr %#v does not have any parts", namedAttr.Name)
+		}
+		if filesCollector != nil {
+			if err := filesCollector.finish(); err != nil {
+				return nil, err
+			}
 		}
 		kwargs = append(kwargs, eval.NamedArg{
 			Name:  namedAttr.Name,

@@ -61,14 +61,11 @@ type ruleTargetAnalysis[TReference object.BasicReference, TMetadata model_core.R
 
 	// Values that are provided to transitions and the rule
 	// implementation function.
-	attrValues                 map[string]any
-	edgeTransitionAttrValues   map[string]any
-	executableValues           map[string]any
-	executableFileToFilesToRun map[*model_starlark.File[TReference, TMetadata]]model_core.Message[*model_starlark_pb.Struct, TReference]
-	fileValues                 map[string]any
-	filesValues                map[string]any
-	outputsValues              map[string]any
-	splitAttrValues            map[string]any
+	attrValues               map[string]any
+	edgeTransitionAttrValues map[string]any
+	files                    *labelAttrFiles[TReference, TMetadata]
+	outputsValues            map[string]any
+	splitAttrValues          map[string]any
 }
 
 // attrs iterates over all attrs of the rule, providing the value of the
@@ -277,11 +274,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 	publicAttrValue model_core.Message[*model_starlark_pb.RuleTarget_PublicAttrValue, TReference],
 	configuration *labelAttrConfiguration[TReference],
 ) error {
-	allowSingleFile, executable := false, false
-	if attrType, ok := namedAttr.Attr.GetType().(*model_starlark_pb.Attr_Label); ok {
-		allowSingleFile = attrType.Label.AllowSingleFile
-		executable = attrType.Label.Executable
-	}
+	filesCollector := a.files.newAttr(namedAttr)
 
 	requirements, err := newLabelAttrRequirements[TReference, TMetadata](a.context, a.thread, &a.starlarkValueEncoders.Readers, namedAttr.Attr)
 	if err != nil {
@@ -293,7 +286,6 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 	missingDependencies := false
 	var attrValueBuilder model_starlark.AttrValueBuilder
 	var splitAttrEntries [][2]eval.Value
-	var filesDepsetElements []any
 	if len(configuration.entries) == 0 {
 		// Leave targets unconfigured. Perform select() without
 		// a configuration.
@@ -324,9 +316,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 			}
 		}
 	} else {
-		if executable {
-			a.executableValues[namedAttr.Name] = eval.None
-		}
+		filesCollector.setConfigured()
 		if configuration.defaultValueLabelsResolved {
 			defaultValue := namedAttr.Attr.GetDefault()
 			if defaultValue == nil {
@@ -386,9 +376,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 					visibilityFromPackage,
 					requirements,
 					&missingDependencies,
-					func(resolvedLabel string, providerInstances model_core.Message[[]*model_starlark_pb.Struct, TReference]) error {
-						return a.collectDefaultInfo(namedAttr.Name, executable, resolvedLabel, providerInstances, &filesDepsetElements)
-					},
+					filesCollector.addTarget,
 				),
 			)
 			var splitAttrEntryBuilder model_starlark.AttrValueBuilder
@@ -444,80 +432,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 		a.splitAttrValues[namedAttr.Name] = immutableSplitAttrValue
 	}
 
-	filesElements, err := model_starlark.NewDepsetContentsFromList[TReference, TMetadata](
-		filesDepsetElements,
-		model_starlark_pb.Depset_DEFAULT,
-	).ToList(thread)
-	if err != nil {
-		return fmt.Errorf("converting files depset to list: %w", err)
-	}
-	if allowSingleFile {
-		switch l := len(filesElements); l {
-		case 0:
-			a.fileValues[namedAttr.Name] = eval.None
-		case 1:
-			a.fileValues[namedAttr.Name] = filesElements[0]
-		default:
-			return fmt.Errorf("attr %#v has allow_single_file=True, but its value expands to %d targets", namedAttr.Name, l)
-		}
-	} else {
-		a.filesValues[namedAttr.Name] = eval.NewImmutableList(filesElements)
-	}
-	return nil
-}
-
-// collectDefaultInfo extracts the files and executable from the
-// DefaultInfo provider of a target that is referenced by a label attr,
-// so that they can be exposed through ctx.files, ctx.file and
-// ctx.executable.
-func (a *ruleTargetAnalysis[TReference, TMetadata]) collectDefaultInfo(
-	attrName string,
-	executable bool,
-	resolvedLabel string,
-	providerInstances model_core.Message[[]*model_starlark_pb.Struct, TReference],
-	filesDepsetElements *[]any,
-) error {
-	ctx := a.context
-	valueReaders := &a.starlarkValueEncoders.Readers
-	defaultInfoFields, filesDepset, err := getDefaultInfoFilesDepset(ctx, valueReaders, resolvedLabel, providerInstances)
-	if err != nil {
-		return err
-	}
-	for _, element := range filesDepset.Message.Elements {
-		*filesDepsetElements = append(*filesDepsetElements, model_core.Nested(filesDepset, element))
-	}
-
-	if executable {
-		filesToRun, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, defaultInfoFields, "files_to_run")
-		if err != nil {
-			return fmt.Errorf("failed to obtain field \"files_to_run\" of DefaultInfo provider of target with label %#v: %w", resolvedLabel, err)
-		}
-		filesToRunStructValue, ok := filesToRun.Message.Kind.(*model_starlark_pb.Value_Struct)
-		if !ok {
-			return fmt.Errorf("field \"files_to_run\" of DefaultInfo provider of target with label %#v is not a struct", resolvedLabel)
-		}
-		filesToRunStruct := model_core.Nested(filesToRun, filesToRunStructValue.Struct)
-		executableField, err := model_starlark.GetStructFieldValue(
-			ctx,
-			valueReaders.List,
-			model_core.Nested(filesToRunStruct, filesToRunStruct.Message.Fields),
-			"executable",
-		)
-		if err != nil {
-			return fmt.Errorf("failed to obtain field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v: %w", resolvedLabel, err)
-		}
-		decodedExecutable, err := model_starlark.DecodeValue[TReference, TMetadata](a.thread, executableField, nil)
-		if err != nil {
-			return fmt.Errorf("decode field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v: %w", resolvedLabel, err)
-		}
-		typedExecutable, ok := decodedExecutable.(*model_starlark.File[TReference, TMetadata])
-		if !ok {
-			return fmt.Errorf("field \"files_to_run.executable\" of DefaultInfo provider of target with label %#v is not a File", resolvedLabel)
-		}
-		a.executableValues[attrName] = typedExecutable
-		a.executableFileToFilesToRun[typedExecutable] = filesToRunStruct
-	}
-	return nil
+	return filesCollector.finish()
 }
 
 // configureSubrules computes the values of the attrs of all subrules
@@ -535,13 +450,14 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureSubrules(configured
 			}
 			return nil, err
 		}
-		kwargs, err := configureSubruleAttrs[TReference, TMetadata](
+		kwargs, err := configureResolvedLabelAttrs[TReference, TMetadata](
 			a.context,
 			a.environment,
 			a.thread,
 			a.starlarkValueEncoders,
-			subruleDefinition,
+			model_core.Nested(subruleDefinition, subruleDefinition.Message.Attrs),
 			model_core.Nested(configuredRule, configuredSubruleValue.Attrs),
+			/* files = */ nil,
 		)
 		if err != nil {
 			if errors.Is(err, evaluation.ErrMissingDependency) {
@@ -756,14 +672,11 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 		configurationReference: configurationReference,
 		outputRegistrar:        outputRegistrar,
 
-		attrValues:                 attrValues,
-		edgeTransitionAttrValues:   edgeTransitionAttrValues,
-		executableValues:           map[string]any{},
-		executableFileToFilesToRun: map[*model_starlark.File[TReference, TMetadata]]model_core.Message[*model_starlark_pb.Struct, TReference]{},
-		fileValues:                 map[string]any{},
-		filesValues:                map[string]any{},
-		outputsValues:              map[string]any{},
-		splitAttrValues:            map[string]any{},
+		attrValues:               attrValues,
+		edgeTransitionAttrValues: edgeTransitionAttrValues,
+		files:                    newLabelAttrFiles[TReference, TMetadata](ctx, thread, &starlarkValueEncoders.Readers),
+		outputsValues:            map[string]any{},
+		splitAttrValues:          map[string]any{},
 	}
 
 	// Obtain properties of the rule that are shared with other
@@ -850,7 +763,7 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 			configurationReference:      configurationReference,
 			namedExecGroups:             model_core.Nested(ruleDefinition, ruleDefinition.Message.ExecGroups),
 			execGroups:                  execGroups,
-			executableFileToFilesToRun:  a.executableFileToFilesToRun,
+			executableFileToFilesToRun:  a.files.executableFileToFilesToRun,
 			outputRegistrar:             outputRegistrar,
 			actionEncoder:               actionEncoders.Encoder,
 			directoryCreationParameters: directoryCreationParameters,
@@ -861,9 +774,9 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 		ruleTarget:     ruleTarget,
 		attr:           model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.attrValues),
 		splitAttr:      model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.splitAttrValues),
-		executable:     model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.executableValues),
-		file:           model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.fileValues),
-		files:          model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.filesValues),
+		executable:     model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.files.executableValues),
+		file:           model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.files.fileValues),
+		files:          model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.files.filesValues),
 		outputs:        model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.outputsValues),
 	}
 	defer func() {

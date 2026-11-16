@@ -46,6 +46,7 @@ go_library(
         "glob.go",
         "http_archive_contents.go",
         "http_file_contents.go",
+        "label_attr_files.go",
         "label_attr_requirements.go",
         "macro_expansion_context.go",
         "module_dot_bazel_contents.go",
