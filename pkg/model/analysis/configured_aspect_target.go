@@ -11,8 +11,10 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/starlark/unpack"
@@ -77,10 +79,6 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 ) (PatchedConfiguredTargetValue[TMetadata], error) {
 	aspects := model_core.Nested(key, key.Message.Aspects)
 	lastAspect := aspects.Message[len(aspects.Message)-1]
-	if lastAspect.Parameters != nil {
-		// TODO: Add support for aspect parameters.
-		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("aspect parameters are not supported yet")
-	}
 	aspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(lastAspect.Identifier)
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid aspect identifier: %w", err)
@@ -247,8 +245,10 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		ctx,
 		e,
 		thread,
+		analysisEncoders,
 		starlarkValueEncoders,
 		aspectDefinition,
+		model_core.Nested(aspects, lastAspect.Parameters),
 		model_core.Nested(configuredAspect, configuredAspect.Message.LabelAttrs),
 		aspectFiles,
 	)
@@ -415,20 +415,59 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	})
 }
 
+// getAspectParameters returns the values of the public attrs of an
+// aspect that are set to values that differ from their default values,
+// as stored in AppliedAspect.parameters. These objects are created by
+// analysis functions, meaning they need to be read using the analysis
+// readers. Objects containing the values of the fields are read using
+// the Starlark value readers.
+func getAspectParameters[TReference object.BasicReference](
+	ctx context.Context,
+	analysisReaders *AnalysisReaders[TReference],
+	valueReaders *model_starlark.ValueReaders[TReference],
+	parameters model_core.Message[*model_core_pb.DecodableReference, TReference],
+) (map[string]model_core.Message[*model_starlark_pb.Value, TReference], error) {
+	if parameters.Message == nil {
+		return nil, nil
+	}
+	fields, err := model_parser.Dereference(ctx, analysisReaders.AspectParameters, parameters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read aspect parameters: %w", err)
+	}
+	parameterValues := map[string]model_core.Message[*model_starlark_pb.Value, TReference]{}
+	var errIter error
+	for key, value := range model_starlark.AllStructFields(ctx, valueReaders.List, fields, &errIter) {
+		parameterValues[key] = value
+	}
+	if errIter != nil {
+		return nil, fmt.Errorf("failed to iterate aspect parameters: %w", errIter)
+	}
+	return parameterValues, nil
+}
+
 // configureAspectAttrs computes the values of the attrs of an aspect,
 // which are provided to the aspect implementation function through
-// ctx.attr. Public attrs are parameters of the aspect. Private attrs
-// always use their default value. The labels contained in private label
-// attrs have already been resolved by ConfiguredAspect.
+// ctx.attr. Public attrs are parameters of the aspect, whose values are
+// stored in AppliedAspect.parameters if they differ from their default
+// values. Private attrs always use their default value. The labels
+// contained in private label attrs have already been resolved by
+// ConfiguredAspect.
 func configureAspectAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	ctx context.Context,
-	e ConfiguredTargetEnvironment[TReference, TMetadata],
+	e configuredTargetReferenceCreatorEnvironment[TReference, TMetadata],
 	thread *eval.Thread,
+	analysisEncoders *AnalysisEncoders[TReference],
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	aspectDefinition model_core.Message[*model_starlark_pb.Aspect_Definition, TReference],
+	parameters model_core.Message[*model_core_pb.DecodableReference, TReference],
 	configuredLabelAttrs model_core.Message[[]*model_analysis_pb.IndexedConfiguredLabelAttr, TReference],
 	files *labelAttrFiles[TReference, TMetadata],
 ) (map[string]any, error) {
+	parameterValues, err := getAspectParameters(ctx, &analysisEncoders.Readers, &starlarkValueEncoders.Readers, parameters)
+	if err != nil {
+		return nil, err
+	}
+
 	namedAttrs := aspectDefinition.Message.Attrs
 	attrValues := make(map[string]any, len(namedAttrs))
 	var labelAttrs []*model_starlark_pb.NamedAttr
@@ -445,18 +484,30 @@ func configureAspectAttrs[TReference object.BasicReference, TMetadata model_core
 			continue
 		}
 
-		// Attrs that are not label attrs use their default
-		// value. For public attrs, this will change once
-		// support for aspect parameters is added.
-		defaultValue := namedAttr.Attr.GetDefault()
-		if defaultValue == nil {
-			return nil, fmt.Errorf("missing value for mandatory attr %#v", namedAttr.Name)
+		// Attrs that are not label attrs use the value of the
+		// parameter if set, or their default value otherwise.
+		var encodedValue model_core.Message[*model_starlark_pb.Value, TReference]
+		if parameterValue, ok := parameterValues[namedAttr.Name]; ok {
+			if !strings.HasPrefix(namedAttr.Name, "_") {
+				delete(parameterValues, namedAttr.Name)
+				encodedValue = parameterValue
+			}
 		}
-		value, err := model_starlark.DecodeValue[TReference, TMetadata](thread, model_core.Nested(aspectDefinition, defaultValue), nil)
+		if encodedValue.Message == nil {
+			defaultValue := namedAttr.Attr.GetDefault()
+			if defaultValue == nil {
+				return nil, fmt.Errorf("missing value for mandatory attr %#v", namedAttr.Name)
+			}
+			encodedValue = model_core.Nested(aspectDefinition, defaultValue)
+		}
+		value, err := model_starlark.DecodeValue[TReference, TMetadata](thread, encodedValue, nil)
 		if err != nil {
 			return nil, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
 		}
 		attrValues[namedAttr.Name] = value
+	}
+	for name := range parameterValues {
+		return nil, fmt.Errorf("aspect parameter %#v does not correspond to a public attr of the aspect", name)
 	}
 	if len(remainingConfiguredLabelAttrs) > 0 {
 		return nil, fmt.Errorf("configured aspect contains a value for attr index %d, which does not refer to a label attr", remainingConfiguredLabelAttrs[0].AttrIndex)

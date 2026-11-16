@@ -26,6 +26,7 @@ func (baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersValue(ctx cont
 type AnalysisReaders[TReference any] struct {
 	Args                          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args]
 	ArgsAdd                       model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args_Leaf_Add]
+	AspectParameters              model_parser.MessageObjectReader[TReference, *model_starlark_pb.Struct_Fields]
 	BuildSettingOverride          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.BuildSettingOverride]
 	ConfiguredTargetAction        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Action]
 	ConfiguredTargetOutput        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Output]
@@ -70,6 +71,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersObject(valu
 				model_parser.NewChainedObjectParser(
 					encodedObjectParser,
 					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.Args_Leaf_Add](),
+				),
+			),
+			AspectParameters: model_parser.LookupParsedObjectReader(
+				c.parsedObjectPoolIngester,
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoObjectParser[TReference, model_starlark_pb.Struct_Fields](),
 				),
 			),
 			BuildSettingOverride: model_parser.LookupParsedObjectReader(

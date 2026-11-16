@@ -229,9 +229,12 @@ message AppliedAspect {
   // parameters are stored in a separate object. This keeps keys small,
   // even if lists of aspects are repeated across many keys. It also
   // means that equal sets of parameters yield the same reference, as
-  // long as they are encoded deterministically. Values SHOULD thus be
-  // stored inline, as opposed to using parent elements or file
-  // contents stored in separate objects.
+  // long as they are encoded deterministically.
+  //
+  // The object is created by analysis functions, and is thus encoded
+  // using the analysis encoders. Like for any other Starlark value,
+  // objects containing the values of the fields are encoded using the
+  // Starlark value encoders.
   bonanza.model.core.DecodableReference parameters = 2
       [(bonanza.model.core.object_format) = {
         proto_type_name:
