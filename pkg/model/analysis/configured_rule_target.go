@@ -1421,6 +1421,26 @@ type targetOutputRegistrar[TReference object.BasicReference, TMetadata model_cor
 
 	outputsByPackageRelativePath map[string]*targetOutput[TMetadata]
 	outputsByFile                map[*model_starlark.File[TReference, TMetadata]]*targetOutput[TMetadata]
+
+	// The File objects that were returned when declaring outputs,
+	// so that declaring the same output again returns the same
+	// object. This map is created lazily.
+	filesByPackageRelativePath map[string]*model_starlark.File[TReference, TMetadata]
+}
+
+// getFileTypeDescription returns a human readable description of a type
+// of file, for use in error messages.
+func getFileTypeDescription(fileType model_starlark_pb.File_Owner_Type) string {
+	switch fileType {
+	case model_starlark_pb.File_Owner_FILE:
+		return "regular file"
+	case model_starlark_pb.File_Owner_DIRECTORY:
+		return "directory"
+	case model_starlark_pb.File_Owner_SYMLINK:
+		return "symbolic link"
+	default:
+		return fileType.String()
+	}
 }
 
 func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename label.TargetName, sibling *model_starlark.File[TReference, TMetadata], fileType model_starlark_pb.File_Owner_Type) (eval.Value, error) {
@@ -1438,11 +1458,25 @@ func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename 
 		filename = siblingLabel.GetTargetName().GetSibling(filename)
 	}
 
+	// Like Bazel, declaring the same output multiple times yields
+	// the same file, as long as its type is the same.
+	filenameStr := filename.String()
+	if existingOutput, ok := or.outputsByPackageRelativePath[filenameStr]; ok {
+		if existingOutput.fileType != fileType {
+			return nil, fmt.Errorf("file %#v has already been declared as a %s, not a %s", filenameStr, getFileTypeDescription(existingOutput.fileType), getFileTypeDescription(fileType))
+		}
+		f, ok := or.filesByPackageRelativePath[filenameStr]
+		if !ok {
+			return nil, fmt.Errorf("file %#v was declared, but its file object was not retained", filenameStr)
+		}
+		return f, nil
+	}
+
 	o := &targetOutput[TMetadata]{
 		packageRelativePath: filename,
 		fileType:            fileType,
 	}
-	or.outputsByPackageRelativePath[filename.String()] = o
+	or.outputsByPackageRelativePath[filenameStr] = o
 	f := model_starlark.NewFile[TReference, TMetadata](
 		model_core.Nested(or.variant, &model_starlark_pb.File{
 			Owner: &model_starlark_pb.File_Owner{
@@ -1454,6 +1488,10 @@ func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename 
 		}),
 	)
 	or.outputsByFile[f] = o
+	if or.filesByPackageRelativePath == nil {
+		or.filesByPackageRelativePath = map[string]*model_starlark.File[TReference, TMetadata]{}
+	}
+	or.filesByPackageRelativePath[filenameStr] = f
 	return f, nil
 }
 

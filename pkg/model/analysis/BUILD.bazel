@@ -197,6 +197,7 @@ go_test(
         "rule_implementation_wrappers_test.go",
         "target_direct_dependencies_test.go",
         "target_incoming_edge_transition_test.go",
+        "target_output_registrar_internal_test.go",
         "target_providers_test.go",
         "target_test.go",
         "test_suite_tests_test.go",
