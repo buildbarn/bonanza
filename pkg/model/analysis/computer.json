@@ -93,6 +93,17 @@
             "StarlarkValueEncoders"
          ]
       },
+      "ConfiguredAspect": {
+         "dependsOn": [
+            "CompiledBzlFileGlobal",
+            "ExecTransition",
+            "ResolvedToolchains",
+            "StarlarkValueEncoders",
+            "TargetProvider",
+            "VisibleTarget"
+         ],
+         "keyContainsReferences": true
+      },
       "ConfiguredRule": {
          "dependsOn": [
             "AnalysisEncoders",

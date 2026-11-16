@@ -969,6 +969,45 @@ message ConfiguredRuleUsage {
   }
 }
 
+// ConfiguredAspect contains properties of an aspect that only depend on
+// the aspect definition and the configuration in which it is applied.
+// These are shared by all targets to which the aspect is applied in the
+// same configuration.
+//
+// As public attrs of aspects are parameters that cannot be labels, and
+// label attrs of aspects cannot use user-defined transitions, there is
+// no need for an equivalent of ConfiguredRuleUsage.
+message ConfiguredAspect {
+  message Key {
+    // The Starlark identifier of the aspect.
+    string identifier = 1;
+
+    // The configuration in which the aspect is applied. This is the
+    // configuration of the target to which it is applied, after the
+    // target's incoming edge transition has been applied.
+    bonanza.model.core.DecodableReference configuration_reference = 2
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.BuildSettingOverride";
+        }];
+  }
+
+  message Value {
+    // Exec groups of the aspect, using the same order as the exec
+    // groups in the aspect definition.
+    repeated ConfiguredExecGroup exec_groups = 1;
+
+    // All subrules that may be invoked by the aspect, either directly
+    // or through other subrules, sorted alphabetically by identifier.
+    repeated ConfiguredSubrule subrules = 2;
+
+    // The values of the aspect's private label attrs, sorted by attr
+    // index. As these always use their default value, the labels
+    // contained in them are always resolved.
+    repeated IndexedConfiguredLabelAttr label_attrs = 3;
+  }
+}
+
 // RuleUsageIncomingEdgeTransition applies the incoming edge transition of a
 // rule, for all targets of the rule that explicitly set the same public
 // attrs. The transition can only be applied if it does not read the
