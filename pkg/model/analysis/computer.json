@@ -39,6 +39,7 @@
             "CompiledBzlFileGlobal",
             "FileAccessParameters",
             "FileCreationParameters",
+            "LabelAttrAspects",
             "QueryExpansion",
             "RootModule",
             "StarlarkValueEncoders",
@@ -791,8 +792,10 @@
       },
       "TargetCompletion": {
          "dependsOn": [
+            "ConfiguredTarget",
             "FileRoot",
             "StarlarkValueEncoders",
+            "TargetIncomingEdgeTransition",
             "TargetProvider"
          ],
          "keyContainsReferences": true

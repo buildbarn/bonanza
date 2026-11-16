@@ -5490,11 +5490,13 @@ func (x *BuiltinsModuleNames_Value) GetBuiltinsModuleNames() []string {
 }
 
 type BuildResult_Key struct {
-	state          protoimpl.MessageState           `protogen:"open.v1"`
-	Configurations []*BuildResult_Key_Configuration `protobuf:"bytes,1,rep,name=configurations,proto3" json:"configurations,omitempty"`
-	Query          string                           `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state            protoimpl.MessageState             `protogen:"open.v1"`
+	Configurations   []*BuildResult_Key_Configuration   `protobuf:"bytes,1,rep,name=configurations,proto3" json:"configurations,omitempty"`
+	Query            string                             `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	Aspects          []string                           `protobuf:"bytes,3,rep,name=aspects,proto3" json:"aspects,omitempty"`
+	AspectParameters []*BuildResult_Key_AspectParameter `protobuf:"bytes,4,rep,name=aspect_parameters,json=aspectParameters,proto3" json:"aspect_parameters,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *BuildResult_Key) Reset() {
@@ -5539,6 +5541,20 @@ func (x *BuildResult_Key) GetQuery() string {
 		return x.Query
 	}
 	return ""
+}
+
+func (x *BuildResult_Key) GetAspects() []string {
+	if x != nil {
+		return x.Aspects
+	}
+	return nil
+}
+
+func (x *BuildResult_Key) GetAspectParameters() []*BuildResult_Key_AspectParameter {
+	if x != nil {
+		return x.AspectParameters
+	}
+	return nil
 }
 
 type BuildResult_Value struct {
@@ -5673,6 +5689,58 @@ func (x *BuildResult_Key_Configuration) GetBuildSettingOverrides() []*BuildResul
 	return nil
 }
 
+type BuildResult_Key_AspectParameter struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BuildResult_Key_AspectParameter) Reset() {
+	*x = BuildResult_Key_AspectParameter{}
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[126]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuildResult_Key_AspectParameter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildResult_Key_AspectParameter) ProtoMessage() {}
+
+func (x *BuildResult_Key_AspectParameter) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[126]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildResult_Key_AspectParameter.ProtoReflect.Descriptor instead.
+func (*BuildResult_Key_AspectParameter) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDescGZIP(), []int{6, 0, 2}
+}
+
+func (x *BuildResult_Key_AspectParameter) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *BuildResult_Key_AspectParameter) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 type CanonicalRepoName_Key struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	FromCanonicalRepo string                 `protobuf:"bytes,1,opt,name=from_canonical_repo,json=fromCanonicalRepo,proto3" json:"from_canonical_repo,omitempty"`
@@ -5683,7 +5751,7 @@ type CanonicalRepoName_Key struct {
 
 func (x *CanonicalRepoName_Key) Reset() {
 	*x = CanonicalRepoName_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[126]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5695,7 +5763,7 @@ func (x *CanonicalRepoName_Key) String() string {
 func (*CanonicalRepoName_Key) ProtoMessage() {}
 
 func (x *CanonicalRepoName_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[126]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5734,7 +5802,7 @@ type CanonicalRepoName_Value struct {
 
 func (x *CanonicalRepoName_Value) Reset() {
 	*x = CanonicalRepoName_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[127]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5746,7 +5814,7 @@ func (x *CanonicalRepoName_Value) String() string {
 func (*CanonicalRepoName_Value) ProtoMessage() {}
 
 func (x *CanonicalRepoName_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[127]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5778,7 +5846,7 @@ type CompatibleExecutionPlatforms_Key struct {
 
 func (x *CompatibleExecutionPlatforms_Key) Reset() {
 	*x = CompatibleExecutionPlatforms_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[128]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5790,7 +5858,7 @@ func (x *CompatibleExecutionPlatforms_Key) String() string {
 func (*CompatibleExecutionPlatforms_Key) ProtoMessage() {}
 
 func (x *CompatibleExecutionPlatforms_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[128]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5822,7 +5890,7 @@ type CompatibleExecutionPlatforms_Value struct {
 
 func (x *CompatibleExecutionPlatforms_Value) Reset() {
 	*x = CompatibleExecutionPlatforms_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[129]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5834,7 +5902,7 @@ func (x *CompatibleExecutionPlatforms_Value) String() string {
 func (*CompatibleExecutionPlatforms_Value) ProtoMessage() {}
 
 func (x *CompatibleExecutionPlatforms_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[129]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5867,7 +5935,7 @@ type CompatibleToolchainsForType_Key struct {
 
 func (x *CompatibleToolchainsForType_Key) Reset() {
 	*x = CompatibleToolchainsForType_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[130]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5879,7 +5947,7 @@ func (x *CompatibleToolchainsForType_Key) String() string {
 func (*CompatibleToolchainsForType_Key) ProtoMessage() {}
 
 func (x *CompatibleToolchainsForType_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[130]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5918,7 +5986,7 @@ type CompatibleToolchainsForType_Value struct {
 
 func (x *CompatibleToolchainsForType_Value) Reset() {
 	*x = CompatibleToolchainsForType_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[131]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5930,7 +5998,7 @@ func (x *CompatibleToolchainsForType_Value) String() string {
 func (*CompatibleToolchainsForType_Value) ProtoMessage() {}
 
 func (x *CompatibleToolchainsForType_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[131]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5963,7 +6031,7 @@ type CompiledBzlFile_Key struct {
 
 func (x *CompiledBzlFile_Key) Reset() {
 	*x = CompiledBzlFile_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[132]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5975,7 +6043,7 @@ func (x *CompiledBzlFile_Key) String() string {
 func (*CompiledBzlFile_Key) ProtoMessage() {}
 
 func (x *CompiledBzlFile_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[132]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6014,7 +6082,7 @@ type CompiledBzlFile_Value struct {
 
 func (x *CompiledBzlFile_Value) Reset() {
 	*x = CompiledBzlFile_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[133]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6026,7 +6094,7 @@ func (x *CompiledBzlFile_Value) String() string {
 func (*CompiledBzlFile_Value) ProtoMessage() {}
 
 func (x *CompiledBzlFile_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[133]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6058,7 +6126,7 @@ type CompiledBzlFileGlobal_Key struct {
 
 func (x *CompiledBzlFileGlobal_Key) Reset() {
 	*x = CompiledBzlFileGlobal_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[134]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6070,7 +6138,7 @@ func (x *CompiledBzlFileGlobal_Key) String() string {
 func (*CompiledBzlFileGlobal_Key) ProtoMessage() {}
 
 func (x *CompiledBzlFileGlobal_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[134]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6102,7 +6170,7 @@ type CompiledBzlFileGlobal_Value struct {
 
 func (x *CompiledBzlFileGlobal_Value) Reset() {
 	*x = CompiledBzlFileGlobal_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[135]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6114,7 +6182,7 @@ func (x *CompiledBzlFileGlobal_Value) String() string {
 func (*CompiledBzlFileGlobal_Value) ProtoMessage() {}
 
 func (x *CompiledBzlFileGlobal_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[135]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6147,7 +6215,7 @@ type BuildSettingOverride_Leaf struct {
 
 func (x *BuildSettingOverride_Leaf) Reset() {
 	*x = BuildSettingOverride_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[136]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6159,7 +6227,7 @@ func (x *BuildSettingOverride_Leaf) String() string {
 func (*BuildSettingOverride_Leaf) ProtoMessage() {}
 
 func (x *BuildSettingOverride_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[136]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6199,7 +6267,7 @@ type BuildSettingOverride_Parent struct {
 
 func (x *BuildSettingOverride_Parent) Reset() {
 	*x = BuildSettingOverride_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[137]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6211,7 +6279,7 @@ func (x *BuildSettingOverride_Parent) String() string {
 func (*BuildSettingOverride_Parent) ProtoMessage() {}
 
 func (x *BuildSettingOverride_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[137]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6250,7 +6318,7 @@ type Args_Parent struct {
 
 func (x *Args_Parent) Reset() {
 	*x = Args_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[138]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6262,7 +6330,7 @@ func (x *Args_Parent) String() string {
 func (*Args_Parent) ProtoMessage() {}
 
 func (x *Args_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[138]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6295,7 +6363,7 @@ type Args_Leaf struct {
 
 func (x *Args_Leaf) Reset() {
 	*x = Args_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[139]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6307,7 +6375,7 @@ func (x *Args_Leaf) String() string {
 func (*Args_Leaf) ProtoMessage() {}
 
 func (x *Args_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[139]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6350,7 +6418,7 @@ type Args_Leaf_Add struct {
 
 func (x *Args_Leaf_Add) Reset() {
 	*x = Args_Leaf_Add{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[140]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[141]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6362,7 +6430,7 @@ func (x *Args_Leaf_Add) String() string {
 func (*Args_Leaf_Add) ProtoMessage() {}
 
 func (x *Args_Leaf_Add) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[140]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[141]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6430,7 +6498,7 @@ type Args_Leaf_UseParamFile struct {
 
 func (x *Args_Leaf_UseParamFile) Reset() {
 	*x = Args_Leaf_UseParamFile{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[141]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[142]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6442,7 +6510,7 @@ func (x *Args_Leaf_UseParamFile) String() string {
 func (*Args_Leaf_UseParamFile) ProtoMessage() {}
 
 func (x *Args_Leaf_UseParamFile) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[141]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[142]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6488,7 +6556,7 @@ type Args_Leaf_Add_Parent struct {
 
 func (x *Args_Leaf_Add_Parent) Reset() {
 	*x = Args_Leaf_Add_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[142]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[143]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6500,7 +6568,7 @@ func (x *Args_Leaf_Add_Parent) String() string {
 func (*Args_Leaf_Add_Parent) ProtoMessage() {}
 
 func (x *Args_Leaf_Add_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[142]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[143]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6543,7 +6611,7 @@ type Args_Leaf_Add_Leaf struct {
 
 func (x *Args_Leaf_Add_Leaf) Reset() {
 	*x = Args_Leaf_Add_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[143]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[144]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6555,7 +6623,7 @@ func (x *Args_Leaf_Add_Leaf) String() string {
 func (*Args_Leaf_Add_Leaf) ProtoMessage() {}
 
 func (x *Args_Leaf_Add_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[143]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[144]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6671,7 +6739,7 @@ type Args_Leaf_Add_Leaf_Separate struct {
 
 func (x *Args_Leaf_Add_Leaf_Separate) Reset() {
 	*x = Args_Leaf_Add_Leaf_Separate{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[144]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[145]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6683,7 +6751,7 @@ func (x *Args_Leaf_Add_Leaf_Separate) String() string {
 func (*Args_Leaf_Add_Leaf_Separate) ProtoMessage() {}
 
 func (x *Args_Leaf_Add_Leaf_Separate) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[144]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[145]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6723,7 +6791,7 @@ type Args_Leaf_Add_Leaf_Joined struct {
 
 func (x *Args_Leaf_Add_Leaf_Joined) Reset() {
 	*x = Args_Leaf_Add_Leaf_Joined{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[145]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[146]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6735,7 +6803,7 @@ func (x *Args_Leaf_Add_Leaf_Joined) String() string {
 func (*Args_Leaf_Add_Leaf_Joined) ProtoMessage() {}
 
 func (x *Args_Leaf_Add_Leaf_Joined) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[145]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[146]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6774,7 +6842,7 @@ type FilesToRunProvider_Parent struct {
 
 func (x *FilesToRunProvider_Parent) Reset() {
 	*x = FilesToRunProvider_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[146]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[147]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6786,7 +6854,7 @@ func (x *FilesToRunProvider_Parent) String() string {
 func (*FilesToRunProvider_Parent) ProtoMessage() {}
 
 func (x *FilesToRunProvider_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[146]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[147]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6821,7 +6889,7 @@ type FilesToRunProvider_Leaf struct {
 
 func (x *FilesToRunProvider_Leaf) Reset() {
 	*x = FilesToRunProvider_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[147]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[148]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6833,7 +6901,7 @@ func (x *FilesToRunProvider_Leaf) String() string {
 func (*FilesToRunProvider_Leaf) ProtoMessage() {}
 
 func (x *FilesToRunProvider_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[147]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[148]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6888,7 +6956,7 @@ type TargetOutputDefinition_ExpandTemplate struct {
 
 func (x *TargetOutputDefinition_ExpandTemplate) Reset() {
 	*x = TargetOutputDefinition_ExpandTemplate{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[148]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[149]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6900,7 +6968,7 @@ func (x *TargetOutputDefinition_ExpandTemplate) String() string {
 func (*TargetOutputDefinition_ExpandTemplate) ProtoMessage() {}
 
 func (x *TargetOutputDefinition_ExpandTemplate) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[148]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[149]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6947,7 +7015,7 @@ type TargetOutputDefinition_Symlink struct {
 
 func (x *TargetOutputDefinition_Symlink) Reset() {
 	*x = TargetOutputDefinition_Symlink{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[149]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[150]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6959,7 +7027,7 @@ func (x *TargetOutputDefinition_Symlink) String() string {
 func (*TargetOutputDefinition_Symlink) ProtoMessage() {}
 
 func (x *TargetOutputDefinition_Symlink) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[149]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[150]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6999,7 +7067,7 @@ type TargetOutputDefinition_Write struct {
 
 func (x *TargetOutputDefinition_Write) Reset() {
 	*x = TargetOutputDefinition_Write{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[150]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[151]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7011,7 +7079,7 @@ func (x *TargetOutputDefinition_Write) String() string {
 func (*TargetOutputDefinition_Write) ProtoMessage() {}
 
 func (x *TargetOutputDefinition_Write) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[150]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[151]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7051,7 +7119,7 @@ type TargetOutputDefinition_ExpandTemplate_Substitution struct {
 
 func (x *TargetOutputDefinition_ExpandTemplate_Substitution) Reset() {
 	*x = TargetOutputDefinition_ExpandTemplate_Substitution{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[151]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[152]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7063,7 +7131,7 @@ func (x *TargetOutputDefinition_ExpandTemplate_Substitution) String() string {
 func (*TargetOutputDefinition_ExpandTemplate_Substitution) ProtoMessage() {}
 
 func (x *TargetOutputDefinition_ExpandTemplate_Substitution) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[151]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[152]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7102,7 +7170,7 @@ type LabelAttrAspects_Key struct {
 
 func (x *LabelAttrAspects_Key) Reset() {
 	*x = LabelAttrAspects_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[152]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[153]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7114,7 +7182,7 @@ func (x *LabelAttrAspects_Key) String() string {
 func (*LabelAttrAspects_Key) ProtoMessage() {}
 
 func (x *LabelAttrAspects_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[152]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[153]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7146,7 +7214,7 @@ type LabelAttrAspects_Value struct {
 
 func (x *LabelAttrAspects_Value) Reset() {
 	*x = LabelAttrAspects_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[153]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[154]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7158,7 +7226,7 @@ func (x *LabelAttrAspects_Value) String() string {
 func (*LabelAttrAspects_Value) ProtoMessage() {}
 
 func (x *LabelAttrAspects_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[153]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[154]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7191,7 +7259,7 @@ type LabelAttrAspects_Value_Aspect struct {
 
 func (x *LabelAttrAspects_Value_Aspect) Reset() {
 	*x = LabelAttrAspects_Value_Aspect{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[154]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[155]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7203,7 +7271,7 @@ func (x *LabelAttrAspects_Value_Aspect) String() string {
 func (*LabelAttrAspects_Value_Aspect) ProtoMessage() {}
 
 func (x *LabelAttrAspects_Value_Aspect) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[154]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[155]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7242,7 +7310,7 @@ type AspectChain_Key struct {
 
 func (x *AspectChain_Key) Reset() {
 	*x = AspectChain_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[155]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[156]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7254,7 +7322,7 @@ func (x *AspectChain_Key) String() string {
 func (*AspectChain_Key) ProtoMessage() {}
 
 func (x *AspectChain_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[155]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[156]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7288,7 +7356,7 @@ type AspectChain_Value struct {
 
 func (x *AspectChain_Value) Reset() {
 	*x = AspectChain_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[156]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[157]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7300,7 +7368,7 @@ func (x *AspectChain_Value) String() string {
 func (*AspectChain_Value) ProtoMessage() {}
 
 func (x *AspectChain_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[156]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[157]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7347,7 +7415,7 @@ type AspectChain_Value_AttrPropagatingAspects struct {
 
 func (x *AspectChain_Value_AttrPropagatingAspects) Reset() {
 	*x = AspectChain_Value_AttrPropagatingAspects{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[157]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[158]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7359,7 +7427,7 @@ func (x *AspectChain_Value_AttrPropagatingAspects) String() string {
 func (*AspectChain_Value_AttrPropagatingAspects) ProtoMessage() {}
 
 func (x *AspectChain_Value_AttrPropagatingAspects) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[157]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[158]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7398,7 +7466,7 @@ type GeneratingRuleAspects_Key struct {
 
 func (x *GeneratingRuleAspects_Key) Reset() {
 	*x = GeneratingRuleAspects_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[158]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[159]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7410,7 +7478,7 @@ func (x *GeneratingRuleAspects_Key) String() string {
 func (*GeneratingRuleAspects_Key) ProtoMessage() {}
 
 func (x *GeneratingRuleAspects_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[158]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[159]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7442,7 +7510,7 @@ type GeneratingRuleAspects_Value struct {
 
 func (x *GeneratingRuleAspects_Value) Reset() {
 	*x = GeneratingRuleAspects_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[159]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[160]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7454,7 +7522,7 @@ func (x *GeneratingRuleAspects_Value) String() string {
 func (*GeneratingRuleAspects_Value) ProtoMessage() {}
 
 func (x *GeneratingRuleAspects_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[159]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[160]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7487,7 +7555,7 @@ type ConfiguredTarget_Key struct {
 
 func (x *ConfiguredTarget_Key) Reset() {
 	*x = ConfiguredTarget_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[160]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[161]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7499,7 +7567,7 @@ func (x *ConfiguredTarget_Key) String() string {
 func (*ConfiguredTarget_Key) ProtoMessage() {}
 
 func (x *ConfiguredTarget_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[160]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[161]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7541,7 +7609,7 @@ type ConfiguredTarget_Value struct {
 
 func (x *ConfiguredTarget_Value) Reset() {
 	*x = ConfiguredTarget_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[161]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[162]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7553,7 +7621,7 @@ func (x *ConfiguredTarget_Value) String() string {
 func (*ConfiguredTarget_Value) ProtoMessage() {}
 
 func (x *ConfiguredTarget_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[161]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[162]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7610,7 +7678,7 @@ type ConfiguredTarget_Value_Output struct {
 
 func (x *ConfiguredTarget_Value_Output) Reset() {
 	*x = ConfiguredTarget_Value_Output{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[162]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[163]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7622,7 +7690,7 @@ func (x *ConfiguredTarget_Value_Output) String() string {
 func (*ConfiguredTarget_Value_Output) ProtoMessage() {}
 
 func (x *ConfiguredTarget_Value_Output) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[162]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[163]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7692,7 +7760,7 @@ type ConfiguredTarget_Value_Action struct {
 
 func (x *ConfiguredTarget_Value_Action) Reset() {
 	*x = ConfiguredTarget_Value_Action{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[163]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[164]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7704,7 +7772,7 @@ func (x *ConfiguredTarget_Value_Action) String() string {
 func (*ConfiguredTarget_Value_Action) ProtoMessage() {}
 
 func (x *ConfiguredTarget_Value_Action) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[163]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[164]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7771,7 +7839,7 @@ type ConfiguredTarget_Value_Output_Parent struct {
 
 func (x *ConfiguredTarget_Value_Output_Parent) Reset() {
 	*x = ConfiguredTarget_Value_Output_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[164]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[165]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7783,7 +7851,7 @@ func (x *ConfiguredTarget_Value_Output_Parent) String() string {
 func (*ConfiguredTarget_Value_Output_Parent) ProtoMessage() {}
 
 func (x *ConfiguredTarget_Value_Output_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[164]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[165]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7823,7 +7891,7 @@ type ConfiguredTarget_Value_Output_Leaf struct {
 
 func (x *ConfiguredTarget_Value_Output_Leaf) Reset() {
 	*x = ConfiguredTarget_Value_Output_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[165]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[166]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7835,7 +7903,7 @@ func (x *ConfiguredTarget_Value_Output_Leaf) String() string {
 func (*ConfiguredTarget_Value_Output_Leaf) ProtoMessage() {}
 
 func (x *ConfiguredTarget_Value_Output_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[165]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[166]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7875,7 +7943,7 @@ type ConfiguredTarget_Value_Action_Parent struct {
 
 func (x *ConfiguredTarget_Value_Action_Parent) Reset() {
 	*x = ConfiguredTarget_Value_Action_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[166]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[167]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7887,7 +7955,7 @@ func (x *ConfiguredTarget_Value_Action_Parent) String() string {
 func (*ConfiguredTarget_Value_Action_Parent) ProtoMessage() {}
 
 func (x *ConfiguredTarget_Value_Action_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[166]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[167]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7927,7 +7995,7 @@ type ConfiguredTarget_Value_Action_Leaf struct {
 
 func (x *ConfiguredTarget_Value_Action_Leaf) Reset() {
 	*x = ConfiguredTarget_Value_Action_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[167]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[168]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7939,7 +8007,7 @@ func (x *ConfiguredTarget_Value_Action_Leaf) String() string {
 func (*ConfiguredTarget_Value_Action_Leaf) ProtoMessage() {}
 
 func (x *ConfiguredTarget_Value_Action_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[167]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[168]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7980,7 +8048,7 @@ type ConfiguredLabelAttr_Entry struct {
 
 func (x *ConfiguredLabelAttr_Entry) Reset() {
 	*x = ConfiguredLabelAttr_Entry{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[168]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[169]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7992,7 +8060,7 @@ func (x *ConfiguredLabelAttr_Entry) String() string {
 func (*ConfiguredLabelAttr_Entry) ProtoMessage() {}
 
 func (x *ConfiguredLabelAttr_Entry) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[168]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[169]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8039,7 +8107,7 @@ type ConfiguredRule_Key struct {
 
 func (x *ConfiguredRule_Key) Reset() {
 	*x = ConfiguredRule_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[169]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[170]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8051,7 +8119,7 @@ func (x *ConfiguredRule_Key) String() string {
 func (*ConfiguredRule_Key) ProtoMessage() {}
 
 func (x *ConfiguredRule_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[169]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[170]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8092,7 +8160,7 @@ type ConfiguredRule_Value struct {
 
 func (x *ConfiguredRule_Value) Reset() {
 	*x = ConfiguredRule_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[170]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[171]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8104,7 +8172,7 @@ func (x *ConfiguredRule_Value) String() string {
 func (*ConfiguredRule_Value) ProtoMessage() {}
 
 func (x *ConfiguredRule_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[170]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[171]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8152,7 +8220,7 @@ type ConfiguredRuleUsage_Key struct {
 
 func (x *ConfiguredRuleUsage_Key) Reset() {
 	*x = ConfiguredRuleUsage_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[171]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[172]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8164,7 +8232,7 @@ func (x *ConfiguredRuleUsage_Key) String() string {
 func (*ConfiguredRuleUsage_Key) ProtoMessage() {}
 
 func (x *ConfiguredRuleUsage_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[171]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[172]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8210,7 +8278,7 @@ type ConfiguredRuleUsage_Value struct {
 
 func (x *ConfiguredRuleUsage_Value) Reset() {
 	*x = ConfiguredRuleUsage_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[172]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[173]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8222,7 +8290,7 @@ func (x *ConfiguredRuleUsage_Value) String() string {
 func (*ConfiguredRuleUsage_Value) ProtoMessage() {}
 
 func (x *ConfiguredRuleUsage_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[172]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[173]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8255,7 +8323,7 @@ type ConfiguredAspect_Key struct {
 
 func (x *ConfiguredAspect_Key) Reset() {
 	*x = ConfiguredAspect_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[173]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[174]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8267,7 +8335,7 @@ func (x *ConfiguredAspect_Key) String() string {
 func (*ConfiguredAspect_Key) ProtoMessage() {}
 
 func (x *ConfiguredAspect_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[173]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[174]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8308,7 +8376,7 @@ type ConfiguredAspect_Value struct {
 
 func (x *ConfiguredAspect_Value) Reset() {
 	*x = ConfiguredAspect_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[174]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[175]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8320,7 +8388,7 @@ func (x *ConfiguredAspect_Value) String() string {
 func (*ConfiguredAspect_Value) ProtoMessage() {}
 
 func (x *ConfiguredAspect_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[174]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[175]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8368,7 +8436,7 @@ type RuleUsageIncomingEdgeTransition_Key struct {
 
 func (x *RuleUsageIncomingEdgeTransition_Key) Reset() {
 	*x = RuleUsageIncomingEdgeTransition_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[175]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[176]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8380,7 +8448,7 @@ func (x *RuleUsageIncomingEdgeTransition_Key) String() string {
 func (*RuleUsageIncomingEdgeTransition_Key) ProtoMessage() {}
 
 func (x *RuleUsageIncomingEdgeTransition_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[175]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[176]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8430,7 +8498,7 @@ type RuleUsageIncomingEdgeTransition_Value struct {
 
 func (x *RuleUsageIncomingEdgeTransition_Value) Reset() {
 	*x = RuleUsageIncomingEdgeTransition_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[176]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[177]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8442,7 +8510,7 @@ func (x *RuleUsageIncomingEdgeTransition_Value) String() string {
 func (*RuleUsageIncomingEdgeTransition_Value) ProtoMessage() {}
 
 func (x *RuleUsageIncomingEdgeTransition_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[176]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[177]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8511,7 +8579,7 @@ type TargetIncomingEdgeTransition_Key struct {
 
 func (x *TargetIncomingEdgeTransition_Key) Reset() {
 	*x = TargetIncomingEdgeTransition_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[177]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[178]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8523,7 +8591,7 @@ func (x *TargetIncomingEdgeTransition_Key) String() string {
 func (*TargetIncomingEdgeTransition_Key) ProtoMessage() {}
 
 func (x *TargetIncomingEdgeTransition_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[177]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[178]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8562,7 +8630,7 @@ type TargetIncomingEdgeTransition_Value struct {
 
 func (x *TargetIncomingEdgeTransition_Value) Reset() {
 	*x = TargetIncomingEdgeTransition_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[178]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[179]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8574,7 +8642,7 @@ func (x *TargetIncomingEdgeTransition_Value) String() string {
 func (*TargetIncomingEdgeTransition_Value) ProtoMessage() {}
 
 func (x *TargetIncomingEdgeTransition_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[178]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[179]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8608,7 +8676,7 @@ type TargetOutput_Key struct {
 
 func (x *TargetOutput_Key) Reset() {
 	*x = TargetOutput_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[179]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[180]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8620,7 +8688,7 @@ func (x *TargetOutput_Key) String() string {
 func (*TargetOutput_Key) ProtoMessage() {}
 
 func (x *TargetOutput_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[179]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[180]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8666,7 +8734,7 @@ type TargetOutput_Value struct {
 
 func (x *TargetOutput_Value) Reset() {
 	*x = TargetOutput_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[180]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[181]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8678,7 +8746,7 @@ func (x *TargetOutput_Value) String() string {
 func (*TargetOutput_Value) ProtoMessage() {}
 
 func (x *TargetOutput_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[180]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[181]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8709,7 +8777,7 @@ type DirectoryAccessParameters_Key struct {
 
 func (x *DirectoryAccessParameters_Key) Reset() {
 	*x = DirectoryAccessParameters_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[181]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[182]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8721,7 +8789,7 @@ func (x *DirectoryAccessParameters_Key) String() string {
 func (*DirectoryAccessParameters_Key) ProtoMessage() {}
 
 func (x *DirectoryAccessParameters_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[181]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[182]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8746,7 +8814,7 @@ type DirectoryAccessParameters_Value struct {
 
 func (x *DirectoryAccessParameters_Value) Reset() {
 	*x = DirectoryAccessParameters_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[182]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[183]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8758,7 +8826,7 @@ func (x *DirectoryAccessParameters_Value) String() string {
 func (*DirectoryAccessParameters_Value) ProtoMessage() {}
 
 func (x *DirectoryAccessParameters_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[182]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[183]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8789,7 +8857,7 @@ type DirectoryCreationParameters_Key struct {
 
 func (x *DirectoryCreationParameters_Key) Reset() {
 	*x = DirectoryCreationParameters_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[183]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[184]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8801,7 +8869,7 @@ func (x *DirectoryCreationParameters_Key) String() string {
 func (*DirectoryCreationParameters_Key) ProtoMessage() {}
 
 func (x *DirectoryCreationParameters_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[183]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[184]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8826,7 +8894,7 @@ type DirectoryCreationParameters_Value struct {
 
 func (x *DirectoryCreationParameters_Value) Reset() {
 	*x = DirectoryCreationParameters_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[184]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[185]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8838,7 +8906,7 @@ func (x *DirectoryCreationParameters_Value) String() string {
 func (*DirectoryCreationParameters_Value) ProtoMessage() {}
 
 func (x *DirectoryCreationParameters_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[184]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[185]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8869,7 +8937,7 @@ type EmptyDefaultInfo_Key struct {
 
 func (x *EmptyDefaultInfo_Key) Reset() {
 	*x = EmptyDefaultInfo_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[185]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[186]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8881,7 +8949,7 @@ func (x *EmptyDefaultInfo_Key) String() string {
 func (*EmptyDefaultInfo_Key) ProtoMessage() {}
 
 func (x *EmptyDefaultInfo_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[185]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[186]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8906,7 +8974,7 @@ type EmptyDefaultInfo_Value struct {
 
 func (x *EmptyDefaultInfo_Value) Reset() {
 	*x = EmptyDefaultInfo_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[186]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[187]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8918,7 +8986,7 @@ func (x *EmptyDefaultInfo_Value) String() string {
 func (*EmptyDefaultInfo_Value) ProtoMessage() {}
 
 func (x *EmptyDefaultInfo_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[186]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[187]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8951,7 +9019,7 @@ type ExecTransition_Key struct {
 
 func (x *ExecTransition_Key) Reset() {
 	*x = ExecTransition_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[187]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[188]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8963,7 +9031,7 @@ func (x *ExecTransition_Key) String() string {
 func (*ExecTransition_Key) ProtoMessage() {}
 
 func (x *ExecTransition_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[187]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[188]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9002,7 +9070,7 @@ type ExecTransition_Value struct {
 
 func (x *ExecTransition_Value) Reset() {
 	*x = ExecTransition_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[188]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[189]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9014,7 +9082,7 @@ func (x *ExecTransition_Value) String() string {
 func (*ExecTransition_Value) ProtoMessage() {}
 
 func (x *ExecTransition_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[188]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[189]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9045,7 +9113,7 @@ type FileAccessParameters_Key struct {
 
 func (x *FileAccessParameters_Key) Reset() {
 	*x = FileAccessParameters_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[189]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[190]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9057,7 +9125,7 @@ func (x *FileAccessParameters_Key) String() string {
 func (*FileAccessParameters_Key) ProtoMessage() {}
 
 func (x *FileAccessParameters_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[189]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[190]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9082,7 +9150,7 @@ type FileAccessParameters_Value struct {
 
 func (x *FileAccessParameters_Value) Reset() {
 	*x = FileAccessParameters_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[190]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[191]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9094,7 +9162,7 @@ func (x *FileAccessParameters_Value) String() string {
 func (*FileAccessParameters_Value) ProtoMessage() {}
 
 func (x *FileAccessParameters_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[190]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[191]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9125,7 +9193,7 @@ type FileCreationParameters_Key struct {
 
 func (x *FileCreationParameters_Key) Reset() {
 	*x = FileCreationParameters_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[191]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[192]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9137,7 +9205,7 @@ func (x *FileCreationParameters_Key) String() string {
 func (*FileCreationParameters_Key) ProtoMessage() {}
 
 func (x *FileCreationParameters_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[191]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[192]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9162,7 +9230,7 @@ type FileCreationParameters_Value struct {
 
 func (x *FileCreationParameters_Value) Reset() {
 	*x = FileCreationParameters_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[192]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[193]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9174,7 +9242,7 @@ func (x *FileCreationParameters_Value) String() string {
 func (*FileCreationParameters_Value) ProtoMessage() {}
 
 func (x *FileCreationParameters_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[192]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[193]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9207,7 +9275,7 @@ type FileProperties_Key struct {
 
 func (x *FileProperties_Key) Reset() {
 	*x = FileProperties_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[193]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[194]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9219,7 +9287,7 @@ func (x *FileProperties_Key) String() string {
 func (*FileProperties_Key) ProtoMessage() {}
 
 func (x *FileProperties_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[193]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[194]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9258,7 +9326,7 @@ type FileProperties_Value struct {
 
 func (x *FileProperties_Value) Reset() {
 	*x = FileProperties_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[194]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[195]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9270,7 +9338,7 @@ func (x *FileProperties_Value) String() string {
 func (*FileProperties_Value) ProtoMessage() {}
 
 func (x *FileProperties_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[194]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[195]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9303,7 +9371,7 @@ type FileRoot_Key struct {
 
 func (x *FileRoot_Key) Reset() {
 	*x = FileRoot_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[195]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[196]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9315,7 +9383,7 @@ func (x *FileRoot_Key) String() string {
 func (*FileRoot_Key) ProtoMessage() {}
 
 func (x *FileRoot_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[195]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[196]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9354,7 +9422,7 @@ type FileRoot_Value struct {
 
 func (x *FileRoot_Value) Reset() {
 	*x = FileRoot_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[196]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[197]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9366,7 +9434,7 @@ func (x *FileRoot_Value) String() string {
 func (*FileRoot_Value) ProtoMessage() {}
 
 func (x *FileRoot_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[196]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[197]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9398,7 +9466,7 @@ type FilesInPackage_Key struct {
 
 func (x *FilesInPackage_Key) Reset() {
 	*x = FilesInPackage_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[197]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[198]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9410,7 +9478,7 @@ func (x *FilesInPackage_Key) String() string {
 func (*FilesInPackage_Key) ProtoMessage() {}
 
 func (x *FilesInPackage_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[197]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[198]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9442,7 +9510,7 @@ type FilesInPackage_Value struct {
 
 func (x *FilesInPackage_Value) Reset() {
 	*x = FilesInPackage_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[198]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[199]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9454,7 +9522,7 @@ func (x *FilesInPackage_Value) String() string {
 func (*FilesInPackage_Value) ProtoMessage() {}
 
 func (x *FilesInPackage_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[198]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[199]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9487,7 +9555,7 @@ type FilesRoot_Key struct {
 
 func (x *FilesRoot_Key) Reset() {
 	*x = FilesRoot_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[199]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[200]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9499,7 +9567,7 @@ func (x *FilesRoot_Key) String() string {
 func (*FilesRoot_Key) ProtoMessage() {}
 
 func (x *FilesRoot_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[199]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[200]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9538,7 +9606,7 @@ type FilesRoot_Value struct {
 
 func (x *FilesRoot_Value) Reset() {
 	*x = FilesRoot_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[200]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[201]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9550,7 +9618,7 @@ func (x *FilesRoot_Value) String() string {
 func (*FilesRoot_Value) ProtoMessage() {}
 
 func (x *FilesRoot_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[200]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[201]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9584,7 +9652,7 @@ type Glob_Key struct {
 
 func (x *Glob_Key) Reset() {
 	*x = Glob_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[201]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[202]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9596,7 +9664,7 @@ func (x *Glob_Key) String() string {
 func (*Glob_Key) ProtoMessage() {}
 
 func (x *Glob_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[201]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[202]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9642,7 +9710,7 @@ type Glob_Value struct {
 
 func (x *Glob_Value) Reset() {
 	*x = Glob_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[202]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[203]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9654,7 +9722,7 @@ func (x *Glob_Value) String() string {
 func (*Glob_Value) ProtoMessage() {}
 
 func (x *Glob_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[202]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[203]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9687,7 +9755,7 @@ type HttpArchiveContents_Key struct {
 
 func (x *HttpArchiveContents_Key) Reset() {
 	*x = HttpArchiveContents_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[203]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[204]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9699,7 +9767,7 @@ func (x *HttpArchiveContents_Key) String() string {
 func (*HttpArchiveContents_Key) ProtoMessage() {}
 
 func (x *HttpArchiveContents_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[203]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[204]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9738,7 +9806,7 @@ type HttpArchiveContents_Value struct {
 
 func (x *HttpArchiveContents_Value) Reset() {
 	*x = HttpArchiveContents_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[204]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[205]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9750,7 +9818,7 @@ func (x *HttpArchiveContents_Value) String() string {
 func (*HttpArchiveContents_Value) ProtoMessage() {}
 
 func (x *HttpArchiveContents_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[204]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[205]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9783,7 +9851,7 @@ type HttpArchiveContents_Value_Exists struct {
 
 func (x *HttpArchiveContents_Value_Exists) Reset() {
 	*x = HttpArchiveContents_Value_Exists{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[205]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[206]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9795,7 +9863,7 @@ func (x *HttpArchiveContents_Value_Exists) String() string {
 func (*HttpArchiveContents_Value_Exists) ProtoMessage() {}
 
 func (x *HttpArchiveContents_Value_Exists) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[205]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[206]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9834,7 +9902,7 @@ type HttpFileContents_Key struct {
 
 func (x *HttpFileContents_Key) Reset() {
 	*x = HttpFileContents_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[206]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[207]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9846,7 +9914,7 @@ func (x *HttpFileContents_Key) String() string {
 func (*HttpFileContents_Key) ProtoMessage() {}
 
 func (x *HttpFileContents_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[206]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[207]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9878,7 +9946,7 @@ type HttpFileContents_Value struct {
 
 func (x *HttpFileContents_Value) Reset() {
 	*x = HttpFileContents_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[207]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[208]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9890,7 +9958,7 @@ func (x *HttpFileContents_Value) String() string {
 func (*HttpFileContents_Value) ProtoMessage() {}
 
 func (x *HttpFileContents_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[207]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[208]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9923,7 +9991,7 @@ type MacroExpansionContext_Key struct {
 
 func (x *MacroExpansionContext_Key) Reset() {
 	*x = MacroExpansionContext_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[208]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[209]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9935,7 +10003,7 @@ func (x *MacroExpansionContext_Key) String() string {
 func (*MacroExpansionContext_Key) ProtoMessage() {}
 
 func (x *MacroExpansionContext_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[208]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[209]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9974,7 +10042,7 @@ type MacroExpansionContext_Value struct {
 
 func (x *MacroExpansionContext_Value) Reset() {
 	*x = MacroExpansionContext_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[209]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[210]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9986,7 +10054,7 @@ func (x *MacroExpansionContext_Value) String() string {
 func (*MacroExpansionContext_Value) ProtoMessage() {}
 
 func (x *MacroExpansionContext_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[209]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[210]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10018,7 +10086,7 @@ type ModuleDotBazelContents_Key struct {
 
 func (x *ModuleDotBazelContents_Key) Reset() {
 	*x = ModuleDotBazelContents_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[210]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[211]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10030,7 +10098,7 @@ func (x *ModuleDotBazelContents_Key) String() string {
 func (*ModuleDotBazelContents_Key) ProtoMessage() {}
 
 func (x *ModuleDotBazelContents_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[210]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[211]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10062,7 +10130,7 @@ type ModuleDotBazelContents_Value struct {
 
 func (x *ModuleDotBazelContents_Value) Reset() {
 	*x = ModuleDotBazelContents_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[211]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[212]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10074,7 +10142,7 @@ func (x *ModuleDotBazelContents_Value) String() string {
 func (*ModuleDotBazelContents_Value) ProtoMessage() {}
 
 func (x *ModuleDotBazelContents_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[211]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[212]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10105,7 +10173,7 @@ type ModuleRegistryUrls_Key struct {
 
 func (x *ModuleRegistryUrls_Key) Reset() {
 	*x = ModuleRegistryUrls_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[212]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[213]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10117,7 +10185,7 @@ func (x *ModuleRegistryUrls_Key) String() string {
 func (*ModuleRegistryUrls_Key) ProtoMessage() {}
 
 func (x *ModuleRegistryUrls_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[212]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[213]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10142,7 +10210,7 @@ type ModuleRegistryUrls_Value struct {
 
 func (x *ModuleRegistryUrls_Value) Reset() {
 	*x = ModuleRegistryUrls_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[213]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[214]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10154,7 +10222,7 @@ func (x *ModuleRegistryUrls_Value) String() string {
 func (*ModuleRegistryUrls_Value) ProtoMessage() {}
 
 func (x *ModuleRegistryUrls_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[213]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[214]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10186,7 +10254,7 @@ type ModuleRepoMapping_Key struct {
 
 func (x *ModuleRepoMapping_Key) Reset() {
 	*x = ModuleRepoMapping_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[214]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[215]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10198,7 +10266,7 @@ func (x *ModuleRepoMapping_Key) String() string {
 func (*ModuleRepoMapping_Key) ProtoMessage() {}
 
 func (x *ModuleRepoMapping_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[214]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[215]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10230,7 +10298,7 @@ type ModuleRepoMapping_Value struct {
 
 func (x *ModuleRepoMapping_Value) Reset() {
 	*x = ModuleRepoMapping_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[215]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[216]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10242,7 +10310,7 @@ func (x *ModuleRepoMapping_Value) String() string {
 func (*ModuleRepoMapping_Value) ProtoMessage() {}
 
 func (x *ModuleRepoMapping_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[215]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[216]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10275,7 +10343,7 @@ type ModuleRepoMapping_Value_Mapping struct {
 
 func (x *ModuleRepoMapping_Value_Mapping) Reset() {
 	*x = ModuleRepoMapping_Value_Mapping{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[216]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[217]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10287,7 +10355,7 @@ func (x *ModuleRepoMapping_Value_Mapping) String() string {
 func (*ModuleRepoMapping_Value_Mapping) ProtoMessage() {}
 
 func (x *ModuleRepoMapping_Value_Mapping) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[216]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[217]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10326,7 +10394,7 @@ type ModuleExtensionRepo_Key struct {
 
 func (x *ModuleExtensionRepo_Key) Reset() {
 	*x = ModuleExtensionRepo_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[217]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[218]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10338,7 +10406,7 @@ func (x *ModuleExtensionRepo_Key) String() string {
 func (*ModuleExtensionRepo_Key) ProtoMessage() {}
 
 func (x *ModuleExtensionRepo_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[217]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[218]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10370,7 +10438,7 @@ type ModuleExtensionRepo_Value struct {
 
 func (x *ModuleExtensionRepo_Value) Reset() {
 	*x = ModuleExtensionRepo_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[218]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[219]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10382,7 +10450,7 @@ func (x *ModuleExtensionRepo_Value) String() string {
 func (*ModuleExtensionRepo_Value) ProtoMessage() {}
 
 func (x *ModuleExtensionRepo_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[218]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[219]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10414,7 +10482,7 @@ type ModuleExtensionRepoNames_Key struct {
 
 func (x *ModuleExtensionRepoNames_Key) Reset() {
 	*x = ModuleExtensionRepoNames_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[219]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[220]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10426,7 +10494,7 @@ func (x *ModuleExtensionRepoNames_Key) String() string {
 func (*ModuleExtensionRepoNames_Key) ProtoMessage() {}
 
 func (x *ModuleExtensionRepoNames_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[219]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[220]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10458,7 +10526,7 @@ type ModuleExtensionRepoNames_Value struct {
 
 func (x *ModuleExtensionRepoNames_Value) Reset() {
 	*x = ModuleExtensionRepoNames_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[220]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[221]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10470,7 +10538,7 @@ func (x *ModuleExtensionRepoNames_Value) String() string {
 func (*ModuleExtensionRepoNames_Value) ProtoMessage() {}
 
 func (x *ModuleExtensionRepoNames_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[220]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[221]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10502,7 +10570,7 @@ type ModuleExtensionRepos_Key struct {
 
 func (x *ModuleExtensionRepos_Key) Reset() {
 	*x = ModuleExtensionRepos_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[221]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[222]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10514,7 +10582,7 @@ func (x *ModuleExtensionRepos_Key) String() string {
 func (*ModuleExtensionRepos_Key) ProtoMessage() {}
 
 func (x *ModuleExtensionRepos_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[221]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[222]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10546,7 +10614,7 @@ type ModuleExtensionRepos_Value struct {
 
 func (x *ModuleExtensionRepos_Value) Reset() {
 	*x = ModuleExtensionRepos_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[222]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[223]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10558,7 +10626,7 @@ func (x *ModuleExtensionRepos_Value) String() string {
 func (*ModuleExtensionRepos_Value) ProtoMessage() {}
 
 func (x *ModuleExtensionRepos_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[222]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[223]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10594,7 +10662,7 @@ type ModuleExtensionRepos_Value_Repo struct {
 
 func (x *ModuleExtensionRepos_Value_Repo) Reset() {
 	*x = ModuleExtensionRepos_Value_Repo{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[223]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[224]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10606,7 +10674,7 @@ func (x *ModuleExtensionRepos_Value_Repo) String() string {
 func (*ModuleExtensionRepos_Value_Repo) ProtoMessage() {}
 
 func (x *ModuleExtensionRepos_Value_Repo) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[223]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[224]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10673,7 +10741,7 @@ type ModuleExtensionRepos_Value_Repo_Parent struct {
 
 func (x *ModuleExtensionRepos_Value_Repo_Parent) Reset() {
 	*x = ModuleExtensionRepos_Value_Repo_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[224]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[225]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10685,7 +10753,7 @@ func (x *ModuleExtensionRepos_Value_Repo_Parent) String() string {
 func (*ModuleExtensionRepos_Value_Repo_Parent) ProtoMessage() {}
 
 func (x *ModuleExtensionRepos_Value_Repo_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[224]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[225]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10725,7 +10793,7 @@ type BuildListModule_Definition struct {
 
 func (x *BuildListModule_Definition) Reset() {
 	*x = BuildListModule_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[225]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[226]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10737,7 +10805,7 @@ func (x *BuildListModule_Definition) String() string {
 func (*BuildListModule_Definition) ProtoMessage() {}
 
 func (x *BuildListModule_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[225]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[226]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10775,7 +10843,7 @@ type ModuleFinalBuildList_Key struct {
 
 func (x *ModuleFinalBuildList_Key) Reset() {
 	*x = ModuleFinalBuildList_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[226]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[227]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10787,7 +10855,7 @@ func (x *ModuleFinalBuildList_Key) String() string {
 func (*ModuleFinalBuildList_Key) ProtoMessage() {}
 
 func (x *ModuleFinalBuildList_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[226]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[227]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10812,7 +10880,7 @@ type ModuleFinalBuildList_Value struct {
 
 func (x *ModuleFinalBuildList_Value) Reset() {
 	*x = ModuleFinalBuildList_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[227]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[228]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10824,7 +10892,7 @@ func (x *ModuleFinalBuildList_Value) String() string {
 func (*ModuleFinalBuildList_Value) ProtoMessage() {}
 
 func (x *ModuleFinalBuildList_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[227]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[228]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10856,7 +10924,7 @@ type FinalBuildListModuleDefinition_Key struct {
 
 func (x *FinalBuildListModuleDefinition_Key) Reset() {
 	*x = FinalBuildListModuleDefinition_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[228]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[229]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10868,7 +10936,7 @@ func (x *FinalBuildListModuleDefinition_Key) String() string {
 func (*FinalBuildListModuleDefinition_Key) ProtoMessage() {}
 
 func (x *FinalBuildListModuleDefinition_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[228]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[229]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10900,7 +10968,7 @@ type FinalBuildListModuleDefinition_Value struct {
 
 func (x *FinalBuildListModuleDefinition_Value) Reset() {
 	*x = FinalBuildListModuleDefinition_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[229]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[230]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10912,7 +10980,7 @@ func (x *FinalBuildListModuleDefinition_Value) String() string {
 func (*FinalBuildListModuleDefinition_Value) ProtoMessage() {}
 
 func (x *FinalBuildListModuleDefinition_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[229]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[230]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10943,7 +11011,7 @@ type ModuleRoughBuildList_Key struct {
 
 func (x *ModuleRoughBuildList_Key) Reset() {
 	*x = ModuleRoughBuildList_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[230]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[231]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10955,7 +11023,7 @@ func (x *ModuleRoughBuildList_Key) String() string {
 func (*ModuleRoughBuildList_Key) ProtoMessage() {}
 
 func (x *ModuleRoughBuildList_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[230]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[231]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10980,7 +11048,7 @@ type ModuleRoughBuildList_Value struct {
 
 func (x *ModuleRoughBuildList_Value) Reset() {
 	*x = ModuleRoughBuildList_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[231]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[232]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10992,7 +11060,7 @@ func (x *ModuleRoughBuildList_Value) String() string {
 func (*ModuleRoughBuildList_Value) ProtoMessage() {}
 
 func (x *ModuleRoughBuildList_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[231]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[232]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11024,7 +11092,7 @@ type ModuleWithLocalOverrideRootDirectory_Key struct {
 
 func (x *ModuleWithLocalOverrideRootDirectory_Key) Reset() {
 	*x = ModuleWithLocalOverrideRootDirectory_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[232]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[233]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11036,7 +11104,7 @@ func (x *ModuleWithLocalOverrideRootDirectory_Key) String() string {
 func (*ModuleWithLocalOverrideRootDirectory_Key) ProtoMessage() {}
 
 func (x *ModuleWithLocalOverrideRootDirectory_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[232]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[233]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11068,7 +11136,7 @@ type ModuleWithLocalOverrideRootDirectory_Value struct {
 
 func (x *ModuleWithLocalOverrideRootDirectory_Value) Reset() {
 	*x = ModuleWithLocalOverrideRootDirectory_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[233]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[234]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11080,7 +11148,7 @@ func (x *ModuleWithLocalOverrideRootDirectory_Value) String() string {
 func (*ModuleWithLocalOverrideRootDirectory_Value) ProtoMessage() {}
 
 func (x *ModuleWithLocalOverrideRootDirectory_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[233]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[234]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11111,7 +11179,7 @@ type ModulesWithLocalOverrides_Key struct {
 
 func (x *ModulesWithLocalOverrides_Key) Reset() {
 	*x = ModulesWithLocalOverrides_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[234]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[235]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11123,7 +11191,7 @@ func (x *ModulesWithLocalOverrides_Key) String() string {
 func (*ModulesWithLocalOverrides_Key) ProtoMessage() {}
 
 func (x *ModulesWithLocalOverrides_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[234]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[235]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11148,7 +11216,7 @@ type ModulesWithLocalOverrides_Value struct {
 
 func (x *ModulesWithLocalOverrides_Value) Reset() {
 	*x = ModulesWithLocalOverrides_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[235]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[236]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11160,7 +11228,7 @@ func (x *ModulesWithLocalOverrides_Value) String() string {
 func (*ModulesWithLocalOverrides_Value) ProtoMessage() {}
 
 func (x *ModulesWithLocalOverrides_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[235]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[236]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11191,7 +11259,7 @@ type ModulesWithMultipleVersions_Key struct {
 
 func (x *ModulesWithMultipleVersions_Key) Reset() {
 	*x = ModulesWithMultipleVersions_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[236]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[237]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11203,7 +11271,7 @@ func (x *ModulesWithMultipleVersions_Key) String() string {
 func (*ModulesWithMultipleVersions_Key) ProtoMessage() {}
 
 func (x *ModulesWithMultipleVersions_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[236]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[237]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11228,7 +11296,7 @@ type ModulesWithMultipleVersions_Value struct {
 
 func (x *ModulesWithMultipleVersions_Value) Reset() {
 	*x = ModulesWithMultipleVersions_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[237]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[238]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11240,7 +11308,7 @@ func (x *ModulesWithMultipleVersions_Value) String() string {
 func (*ModulesWithMultipleVersions_Value) ProtoMessage() {}
 
 func (x *ModulesWithMultipleVersions_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[237]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[238]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11271,7 +11339,7 @@ type ModulesWithOverrides_Key struct {
 
 func (x *ModulesWithOverrides_Key) Reset() {
 	*x = ModulesWithOverrides_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[238]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[239]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11283,7 +11351,7 @@ func (x *ModulesWithOverrides_Key) String() string {
 func (*ModulesWithOverrides_Key) ProtoMessage() {}
 
 func (x *ModulesWithOverrides_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[238]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[239]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11308,7 +11376,7 @@ type ModulesWithOverrides_Value struct {
 
 func (x *ModulesWithOverrides_Value) Reset() {
 	*x = ModulesWithOverrides_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[239]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[240]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11320,7 +11388,7 @@ func (x *ModulesWithOverrides_Value) String() string {
 func (*ModulesWithOverrides_Value) ProtoMessage() {}
 
 func (x *ModulesWithOverrides_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[239]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[240]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11356,7 +11424,7 @@ type ModuleOverride_SingleVersion struct {
 
 func (x *ModuleOverride_SingleVersion) Reset() {
 	*x = ModuleOverride_SingleVersion{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[240]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[241]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11368,7 +11436,7 @@ func (x *ModuleOverride_SingleVersion) String() string {
 func (*ModuleOverride_SingleVersion) ProtoMessage() {}
 
 func (x *ModuleOverride_SingleVersion) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[240]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[241]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11429,7 +11497,7 @@ type ModuleOverride_MultipleVersions struct {
 
 func (x *ModuleOverride_MultipleVersions) Reset() {
 	*x = ModuleOverride_MultipleVersions{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[241]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[242]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11441,7 +11509,7 @@ func (x *ModuleOverride_MultipleVersions) String() string {
 func (*ModuleOverride_MultipleVersions) ProtoMessage() {}
 
 func (x *ModuleOverride_MultipleVersions) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[241]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[242]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11485,7 +11553,7 @@ type ModuleOverride_Definition struct {
 
 func (x *ModuleOverride_Definition) Reset() {
 	*x = ModuleOverride_Definition{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[242]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[243]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11497,7 +11565,7 @@ func (x *ModuleOverride_Definition) String() string {
 func (*ModuleOverride_Definition) ProtoMessage() {}
 
 func (x *ModuleOverride_Definition) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[242]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[243]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11577,7 +11645,7 @@ type ModulesWithRemoteOverrides_Key struct {
 
 func (x *ModulesWithRemoteOverrides_Key) Reset() {
 	*x = ModulesWithRemoteOverrides_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[243]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[244]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11589,7 +11657,7 @@ func (x *ModulesWithRemoteOverrides_Key) String() string {
 func (*ModulesWithRemoteOverrides_Key) ProtoMessage() {}
 
 func (x *ModulesWithRemoteOverrides_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[243]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[244]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11614,7 +11682,7 @@ type ModulesWithRemoteOverrides_Value struct {
 
 func (x *ModulesWithRemoteOverrides_Value) Reset() {
 	*x = ModulesWithRemoteOverrides_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[244]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[245]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11626,7 +11694,7 @@ func (x *ModulesWithRemoteOverrides_Value) String() string {
 func (*ModulesWithRemoteOverrides_Value) ProtoMessage() {}
 
 func (x *ModulesWithRemoteOverrides_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[244]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[245]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11658,7 +11726,7 @@ type ModuleOverrideDefinition_Key struct {
 
 func (x *ModuleOverrideDefinition_Key) Reset() {
 	*x = ModuleOverrideDefinition_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[245]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[246]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11670,7 +11738,7 @@ func (x *ModuleOverrideDefinition_Key) String() string {
 func (*ModuleOverrideDefinition_Key) ProtoMessage() {}
 
 func (x *ModuleOverrideDefinition_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[245]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[246]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11702,7 +11770,7 @@ type ModuleOverrideDefinition_Value struct {
 
 func (x *ModuleOverrideDefinition_Value) Reset() {
 	*x = ModuleOverrideDefinition_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[246]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[247]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11714,7 +11782,7 @@ func (x *ModuleOverrideDefinition_Value) String() string {
 func (*ModuleOverrideDefinition_Value) ProtoMessage() {}
 
 func (x *ModuleOverrideDefinition_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[246]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[247]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11747,7 +11815,7 @@ type Package_Key struct {
 
 func (x *Package_Key) Reset() {
 	*x = Package_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[247]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[248]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11759,7 +11827,7 @@ func (x *Package_Key) String() string {
 func (*Package_Key) ProtoMessage() {}
 
 func (x *Package_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[247]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[248]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11799,7 +11867,7 @@ type Package_Value struct {
 
 func (x *Package_Value) Reset() {
 	*x = Package_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[248]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[249]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11811,7 +11879,7 @@ func (x *Package_Value) String() string {
 func (*Package_Value) ProtoMessage() {}
 
 func (x *Package_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[248]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[249]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11854,7 +11922,7 @@ type Package_Value_Target struct {
 
 func (x *Package_Value_Target) Reset() {
 	*x = Package_Value_Target{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[249]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[250]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11866,7 +11934,7 @@ func (x *Package_Value_Target) String() string {
 func (*Package_Value_Target) ProtoMessage() {}
 
 func (x *Package_Value_Target) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[249]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[250]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11934,7 +12002,7 @@ type Package_Value_Target_Parent struct {
 
 func (x *Package_Value_Target_Parent) Reset() {
 	*x = Package_Value_Target_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[250]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[251]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11946,7 +12014,7 @@ func (x *Package_Value_Target_Parent) String() string {
 func (*Package_Value_Target_Parent) ProtoMessage() {}
 
 func (x *Package_Value_Target_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[250]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[251]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11993,7 +12061,7 @@ type PackageGroupContains_Key struct {
 
 func (x *PackageGroupContains_Key) Reset() {
 	*x = PackageGroupContains_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[251]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[252]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12005,7 +12073,7 @@ func (x *PackageGroupContains_Key) String() string {
 func (*PackageGroupContains_Key) ProtoMessage() {}
 
 func (x *PackageGroupContains_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[251]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[252]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12044,7 +12112,7 @@ type PackageGroupContains_Value struct {
 
 func (x *PackageGroupContains_Value) Reset() {
 	*x = PackageGroupContains_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[252]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[253]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12056,7 +12124,7 @@ func (x *PackageGroupContains_Value) String() string {
 func (*PackageGroupContains_Value) ProtoMessage() {}
 
 func (x *PackageGroupContains_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[252]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[253]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12090,7 +12158,7 @@ type PackageTargets_Key struct {
 
 func (x *PackageTargets_Key) Reset() {
 	*x = PackageTargets_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[253]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[254]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12102,7 +12170,7 @@ func (x *PackageTargets_Key) String() string {
 func (*PackageTargets_Key) ProtoMessage() {}
 
 func (x *PackageTargets_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[253]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[254]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12148,7 +12216,7 @@ type PackageTargets_Value struct {
 
 func (x *PackageTargets_Value) Reset() {
 	*x = PackageTargets_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[254]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[255]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12160,7 +12228,7 @@ func (x *PackageTargets_Value) String() string {
 func (*PackageTargets_Value) ProtoMessage() {}
 
 func (x *PackageTargets_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[254]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[255]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12193,7 +12261,7 @@ type PackagesAtAndBelow_Key struct {
 
 func (x *PackagesAtAndBelow_Key) Reset() {
 	*x = PackagesAtAndBelow_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[255]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[256]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12205,7 +12273,7 @@ func (x *PackagesAtAndBelow_Key) String() string {
 func (*PackagesAtAndBelow_Key) ProtoMessage() {}
 
 func (x *PackagesAtAndBelow_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[255]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[256]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12245,7 +12313,7 @@ type PackagesAtAndBelow_Value struct {
 
 func (x *PackagesAtAndBelow_Value) Reset() {
 	*x = PackagesAtAndBelow_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[256]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[257]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12257,7 +12325,7 @@ func (x *PackagesAtAndBelow_Value) String() string {
 func (*PackagesAtAndBelow_Value) ProtoMessage() {}
 
 func (x *PackagesAtAndBelow_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[256]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[257]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12297,7 +12365,7 @@ type QueryExpansion_Key struct {
 
 func (x *QueryExpansion_Key) Reset() {
 	*x = QueryExpansion_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[257]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[258]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12309,7 +12377,7 @@ func (x *QueryExpansion_Key) String() string {
 func (*QueryExpansion_Key) ProtoMessage() {}
 
 func (x *QueryExpansion_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[257]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[258]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12348,7 +12416,7 @@ type QueryExpansion_Value struct {
 
 func (x *QueryExpansion_Value) Reset() {
 	*x = QueryExpansion_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[258]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[259]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12360,7 +12428,7 @@ func (x *QueryExpansion_Value) String() string {
 func (*QueryExpansion_Value) ProtoMessage() {}
 
 func (x *QueryExpansion_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[258]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[259]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12394,7 +12462,7 @@ type QueryResult_Key struct {
 
 func (x *QueryResult_Key) Reset() {
 	*x = QueryResult_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[259]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[260]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12406,7 +12474,7 @@ func (x *QueryResult_Key) String() string {
 func (*QueryResult_Key) ProtoMessage() {}
 
 func (x *QueryResult_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[259]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[260]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12452,7 +12520,7 @@ type QueryResult_Value struct {
 
 func (x *QueryResult_Value) Reset() {
 	*x = QueryResult_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[260]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[261]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12464,7 +12532,7 @@ func (x *QueryResult_Value) String() string {
 func (*QueryResult_Value) ProtoMessage() {}
 
 func (x *QueryResult_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[260]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[261]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12498,7 +12566,7 @@ type QueryTarget_Leaf struct {
 
 func (x *QueryTarget_Leaf) Reset() {
 	*x = QueryTarget_Leaf{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[261]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[262]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12510,7 +12578,7 @@ func (x *QueryTarget_Leaf) String() string {
 func (*QueryTarget_Leaf) ProtoMessage() {}
 
 func (x *QueryTarget_Leaf) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[261]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[262]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12556,7 +12624,7 @@ type QueryTarget_Parent struct {
 
 func (x *QueryTarget_Parent) Reset() {
 	*x = QueryTarget_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[262]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[263]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12568,7 +12636,7 @@ func (x *QueryTarget_Parent) String() string {
 func (*QueryTarget_Parent) ProtoMessage() {}
 
 func (x *QueryTarget_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[262]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[263]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12601,7 +12669,7 @@ type QueryTargets_Key struct {
 
 func (x *QueryTargets_Key) Reset() {
 	*x = QueryTargets_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[263]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[264]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12613,7 +12681,7 @@ func (x *QueryTargets_Key) String() string {
 func (*QueryTargets_Key) ProtoMessage() {}
 
 func (x *QueryTargets_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[263]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[264]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12652,7 +12720,7 @@ type QueryTargets_Value struct {
 
 func (x *QueryTargets_Value) Reset() {
 	*x = QueryTargets_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[264]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[265]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12664,7 +12732,7 @@ func (x *QueryTargets_Value) String() string {
 func (*QueryTargets_Value) ProtoMessage() {}
 
 func (x *QueryTargets_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[264]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[265]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12696,7 +12764,7 @@ type RawActionResult_Key struct {
 
 func (x *RawActionResult_Key) Reset() {
 	*x = RawActionResult_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[265]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[266]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12708,7 +12776,7 @@ func (x *RawActionResult_Key) String() string {
 func (*RawActionResult_Key) ProtoMessage() {}
 
 func (x *RawActionResult_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[265]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[266]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12740,7 +12808,7 @@ type RawActionResult_Value struct {
 
 func (x *RawActionResult_Value) Reset() {
 	*x = RawActionResult_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[266]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[267]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12752,7 +12820,7 @@ func (x *RawActionResult_Value) String() string {
 func (*RawActionResult_Value) ProtoMessage() {}
 
 func (x *RawActionResult_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[266]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[267]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12783,7 +12851,7 @@ type RegisteredExecutionPlatforms_Key struct {
 
 func (x *RegisteredExecutionPlatforms_Key) Reset() {
 	*x = RegisteredExecutionPlatforms_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[267]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[268]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12795,7 +12863,7 @@ func (x *RegisteredExecutionPlatforms_Key) String() string {
 func (*RegisteredExecutionPlatforms_Key) ProtoMessage() {}
 
 func (x *RegisteredExecutionPlatforms_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[267]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[268]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12820,7 +12888,7 @@ type RegisteredExecutionPlatforms_Value struct {
 
 func (x *RegisteredExecutionPlatforms_Value) Reset() {
 	*x = RegisteredExecutionPlatforms_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[268]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[269]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12832,7 +12900,7 @@ func (x *RegisteredExecutionPlatforms_Value) String() string {
 func (*RegisteredExecutionPlatforms_Value) ProtoMessage() {}
 
 func (x *RegisteredExecutionPlatforms_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[268]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[269]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12863,7 +12931,7 @@ type RegisteredFetchPlatform_Key struct {
 
 func (x *RegisteredFetchPlatform_Key) Reset() {
 	*x = RegisteredFetchPlatform_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[269]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[270]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12875,7 +12943,7 @@ func (x *RegisteredFetchPlatform_Key) String() string {
 func (*RegisteredFetchPlatform_Key) ProtoMessage() {}
 
 func (x *RegisteredFetchPlatform_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[269]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[270]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12900,7 +12968,7 @@ type RegisteredFetchPlatform_Value struct {
 
 func (x *RegisteredFetchPlatform_Value) Reset() {
 	*x = RegisteredFetchPlatform_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[270]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[271]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12912,7 +12980,7 @@ func (x *RegisteredFetchPlatform_Value) String() string {
 func (*RegisteredFetchPlatform_Value) ProtoMessage() {}
 
 func (x *RegisteredFetchPlatform_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[270]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[271]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12943,7 +13011,7 @@ type RegisteredRepoPlatform_Key struct {
 
 func (x *RegisteredRepoPlatform_Key) Reset() {
 	*x = RegisteredRepoPlatform_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[271]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[272]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12955,7 +13023,7 @@ func (x *RegisteredRepoPlatform_Key) String() string {
 func (*RegisteredRepoPlatform_Key) ProtoMessage() {}
 
 func (x *RegisteredRepoPlatform_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[271]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[272]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12983,7 +13051,7 @@ type RegisteredRepoPlatform_Value struct {
 
 func (x *RegisteredRepoPlatform_Value) Reset() {
 	*x = RegisteredRepoPlatform_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[272]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[273]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12995,7 +13063,7 @@ func (x *RegisteredRepoPlatform_Value) String() string {
 func (*RegisteredRepoPlatform_Value) ProtoMessage() {}
 
 func (x *RegisteredRepoPlatform_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[272]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[273]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13049,7 +13117,7 @@ type RegisteredRepoPlatform_Value_EnvironmentVariable struct {
 
 func (x *RegisteredRepoPlatform_Value_EnvironmentVariable) Reset() {
 	*x = RegisteredRepoPlatform_Value_EnvironmentVariable{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[273]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[274]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13061,7 +13129,7 @@ func (x *RegisteredRepoPlatform_Value_EnvironmentVariable) String() string {
 func (*RegisteredRepoPlatform_Value_EnvironmentVariable) ProtoMessage() {}
 
 func (x *RegisteredRepoPlatform_Value_EnvironmentVariable) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[273]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[274]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13101,7 +13169,7 @@ type RegisteredToolchain_CompatibleWith struct {
 
 func (x *RegisteredToolchain_CompatibleWith) Reset() {
 	*x = RegisteredToolchain_CompatibleWith{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[274]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[275]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13113,7 +13181,7 @@ func (x *RegisteredToolchain_CompatibleWith) String() string {
 func (*RegisteredToolchain_CompatibleWith) ProtoMessage() {}
 
 func (x *RegisteredToolchain_CompatibleWith) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[274]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[275]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13151,7 +13219,7 @@ type RegisteredToolchains_Key struct {
 
 func (x *RegisteredToolchains_Key) Reset() {
 	*x = RegisteredToolchains_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[275]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[276]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13163,7 +13231,7 @@ func (x *RegisteredToolchains_Key) String() string {
 func (*RegisteredToolchains_Key) ProtoMessage() {}
 
 func (x *RegisteredToolchains_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[275]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[276]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13188,7 +13256,7 @@ type RegisteredToolchains_Value struct {
 
 func (x *RegisteredToolchains_Value) Reset() {
 	*x = RegisteredToolchains_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[276]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[277]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13200,7 +13268,7 @@ func (x *RegisteredToolchains_Value) String() string {
 func (*RegisteredToolchains_Value) ProtoMessage() {}
 
 func (x *RegisteredToolchains_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[276]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[277]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13233,7 +13301,7 @@ type RegisteredToolchains_Value_RegisteredToolchainType struct {
 
 func (x *RegisteredToolchains_Value_RegisteredToolchainType) Reset() {
 	*x = RegisteredToolchains_Value_RegisteredToolchainType{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[277]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[278]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13245,7 +13313,7 @@ func (x *RegisteredToolchains_Value_RegisteredToolchainType) String() string {
 func (*RegisteredToolchains_Value_RegisteredToolchainType) ProtoMessage() {}
 
 func (x *RegisteredToolchains_Value_RegisteredToolchainType) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[277]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[278]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13284,7 +13352,7 @@ type RegisteredToolchainsForType_Key struct {
 
 func (x *RegisteredToolchainsForType_Key) Reset() {
 	*x = RegisteredToolchainsForType_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[278]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[279]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13296,7 +13364,7 @@ func (x *RegisteredToolchainsForType_Key) String() string {
 func (*RegisteredToolchainsForType_Key) ProtoMessage() {}
 
 func (x *RegisteredToolchainsForType_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[278]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[279]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13328,7 +13396,7 @@ type RegisteredToolchainsForType_Value struct {
 
 func (x *RegisteredToolchainsForType_Value) Reset() {
 	*x = RegisteredToolchainsForType_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[279]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[280]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13340,7 +13408,7 @@ func (x *RegisteredToolchainsForType_Value) String() string {
 func (*RegisteredToolchainsForType_Value) ProtoMessage() {}
 
 func (x *RegisteredToolchainsForType_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[279]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[280]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13372,7 +13440,7 @@ type Repo_Key struct {
 
 func (x *Repo_Key) Reset() {
 	*x = Repo_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[280]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[281]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13384,7 +13452,7 @@ func (x *Repo_Key) String() string {
 func (*Repo_Key) ProtoMessage() {}
 
 func (x *Repo_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[280]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[281]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13416,7 +13484,7 @@ type Repo_Value struct {
 
 func (x *Repo_Value) Reset() {
 	*x = Repo_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[281]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[282]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13428,7 +13496,7 @@ func (x *Repo_Value) String() string {
 func (*Repo_Value) ProtoMessage() {}
 
 func (x *Repo_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[281]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[282]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13460,7 +13528,7 @@ type RepoDefaultAttrs_Key struct {
 
 func (x *RepoDefaultAttrs_Key) Reset() {
 	*x = RepoDefaultAttrs_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[282]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[283]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13472,7 +13540,7 @@ func (x *RepoDefaultAttrs_Key) String() string {
 func (*RepoDefaultAttrs_Key) ProtoMessage() {}
 
 func (x *RepoDefaultAttrs_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[282]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[283]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13504,7 +13572,7 @@ type RepoDefaultAttrs_Value struct {
 
 func (x *RepoDefaultAttrs_Value) Reset() {
 	*x = RepoDefaultAttrs_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[283]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[284]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13516,7 +13584,7 @@ func (x *RepoDefaultAttrs_Value) String() string {
 func (*RepoDefaultAttrs_Value) ProtoMessage() {}
 
 func (x *RepoDefaultAttrs_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[283]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[284]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13548,7 +13616,7 @@ type RepoPlatformHostPath_Key struct {
 
 func (x *RepoPlatformHostPath_Key) Reset() {
 	*x = RepoPlatformHostPath_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[284]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[285]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13560,7 +13628,7 @@ func (x *RepoPlatformHostPath_Key) String() string {
 func (*RepoPlatformHostPath_Key) ProtoMessage() {}
 
 func (x *RepoPlatformHostPath_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[284]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[285]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13596,7 +13664,7 @@ type RepoPlatformHostPath_Value struct {
 
 func (x *RepoPlatformHostPath_Value) Reset() {
 	*x = RepoPlatformHostPath_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[285]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[286]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13608,7 +13676,7 @@ func (x *RepoPlatformHostPath_Value) String() string {
 func (*RepoPlatformHostPath_Value) ProtoMessage() {}
 
 func (x *RepoPlatformHostPath_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[285]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[286]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13673,7 +13741,7 @@ type RepoPlatformLabel_Key struct {
 
 func (x *RepoPlatformLabel_Key) Reset() {
 	*x = RepoPlatformLabel_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[286]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[287]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13685,7 +13753,7 @@ func (x *RepoPlatformLabel_Key) String() string {
 func (*RepoPlatformLabel_Key) ProtoMessage() {}
 
 func (x *RepoPlatformLabel_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[286]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[287]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13710,7 +13778,7 @@ type RepoPlatformLabel_Value struct {
 
 func (x *RepoPlatformLabel_Value) Reset() {
 	*x = RepoPlatformLabel_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[287]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[288]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13722,7 +13790,7 @@ func (x *RepoPlatformLabel_Value) String() string {
 func (*RepoPlatformLabel_Value) ProtoMessage() {}
 
 func (x *RepoPlatformLabel_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[287]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[288]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13756,7 +13824,7 @@ type ResolvedToolchains_Key struct {
 
 func (x *ResolvedToolchains_Key) Reset() {
 	*x = ResolvedToolchains_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[288]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[289]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13768,7 +13836,7 @@ func (x *ResolvedToolchains_Key) String() string {
 func (*ResolvedToolchains_Key) ProtoMessage() {}
 
 func (x *ResolvedToolchains_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[288]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[289]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13816,7 +13884,7 @@ type ResolvedToolchains_Value struct {
 
 func (x *ResolvedToolchains_Value) Reset() {
 	*x = ResolvedToolchains_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[289]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[290]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13828,7 +13896,7 @@ func (x *ResolvedToolchains_Value) String() string {
 func (*ResolvedToolchains_Value) ProtoMessage() {}
 
 func (x *ResolvedToolchains_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[289]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[290]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13873,7 +13941,7 @@ type RootModule_Key struct {
 
 func (x *RootModule_Key) Reset() {
 	*x = RootModule_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[290]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[291]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13885,7 +13953,7 @@ func (x *RootModule_Key) String() string {
 func (*RootModule_Key) ProtoMessage() {}
 
 func (x *RootModule_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[290]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[291]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13911,7 +13979,7 @@ type RootModule_Value struct {
 
 func (x *RootModule_Value) Reset() {
 	*x = RootModule_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[291]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[292]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13923,7 +13991,7 @@ func (x *RootModule_Value) String() string {
 func (*RootModule_Value) ProtoMessage() {}
 
 func (x *RootModule_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[291]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[292]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13961,7 +14029,7 @@ type RuleImplementationWrappers_Key struct {
 
 func (x *RuleImplementationWrappers_Key) Reset() {
 	*x = RuleImplementationWrappers_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[292]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[293]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13973,7 +14041,7 @@ func (x *RuleImplementationWrappers_Key) String() string {
 func (*RuleImplementationWrappers_Key) ProtoMessage() {}
 
 func (x *RuleImplementationWrappers_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[292]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[293]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14000,7 +14068,7 @@ type RuleImplementationWrappers_Value struct {
 
 func (x *RuleImplementationWrappers_Value) Reset() {
 	*x = RuleImplementationWrappers_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[293]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[294]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14012,7 +14080,7 @@ func (x *RuleImplementationWrappers_Value) String() string {
 func (*RuleImplementationWrappers_Value) ProtoMessage() {}
 
 func (x *RuleImplementationWrappers_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[293]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[294]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14057,7 +14125,7 @@ type RuleImplementationWrappersIdentifiers_Key struct {
 
 func (x *RuleImplementationWrappersIdentifiers_Key) Reset() {
 	*x = RuleImplementationWrappersIdentifiers_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[294]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[295]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14069,7 +14137,7 @@ func (x *RuleImplementationWrappersIdentifiers_Key) String() string {
 func (*RuleImplementationWrappersIdentifiers_Key) ProtoMessage() {}
 
 func (x *RuleImplementationWrappersIdentifiers_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[294]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[295]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14096,7 +14164,7 @@ type RuleImplementationWrappersIdentifiers_Value struct {
 
 func (x *RuleImplementationWrappersIdentifiers_Value) Reset() {
 	*x = RuleImplementationWrappersIdentifiers_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[295]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[296]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14108,7 +14176,7 @@ func (x *RuleImplementationWrappersIdentifiers_Value) String() string {
 func (*RuleImplementationWrappersIdentifiers_Value) ProtoMessage() {}
 
 func (x *RuleImplementationWrappersIdentifiers_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[295]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[296]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14156,7 +14224,7 @@ type Select_Key struct {
 
 func (x *Select_Key) Reset() {
 	*x = Select_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[296]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[297]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14168,7 +14236,7 @@ func (x *Select_Key) String() string {
 func (*Select_Key) ProtoMessage() {}
 
 func (x *Select_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[296]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[297]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14214,7 +14282,7 @@ type Select_Value struct {
 
 func (x *Select_Value) Reset() {
 	*x = Select_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[297]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[298]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14226,7 +14294,7 @@ func (x *Select_Value) String() string {
 func (*Select_Value) ProtoMessage() {}
 
 func (x *Select_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[297]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[298]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14257,7 +14325,7 @@ type StableInputRootPath_Key struct {
 
 func (x *StableInputRootPath_Key) Reset() {
 	*x = StableInputRootPath_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[298]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[299]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14269,7 +14337,7 @@ func (x *StableInputRootPath_Key) String() string {
 func (*StableInputRootPath_Key) ProtoMessage() {}
 
 func (x *StableInputRootPath_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[298]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[299]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14294,7 +14362,7 @@ type StableInputRootPath_Value struct {
 
 func (x *StableInputRootPath_Value) Reset() {
 	*x = StableInputRootPath_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[299]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[300]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14306,7 +14374,7 @@ func (x *StableInputRootPath_Value) String() string {
 func (*StableInputRootPath_Value) ProtoMessage() {}
 
 func (x *StableInputRootPath_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[299]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[300]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14337,7 +14405,7 @@ type StarlarkValueEncoders_Key struct {
 
 func (x *StarlarkValueEncoders_Key) Reset() {
 	*x = StarlarkValueEncoders_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[300]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[301]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14349,7 +14417,7 @@ func (x *StarlarkValueEncoders_Key) String() string {
 func (*StarlarkValueEncoders_Key) ProtoMessage() {}
 
 func (x *StarlarkValueEncoders_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[300]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[301]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14375,7 +14443,7 @@ type StarlarkValueEncoders_Value struct {
 
 func (x *StarlarkValueEncoders_Value) Reset() {
 	*x = StarlarkValueEncoders_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[301]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[302]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14387,7 +14455,7 @@ func (x *StarlarkValueEncoders_Value) String() string {
 func (*StarlarkValueEncoders_Value) ProtoMessage() {}
 
 func (x *StarlarkValueEncoders_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[301]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[302]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14426,7 +14494,7 @@ type SuccessfulActionResult_Key struct {
 
 func (x *SuccessfulActionResult_Key) Reset() {
 	*x = SuccessfulActionResult_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[302]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[303]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14438,7 +14506,7 @@ func (x *SuccessfulActionResult_Key) String() string {
 func (*SuccessfulActionResult_Key) ProtoMessage() {}
 
 func (x *SuccessfulActionResult_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[302]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[303]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14470,7 +14538,7 @@ type SuccessfulActionResult_Value struct {
 
 func (x *SuccessfulActionResult_Value) Reset() {
 	*x = SuccessfulActionResult_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[303]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[304]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14482,7 +14550,7 @@ func (x *SuccessfulActionResult_Value) String() string {
 func (*SuccessfulActionResult_Value) ProtoMessage() {}
 
 func (x *SuccessfulActionResult_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[303]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[304]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14514,7 +14582,7 @@ type Target_Key struct {
 
 func (x *Target_Key) Reset() {
 	*x = Target_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[304]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[305]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14526,7 +14594,7 @@ func (x *Target_Key) String() string {
 func (*Target_Key) ProtoMessage() {}
 
 func (x *Target_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[304]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[305]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14558,7 +14626,7 @@ type Target_Value struct {
 
 func (x *Target_Value) Reset() {
 	*x = Target_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[305]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[306]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14570,7 +14638,7 @@ func (x *Target_Value) String() string {
 func (*Target_Value) ProtoMessage() {}
 
 func (x *Target_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[305]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[306]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14602,7 +14670,7 @@ type TargetAction_Key struct {
 
 func (x *TargetAction_Key) Reset() {
 	*x = TargetAction_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[306]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[307]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14614,7 +14682,7 @@ func (x *TargetAction_Key) String() string {
 func (*TargetAction_Key) ProtoMessage() {}
 
 func (x *TargetAction_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[306]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[307]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14646,7 +14714,7 @@ type TargetAction_Value struct {
 
 func (x *TargetAction_Value) Reset() {
 	*x = TargetAction_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[307]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[308]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14658,7 +14726,7 @@ func (x *TargetAction_Value) String() string {
 func (*TargetAction_Value) ProtoMessage() {}
 
 func (x *TargetAction_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[307]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[308]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14690,7 +14758,7 @@ type TargetActionCommand_Key struct {
 
 func (x *TargetActionCommand_Key) Reset() {
 	*x = TargetActionCommand_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[308]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[309]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14702,7 +14770,7 @@ func (x *TargetActionCommand_Key) String() string {
 func (*TargetActionCommand_Key) ProtoMessage() {}
 
 func (x *TargetActionCommand_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[308]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[309]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14734,7 +14802,7 @@ type TargetActionCommand_Value struct {
 
 func (x *TargetActionCommand_Value) Reset() {
 	*x = TargetActionCommand_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[309]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[310]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14746,7 +14814,7 @@ func (x *TargetActionCommand_Value) String() string {
 func (*TargetActionCommand_Value) ProtoMessage() {}
 
 func (x *TargetActionCommand_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[309]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[310]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14778,7 +14846,7 @@ type TargetActionInputRoot_Key struct {
 
 func (x *TargetActionInputRoot_Key) Reset() {
 	*x = TargetActionInputRoot_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[310]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[311]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14790,7 +14858,7 @@ func (x *TargetActionInputRoot_Key) String() string {
 func (*TargetActionInputRoot_Key) ProtoMessage() {}
 
 func (x *TargetActionInputRoot_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[310]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[311]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14822,7 +14890,7 @@ type TargetActionInputRoot_Value struct {
 
 func (x *TargetActionInputRoot_Value) Reset() {
 	*x = TargetActionInputRoot_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[311]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[312]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14834,7 +14902,7 @@ func (x *TargetActionInputRoot_Value) String() string {
 func (*TargetActionInputRoot_Value) ProtoMessage() {}
 
 func (x *TargetActionInputRoot_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[311]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[312]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14866,7 +14934,7 @@ type TargetActionResult_Key struct {
 
 func (x *TargetActionResult_Key) Reset() {
 	*x = TargetActionResult_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[312]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[313]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14878,7 +14946,7 @@ func (x *TargetActionResult_Key) String() string {
 func (*TargetActionResult_Key) ProtoMessage() {}
 
 func (x *TargetActionResult_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[312]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[313]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14910,7 +14978,7 @@ type TargetActionResult_Value struct {
 
 func (x *TargetActionResult_Value) Reset() {
 	*x = TargetActionResult_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[313]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[314]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14922,7 +14990,7 @@ func (x *TargetActionResult_Value) String() string {
 func (*TargetActionResult_Value) ProtoMessage() {}
 
 func (x *TargetActionResult_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[313]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[314]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14955,7 +15023,7 @@ type TargetCompletion_Key struct {
 
 func (x *TargetCompletion_Key) Reset() {
 	*x = TargetCompletion_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[314]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[315]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14967,7 +15035,7 @@ func (x *TargetCompletion_Key) String() string {
 func (*TargetCompletion_Key) ProtoMessage() {}
 
 func (x *TargetCompletion_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[314]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[315]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15005,7 +15073,7 @@ type TargetCompletion_Value struct {
 
 func (x *TargetCompletion_Value) Reset() {
 	*x = TargetCompletion_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[315]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[316]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15017,7 +15085,7 @@ func (x *TargetCompletion_Value) String() string {
 func (*TargetCompletion_Value) ProtoMessage() {}
 
 func (x *TargetCompletion_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[315]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[316]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15043,7 +15111,7 @@ type TargetDirectDependencies_Key struct {
 
 func (x *TargetDirectDependencies_Key) Reset() {
 	*x = TargetDirectDependencies_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[316]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[317]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15055,7 +15123,7 @@ func (x *TargetDirectDependencies_Key) String() string {
 func (*TargetDirectDependencies_Key) ProtoMessage() {}
 
 func (x *TargetDirectDependencies_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[316]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[317]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15094,7 +15162,7 @@ type TargetDirectDependencies_Value struct {
 
 func (x *TargetDirectDependencies_Value) Reset() {
 	*x = TargetDirectDependencies_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[317]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[318]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15106,7 +15174,7 @@ func (x *TargetDirectDependencies_Value) String() string {
 func (*TargetDirectDependencies_Value) ProtoMessage() {}
 
 func (x *TargetDirectDependencies_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[317]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[318]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15140,7 +15208,7 @@ type TargetLabel_Parent struct {
 
 func (x *TargetLabel_Parent) Reset() {
 	*x = TargetLabel_Parent{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[318]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[319]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15152,7 +15220,7 @@ func (x *TargetLabel_Parent) String() string {
 func (*TargetLabel_Parent) ProtoMessage() {}
 
 func (x *TargetLabel_Parent) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[318]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[319]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15200,7 +15268,7 @@ type TargetProvider_Key struct {
 
 func (x *TargetProvider_Key) Reset() {
 	*x = TargetProvider_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[319]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[320]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15212,7 +15280,7 @@ func (x *TargetProvider_Key) String() string {
 func (*TargetProvider_Key) ProtoMessage() {}
 
 func (x *TargetProvider_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[319]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[320]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15258,7 +15326,7 @@ type TargetProvider_Value struct {
 
 func (x *TargetProvider_Value) Reset() {
 	*x = TargetProvider_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[320]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[321]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15270,7 +15338,7 @@ func (x *TargetProvider_Value) String() string {
 func (*TargetProvider_Value) ProtoMessage() {}
 
 func (x *TargetProvider_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[320]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[321]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15303,7 +15371,7 @@ type TargetProviders_Key struct {
 
 func (x *TargetProviders_Key) Reset() {
 	*x = TargetProviders_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[321]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[322]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15315,7 +15383,7 @@ func (x *TargetProviders_Key) String() string {
 func (*TargetProviders_Key) ProtoMessage() {}
 
 func (x *TargetProviders_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[321]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[322]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15355,7 +15423,7 @@ type TargetProviders_Value struct {
 
 func (x *TargetProviders_Value) Reset() {
 	*x = TargetProviders_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[322]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[323]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15367,7 +15435,7 @@ func (x *TargetProviders_Value) String() string {
 func (*TargetProviders_Value) ProtoMessage() {}
 
 func (x *TargetProviders_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[322]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[323]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15406,7 +15474,7 @@ type TestSuiteTests_Key struct {
 
 func (x *TestSuiteTests_Key) Reset() {
 	*x = TestSuiteTests_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[323]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[324]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15418,7 +15486,7 @@ func (x *TestSuiteTests_Key) String() string {
 func (*TestSuiteTests_Key) ProtoMessage() {}
 
 func (x *TestSuiteTests_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[323]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[324]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15450,7 +15518,7 @@ type TestSuiteTests_Value struct {
 
 func (x *TestSuiteTests_Value) Reset() {
 	*x = TestSuiteTests_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[324]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[325]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15462,7 +15530,7 @@ func (x *TestSuiteTests_Value) String() string {
 func (*TestSuiteTests_Value) ProtoMessage() {}
 
 func (x *TestSuiteTests_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[324]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[325]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15496,7 +15564,7 @@ type ModuleExtension_User struct {
 
 func (x *ModuleExtension_User) Reset() {
 	*x = ModuleExtension_User{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[325]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[326]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15508,7 +15576,7 @@ func (x *ModuleExtension_User) String() string {
 func (*ModuleExtension_User) ProtoMessage() {}
 
 func (x *ModuleExtension_User) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[325]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[326]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15555,7 +15623,7 @@ type ModuleExtension_TagClass struct {
 
 func (x *ModuleExtension_TagClass) Reset() {
 	*x = ModuleExtension_TagClass{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[326]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[327]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15567,7 +15635,7 @@ func (x *ModuleExtension_TagClass) String() string {
 func (*ModuleExtension_TagClass) ProtoMessage() {}
 
 func (x *ModuleExtension_TagClass) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[326]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[327]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15607,7 +15675,7 @@ type ModuleExtension_Tag struct {
 
 func (x *ModuleExtension_Tag) Reset() {
 	*x = ModuleExtension_Tag{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[327]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[328]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15619,7 +15687,7 @@ func (x *ModuleExtension_Tag) String() string {
 func (*ModuleExtension_Tag) ProtoMessage() {}
 
 func (x *ModuleExtension_Tag) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[327]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[328]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15658,7 +15726,7 @@ type UsedModuleExtension_Key struct {
 
 func (x *UsedModuleExtension_Key) Reset() {
 	*x = UsedModuleExtension_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[328]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[329]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15670,7 +15738,7 @@ func (x *UsedModuleExtension_Key) String() string {
 func (*UsedModuleExtension_Key) ProtoMessage() {}
 
 func (x *UsedModuleExtension_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[328]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[329]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15702,7 +15770,7 @@ type UsedModuleExtension_Value struct {
 
 func (x *UsedModuleExtension_Value) Reset() {
 	*x = UsedModuleExtension_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[329]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[330]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15714,7 +15782,7 @@ func (x *UsedModuleExtension_Value) String() string {
 func (*UsedModuleExtension_Value) ProtoMessage() {}
 
 func (x *UsedModuleExtension_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[329]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[330]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15745,7 +15813,7 @@ type UsedModuleExtensions_Key struct {
 
 func (x *UsedModuleExtensions_Key) Reset() {
 	*x = UsedModuleExtensions_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[330]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[331]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15757,7 +15825,7 @@ func (x *UsedModuleExtensions_Key) String() string {
 func (*UsedModuleExtensions_Key) ProtoMessage() {}
 
 func (x *UsedModuleExtensions_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[330]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[331]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15782,7 +15850,7 @@ type UsedModuleExtensions_Value struct {
 
 func (x *UsedModuleExtensions_Value) Reset() {
 	*x = UsedModuleExtensions_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[331]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[332]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15794,7 +15862,7 @@ func (x *UsedModuleExtensions_Value) String() string {
 func (*UsedModuleExtensions_Value) ProtoMessage() {}
 
 func (x *UsedModuleExtensions_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[331]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[332]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15827,7 +15895,7 @@ type UserDefinedTransition_Key struct {
 
 func (x *UserDefinedTransition_Key) Reset() {
 	*x = UserDefinedTransition_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[332]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[333]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15839,7 +15907,7 @@ func (x *UserDefinedTransition_Key) String() string {
 func (*UserDefinedTransition_Key) ProtoMessage() {}
 
 func (x *UserDefinedTransition_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[332]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[333]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15882,7 +15950,7 @@ type UserDefinedTransition_Value struct {
 
 func (x *UserDefinedTransition_Value) Reset() {
 	*x = UserDefinedTransition_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[333]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[334]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15894,7 +15962,7 @@ func (x *UserDefinedTransition_Value) String() string {
 func (*UserDefinedTransition_Value) ProtoMessage() {}
 
 func (x *UserDefinedTransition_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[333]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[334]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15960,7 +16028,7 @@ type UserDefinedTransition_Value_Success struct {
 
 func (x *UserDefinedTransition_Value_Success) Reset() {
 	*x = UserDefinedTransition_Value_Success{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[334]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[335]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15972,7 +16040,7 @@ func (x *UserDefinedTransition_Value_Success) String() string {
 func (*UserDefinedTransition_Value_Success) ProtoMessage() {}
 
 func (x *UserDefinedTransition_Value_Success) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[334]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[335]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16005,7 +16073,7 @@ type UserDefinedTransition_Value_Success_Entry struct {
 
 func (x *UserDefinedTransition_Value_Success_Entry) Reset() {
 	*x = UserDefinedTransition_Value_Success_Entry{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[335]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[336]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16017,7 +16085,7 @@ func (x *UserDefinedTransition_Value_Success_Entry) String() string {
 func (*UserDefinedTransition_Value_Success_Entry) ProtoMessage() {}
 
 func (x *UserDefinedTransition_Value_Success_Entry) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[335]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[336]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16060,7 +16128,7 @@ type VisibleTarget_Key struct {
 
 func (x *VisibleTarget_Key) Reset() {
 	*x = VisibleTarget_Key{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[336]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[337]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16072,7 +16140,7 @@ func (x *VisibleTarget_Key) String() string {
 func (*VisibleTarget_Key) ProtoMessage() {}
 
 func (x *VisibleTarget_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[336]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[337]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16132,7 +16200,7 @@ type VisibleTarget_Value struct {
 
 func (x *VisibleTarget_Value) Reset() {
 	*x = VisibleTarget_Value{}
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[337]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[338]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16144,7 +16212,7 @@ func (x *VisibleTarget_Value) String() string {
 func (*VisibleTarget_Value) ProtoMessage() {}
 
 func (x *VisibleTarget_Value) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[337]
+	mi := &file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[338]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16219,16 +16287,21 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x13BuiltinsModuleNames\x1a\x05\n" +
 	"\x03Key\x1a;\n" +
 	"\x05Value\x122\n" +
-	"\x15builtins_module_names\x18\x01 \x03(\tR\x13builtinsModuleNames\"\xdf\x02\n" +
-	"\vBuildResult\x1a\xc6\x02\n" +
+	"\x15builtins_module_names\x18\x01 \x03(\tR\x13builtinsModuleNames\"\x9c\x04\n" +
+	"\vBuildResult\x1a\x83\x04\n" +
 	"\x03Key\x12]\n" +
 	"\x0econfigurations\x18\x01 \x03(\v25.bonanza.model.analysis.BuildResult.Key.ConfigurationR\x0econfigurations\x12\x14\n" +
-	"\x05query\x18\x02 \x01(\tR\x05query\x1aB\n" +
+	"\x05query\x18\x02 \x01(\tR\x05query\x12\x18\n" +
+	"\aaspects\x18\x03 \x03(\tR\aaspects\x12d\n" +
+	"\x11aspect_parameters\x18\x04 \x03(\v27.bonanza.model.analysis.BuildResult.Key.AspectParameterR\x10aspectParameters\x1aB\n" +
 	"\x14BuildSettingOverride\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\x1a\x85\x01\n" +
 	"\rConfiguration\x12t\n" +
-	"\x17build_setting_overrides\x18\x01 \x03(\v2<.bonanza.model.analysis.BuildResult.Key.BuildSettingOverrideR\x15buildSettingOverrides\x1a\a\n" +
+	"\x17build_setting_overrides\x18\x01 \x03(\v2<.bonanza.model.analysis.BuildResult.Key.BuildSettingOverrideR\x15buildSettingOverrides\x1a;\n" +
+	"\x0fAspectParameter\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\x1a\a\n" +
 	"\x05Value\"\xa9\x01\n" +
 	"\x11CanonicalRepoName\x1a_\n" +
 	"\x03Key\x12.\n" +
@@ -17052,7 +17125,7 @@ func file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDescGZIP() []
 }
 
 var file_bonanza_build_pkg_proto_model_analysis_analysis_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes = make([]protoimpl.MessageInfo, 338)
+var file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes = make([]protoimpl.MessageInfo, 339)
 var file_bonanza_build_pkg_proto_model_analysis_analysis_proto_goTypes = []any{
 	(DirectoryLayout)(0),                                       // 0: bonanza.model.analysis.DirectoryLayout
 	(Args_Leaf_UseParamFile_Format)(0),                         // 1: bonanza.model.analysis.Args.Leaf.UseParamFile.Format
@@ -17184,476 +17257,478 @@ var file_bonanza_build_pkg_proto_model_analysis_analysis_proto_goTypes = []any{
 	(*BuildResult_Value)(nil),                                  // 127: bonanza.model.analysis.BuildResult.Value
 	(*BuildResult_Key_BuildSettingOverride)(nil),               // 128: bonanza.model.analysis.BuildResult.Key.BuildSettingOverride
 	(*BuildResult_Key_Configuration)(nil),                      // 129: bonanza.model.analysis.BuildResult.Key.Configuration
-	(*CanonicalRepoName_Key)(nil),                              // 130: bonanza.model.analysis.CanonicalRepoName.Key
-	(*CanonicalRepoName_Value)(nil),                            // 131: bonanza.model.analysis.CanonicalRepoName.Value
-	(*CompatibleExecutionPlatforms_Key)(nil),                   // 132: bonanza.model.analysis.CompatibleExecutionPlatforms.Key
-	(*CompatibleExecutionPlatforms_Value)(nil),                 // 133: bonanza.model.analysis.CompatibleExecutionPlatforms.Value
-	(*CompatibleToolchainsForType_Key)(nil),                    // 134: bonanza.model.analysis.CompatibleToolchainsForType.Key
-	(*CompatibleToolchainsForType_Value)(nil),                  // 135: bonanza.model.analysis.CompatibleToolchainsForType.Value
-	(*CompiledBzlFile_Key)(nil),                                // 136: bonanza.model.analysis.CompiledBzlFile.Key
-	(*CompiledBzlFile_Value)(nil),                              // 137: bonanza.model.analysis.CompiledBzlFile.Value
-	(*CompiledBzlFileGlobal_Key)(nil),                          // 138: bonanza.model.analysis.CompiledBzlFileGlobal.Key
-	(*CompiledBzlFileGlobal_Value)(nil),                        // 139: bonanza.model.analysis.CompiledBzlFileGlobal.Value
-	(*BuildSettingOverride_Leaf)(nil),                          // 140: bonanza.model.analysis.BuildSettingOverride.Leaf
-	(*BuildSettingOverride_Parent)(nil),                        // 141: bonanza.model.analysis.BuildSettingOverride.Parent
-	(*Args_Parent)(nil),                                        // 142: bonanza.model.analysis.Args.Parent
-	(*Args_Leaf)(nil),                                          // 143: bonanza.model.analysis.Args.Leaf
-	(*Args_Leaf_Add)(nil),                                      // 144: bonanza.model.analysis.Args.Leaf.Add
-	(*Args_Leaf_UseParamFile)(nil),                             // 145: bonanza.model.analysis.Args.Leaf.UseParamFile
-	(*Args_Leaf_Add_Parent)(nil),                               // 146: bonanza.model.analysis.Args.Leaf.Add.Parent
-	(*Args_Leaf_Add_Leaf)(nil),                                 // 147: bonanza.model.analysis.Args.Leaf.Add.Leaf
-	(*Args_Leaf_Add_Leaf_Separate)(nil),                        // 148: bonanza.model.analysis.Args.Leaf.Add.Leaf.Separate
-	(*Args_Leaf_Add_Leaf_Joined)(nil),                          // 149: bonanza.model.analysis.Args.Leaf.Add.Leaf.Joined
-	(*FilesToRunProvider_Parent)(nil),                          // 150: bonanza.model.analysis.FilesToRunProvider.Parent
-	(*FilesToRunProvider_Leaf)(nil),                            // 151: bonanza.model.analysis.FilesToRunProvider.Leaf
-	(*TargetOutputDefinition_ExpandTemplate)(nil),              // 152: bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate
-	(*TargetOutputDefinition_Symlink)(nil),                     // 153: bonanza.model.analysis.TargetOutputDefinition.Symlink
-	(*TargetOutputDefinition_Write)(nil),                       // 154: bonanza.model.analysis.TargetOutputDefinition.Write
-	(*TargetOutputDefinition_ExpandTemplate_Substitution)(nil), // 155: bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate.Substitution
-	(*LabelAttrAspects_Key)(nil),                               // 156: bonanza.model.analysis.LabelAttrAspects.Key
-	(*LabelAttrAspects_Value)(nil),                             // 157: bonanza.model.analysis.LabelAttrAspects.Value
-	(*LabelAttrAspects_Value_Aspect)(nil),                      // 158: bonanza.model.analysis.LabelAttrAspects.Value.Aspect
-	(*AspectChain_Key)(nil),                                    // 159: bonanza.model.analysis.AspectChain.Key
-	(*AspectChain_Value)(nil),                                  // 160: bonanza.model.analysis.AspectChain.Value
-	(*AspectChain_Value_AttrPropagatingAspects)(nil),           // 161: bonanza.model.analysis.AspectChain.Value.AttrPropagatingAspects
-	(*GeneratingRuleAspects_Key)(nil),                          // 162: bonanza.model.analysis.GeneratingRuleAspects.Key
-	(*GeneratingRuleAspects_Value)(nil),                        // 163: bonanza.model.analysis.GeneratingRuleAspects.Value
-	(*ConfiguredTarget_Key)(nil),                               // 164: bonanza.model.analysis.ConfiguredTarget.Key
-	(*ConfiguredTarget_Value)(nil),                             // 165: bonanza.model.analysis.ConfiguredTarget.Value
-	(*ConfiguredTarget_Value_Output)(nil),                      // 166: bonanza.model.analysis.ConfiguredTarget.Value.Output
-	(*ConfiguredTarget_Value_Action)(nil),                      // 167: bonanza.model.analysis.ConfiguredTarget.Value.Action
-	(*ConfiguredTarget_Value_Output_Parent)(nil),               // 168: bonanza.model.analysis.ConfiguredTarget.Value.Output.Parent
-	(*ConfiguredTarget_Value_Output_Leaf)(nil),                 // 169: bonanza.model.analysis.ConfiguredTarget.Value.Output.Leaf
-	(*ConfiguredTarget_Value_Action_Parent)(nil),               // 170: bonanza.model.analysis.ConfiguredTarget.Value.Action.Parent
-	(*ConfiguredTarget_Value_Action_Leaf)(nil),                 // 171: bonanza.model.analysis.ConfiguredTarget.Value.Action.Leaf
-	(*ConfiguredLabelAttr_Entry)(nil),                          // 172: bonanza.model.analysis.ConfiguredLabelAttr.Entry
-	(*ConfiguredRule_Key)(nil),                                 // 173: bonanza.model.analysis.ConfiguredRule.Key
-	(*ConfiguredRule_Value)(nil),                               // 174: bonanza.model.analysis.ConfiguredRule.Value
-	(*ConfiguredRuleUsage_Key)(nil),                            // 175: bonanza.model.analysis.ConfiguredRuleUsage.Key
-	(*ConfiguredRuleUsage_Value)(nil),                          // 176: bonanza.model.analysis.ConfiguredRuleUsage.Value
-	(*ConfiguredAspect_Key)(nil),                               // 177: bonanza.model.analysis.ConfiguredAspect.Key
-	(*ConfiguredAspect_Value)(nil),                             // 178: bonanza.model.analysis.ConfiguredAspect.Value
-	(*RuleUsageIncomingEdgeTransition_Key)(nil),                // 179: bonanza.model.analysis.RuleUsageIncomingEdgeTransition.Key
-	(*RuleUsageIncomingEdgeTransition_Value)(nil),              // 180: bonanza.model.analysis.RuleUsageIncomingEdgeTransition.Value
-	(*TargetIncomingEdgeTransition_Key)(nil),                   // 181: bonanza.model.analysis.TargetIncomingEdgeTransition.Key
-	(*TargetIncomingEdgeTransition_Value)(nil),                 // 182: bonanza.model.analysis.TargetIncomingEdgeTransition.Value
-	(*TargetOutput_Key)(nil),                                   // 183: bonanza.model.analysis.TargetOutput.Key
-	(*TargetOutput_Value)(nil),                                 // 184: bonanza.model.analysis.TargetOutput.Value
-	(*DirectoryAccessParameters_Key)(nil),                      // 185: bonanza.model.analysis.DirectoryAccessParameters.Key
-	(*DirectoryAccessParameters_Value)(nil),                    // 186: bonanza.model.analysis.DirectoryAccessParameters.Value
-	(*DirectoryCreationParameters_Key)(nil),                    // 187: bonanza.model.analysis.DirectoryCreationParameters.Key
-	(*DirectoryCreationParameters_Value)(nil),                  // 188: bonanza.model.analysis.DirectoryCreationParameters.Value
-	(*EmptyDefaultInfo_Key)(nil),                               // 189: bonanza.model.analysis.EmptyDefaultInfo.Key
-	(*EmptyDefaultInfo_Value)(nil),                             // 190: bonanza.model.analysis.EmptyDefaultInfo.Value
-	(*ExecTransition_Key)(nil),                                 // 191: bonanza.model.analysis.ExecTransition.Key
-	(*ExecTransition_Value)(nil),                               // 192: bonanza.model.analysis.ExecTransition.Value
-	(*FileAccessParameters_Key)(nil),                           // 193: bonanza.model.analysis.FileAccessParameters.Key
-	(*FileAccessParameters_Value)(nil),                         // 194: bonanza.model.analysis.FileAccessParameters.Value
-	(*FileCreationParameters_Key)(nil),                         // 195: bonanza.model.analysis.FileCreationParameters.Key
-	(*FileCreationParameters_Value)(nil),                       // 196: bonanza.model.analysis.FileCreationParameters.Value
-	(*FileProperties_Key)(nil),                                 // 197: bonanza.model.analysis.FileProperties.Key
-	(*FileProperties_Value)(nil),                               // 198: bonanza.model.analysis.FileProperties.Value
-	(*FileRoot_Key)(nil),                                       // 199: bonanza.model.analysis.FileRoot.Key
-	(*FileRoot_Value)(nil),                                     // 200: bonanza.model.analysis.FileRoot.Value
-	(*FilesInPackage_Key)(nil),                                 // 201: bonanza.model.analysis.FilesInPackage.Key
-	(*FilesInPackage_Value)(nil),                               // 202: bonanza.model.analysis.FilesInPackage.Value
-	(*FilesRoot_Key)(nil),                                      // 203: bonanza.model.analysis.FilesRoot.Key
-	(*FilesRoot_Value)(nil),                                    // 204: bonanza.model.analysis.FilesRoot.Value
-	(*Glob_Key)(nil),                                           // 205: bonanza.model.analysis.Glob.Key
-	(*Glob_Value)(nil),                                         // 206: bonanza.model.analysis.Glob.Value
-	(*HttpArchiveContents_Key)(nil),                            // 207: bonanza.model.analysis.HttpArchiveContents.Key
-	(*HttpArchiveContents_Value)(nil),                          // 208: bonanza.model.analysis.HttpArchiveContents.Value
-	(*HttpArchiveContents_Value_Exists)(nil),                   // 209: bonanza.model.analysis.HttpArchiveContents.Value.Exists
-	(*HttpFileContents_Key)(nil),                               // 210: bonanza.model.analysis.HttpFileContents.Key
-	(*HttpFileContents_Value)(nil),                             // 211: bonanza.model.analysis.HttpFileContents.Value
-	(*MacroExpansionContext_Key)(nil),                          // 212: bonanza.model.analysis.MacroExpansionContext.Key
-	(*MacroExpansionContext_Value)(nil),                        // 213: bonanza.model.analysis.MacroExpansionContext.Value
-	(*ModuleDotBazelContents_Key)(nil),                         // 214: bonanza.model.analysis.ModuleDotBazelContents.Key
-	(*ModuleDotBazelContents_Value)(nil),                       // 215: bonanza.model.analysis.ModuleDotBazelContents.Value
-	(*ModuleRegistryUrls_Key)(nil),                             // 216: bonanza.model.analysis.ModuleRegistryUrls.Key
-	(*ModuleRegistryUrls_Value)(nil),                           // 217: bonanza.model.analysis.ModuleRegistryUrls.Value
-	(*ModuleRepoMapping_Key)(nil),                              // 218: bonanza.model.analysis.ModuleRepoMapping.Key
-	(*ModuleRepoMapping_Value)(nil),                            // 219: bonanza.model.analysis.ModuleRepoMapping.Value
-	(*ModuleRepoMapping_Value_Mapping)(nil),                    // 220: bonanza.model.analysis.ModuleRepoMapping.Value.Mapping
-	(*ModuleExtensionRepo_Key)(nil),                            // 221: bonanza.model.analysis.ModuleExtensionRepo.Key
-	(*ModuleExtensionRepo_Value)(nil),                          // 222: bonanza.model.analysis.ModuleExtensionRepo.Value
-	(*ModuleExtensionRepoNames_Key)(nil),                       // 223: bonanza.model.analysis.ModuleExtensionRepoNames.Key
-	(*ModuleExtensionRepoNames_Value)(nil),                     // 224: bonanza.model.analysis.ModuleExtensionRepoNames.Value
-	(*ModuleExtensionRepos_Key)(nil),                           // 225: bonanza.model.analysis.ModuleExtensionRepos.Key
-	(*ModuleExtensionRepos_Value)(nil),                         // 226: bonanza.model.analysis.ModuleExtensionRepos.Value
-	(*ModuleExtensionRepos_Value_Repo)(nil),                    // 227: bonanza.model.analysis.ModuleExtensionRepos.Value.Repo
-	(*ModuleExtensionRepos_Value_Repo_Parent)(nil),             // 228: bonanza.model.analysis.ModuleExtensionRepos.Value.Repo.Parent
-	(*BuildListModule_Definition)(nil),                         // 229: bonanza.model.analysis.BuildListModule.Definition
-	(*ModuleFinalBuildList_Key)(nil),                           // 230: bonanza.model.analysis.ModuleFinalBuildList.Key
-	(*ModuleFinalBuildList_Value)(nil),                         // 231: bonanza.model.analysis.ModuleFinalBuildList.Value
-	(*FinalBuildListModuleDefinition_Key)(nil),                 // 232: bonanza.model.analysis.FinalBuildListModuleDefinition.Key
-	(*FinalBuildListModuleDefinition_Value)(nil),               // 233: bonanza.model.analysis.FinalBuildListModuleDefinition.Value
-	(*ModuleRoughBuildList_Key)(nil),                           // 234: bonanza.model.analysis.ModuleRoughBuildList.Key
-	(*ModuleRoughBuildList_Value)(nil),                         // 235: bonanza.model.analysis.ModuleRoughBuildList.Value
-	(*ModuleWithLocalOverrideRootDirectory_Key)(nil),           // 236: bonanza.model.analysis.ModuleWithLocalOverrideRootDirectory.Key
-	(*ModuleWithLocalOverrideRootDirectory_Value)(nil),         // 237: bonanza.model.analysis.ModuleWithLocalOverrideRootDirectory.Value
-	(*ModulesWithLocalOverrides_Key)(nil),                      // 238: bonanza.model.analysis.ModulesWithLocalOverrides.Key
-	(*ModulesWithLocalOverrides_Value)(nil),                    // 239: bonanza.model.analysis.ModulesWithLocalOverrides.Value
-	(*ModulesWithMultipleVersions_Key)(nil),                    // 240: bonanza.model.analysis.ModulesWithMultipleVersions.Key
-	(*ModulesWithMultipleVersions_Value)(nil),                  // 241: bonanza.model.analysis.ModulesWithMultipleVersions.Value
-	(*ModulesWithOverrides_Key)(nil),                           // 242: bonanza.model.analysis.ModulesWithOverrides.Key
-	(*ModulesWithOverrides_Value)(nil),                         // 243: bonanza.model.analysis.ModulesWithOverrides.Value
-	(*ModuleOverride_SingleVersion)(nil),                       // 244: bonanza.model.analysis.ModuleOverride.SingleVersion
-	(*ModuleOverride_MultipleVersions)(nil),                    // 245: bonanza.model.analysis.ModuleOverride.MultipleVersions
-	(*ModuleOverride_Definition)(nil),                          // 246: bonanza.model.analysis.ModuleOverride.Definition
-	(*ModulesWithRemoteOverrides_Key)(nil),                     // 247: bonanza.model.analysis.ModulesWithRemoteOverrides.Key
-	(*ModulesWithRemoteOverrides_Value)(nil),                   // 248: bonanza.model.analysis.ModulesWithRemoteOverrides.Value
-	(*ModuleOverrideDefinition_Key)(nil),                       // 249: bonanza.model.analysis.ModuleOverrideDefinition.Key
-	(*ModuleOverrideDefinition_Value)(nil),                     // 250: bonanza.model.analysis.ModuleOverrideDefinition.Value
-	(*Package_Key)(nil),                                        // 251: bonanza.model.analysis.Package.Key
-	(*Package_Value)(nil),                                      // 252: bonanza.model.analysis.Package.Value
-	(*Package_Value_Target)(nil),                               // 253: bonanza.model.analysis.Package.Value.Target
-	(*Package_Value_Target_Parent)(nil),                        // 254: bonanza.model.analysis.Package.Value.Target.Parent
-	(*PackageGroupContains_Key)(nil),                           // 255: bonanza.model.analysis.PackageGroupContains.Key
-	(*PackageGroupContains_Value)(nil),                         // 256: bonanza.model.analysis.PackageGroupContains.Value
-	(*PackageTargets_Key)(nil),                                 // 257: bonanza.model.analysis.PackageTargets.Key
-	(*PackageTargets_Value)(nil),                               // 258: bonanza.model.analysis.PackageTargets.Value
-	(*PackagesAtAndBelow_Key)(nil),                             // 259: bonanza.model.analysis.PackagesAtAndBelow.Key
-	(*PackagesAtAndBelow_Value)(nil),                           // 260: bonanza.model.analysis.PackagesAtAndBelow.Value
-	(*QueryExpansion_Key)(nil),                                 // 261: bonanza.model.analysis.QueryExpansion.Key
-	(*QueryExpansion_Value)(nil),                               // 262: bonanza.model.analysis.QueryExpansion.Value
-	(*QueryResult_Key)(nil),                                    // 263: bonanza.model.analysis.QueryResult.Key
-	(*QueryResult_Value)(nil),                                  // 264: bonanza.model.analysis.QueryResult.Value
-	(*QueryTarget_Leaf)(nil),                                   // 265: bonanza.model.analysis.QueryTarget.Leaf
-	(*QueryTarget_Parent)(nil),                                 // 266: bonanza.model.analysis.QueryTarget.Parent
-	(*QueryTargets_Key)(nil),                                   // 267: bonanza.model.analysis.QueryTargets.Key
-	(*QueryTargets_Value)(nil),                                 // 268: bonanza.model.analysis.QueryTargets.Value
-	(*RawActionResult_Key)(nil),                                // 269: bonanza.model.analysis.RawActionResult.Key
-	(*RawActionResult_Value)(nil),                              // 270: bonanza.model.analysis.RawActionResult.Value
-	(*RegisteredExecutionPlatforms_Key)(nil),                   // 271: bonanza.model.analysis.RegisteredExecutionPlatforms.Key
-	(*RegisteredExecutionPlatforms_Value)(nil),                 // 272: bonanza.model.analysis.RegisteredExecutionPlatforms.Value
-	(*RegisteredFetchPlatform_Key)(nil),                        // 273: bonanza.model.analysis.RegisteredFetchPlatform.Key
-	(*RegisteredFetchPlatform_Value)(nil),                      // 274: bonanza.model.analysis.RegisteredFetchPlatform.Value
-	(*RegisteredRepoPlatform_Key)(nil),                         // 275: bonanza.model.analysis.RegisteredRepoPlatform.Key
-	(*RegisteredRepoPlatform_Value)(nil),                       // 276: bonanza.model.analysis.RegisteredRepoPlatform.Value
-	(*RegisteredRepoPlatform_Value_EnvironmentVariable)(nil),   // 277: bonanza.model.analysis.RegisteredRepoPlatform.Value.EnvironmentVariable
-	(*RegisteredToolchain_CompatibleWith)(nil),                 // 278: bonanza.model.analysis.RegisteredToolchain.CompatibleWith
-	(*RegisteredToolchains_Key)(nil),                           // 279: bonanza.model.analysis.RegisteredToolchains.Key
-	(*RegisteredToolchains_Value)(nil),                         // 280: bonanza.model.analysis.RegisteredToolchains.Value
-	(*RegisteredToolchains_Value_RegisteredToolchainType)(nil), // 281: bonanza.model.analysis.RegisteredToolchains.Value.RegisteredToolchainType
-	(*RegisteredToolchainsForType_Key)(nil),                    // 282: bonanza.model.analysis.RegisteredToolchainsForType.Key
-	(*RegisteredToolchainsForType_Value)(nil),                  // 283: bonanza.model.analysis.RegisteredToolchainsForType.Value
-	(*Repo_Key)(nil),                                           // 284: bonanza.model.analysis.Repo.Key
-	(*Repo_Value)(nil),                                         // 285: bonanza.model.analysis.Repo.Value
-	(*RepoDefaultAttrs_Key)(nil),                               // 286: bonanza.model.analysis.RepoDefaultAttrs.Key
-	(*RepoDefaultAttrs_Value)(nil),                             // 287: bonanza.model.analysis.RepoDefaultAttrs.Value
-	(*RepoPlatformHostPath_Key)(nil),                           // 288: bonanza.model.analysis.RepoPlatformHostPath.Key
-	(*RepoPlatformHostPath_Value)(nil),                         // 289: bonanza.model.analysis.RepoPlatformHostPath.Value
-	(*RepoPlatformLabel_Key)(nil),                              // 290: bonanza.model.analysis.RepoPlatformLabel.Key
-	(*RepoPlatformLabel_Value)(nil),                            // 291: bonanza.model.analysis.RepoPlatformLabel.Value
-	(*ResolvedToolchains_Key)(nil),                             // 292: bonanza.model.analysis.ResolvedToolchains.Key
-	(*ResolvedToolchains_Value)(nil),                           // 293: bonanza.model.analysis.ResolvedToolchains.Value
-	(*RootModule_Key)(nil),                                     // 294: bonanza.model.analysis.RootModule.Key
-	(*RootModule_Value)(nil),                                   // 295: bonanza.model.analysis.RootModule.Value
-	(*RuleImplementationWrappers_Key)(nil),                     // 296: bonanza.model.analysis.RuleImplementationWrappers.Key
-	(*RuleImplementationWrappers_Value)(nil),                   // 297: bonanza.model.analysis.RuleImplementationWrappers.Value
-	(*RuleImplementationWrappersIdentifiers_Key)(nil),          // 298: bonanza.model.analysis.RuleImplementationWrappersIdentifiers.Key
-	(*RuleImplementationWrappersIdentifiers_Value)(nil),        // 299: bonanza.model.analysis.RuleImplementationWrappersIdentifiers.Value
-	(*Select_Key)(nil),                                         // 300: bonanza.model.analysis.Select.Key
-	(*Select_Value)(nil),                                       // 301: bonanza.model.analysis.Select.Value
-	(*StableInputRootPath_Key)(nil),                            // 302: bonanza.model.analysis.StableInputRootPath.Key
-	(*StableInputRootPath_Value)(nil),                          // 303: bonanza.model.analysis.StableInputRootPath.Value
-	(*StarlarkValueEncoders_Key)(nil),                          // 304: bonanza.model.analysis.StarlarkValueEncoders.Key
-	(*StarlarkValueEncoders_Value)(nil),                        // 305: bonanza.model.analysis.StarlarkValueEncoders.Value
-	(*SuccessfulActionResult_Key)(nil),                         // 306: bonanza.model.analysis.SuccessfulActionResult.Key
-	(*SuccessfulActionResult_Value)(nil),                       // 307: bonanza.model.analysis.SuccessfulActionResult.Value
-	(*Target_Key)(nil),                                         // 308: bonanza.model.analysis.Target.Key
-	(*Target_Value)(nil),                                       // 309: bonanza.model.analysis.Target.Value
-	(*TargetAction_Key)(nil),                                   // 310: bonanza.model.analysis.TargetAction.Key
-	(*TargetAction_Value)(nil),                                 // 311: bonanza.model.analysis.TargetAction.Value
-	(*TargetActionCommand_Key)(nil),                            // 312: bonanza.model.analysis.TargetActionCommand.Key
-	(*TargetActionCommand_Value)(nil),                          // 313: bonanza.model.analysis.TargetActionCommand.Value
-	(*TargetActionInputRoot_Key)(nil),                          // 314: bonanza.model.analysis.TargetActionInputRoot.Key
-	(*TargetActionInputRoot_Value)(nil),                        // 315: bonanza.model.analysis.TargetActionInputRoot.Value
-	(*TargetActionResult_Key)(nil),                             // 316: bonanza.model.analysis.TargetActionResult.Key
-	(*TargetActionResult_Value)(nil),                           // 317: bonanza.model.analysis.TargetActionResult.Value
-	(*TargetCompletion_Key)(nil),                               // 318: bonanza.model.analysis.TargetCompletion.Key
-	(*TargetCompletion_Value)(nil),                             // 319: bonanza.model.analysis.TargetCompletion.Value
-	(*TargetDirectDependencies_Key)(nil),                       // 320: bonanza.model.analysis.TargetDirectDependencies.Key
-	(*TargetDirectDependencies_Value)(nil),                     // 321: bonanza.model.analysis.TargetDirectDependencies.Value
-	(*TargetLabel_Parent)(nil),                                 // 322: bonanza.model.analysis.TargetLabel.Parent
-	(*TargetProvider_Key)(nil),                                 // 323: bonanza.model.analysis.TargetProvider.Key
-	(*TargetProvider_Value)(nil),                               // 324: bonanza.model.analysis.TargetProvider.Value
-	(*TargetProviders_Key)(nil),                                // 325: bonanza.model.analysis.TargetProviders.Key
-	(*TargetProviders_Value)(nil),                              // 326: bonanza.model.analysis.TargetProviders.Value
-	(*TestSuiteTests_Key)(nil),                                 // 327: bonanza.model.analysis.TestSuiteTests.Key
-	(*TestSuiteTests_Value)(nil),                               // 328: bonanza.model.analysis.TestSuiteTests.Value
-	(*ModuleExtension_User)(nil),                               // 329: bonanza.model.analysis.ModuleExtension.User
-	(*ModuleExtension_TagClass)(nil),                           // 330: bonanza.model.analysis.ModuleExtension.TagClass
-	(*ModuleExtension_Tag)(nil),                                // 331: bonanza.model.analysis.ModuleExtension.Tag
-	(*UsedModuleExtension_Key)(nil),                            // 332: bonanza.model.analysis.UsedModuleExtension.Key
-	(*UsedModuleExtension_Value)(nil),                          // 333: bonanza.model.analysis.UsedModuleExtension.Value
-	(*UsedModuleExtensions_Key)(nil),                           // 334: bonanza.model.analysis.UsedModuleExtensions.Key
-	(*UsedModuleExtensions_Value)(nil),                         // 335: bonanza.model.analysis.UsedModuleExtensions.Value
-	(*UserDefinedTransition_Key)(nil),                          // 336: bonanza.model.analysis.UserDefinedTransition.Key
-	(*UserDefinedTransition_Value)(nil),                        // 337: bonanza.model.analysis.UserDefinedTransition.Value
-	(*UserDefinedTransition_Value_Success)(nil),                // 338: bonanza.model.analysis.UserDefinedTransition.Value.Success
-	(*UserDefinedTransition_Value_Success_Entry)(nil),          // 339: bonanza.model.analysis.UserDefinedTransition.Value.Success.Entry
-	(*VisibleTarget_Key)(nil),                                  // 340: bonanza.model.analysis.VisibleTarget.Key
-	(*VisibleTarget_Value)(nil),                                // 341: bonanza.model.analysis.VisibleTarget.Value
-	(*core.DecodableReference)(nil),                            // 342: bonanza.model.core.DecodableReference
-	(*durationpb.Duration)(nil),                                // 343: google.protobuf.Duration
-	(*starlark.List_Element)(nil),                              // 344: bonanza.model.starlark.List.Element
-	(*command.PathPattern)(nil),                                // 345: bonanza.model.command.PathPattern
-	(*filesystem.Directory)(nil),                               // 346: bonanza.model.filesystem.Directory
-	(*command.EnvironmentVariableList_Element)(nil),            // 347: bonanza.model.command.EnvironmentVariableList.Element
-	(*filesystem.DirectoryContents)(nil),                       // 348: bonanza.model.filesystem.DirectoryContents
-	(*fetch.Target)(nil),                                       // 349: bonanza.model.fetch.Target
-	(*starlark.TargetVariant)(nil),                             // 350: bonanza.model.starlark.TargetVariant
-	(*encoding.BinaryEncoder)(nil),                             // 351: bonanza.model.encoding.BinaryEncoder
-	(*filesystem.DirectoryCreationParameters)(nil),             // 352: bonanza.model.filesystem.DirectoryCreationParameters
-	(*filesystem.FileCreationParameters)(nil),                  // 353: bonanza.model.filesystem.FileCreationParameters
-	(*filesystem.DirectoryReference)(nil),                      // 354: bonanza.model.filesystem.DirectoryReference
-	(*starlark.CompiledProgram)(nil),                           // 355: bonanza.model.starlark.CompiledProgram
-	(*starlark.Value)(nil),                                     // 356: bonanza.model.starlark.Value
-	(*wrapperspb.StringValue)(nil),                             // 357: google.protobuf.StringValue
-	(*starlark.Function)(nil),                                  // 358: bonanza.model.starlark.Function
-	(*starlark.File)(nil),                                      // 359: bonanza.model.starlark.File
-	(*starlark.NamedAttr)(nil),                                 // 360: bonanza.model.starlark.NamedAttr
-	(*starlark.Struct)(nil),                                    // 361: bonanza.model.starlark.Struct
-	(*emptypb.Empty)(nil),                                      // 362: google.protobuf.Empty
-	(*filesystem.DirectoryAccessParameters)(nil),               // 363: bonanza.model.filesystem.DirectoryAccessParameters
-	(*filesystem.FileAccessParameters)(nil),                    // 364: bonanza.model.filesystem.FileAccessParameters
-	(*filesystem.FileProperties)(nil),                          // 365: bonanza.model.filesystem.FileProperties
-	(*fetch.Result_Success)(nil),                               // 366: bonanza.model.fetch.Result.Success
-	(*starlark.MacroExpansionContext_Definition)(nil),          // 367: bonanza.model.starlark.MacroExpansionContext.Definition
-	(*filesystem.FileContents)(nil),                            // 368: bonanza.model.filesystem.FileContents
-	(*starlark.Repo_Definition)(nil),                           // 369: bonanza.model.starlark.Repo.Definition
-	(*starlark.Repo)(nil),                                      // 370: bonanza.model.starlark.Repo
-	(*starlark.MacroExpansionContext_Entry)(nil),               // 371: bonanza.model.starlark.MacroExpansionContext.Entry
-	(*starlark.Target)(nil),                                    // 372: bonanza.model.starlark.Target
-	(*starlark.Target_Definition)(nil),                         // 373: bonanza.model.starlark.Target.Definition
-	(*starlark.InheritableAttrs)(nil),                          // 374: bonanza.model.starlark.InheritableAttrs
-	(*starlark.ToolchainType)(nil),                             // 375: bonanza.model.starlark.ToolchainType
-	(*starlark.Struct_Fields)(nil),                             // 376: bonanza.model.starlark.Struct.Fields
+	(*BuildResult_Key_AspectParameter)(nil),                    // 130: bonanza.model.analysis.BuildResult.Key.AspectParameter
+	(*CanonicalRepoName_Key)(nil),                              // 131: bonanza.model.analysis.CanonicalRepoName.Key
+	(*CanonicalRepoName_Value)(nil),                            // 132: bonanza.model.analysis.CanonicalRepoName.Value
+	(*CompatibleExecutionPlatforms_Key)(nil),                   // 133: bonanza.model.analysis.CompatibleExecutionPlatforms.Key
+	(*CompatibleExecutionPlatforms_Value)(nil),                 // 134: bonanza.model.analysis.CompatibleExecutionPlatforms.Value
+	(*CompatibleToolchainsForType_Key)(nil),                    // 135: bonanza.model.analysis.CompatibleToolchainsForType.Key
+	(*CompatibleToolchainsForType_Value)(nil),                  // 136: bonanza.model.analysis.CompatibleToolchainsForType.Value
+	(*CompiledBzlFile_Key)(nil),                                // 137: bonanza.model.analysis.CompiledBzlFile.Key
+	(*CompiledBzlFile_Value)(nil),                              // 138: bonanza.model.analysis.CompiledBzlFile.Value
+	(*CompiledBzlFileGlobal_Key)(nil),                          // 139: bonanza.model.analysis.CompiledBzlFileGlobal.Key
+	(*CompiledBzlFileGlobal_Value)(nil),                        // 140: bonanza.model.analysis.CompiledBzlFileGlobal.Value
+	(*BuildSettingOverride_Leaf)(nil),                          // 141: bonanza.model.analysis.BuildSettingOverride.Leaf
+	(*BuildSettingOverride_Parent)(nil),                        // 142: bonanza.model.analysis.BuildSettingOverride.Parent
+	(*Args_Parent)(nil),                                        // 143: bonanza.model.analysis.Args.Parent
+	(*Args_Leaf)(nil),                                          // 144: bonanza.model.analysis.Args.Leaf
+	(*Args_Leaf_Add)(nil),                                      // 145: bonanza.model.analysis.Args.Leaf.Add
+	(*Args_Leaf_UseParamFile)(nil),                             // 146: bonanza.model.analysis.Args.Leaf.UseParamFile
+	(*Args_Leaf_Add_Parent)(nil),                               // 147: bonanza.model.analysis.Args.Leaf.Add.Parent
+	(*Args_Leaf_Add_Leaf)(nil),                                 // 148: bonanza.model.analysis.Args.Leaf.Add.Leaf
+	(*Args_Leaf_Add_Leaf_Separate)(nil),                        // 149: bonanza.model.analysis.Args.Leaf.Add.Leaf.Separate
+	(*Args_Leaf_Add_Leaf_Joined)(nil),                          // 150: bonanza.model.analysis.Args.Leaf.Add.Leaf.Joined
+	(*FilesToRunProvider_Parent)(nil),                          // 151: bonanza.model.analysis.FilesToRunProvider.Parent
+	(*FilesToRunProvider_Leaf)(nil),                            // 152: bonanza.model.analysis.FilesToRunProvider.Leaf
+	(*TargetOutputDefinition_ExpandTemplate)(nil),              // 153: bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate
+	(*TargetOutputDefinition_Symlink)(nil),                     // 154: bonanza.model.analysis.TargetOutputDefinition.Symlink
+	(*TargetOutputDefinition_Write)(nil),                       // 155: bonanza.model.analysis.TargetOutputDefinition.Write
+	(*TargetOutputDefinition_ExpandTemplate_Substitution)(nil), // 156: bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate.Substitution
+	(*LabelAttrAspects_Key)(nil),                               // 157: bonanza.model.analysis.LabelAttrAspects.Key
+	(*LabelAttrAspects_Value)(nil),                             // 158: bonanza.model.analysis.LabelAttrAspects.Value
+	(*LabelAttrAspects_Value_Aspect)(nil),                      // 159: bonanza.model.analysis.LabelAttrAspects.Value.Aspect
+	(*AspectChain_Key)(nil),                                    // 160: bonanza.model.analysis.AspectChain.Key
+	(*AspectChain_Value)(nil),                                  // 161: bonanza.model.analysis.AspectChain.Value
+	(*AspectChain_Value_AttrPropagatingAspects)(nil),           // 162: bonanza.model.analysis.AspectChain.Value.AttrPropagatingAspects
+	(*GeneratingRuleAspects_Key)(nil),                          // 163: bonanza.model.analysis.GeneratingRuleAspects.Key
+	(*GeneratingRuleAspects_Value)(nil),                        // 164: bonanza.model.analysis.GeneratingRuleAspects.Value
+	(*ConfiguredTarget_Key)(nil),                               // 165: bonanza.model.analysis.ConfiguredTarget.Key
+	(*ConfiguredTarget_Value)(nil),                             // 166: bonanza.model.analysis.ConfiguredTarget.Value
+	(*ConfiguredTarget_Value_Output)(nil),                      // 167: bonanza.model.analysis.ConfiguredTarget.Value.Output
+	(*ConfiguredTarget_Value_Action)(nil),                      // 168: bonanza.model.analysis.ConfiguredTarget.Value.Action
+	(*ConfiguredTarget_Value_Output_Parent)(nil),               // 169: bonanza.model.analysis.ConfiguredTarget.Value.Output.Parent
+	(*ConfiguredTarget_Value_Output_Leaf)(nil),                 // 170: bonanza.model.analysis.ConfiguredTarget.Value.Output.Leaf
+	(*ConfiguredTarget_Value_Action_Parent)(nil),               // 171: bonanza.model.analysis.ConfiguredTarget.Value.Action.Parent
+	(*ConfiguredTarget_Value_Action_Leaf)(nil),                 // 172: bonanza.model.analysis.ConfiguredTarget.Value.Action.Leaf
+	(*ConfiguredLabelAttr_Entry)(nil),                          // 173: bonanza.model.analysis.ConfiguredLabelAttr.Entry
+	(*ConfiguredRule_Key)(nil),                                 // 174: bonanza.model.analysis.ConfiguredRule.Key
+	(*ConfiguredRule_Value)(nil),                               // 175: bonanza.model.analysis.ConfiguredRule.Value
+	(*ConfiguredRuleUsage_Key)(nil),                            // 176: bonanza.model.analysis.ConfiguredRuleUsage.Key
+	(*ConfiguredRuleUsage_Value)(nil),                          // 177: bonanza.model.analysis.ConfiguredRuleUsage.Value
+	(*ConfiguredAspect_Key)(nil),                               // 178: bonanza.model.analysis.ConfiguredAspect.Key
+	(*ConfiguredAspect_Value)(nil),                             // 179: bonanza.model.analysis.ConfiguredAspect.Value
+	(*RuleUsageIncomingEdgeTransition_Key)(nil),                // 180: bonanza.model.analysis.RuleUsageIncomingEdgeTransition.Key
+	(*RuleUsageIncomingEdgeTransition_Value)(nil),              // 181: bonanza.model.analysis.RuleUsageIncomingEdgeTransition.Value
+	(*TargetIncomingEdgeTransition_Key)(nil),                   // 182: bonanza.model.analysis.TargetIncomingEdgeTransition.Key
+	(*TargetIncomingEdgeTransition_Value)(nil),                 // 183: bonanza.model.analysis.TargetIncomingEdgeTransition.Value
+	(*TargetOutput_Key)(nil),                                   // 184: bonanza.model.analysis.TargetOutput.Key
+	(*TargetOutput_Value)(nil),                                 // 185: bonanza.model.analysis.TargetOutput.Value
+	(*DirectoryAccessParameters_Key)(nil),                      // 186: bonanza.model.analysis.DirectoryAccessParameters.Key
+	(*DirectoryAccessParameters_Value)(nil),                    // 187: bonanza.model.analysis.DirectoryAccessParameters.Value
+	(*DirectoryCreationParameters_Key)(nil),                    // 188: bonanza.model.analysis.DirectoryCreationParameters.Key
+	(*DirectoryCreationParameters_Value)(nil),                  // 189: bonanza.model.analysis.DirectoryCreationParameters.Value
+	(*EmptyDefaultInfo_Key)(nil),                               // 190: bonanza.model.analysis.EmptyDefaultInfo.Key
+	(*EmptyDefaultInfo_Value)(nil),                             // 191: bonanza.model.analysis.EmptyDefaultInfo.Value
+	(*ExecTransition_Key)(nil),                                 // 192: bonanza.model.analysis.ExecTransition.Key
+	(*ExecTransition_Value)(nil),                               // 193: bonanza.model.analysis.ExecTransition.Value
+	(*FileAccessParameters_Key)(nil),                           // 194: bonanza.model.analysis.FileAccessParameters.Key
+	(*FileAccessParameters_Value)(nil),                         // 195: bonanza.model.analysis.FileAccessParameters.Value
+	(*FileCreationParameters_Key)(nil),                         // 196: bonanza.model.analysis.FileCreationParameters.Key
+	(*FileCreationParameters_Value)(nil),                       // 197: bonanza.model.analysis.FileCreationParameters.Value
+	(*FileProperties_Key)(nil),                                 // 198: bonanza.model.analysis.FileProperties.Key
+	(*FileProperties_Value)(nil),                               // 199: bonanza.model.analysis.FileProperties.Value
+	(*FileRoot_Key)(nil),                                       // 200: bonanza.model.analysis.FileRoot.Key
+	(*FileRoot_Value)(nil),                                     // 201: bonanza.model.analysis.FileRoot.Value
+	(*FilesInPackage_Key)(nil),                                 // 202: bonanza.model.analysis.FilesInPackage.Key
+	(*FilesInPackage_Value)(nil),                               // 203: bonanza.model.analysis.FilesInPackage.Value
+	(*FilesRoot_Key)(nil),                                      // 204: bonanza.model.analysis.FilesRoot.Key
+	(*FilesRoot_Value)(nil),                                    // 205: bonanza.model.analysis.FilesRoot.Value
+	(*Glob_Key)(nil),                                           // 206: bonanza.model.analysis.Glob.Key
+	(*Glob_Value)(nil),                                         // 207: bonanza.model.analysis.Glob.Value
+	(*HttpArchiveContents_Key)(nil),                            // 208: bonanza.model.analysis.HttpArchiveContents.Key
+	(*HttpArchiveContents_Value)(nil),                          // 209: bonanza.model.analysis.HttpArchiveContents.Value
+	(*HttpArchiveContents_Value_Exists)(nil),                   // 210: bonanza.model.analysis.HttpArchiveContents.Value.Exists
+	(*HttpFileContents_Key)(nil),                               // 211: bonanza.model.analysis.HttpFileContents.Key
+	(*HttpFileContents_Value)(nil),                             // 212: bonanza.model.analysis.HttpFileContents.Value
+	(*MacroExpansionContext_Key)(nil),                          // 213: bonanza.model.analysis.MacroExpansionContext.Key
+	(*MacroExpansionContext_Value)(nil),                        // 214: bonanza.model.analysis.MacroExpansionContext.Value
+	(*ModuleDotBazelContents_Key)(nil),                         // 215: bonanza.model.analysis.ModuleDotBazelContents.Key
+	(*ModuleDotBazelContents_Value)(nil),                       // 216: bonanza.model.analysis.ModuleDotBazelContents.Value
+	(*ModuleRegistryUrls_Key)(nil),                             // 217: bonanza.model.analysis.ModuleRegistryUrls.Key
+	(*ModuleRegistryUrls_Value)(nil),                           // 218: bonanza.model.analysis.ModuleRegistryUrls.Value
+	(*ModuleRepoMapping_Key)(nil),                              // 219: bonanza.model.analysis.ModuleRepoMapping.Key
+	(*ModuleRepoMapping_Value)(nil),                            // 220: bonanza.model.analysis.ModuleRepoMapping.Value
+	(*ModuleRepoMapping_Value_Mapping)(nil),                    // 221: bonanza.model.analysis.ModuleRepoMapping.Value.Mapping
+	(*ModuleExtensionRepo_Key)(nil),                            // 222: bonanza.model.analysis.ModuleExtensionRepo.Key
+	(*ModuleExtensionRepo_Value)(nil),                          // 223: bonanza.model.analysis.ModuleExtensionRepo.Value
+	(*ModuleExtensionRepoNames_Key)(nil),                       // 224: bonanza.model.analysis.ModuleExtensionRepoNames.Key
+	(*ModuleExtensionRepoNames_Value)(nil),                     // 225: bonanza.model.analysis.ModuleExtensionRepoNames.Value
+	(*ModuleExtensionRepos_Key)(nil),                           // 226: bonanza.model.analysis.ModuleExtensionRepos.Key
+	(*ModuleExtensionRepos_Value)(nil),                         // 227: bonanza.model.analysis.ModuleExtensionRepos.Value
+	(*ModuleExtensionRepos_Value_Repo)(nil),                    // 228: bonanza.model.analysis.ModuleExtensionRepos.Value.Repo
+	(*ModuleExtensionRepos_Value_Repo_Parent)(nil),             // 229: bonanza.model.analysis.ModuleExtensionRepos.Value.Repo.Parent
+	(*BuildListModule_Definition)(nil),                         // 230: bonanza.model.analysis.BuildListModule.Definition
+	(*ModuleFinalBuildList_Key)(nil),                           // 231: bonanza.model.analysis.ModuleFinalBuildList.Key
+	(*ModuleFinalBuildList_Value)(nil),                         // 232: bonanza.model.analysis.ModuleFinalBuildList.Value
+	(*FinalBuildListModuleDefinition_Key)(nil),                 // 233: bonanza.model.analysis.FinalBuildListModuleDefinition.Key
+	(*FinalBuildListModuleDefinition_Value)(nil),               // 234: bonanza.model.analysis.FinalBuildListModuleDefinition.Value
+	(*ModuleRoughBuildList_Key)(nil),                           // 235: bonanza.model.analysis.ModuleRoughBuildList.Key
+	(*ModuleRoughBuildList_Value)(nil),                         // 236: bonanza.model.analysis.ModuleRoughBuildList.Value
+	(*ModuleWithLocalOverrideRootDirectory_Key)(nil),           // 237: bonanza.model.analysis.ModuleWithLocalOverrideRootDirectory.Key
+	(*ModuleWithLocalOverrideRootDirectory_Value)(nil),         // 238: bonanza.model.analysis.ModuleWithLocalOverrideRootDirectory.Value
+	(*ModulesWithLocalOverrides_Key)(nil),                      // 239: bonanza.model.analysis.ModulesWithLocalOverrides.Key
+	(*ModulesWithLocalOverrides_Value)(nil),                    // 240: bonanza.model.analysis.ModulesWithLocalOverrides.Value
+	(*ModulesWithMultipleVersions_Key)(nil),                    // 241: bonanza.model.analysis.ModulesWithMultipleVersions.Key
+	(*ModulesWithMultipleVersions_Value)(nil),                  // 242: bonanza.model.analysis.ModulesWithMultipleVersions.Value
+	(*ModulesWithOverrides_Key)(nil),                           // 243: bonanza.model.analysis.ModulesWithOverrides.Key
+	(*ModulesWithOverrides_Value)(nil),                         // 244: bonanza.model.analysis.ModulesWithOverrides.Value
+	(*ModuleOverride_SingleVersion)(nil),                       // 245: bonanza.model.analysis.ModuleOverride.SingleVersion
+	(*ModuleOverride_MultipleVersions)(nil),                    // 246: bonanza.model.analysis.ModuleOverride.MultipleVersions
+	(*ModuleOverride_Definition)(nil),                          // 247: bonanza.model.analysis.ModuleOverride.Definition
+	(*ModulesWithRemoteOverrides_Key)(nil),                     // 248: bonanza.model.analysis.ModulesWithRemoteOverrides.Key
+	(*ModulesWithRemoteOverrides_Value)(nil),                   // 249: bonanza.model.analysis.ModulesWithRemoteOverrides.Value
+	(*ModuleOverrideDefinition_Key)(nil),                       // 250: bonanza.model.analysis.ModuleOverrideDefinition.Key
+	(*ModuleOverrideDefinition_Value)(nil),                     // 251: bonanza.model.analysis.ModuleOverrideDefinition.Value
+	(*Package_Key)(nil),                                        // 252: bonanza.model.analysis.Package.Key
+	(*Package_Value)(nil),                                      // 253: bonanza.model.analysis.Package.Value
+	(*Package_Value_Target)(nil),                               // 254: bonanza.model.analysis.Package.Value.Target
+	(*Package_Value_Target_Parent)(nil),                        // 255: bonanza.model.analysis.Package.Value.Target.Parent
+	(*PackageGroupContains_Key)(nil),                           // 256: bonanza.model.analysis.PackageGroupContains.Key
+	(*PackageGroupContains_Value)(nil),                         // 257: bonanza.model.analysis.PackageGroupContains.Value
+	(*PackageTargets_Key)(nil),                                 // 258: bonanza.model.analysis.PackageTargets.Key
+	(*PackageTargets_Value)(nil),                               // 259: bonanza.model.analysis.PackageTargets.Value
+	(*PackagesAtAndBelow_Key)(nil),                             // 260: bonanza.model.analysis.PackagesAtAndBelow.Key
+	(*PackagesAtAndBelow_Value)(nil),                           // 261: bonanza.model.analysis.PackagesAtAndBelow.Value
+	(*QueryExpansion_Key)(nil),                                 // 262: bonanza.model.analysis.QueryExpansion.Key
+	(*QueryExpansion_Value)(nil),                               // 263: bonanza.model.analysis.QueryExpansion.Value
+	(*QueryResult_Key)(nil),                                    // 264: bonanza.model.analysis.QueryResult.Key
+	(*QueryResult_Value)(nil),                                  // 265: bonanza.model.analysis.QueryResult.Value
+	(*QueryTarget_Leaf)(nil),                                   // 266: bonanza.model.analysis.QueryTarget.Leaf
+	(*QueryTarget_Parent)(nil),                                 // 267: bonanza.model.analysis.QueryTarget.Parent
+	(*QueryTargets_Key)(nil),                                   // 268: bonanza.model.analysis.QueryTargets.Key
+	(*QueryTargets_Value)(nil),                                 // 269: bonanza.model.analysis.QueryTargets.Value
+	(*RawActionResult_Key)(nil),                                // 270: bonanza.model.analysis.RawActionResult.Key
+	(*RawActionResult_Value)(nil),                              // 271: bonanza.model.analysis.RawActionResult.Value
+	(*RegisteredExecutionPlatforms_Key)(nil),                   // 272: bonanza.model.analysis.RegisteredExecutionPlatforms.Key
+	(*RegisteredExecutionPlatforms_Value)(nil),                 // 273: bonanza.model.analysis.RegisteredExecutionPlatforms.Value
+	(*RegisteredFetchPlatform_Key)(nil),                        // 274: bonanza.model.analysis.RegisteredFetchPlatform.Key
+	(*RegisteredFetchPlatform_Value)(nil),                      // 275: bonanza.model.analysis.RegisteredFetchPlatform.Value
+	(*RegisteredRepoPlatform_Key)(nil),                         // 276: bonanza.model.analysis.RegisteredRepoPlatform.Key
+	(*RegisteredRepoPlatform_Value)(nil),                       // 277: bonanza.model.analysis.RegisteredRepoPlatform.Value
+	(*RegisteredRepoPlatform_Value_EnvironmentVariable)(nil),   // 278: bonanza.model.analysis.RegisteredRepoPlatform.Value.EnvironmentVariable
+	(*RegisteredToolchain_CompatibleWith)(nil),                 // 279: bonanza.model.analysis.RegisteredToolchain.CompatibleWith
+	(*RegisteredToolchains_Key)(nil),                           // 280: bonanza.model.analysis.RegisteredToolchains.Key
+	(*RegisteredToolchains_Value)(nil),                         // 281: bonanza.model.analysis.RegisteredToolchains.Value
+	(*RegisteredToolchains_Value_RegisteredToolchainType)(nil), // 282: bonanza.model.analysis.RegisteredToolchains.Value.RegisteredToolchainType
+	(*RegisteredToolchainsForType_Key)(nil),                    // 283: bonanza.model.analysis.RegisteredToolchainsForType.Key
+	(*RegisteredToolchainsForType_Value)(nil),                  // 284: bonanza.model.analysis.RegisteredToolchainsForType.Value
+	(*Repo_Key)(nil),                                           // 285: bonanza.model.analysis.Repo.Key
+	(*Repo_Value)(nil),                                         // 286: bonanza.model.analysis.Repo.Value
+	(*RepoDefaultAttrs_Key)(nil),                               // 287: bonanza.model.analysis.RepoDefaultAttrs.Key
+	(*RepoDefaultAttrs_Value)(nil),                             // 288: bonanza.model.analysis.RepoDefaultAttrs.Value
+	(*RepoPlatformHostPath_Key)(nil),                           // 289: bonanza.model.analysis.RepoPlatformHostPath.Key
+	(*RepoPlatformHostPath_Value)(nil),                         // 290: bonanza.model.analysis.RepoPlatformHostPath.Value
+	(*RepoPlatformLabel_Key)(nil),                              // 291: bonanza.model.analysis.RepoPlatformLabel.Key
+	(*RepoPlatformLabel_Value)(nil),                            // 292: bonanza.model.analysis.RepoPlatformLabel.Value
+	(*ResolvedToolchains_Key)(nil),                             // 293: bonanza.model.analysis.ResolvedToolchains.Key
+	(*ResolvedToolchains_Value)(nil),                           // 294: bonanza.model.analysis.ResolvedToolchains.Value
+	(*RootModule_Key)(nil),                                     // 295: bonanza.model.analysis.RootModule.Key
+	(*RootModule_Value)(nil),                                   // 296: bonanza.model.analysis.RootModule.Value
+	(*RuleImplementationWrappers_Key)(nil),                     // 297: bonanza.model.analysis.RuleImplementationWrappers.Key
+	(*RuleImplementationWrappers_Value)(nil),                   // 298: bonanza.model.analysis.RuleImplementationWrappers.Value
+	(*RuleImplementationWrappersIdentifiers_Key)(nil),          // 299: bonanza.model.analysis.RuleImplementationWrappersIdentifiers.Key
+	(*RuleImplementationWrappersIdentifiers_Value)(nil),        // 300: bonanza.model.analysis.RuleImplementationWrappersIdentifiers.Value
+	(*Select_Key)(nil),                                         // 301: bonanza.model.analysis.Select.Key
+	(*Select_Value)(nil),                                       // 302: bonanza.model.analysis.Select.Value
+	(*StableInputRootPath_Key)(nil),                            // 303: bonanza.model.analysis.StableInputRootPath.Key
+	(*StableInputRootPath_Value)(nil),                          // 304: bonanza.model.analysis.StableInputRootPath.Value
+	(*StarlarkValueEncoders_Key)(nil),                          // 305: bonanza.model.analysis.StarlarkValueEncoders.Key
+	(*StarlarkValueEncoders_Value)(nil),                        // 306: bonanza.model.analysis.StarlarkValueEncoders.Value
+	(*SuccessfulActionResult_Key)(nil),                         // 307: bonanza.model.analysis.SuccessfulActionResult.Key
+	(*SuccessfulActionResult_Value)(nil),                       // 308: bonanza.model.analysis.SuccessfulActionResult.Value
+	(*Target_Key)(nil),                                         // 309: bonanza.model.analysis.Target.Key
+	(*Target_Value)(nil),                                       // 310: bonanza.model.analysis.Target.Value
+	(*TargetAction_Key)(nil),                                   // 311: bonanza.model.analysis.TargetAction.Key
+	(*TargetAction_Value)(nil),                                 // 312: bonanza.model.analysis.TargetAction.Value
+	(*TargetActionCommand_Key)(nil),                            // 313: bonanza.model.analysis.TargetActionCommand.Key
+	(*TargetActionCommand_Value)(nil),                          // 314: bonanza.model.analysis.TargetActionCommand.Value
+	(*TargetActionInputRoot_Key)(nil),                          // 315: bonanza.model.analysis.TargetActionInputRoot.Key
+	(*TargetActionInputRoot_Value)(nil),                        // 316: bonanza.model.analysis.TargetActionInputRoot.Value
+	(*TargetActionResult_Key)(nil),                             // 317: bonanza.model.analysis.TargetActionResult.Key
+	(*TargetActionResult_Value)(nil),                           // 318: bonanza.model.analysis.TargetActionResult.Value
+	(*TargetCompletion_Key)(nil),                               // 319: bonanza.model.analysis.TargetCompletion.Key
+	(*TargetCompletion_Value)(nil),                             // 320: bonanza.model.analysis.TargetCompletion.Value
+	(*TargetDirectDependencies_Key)(nil),                       // 321: bonanza.model.analysis.TargetDirectDependencies.Key
+	(*TargetDirectDependencies_Value)(nil),                     // 322: bonanza.model.analysis.TargetDirectDependencies.Value
+	(*TargetLabel_Parent)(nil),                                 // 323: bonanza.model.analysis.TargetLabel.Parent
+	(*TargetProvider_Key)(nil),                                 // 324: bonanza.model.analysis.TargetProvider.Key
+	(*TargetProvider_Value)(nil),                               // 325: bonanza.model.analysis.TargetProvider.Value
+	(*TargetProviders_Key)(nil),                                // 326: bonanza.model.analysis.TargetProviders.Key
+	(*TargetProviders_Value)(nil),                              // 327: bonanza.model.analysis.TargetProviders.Value
+	(*TestSuiteTests_Key)(nil),                                 // 328: bonanza.model.analysis.TestSuiteTests.Key
+	(*TestSuiteTests_Value)(nil),                               // 329: bonanza.model.analysis.TestSuiteTests.Value
+	(*ModuleExtension_User)(nil),                               // 330: bonanza.model.analysis.ModuleExtension.User
+	(*ModuleExtension_TagClass)(nil),                           // 331: bonanza.model.analysis.ModuleExtension.TagClass
+	(*ModuleExtension_Tag)(nil),                                // 332: bonanza.model.analysis.ModuleExtension.Tag
+	(*UsedModuleExtension_Key)(nil),                            // 333: bonanza.model.analysis.UsedModuleExtension.Key
+	(*UsedModuleExtension_Value)(nil),                          // 334: bonanza.model.analysis.UsedModuleExtension.Value
+	(*UsedModuleExtensions_Key)(nil),                           // 335: bonanza.model.analysis.UsedModuleExtensions.Key
+	(*UsedModuleExtensions_Value)(nil),                         // 336: bonanza.model.analysis.UsedModuleExtensions.Value
+	(*UserDefinedTransition_Key)(nil),                          // 337: bonanza.model.analysis.UserDefinedTransition.Key
+	(*UserDefinedTransition_Value)(nil),                        // 338: bonanza.model.analysis.UserDefinedTransition.Value
+	(*UserDefinedTransition_Value_Success)(nil),                // 339: bonanza.model.analysis.UserDefinedTransition.Value.Success
+	(*UserDefinedTransition_Value_Success_Entry)(nil),          // 340: bonanza.model.analysis.UserDefinedTransition.Value.Success.Entry
+	(*VisibleTarget_Key)(nil),                                  // 341: bonanza.model.analysis.VisibleTarget.Key
+	(*VisibleTarget_Value)(nil),                                // 342: bonanza.model.analysis.VisibleTarget.Value
+	(*core.DecodableReference)(nil),                            // 343: bonanza.model.core.DecodableReference
+	(*durationpb.Duration)(nil),                                // 344: google.protobuf.Duration
+	(*starlark.List_Element)(nil),                              // 345: bonanza.model.starlark.List.Element
+	(*command.PathPattern)(nil),                                // 346: bonanza.model.command.PathPattern
+	(*filesystem.Directory)(nil),                               // 347: bonanza.model.filesystem.Directory
+	(*command.EnvironmentVariableList_Element)(nil),            // 348: bonanza.model.command.EnvironmentVariableList.Element
+	(*filesystem.DirectoryContents)(nil),                       // 349: bonanza.model.filesystem.DirectoryContents
+	(*fetch.Target)(nil),                                       // 350: bonanza.model.fetch.Target
+	(*starlark.TargetVariant)(nil),                             // 351: bonanza.model.starlark.TargetVariant
+	(*encoding.BinaryEncoder)(nil),                             // 352: bonanza.model.encoding.BinaryEncoder
+	(*filesystem.DirectoryCreationParameters)(nil),             // 353: bonanza.model.filesystem.DirectoryCreationParameters
+	(*filesystem.FileCreationParameters)(nil),                  // 354: bonanza.model.filesystem.FileCreationParameters
+	(*filesystem.DirectoryReference)(nil),                      // 355: bonanza.model.filesystem.DirectoryReference
+	(*starlark.CompiledProgram)(nil),                           // 356: bonanza.model.starlark.CompiledProgram
+	(*starlark.Value)(nil),                                     // 357: bonanza.model.starlark.Value
+	(*wrapperspb.StringValue)(nil),                             // 358: google.protobuf.StringValue
+	(*starlark.Function)(nil),                                  // 359: bonanza.model.starlark.Function
+	(*starlark.File)(nil),                                      // 360: bonanza.model.starlark.File
+	(*starlark.NamedAttr)(nil),                                 // 361: bonanza.model.starlark.NamedAttr
+	(*starlark.Struct)(nil),                                    // 362: bonanza.model.starlark.Struct
+	(*emptypb.Empty)(nil),                                      // 363: google.protobuf.Empty
+	(*filesystem.DirectoryAccessParameters)(nil),               // 364: bonanza.model.filesystem.DirectoryAccessParameters
+	(*filesystem.FileAccessParameters)(nil),                    // 365: bonanza.model.filesystem.FileAccessParameters
+	(*filesystem.FileProperties)(nil),                          // 366: bonanza.model.filesystem.FileProperties
+	(*fetch.Result_Success)(nil),                               // 367: bonanza.model.fetch.Result.Success
+	(*starlark.MacroExpansionContext_Definition)(nil),          // 368: bonanza.model.starlark.MacroExpansionContext.Definition
+	(*filesystem.FileContents)(nil),                            // 369: bonanza.model.filesystem.FileContents
+	(*starlark.Repo_Definition)(nil),                           // 370: bonanza.model.starlark.Repo.Definition
+	(*starlark.Repo)(nil),                                      // 371: bonanza.model.starlark.Repo
+	(*starlark.MacroExpansionContext_Entry)(nil),               // 372: bonanza.model.starlark.MacroExpansionContext.Entry
+	(*starlark.Target)(nil),                                    // 373: bonanza.model.starlark.Target
+	(*starlark.Target_Definition)(nil),                         // 374: bonanza.model.starlark.Target.Definition
+	(*starlark.InheritableAttrs)(nil),                          // 375: bonanza.model.starlark.InheritableAttrs
+	(*starlark.ToolchainType)(nil),                             // 376: bonanza.model.starlark.ToolchainType
+	(*starlark.Struct_Fields)(nil),                             // 377: bonanza.model.starlark.Struct.Fields
 }
 var file_bonanza_build_pkg_proto_model_analysis_analysis_proto_depIdxs = []int32{
-	342, // 0: bonanza.model.analysis.ExecuteRequest.action_reference:type_name -> bonanza.model.core.DecodableReference
-	343, // 1: bonanza.model.analysis.ExecuteRequest.execution_timeout:type_name -> google.protobuf.Duration
-	140, // 2: bonanza.model.analysis.BuildSettingOverride.leaf:type_name -> bonanza.model.analysis.BuildSettingOverride.Leaf
-	141, // 3: bonanza.model.analysis.BuildSettingOverride.parent:type_name -> bonanza.model.analysis.BuildSettingOverride.Parent
-	143, // 4: bonanza.model.analysis.Args.leaf:type_name -> bonanza.model.analysis.Args.Leaf
-	142, // 5: bonanza.model.analysis.Args.parent:type_name -> bonanza.model.analysis.Args.Parent
-	151, // 6: bonanza.model.analysis.FilesToRunProvider.leaf:type_name -> bonanza.model.analysis.FilesToRunProvider.Leaf
-	150, // 7: bonanza.model.analysis.FilesToRunProvider.parent:type_name -> bonanza.model.analysis.FilesToRunProvider.Parent
-	344, // 8: bonanza.model.analysis.TargetActionDefinition.inputs:type_name -> bonanza.model.starlark.List.Element
+	343, // 0: bonanza.model.analysis.ExecuteRequest.action_reference:type_name -> bonanza.model.core.DecodableReference
+	344, // 1: bonanza.model.analysis.ExecuteRequest.execution_timeout:type_name -> google.protobuf.Duration
+	141, // 2: bonanza.model.analysis.BuildSettingOverride.leaf:type_name -> bonanza.model.analysis.BuildSettingOverride.Leaf
+	142, // 3: bonanza.model.analysis.BuildSettingOverride.parent:type_name -> bonanza.model.analysis.BuildSettingOverride.Parent
+	144, // 4: bonanza.model.analysis.Args.leaf:type_name -> bonanza.model.analysis.Args.Leaf
+	143, // 5: bonanza.model.analysis.Args.parent:type_name -> bonanza.model.analysis.Args.Parent
+	152, // 6: bonanza.model.analysis.FilesToRunProvider.leaf:type_name -> bonanza.model.analysis.FilesToRunProvider.Leaf
+	151, // 7: bonanza.model.analysis.FilesToRunProvider.parent:type_name -> bonanza.model.analysis.FilesToRunProvider.Parent
+	345, // 8: bonanza.model.analysis.TargetActionDefinition.inputs:type_name -> bonanza.model.starlark.List.Element
 	18,  // 9: bonanza.model.analysis.TargetActionDefinition.tools:type_name -> bonanza.model.analysis.FilesToRunProvider
 	17,  // 10: bonanza.model.analysis.TargetActionDefinition.arguments:type_name -> bonanza.model.analysis.Args
-	345, // 11: bonanza.model.analysis.TargetActionDefinition.output_path_pattern:type_name -> bonanza.model.command.PathPattern
-	346, // 12: bonanza.model.analysis.TargetActionDefinition.initial_output_directory:type_name -> bonanza.model.filesystem.Directory
-	347, // 13: bonanza.model.analysis.TargetActionDefinition.env:type_name -> bonanza.model.command.EnvironmentVariableList.Element
-	152, // 14: bonanza.model.analysis.TargetOutputDefinition.expand_template:type_name -> bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate
-	348, // 15: bonanza.model.analysis.TargetOutputDefinition.static_package_directory:type_name -> bonanza.model.filesystem.DirectoryContents
-	153, // 16: bonanza.model.analysis.TargetOutputDefinition.symlink:type_name -> bonanza.model.analysis.TargetOutputDefinition.Symlink
-	154, // 17: bonanza.model.analysis.TargetOutputDefinition.write:type_name -> bonanza.model.analysis.TargetOutputDefinition.Write
-	172, // 18: bonanza.model.analysis.ConfiguredLabelAttr.entries:type_name -> bonanza.model.analysis.ConfiguredLabelAttr.Entry
+	346, // 11: bonanza.model.analysis.TargetActionDefinition.output_path_pattern:type_name -> bonanza.model.command.PathPattern
+	347, // 12: bonanza.model.analysis.TargetActionDefinition.initial_output_directory:type_name -> bonanza.model.filesystem.Directory
+	348, // 13: bonanza.model.analysis.TargetActionDefinition.env:type_name -> bonanza.model.command.EnvironmentVariableList.Element
+	153, // 14: bonanza.model.analysis.TargetOutputDefinition.expand_template:type_name -> bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate
+	349, // 15: bonanza.model.analysis.TargetOutputDefinition.static_package_directory:type_name -> bonanza.model.filesystem.DirectoryContents
+	154, // 16: bonanza.model.analysis.TargetOutputDefinition.symlink:type_name -> bonanza.model.analysis.TargetOutputDefinition.Symlink
+	155, // 17: bonanza.model.analysis.TargetOutputDefinition.write:type_name -> bonanza.model.analysis.TargetOutputDefinition.Write
+	173, // 18: bonanza.model.analysis.ConfiguredLabelAttr.entries:type_name -> bonanza.model.analysis.ConfiguredLabelAttr.Entry
 	25,  // 19: bonanza.model.analysis.ConfiguredSubrule.attrs:type_name -> bonanza.model.analysis.ConfiguredLabelAttr
 	25,  // 20: bonanza.model.analysis.IndexedConfiguredLabelAttr.configured:type_name -> bonanza.model.analysis.ConfiguredLabelAttr
-	349, // 21: bonanza.model.analysis.HttpFetchOptions.target:type_name -> bonanza.model.fetch.Target
-	229, // 22: bonanza.model.analysis.BuildListModule.definition:type_name -> bonanza.model.analysis.BuildListModule.Definition
-	246, // 23: bonanza.model.analysis.ModuleOverride.definition:type_name -> bonanza.model.analysis.ModuleOverride.Definition
-	265, // 24: bonanza.model.analysis.QueryTarget.leaf:type_name -> bonanza.model.analysis.QueryTarget.Leaf
-	266, // 25: bonanza.model.analysis.QueryTarget.parent:type_name -> bonanza.model.analysis.QueryTarget.Parent
+	350, // 21: bonanza.model.analysis.HttpFetchOptions.target:type_name -> bonanza.model.fetch.Target
+	230, // 22: bonanza.model.analysis.BuildListModule.definition:type_name -> bonanza.model.analysis.BuildListModule.Definition
+	247, // 23: bonanza.model.analysis.ModuleOverride.definition:type_name -> bonanza.model.analysis.ModuleOverride.Definition
+	266, // 24: bonanza.model.analysis.QueryTarget.leaf:type_name -> bonanza.model.analysis.QueryTarget.Leaf
+	267, // 25: bonanza.model.analysis.QueryTarget.parent:type_name -> bonanza.model.analysis.QueryTarget.Parent
 	77,  // 26: bonanza.model.analysis.ExecutionPlatform.constraints:type_name -> bonanza.model.analysis.Constraint
-	278, // 27: bonanza.model.analysis.RegisteredToolchain.compatible_with:type_name -> bonanza.model.analysis.RegisteredToolchain.CompatibleWith
-	350, // 28: bonanza.model.analysis.TargetActionId.variant:type_name -> bonanza.model.starlark.TargetVariant
-	322, // 29: bonanza.model.analysis.TargetLabel.parent:type_name -> bonanza.model.analysis.TargetLabel.Parent
-	329, // 30: bonanza.model.analysis.ModuleExtension.users:type_name -> bonanza.model.analysis.ModuleExtension.User
-	351, // 31: bonanza.model.analysis.ActionEncoders.Value.action_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	351, // 32: bonanza.model.analysis.AnalysisEncoders.Value.analysis_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	279, // 27: bonanza.model.analysis.RegisteredToolchain.compatible_with:type_name -> bonanza.model.analysis.RegisteredToolchain.CompatibleWith
+	351, // 28: bonanza.model.analysis.TargetActionId.variant:type_name -> bonanza.model.starlark.TargetVariant
+	323, // 29: bonanza.model.analysis.TargetLabel.parent:type_name -> bonanza.model.analysis.TargetLabel.Parent
+	330, // 30: bonanza.model.analysis.ModuleExtension.users:type_name -> bonanza.model.analysis.ModuleExtension.User
+	352, // 31: bonanza.model.analysis.ActionEncoders.Value.action_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	352, // 32: bonanza.model.analysis.AnalysisEncoders.Value.analysis_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
 	5,   // 33: bonanza.model.analysis.ActionResult.Key.execute_request:type_name -> bonanza.model.analysis.ExecuteRequest
-	342, // 34: bonanza.model.analysis.ActionResult.Value.outputs_reference:type_name -> bonanza.model.core.DecodableReference
+	343, // 34: bonanza.model.analysis.ActionResult.Value.outputs_reference:type_name -> bonanza.model.core.DecodableReference
 	122, // 35: bonanza.model.analysis.BuildSpecification.Value.modules:type_name -> bonanza.model.analysis.BuildSpecification.Value.Module
-	352, // 36: bonanza.model.analysis.BuildSpecification.Value.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
-	353, // 37: bonanza.model.analysis.BuildSpecification.Value.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
+	353, // 36: bonanza.model.analysis.BuildSpecification.Value.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
+	354, // 37: bonanza.model.analysis.BuildSpecification.Value.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
 	123, // 38: bonanza.model.analysis.BuildSpecification.Value.use_lockfile:type_name -> bonanza.model.analysis.BuildSpecification.Value.UseLockfile
-	351, // 39: bonanza.model.analysis.BuildSpecification.Value.action_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	351, // 40: bonanza.model.analysis.BuildSpecification.Value.analysis_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	351, // 41: bonanza.model.analysis.BuildSpecification.Value.starlark_value_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	354, // 42: bonanza.model.analysis.BuildSpecification.Value.Module.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
-	343, // 43: bonanza.model.analysis.BuildSpecification.Value.UseLockfile.maximum_cache_duration:type_name -> google.protobuf.Duration
+	352, // 39: bonanza.model.analysis.BuildSpecification.Value.action_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	352, // 40: bonanza.model.analysis.BuildSpecification.Value.analysis_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	352, // 41: bonanza.model.analysis.BuildSpecification.Value.starlark_value_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	355, // 42: bonanza.model.analysis.BuildSpecification.Value.Module.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
+	344, // 43: bonanza.model.analysis.BuildSpecification.Value.UseLockfile.maximum_cache_duration:type_name -> google.protobuf.Duration
 	129, // 44: bonanza.model.analysis.BuildResult.Key.configurations:type_name -> bonanza.model.analysis.BuildResult.Key.Configuration
-	128, // 45: bonanza.model.analysis.BuildResult.Key.Configuration.build_setting_overrides:type_name -> bonanza.model.analysis.BuildResult.Key.BuildSettingOverride
-	77,  // 46: bonanza.model.analysis.CompatibleExecutionPlatforms.Key.constraints:type_name -> bonanza.model.analysis.Constraint
-	78,  // 47: bonanza.model.analysis.CompatibleExecutionPlatforms.Value.execution_platforms:type_name -> bonanza.model.analysis.ExecutionPlatform
-	342, // 48: bonanza.model.analysis.CompatibleToolchainsForType.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	82,  // 49: bonanza.model.analysis.CompatibleToolchainsForType.Value.toolchains:type_name -> bonanza.model.analysis.RegisteredToolchain
-	355, // 50: bonanza.model.analysis.CompiledBzlFile.Value.compiled_program:type_name -> bonanza.model.starlark.CompiledProgram
-	356, // 51: bonanza.model.analysis.CompiledBzlFileGlobal.Value.global:type_name -> bonanza.model.starlark.Value
-	356, // 52: bonanza.model.analysis.BuildSettingOverride.Leaf.value:type_name -> bonanza.model.starlark.Value
-	342, // 53: bonanza.model.analysis.BuildSettingOverride.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	342, // 54: bonanza.model.analysis.Args.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	144, // 55: bonanza.model.analysis.Args.Leaf.adds:type_name -> bonanza.model.analysis.Args.Leaf.Add
-	145, // 56: bonanza.model.analysis.Args.Leaf.use_param_file:type_name -> bonanza.model.analysis.Args.Leaf.UseParamFile
-	147, // 57: bonanza.model.analysis.Args.Leaf.Add.leaf:type_name -> bonanza.model.analysis.Args.Leaf.Add.Leaf
-	146, // 58: bonanza.model.analysis.Args.Leaf.Add.parent:type_name -> bonanza.model.analysis.Args.Leaf.Add.Parent
-	1,   // 59: bonanza.model.analysis.Args.Leaf.UseParamFile.format:type_name -> bonanza.model.analysis.Args.Leaf.UseParamFile.Format
-	342, // 60: bonanza.model.analysis.Args.Leaf.Add.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	357, // 61: bonanza.model.analysis.Args.Leaf.Add.Leaf.start_with:type_name -> google.protobuf.StringValue
-	356, // 62: bonanza.model.analysis.Args.Leaf.Add.Leaf.values:type_name -> bonanza.model.starlark.Value
-	358, // 63: bonanza.model.analysis.Args.Leaf.Add.Leaf.map_each:type_name -> bonanza.model.starlark.Function
-	148, // 64: bonanza.model.analysis.Args.Leaf.Add.Leaf.separate:type_name -> bonanza.model.analysis.Args.Leaf.Add.Leaf.Separate
-	149, // 65: bonanza.model.analysis.Args.Leaf.Add.Leaf.joined:type_name -> bonanza.model.analysis.Args.Leaf.Add.Leaf.Joined
-	357, // 66: bonanza.model.analysis.Args.Leaf.Add.Leaf.Separate.before_each:type_name -> google.protobuf.StringValue
-	357, // 67: bonanza.model.analysis.Args.Leaf.Add.Leaf.Separate.terminate_with:type_name -> google.protobuf.StringValue
-	342, // 68: bonanza.model.analysis.FilesToRunProvider.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	359, // 69: bonanza.model.analysis.FilesToRunProvider.Leaf.executable:type_name -> bonanza.model.starlark.File
-	344, // 70: bonanza.model.analysis.FilesToRunProvider.Leaf.runfiles_files:type_name -> bonanza.model.starlark.List.Element
-	344, // 71: bonanza.model.analysis.FilesToRunProvider.Leaf.runfiles_symlinks:type_name -> bonanza.model.starlark.List.Element
-	344, // 72: bonanza.model.analysis.FilesToRunProvider.Leaf.runfiles_root_symlinks:type_name -> bonanza.model.starlark.List.Element
-	359, // 73: bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate.template:type_name -> bonanza.model.starlark.File
-	155, // 74: bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate.substitutions:type_name -> bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate.Substitution
-	359, // 75: bonanza.model.analysis.TargetOutputDefinition.Symlink.target:type_name -> bonanza.model.starlark.File
-	143, // 76: bonanza.model.analysis.TargetOutputDefinition.Write.content:type_name -> bonanza.model.analysis.Args.Leaf
-	158, // 77: bonanza.model.analysis.LabelAttrAspects.Value.aspects:type_name -> bonanza.model.analysis.LabelAttrAspects.Value.Aspect
-	360, // 78: bonanza.model.analysis.LabelAttrAspects.Value.Aspect.public_attrs:type_name -> bonanza.model.starlark.NamedAttr
-	161, // 79: bonanza.model.analysis.AspectChain.Value.attr_propagating_aspects:type_name -> bonanza.model.analysis.AspectChain.Value.AttrPropagatingAspects
-	350, // 80: bonanza.model.analysis.ConfiguredTarget.Key.variant:type_name -> bonanza.model.starlark.TargetVariant
-	361, // 81: bonanza.model.analysis.ConfiguredTarget.Value.provider_instances:type_name -> bonanza.model.starlark.Struct
-	166, // 82: bonanza.model.analysis.ConfiguredTarget.Value.outputs:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Output
-	167, // 83: bonanza.model.analysis.ConfiguredTarget.Value.actions:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Action
-	169, // 84: bonanza.model.analysis.ConfiguredTarget.Value.Output.leaf:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Output.Leaf
-	168, // 85: bonanza.model.analysis.ConfiguredTarget.Value.Output.parent:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Output.Parent
-	171, // 86: bonanza.model.analysis.ConfiguredTarget.Value.Action.leaf:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Action.Leaf
-	170, // 87: bonanza.model.analysis.ConfiguredTarget.Value.Action.parent:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Action.Parent
-	342, // 88: bonanza.model.analysis.ConfiguredTarget.Value.Output.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	20,  // 89: bonanza.model.analysis.ConfiguredTarget.Value.Output.Leaf.definition:type_name -> bonanza.model.analysis.TargetOutputDefinition
-	342, // 90: bonanza.model.analysis.ConfiguredTarget.Value.Action.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	19,  // 91: bonanza.model.analysis.ConfiguredTarget.Value.Action.Leaf.definition:type_name -> bonanza.model.analysis.TargetActionDefinition
-	342, // 92: bonanza.model.analysis.ConfiguredLabelAttr.Entry.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	342, // 93: bonanza.model.analysis.ConfiguredRule.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	26,  // 94: bonanza.model.analysis.ConfiguredRule.Value.exec_groups:type_name -> bonanza.model.analysis.ConfiguredExecGroup
-	27,  // 95: bonanza.model.analysis.ConfiguredRule.Value.subrules:type_name -> bonanza.model.analysis.ConfiguredSubrule
-	28,  // 96: bonanza.model.analysis.ConfiguredRule.Value.label_attrs:type_name -> bonanza.model.analysis.IndexedConfiguredLabelAttr
-	342, // 97: bonanza.model.analysis.ConfiguredRuleUsage.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	28,  // 98: bonanza.model.analysis.ConfiguredRuleUsage.Value.label_attrs:type_name -> bonanza.model.analysis.IndexedConfiguredLabelAttr
-	342, // 99: bonanza.model.analysis.ConfiguredAspect.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	26,  // 100: bonanza.model.analysis.ConfiguredAspect.Value.exec_groups:type_name -> bonanza.model.analysis.ConfiguredExecGroup
-	27,  // 101: bonanza.model.analysis.ConfiguredAspect.Value.subrules:type_name -> bonanza.model.analysis.ConfiguredSubrule
-	28,  // 102: bonanza.model.analysis.ConfiguredAspect.Value.label_attrs:type_name -> bonanza.model.analysis.IndexedConfiguredLabelAttr
-	342, // 103: bonanza.model.analysis.RuleUsageIncomingEdgeTransition.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	342, // 104: bonanza.model.analysis.RuleUsageIncomingEdgeTransition.Value.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	362, // 105: bonanza.model.analysis.RuleUsageIncomingEdgeTransition.Value.depends_on_explicit_attrs:type_name -> google.protobuf.Empty
-	342, // 106: bonanza.model.analysis.TargetIncomingEdgeTransition.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	342, // 107: bonanza.model.analysis.TargetIncomingEdgeTransition.Value.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	350, // 108: bonanza.model.analysis.TargetOutput.Key.variant:type_name -> bonanza.model.starlark.TargetVariant
-	20,  // 109: bonanza.model.analysis.TargetOutput.Value.definition:type_name -> bonanza.model.analysis.TargetOutputDefinition
-	363, // 110: bonanza.model.analysis.DirectoryAccessParameters.Value.directory_access_parameters:type_name -> bonanza.model.filesystem.DirectoryAccessParameters
-	352, // 111: bonanza.model.analysis.DirectoryCreationParameters.Value.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
-	361, // 112: bonanza.model.analysis.EmptyDefaultInfo.Value.default_info:type_name -> bonanza.model.starlark.Struct
-	342, // 113: bonanza.model.analysis.ExecTransition.Key.input_configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	342, // 114: bonanza.model.analysis.ExecTransition.Value.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	364, // 115: bonanza.model.analysis.FileAccessParameters.Value.file_access_parameters:type_name -> bonanza.model.filesystem.FileAccessParameters
-	353, // 116: bonanza.model.analysis.FileCreationParameters.Value.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
-	365, // 117: bonanza.model.analysis.FileProperties.Value.exists:type_name -> bonanza.model.filesystem.FileProperties
-	359, // 118: bonanza.model.analysis.FileRoot.Key.file:type_name -> bonanza.model.starlark.File
-	0,   // 119: bonanza.model.analysis.FileRoot.Key.directory_layout:type_name -> bonanza.model.analysis.DirectoryLayout
-	348, // 120: bonanza.model.analysis.FileRoot.Value.root_directory:type_name -> bonanza.model.filesystem.DirectoryContents
-	348, // 121: bonanza.model.analysis.FilesInPackage.Value.directory:type_name -> bonanza.model.filesystem.DirectoryContents
-	342, // 122: bonanza.model.analysis.FilesRoot.Key.list_reference:type_name -> bonanza.model.core.DecodableReference
-	0,   // 123: bonanza.model.analysis.FilesRoot.Key.directory_layout:type_name -> bonanza.model.analysis.DirectoryLayout
-	348, // 124: bonanza.model.analysis.FilesRoot.Value.root_directory:type_name -> bonanza.model.filesystem.DirectoryContents
-	46,  // 125: bonanza.model.analysis.HttpArchiveContents.Key.fetch_options:type_name -> bonanza.model.analysis.HttpFetchOptions
-	2,   // 126: bonanza.model.analysis.HttpArchiveContents.Key.format:type_name -> bonanza.model.analysis.HttpArchiveContents.Key.Format
-	209, // 127: bonanza.model.analysis.HttpArchiveContents.Value.exists:type_name -> bonanza.model.analysis.HttpArchiveContents.Value.Exists
-	354, // 128: bonanza.model.analysis.HttpArchiveContents.Value.Exists.contents:type_name -> bonanza.model.filesystem.DirectoryReference
-	46,  // 129: bonanza.model.analysis.HttpFileContents.Key.fetch_options:type_name -> bonanza.model.analysis.HttpFetchOptions
-	366, // 130: bonanza.model.analysis.HttpFileContents.Value.exists:type_name -> bonanza.model.fetch.Result.Success
-	367, // 131: bonanza.model.analysis.MacroExpansionContext.Value.definition:type_name -> bonanza.model.starlark.MacroExpansionContext.Definition
-	368, // 132: bonanza.model.analysis.ModuleDotBazelContents.Value.contents:type_name -> bonanza.model.filesystem.FileContents
-	220, // 133: bonanza.model.analysis.ModuleRepoMapping.Value.mappings:type_name -> bonanza.model.analysis.ModuleRepoMapping.Value.Mapping
-	369, // 134: bonanza.model.analysis.ModuleExtensionRepo.Value.definition:type_name -> bonanza.model.starlark.Repo.Definition
-	227, // 135: bonanza.model.analysis.ModuleExtensionRepos.Value.repos:type_name -> bonanza.model.analysis.ModuleExtensionRepos.Value.Repo
-	370, // 136: bonanza.model.analysis.ModuleExtensionRepos.Value.Repo.leaf:type_name -> bonanza.model.starlark.Repo
-	228, // 137: bonanza.model.analysis.ModuleExtensionRepos.Value.Repo.parent:type_name -> bonanza.model.analysis.ModuleExtensionRepos.Value.Repo.Parent
-	342, // 138: bonanza.model.analysis.ModuleExtensionRepos.Value.Repo.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	56,  // 139: bonanza.model.analysis.ModuleFinalBuildList.Value.build_list:type_name -> bonanza.model.analysis.BuildListModule
-	229, // 140: bonanza.model.analysis.FinalBuildListModuleDefinition.Value.definition:type_name -> bonanza.model.analysis.BuildListModule.Definition
-	56,  // 141: bonanza.model.analysis.ModuleRoughBuildList.Value.build_list:type_name -> bonanza.model.analysis.BuildListModule
-	354, // 142: bonanza.model.analysis.ModuleWithLocalOverrideRootDirectory.Value.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
-	60,  // 143: bonanza.model.analysis.ModulesWithMultipleVersions.Value.overrides_list:type_name -> bonanza.model.analysis.OverridesListModule
-	60,  // 144: bonanza.model.analysis.ModulesWithOverrides.Value.overrides_list:type_name -> bonanza.model.analysis.OverridesListModule
-	244, // 145: bonanza.model.analysis.ModuleOverride.Definition.single_version:type_name -> bonanza.model.analysis.ModuleOverride.SingleVersion
-	245, // 146: bonanza.model.analysis.ModuleOverride.Definition.multiple_versions:type_name -> bonanza.model.analysis.ModuleOverride.MultipleVersions
-	369, // 147: bonanza.model.analysis.ModuleOverride.Definition.repository_rule:type_name -> bonanza.model.starlark.Repo.Definition
-	65,  // 148: bonanza.model.analysis.ModulesWithRemoteOverrides.Value.module_overrides:type_name -> bonanza.model.analysis.ModuleOverride
-	246, // 149: bonanza.model.analysis.ModuleOverrideDefinition.Value.definition:type_name -> bonanza.model.analysis.ModuleOverride.Definition
-	253, // 150: bonanza.model.analysis.Package.Value.targets:type_name -> bonanza.model.analysis.Package.Value.Target
-	371, // 151: bonanza.model.analysis.Package.Value.macro_expansion_contexts:type_name -> bonanza.model.starlark.MacroExpansionContext.Entry
-	372, // 152: bonanza.model.analysis.Package.Value.Target.leaf:type_name -> bonanza.model.starlark.Target
-	254, // 153: bonanza.model.analysis.Package.Value.Target.parent:type_name -> bonanza.model.analysis.Package.Value.Target.Parent
-	342, // 154: bonanza.model.analysis.Package.Value.Target.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	253, // 155: bonanza.model.analysis.PackageTargets.Value.targets:type_name -> bonanza.model.analysis.Package.Value.Target
-	105, // 156: bonanza.model.analysis.QueryExpansion.Value.target_labels:type_name -> bonanza.model.analysis.TargetLabel
-	3,   // 157: bonanza.model.analysis.QueryResult.Key.definition_detail:type_name -> bonanza.model.analysis.QueryTarget.DefinitionDetail
-	74,  // 158: bonanza.model.analysis.QueryResult.Value.targets:type_name -> bonanza.model.analysis.QueryTarget
-	373, // 159: bonanza.model.analysis.QueryTarget.Leaf.definition:type_name -> bonanza.model.starlark.Target.Definition
-	342, // 160: bonanza.model.analysis.QueryTarget.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	342, // 161: bonanza.model.analysis.QueryTargets.Key.target_labels_reference:type_name -> bonanza.model.core.DecodableReference
-	3,   // 162: bonanza.model.analysis.QueryTargets.Key.definition_detail:type_name -> bonanza.model.analysis.QueryTarget.DefinitionDetail
-	74,  // 163: bonanza.model.analysis.QueryTargets.Value.targets:type_name -> bonanza.model.analysis.QueryTarget
-	5,   // 164: bonanza.model.analysis.RawActionResult.Key.execute_request:type_name -> bonanza.model.analysis.ExecuteRequest
-	342, // 165: bonanza.model.analysis.RawActionResult.Value.result_reference:type_name -> bonanza.model.core.DecodableReference
-	78,  // 166: bonanza.model.analysis.RegisteredExecutionPlatforms.Value.execution_platforms:type_name -> bonanza.model.analysis.ExecutionPlatform
-	277, // 167: bonanza.model.analysis.RegisteredRepoPlatform.Value.repository_os_environ:type_name -> bonanza.model.analysis.RegisteredRepoPlatform.Value.EnvironmentVariable
-	77,  // 168: bonanza.model.analysis.RegisteredToolchain.CompatibleWith.exec:type_name -> bonanza.model.analysis.Constraint
-	77,  // 169: bonanza.model.analysis.RegisteredToolchain.CompatibleWith.target:type_name -> bonanza.model.analysis.Constraint
-	281, // 170: bonanza.model.analysis.RegisteredToolchains.Value.toolchain_types:type_name -> bonanza.model.analysis.RegisteredToolchains.Value.RegisteredToolchainType
-	82,  // 171: bonanza.model.analysis.RegisteredToolchains.Value.RegisteredToolchainType.toolchains:type_name -> bonanza.model.analysis.RegisteredToolchain
-	82,  // 172: bonanza.model.analysis.RegisteredToolchainsForType.Value.toolchains:type_name -> bonanza.model.analysis.RegisteredToolchain
-	354, // 173: bonanza.model.analysis.Repo.Value.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
-	374, // 174: bonanza.model.analysis.RepoDefaultAttrs.Value.inheritable_attrs:type_name -> bonanza.model.starlark.InheritableAttrs
-	365, // 175: bonanza.model.analysis.RepoPlatformHostPath.Value.file:type_name -> bonanza.model.filesystem.FileProperties
-	348, // 176: bonanza.model.analysis.RepoPlatformHostPath.Value.directory:type_name -> bonanza.model.filesystem.DirectoryContents
-	77,  // 177: bonanza.model.analysis.ResolvedToolchains.Key.exec_compatible_with:type_name -> bonanza.model.analysis.Constraint
-	342, // 178: bonanza.model.analysis.ResolvedToolchains.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	375, // 179: bonanza.model.analysis.ResolvedToolchains.Key.toolchains:type_name -> bonanza.model.starlark.ToolchainType
-	358, // 180: bonanza.model.analysis.RuleImplementationWrappers.Value.rule:type_name -> bonanza.model.starlark.Function
-	358, // 181: bonanza.model.analysis.RuleImplementationWrappers.Value.subrule:type_name -> bonanza.model.starlark.Function
-	358, // 182: bonanza.model.analysis.RuleImplementationWrappers.Value.aspect:type_name -> bonanza.model.starlark.Function
-	342, // 183: bonanza.model.analysis.Select.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	364, // 184: bonanza.model.analysis.StarlarkValueEncoders.Value.file_access_parameters:type_name -> bonanza.model.filesystem.FileAccessParameters
-	351, // 185: bonanza.model.analysis.StarlarkValueEncoders.Value.starlark_value_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	5,   // 186: bonanza.model.analysis.SuccessfulActionResult.Key.execute_request:type_name -> bonanza.model.analysis.ExecuteRequest
-	342, // 187: bonanza.model.analysis.SuccessfulActionResult.Value.outputs_reference:type_name -> bonanza.model.core.DecodableReference
-	373, // 188: bonanza.model.analysis.Target.Value.definition:type_name -> bonanza.model.starlark.Target.Definition
-	98,  // 189: bonanza.model.analysis.TargetAction.Key.id:type_name -> bonanza.model.analysis.TargetActionId
-	19,  // 190: bonanza.model.analysis.TargetAction.Value.definition:type_name -> bonanza.model.analysis.TargetActionDefinition
-	98,  // 191: bonanza.model.analysis.TargetActionCommand.Key.id:type_name -> bonanza.model.analysis.TargetActionId
-	342, // 192: bonanza.model.analysis.TargetActionCommand.Value.command_reference:type_name -> bonanza.model.core.DecodableReference
-	98,  // 193: bonanza.model.analysis.TargetActionInputRoot.Key.id:type_name -> bonanza.model.analysis.TargetActionId
-	354, // 194: bonanza.model.analysis.TargetActionInputRoot.Value.input_root_reference:type_name -> bonanza.model.filesystem.DirectoryReference
-	98,  // 195: bonanza.model.analysis.TargetActionResult.Key.id:type_name -> bonanza.model.analysis.TargetActionId
-	348, // 196: bonanza.model.analysis.TargetActionResult.Value.output_root:type_name -> bonanza.model.filesystem.DirectoryContents
-	350, // 197: bonanza.model.analysis.TargetCompletion.Key.variant:type_name -> bonanza.model.starlark.TargetVariant
-	105, // 198: bonanza.model.analysis.TargetDirectDependencies.Value.target_labels:type_name -> bonanza.model.analysis.TargetLabel
-	342, // 199: bonanza.model.analysis.TargetLabel.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	350, // 200: bonanza.model.analysis.TargetProvider.Key.variant:type_name -> bonanza.model.starlark.TargetVariant
-	376, // 201: bonanza.model.analysis.TargetProvider.Value.fields:type_name -> bonanza.model.starlark.Struct.Fields
-	350, // 202: bonanza.model.analysis.TargetProviders.Key.variant:type_name -> bonanza.model.starlark.TargetVariant
-	361, // 203: bonanza.model.analysis.TargetProviders.Value.provider_instances:type_name -> bonanza.model.starlark.Struct
-	105, // 204: bonanza.model.analysis.TestSuiteTests.Value.target_labels:type_name -> bonanza.model.analysis.TargetLabel
-	330, // 205: bonanza.model.analysis.ModuleExtension.User.tag_classes:type_name -> bonanza.model.analysis.ModuleExtension.TagClass
-	331, // 206: bonanza.model.analysis.ModuleExtension.TagClass.tags:type_name -> bonanza.model.analysis.ModuleExtension.Tag
-	376, // 207: bonanza.model.analysis.ModuleExtension.Tag.attrs:type_name -> bonanza.model.starlark.Struct.Fields
-	109, // 208: bonanza.model.analysis.UsedModuleExtension.Value.module_extension:type_name -> bonanza.model.analysis.ModuleExtension
-	109, // 209: bonanza.model.analysis.UsedModuleExtensions.Value.module_extensions:type_name -> bonanza.model.analysis.ModuleExtension
-	342, // 210: bonanza.model.analysis.UserDefinedTransition.Key.input_configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	362, // 211: bonanza.model.analysis.UserDefinedTransition.Value.transition_depends_on_attrs:type_name -> google.protobuf.Empty
-	338, // 212: bonanza.model.analysis.UserDefinedTransition.Value.success:type_name -> bonanza.model.analysis.UserDefinedTransition.Value.Success
-	339, // 213: bonanza.model.analysis.UserDefinedTransition.Value.Success.entries:type_name -> bonanza.model.analysis.UserDefinedTransition.Value.Success.Entry
-	342, // 214: bonanza.model.analysis.UserDefinedTransition.Value.Success.Entry.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	342, // 215: bonanza.model.analysis.VisibleTarget.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
-	216, // [216:216] is the sub-list for method output_type
-	216, // [216:216] is the sub-list for method input_type
-	216, // [216:216] is the sub-list for extension type_name
-	216, // [216:216] is the sub-list for extension extendee
-	0,   // [0:216] is the sub-list for field type_name
+	130, // 45: bonanza.model.analysis.BuildResult.Key.aspect_parameters:type_name -> bonanza.model.analysis.BuildResult.Key.AspectParameter
+	128, // 46: bonanza.model.analysis.BuildResult.Key.Configuration.build_setting_overrides:type_name -> bonanza.model.analysis.BuildResult.Key.BuildSettingOverride
+	77,  // 47: bonanza.model.analysis.CompatibleExecutionPlatforms.Key.constraints:type_name -> bonanza.model.analysis.Constraint
+	78,  // 48: bonanza.model.analysis.CompatibleExecutionPlatforms.Value.execution_platforms:type_name -> bonanza.model.analysis.ExecutionPlatform
+	343, // 49: bonanza.model.analysis.CompatibleToolchainsForType.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	82,  // 50: bonanza.model.analysis.CompatibleToolchainsForType.Value.toolchains:type_name -> bonanza.model.analysis.RegisteredToolchain
+	356, // 51: bonanza.model.analysis.CompiledBzlFile.Value.compiled_program:type_name -> bonanza.model.starlark.CompiledProgram
+	357, // 52: bonanza.model.analysis.CompiledBzlFileGlobal.Value.global:type_name -> bonanza.model.starlark.Value
+	357, // 53: bonanza.model.analysis.BuildSettingOverride.Leaf.value:type_name -> bonanza.model.starlark.Value
+	343, // 54: bonanza.model.analysis.BuildSettingOverride.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	343, // 55: bonanza.model.analysis.Args.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	145, // 56: bonanza.model.analysis.Args.Leaf.adds:type_name -> bonanza.model.analysis.Args.Leaf.Add
+	146, // 57: bonanza.model.analysis.Args.Leaf.use_param_file:type_name -> bonanza.model.analysis.Args.Leaf.UseParamFile
+	148, // 58: bonanza.model.analysis.Args.Leaf.Add.leaf:type_name -> bonanza.model.analysis.Args.Leaf.Add.Leaf
+	147, // 59: bonanza.model.analysis.Args.Leaf.Add.parent:type_name -> bonanza.model.analysis.Args.Leaf.Add.Parent
+	1,   // 60: bonanza.model.analysis.Args.Leaf.UseParamFile.format:type_name -> bonanza.model.analysis.Args.Leaf.UseParamFile.Format
+	343, // 61: bonanza.model.analysis.Args.Leaf.Add.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	358, // 62: bonanza.model.analysis.Args.Leaf.Add.Leaf.start_with:type_name -> google.protobuf.StringValue
+	357, // 63: bonanza.model.analysis.Args.Leaf.Add.Leaf.values:type_name -> bonanza.model.starlark.Value
+	359, // 64: bonanza.model.analysis.Args.Leaf.Add.Leaf.map_each:type_name -> bonanza.model.starlark.Function
+	149, // 65: bonanza.model.analysis.Args.Leaf.Add.Leaf.separate:type_name -> bonanza.model.analysis.Args.Leaf.Add.Leaf.Separate
+	150, // 66: bonanza.model.analysis.Args.Leaf.Add.Leaf.joined:type_name -> bonanza.model.analysis.Args.Leaf.Add.Leaf.Joined
+	358, // 67: bonanza.model.analysis.Args.Leaf.Add.Leaf.Separate.before_each:type_name -> google.protobuf.StringValue
+	358, // 68: bonanza.model.analysis.Args.Leaf.Add.Leaf.Separate.terminate_with:type_name -> google.protobuf.StringValue
+	343, // 69: bonanza.model.analysis.FilesToRunProvider.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	360, // 70: bonanza.model.analysis.FilesToRunProvider.Leaf.executable:type_name -> bonanza.model.starlark.File
+	345, // 71: bonanza.model.analysis.FilesToRunProvider.Leaf.runfiles_files:type_name -> bonanza.model.starlark.List.Element
+	345, // 72: bonanza.model.analysis.FilesToRunProvider.Leaf.runfiles_symlinks:type_name -> bonanza.model.starlark.List.Element
+	345, // 73: bonanza.model.analysis.FilesToRunProvider.Leaf.runfiles_root_symlinks:type_name -> bonanza.model.starlark.List.Element
+	360, // 74: bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate.template:type_name -> bonanza.model.starlark.File
+	156, // 75: bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate.substitutions:type_name -> bonanza.model.analysis.TargetOutputDefinition.ExpandTemplate.Substitution
+	360, // 76: bonanza.model.analysis.TargetOutputDefinition.Symlink.target:type_name -> bonanza.model.starlark.File
+	144, // 77: bonanza.model.analysis.TargetOutputDefinition.Write.content:type_name -> bonanza.model.analysis.Args.Leaf
+	159, // 78: bonanza.model.analysis.LabelAttrAspects.Value.aspects:type_name -> bonanza.model.analysis.LabelAttrAspects.Value.Aspect
+	361, // 79: bonanza.model.analysis.LabelAttrAspects.Value.Aspect.public_attrs:type_name -> bonanza.model.starlark.NamedAttr
+	162, // 80: bonanza.model.analysis.AspectChain.Value.attr_propagating_aspects:type_name -> bonanza.model.analysis.AspectChain.Value.AttrPropagatingAspects
+	351, // 81: bonanza.model.analysis.ConfiguredTarget.Key.variant:type_name -> bonanza.model.starlark.TargetVariant
+	362, // 82: bonanza.model.analysis.ConfiguredTarget.Value.provider_instances:type_name -> bonanza.model.starlark.Struct
+	167, // 83: bonanza.model.analysis.ConfiguredTarget.Value.outputs:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Output
+	168, // 84: bonanza.model.analysis.ConfiguredTarget.Value.actions:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Action
+	170, // 85: bonanza.model.analysis.ConfiguredTarget.Value.Output.leaf:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Output.Leaf
+	169, // 86: bonanza.model.analysis.ConfiguredTarget.Value.Output.parent:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Output.Parent
+	172, // 87: bonanza.model.analysis.ConfiguredTarget.Value.Action.leaf:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Action.Leaf
+	171, // 88: bonanza.model.analysis.ConfiguredTarget.Value.Action.parent:type_name -> bonanza.model.analysis.ConfiguredTarget.Value.Action.Parent
+	343, // 89: bonanza.model.analysis.ConfiguredTarget.Value.Output.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	20,  // 90: bonanza.model.analysis.ConfiguredTarget.Value.Output.Leaf.definition:type_name -> bonanza.model.analysis.TargetOutputDefinition
+	343, // 91: bonanza.model.analysis.ConfiguredTarget.Value.Action.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	19,  // 92: bonanza.model.analysis.ConfiguredTarget.Value.Action.Leaf.definition:type_name -> bonanza.model.analysis.TargetActionDefinition
+	343, // 93: bonanza.model.analysis.ConfiguredLabelAttr.Entry.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	343, // 94: bonanza.model.analysis.ConfiguredRule.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	26,  // 95: bonanza.model.analysis.ConfiguredRule.Value.exec_groups:type_name -> bonanza.model.analysis.ConfiguredExecGroup
+	27,  // 96: bonanza.model.analysis.ConfiguredRule.Value.subrules:type_name -> bonanza.model.analysis.ConfiguredSubrule
+	28,  // 97: bonanza.model.analysis.ConfiguredRule.Value.label_attrs:type_name -> bonanza.model.analysis.IndexedConfiguredLabelAttr
+	343, // 98: bonanza.model.analysis.ConfiguredRuleUsage.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	28,  // 99: bonanza.model.analysis.ConfiguredRuleUsage.Value.label_attrs:type_name -> bonanza.model.analysis.IndexedConfiguredLabelAttr
+	343, // 100: bonanza.model.analysis.ConfiguredAspect.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	26,  // 101: bonanza.model.analysis.ConfiguredAspect.Value.exec_groups:type_name -> bonanza.model.analysis.ConfiguredExecGroup
+	27,  // 102: bonanza.model.analysis.ConfiguredAspect.Value.subrules:type_name -> bonanza.model.analysis.ConfiguredSubrule
+	28,  // 103: bonanza.model.analysis.ConfiguredAspect.Value.label_attrs:type_name -> bonanza.model.analysis.IndexedConfiguredLabelAttr
+	343, // 104: bonanza.model.analysis.RuleUsageIncomingEdgeTransition.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	343, // 105: bonanza.model.analysis.RuleUsageIncomingEdgeTransition.Value.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	363, // 106: bonanza.model.analysis.RuleUsageIncomingEdgeTransition.Value.depends_on_explicit_attrs:type_name -> google.protobuf.Empty
+	343, // 107: bonanza.model.analysis.TargetIncomingEdgeTransition.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	343, // 108: bonanza.model.analysis.TargetIncomingEdgeTransition.Value.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	351, // 109: bonanza.model.analysis.TargetOutput.Key.variant:type_name -> bonanza.model.starlark.TargetVariant
+	20,  // 110: bonanza.model.analysis.TargetOutput.Value.definition:type_name -> bonanza.model.analysis.TargetOutputDefinition
+	364, // 111: bonanza.model.analysis.DirectoryAccessParameters.Value.directory_access_parameters:type_name -> bonanza.model.filesystem.DirectoryAccessParameters
+	353, // 112: bonanza.model.analysis.DirectoryCreationParameters.Value.directory_creation_parameters:type_name -> bonanza.model.filesystem.DirectoryCreationParameters
+	362, // 113: bonanza.model.analysis.EmptyDefaultInfo.Value.default_info:type_name -> bonanza.model.starlark.Struct
+	343, // 114: bonanza.model.analysis.ExecTransition.Key.input_configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	343, // 115: bonanza.model.analysis.ExecTransition.Value.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	365, // 116: bonanza.model.analysis.FileAccessParameters.Value.file_access_parameters:type_name -> bonanza.model.filesystem.FileAccessParameters
+	354, // 117: bonanza.model.analysis.FileCreationParameters.Value.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
+	366, // 118: bonanza.model.analysis.FileProperties.Value.exists:type_name -> bonanza.model.filesystem.FileProperties
+	360, // 119: bonanza.model.analysis.FileRoot.Key.file:type_name -> bonanza.model.starlark.File
+	0,   // 120: bonanza.model.analysis.FileRoot.Key.directory_layout:type_name -> bonanza.model.analysis.DirectoryLayout
+	349, // 121: bonanza.model.analysis.FileRoot.Value.root_directory:type_name -> bonanza.model.filesystem.DirectoryContents
+	349, // 122: bonanza.model.analysis.FilesInPackage.Value.directory:type_name -> bonanza.model.filesystem.DirectoryContents
+	343, // 123: bonanza.model.analysis.FilesRoot.Key.list_reference:type_name -> bonanza.model.core.DecodableReference
+	0,   // 124: bonanza.model.analysis.FilesRoot.Key.directory_layout:type_name -> bonanza.model.analysis.DirectoryLayout
+	349, // 125: bonanza.model.analysis.FilesRoot.Value.root_directory:type_name -> bonanza.model.filesystem.DirectoryContents
+	46,  // 126: bonanza.model.analysis.HttpArchiveContents.Key.fetch_options:type_name -> bonanza.model.analysis.HttpFetchOptions
+	2,   // 127: bonanza.model.analysis.HttpArchiveContents.Key.format:type_name -> bonanza.model.analysis.HttpArchiveContents.Key.Format
+	210, // 128: bonanza.model.analysis.HttpArchiveContents.Value.exists:type_name -> bonanza.model.analysis.HttpArchiveContents.Value.Exists
+	355, // 129: bonanza.model.analysis.HttpArchiveContents.Value.Exists.contents:type_name -> bonanza.model.filesystem.DirectoryReference
+	46,  // 130: bonanza.model.analysis.HttpFileContents.Key.fetch_options:type_name -> bonanza.model.analysis.HttpFetchOptions
+	367, // 131: bonanza.model.analysis.HttpFileContents.Value.exists:type_name -> bonanza.model.fetch.Result.Success
+	368, // 132: bonanza.model.analysis.MacroExpansionContext.Value.definition:type_name -> bonanza.model.starlark.MacroExpansionContext.Definition
+	369, // 133: bonanza.model.analysis.ModuleDotBazelContents.Value.contents:type_name -> bonanza.model.filesystem.FileContents
+	221, // 134: bonanza.model.analysis.ModuleRepoMapping.Value.mappings:type_name -> bonanza.model.analysis.ModuleRepoMapping.Value.Mapping
+	370, // 135: bonanza.model.analysis.ModuleExtensionRepo.Value.definition:type_name -> bonanza.model.starlark.Repo.Definition
+	228, // 136: bonanza.model.analysis.ModuleExtensionRepos.Value.repos:type_name -> bonanza.model.analysis.ModuleExtensionRepos.Value.Repo
+	371, // 137: bonanza.model.analysis.ModuleExtensionRepos.Value.Repo.leaf:type_name -> bonanza.model.starlark.Repo
+	229, // 138: bonanza.model.analysis.ModuleExtensionRepos.Value.Repo.parent:type_name -> bonanza.model.analysis.ModuleExtensionRepos.Value.Repo.Parent
+	343, // 139: bonanza.model.analysis.ModuleExtensionRepos.Value.Repo.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	56,  // 140: bonanza.model.analysis.ModuleFinalBuildList.Value.build_list:type_name -> bonanza.model.analysis.BuildListModule
+	230, // 141: bonanza.model.analysis.FinalBuildListModuleDefinition.Value.definition:type_name -> bonanza.model.analysis.BuildListModule.Definition
+	56,  // 142: bonanza.model.analysis.ModuleRoughBuildList.Value.build_list:type_name -> bonanza.model.analysis.BuildListModule
+	355, // 143: bonanza.model.analysis.ModuleWithLocalOverrideRootDirectory.Value.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
+	60,  // 144: bonanza.model.analysis.ModulesWithMultipleVersions.Value.overrides_list:type_name -> bonanza.model.analysis.OverridesListModule
+	60,  // 145: bonanza.model.analysis.ModulesWithOverrides.Value.overrides_list:type_name -> bonanza.model.analysis.OverridesListModule
+	245, // 146: bonanza.model.analysis.ModuleOverride.Definition.single_version:type_name -> bonanza.model.analysis.ModuleOverride.SingleVersion
+	246, // 147: bonanza.model.analysis.ModuleOverride.Definition.multiple_versions:type_name -> bonanza.model.analysis.ModuleOverride.MultipleVersions
+	370, // 148: bonanza.model.analysis.ModuleOverride.Definition.repository_rule:type_name -> bonanza.model.starlark.Repo.Definition
+	65,  // 149: bonanza.model.analysis.ModulesWithRemoteOverrides.Value.module_overrides:type_name -> bonanza.model.analysis.ModuleOverride
+	247, // 150: bonanza.model.analysis.ModuleOverrideDefinition.Value.definition:type_name -> bonanza.model.analysis.ModuleOverride.Definition
+	254, // 151: bonanza.model.analysis.Package.Value.targets:type_name -> bonanza.model.analysis.Package.Value.Target
+	372, // 152: bonanza.model.analysis.Package.Value.macro_expansion_contexts:type_name -> bonanza.model.starlark.MacroExpansionContext.Entry
+	373, // 153: bonanza.model.analysis.Package.Value.Target.leaf:type_name -> bonanza.model.starlark.Target
+	255, // 154: bonanza.model.analysis.Package.Value.Target.parent:type_name -> bonanza.model.analysis.Package.Value.Target.Parent
+	343, // 155: bonanza.model.analysis.Package.Value.Target.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	254, // 156: bonanza.model.analysis.PackageTargets.Value.targets:type_name -> bonanza.model.analysis.Package.Value.Target
+	105, // 157: bonanza.model.analysis.QueryExpansion.Value.target_labels:type_name -> bonanza.model.analysis.TargetLabel
+	3,   // 158: bonanza.model.analysis.QueryResult.Key.definition_detail:type_name -> bonanza.model.analysis.QueryTarget.DefinitionDetail
+	74,  // 159: bonanza.model.analysis.QueryResult.Value.targets:type_name -> bonanza.model.analysis.QueryTarget
+	374, // 160: bonanza.model.analysis.QueryTarget.Leaf.definition:type_name -> bonanza.model.starlark.Target.Definition
+	343, // 161: bonanza.model.analysis.QueryTarget.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	343, // 162: bonanza.model.analysis.QueryTargets.Key.target_labels_reference:type_name -> bonanza.model.core.DecodableReference
+	3,   // 163: bonanza.model.analysis.QueryTargets.Key.definition_detail:type_name -> bonanza.model.analysis.QueryTarget.DefinitionDetail
+	74,  // 164: bonanza.model.analysis.QueryTargets.Value.targets:type_name -> bonanza.model.analysis.QueryTarget
+	5,   // 165: bonanza.model.analysis.RawActionResult.Key.execute_request:type_name -> bonanza.model.analysis.ExecuteRequest
+	343, // 166: bonanza.model.analysis.RawActionResult.Value.result_reference:type_name -> bonanza.model.core.DecodableReference
+	78,  // 167: bonanza.model.analysis.RegisteredExecutionPlatforms.Value.execution_platforms:type_name -> bonanza.model.analysis.ExecutionPlatform
+	278, // 168: bonanza.model.analysis.RegisteredRepoPlatform.Value.repository_os_environ:type_name -> bonanza.model.analysis.RegisteredRepoPlatform.Value.EnvironmentVariable
+	77,  // 169: bonanza.model.analysis.RegisteredToolchain.CompatibleWith.exec:type_name -> bonanza.model.analysis.Constraint
+	77,  // 170: bonanza.model.analysis.RegisteredToolchain.CompatibleWith.target:type_name -> bonanza.model.analysis.Constraint
+	282, // 171: bonanza.model.analysis.RegisteredToolchains.Value.toolchain_types:type_name -> bonanza.model.analysis.RegisteredToolchains.Value.RegisteredToolchainType
+	82,  // 172: bonanza.model.analysis.RegisteredToolchains.Value.RegisteredToolchainType.toolchains:type_name -> bonanza.model.analysis.RegisteredToolchain
+	82,  // 173: bonanza.model.analysis.RegisteredToolchainsForType.Value.toolchains:type_name -> bonanza.model.analysis.RegisteredToolchain
+	355, // 174: bonanza.model.analysis.Repo.Value.root_directory_reference:type_name -> bonanza.model.filesystem.DirectoryReference
+	375, // 175: bonanza.model.analysis.RepoDefaultAttrs.Value.inheritable_attrs:type_name -> bonanza.model.starlark.InheritableAttrs
+	366, // 176: bonanza.model.analysis.RepoPlatformHostPath.Value.file:type_name -> bonanza.model.filesystem.FileProperties
+	349, // 177: bonanza.model.analysis.RepoPlatformHostPath.Value.directory:type_name -> bonanza.model.filesystem.DirectoryContents
+	77,  // 178: bonanza.model.analysis.ResolvedToolchains.Key.exec_compatible_with:type_name -> bonanza.model.analysis.Constraint
+	343, // 179: bonanza.model.analysis.ResolvedToolchains.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	376, // 180: bonanza.model.analysis.ResolvedToolchains.Key.toolchains:type_name -> bonanza.model.starlark.ToolchainType
+	359, // 181: bonanza.model.analysis.RuleImplementationWrappers.Value.rule:type_name -> bonanza.model.starlark.Function
+	359, // 182: bonanza.model.analysis.RuleImplementationWrappers.Value.subrule:type_name -> bonanza.model.starlark.Function
+	359, // 183: bonanza.model.analysis.RuleImplementationWrappers.Value.aspect:type_name -> bonanza.model.starlark.Function
+	343, // 184: bonanza.model.analysis.Select.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	365, // 185: bonanza.model.analysis.StarlarkValueEncoders.Value.file_access_parameters:type_name -> bonanza.model.filesystem.FileAccessParameters
+	352, // 186: bonanza.model.analysis.StarlarkValueEncoders.Value.starlark_value_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	5,   // 187: bonanza.model.analysis.SuccessfulActionResult.Key.execute_request:type_name -> bonanza.model.analysis.ExecuteRequest
+	343, // 188: bonanza.model.analysis.SuccessfulActionResult.Value.outputs_reference:type_name -> bonanza.model.core.DecodableReference
+	374, // 189: bonanza.model.analysis.Target.Value.definition:type_name -> bonanza.model.starlark.Target.Definition
+	98,  // 190: bonanza.model.analysis.TargetAction.Key.id:type_name -> bonanza.model.analysis.TargetActionId
+	19,  // 191: bonanza.model.analysis.TargetAction.Value.definition:type_name -> bonanza.model.analysis.TargetActionDefinition
+	98,  // 192: bonanza.model.analysis.TargetActionCommand.Key.id:type_name -> bonanza.model.analysis.TargetActionId
+	343, // 193: bonanza.model.analysis.TargetActionCommand.Value.command_reference:type_name -> bonanza.model.core.DecodableReference
+	98,  // 194: bonanza.model.analysis.TargetActionInputRoot.Key.id:type_name -> bonanza.model.analysis.TargetActionId
+	355, // 195: bonanza.model.analysis.TargetActionInputRoot.Value.input_root_reference:type_name -> bonanza.model.filesystem.DirectoryReference
+	98,  // 196: bonanza.model.analysis.TargetActionResult.Key.id:type_name -> bonanza.model.analysis.TargetActionId
+	349, // 197: bonanza.model.analysis.TargetActionResult.Value.output_root:type_name -> bonanza.model.filesystem.DirectoryContents
+	351, // 198: bonanza.model.analysis.TargetCompletion.Key.variant:type_name -> bonanza.model.starlark.TargetVariant
+	105, // 199: bonanza.model.analysis.TargetDirectDependencies.Value.target_labels:type_name -> bonanza.model.analysis.TargetLabel
+	343, // 200: bonanza.model.analysis.TargetLabel.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	351, // 201: bonanza.model.analysis.TargetProvider.Key.variant:type_name -> bonanza.model.starlark.TargetVariant
+	377, // 202: bonanza.model.analysis.TargetProvider.Value.fields:type_name -> bonanza.model.starlark.Struct.Fields
+	351, // 203: bonanza.model.analysis.TargetProviders.Key.variant:type_name -> bonanza.model.starlark.TargetVariant
+	362, // 204: bonanza.model.analysis.TargetProviders.Value.provider_instances:type_name -> bonanza.model.starlark.Struct
+	105, // 205: bonanza.model.analysis.TestSuiteTests.Value.target_labels:type_name -> bonanza.model.analysis.TargetLabel
+	331, // 206: bonanza.model.analysis.ModuleExtension.User.tag_classes:type_name -> bonanza.model.analysis.ModuleExtension.TagClass
+	332, // 207: bonanza.model.analysis.ModuleExtension.TagClass.tags:type_name -> bonanza.model.analysis.ModuleExtension.Tag
+	377, // 208: bonanza.model.analysis.ModuleExtension.Tag.attrs:type_name -> bonanza.model.starlark.Struct.Fields
+	109, // 209: bonanza.model.analysis.UsedModuleExtension.Value.module_extension:type_name -> bonanza.model.analysis.ModuleExtension
+	109, // 210: bonanza.model.analysis.UsedModuleExtensions.Value.module_extensions:type_name -> bonanza.model.analysis.ModuleExtension
+	343, // 211: bonanza.model.analysis.UserDefinedTransition.Key.input_configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	363, // 212: bonanza.model.analysis.UserDefinedTransition.Value.transition_depends_on_attrs:type_name -> google.protobuf.Empty
+	339, // 213: bonanza.model.analysis.UserDefinedTransition.Value.success:type_name -> bonanza.model.analysis.UserDefinedTransition.Value.Success
+	340, // 214: bonanza.model.analysis.UserDefinedTransition.Value.Success.entries:type_name -> bonanza.model.analysis.UserDefinedTransition.Value.Success.Entry
+	343, // 215: bonanza.model.analysis.UserDefinedTransition.Value.Success.Entry.output_configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	343, // 216: bonanza.model.analysis.VisibleTarget.Key.configuration_reference:type_name -> bonanza.model.core.DecodableReference
+	217, // [217:217] is the sub-list for method output_type
+	217, // [217:217] is the sub-list for method input_type
+	217, // [217:217] is the sub-list for extension type_name
+	217, // [217:217] is the sub-list for extension extendee
+	0,   // [0:217] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_analysis_analysis_proto_init() }
@@ -17688,44 +17763,44 @@ func file_bonanza_build_pkg_proto_model_analysis_analysis_proto_init() {
 		(*TargetLabel_Leaf)(nil),
 		(*TargetLabel_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[140].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[141].OneofWrappers = []any{
 		(*Args_Leaf_Add_Leaf_)(nil),
 		(*Args_Leaf_Add_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[143].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[144].OneofWrappers = []any{
 		(*Args_Leaf_Add_Leaf_Separate_)(nil),
 		(*Args_Leaf_Add_Leaf_Joined_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[162].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[163].OneofWrappers = []any{
 		(*ConfiguredTarget_Value_Output_Leaf_)(nil),
 		(*ConfiguredTarget_Value_Output_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[163].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[164].OneofWrappers = []any{
 		(*ConfiguredTarget_Value_Action_Leaf_)(nil),
 		(*ConfiguredTarget_Value_Action_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[176].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[177].OneofWrappers = []any{
 		(*RuleUsageIncomingEdgeTransition_Value_OutputConfigurationReference)(nil),
 		(*RuleUsageIncomingEdgeTransition_Value_DependsOnExplicitAttrs)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[223].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[224].OneofWrappers = []any{
 		(*ModuleExtensionRepos_Value_Repo_Leaf)(nil),
 		(*ModuleExtensionRepos_Value_Repo_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[242].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[243].OneofWrappers = []any{
 		(*ModuleOverride_Definition_SingleVersion)(nil),
 		(*ModuleOverride_Definition_MultipleVersions)(nil),
 		(*ModuleOverride_Definition_RepositoryRule)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[249].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[250].OneofWrappers = []any{
 		(*Package_Value_Target_Leaf)(nil),
 		(*Package_Value_Target_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[285].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[286].OneofWrappers = []any{
 		(*RepoPlatformHostPath_Value_File)(nil),
 		(*RepoPlatformHostPath_Value_Directory)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[333].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_analysis_analysis_proto_msgTypes[334].OneofWrappers = []any{
 		(*UserDefinedTransition_Value_TransitionDependsOnAttrs)(nil),
 		(*UserDefinedTransition_Value_Success_)(nil),
 	}
@@ -17735,7 +17810,7 @@ func file_bonanza_build_pkg_proto_model_analysis_analysis_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   338,
+			NumMessages:   339,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -16,8 +16,10 @@ go_library(
         "action_result.go",
         "analysis_encoders.go",
         "aspect_chain.go",
+        "aspect_parameters.go",
         "base_computer.go",
         "build_result.go",
+        "build_result_aspects.go",
         "build_specification.go",
         "builtins_module_names.go",
         "canonical_repo_name.go",
@@ -168,6 +170,7 @@ go_test(
     name = "analysis_test",
     srcs = [
         "aspect_chain_test.go",
+        "aspect_parameters_internal_test.go",
         "base_computer_test.go",
         "configured_label_attr_internal_test.go",
         "configured_rule_target_aspects_internal_test.go",

@@ -237,9 +237,42 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			})
 		}
 
+		// Aspects to apply to the top-level targets. Like Bazel,
+		// --aspects may be provided multiple times, and accepts
+		// comma-separated lists. Labels of .bzl files are made
+		// absolute, so that they can be resolved from the
+		// perspective of the root module.
+		var aspects []string
+		for _, aspectsArgument := range args.BuildFlags.Aspects {
+			for _, aspect := range strings.FieldsFunc(aspectsArgument, func(r rune) bool { return r == ',' }) {
+				separator := strings.LastIndexByte(aspect, '%')
+				if separator < 0 {
+					logger.Fatal(formatted.Textf("Invalid aspect %#v: expected <bzl-file-label>%%<aspect_name>", aspect))
+				}
+				apparentLabel, err := currentPackage.AppendLabel(aspect[:separator])
+				if err != nil {
+					logger.Fatal(formatted.Textf("Invalid aspect %#v: %s", aspect, err))
+				}
+				aspects = append(aspects, apparentLabel.String()+aspect[separator:])
+			}
+		}
+		aspectParameters := make([]*model_analysis_pb.BuildResult_Key_AspectParameter, 0, len(args.BuildFlags.AspectsParameters))
+		for _, aspectParameter := range args.BuildFlags.AspectsParameters {
+			name, value, ok := strings.Cut(aspectParameter, "=")
+			if !ok {
+				logger.Fatal(formatted.Textf("Invalid aspect parameter %#v: expected <param_name>=<param_value>", aspectParameter))
+			}
+			aspectParameters = append(aspectParameters, &model_analysis_pb.BuildResult_Key_AspectParameter{
+				Name:  name,
+				Value: value,
+			})
+		}
+
 		return &model_analysis_pb.BuildResult_Key{
-			Query:          label.QueryToString(query),
-			Configurations: configurations,
+			Query:            label.QueryToString(query),
+			Configurations:   configurations,
+			Aspects:          aspects,
+			AspectParameters: aspectParameters,
 		}
 	})
 	if outcomesLink, ok := evaluation.GetOutcomesLink(); ok {

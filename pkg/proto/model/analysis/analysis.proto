@@ -232,6 +232,29 @@ message BuildResult {
     // convert target patterns provided on the command line (e.g.,
     // "//... -//foo/...") to a query expression.
     string query = 2;
+
+    // Aspects to apply to the targets that should be built, in the
+    // order in which they are applied, corresponding to Bazel's
+    // --aspects command line flag. Aspects are of the form
+    // "<label>%<name>", where the label refers to the .bzl file
+    // declaring the aspect. Labels MUST either be canonical or be
+    // prefixed with an apparent repo name. Apparent repo names are
+    // resolved from the perspective of the root module.
+    repeated string aspects = 3;
+
+    message AspectParameter {
+      // The name of the public attr of the aspects.
+      string name = 1;
+
+      // The value to assign to the attr, which is converted to the
+      // type of the attr.
+      string value = 2;
+    }
+
+    // Values of parameters of the aspects, corresponding to Bazel's
+    // --aspects_parameters command line flag. Parameters apply to all
+    // aspects that have a public attr with the same name.
+    repeated AspectParameter aspect_parameters = 4;
   }
 
   message Value {}

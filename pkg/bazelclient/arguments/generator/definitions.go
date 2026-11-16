@@ -219,6 +219,16 @@ var commands = map[string]command{
 		ancestor: "common",
 		flags: []flag{
 			{
+				longName:    "aspects",
+				description: "Comma-separated list of aspects to be applied to top-level targets. Aspects are specified in the form <bzl-file-label>%<aspect_name>, for example '//tools:my_def.bzl%my_aspect'.",
+				flagType:    stringListFlagType{},
+			},
+			{
+				longName:    "aspects_parameters",
+				description: "Specifies the values of the command-line aspects parameters. Each parameter value is specified via <param_name>=<param_value>, for example 'my_param=my_val'. Parameters apply to all aspects that have a public attr with the same name.",
+				flagType:    stringListFlagType{},
+			},
+			{
 				longName:    "build_tag_filters",
 				description: "Specifies a comma-separated list of tags. Each tag can be optionally preceded with '-' to specify excluded tags. Only those targets will be built that contain at least one included tag and do not contain any excluded tags.",
 				flagType:    stringFlagType{},

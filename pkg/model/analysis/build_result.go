@@ -9,6 +9,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx context.Context, key *model_analysis_pb.BuildResult_Key, e BuildResultEnvironment[TReference, TMetadata]) (PatchedBuildResultValue[TMetadata], error) {
@@ -35,6 +36,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 		return PatchedBuildResultValue[TMetadata]{}, err
 	}
 	missingDependencies := false
+
+	// Determine which aspects to apply to the targets that are
+	// built, as provided through --aspects.
+	var topLevelAspects model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference]
+	if patchedTopLevelAspects, err := c.getTopLevelAspects(ctx, e, thread, analysisEncoders, starlarkValueEncoders, rootRepo, key); err == nil {
+		topLevelAspects = model_core.Unpatch(e, patchedTopLevelAspects).Decay()
+	} else {
+		if !errors.Is(err, evaluation.ErrMissingDependency) {
+			return PatchedBuildResultValue[TMetadata]{}, err
+		}
+		missingDependencies = true
+	}
 
 	// Determine which targets to build. The query is only expanded
 	// after creating the configurations, so that the dependencies
@@ -100,6 +113,26 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 			)
 			if !targetCompletionValue.IsSet() {
 				missingDependencies = true
+			}
+
+			// Build the outputs of the aspects that are applied
+			// to the target. Each aspect is applied to the target
+			// after the aspects preceding it.
+			for i := range topLevelAspects.Message {
+				aspectCompletionValue := e.GetTargetCompletionValue(
+					model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetCompletion_Key {
+						return &model_analysis_pb.TargetCompletion_Key{
+							Label: visibleTargetValue.Message.Label,
+							Variant: newTargetVariant(
+								model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
+								model_core.PatchList(e, model_core.Nested(topLevelAspects, topLevelAspects.Message[:i+1])).Merge(patcher),
+							),
+						}
+					}),
+				)
+				if !aspectCompletionValue.IsSet() {
+					missingDependencies = true
+				}
 			}
 		}
 		if iterErr != nil {
