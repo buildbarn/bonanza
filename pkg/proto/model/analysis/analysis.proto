@@ -818,6 +818,38 @@ message ConfiguredLabelAttr {
   bool default_value_labels_resolved = 2;
 }
 
+// The toolchains and execution platform that were selected for an exec
+// group of a rule or aspect.
+message ConfiguredExecGroup {
+  // Identifiers of the resolved toolchains, using the same order as the
+  // toolchain types in the exec group definition. Any optional
+  // toolchains that could not be resolved will have their identifier
+  // set to the empty string.
+  repeated string toolchain_identifiers = 1;
+
+  // Label of the execution platform that was selected for the exec
+  // group.
+  string platform_label = 2;
+
+  // The elliptic-curve public key that identifies the execution
+  // platform that was selected for the exec group, in PKIX, ASN.1 DER
+  // form.
+  bytes platform_pkix_public_key = 3;
+}
+
+// The values of the attrs of a subrule that may be invoked by a rule or
+// aspect.
+message ConfiguredSubrule {
+  // The Starlark identifier of the subrule.
+  string identifier = 1;
+
+  // The values of the subrule's attrs, using the same order as the
+  // attrs in the subrule definition. As subrule attrs are always
+  // private and cannot use user-defined transitions, the labels
+  // contained in these attrs are always resolved.
+  repeated ConfiguredLabelAttr attrs = 2;
+}
+
 // IndexedConfiguredLabelAttr is the value of a label attr of a rule,
 // as computed by ConfiguredRule or ConfiguredRuleUsage. These are
 // stored in sparse lists, only containing entries for attrs whose value
@@ -851,41 +883,13 @@ message ConfiguredRule {
   }
 
   message Value {
-    message ExecGroup {
-      // Identifiers of the resolved toolchains, using the same order as
-      // the toolchain types in the exec group definition. Any optional
-      // toolchains that could not be resolved will have their
-      // identifier set to the empty string.
-      repeated string toolchain_identifiers = 1;
-
-      // Label of the execution platform that was selected for the exec
-      // group.
-      string platform_label = 2;
-
-      // The elliptic-curve public key that identifies the execution
-      // platform that was selected for the exec group, in PKIX, ASN.1
-      // DER form.
-      bytes platform_pkix_public_key = 3;
-    }
-
     // Exec groups of the rule, using the same order as the exec groups
     // in the rule definition.
-    repeated ExecGroup exec_groups = 1;
-
-    message Subrule {
-      // The Starlark identifier of the subrule.
-      string identifier = 1;
-
-      // The values of the subrule's attrs, using the same order as the
-      // attrs in the subrule definition. As subrule attrs are always
-      // private and cannot use user-defined transitions, the labels
-      // contained in these attrs are always resolved.
-      repeated ConfiguredLabelAttr attrs = 2;
-    }
+    repeated ConfiguredExecGroup exec_groups = 1;
 
     // All subrules that may be invoked by the rule, either directly
     // or through other subrules, sorted alphabetically by identifier.
-    repeated Subrule subrules = 2;
+    repeated ConfiguredSubrule subrules = 2;
 
     // The values of label attrs whose outgoing edge transition does
     // not read the values of public attrs, sorted by attr index.

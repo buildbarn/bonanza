@@ -278,7 +278,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 	rulePackage := ruleIdentifier.GetCanonicalLabel().GetCanonicalPackage()
 	missingDependencies := false
 	namedExecGroups := ruleDefinition.Message.ExecGroups
-	execGroups := make([]*model_analysis_pb.ConfiguredRule_Value_ExecGroup, 0, len(namedExecGroups))
+	execGroups := make([]*model_analysis_pb.ConfiguredExecGroup, 0, len(namedExecGroups))
 	execGroupPlatformLabels := make(map[string]string, len(namedExecGroups))
 	for _, namedExecGroup := range namedExecGroups {
 		execGroupDefinition := namedExecGroup.ExecGroup
@@ -318,7 +318,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 		if actual, expected := len(toolchainIdentifiers), len(execGroupDefinition.Toolchains); actual != expected {
 			return PatchedConfiguredRuleValue[TMetadata]{}, fmt.Errorf("obtained %d resolved toolchains, while exec group %#v depends on %d toolchains", actual, namedExecGroup.Name, expected)
 		}
-		execGroups = append(execGroups, &model_analysis_pb.ConfiguredRule_Value_ExecGroup{
+		execGroups = append(execGroups, &model_analysis_pb.ConfiguredExecGroup{
 			ToolchainIdentifiers:  toolchainIdentifiers,
 			PlatformLabel:         resolvedToolchains.Message.PlatformLabel,
 			PlatformPkixPublicKey: resolvedToolchains.Message.PlatformPkixPublicKey,
@@ -362,7 +362,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 		// computed without having access to any of the target's
 		// attrs.
 		sortedSubruleIdentifiers := slices.Sorted(maps.Keys(subruleDefinitions))
-		subrules := make([]*model_analysis_pb.ConfiguredRule_Value_Subrule, 0, len(sortedSubruleIdentifiers))
+		subrules := make([]*model_analysis_pb.ConfiguredSubrule, 0, len(sortedSubruleIdentifiers))
 		for _, subruleIdentifierStr := range sortedSubruleIdentifiers {
 			subruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(subruleIdentifierStr)
 			if err != nil {
@@ -416,7 +416,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 				}
 				attrs = append(attrs, configuredAttr)
 			}
-			subrules = append(subrules, &model_analysis_pb.ConfiguredRule_Value_Subrule{
+			subrules = append(subrules, &model_analysis_pb.ConfiguredSubrule{
 				Identifier: subruleIdentifierStr,
 				Attrs:      attrs,
 			})
