@@ -234,6 +234,18 @@ var commands = map[string]command{
 				flagType:    stringFlagType{},
 			},
 			{
+				longName:    "extra_default_output_groups",
+				description: "A list of comma-separated output group names to treat as part of the default set of output groups. Unlike --output_groups=+foo, which is always built, an extra default output group is only built when the default set is: it is omitted if --output_groups contains an unprefixed group, and can be removed with --output_groups=-foo. No error is reported if they are absent from a top-level target or aspect.",
+				flagType:    stringListFlagType{},
+			},
+			{
+				longName:    "incompatible_fail_on_unknown_output_groups",
+				description: "If true, building explicitly requested output groups that are not present on any top-level target or aspect fails the build.",
+				flagType: boolFlagType{
+					defaultValue: false,
+				},
+			},
+			{
 				longName:    "keep_going",
 				shortName:   "k",
 				description: "Continue as much as possible after an error. While the target that failed and those that depend on it cannot be analyzed, other prerequisites of these targets can be.",
@@ -245,6 +257,11 @@ var commands = map[string]command{
 				longName:    "protocopt",
 				description: "Additional options to pass to the protobuf compiler.",
 				flagType:    buildSettingFlagType{},
+			},
+			{
+				longName:    "output_groups",
+				description: "A list of comma-separated output group names, each of which optionally prefixed by a + or a -. A group prefixed by + is added to the default set of output groups, while a group prefixed by - is removed from the default set. If at least one group is not prefixed, the default set of output groups is omitted.",
+				flagType:    stringListFlagType{},
 			},
 			{
 				longName:    "platforms",

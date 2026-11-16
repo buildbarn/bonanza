@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
@@ -36,6 +37,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 		return PatchedBuildResultValue[TMetadata]{}, err
 	}
 	missingDependencies := false
+	providedOutputGroups := map[string]struct{}{}
 
 	// Determine which aspects to apply to the targets that are
 	// built, as provided through --aspects.
@@ -108,10 +110,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 							model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
 							/* aspects = */ nil,
 						),
+						Outputs: key.Outputs,
 					}
 				}),
 			)
-			if !targetCompletionValue.IsSet() {
+			if targetCompletionValue.IsSet() {
+				for _, outputGroup := range targetCompletionValue.Message.ProvidedOutputGroups {
+					providedOutputGroups[outputGroup] = struct{}{}
+				}
+			} else {
 				missingDependencies = true
 			}
 
@@ -127,10 +134,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 								model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
 								model_core.PatchList(e, model_core.Nested(topLevelAspects, topLevelAspects.Message[:i+1])).Merge(patcher),
 							),
+							Outputs: key.Outputs,
 						}
 					}),
 				)
-				if !aspectCompletionValue.IsSet() {
+				if aspectCompletionValue.IsSet() {
+					for _, outputGroup := range aspectCompletionValue.Message.ProvidedOutputGroups {
+						providedOutputGroups[outputGroup] = struct{}{}
+					}
+				} else {
 					missingDependencies = true
 				}
 			}
@@ -144,6 +156,19 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	}
 	if missingDependencies {
 		return PatchedBuildResultValue[TMetadata]{}, evaluation.ErrMissingDependency
+	}
+
+	// Like Bazel, optionally fail if output groups were requested
+	// explicitly that are not provided by any of the targets or
+	// aspects.
+	var unknownOutputGroups []string
+	for _, outputGroup := range key.RequiredOutputGroups {
+		if _, ok := providedOutputGroups[outputGroup]; !ok {
+			unknownOutputGroups = append(unknownOutputGroups, fmt.Sprintf("%#v", outputGroup))
+		}
+	}
+	if len(unknownOutputGroups) > 0 {
+		return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("requested output groups %s are not provided by any of the top-level targets or aspects", strings.Join(unknownOutputGroups, ", "))
 	}
 
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.BuildResult_Value{}), nil

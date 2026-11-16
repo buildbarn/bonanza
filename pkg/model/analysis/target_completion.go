@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -55,120 +56,164 @@ func buildFilesInDepset[TReference object.BasicReference, TMetadata model_core.R
 	return errIter
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetCompletion_Key, TReference], e TargetCompletionEnvironment[TReference, TMetadata]) (PatchedTargetCompletionValue[TMetadata], error) {
-	if len(key.Message.Variant.GetAspects()) > 0 {
-		return c.computeAspectTargetCompletionValue(ctx, key, e)
-	}
-
-	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
-
-	// TODO: This should also respect --output_groups.
-	defaultInfo, err := getProviderFromConfiguredTarget(
-		e,
-		key.Message.Label,
-		model_core.Patch(e, model_core.Nested(key, key.Message.Variant.GetConfigurationReference())),
-		defaultInfoProviderIdentifier,
-	)
-	if err != nil {
-		return PatchedTargetCompletionValue[TMetadata]{}, err
-	}
-
-	if !gotValueReaders {
-		return PatchedTargetCompletionValue[TMetadata]{}, evaluation.ErrMissingDependency
-	}
-	files, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, defaultInfo, "files")
-	if err != nil {
-		return PatchedTargetCompletionValue[TMetadata]{}, err
-	}
-	filesDepset, ok := files.Message.Kind.(*model_starlark_pb.Value_Depset)
-	if !ok {
-		return PatchedTargetCompletionValue[TMetadata]{}, errors.New("\"files\" field of DefaultInfo provider is not a depset")
-	}
-
-	missingDependencies := false
-	if err := buildFilesInDepset(ctx, e, valueReaders, model_core.Nested(files, filesDepset.Depset), &missingDependencies); err != nil {
-		return PatchedTargetCompletionValue[TMetadata]{}, fmt.Errorf("\"files\" field of DefaultInfo provider: %w", err)
-	}
-	if missingDependencies {
-		return PatchedTargetCompletionValue[TMetadata]{}, evaluation.ErrMissingDependency
-	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.TargetCompletion_Value{}), nil
-}
-
-// computeAspectTargetCompletionValue builds the outputs of the last
-// aspect in the list of aspects provided in the key, applied to the
-// target. As aspects cannot return DefaultInfo, these are the outputs
-// contained in the aspect's instance of OutputGroupInfo.
-//
-// TODO: Only build the output groups requested through --output_groups.
-// Until that is supported, all output groups are built.
-func (*baseComputer[TReference, TMetadata]) computeAspectTargetCompletionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetCompletion_Key, TReference], e TargetCompletionEnvironment[TReference, TMetadata]) (PatchedTargetCompletionValue[TMetadata], error) {
-	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
-
-	// Aspects are applied in the configuration yielded by the
-	// target's incoming edge transition. Obtain the providers of
-	// the last aspect only, as opposed to the merged providers of
-	// the target and all aspects.
-	incomingEdgeTransition := e.GetTargetIncomingEdgeTransitionValue(
-		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
-			return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
-				Label:                  key.Message.Label,
-				ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.Variant.GetConfigurationReference())).Merge(patcher),
-			}
-		}),
-	)
-	if !incomingEdgeTransition.IsSet() || !gotValueReaders {
-		return PatchedTargetCompletionValue[TMetadata]{}, evaluation.ErrMissingDependency
-	}
-	configuredTarget := e.GetConfiguredTargetValue(
-		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
-			return &model_analysis_pb.ConfiguredTarget_Key{
-				Label: key.Message.Label,
-				Variant: newTargetVariant(
-					model_core.Patch(e, model_core.Nested(incomingEdgeTransition, incomingEdgeTransition.Message.OutputConfigurationReference)).Merge(patcher),
-					model_core.PatchList(e, model_core.Nested(key, key.Message.Variant.GetAspects())).Merge(patcher),
-				),
-			}
-		}),
-	)
-	if !configuredTarget.IsSet() {
-		return PatchedTargetCompletionValue[TMetadata]{}, evaluation.ErrMissingDependency
-	}
-
-	providerInstances := configuredTarget.Message.ProviderInstances
-	outputGroupInfoProviderIdentifierStr := outputGroupInfoProviderIdentifier.String()
-	outputGroupInfoIndex, ok := sort.Find(
-		len(providerInstances),
+// findProviderInstance looks up the instance of a provider in a list of
+// provider instances that is sorted by provider identifier.
+func findProviderInstance[TReference any](
+	providerInstances model_core.Message[[]*model_starlark_pb.Struct, TReference],
+	providerIdentifier string,
+) (model_core.Message[*model_starlark_pb.Struct, TReference], bool) {
+	index, ok := sort.Find(
+		len(providerInstances.Message),
 		func(i int) int {
-			return strings.Compare(outputGroupInfoProviderIdentifierStr, providerInstances[i].ProviderInstanceProperties.GetProviderIdentifier())
+			return strings.Compare(providerIdentifier, providerInstances.Message[i].ProviderInstanceProperties.GetProviderIdentifier())
 		},
 	)
 	if !ok {
-		// Aspect did not yield any output groups.
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.TargetCompletion_Value{}), nil
+		return model_core.Message[*model_starlark_pb.Struct, TReference]{}, false
+	}
+	return model_core.Nested(providerInstances, providerInstances.Message[index]), true
+}
+
+// buildSelectedOutputs builds the selected outputs of a target or
+// aspect: the files contained in DefaultInfo.files, and the files
+// contained in the fields of OutputGroupInfo. The fields of these
+// providers are only needed if the corresponding outputs are selected.
+// Providers that are not set and output groups that are not provided
+// are ignored. The names of the output groups that are provided are
+// returned.
+func buildSelectedOutputs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
+	e TargetCompletionEnvironment[TReference, TMetadata],
+	valueReaders *model_starlark.ValueReaders[TReference],
+	outputs *model_analysis_pb.OutputSelection,
+	defaultInfoFields model_core.Message[*model_starlark_pb.Struct_Fields, TReference],
+	outputGroupInfoFields model_core.Message[*model_starlark_pb.Struct_Fields, TReference],
+) ([]string, error) {
+	missingDependencies := false
+	buildField := func(fields model_core.Message[*model_starlark_pb.Struct_Fields, TReference], fieldName, description string) (bool, error) {
+		if fields.Message == nil {
+			return false, nil
+		}
+		if _, ok := slices.BinarySearch(fields.Message.Keys, fieldName); !ok {
+			return false, nil
+		}
+		value, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, fields, fieldName)
+		if err != nil {
+			return false, fmt.Errorf("%s: %w", description, err)
+		}
+		depset, ok := value.Message.Kind.(*model_starlark_pb.Value_Depset)
+		if !ok {
+			return false, fmt.Errorf("%s is not a depset", description)
+		}
+		if err := buildFilesInDepset(ctx, e, valueReaders, model_core.Nested(value, depset.Depset), &missingDependencies); err != nil {
+			return false, fmt.Errorf("%s: %w", description, err)
+		}
+		return true, nil
 	}
 
-	missingDependencies := false
-	var errIter error
-	for outputGroupName, outputGroup := range model_starlark.AllStructFields(
-		ctx,
-		valueReaders.List,
-		model_core.Nested(configuredTarget, providerInstances[outputGroupInfoIndex].Fields),
-		&errIter,
-	) {
-		outputGroupDepset, ok := outputGroup.Message.Kind.(*model_starlark_pb.Value_Depset)
-		if !ok {
-			return PatchedTargetCompletionValue[TMetadata]{}, fmt.Errorf("output group %#v is not a depset", outputGroupName)
-		}
-		if err := buildFilesInDepset(ctx, e, valueReaders, model_core.Nested(outputGroup, outputGroupDepset.Depset), &missingDependencies); err != nil {
-			return PatchedTargetCompletionValue[TMetadata]{}, fmt.Errorf("output group %#v: %w", outputGroupName, err)
+	if outputs.GetDefaultInfoFiles() {
+		if _, err := buildField(defaultInfoFields, "files", "field \"files\" of DefaultInfo"); err != nil {
+			return nil, err
 		}
 	}
-	if errIter != nil {
-		return PatchedTargetCompletionValue[TMetadata]{}, errIter
+	var providedOutputGroups []string
+	for _, outputGroup := range outputs.GetOutputGroups() {
+		provided, err := buildField(outputGroupInfoFields, outputGroup, fmt.Sprintf("output group %#v", outputGroup))
+		if err != nil {
+			return nil, err
+		}
+		if provided {
+			providedOutputGroups = append(providedOutputGroups, outputGroup)
+		}
 	}
 	if missingDependencies {
-		return PatchedTargetCompletionValue[TMetadata]{}, evaluation.ErrMissingDependency
+		return nil, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.TargetCompletion_Value{}), nil
+	return providedOutputGroups, nil
+}
+
+func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetCompletion_Key, TReference], e TargetCompletionEnvironment[TReference, TMetadata]) (PatchedTargetCompletionValue[TMetadata], error) {
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
+
+	// Obtain the fields of the providers of the target, or of the
+	// last aspect applied to it, that are needed to build the
+	// selected outputs.
+	outputs := key.Message.Outputs
+	var defaultInfoFields, outputGroupInfoFields model_core.Message[*model_starlark_pb.Struct_Fields, TReference]
+	if aspects := key.Message.Variant.GetAspects(); len(aspects) == 0 {
+		// Only request the providers that are needed, so that
+		// changes to other providers of the target don't cause
+		// this computation to be invalidated.
+		missingDependencies := !gotValueReaders
+		getProviderFields := func(providerIdentifier string) model_core.Message[*model_starlark_pb.Struct_Fields, TReference] {
+			targetProvider := e.GetTargetProviderValue(
+				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Key {
+					return &model_analysis_pb.TargetProvider_Key{
+						Label:              key.Message.Label,
+						Variant:            model_core.Patch(e, model_core.Nested(key, key.Message.Variant)).Merge(patcher),
+						ProviderIdentifier: providerIdentifier,
+					}
+				}),
+			)
+			if !targetProvider.IsSet() {
+				missingDependencies = true
+				return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}
+			}
+			return model_core.Nested(targetProvider, targetProvider.Message.Fields)
+		}
+		if outputs.GetDefaultInfoFiles() {
+			defaultInfoFields = getProviderFields(defaultInfoProviderIdentifier.String())
+		}
+		if len(outputs.GetOutputGroups()) > 0 {
+			outputGroupInfoFields = getProviderFields(outputGroupInfoProviderIdentifier.String())
+		}
+		if missingDependencies {
+			return PatchedTargetCompletionValue[TMetadata]{}, evaluation.ErrMissingDependency
+		}
+	} else {
+		// Aspects are applied in the configuration yielded by
+		// the target's incoming edge transition. Obtain the
+		// providers of the last aspect only, as opposed to the
+		// merged providers of the target and all aspects.
+		incomingEdgeTransition := e.GetTargetIncomingEdgeTransitionValue(
+			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
+				return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
+					Label:                  key.Message.Label,
+					ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.Variant.GetConfigurationReference())).Merge(patcher),
+				}
+			}),
+		)
+		if !incomingEdgeTransition.IsSet() || !gotValueReaders {
+			return PatchedTargetCompletionValue[TMetadata]{}, evaluation.ErrMissingDependency
+		}
+		configuredTarget := e.GetConfiguredTargetValue(
+			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
+				return &model_analysis_pb.ConfiguredTarget_Key{
+					Label: key.Message.Label,
+					Variant: newTargetVariant(
+						model_core.Patch(e, model_core.Nested(incomingEdgeTransition, incomingEdgeTransition.Message.OutputConfigurationReference)).Merge(patcher),
+						model_core.PatchList(e, model_core.Nested(key, aspects)).Merge(patcher),
+					),
+				}
+			}),
+		)
+		if !configuredTarget.IsSet() {
+			return PatchedTargetCompletionValue[TMetadata]{}, evaluation.ErrMissingDependency
+		}
+
+		// Aspects cannot return DefaultInfo, so only consider
+		// OutputGroupInfo.
+		providerInstances := model_core.Nested(configuredTarget, configuredTarget.Message.ProviderInstances)
+		if outputGroupInfo, ok := findProviderInstance(providerInstances, outputGroupInfoProviderIdentifier.String()); ok {
+			outputGroupInfoFields = model_core.Nested(outputGroupInfo, outputGroupInfo.Message.Fields)
+		}
+	}
+
+	providedOutputGroups, err := buildSelectedOutputs(ctx, e, valueReaders, outputs, defaultInfoFields, outputGroupInfoFields)
+	if err != nil {
+		return PatchedTargetCompletionValue[TMetadata]{}, err
+	}
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.TargetCompletion_Value{
+		ProvidedOutputGroups: providedOutputGroups,
+	}), nil
 }

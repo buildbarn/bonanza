@@ -201,6 +201,19 @@ message BuiltinsModuleNames {
   }
 }
 
+// The outputs of targets and aspects that need to be built.
+message OutputSelection {
+  // Whether to build the files contained in DefaultInfo.files. As
+  // aspects cannot return DefaultInfo, this field has no effect when
+  // building the outputs of aspects.
+  bool default_info_files = 1;
+
+  // The names of the fields of OutputGroupInfo whose files need to be
+  // built, sorted alphabetically. Output groups that are not provided
+  // by a target or aspect are ignored.
+  repeated string output_groups = 2;
+}
+
 message BuildResult {
   message Key {
     message BuildSettingOverride {
@@ -255,6 +268,19 @@ message BuildResult {
     // --aspects_parameters command line flag. Parameters apply to all
     // aspects that have a public attr with the same name.
     repeated AspectParameter aspect_parameters = 4;
+
+    // The outputs of the targets and aspects to build, corresponding
+    // to Bazel's --output_groups command line flag.
+    OutputSelection outputs = 5;
+
+    // The names of output groups that need to be provided by at least
+    // one of the targets or aspects that are built, sorted
+    // alphabetically. It is an error for these output groups to be
+    // absent. This is used to implement Bazel's
+    // --incompatible_fail_on_unknown_output_groups command line flag,
+    // which only applies to output groups that are requested
+    // explicitly.
+    repeated string required_output_groups = 6;
   }
 
   message Value {}
@@ -2714,9 +2740,17 @@ message TargetCompletion {
     // target itself. This is used to build aspects that are applied to
     // top-level targets.
     bonanza.model.starlark.TargetVariant variant = 2;
+
+    // The outputs of the target or aspect to build.
+    OutputSelection outputs = 3;
   }
 
-  message Value {}
+  message Value {
+    // The names of the output groups listed in
+    // Key.outputs.output_groups that are provided by the target or
+    // aspect, sorted alphabetically.
+    repeated string provided_output_groups = 1;
+  }
 }
 
 // TargetDirectDependencies returns the labels of the targets on which

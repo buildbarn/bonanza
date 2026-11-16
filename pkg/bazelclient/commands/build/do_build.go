@@ -182,6 +182,62 @@ func (f *localCapturableFile[TFile]) Discard() {
 	f.file = nil
 }
 
+// defaultOutputGroupName is the name of the output group that Bazel
+// uses to refer to the files contained in DefaultInfo.files.
+const defaultOutputGroupName = "default"
+
+// getOutputSelection computes which outputs to build, based on the
+// values of --output_groups. Like Bazel, groups prefixed by "+" or "-"
+// are added to or removed from the default set of output groups. If at
+// least one group is not prefixed, the default set of output groups is
+// omitted. The default set contains the output group named "default",
+// which refers to the files contained in DefaultInfo.files, and any
+// output groups provided through --extra_default_output_groups.
+//
+// In addition to the outputs to build, the names of the output groups
+// that were requested explicitly are returned, excluding "default" and
+// the output groups that are part of the default set. These are used to
+// implement --incompatible_fail_on_unknown_output_groups.
+func getOutputSelection(outputGroupsArguments, extraDefaultOutputGroupsArguments []string) (*model_analysis_pb.OutputSelection, []string) {
+	splitArguments := func(arguments []string) []string {
+		var outputGroups []string
+		for _, argument := range arguments {
+			outputGroups = append(outputGroups, strings.FieldsFunc(argument, func(r rune) bool { return r == ',' })...)
+		}
+		return outputGroups
+	}
+	outputGroups := splitArguments(outputGroupsArguments)
+
+	selected := map[string]struct{}{}
+	if !slices.ContainsFunc(outputGroups, func(outputGroup string) bool {
+		return !strings.HasPrefix(outputGroup, "+") && !strings.HasPrefix(outputGroup, "-")
+	}) {
+		selected[defaultOutputGroupName] = struct{}{}
+		for _, outputGroup := range splitArguments(extraDefaultOutputGroupsArguments) {
+			selected[outputGroup] = struct{}{}
+		}
+	}
+	explicit := map[string]struct{}{}
+	for _, outputGroup := range outputGroups {
+		if name, ok := strings.CutPrefix(outputGroup, "-"); ok {
+			delete(selected, name)
+			delete(explicit, name)
+		} else {
+			name := strings.TrimPrefix(outputGroup, "+")
+			selected[name] = struct{}{}
+			explicit[name] = struct{}{}
+		}
+	}
+
+	_, defaultInfoFiles := selected[defaultOutputGroupName]
+	delete(selected, defaultOutputGroupName)
+	delete(explicit, defaultOutputGroupName)
+	return &model_analysis_pb.OutputSelection{
+		DefaultInfoFiles: defaultInfoFiles,
+		OutputGroups:     slices.Sorted(maps.Keys(selected)),
+	}, slices.Sorted(maps.Keys(explicit))
+}
+
 // DoBuild implements the "bazel build" command, which builds a
 // specified set of targets in the current workspace.
 func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
@@ -268,11 +324,19 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			})
 		}
 
+		outputSelection, explicitOutputGroups := getOutputSelection(args.BuildFlags.OutputGroups, args.BuildFlags.ExtraDefaultOutputGroups)
+		var requiredOutputGroups []string
+		if args.BuildFlags.IncompatibleFailOnUnknownOutputGroups {
+			requiredOutputGroups = explicitOutputGroups
+		}
+
 		return &model_analysis_pb.BuildResult_Key{
-			Query:            label.QueryToString(query),
-			Configurations:   configurations,
-			Aspects:          aspects,
-			AspectParameters: aspectParameters,
+			Query:                label.QueryToString(query),
+			Configurations:       configurations,
+			Aspects:              aspects,
+			AspectParameters:     aspectParameters,
+			Outputs:              outputSelection,
+			RequiredOutputGroups: requiredOutputGroups,
 		}
 	})
 	if outcomesLink, ok := evaluation.GetOutcomesLink(); ok {

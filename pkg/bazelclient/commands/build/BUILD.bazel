@@ -71,6 +71,7 @@ go_test(
     name = "build_test",
     srcs = [
         "ignored_directories_test.go",
+        "output_groups_internal_test.go",
         "render_test.go",
     ],
     embed = [":build"],
@@ -78,7 +79,9 @@ go_test(
         "//pkg/bazelclient/formatted",
         "//pkg/glob",
         "//pkg/model/render",
+        "//pkg/proto/model/analysis",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
+        "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",
     ],
 )
