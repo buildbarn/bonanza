@@ -348,7 +348,7 @@ func FileGetRunfilesPath[TReference object.BasicReference](f model_core.Message[
 
 func appendFileOwnerToPath[TReference object.BasicReference](f model_core.Message[*model_starlark_pb.File, TReference], parts []string) ([]string, error) {
 	if o := f.Message.Owner; o != nil {
-		configurationComponent, err := ConfigurationReferenceToComponent(model_core.Nested(f, o.ConfigurationReference))
+		configurationComponent, err := ConfigurationReferenceToComponent(model_core.Nested(f, o.Variant.GetConfigurationReference()))
 		if err != nil {
 			return nil, err
 		}

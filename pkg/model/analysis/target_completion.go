@@ -15,11 +15,16 @@ import (
 func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetCompletion_Key, TReference], e TargetCompletionEnvironment[TReference, TMetadata]) (PatchedTargetCompletionValue[TMetadata], error) {
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
+	if len(key.Message.Variant.GetAspects()) > 0 {
+		// TODO: Add support for building the outputs of aspects.
+		return PatchedTargetCompletionValue[TMetadata]{}, errors.New("building the outputs of aspects is not supported yet")
+	}
+
 	// TODO: This should also respect --output_groups.
 	defaultInfo, err := getProviderFromConfiguredTarget(
 		e,
 		key.Message.Label,
-		model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference)),
+		model_core.Patch(e, model_core.Nested(key, key.Message.Variant.GetConfigurationReference())),
 		defaultInfoProviderIdentifier,
 	)
 	if err != nil {

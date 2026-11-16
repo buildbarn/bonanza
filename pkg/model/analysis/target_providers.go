@@ -131,7 +131,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetProvidersValue(ctx co
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
 			return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
 				Label:                  key.Message.Label,
-				ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference)).Merge(patcher),
+				ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.Variant.GetConfigurationReference())).Merge(patcher),
 			}
 		}),
 	)
@@ -143,8 +143,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetProvidersValue(ctx co
 	configuredTarget := e.GetConfiguredTargetValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
 			return &model_analysis_pb.ConfiguredTarget_Key{
-				Label:                  key.Message.Label,
-				ConfigurationReference: model_core.Patch(e, configurationReference).Merge(patcher),
+				Label:   key.Message.Label,
+				Variant: newTargetVariant(model_core.Patch(e, configurationReference).Merge(patcher), nil),
 			}
 		}),
 	)
@@ -152,7 +152,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetProvidersValue(ctx co
 		return PatchedTargetProvidersValue[TMetadata]{}, model_evaluation.ErrMissingDependency
 	}
 
-	if len(key.Message.Aspects) == 0 {
+	if len(key.Message.Variant.GetAspects()) == 0 {
 		return newTargetProvidersValueWithoutAspects(e, configuredTarget), nil
 	}
 	return c.computeTargetProvidersValueWithAspects(ctx, key, e, configurationReference, configuredTarget)
@@ -193,7 +193,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTargetProvidersValueWithAsp
 	// aspects preceding it, meaning that aspects are applied to
 	// every prefix of the list. Aspects are applied in the same
 	// configuration as the target itself.
-	aspects := key.Message.Aspects
+	aspects := key.Message.Variant.GetAspects()
 	sources := make([]providerInstanceSource[TReference], 0, 1+len(aspects))
 	sources = append(sources, providerInstanceSource[TReference]{
 		description:       fmt.Sprintf("target %#v", key.Message.Label),
@@ -204,9 +204,11 @@ func (c *baseComputer[TReference, TMetadata]) computeTargetProvidersValueWithAsp
 		aspectConfiguredTarget := e.GetConfiguredTargetValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
 				return &model_analysis_pb.ConfiguredTarget_Key{
-					Label:                  key.Message.Label,
-					ConfigurationReference: model_core.Patch(e, configurationReference).Merge(patcher),
-					Aspects:                model_core.PatchList(e, model_core.Nested(key, aspects[:i+1])).Merge(patcher),
+					Label: key.Message.Label,
+					Variant: newTargetVariant(
+						model_core.Patch(e, configurationReference).Merge(patcher),
+						model_core.PatchList(e, model_core.Nested(key, aspects[:i+1])).Merge(patcher),
+					),
 				}
 			}),
 		)

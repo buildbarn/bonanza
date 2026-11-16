@@ -280,9 +280,11 @@ func newConfiguredTargetReferenceCreator[TReference object.BasicReference, TMeta
 		targetProviders := e.GetTargetProvidersValue(
 			model_core.NewPatchedMessage(
 				&model_analysis_pb.TargetProviders_Key{
-					Label:                  resolvedLabelStr,
-					ConfigurationReference: patchedConfigurationReference.Message,
-					Aspects:                model_core.PatchList(e, aspects).Merge(patchedConfigurationReference.Patcher),
+					Label: resolvedLabelStr,
+					Variant: newTargetVariant(
+						patchedConfigurationReference.Message,
+						model_core.PatchList(e, aspects).Merge(patchedConfigurationReference.Patcher),
+					),
 				},
 				patchedConfigurationReference.Patcher,
 			),

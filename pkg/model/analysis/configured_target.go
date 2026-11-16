@@ -303,7 +303,7 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("target does not exist")
 	}
 
-	aspects := key.Message.Aspects
+	aspects := key.Message.Variant.GetAspects()
 	switch targetKind := targetValue.Message.Definition.GetKind().(type) {
 	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
 		// Aspects never apply to file targets. However, aspects
@@ -366,9 +366,11 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 		ownerConfiguredTarget := e.GetConfiguredTargetValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
 				return &model_analysis_pb.ConfiguredTarget_Key{
-					Label:                  targetLabel.GetCanonicalPackage().AppendTargetName(ownerTargetName).String(),
-					ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference)).Merge(patcher),
-					Aspects:                model_core.PatchList(e, model_core.Nested(key, generatingRuleAspects)).Merge(patcher),
+					Label: targetLabel.GetCanonicalPackage().AppendTargetName(ownerTargetName).String(),
+					Variant: newTargetVariant(
+						model_core.Patch(e, model_core.Nested(key, key.Message.Variant.GetConfigurationReference())).Merge(patcher),
+						model_core.PatchList(e, model_core.Nested(key, generatingRuleAspects)).Merge(patcher),
+					),
 				}
 			}),
 		)
@@ -397,7 +399,7 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 type ConfiguredTargetEnvironmentForTesting ConfiguredTargetEnvironment[model_core.CreatedObjectTree, model_core.CreatedObjectTree]
 
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
-	if len(key.Message.Aspects) > 0 {
+	if len(key.Message.Variant.GetAspects()) > 0 {
 		return c.computeConfiguredTargetValueWithAspects(ctx, key, e)
 	}
 
@@ -432,7 +434,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		// computed by TargetIncomingEdgeTransition, yields the
 		// empty configuration, as their properties don't depend
 		// on it.
-		if key.Message.ConfigurationReference != nil {
+		if key.Message.Variant != nil {
 			return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("package groups and source file targets cannot be configured with a configuration")
 		}
 	}
@@ -459,7 +461,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		// file is that of the rule target that owns it, so the
 		// configuration is also that of the owner.
 		ownerTargetNameStr := targetKind.PredeclaredOutputFileTarget.OwnerTargetName
-		ownerConfigurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
+		ownerVariant := model_core.Nested(key, key.Message.Variant)
 
 		// Handcraft a DefaultInfo provider for this output file.
 		identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
@@ -473,12 +475,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			starlarkValueEncoders,
 			emptyDefaultInfo,
 			model_core.Nested(
-				ownerConfigurationReference,
+				ownerVariant,
 				&model_starlark_pb.File{
 					Owner: &model_starlark_pb.File_Owner{
-						ConfigurationReference: ownerConfigurationReference.Message,
-						TargetName:             ownerTargetNameStr,
-						Type:                   model_starlark_pb.File_Owner_FILE,
+						Variant:    ownerVariant.Message,
+						TargetName: ownerTargetNameStr,
+						Type:       model_starlark_pb.File_Owner_FILE,
 					},
 					Label: targetLabel.String(),
 				},
@@ -544,9 +546,9 @@ func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.Refere
 	targetProvider := e.GetTargetProviderValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Key {
 			return &model_analysis_pb.TargetProvider_Key{
-				Label:                  targetLabel,
-				ConfigurationReference: configurationReference.Merge(patcher),
-				ProviderIdentifier:     providerIdentifierStr,
+				Label:              targetLabel,
+				Variant:            newTargetVariant(configurationReference.Merge(patcher), nil),
+				ProviderIdentifier: providerIdentifierStr,
 			}
 		}),
 	)

@@ -102,6 +102,7 @@ go_library(
         "target_output.go",
         "target_provider.go",
         "target_providers.go",
+        "target_variant.go",
         "test_suite_tests.go",
         "used_module_extension.go",
         "used_module_extensions.go",

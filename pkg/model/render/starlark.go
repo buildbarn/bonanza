@@ -387,13 +387,13 @@ func (*StarlarkRenderer) renderFile(file model_core.Message[*model_starlark_pb.F
 		kind = "generated file "
 	}
 	description := Styled(RoleDim, "<"+kind+file.Message.GetLabel())
-	if configurationReference := owner.ConfigurationReference; configurationReference != nil {
+	if variant := owner.Variant; variant.GetConfigurationReference() != nil {
 		// Provide a link to the configuration in which the
 		// file is built.
 		description = Concat(
 			description,
 			Styled(RoleDim, " in configuration "),
-			fieldReferenceLink(model_core.Nested(file, configurationReference), owner, "configuration_reference", Text("...")),
+			fieldReferenceLink(model_core.Nested(file, variant.ConfigurationReference), variant, "configuration_reference", Text("...")),
 		)
 	}
 	return Concat(description, Styled(RoleDim, ">"))

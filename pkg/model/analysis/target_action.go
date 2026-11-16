@@ -19,15 +19,14 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetActionValue(ctx context
 	if id == nil {
 		return PatchedTargetActionValue[TMetadata]{}, errors.New("no target action identifier specified")
 	}
-	patchedConfigurationReference := model_core.Patch(e, model_core.Nested(key, id.ConfigurationReference))
+	patchedVariant := model_core.Patch(e, model_core.Nested(key, id.Variant))
 	configuredTarget := e.GetConfiguredTargetValue(
 		model_core.NewPatchedMessage(
 			&model_analysis_pb.ConfiguredTarget_Key{
-				Label:                  id.Label,
-				ConfigurationReference: patchedConfigurationReference.Message,
-				Aspects:                model_core.PatchList(e, model_core.Nested(key, id.Aspects)).Merge(patchedConfigurationReference.Patcher),
+				Label:   id.Label,
+				Variant: patchedVariant.Message,
 			},
-			patchedConfigurationReference.Patcher,
+			patchedVariant.Patcher,
 		),
 	)
 	if !configuredTarget.IsSet() || !gotAnalysisReaders {

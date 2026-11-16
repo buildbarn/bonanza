@@ -963,10 +963,10 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
+	configurationReference := model_core.Nested(key, key.Message.Variant.GetConfigurationReference())
 	outputRegistrar := &targetOutputRegistrar[TReference, TMetadata]{
-		configurationReference: configurationReference,
-		targetLabel:            targetLabel,
+		variant:     model_core.Nested(key, key.Message.Variant),
+		targetLabel: targetLabel,
 
 		outputsByPackageRelativePath: map[string]*targetOutput[TMetadata]{},
 		outputsByFile:                map[*model_starlark.File[TReference, TMetadata]]*targetOutput[TMetadata]{},
@@ -1471,14 +1471,11 @@ func (o *targetOutput[TMetadata]) setDefinition(definition model_core.PatchedMes
 }
 
 type targetOutputRegistrar[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference]
-	targetLabel            label.CanonicalLabel
-
-	// If outputs are declared by an aspect, the aspects that are
-	// applied to the target, as stored in File.Owner.aspects. These
-	// need to be backed by the same message as
-	// configurationReference.
-	aspects []*model_starlark_pb.AppliedAspect
+	// The variant of the target that declares the outputs, as stored
+	// in File.Owner.variant. If outputs are declared by an aspect, it
+	// contains the aspects that are applied to the target.
+	variant     model_core.Message[*model_starlark_pb.TargetVariant, TReference]
+	targetLabel label.CanonicalLabel
 
 	outputsByPackageRelativePath map[string]*targetOutput[TMetadata]
 	outputsByFile                map[*model_starlark.File[TReference, TMetadata]]*targetOutput[TMetadata]
@@ -1505,12 +1502,11 @@ func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename 
 	}
 	or.outputsByPackageRelativePath[filename.String()] = o
 	f := model_starlark.NewFile[TReference, TMetadata](
-		model_core.Nested(or.configurationReference, &model_starlark_pb.File{
+		model_core.Nested(or.variant, &model_starlark_pb.File{
 			Owner: &model_starlark_pb.File_Owner{
-				ConfigurationReference: or.configurationReference.Message,
-				TargetName:             or.targetLabel.GetTargetName().String(),
-				Type:                   fileType,
-				Aspects:                or.aspects,
+				Variant:    or.variant.Message,
+				TargetName: or.targetLabel.GetTargetName().String(),
+				Type:       fileType,
 			},
 			Label: or.targetLabel.GetCanonicalPackage().AppendTargetName(filename).String(),
 		}),

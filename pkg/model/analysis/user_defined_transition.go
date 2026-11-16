@@ -462,9 +462,9 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 		featureFlagProvider := e.GetTargetProviderValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Key {
 				return &model_analysis_pb.TargetProvider_Key{
-					Label:                  visibleBuildSettingLabel,
-					ConfigurationReference: model_core.Patch(e, configurationReference).Merge(patcher),
-					ProviderIdentifier:     featureFlagInfoProviderIdentifierStr,
+					Label:              visibleBuildSettingLabel,
+					Variant:            newTargetVariant(model_core.Patch(e, configurationReference).Merge(patcher), nil),
+					ProviderIdentifier: featureFlagInfoProviderIdentifierStr,
 				}
 			}),
 		)

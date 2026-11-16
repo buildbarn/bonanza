@@ -500,18 +500,17 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("invalid target name: %w", err)
 		}
 
-		configurationReference := model_core.Nested(f, o.ConfigurationReference)
+		variant := model_core.Nested(f, o.Variant)
 		targetLabel := fileLabel.GetCanonicalPackage().AppendTargetName(targetName)
-		patchedConfigurationReference := model_core.Patch(e, configurationReference)
+		patchedVariant := model_core.Patch(e, variant)
 		output := e.GetTargetOutputValue(
 			model_core.NewPatchedMessage(
 				&model_analysis_pb.TargetOutput_Key{
-					Label:                  targetLabel.String(),
-					ConfigurationReference: patchedConfigurationReference.Message,
-					PackageRelativePath:    fileLabel.GetTargetName().String(),
-					Aspects:                model_core.PatchList(e, model_core.Nested(f, o.Aspects)).Merge(patchedConfigurationReference.Patcher),
+					Label:               targetLabel.String(),
+					Variant:             patchedVariant.Message,
+					PackageRelativePath: fileLabel.GetTargetName().String(),
 				},
-				patchedConfigurationReference.Patcher,
+				patchedVariant.Patcher,
 			),
 		)
 		if !output.IsSet() {
@@ -522,18 +521,17 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 		case *model_analysis_pb.TargetOutputDefinition_ActionId:
 			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 			directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
-			patchedConfigurationReference := model_core.Patch(e, configurationReference)
+			patchedVariant := model_core.Patch(e, variant)
 			targetActionResult := e.GetTargetActionResultValue(
 				model_core.NewPatchedMessage(
 					&model_analysis_pb.TargetActionResult_Key{
 						Id: &model_analysis_pb.TargetActionId{
-							Label:                  targetLabel.String(),
-							ConfigurationReference: patchedConfigurationReference.Message,
-							ActionId:               source.ActionId,
-							Aspects:                model_core.PatchList(e, model_core.Nested(f, o.Aspects)).Merge(patchedConfigurationReference.Patcher),
+							Label:    targetLabel.String(),
+							Variant:  patchedVariant.Message,
+							ActionId: source.ActionId,
 						},
 					},
-					patchedConfigurationReference.Patcher,
+					patchedVariant.Patcher,
 				),
 			)
 			if !gotDirectoryCreationParameters || !gotDirectoryReaders || !targetActionResult.IsSet() {
@@ -592,18 +590,17 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				// We only try to do this when needed,
 				// as it's only rarely the case that
 				// such dependencies exist.
-				patchedConfigurationReference := model_core.Patch(e, configurationReference)
+				patchedVariant := model_core.Patch(e, variant)
 				targetActionInputRoot := e.GetTargetActionInputRootValue(
 					model_core.NewPatchedMessage(
 						&model_analysis_pb.TargetActionInputRoot_Key{
 							Id: &model_analysis_pb.TargetActionId{
-								Label:                  targetLabel.String(),
-								ConfigurationReference: patchedConfigurationReference.Message,
-								ActionId:               source.ActionId,
-								Aspects:                model_core.PatchList(e, model_core.Nested(f, o.Aspects)).Merge(patchedConfigurationReference.Patcher),
+								Label:    targetLabel.String(),
+								Variant:  patchedVariant.Message,
+								ActionId: source.ActionId,
 							},
 						},
-						patchedConfigurationReference.Patcher,
+						patchedVariant.Patcher,
 					),
 				)
 				if !targetActionInputRoot.IsSet() {
@@ -741,7 +738,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				return PatchedFileRootValue[TMetadata]{}, err
 			}
 
-			components, err := getPackageOutputDirectoryComponents(configurationReference, fileLabel.GetCanonicalPackage(), key.Message.DirectoryLayout)
+			components, err := getPackageOutputDirectoryComponents(model_core.Nested(variant, variant.Message.GetConfigurationReference()), fileLabel.GetCanonicalPackage(), key.Message.DirectoryLayout)
 			if err != nil {
 				return PatchedFileRootValue[TMetadata]{}, err
 			}
@@ -785,7 +782,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
 
-			components, err := getPackageOutputDirectoryComponents(configurationReference, fileLabel.GetCanonicalPackage(), key.Message.DirectoryLayout)
+			components, err := getPackageOutputDirectoryComponents(model_core.Nested(variant, variant.Message.GetConfigurationReference()), fileLabel.GetCanonicalPackage(), key.Message.DirectoryLayout)
 			if err != nil {
 				return PatchedFileRootValue[TMetadata]{}, err
 			}

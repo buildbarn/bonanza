@@ -83,7 +83,7 @@ func TestTargetProviders(t *testing.T) {
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.ConfiguredTarget_Key {
 				return &model_analysis_pb.ConfiguredTarget_Key{
 					Label:   label,
-					Aspects: aspects,
+					Variant: newTestTargetVariant(aspects),
 				}
 			}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](value))
@@ -93,7 +93,7 @@ func TestTargetProviders(t *testing.T) {
 			ctx,
 			model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.TargetProviders_Key{
 				Label:   label,
-				Aspects: aspects,
+				Variant: newTestTargetVariant(aspects),
 			}),
 			e,
 		)
@@ -187,7 +187,7 @@ func TestTargetProviders(t *testing.T) {
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.ConfiguredTarget_Key {
 				return &model_analysis_pb.ConfiguredTarget_Key{
 					Label:   "@@main+//:foo",
-					Aspects: []*model_starlark_pb.AppliedAspect{aspect1},
+					Variant: newTestTargetVariant([]*model_starlark_pb.AppliedAspect{aspect1}),
 				}
 			}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.ConfiguredTarget_Value {

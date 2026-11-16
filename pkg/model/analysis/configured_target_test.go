@@ -46,7 +46,7 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 			ctx,
 			model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.ConfiguredTarget_Key{
 				Label:   label,
-				Aspects: aspects,
+				Variant: newTestTargetVariant(aspects),
 			}),
 			e,
 		)
@@ -128,7 +128,7 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.ConfiguredTarget_Key {
 				return &model_analysis_pb.ConfiguredTarget_Key{
 					Label:   "@@main+//:foo",
-					Aspects: []*model_starlark_pb.AppliedAspect{aspect2, aspect3},
+					Variant: newTestTargetVariant([]*model_starlark_pb.AppliedAspect{aspect2, aspect3}),
 				}
 			}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.ConfiguredTarget_Value{

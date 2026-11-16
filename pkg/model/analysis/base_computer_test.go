@@ -16,6 +16,7 @@ import (
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
+	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
 
@@ -270,4 +271,14 @@ func (m patchedMessageMatcher[TMessage]) Matches(got any) bool {
 
 func (m patchedMessageMatcher[TMessage]) String() string {
 	return protojson.Format(m.want.Message)
+}
+
+// newTestTargetVariant creates a TargetVariant message that only
+// contains aspects. If no aspects are provided, nil is returned, as is
+// required for keys of analysis functions.
+func newTestTargetVariant(aspects []*model_starlark_pb.AppliedAspect) *model_starlark_pb.TargetVariant {
+	if len(aspects) == 0 {
+		return nil
+	}
+	return &model_starlark_pb.TargetVariant{Aspects: aspects}
 }

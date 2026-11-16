@@ -15,15 +15,14 @@ import (
 func (*baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetOutput_Key, TReference], e TargetOutputEnvironment[TReference, TMetadata]) (PatchedTargetOutputValue[TMetadata], error) {
 	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 
-	patchedConfigurationReference := model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference))
+	patchedVariant := model_core.Patch(e, model_core.Nested(key, key.Message.Variant))
 	configuredTarget := e.GetConfiguredTargetValue(
 		model_core.NewPatchedMessage(
 			&model_analysis_pb.ConfiguredTarget_Key{
-				Label:                  key.Message.Label,
-				ConfigurationReference: patchedConfigurationReference.Message,
-				Aspects:                model_core.PatchList(e, model_core.Nested(key, key.Message.Aspects)).Merge(patchedConfigurationReference.Patcher),
+				Label:   key.Message.Label,
+				Variant: patchedVariant.Message,
 			},
-			patchedConfigurationReference.Patcher,
+			patchedVariant.Patcher,
 		),
 	)
 	if !configuredTarget.IsSet() || !gotAnalysisReaders {

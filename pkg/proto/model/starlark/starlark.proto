@@ -242,6 +242,47 @@ message AppliedAspect {
       }];
 }
 
+// The variant of a target that is analyzed: the configuration in which
+// it is analyzed, and the aspects that are applied to it. This message
+// is used as part of keys of analysis functions. To ensure that keys
+// are encoded identically, fields of this type MUST NOT be set if the
+// configuration is empty and no aspects are applied.
+message TargetVariant {
+  // Platform constraints and build settings that are active.
+  //
+  // If this reference is not set, the target is configured without
+  // any platform constraints and build settings in place.
+  bonanza.model.core.DecodableReference configuration_reference = 1
+      [(bonanza.model.core.object_format) = {
+        proto_list_type_name:
+          "bonanza.model.analysis.BuildSettingOverride";
+      }];
+
+  // The aspects that are applied to the target, in the order in which
+  // they are applied. Aspects listed in an aspect's
+  // Aspect.Definition.requires MUST precede it in this list. An aspect
+  // MUST NOT occur in this list more than once, not even with different
+  // parameters.
+  //
+  // When an aspect is applied to a target, the list of aspects to
+  // apply to a target referenced through one of its label attrs is
+  // computed as follows:
+  //
+  // 1. All aspects in this list whose Aspect.Definition.attr_aspects
+  //    contains the name of the attr are retained, in the same order.
+  // 2. The aspects listed in the attr's LabelOptions.aspects are
+  //    appended, each preceded by the aspects it requires through
+  //    Aspect.Definition.requires.
+  // 3. Aspects that occur more than once with identical parameters
+  //    are removed, retaining the first occurrence. It is an error
+  //    for an aspect to occur multiple times with different
+  //    parameters.
+  //
+  // Aspects that are listed in Aspect.Definition.toolchains_aspects
+  // are propagated to toolchains in a similar way.
+  repeated AppliedAspect aspects = 2;
+}
+
 message Attr {
   // If set, the attribute is optional, and this field denotes the value
   // that is used if no explicit value is provided. The type of the
@@ -566,12 +607,16 @@ message ExecGroup {
 
 message File {
   message Owner {
-    // Configuration that is used to build the file.
-    bonanza.model.core.DecodableReference configuration_reference = 1
-        [(bonanza.model.core.object_format) = {
-          proto_list_type_name:
-            "bonanza.model.analysis.BuildSettingOverride";
-        }];
+    // The configuration that is used to build the file. If aspects are
+    // provided, the file is not created by the target itself, but by
+    // the last aspect in the list, applied to the target after all of
+    // the other aspects in the list.
+    //
+    // Files created by aspects are placed in the same directory as the
+    // files created by the target. It is the responsibility of the
+    // aspect to pick names that don't collide with those of files
+    // created by the target or other aspects.
+    TargetVariant variant = 1;
 
     // Name of the target inside the canonical package that creates
     // this file.
@@ -590,16 +635,6 @@ message File {
 
     // The type of the file.
     Type type = 3;
-
-    // If set, the file is not created by the target itself, but by the
-    // last aspect in this list, applied to the target after all of the
-    // other aspects in the list.
-    //
-    // Files created by aspects are placed in the same directory as the
-    // files created by the target. It is the responsibility of the
-    // aspect to pick names that don't collide with those of files
-    // created by the target or other aspects.
-    repeated AppliedAspect aspects = 4;
   }
 
   // If set, the file is the output of a configured target. Otherwise,

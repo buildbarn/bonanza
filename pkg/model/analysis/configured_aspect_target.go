@@ -77,7 +77,7 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	targetLabel label.CanonicalLabel,
 	ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference],
 ) (PatchedConfiguredTargetValue[TMetadata], error) {
-	aspects := model_core.Nested(key, key.Message.Aspects)
+	aspects := model_core.Nested(key, key.Message.Variant.GetAspects())
 	lastAspect := aspects.Message[len(aspects.Message)-1]
 	aspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(lastAspect.Identifier)
 	if err != nil {
@@ -103,7 +103,7 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	aspectChain := e.GetAspectChainValue(&model_analysis_pb.AspectChain_Key{
 		AspectIdentifiers: aspectIdentifiers,
 	})
-	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
+	configurationReference := model_core.Nested(key, key.Message.Variant.GetConfigurationReference())
 	patchedConfigurationReference := model_core.Patch(e, configurationReference)
 	configuredAspect := e.GetConfiguredAspectValue(
 		model_core.NewPatchedMessage(
@@ -170,9 +170,11 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		prefixConfiguredTarget := e.GetConfiguredTargetValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
 				return &model_analysis_pb.ConfiguredTarget_Key{
-					Label:                  targetLabel.String(),
-					ConfigurationReference: model_core.Patch(e, configurationReference).Merge(patcher),
-					Aspects:                model_core.PatchList(e, model_core.Nested(aspects, aspects.Message[:prefixLength])).Merge(patcher),
+					Label: targetLabel.String(),
+					Variant: newTargetVariant(
+						model_core.Patch(e, configurationReference).Merge(patcher),
+						model_core.PatchList(e, model_core.Nested(aspects, aspects.Message[:prefixLength])).Merge(patcher),
+					),
 				}
 			}),
 		)
@@ -202,8 +204,8 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
 	ruleOutputRegistrar := &targetOutputRegistrar[TReference, TMetadata]{
-		configurationReference: configurationReference,
-		targetLabel:            targetLabel,
+		variant:     model_core.Nested(key, newTargetVariant(configurationReference.Message, nil)),
+		targetLabel: targetLabel,
 
 		outputsByPackageRelativePath: map[string]*targetOutput[TMetadata]{},
 		outputsByFile:                map[*model_starlark.File[TReference, TMetadata]]*targetOutput[TMetadata]{},
@@ -330,9 +332,8 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	// are placed in the same package as the rule target, but are
 	// owned by the aspect.
 	aspectOutputRegistrar := &targetOutputRegistrar[TReference, TMetadata]{
-		configurationReference: configurationReference,
-		targetLabel:            targetLabel,
-		aspects:                aspects.Message,
+		variant:     model_core.Nested(key, key.Message.Variant),
+		targetLabel: targetLabel,
 
 		outputsByPackageRelativePath: map[string]*targetOutput[TMetadata]{},
 		outputsByFile:                map[*model_starlark.File[TReference, TMetadata]]*targetOutput[TMetadata]{},

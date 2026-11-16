@@ -797,60 +797,26 @@ message ConfiguredTarget {
     // component of the package path.
     string label = 1;
 
-    // Platform constraints and build settings that are currently active.
+    // The configuration in which the target is analyzed, and the
+    // aspects that are applied to it.
     //
-    // This is the configuration in which the target is analyzed. It
-    // MUST be the output configuration of the target's incoming edge
-    // transition, as computed by TargetIncomingEdgeTransition. This
-    // means, for example, that package groups and source file targets
-    // MUST be configured without a configuration. Callers that obtain
-    // a configuration from a dependency edge should use
-    // TargetProviders, which applies the incoming edge transition.
+    // The configuration MUST be the output configuration of the
+    // target's incoming edge transition, as computed by
+    // TargetIncomingEdgeTransition. This means, for example, that
+    // package groups and source file targets MUST be configured without
+    // a configuration. Callers that obtain a configuration from a
+    // dependency edge should use TargetProviders, which applies the
+    // incoming edge transition. Aspects don't apply transitions to the
+    // target to which they are applied. They are thus evaluated in the
+    // same configuration as the target itself.
     //
-    // If this reference is not set, the target is configured without
-    // any platform constraints and build settings in place.
-    //
-    // Aspects don't apply transitions to the target to which they are
-    // applied. They are thus evaluated in the same configuration as the
-    // target itself.
-    bonanza.model.core.DecodableReference configuration_reference = 2
-        [(bonanza.model.core.object_format) = {
-          proto_list_type_name:
-            "bonanza.model.analysis.BuildSettingOverride";
-        }];
-
-    // The aspects that are applied to the target, in the order in which
-    // they are applied. If non-empty, the last aspect in this list is
-    // the one whose implementation function is invoked. The preceding
-    // aspects have already been applied, and their providers are
-    // visible to the last aspect if it lists them in
-    // required_aspect_providers.
-    //
-    // Aspects listed in an aspect's Aspect.Definition.requires MUST
-    // precede it in this list. This is validated when the aspect is
-    // applied. An aspect MUST NOT occur in this list more than once,
-    // not even with different parameters.
-    //
-    // When an aspect is applied to a target, the list of aspects to
-    // apply to a target referenced through one of its label attrs is
-    // computed as follows:
-    //
-    // 1. All aspects in this list whose Aspect.Definition.attr_aspects
-    //    contains the name of the attr are retained, in the same order.
-    // 2. The aspects listed in the attr's LabelOptions.aspects are
-    //    appended, each preceded by the aspects it requires through
-    //    Aspect.Definition.requires.
-    // 3. Aspects that occur more than once with identical parameters
-    //    are removed, retaining the first occurrence. It is an error
-    //    for an aspect to occur multiple times with different
-    //    parameters.
-    //
-    // Aspects that are listed in Aspect.Definition.toolchains_aspects
-    // are propagated to toolchains in a similar way.
-    //
+    // If aspects are provided, the last aspect in the list is the one
+    // whose implementation function is invoked. The preceding aspects
+    // have already been applied, and their providers are visible to the
+    // last aspect if it lists them in required_aspect_providers.
     // Callers SHOULD omit aspects that don't apply to the target, so
     // that identical results are not computed under different keys.
-    repeated bonanza.model.starlark.AppliedAspect aspects = 3;
+    bonanza.model.starlark.TargetVariant variant = 2;
   }
 
   message Value {
@@ -1284,23 +1250,13 @@ message TargetOutput {
     // component of the package path.
     string label = 1;
 
-    // Platform constraints and build settings that are currently active.
-    //
-    // If this reference is not set, the target is configured without
-    // any platform constraints and build settings in place.
-    bonanza.model.core.DecodableReference configuration_reference = 2
-        [(bonanza.model.core.object_format) = {
-          proto_list_type_name:
-            "bonanza.model.analysis.BuildSettingOverride";
-        }];
+    // The configuration in which the target is analyzed, and the
+    // aspects that are applied to it, as stored in
+    // bonanza.model.starlark.File.Owner.variant. If aspects are
+    // provided, the output is declared by the last aspect.
+    bonanza.model.starlark.TargetVariant variant = 2;
 
     string package_relative_path = 3;
-
-    // If set, the output is declared by the last aspect in this list,
-    // applied to the target. This corresponds to
-    // ConfiguredTarget.Key.aspects and
-    // bonanza.model.starlark.File.Owner.aspects.
-    repeated bonanza.model.starlark.AppliedAspect aspects = 4;
   }
 
   message Value {
@@ -2664,20 +2620,12 @@ message TargetActionId {
   string label = 1;
 
   // The configuration that was used to compute the configured target
-  // declaring the action.
-  bonanza.model.core.DecodableReference configuration_reference = 2
-      [(bonanza.model.core.object_format) = {
-        proto_list_type_name:
-          "bonanza.model.analysis.BuildSettingOverride";
-      }];
+  // declaring the action, and the aspects that are applied to it. If
+  // aspects are provided, the action is declared by the last aspect.
+  bonanza.model.starlark.TargetVariant variant = 2;
 
   // The identifier of the action within the configured target.
   bytes action_id = 3;
-
-  // If set, the action is declared by the last aspect in this list,
-  // applied to the target. This corresponds to
-  // bonanza.model.starlark.File.Owner.aspects.
-  repeated bonanza.model.starlark.AppliedAspect aspects = 4;
 }
 
 message TargetAction {
@@ -2737,15 +2685,12 @@ message TargetCompletion {
     // component of the package path.
     string label = 1;
 
-    // Platform constraints and build settings that are currently active.
-    //
-    // If this reference is not set, the target is built without any
-    // platform constraints and build settings in place.
-    bonanza.model.core.DecodableReference configuration_reference = 2
-        [(bonanza.model.core.object_format) = {
-          proto_list_type_name:
-            "bonanza.model.analysis.BuildSettingOverride";
-        }];
+    // The configuration in which the target is built, and the aspects
+    // that are applied to it. If aspects are provided, the outputs of
+    // the last aspect are built, as opposed to the outputs of the
+    // target itself. This is used to build aspects that are applied to
+    // top-level targets.
+    bonanza.model.starlark.TargetVariant variant = 2;
   }
 
   message Value {}
@@ -2809,22 +2754,13 @@ message TargetProvider {
     // component of the package path.
     string label = 1;
 
-    // Platform constraints and build settings that are currently active.
-    //
-    // If this reference is not set, the target is configured without
-    // any platform constraints and build settings in place.
-    bonanza.model.core.DecodableReference configuration_reference = 2
-        [(bonanza.model.core.object_format) = {
-          proto_list_type_name:
-            "bonanza.model.analysis.BuildSettingOverride";
-        }];
+    // The configuration in which the target is requested, and the
+    // aspects that need to be applied to it, using the same semantics
+    // as TargetProviders.Key.variant.
+    bonanza.model.starlark.TargetVariant variant = 2;
 
     // The identifier of the provider whose value is requested.
     string provider_identifier = 3;
-
-    // Aspects that need to be applied to the target, using the same
-    // format as TargetProviders.Key.aspects.
-    repeated bonanza.model.starlark.AppliedAspect aspects = 4;
   }
 
   message Value {
@@ -2842,32 +2778,19 @@ message TargetProviders {
     // component of the package path.
     string label = 1;
 
-    // Platform constraints and build settings that are currently active.
-    //
-    // If this reference is not set, the target is configured without
-    // any platform constraints and build settings in place.
-    bonanza.model.core.DecodableReference configuration_reference = 2
-        [(bonanza.model.core.object_format) = {
-          proto_list_type_name:
-            "bonanza.model.analysis.BuildSettingOverride";
-        }];
-
-    // Aspects that need to be applied to the target, in the order in
-    // which they are applied, including aspects required by other
-    // aspects through Aspect.Definition.requires. The same constraints
-    // as ConfiguredTarget.Key.aspects apply.
+    // The configuration in which the target is requested, and the
+    // aspects that need to be applied to it. The target is analyzed in
+    // the configuration yielded by the target's incoming edge
+    // transition. Aspects are applied in that configuration as well.
     //
     // The provider instances of the target are merged with those of
     // all aspects. Instances of OutputGroupInfo are merged by combining
     // their fields, it being an error for multiple instances to provide
     // the same output group. As aspects may not return DefaultInfo,
     // the target's instance is used. It is an error for the target and
-    // aspects to provide instances of any other provider.
-    //
-    // Aspects are applied in the configuration yielded by the target's
-    // incoming edge transition. Aspects that don't apply to the target
-    // don't contribute any providers.
-    repeated bonanza.model.starlark.AppliedAspect aspects = 3;
+    // aspects to provide instances of any other provider. Aspects that
+    // don't apply to the target don't contribute any providers.
+    bonanza.model.starlark.TargetVariant variant = 2;
   }
 
   message Value {

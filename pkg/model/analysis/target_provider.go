@@ -14,9 +14,8 @@ func (baseComputer[TReference, TMetadata]) ComputeTargetProviderValue(ctx contex
 	targetProviders := e.GetTargetProvidersValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProviders_Key {
 			return &model_analysis_pb.TargetProviders_Key{
-				Label:                  key.Message.Label,
-				ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference)).Merge(patcher),
-				Aspects:                model_core.PatchList(e, model_core.Nested(key, key.Message.Aspects)).Merge(patcher),
+				Label:   key.Message.Label,
+				Variant: model_core.Patch(e, model_core.Nested(key, key.Message.Variant)).Merge(patcher),
 			}
 		}),
 	)

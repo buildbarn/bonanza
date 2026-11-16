@@ -662,7 +662,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			return PatchedTargetActionCommandValue[TMetadata]{}, err
 		}
 	}
-	configurationReferenceComponent, err := model_starlark.ConfigurationReferenceToComponent(model_core.Nested(id, id.Message.ConfigurationReference))
+	configurationReferenceComponent, err := model_starlark.ConfigurationReferenceToComponent(model_core.Nested(id, id.Message.Variant.GetConfigurationReference()))
 	if err != nil {
 		return PatchedTargetActionCommandValue[TMetadata]{}, err
 	}

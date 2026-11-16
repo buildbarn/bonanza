@@ -69,7 +69,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 	// Add empty directories for the output directory of the current
 	// package and configuration.
 	components, err := getPackageOutputDirectoryComponents(
-		model_core.Nested(id, id.Message.ConfigurationReference),
+		model_core.Nested(id, id.Message.Variant.GetConfigurationReference()),
 		targetLabel.GetCanonicalPackage(),
 		model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 	)

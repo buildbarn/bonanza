@@ -90,8 +90,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 			targetCompletionValue := e.GetTargetCompletionValue(
 				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetCompletion_Key {
 					return &model_analysis_pb.TargetCompletion_Key{
-						Label:                  visibleTargetValue.Message.Label,
-						ConfigurationReference: model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
+						Label: visibleTargetValue.Message.Label,
+						Variant: newTargetVariant(
+							model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
+							/* aspects = */ nil,
+						),
 					}
 				}),
 			)
