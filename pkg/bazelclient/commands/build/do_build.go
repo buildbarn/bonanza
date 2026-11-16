@@ -641,8 +641,8 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			// graphlets that are returned remain comparable
 			// across evaluations.
 			ChunkingParameters: &model_chunking_pb.Parameters{
-				MinimumSizeBytes: 64 * 1024,
-				HorizonSizeBytes: 8 * 64 * 1024,
+				MinimumSizeBytes: 8 * 1024,
+				HorizonSizeBytes: 8 * 8 * 1024,
 			},
 		}), nil
 	})
