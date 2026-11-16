@@ -778,30 +778,38 @@ message AspectChain {
     // Aspect.Definition.required_aspect_providers of the last aspect.
     repeated uint32 visible_aspect_indices = 1;
 
-    // Indices of the aspects that propagate along all attrs, in
-    // increasing order. These are the aspects whose
-    // Aspect.Definition.attr_aspects is set to ["*"], and the aspects
-    // they require through Aspect.Definition.requires.
-    repeated uint32 always_propagating_aspect_indices = 2;
-
-    message AttrPropagatingAspects {
-      // The name of the attr.
-      string attr_name = 1;
-
-      // Indices of the aspects that propagate along the attr, in
+    // The aspects that propagate along a given kind of edge (e.g., the
+    // attrs of a rule target), as computed from the corresponding
+    // Aspect.PropagationEdges of the aspects.
+    message PropagatingAspects {
+      // Indices of the aspects that propagate along all edges, in
       // increasing order. These are the aspects whose
-      // Aspect.Definition.attr_aspects contains the name of the attr,
-      // and the aspects they require through
-      // Aspect.Definition.requires. Aspects listed in
-      // always_propagating_aspect_indices are omitted.
-      repeated uint32 aspect_indices = 2;
+      // Aspect.PropagationEdges is set to "all", and the aspects they
+      // require through Aspect.Definition.requires.
+      repeated uint32 all_aspect_indices = 1;
+
+      message Edge {
+        // The name of the edge.
+        string name = 1;
+
+        // Indices of the aspects that propagate along the edge, in
+        // increasing order. These are the aspects whose
+        // Aspect.PropagationEdges contains the name of the edge, and
+        // the aspects they require through
+        // Aspect.Definition.requires. Aspects listed in
+        // all_aspect_indices are omitted.
+        repeated uint32 aspect_indices = 2;
+      }
+
+      // Aspects that propagate along specific edges, sorted by name. To
+      // obtain the full list of aspects that propagate along an edge,
+      // the aspects listed in all_aspect_indices need to be added.
+      repeated Edge edges = 2;
     }
 
-    // Aspects that propagate along specific attrs, sorted by attr name.
-    // To obtain the full list of aspects that propagate along an attr,
-    // the aspects listed in always_propagating_aspect_indices need to
-    // be added.
-    repeated AttrPropagatingAspects attr_propagating_aspects = 3;
+    // The aspects that propagate along the attrs of the rule target,
+    // as computed from Aspect.Definition.attr_aspects.
+    PropagatingAspects attr_propagating_aspects = 2;
   }
 }
 

@@ -23,14 +23,15 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// getPropagatedAspectsByAttr returns a function that yields the aspects
-// that need to be applied to the targets referenced by a label attr of
-// a rule target, given the aspects that are applied to the rule target
-// and the properties of these aspects as computed by AspectChain.
-func getPropagatedAspectsByAttr[TReference any](
+// getPropagatedAspectsByEdge returns a function that yields the
+// aspects that need to be applied to the targets referenced through an
+// edge of a given kind (e.g., a label attr of a rule target), given the
+// aspects that are applied to the rule target and the aspects that
+// propagate along these edges as computed by AspectChain.
+func getPropagatedAspectsByEdge[TReference any](
 	aspects model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference],
-	aspectChain *model_analysis_pb.AspectChain_Value,
-) (func(attrName string) model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference], error) {
+	propagatingAspects *model_analysis_pb.AspectChain_Value_PropagatingAspects,
+) (func(name string) model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference], error) {
 	getAspects := func(aspectIndices []uint32) (model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference], error) {
 		propagatedAspects := make([]*model_starlark_pb.AppliedAspect, 0, len(aspectIndices))
 		for _, aspectIndex := range aspectIndices {
@@ -42,28 +43,30 @@ func getPropagatedAspectsByAttr[TReference any](
 		return model_core.Nested(aspects, propagatedAspects), nil
 	}
 
-	alwaysPropagatingAspects, err := getAspects(aspectChain.AlwaysPropagatingAspectIndices)
+	allAspectIndices := propagatingAspects.GetAllAspectIndices()
+	allAspects, err := getAspects(allAspectIndices)
 	if err != nil {
 		return nil, err
 	}
-	attrPropagatingAspects := make(map[string]model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference], len(aspectChain.AttrPropagatingAspects))
-	for _, entry := range aspectChain.AttrPropagatingAspects {
+	edges := propagatingAspects.GetEdges()
+	edgeAspects := make(map[string]model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference], len(edges))
+	for _, edge := range edges {
 		// Aspects need to be applied in the order in which
 		// they are listed, so merge the indices of aspects that
-		// propagate along all attrs and along this specific attr.
-		aspectIndices := append(slices.Clone(aspectChain.AlwaysPropagatingAspectIndices), entry.AspectIndices...)
+		// propagate along all edges and along this specific edge.
+		aspectIndices := append(slices.Clone(allAspectIndices), edge.AspectIndices...)
 		slices.Sort(aspectIndices)
-		attrAspects, err := getAspects(slices.Compact(aspectIndices))
+		aspectsForEdge, err := getAspects(slices.Compact(aspectIndices))
 		if err != nil {
 			return nil, err
 		}
-		attrPropagatingAspects[entry.AttrName] = attrAspects
+		edgeAspects[edge.Name] = aspectsForEdge
 	}
-	return func(attrName string) model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference] {
-		if attrAspects, ok := attrPropagatingAspects[attrName]; ok {
-			return attrAspects
+	return func(name string) model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference] {
+		if aspectsForEdge, ok := edgeAspects[name]; ok {
+			return aspectsForEdge
 		}
-		return alwaysPropagatingAspects
+		return allAspects
 	}, nil
 }
 
@@ -199,7 +202,7 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	propagatedAspects, err := getPropagatedAspectsByAttr(aspects, aspectChain.Message)
+	propagatedAspects, err := getPropagatedAspectsByEdge(aspects, aspectChain.Message.AttrPropagatingAspects)
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}

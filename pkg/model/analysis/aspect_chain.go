@@ -65,60 +65,18 @@ func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.C
 		requiredAspectIndices = append(requiredAspectIndices, indices)
 	}
 
-	// addWithRequiredAspects adds an aspect and all of the aspects
-	// it requires, directly or indirectly, to a set of aspects.
-	var addWithRequiredAspects func(aspectIndices map[uint32]struct{}, aspectIndex uint32)
-	addWithRequiredAspects = func(aspectIndices map[uint32]struct{}, aspectIndex uint32) {
-		if _, ok := aspectIndices[aspectIndex]; ok {
-			return
-		}
-		aspectIndices[aspectIndex] = struct{}{}
-		for _, requiredAspectIndex := range requiredAspectIndices[aspectIndex] {
-			addWithRequiredAspects(aspectIndices, requiredAspectIndex)
-		}
-	}
-
 	// Determine along which attrs aspects propagate.
-	alwaysPropagatingAspects := map[uint32]struct{}{}
-	attrPropagatingAspects := map[string]map[uint32]struct{}{}
-	for i, aspectDefinition := range aspectDefinitions {
-		if attrAspects := aspectDefinition.AttrAspects; attrAspects != nil {
-			switch kind := attrAspects.Kind.(type) {
-			case *model_starlark_pb.Aspect_PropagationEdges_Fixed_:
-				for _, attrName := range kind.Fixed.Names {
-					aspectIndices, ok := attrPropagatingAspects[attrName]
-					if !ok {
-						aspectIndices = map[uint32]struct{}{}
-						attrPropagatingAspects[attrName] = aspectIndices
-					}
-					addWithRequiredAspects(aspectIndices, uint32(i))
-				}
-			case *model_starlark_pb.Aspect_PropagationEdges_All:
-				addWithRequiredAspects(alwaysPropagatingAspects, uint32(i))
-			case *model_starlark_pb.Aspect_PropagationEdges_Function:
-				// TODO: Add support for this feature. This
-				// requires invoking the function for every
-				// target to which the aspect is applied.
-				return PatchedAspectChainValue[TMetadata]{}, fmt.Errorf("aspect %#v: computing attr_aspects using a function is not supported yet", aspectIdentifiers[i])
-			default:
-				return PatchedAspectChainValue[TMetadata]{}, fmt.Errorf("aspect %#v: invalid attr_aspects", aspectIdentifiers[i])
-			}
-		}
-	}
-	var attrPropagatingAspectsList []*model_analysis_pb.AspectChain_Value_AttrPropagatingAspects
-	for _, attrName := range slices.Sorted(maps.Keys(attrPropagatingAspects)) {
-		var aspectIndices []uint32
-		for _, aspectIndex := range slices.Sorted(maps.Keys(attrPropagatingAspects[attrName])) {
-			if _, ok := alwaysPropagatingAspects[aspectIndex]; !ok {
-				aspectIndices = append(aspectIndices, aspectIndex)
-			}
-		}
-		if len(aspectIndices) > 0 {
-			attrPropagatingAspectsList = append(attrPropagatingAspectsList, &model_analysis_pb.AspectChain_Value_AttrPropagatingAspects{
-				AttrName:      attrName,
-				AspectIndices: aspectIndices,
-			})
-		}
+	attrPropagatingAspects, err := computePropagatingAspects(
+		aspectIdentifiers,
+		aspectDefinitions,
+		requiredAspectIndices,
+		"attr_aspects",
+		func(aspectDefinition *model_starlark_pb.Aspect_Definition) *model_starlark_pb.Aspect_PropagationEdges {
+			return aspectDefinition.AttrAspects
+		},
+	)
+	if err != nil {
+		return PatchedAspectChainValue[TMetadata]{}, err
 	}
 
 	// Determine which of the preceding aspects have providers that
@@ -132,10 +90,81 @@ func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.C
 	}
 
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.AspectChain_Value{
-		VisibleAspectIndices:           visibleAspectIndices,
-		AlwaysPropagatingAspectIndices: slices.Sorted(maps.Keys(alwaysPropagatingAspects)),
-		AttrPropagatingAspects:         attrPropagatingAspectsList,
+		VisibleAspectIndices:   visibleAspectIndices,
+		AttrPropagatingAspects: attrPropagatingAspects,
 	}), nil
+}
+
+// computePropagatingAspects determines along which edges of a given
+// kind (e.g., attrs of a rule target) aspects propagate. Aspects that
+// propagate along an edge cause the aspects they require to propagate
+// along the same edge.
+func computePropagatingAspects(
+	aspectIdentifiers []string,
+	aspectDefinitions []*model_starlark_pb.Aspect_Definition,
+	requiredAspectIndices [][]uint32,
+	parameterName string,
+	getPropagationEdges func(*model_starlark_pb.Aspect_Definition) *model_starlark_pb.Aspect_PropagationEdges,
+) (*model_analysis_pb.AspectChain_Value_PropagatingAspects, error) {
+	// addWithRequiredAspects adds an aspect and all of the aspects
+	// it requires, directly or indirectly, to a set of aspects.
+	var addWithRequiredAspects func(aspectIndices map[uint32]struct{}, aspectIndex uint32)
+	addWithRequiredAspects = func(aspectIndices map[uint32]struct{}, aspectIndex uint32) {
+		if _, ok := aspectIndices[aspectIndex]; ok {
+			return
+		}
+		aspectIndices[aspectIndex] = struct{}{}
+		for _, requiredAspectIndex := range requiredAspectIndices[aspectIndex] {
+			addWithRequiredAspects(aspectIndices, requiredAspectIndex)
+		}
+	}
+
+	allAspects := map[uint32]struct{}{}
+	edgeAspects := map[string]map[uint32]struct{}{}
+	for i, aspectDefinition := range aspectDefinitions {
+		if propagationEdges := getPropagationEdges(aspectDefinition); propagationEdges != nil {
+			switch kind := propagationEdges.Kind.(type) {
+			case *model_starlark_pb.Aspect_PropagationEdges_Fixed_:
+				for _, name := range kind.Fixed.Names {
+					aspectIndices, ok := edgeAspects[name]
+					if !ok {
+						aspectIndices = map[uint32]struct{}{}
+						edgeAspects[name] = aspectIndices
+					}
+					addWithRequiredAspects(aspectIndices, uint32(i))
+				}
+			case *model_starlark_pb.Aspect_PropagationEdges_All:
+				addWithRequiredAspects(allAspects, uint32(i))
+			case *model_starlark_pb.Aspect_PropagationEdges_Function:
+				// TODO: Add support for this feature. This
+				// requires invoking the function for every
+				// target to which the aspect is applied.
+				return nil, fmt.Errorf("aspect %#v: computing %s using a function is not supported yet", aspectIdentifiers[i], parameterName)
+			default:
+				return nil, fmt.Errorf("aspect %#v: invalid %s", aspectIdentifiers[i], parameterName)
+			}
+		}
+	}
+
+	var edges []*model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge
+	for _, name := range slices.Sorted(maps.Keys(edgeAspects)) {
+		var aspectIndices []uint32
+		for _, aspectIndex := range slices.Sorted(maps.Keys(edgeAspects[name])) {
+			if _, ok := allAspects[aspectIndex]; !ok {
+				aspectIndices = append(aspectIndices, aspectIndex)
+			}
+		}
+		if len(aspectIndices) > 0 {
+			edges = append(edges, &model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge{
+				Name:          name,
+				AspectIndices: aspectIndices,
+			})
+		}
+	}
+	return &model_analysis_pb.AspectChain_Value_PropagatingAspects{
+		AllAspectIndices: slices.Sorted(maps.Keys(allAspects)),
+		Edges:            edges,
+	}, nil
 }
 
 // AspectChainEnvironmentForTesting is used to generate mocks for

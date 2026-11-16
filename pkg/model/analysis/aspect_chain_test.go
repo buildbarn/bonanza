@@ -76,11 +76,13 @@ func TestAspectChain(t *testing.T) {
 		value, err := compute(e, aspect1, aspect2, aspect3, aspect4)
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_analysis_pb.AspectChain_Value{
-			VisibleAspectIndices:           []uint32{1},
-			AlwaysPropagatingAspectIndices: []uint32{1, 2},
-			AttrPropagatingAspects: []*model_analysis_pb.AspectChain_Value_AttrPropagatingAspects{
-				{AttrName: "deps", AspectIndices: []uint32{0, 3}},
-				{AttrName: "srcs", AspectIndices: []uint32{3}},
+			VisibleAspectIndices: []uint32{1},
+			AttrPropagatingAspects: &model_analysis_pb.AspectChain_Value_PropagatingAspects{
+				AllAspectIndices: []uint32{1, 2},
+				Edges: []*model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge{
+					{Name: "deps", AspectIndices: []uint32{0, 3}},
+					{Name: "srcs", AspectIndices: []uint32{3}},
+				},
 			},
 		}, value.Message)
 	})
