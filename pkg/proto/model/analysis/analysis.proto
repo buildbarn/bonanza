@@ -667,6 +667,43 @@ message TargetOutputDefinition {
   }
 }
 
+// LabelAttrAspects expands the list of aspects that are provided to
+// attr.label(aspects = ...), so that each aspect is preceded by the
+// aspects that it requires through Aspect.Definition.requires. It also
+// returns the public attrs of these aspects, which are needed to
+// compute the parameters of the aspects from the attrs of the rule
+// target that references targets through the label attr.
+//
+// This function is used instead of loading the definitions of the
+// aspects directly, so that changes to other properties of the aspects
+// don't cause the results of ConfiguredTarget for rule targets to be
+// invalidated.
+message LabelAttrAspects {
+  message Key {
+    // The Starlark identifiers of the aspects, as stored in
+    // Attr.LabelOptions.aspects.
+    repeated string aspect_identifiers = 1;
+  }
+
+  message Value {
+    message Aspect {
+      // The Starlark identifier of the aspect.
+      string identifier = 1;
+
+      // The public attrs of the aspect, sorted by name. The values of
+      // these attrs are taken from the attrs with the same name of the
+      // rule target.
+      repeated bonanza.model.starlark.NamedAttr public_attrs = 2;
+    }
+
+    // The aspects that need to be applied to the targets referenced by
+    // the label attr, in the order in which they need to be applied.
+    // Each aspect is preceded by the aspects that it requires.
+    // Aspects occur at most once.
+    repeated Aspect aspects = 1;
+  }
+}
+
 // AspectChain computes properties of a list of aspects that are applied
 // to a target, which ConfiguredTarget needs when applying the last
 // aspect in the list. These properties only depend on the definitions
