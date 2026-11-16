@@ -142,9 +142,6 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	if aspectDefinition.Message.PropagationPredicate != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("aspects with a propagation predicate are not supported yet")
 	}
-	if aspectDefinition.Message.ToolchainsAspects != nil {
-		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("aspects that propagate to toolchains are not supported yet")
-	}
 
 	// The aspect is only applied to targets of rules that advertise
 	// the providers that the aspect requires.
@@ -236,6 +233,23 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
 
+	// Obtain the toolchains of the rule target, applying aspects to
+	// them if they propagate to toolchains of their type. These are
+	// provided to the aspect through ctx.rule.toolchains and
+	// ctx.rule.exec_groups.
+	ruleToolchainTargets, err := getRuleToolchainTargets(
+		e,
+		aspects,
+		aspectChain.Message.ToolchainPropagatingAspects,
+		configurationReference,
+		ruleDefinition.Message.ExecGroups,
+		ruleExecGroups,
+		&missingDependencies,
+	)
+	if err != nil {
+		return PatchedConfiguredTargetValue[TMetadata]{}, err
+	}
+
 	// Configure the attrs of the aspect and the subrules it may
 	// invoke.
 	aspectExecGroupStates := make([]targetContextExecGroupState, 0, len(configuredAspect.Message.ExecGroups))
@@ -299,36 +313,25 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 
 	// Construct ctx.rule, providing access to the attrs and
 	// toolchains of the rule target.
-	ruleTargetContext := &targetContext[TReference, TMetadata]{
-		computer:                    c,
-		context:                     ctx,
-		environment:                 e,
-		valueEncodingOptionsFactory: valueEncodingOptionsFactory,
-		starlarkValueEncoders:       starlarkValueEncoders,
-		analysisEncoders:            analysisEncoders,
-		targetLabel:                 targetLabel,
-		configurationReference:      configurationReference,
-		namedExecGroups:             model_core.Nested(ruleDefinition, ruleDefinition.Message.ExecGroups),
-		execGroups:                  ruleExecGroups,
-		executableFileToFilesToRun:  a.files.executableFileToFilesToRun,
+	ruleExecGroupsValue := &aspectRuleExecGroups[TReference, TMetadata]{
+		namedExecGroups:  ruleDefinition.Message.ExecGroups,
+		toolchainTargets: ruleToolchainTargets,
 	}
 	var ruleToolchains eval.Value = eval.None
 	if defaultExecGroupIndex, ok := sort.Find(
 		len(ruleDefinition.Message.ExecGroups),
 		func(i int) int { return strings.Compare("", ruleDefinition.Message.ExecGroups[i].Name) },
 	); ok {
-		ruleToolchains = &toolchainContext[TReference, TMetadata]{
-			targetContext:  ruleTargetContext,
-			execGroupIndex: defaultExecGroupIndex,
-		}
+		ruleToolchains = ruleExecGroupsValue.getToolchains(defaultExecGroupIndex)
 	}
 	rule := model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
-		"attr":       model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.attrValues),
-		"executable": model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.files.executableValues),
-		"file":       model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.files.fileValues),
-		"files":      model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.files.filesValues),
-		"kind":       eval.String(ruleIdentifier.GetStarlarkIdentifier().String()),
-		"toolchains": ruleToolchains,
+		"attr":        model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.attrValues),
+		"exec_groups": ruleExecGroupsValue,
+		"executable":  model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.files.executableValues),
+		"file":        model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.files.fileValues),
+		"files":       model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.files.filesValues),
+		"kind":        eval.String(ruleIdentifier.GetStarlarkIdentifier().String()),
+		"toolchains":  ruleToolchains,
 	})
 
 	// Construct ctx for the aspect. Outputs declared by the aspect
@@ -647,4 +650,174 @@ var aspectContextAttrNames = []string{
 
 func (aspectContext[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
 	return aspectContextAttrNames, nil
+}
+
+// getRuleToolchainTargets obtains the toolchains that were resolved for
+// all exec groups of a rule target, to which an aspect is applied. The
+// toolchains are returned as targets, so that the aspect can access the
+// providers of the aspects that propagate to them. Aspects propagate to
+// a toolchain if their toolchains_aspects contains its toolchain type.
+//
+// Like Bazel, toolchains are configured in the same configuration as
+// the rule target. Toolchains that were optional and not found are
+// returned as None.
+func getRuleToolchainTargets[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	e configuredTargetReferenceCreatorEnvironment[TReference, TMetadata],
+	aspects model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference],
+	toolchainPropagatingAspects *model_analysis_pb.AspectChain_Value_PropagatingAspects,
+	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
+	namedExecGroups []*model_starlark_pb.NamedExecGroup,
+	execGroups []targetContextExecGroupState,
+	missingDependencies *bool,
+) ([][]eval.Value, error) {
+	if len(execGroups) != len(namedExecGroups) {
+		return nil, fmt.Errorf("rule has %d exec groups, while %d exec groups were configured", len(namedExecGroups), len(execGroups))
+	}
+	propagatedAspects, err := getPropagatedAspectsByEdge(aspects, toolchainPropagatingAspects)
+	if err != nil {
+		return nil, err
+	}
+
+	toolchainTargets := make([][]eval.Value, 0, len(execGroups))
+	for execGroupIndex, execGroup := range execGroups {
+		toolchains := namedExecGroups[execGroupIndex].ExecGroup.GetToolchains()
+		if len(execGroup.toolchainIdentifiers) != len(toolchains) {
+			return nil, fmt.Errorf("exec group %#v has %d toolchains, while %d toolchains were resolved", namedExecGroups[execGroupIndex].Name, len(toolchains), len(execGroup.toolchainIdentifiers))
+		}
+		execGroupToolchainTargets := make([]eval.Value, 0, len(toolchains))
+		for toolchainIndex, toolchainIdentifier := range execGroup.toolchainIdentifiers {
+			if toolchainIdentifier == "" {
+				// Toolchain was optional, and no matching
+				// toolchain was found.
+				execGroupToolchainTargets = append(execGroupToolchainTargets, eval.None)
+				continue
+			}
+			toolchainLabel, err := label.NewCanonicalLabel(toolchainIdentifier)
+			if err != nil {
+				return nil, fmt.Errorf("invalid toolchain label %#v: %w", toolchainIdentifier, err)
+			}
+
+			targetProviders := e.GetTargetProvidersValue(
+				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProviders_Key {
+					return &model_analysis_pb.TargetProviders_Key{
+						Label: toolchainIdentifier,
+						Variant: newTargetVariant(
+							model_core.Patch(e, configurationReference).Merge(patcher),
+							model_core.PatchList(e, propagatedAspects(toolchains[toolchainIndex].ToolchainType)).Merge(patcher),
+						),
+					}
+				}),
+			)
+			if !targetProviders.IsSet() {
+				*missingDependencies = true
+				execGroupToolchainTargets = append(execGroupToolchainTargets, eval.None)
+				continue
+			}
+			execGroupToolchainTargets = append(
+				execGroupToolchainTargets,
+				model_starlark.NewTargetReference(
+					toolchainLabel.AsResolved(),
+					model_starlark.NewConfiguredTargetReference[TReference, TMetadata](
+						toolchainLabel,
+						model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances),
+					),
+				),
+			)
+		}
+		toolchainTargets = append(toolchainTargets, execGroupToolchainTargets)
+	}
+	return toolchainTargets, nil
+}
+
+// aspectRuleExecGroups is the value of ctx.rule.exec_groups, providing
+// access to the toolchains of all exec groups of the rule target to
+// which an aspect is applied.
+type aspectRuleExecGroups[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	namedExecGroups  []*model_starlark_pb.NamedExecGroup
+	toolchainTargets [][]eval.Value
+}
+
+var _ eval.Mapping = (*aspectRuleExecGroups[object.GlobalReference, model_core.ReferenceMetadata])(nil)
+
+func (aspectRuleExecGroups[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<ctx.rule.exec_groups>")
+	return nil
+}
+
+func (aspectRuleExecGroups[TReference, TMetadata]) Type() string {
+	return "ctx.rule.exec_groups"
+}
+
+func (aspectRuleExecGroups[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
+}
+
+func (eg *aspectRuleExecGroups[TReference, TMetadata]) Get(thread *eval.Thread, key eval.Value) (eval.Value, bool, error) {
+	var execGroupName string
+	if err := unpack.String.UnpackInto(thread, key, &execGroupName); err != nil {
+		return nil, false, err
+	}
+	execGroupIndex, ok := sort.Find(
+		len(eg.namedExecGroups),
+		func(i int) int { return strings.Compare(execGroupName, eg.namedExecGroups[i].Name) },
+	)
+	if !ok {
+		return nil, false, nil
+	}
+	return model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
+		"toolchains": eg.getToolchains(execGroupIndex),
+	}), true, nil
+}
+
+func (eg *aspectRuleExecGroups[TReference, TMetadata]) getToolchains(execGroupIndex int) eval.Value {
+	return &aspectRuleToolchains[TReference, TMetadata]{
+		toolchains:       eg.namedExecGroups[execGroupIndex].ExecGroup.GetToolchains(),
+		toolchainTargets: eg.toolchainTargets[execGroupIndex],
+	}
+}
+
+// aspectRuleToolchains is the value of ctx.rule.toolchains and
+// ctx.rule.exec_groups[name].toolchains. Unlike ctx.toolchains, which
+// yields ToolchainInfo providers, it yields the toolchains as targets.
+// This allows the aspect to access the providers of the aspects that
+// propagate to the toolchains.
+type aspectRuleToolchains[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	toolchains       []*model_starlark_pb.ToolchainType
+	toolchainTargets []eval.Value
+}
+
+var _ eval.Mapping = (*aspectRuleToolchains[object.GlobalReference, model_core.ReferenceMetadata])(nil)
+
+func (aspectRuleToolchains[TReference, TMetadata]) Repr(_ *eval.Thread, p *eval.Printer) error {
+	p.WriteString("<ctx.rule.toolchains>")
+	return nil
+}
+
+func (aspectRuleToolchains[TReference, TMetadata]) Type() string {
+	return "ctx.rule.toolchains"
+}
+
+func (aspectRuleToolchains[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
+	return true, nil
+}
+
+func (tc *aspectRuleToolchains[TReference, TMetadata]) Get(thread *eval.Thread, v eval.Value) (eval.Value, bool, error) {
+	currentFilePackage, err := model_starlark.CurrentFilePackage(thread)
+	if err != nil {
+		return nil, false, err
+	}
+	labelUnpackerInto := unpack.Stringer(model_starlark.NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage))
+	var toolchainType string
+	if err := labelUnpackerInto.UnpackInto(thread, v, &toolchainType); err != nil {
+		return nil, false, err
+	}
+	toolchainIndex, ok := sort.Find(
+		len(tc.toolchains),
+		func(i int) int { return strings.Compare(toolchainType, tc.toolchains[i].ToolchainType) },
+	)
+	if !ok {
+		// Exec group does not depend on the toolchain type.
+		return nil, false, nil
+	}
+	return tc.toolchainTargets[toolchainIndex], true, nil
 }

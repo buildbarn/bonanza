@@ -62,15 +62,19 @@ func TestAspectChain(t *testing.T) {
 		expectAspect(e, aspect2, &model_starlark_pb.Aspect_Definition{
 			Provides: []string{aInfo, bInfo},
 		})
-		// Propagates along all attrs.
+		// Propagates along all attrs and to toolchains of a
+		// single type.
 		expectAspect(e, aspect3, &model_starlark_pb.Aspect_Definition{
-			AttrAspects: &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}},
-			Requires:    []string{aspect2},
+			AttrAspects:       &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}},
+			Requires:          []string{aspect2},
+			ToolchainsAspects: &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"@@rules+//:toolchain_type"}}}},
 		})
 		// The last aspect only sees aspects providing BInfo.
+		// It propagates to all toolchains.
 		expectAspect(e, aspect4, &model_starlark_pb.Aspect_Definition{
 			AttrAspects:             &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"deps", "srcs"}}}},
 			RequiredAspectProviders: []*model_starlark_pb.ProviderSet{{ProviderIdentifiers: []string{bInfo}}},
+			ToolchainsAspects:       &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}},
 		})
 
 		value, err := compute(e, aspect1, aspect2, aspect3, aspect4)
@@ -84,7 +88,23 @@ func TestAspectChain(t *testing.T) {
 					{Name: "srcs", AspectIndices: []uint32{3}},
 				},
 			},
+			ToolchainPropagatingAspects: &model_analysis_pb.AspectChain_Value_PropagatingAspects{
+				AllAspectIndices: []uint32{3},
+				Edges: []*model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge{
+					{Name: "@@rules+//:toolchain_type", AspectIndices: []uint32{1, 2}},
+				},
+			},
 		}, value.Message)
+	})
+
+	t.Run("PropagationFunction", func(t *testing.T) {
+		e := NewMockAspectChainEnvironmentForTesting(ctrl)
+		expectAspect(e, aspect1, &model_starlark_pb.Aspect_Definition{
+			ToolchainsAspects: &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Function{Function: &model_starlark_pb.Function{}}},
+		})
+
+		_, err := compute(e, aspect1)
+		require.EqualError(t, err, "aspect \"@@rules+//:defs.bzl%aspect1\": computing toolchains_aspects using a function is not supported yet")
 	})
 
 	t.Run("MissingDefinition", func(t *testing.T) {

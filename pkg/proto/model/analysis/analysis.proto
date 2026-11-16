@@ -810,6 +810,11 @@ message AspectChain {
     // The aspects that propagate along the attrs of the rule target,
     // as computed from Aspect.Definition.attr_aspects.
     PropagatingAspects attr_propagating_aspects = 2;
+
+    // The aspects that propagate to the toolchains of the rule target,
+    // as computed from Aspect.Definition.toolchains_aspects. Edges are
+    // named after the labels of the toolchain types.
+    PropagatingAspects toolchain_propagating_aspects = 3;
   }
 }
 

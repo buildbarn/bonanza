@@ -79,6 +79,20 @@ func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.C
 		return PatchedAspectChainValue[TMetadata]{}, err
 	}
 
+	// Determine to which toolchains aspects propagate.
+	toolchainPropagatingAspects, err := computePropagatingAspects(
+		aspectIdentifiers,
+		aspectDefinitions,
+		requiredAspectIndices,
+		"toolchains_aspects",
+		func(aspectDefinition *model_starlark_pb.Aspect_Definition) *model_starlark_pb.Aspect_PropagationEdges {
+			return aspectDefinition.ToolchainsAspects
+		},
+	)
+	if err != nil {
+		return PatchedAspectChainValue[TMetadata]{}, err
+	}
+
 	// Determine which of the preceding aspects have providers that
 	// are visible to the last aspect.
 	lastAspectDefinition := aspectDefinitions[len(aspectDefinitions)-1]
@@ -90,8 +104,9 @@ func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.C
 	}
 
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.AspectChain_Value{
-		VisibleAspectIndices:   visibleAspectIndices,
-		AttrPropagatingAspects: attrPropagatingAspects,
+		VisibleAspectIndices:        visibleAspectIndices,
+		AttrPropagatingAspects:      attrPropagatingAspects,
+		ToolchainPropagatingAspects: toolchainPropagatingAspects,
 	}), nil
 }
 
