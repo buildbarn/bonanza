@@ -168,6 +168,49 @@ func TestAttrProviders(t *testing.T) {
 	})
 }
 
+func TestAttrSkipAnalysisTimeFileTypeCheck(t *testing.T) {
+	encodeAllowFiles := func(t *testing.T, code string) *model_starlark_pb.Attr_AllowFiles {
+		globals, err := execBzlFile(
+			newTestThread(t),
+			util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl")),
+			"ATTR = "+code+"\n",
+			nil,
+		)
+		require.NoError(t, err)
+		encodedAttr, err := globals["ATTR"].(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(newTestThread(t), nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+		require.NoError(t, err)
+		attr := encodedAttr.Message.GetAttr()
+		if labelList := attr.GetLabelList(); labelList != nil {
+			return labelList.GetListValueOptions().GetAllowFiles()
+		}
+		return attr.GetLabel().GetValueOptions().GetAllowFiles()
+	}
+
+	t.Run("WithoutFlag", func(t *testing.T) {
+		require.NotEmpty(t, encodeAllowFiles(t, `attr.label_list(allow_files = [".cc"])`).GetFilenamePattern())
+	})
+
+	t.Run("Extensions", func(t *testing.T) {
+		// The flag causes file extensions to be discarded, as
+		// if allow_files = True was provided.
+		testutil.RequireEqualProto(
+			t,
+			&model_starlark_pb.Attr_AllowFiles{},
+			encodeAllowFiles(t, `attr.label_list(allow_files = [".cc"], flags = ["SKIP_ANALYSIS_TIME_FILETYPE_CHECK"])`),
+		)
+		testutil.RequireEqualProto(
+			t,
+			&model_starlark_pb.Attr_AllowFiles{},
+			encodeAllowFiles(t, `attr.label(allow_single_file = [".cc"], flags = ["SKIP_ANALYSIS_TIME_FILETYPE_CHECK"])`),
+		)
+	})
+
+	t.Run("NoFiles", func(t *testing.T) {
+		// File targets remain prohibited.
+		require.Nil(t, encodeAllowFiles(t, `attr.label_list(flags = ["SKIP_ANALYSIS_TIME_FILETYPE_CHECK"])`))
+	})
+}
+
 func TestSubruleAttrs(t *testing.T) {
 	exec := func(code string) error {
 		_, err := execBzlFile(

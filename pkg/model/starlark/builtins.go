@@ -50,6 +50,21 @@ func (allowFilesUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst 
 	return nil
 }
 
+// applyAllowFilesFlags adjusts the value of allow_files based on the
+// flags provided to attr.label() and attr.label_list().
+//
+// If flags contains "SKIP_ANALYSIS_TIME_FILETYPE_CHECK", Bazel does not
+// check whether the files yielded by referenced targets match the file
+// extensions provided to allow_files. Emulate this by discarding the
+// file extensions, which is equivalent to setting allow_files = True.
+// File targets remain prohibited if allow_files is not set.
+func applyAllowFilesFlags(allowFiles *model_starlark_pb.Attr_AllowFiles, flags []string) *model_starlark_pb.Attr_AllowFiles {
+	if allowFiles != nil && len(allowFiles.FilenamePattern) > 0 && slices.Contains(flags, "SKIP_ANALYSIS_TIME_FILETYPE_CHECK") {
+		return &model_starlark_pb.Attr_AllowFiles{}
+	}
+	return allowFiles
+}
+
 func (allowFilesUnpackerInto) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
 	return v, nil
 }
@@ -536,6 +551,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						}
 						allowFiles = allowSingleFile
 					}
+					allowFiles = applyAllowFilesFlags(allowFiles, flags)
 					if cfg == nil {
 						if executable {
 							return nil, errors.New("cfg must be provided when executable=True")
@@ -676,6 +692,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					); err != nil {
 						return nil, err
 					}
+					allowFiles = applyAllowFilesFlags(allowFiles, flags)
 
 					encodedProviders, err := EncodeProviderSets(providers)
 					if err != nil {
