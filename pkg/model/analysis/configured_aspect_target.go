@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -286,6 +287,10 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	if missingDependencies || a.missingDependencies {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
+	aspectIDs, err := getAspectIDs[TReference, TMetadata](ctx, thread, &analysisEncoders.Readers, &starlarkValueEncoders.Readers, aspects)
+	if err != nil {
+		return PatchedConfiguredTargetValue[TMetadata]{}, err
+	}
 
 	// Construct the target that is provided to the implementation
 	// function of the aspect.
@@ -367,6 +372,7 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 			directoryCreationParameters: directoryCreationParameters,
 			fileCreationParameters:      fileCreationParameters,
 		},
+		aspectIDs:  aspectIDs,
 		attr:       model_starlark.NewStructFromDict[TReference, TMetadata](nil, aspectAttrValues),
 		executable: model_starlark.NewStructFromDict[TReference, TMetadata](nil, aspectFiles.executableValues),
 		file:       model_starlark.NewStructFromDict[TReference, TMetadata](nil, aspectFiles.fileValues),
@@ -487,6 +493,59 @@ func getAspectParameters[TReference object.BasicReference](
 	return parameterValues, nil
 }
 
+// getAspectIDs computes the value of ctx.aspect_ids, which contains
+// the IDs of all aspects that are applied to the target, including the
+// aspect whose implementation function is invoked, which comes last.
+//
+// Like Bazel, the ID of an aspect is its identifier, followed by its
+// parameters in the form [name1=value1,name2=value2] if it has any.
+// Parameters are sorted by name, and their values are rendered using
+// repr(). Bazel always renders values as quoted strings, and only
+// escapes quotes and backslashes. As Bazel documents that these IDs
+// are unique but not parseable, the exact format is not important.
+//
+// Unlike Bazel, parameters whose values are equal to their defaults
+// are omitted, as these are not stored in AppliedAspect.parameters.
+func getAspectIDs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
+	thread *eval.Thread,
+	analysisReaders *AnalysisReaders[TReference],
+	valueReaders *model_starlark.ValueReaders[TReference],
+	aspects model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference],
+) (eval.Value, error) {
+	aspectIDs := make([]eval.Value, 0, len(aspects.Message))
+	for _, aspect := range aspects.Message {
+		parameterValues, err := getAspectParameters(ctx, analysisReaders, valueReaders, model_core.Nested(aspects, aspect.Parameters))
+		if err != nil {
+			return nil, fmt.Errorf("aspect %#v: %w", aspect.Identifier, err)
+		}
+		var aspectID strings.Builder
+		aspectID.WriteString(aspect.Identifier)
+		if len(parameterValues) > 0 {
+			aspectID.WriteByte('[')
+			for i, name := range slices.Sorted(maps.Keys(parameterValues)) {
+				value, err := model_starlark.DecodeValue[TReference, TMetadata](thread, parameterValues[name], nil)
+				if err != nil {
+					return nil, fmt.Errorf("aspect %#v: parameter %#v: %w", aspect.Identifier, name, err)
+				}
+				valueStr, err := eval.Repr(thread, value)
+				if err != nil {
+					return nil, fmt.Errorf("aspect %#v: parameter %#v: %w", aspect.Identifier, name, err)
+				}
+				if i > 0 {
+					aspectID.WriteByte(',')
+				}
+				aspectID.WriteString(name)
+				aspectID.WriteByte('=')
+				aspectID.WriteString(valueStr)
+			}
+			aspectID.WriteByte(']')
+		}
+		aspectIDs = append(aspectIDs, eval.String(aspectID.String()))
+	}
+	return eval.NewImmutableList(aspectIDs), nil
+}
+
 // configureAspectAttrs computes the values of the attrs of an aspect,
 // which are provided to the aspect implementation function through
 // ctx.attr. Public attrs are parameters of the aspect, whose values are
@@ -578,6 +637,7 @@ func configureAspectAttrs[TReference object.BasicReference, TMetadata model_core
 type aspectContext[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	*targetContext[TReference, TMetadata]
 
+	aspectIDs  eval.Value
 	attr       eval.Value
 	executable eval.Value
 	file       eval.Value
@@ -607,6 +667,8 @@ func (ac *aspectContext[TReference, TMetadata]) Attr(thread *eval.Thread, name s
 		return &targetContextActions[TReference, TMetadata]{
 			targetContext: ac.targetContext,
 		}, nil
+	case "aspect_ids":
+		return ac.aspectIDs, nil
 	case "attr":
 		return ac.attr, nil
 	case "bin_dir":
@@ -638,6 +700,7 @@ func (ac *aspectContext[TReference, TMetadata]) Attr(thread *eval.Thread, name s
 
 var aspectContextAttrNames = []string{
 	"actions",
+	"aspect_ids",
 	"attr",
 	"bin_dir",
 	"exec_groups",
