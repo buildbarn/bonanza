@@ -82,16 +82,26 @@ func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.C
 	alwaysPropagatingAspects := map[uint32]struct{}{}
 	attrPropagatingAspects := map[string]map[uint32]struct{}{}
 	for i, aspectDefinition := range aspectDefinitions {
-		for _, attrName := range aspectDefinition.AttrAspects {
-			if attrName == "*" {
-				addWithRequiredAspects(alwaysPropagatingAspects, uint32(i))
-			} else {
-				aspectIndices, ok := attrPropagatingAspects[attrName]
-				if !ok {
-					aspectIndices = map[uint32]struct{}{}
-					attrPropagatingAspects[attrName] = aspectIndices
+		if attrAspects := aspectDefinition.AttrAspects; attrAspects != nil {
+			switch kind := attrAspects.Kind.(type) {
+			case *model_starlark_pb.Aspect_PropagationEdges_Fixed_:
+				for _, attrName := range kind.Fixed.Names {
+					aspectIndices, ok := attrPropagatingAspects[attrName]
+					if !ok {
+						aspectIndices = map[uint32]struct{}{}
+						attrPropagatingAspects[attrName] = aspectIndices
+					}
+					addWithRequiredAspects(aspectIndices, uint32(i))
 				}
-				addWithRequiredAspects(aspectIndices, uint32(i))
+			case *model_starlark_pb.Aspect_PropagationEdges_All:
+				addWithRequiredAspects(alwaysPropagatingAspects, uint32(i))
+			case *model_starlark_pb.Aspect_PropagationEdges_Function:
+				// TODO: Add support for this feature. This
+				// requires invoking the function for every
+				// target to which the aspect is applied.
+				return PatchedAspectChainValue[TMetadata]{}, fmt.Errorf("aspect %#v: computing attr_aspects using a function is not supported yet", aspectIdentifiers[i])
+			default:
+				return PatchedAspectChainValue[TMetadata]{}, fmt.Errorf("aspect %#v: invalid attr_aspects", aspectIdentifiers[i])
 			}
 		}
 	}

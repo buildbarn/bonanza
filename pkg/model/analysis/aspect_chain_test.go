@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"go.uber.org/mock/gomock"
+
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func TestAspectChain(t *testing.T) {
@@ -51,7 +53,7 @@ func TestAspectChain(t *testing.T) {
 		e := NewMockAspectChainEnvironmentForTesting(ctrl)
 		// Propagates along "deps" and provides AInfo.
 		expectAspect(e, aspect1, &model_starlark_pb.Aspect_Definition{
-			AttrAspects: []string{"deps"},
+			AttrAspects: &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"deps"}}}},
 			Provides:    []string{aInfo},
 		})
 		// Doesn't propagate itself, but is required by aspect3,
@@ -62,12 +64,12 @@ func TestAspectChain(t *testing.T) {
 		})
 		// Propagates along all attrs.
 		expectAspect(e, aspect3, &model_starlark_pb.Aspect_Definition{
-			AttrAspects: []string{"*"},
+			AttrAspects: &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}},
 			Requires:    []string{aspect2},
 		})
 		// The last aspect only sees aspects providing BInfo.
 		expectAspect(e, aspect4, &model_starlark_pb.Aspect_Definition{
-			AttrAspects:             []string{"deps", "srcs"},
+			AttrAspects:             &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"deps", "srcs"}}}},
 			RequiredAspectProviders: []*model_starlark_pb.ProviderSet{{ProviderIdentifiers: []string{bInfo}}},
 		})
 

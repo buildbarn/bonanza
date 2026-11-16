@@ -866,8 +866,8 @@ func (sr *StarlarkRenderer) renderAspect(aspect model_core.Message[*model_starla
 		if definition.ApplyToGeneratingRules {
 			arguments = append(arguments, starlarkKeywordArgument("apply_to_generating_rules", starlarkBool(true)))
 		}
-		if len(definition.AttrAspects) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("attr_aspects", starlarkStringList(definition.AttrAspects)))
+		if attrAspects := definition.AttrAspects; attrAspects != nil {
+			arguments = append(arguments, starlarkKeywordArgument("attr_aspects", sr.renderAspectPropagationEdges(attrAspects)))
 		}
 		if len(definition.Attrs) > 0 {
 			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(aspect, definition.Attrs))))
@@ -893,12 +893,27 @@ func (sr *StarlarkRenderer) renderAspect(aspect model_core.Message[*model_starla
 		if len(definition.SubruleIdentifiers) > 0 {
 			arguments = append(arguments, starlarkKeywordArgument("subrules", starlarkIdentifierList("subrule", definition.SubruleIdentifiers)))
 		}
-		if len(definition.ToolchainsAspects) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("toolchains_aspects", starlarkStringList(definition.ToolchainsAspects)))
+		if toolchainsAspects := definition.ToolchainsAspects; toolchainsAspects != nil {
+			arguments = append(arguments, starlarkKeywordArgument("toolchains_aspects", sr.renderAspectPropagationEdges(toolchainsAspects)))
 		}
 		return starlarkDefinitionCall("aspect", "", arguments)
 	default:
 		return starlarkOpaque("aspect")
+	}
+}
+
+// renderAspectPropagationEdges renders the edges along which an aspect
+// propagates in the form in which they are provided to aspect().
+func (sr *StarlarkRenderer) renderAspectPropagationEdges(propagationEdges *model_starlark_pb.Aspect_PropagationEdges) Doc {
+	switch kind := propagationEdges.Kind.(type) {
+	case *model_starlark_pb.Aspect_PropagationEdges_Fixed_:
+		return starlarkStringList(kind.Fixed.Names)
+	case *model_starlark_pb.Aspect_PropagationEdges_All:
+		return starlarkStringList([]string{"*"})
+	case *model_starlark_pb.Aspect_PropagationEdges_Function:
+		return sr.renderFunction(kind.Function)
+	default:
+		return starlarkOpaque("propagation_edges")
 	}
 }
 

@@ -309,7 +309,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				}
 				var implementation eval.Function
 				applyToGeneratingRules := false
-				var attrAspects []string
+				var attrAspects any
 				attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{}
 				doc := ""
 				var execCompatibleWith []pg_label.ResolvedLabel
@@ -323,14 +323,18 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				var requires []*Aspect[TReference, TMetadata]
 				var subrules []*Subrule[TReference, TMetadata]
 				var toolchains []*ToolchainType[TReference, TMetadata]
-				var toolchainsAspects []pg_label.ResolvedLabel
+				var toolchainsAspects any
 				if err := eval.UnpackArgs(
 					thread, b.Name(), args,
 					// Positional arguments.
 					"implementation", unpack.Bind(&implementation, functionUnpackerInto),
 					// Keyword arguments.
 					"apply_to_generating_rules?", unpack.Bind(&applyToGeneratingRules, unpack.Bool),
-					"attr_aspects?", unpack.Bind(&attrAspects, unpack.List(unpack.String)),
+					"attr_aspects?", unpack.Bind(&attrAspects, unpack.Or([]unpack.UnpackerInto[any]{
+						unpack.Decay(functionUnpackerInto),
+						unpack.Decay(unpack.List(starUnpackerInto)),
+						unpack.Decay(unpack.List(unpack.Stringer(unpack.StarlarkIdentifier))),
+					})),
 					"attrs?", unpack.Bind(&attrs, unpack.Dict(unpack.StarlarkIdentifier, unpack.Type[*Attr[TReference, TMetadata]]("attr.*"))),
 					"doc?", unpack.Bind(&doc, unpack.IfNotNone(unpack.String)),
 					"exec_compatible_with?", unpack.Bind(&execCompatibleWith, unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage))),
@@ -344,7 +348,11 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					"requires?", unpack.Bind(&requires, unpack.List(unpack.Type[*Aspect[TReference, TMetadata]]("Aspect"))),
 					"subrules?", unpack.Bind(&subrules, unpack.List(unpack.Type[*Subrule[TReference, TMetadata]]("subrule"))),
 					"toolchains?", unpack.Bind(&toolchains, unpack.List(toolchainTypeUnpackerInto)),
-					"toolchains_aspects?", unpack.Bind(&toolchainsAspects, unpack.List(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage))),
+					"toolchains_aspects?", unpack.Bind(&toolchainsAspects, unpack.Or([]unpack.UnpackerInto[any]{
+						unpack.Decay(functionUnpackerInto),
+						unpack.Decay(unpack.List(starUnpackerInto)),
+						unpack.Decay(unpack.List(unpack.Stringer(NewLabelOrStringUnpackerInto[TReference, TMetadata](currentFilePackage)))),
+					})),
 				); err != nil {
 					return nil, err
 				}
@@ -406,7 +414,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 
 				definition, err := NewStarlarkAspectDefinition(
 					attrs,
-					attrAspects,
+					newAspectPropagationEdges[TReference, TMetadata](attrAspects),
 					execGroups,
 					implementation,
 					encodedRequiredProviders,
@@ -415,7 +423,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					requires,
 					applyToGeneratingRules,
 					subrules,
-					toolchainsAspects,
+					newAspectPropagationEdges[TReference, TMetadata](toolchainsAspects),
 					propagationPredicate,
 				)
 				if err != nil {

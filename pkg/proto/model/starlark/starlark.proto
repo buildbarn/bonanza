@@ -104,6 +104,29 @@ message Alias {
 }
 
 message Aspect {
+  // Edges along which an aspect propagates, corresponding to the
+  // attr_aspects and toolchains_aspects parameters of aspect().
+  message PropagationEdges {
+    message Fixed {
+      // Names of the edges, sorted alphabetically.
+      repeated string names = 1;
+    }
+
+    oneof kind {
+      // The aspect propagates along a fixed set of edges.
+      Fixed fixed = 1;
+
+      // The aspect propagates along all edges, corresponding to
+      // providing ["*"] to aspect().
+      google.protobuf.Empty all = 2;
+
+      // The edges along which the aspect propagates are computed by
+      // invoking a Starlark function for each target to which the
+      // aspect is applied.
+      Function function = 3;
+    }
+  }
+
   message Definition {
     // Attributes of the aspect, sorted by name.
     //
@@ -123,15 +146,11 @@ message Aspect {
     // ctx.target_platform_has_constraint().
     repeated NamedAttr attrs = 1;
 
-    // Names of the attributes of rules along which the aspect
-    // propagates, sorted alphabetically. If the aspect is applied to a
-    // target, it is also applied to all targets referenced through
-    // these attributes.
-    //
-    // If this list contains "*", the aspect propagates along all
-    // attributes. In that case "*" MUST be the only element of the
-    // list. Lists such as ["*", "foo"] are invalid.
-    repeated string attr_aspects = 2;
+    // The attributes of rules along which the aspect propagates. If
+    // the aspect is applied to a target, it is also applied to all
+    // targets referenced through these attributes. If not set, the
+    // aspect does not propagate along any attributes.
+    PropagationEdges attr_aspects = 2;
 
     // Execution groups of the aspect, sorted by name. The toolchains
     // and execution constraints provided to aspect() are added to the
@@ -179,11 +198,13 @@ message Aspect {
     // function of this aspect, sorted alphabetically.
     repeated string subrule_identifiers = 10;
 
-    // Labels of toolchain types, sorted alphabetically. If the aspect
-    // is applied to a target, it is also applied to the toolchains of
-    // these types that were resolved for the target, meaning their
-    // providers are visible through ctx.rule.toolchains.
-    repeated string toolchains_aspects = 11;
+    // The toolchain types to whose toolchains the aspect propagates,
+    // identified by their labels. If the aspect is applied to a
+    // target, it is also applied to the toolchains of these types that
+    // were resolved for the target, meaning their providers are visible
+    // through ctx.rule.toolchains. If not set, the aspect does not
+    // propagate to any toolchains.
+    PropagationEdges toolchains_aspects = 11;
 
     // If set, a Starlark function that is invoked prior to applying
     // the aspect to a target. It is invoked with a context object as

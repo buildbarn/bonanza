@@ -139,7 +139,7 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	if aspectDefinition.Message.PropagationPredicate != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("aspects with a propagation predicate are not supported yet")
 	}
-	if len(aspectDefinition.Message.ToolchainsAspects) > 0 {
+	if aspectDefinition.Message.ToolchainsAspects != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("aspects that propagate to toolchains are not supported yet")
 	}
 

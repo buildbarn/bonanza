@@ -285,7 +285,7 @@ func TestRendererStarlarkAspect(t *testing.T) {
 	value := &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Aspect{Aspect: &model_starlark_pb.Aspect{Kind: &model_starlark_pb.Aspect_Definition_{Definition: &model_starlark_pb.Aspect_Definition{
 		Implementation:         function("_impl"),
 		ApplyToGeneratingRules: true,
-		AttrAspects:            []string{"deps"},
+		AttrAspects:            &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"deps"}}}},
 		Attrs: []*model_starlark_pb.NamedAttr{
 			{
 				Name: "_srcs",
@@ -306,7 +306,7 @@ func TestRendererStarlarkAspect(t *testing.T) {
 		RequiredAspectProviders: []*model_starlark_pb.ProviderSet{{ProviderIdentifiers: []string{"@@//foo:defs.bzl%BarInfo"}}},
 		RequiredProviders:       []*model_starlark_pb.ProviderSet{{}},
 		Requires:                []string{"@@//foo:defs.bzl%other_aspect"},
-		ToolchainsAspects:       []string{"@@//foo:toolchain_type"},
+		ToolchainsAspects:       &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}},
 	}}}}}
 
 	require.Equal(
@@ -325,7 +325,7 @@ func TestRendererStarlarkAspect(t *testing.T) {
 			"    provides = [<provider FooInfo>],\n"+
 			"    required_aspect_providers = [[<provider BarInfo>]],\n"+
 			"    requires = [<aspect other_aspect>],\n"+
-			"    toolchains_aspects = [\"@@//foo:toolchain_type\"],\n"+
+			"    toolchains_aspects = [\"*\"],\n"+
 			")",
 		renderMessage(value, true, render.LayoutOptions{Width: 100}),
 	)

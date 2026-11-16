@@ -33,6 +33,7 @@ go_library(
         "repository_rule.go",
         "rule.go",
         "select.go",
+        "star_unpacker.go",
         "string.go",
         "struct.go",
         "subrule.go",
