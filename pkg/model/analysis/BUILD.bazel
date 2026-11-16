@@ -169,6 +169,7 @@ go_test(
         "aspect_chain_test.go",
         "base_computer_test.go",
         "configured_label_attr_internal_test.go",
+        "configured_rule_target_aspects_internal_test.go",
         "configured_rule_target_internal_test.go",
         "configured_rule_usage_internal_test.go",
         "configured_target_test.go",

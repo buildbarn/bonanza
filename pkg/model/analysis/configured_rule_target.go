@@ -82,6 +82,186 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) getPropagatedAspects(attrNam
 	return a.propagatedAspects(attrName)
 }
 
+// getAspectParameters computes the parameters of an aspect that is
+// applied to the targets referenced by a label attr of the rule. The
+// values are taken from the attrs of the rule target with the same
+// names as the public attrs of the aspect. Values that are equal to
+// the default values of the aspect's attrs are omitted. If no values
+// remain, nil is returned. Otherwise, the values are stored in a newly
+// created object.
+func (a *ruleTargetAnalysis[TReference, TMetadata]) getAspectParameters(
+	aspect model_core.Message[*model_analysis_pb.LabelAttrAspects_Value_Aspect, TReference],
+	valueEncodingOptions *model_starlark.ValueEncodingOptions[TReference, TMetadata],
+) (*model_core.Decodable[model_core.CreatedObject[TMetadata]], error) {
+	thread := a.thread
+	parameters := map[string]any{}
+	for _, publicAttr := range aspect.Message.PublicAttrs {
+		attrValue, ok := a.attrValues[publicAttr.Name]
+		if !ok {
+			return nil, fmt.Errorf("aspect %#v requires rule %#v to have attr %#v", aspect.Message.Identifier, a.ruleIdentifier.String(), publicAttr.Name)
+		}
+		value, ok := attrValue.(eval.Value)
+		if !ok {
+			return nil, fmt.Errorf("value of attr %#v is not a Starlark value", publicAttr.Name)
+		}
+
+		// Validate that the value of the rule target's attr is
+		// permitted by the aspect's attr.
+		switch attrType := publicAttr.Attr.GetType().(type) {
+		case *model_starlark_pb.Attr_Bool:
+			var v bool
+			if err := unpack.Bool.UnpackInto(thread, value, &v); err != nil {
+				return nil, fmt.Errorf("attr %#v of aspect %#v: %w", publicAttr.Name, aspect.Message.Identifier, err)
+			}
+		case *model_starlark_pb.Attr_Int:
+			var v int32
+			if err := unpack.Int[int32]().UnpackInto(thread, value, &v); err != nil {
+				return nil, fmt.Errorf("attr %#v of aspect %#v: %w", publicAttr.Name, aspect.Message.Identifier, err)
+			}
+			if values := attrType.Int.Values; len(values) > 0 && !slices.Contains(values, v) {
+				return nil, fmt.Errorf("attr %#v of aspect %#v does not permit value %d", publicAttr.Name, aspect.Message.Identifier, v)
+			}
+		case *model_starlark_pb.Attr_String_:
+			var v string
+			if err := unpack.String.UnpackInto(thread, value, &v); err != nil {
+				return nil, fmt.Errorf("attr %#v of aspect %#v: %w", publicAttr.Name, aspect.Message.Identifier, err)
+			}
+			if values := attrType.String_.Values; len(values) > 0 && !slices.Contains(values, v) {
+				return nil, fmt.Errorf("attr %#v of aspect %#v does not permit value %#v", publicAttr.Name, aspect.Message.Identifier, v)
+			}
+		default:
+			return nil, fmt.Errorf("attr %#v of aspect %#v is not of type bool, int or string", publicAttr.Name, aspect.Message.Identifier)
+		}
+
+		// Omit values that are equal to the default value.
+		defaultValue := publicAttr.Attr.GetDefault()
+		if defaultValue != nil {
+			decodedDefaultValue, err := model_starlark.DecodeValue[TReference, TMetadata](thread, model_core.Nested(aspect, defaultValue), nil)
+			if err != nil {
+				return nil, fmt.Errorf("default value of attr %#v of aspect %#v: %w", publicAttr.Name, aspect.Message.Identifier, err)
+			}
+			equal, err := eval.Equal(thread, value, decodedDefaultValue)
+			if err != nil {
+				return nil, err
+			}
+			if equal {
+				continue
+			}
+		}
+		parameters[publicAttr.Name] = value
+	}
+	if len(parameters) == 0 {
+		return nil, nil
+	}
+
+	// The fields are encoded like any other Starlark value, while
+	// the object containing them is created by analysis.
+	fields, err := model_starlark.NewStructFromDict[TReference, TMetadata](nil, parameters).
+		EncodeStructFields(thread, nil, valueEncodingOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode parameters of aspect %#v: %w", aspect.Message.Identifier, err)
+	}
+	createdObject, err := model_core.MarshalAndEncodeDeterministic(
+		model_core.ProtoToBinaryMarshaler(fields),
+		a.computer.referenceFormat,
+		a.analysisEncoders.Encoder,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create parameters of aspect %#v: %w", aspect.Message.Identifier, err)
+	}
+	return &createdObject, nil
+}
+
+// getLabelAttrAspects returns the aspects that need to be applied to
+// the targets referenced by a label attr of the rule. These are the
+// aspects that are propagated along the attr, followed by the aspects
+// listed in attr.label(aspects = ...). Aspects that occur multiple
+// times with identical parameters are only applied once.
+func (a *ruleTargetAnalysis[TReference, TMetadata]) getLabelAttrAspects(namedAttr *model_starlark_pb.NamedAttr) (model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference], error) {
+	propagatedAspects := a.getPropagatedAspects(namedAttr.Name)
+	labelOptions, _, _ := getLabelAttrOptions(namedAttr.Attr)
+	attrAspectIdentifiers := labelOptions.GetAspects()
+	if len(attrAspectIdentifiers) == 0 {
+		return propagatedAspects, nil
+	}
+
+	e := a.environment
+	labelAttrAspects := e.GetLabelAttrAspectsValue(&model_analysis_pb.LabelAttrAspects_Key{
+		AspectIdentifiers: attrAspectIdentifiers,
+	})
+	valueEncodingOptionsFactory, err := a.computer.newValueEncodingOptionsFactory(e, a.starlarkValueEncoders)
+	if err != nil {
+		return model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference]{}, err
+	}
+	if !labelAttrAspects.IsSet() {
+		return model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference]{}, evaluation.ErrMissingDependency
+	}
+
+	// Compute the parameters of the aspects listed by the attr.
+	valueEncodingOptions := valueEncodingOptionsFactory.newValueEncodingOptions(a.context, nil)
+	attrAspectParameters := make([]*model_core.Decodable[model_core.CreatedObject[TMetadata]], 0, len(labelAttrAspects.Message.Aspects))
+	for _, aspect := range labelAttrAspects.Message.Aspects {
+		parameters, err := a.getAspectParameters(model_core.Nested(labelAttrAspects, aspect), valueEncodingOptions)
+		if err != nil {
+			return model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference]{}, err
+		}
+		attrAspectParameters = append(attrAspectParameters, parameters)
+	}
+
+	patchedAspects, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) ([]*model_starlark_pb.AppliedAspect, error) {
+		aspects := model_core.PatchList(e, propagatedAspects).Merge(patcher)
+		for i, aspect := range labelAttrAspects.Message.Aspects {
+			appliedAspect := &model_starlark_pb.AppliedAspect{
+				Identifier: aspect.Identifier,
+			}
+			if parameters := attrAspectParameters[i]; parameters != nil {
+				reference, err := patcher.CaptureAndAddDecodableReference(a.context, *parameters, e)
+				if err != nil {
+					return nil, err
+				}
+				appliedAspect.Parameters = reference
+			}
+			aspects = append(aspects, appliedAspect)
+		}
+		return aspects, nil
+	})
+	if err != nil {
+		return model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference]{}, err
+	}
+	aspects := model_core.Unpatch(e, patchedAspects).Decay()
+
+	// Remove duplicate aspects. It is an error for an aspect to
+	// occur multiple times with different parameters.
+	type seenAspect struct {
+		hasParameters bool
+		parameters    model_core.Decodable[TReference]
+	}
+	seenAspects := make(map[string]seenAspect, len(aspects.Message))
+	deduplicatedAspects := make([]*model_starlark_pb.AppliedAspect, 0, len(aspects.Message))
+	for _, aspect := range aspects.Message {
+		var current seenAspect
+		if aspect.Parameters != nil {
+			parameters, err := model_core.FlattenDecodableReference(model_core.Nested(aspects, aspect.Parameters))
+			if err != nil {
+				return model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference]{}, fmt.Errorf("invalid parameters of aspect %#v: %w", aspect.Identifier, err)
+			}
+			current = seenAspect{hasParameters: true, parameters: parameters}
+		}
+		if previous, ok := seenAspects[aspect.Identifier]; ok {
+			if previous.hasParameters != current.hasParameters ||
+				(current.hasParameters &&
+					(previous.parameters.Value.GetLocalReference() != current.parameters.Value.GetLocalReference() ||
+						!bytes.Equal(previous.parameters.GetDecodingParameters(), current.parameters.GetDecodingParameters()))) {
+				return model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference]{}, fmt.Errorf("aspect %#v is applied multiple times with different parameters", aspect.Identifier)
+			}
+			continue
+		}
+		seenAspects[aspect.Identifier] = current
+		deduplicatedAspects = append(deduplicatedAspects, aspect)
+	}
+	return model_core.Nested(aspects, deduplicatedAspects), nil
+}
+
 // attrs iterates over all attrs of the rule, providing the value of the
 // attr in the rule target if the attr is public.
 func (a *ruleTargetAnalysis[TReference, TMetadata]) attrs() iter.Seq2[*model_starlark_pb.NamedAttr, model_core.Message[*model_starlark_pb.RuleTarget_PublicAttrValue, TReference]] {
@@ -289,6 +469,14 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 	configuration *labelAttrConfiguration[TReference],
 ) error {
 	filesCollector := a.files.newAttr(namedAttr)
+	aspects, err := a.getLabelAttrAspects(namedAttr)
+	if err != nil {
+		if errors.Is(err, evaluation.ErrMissingDependency) {
+			a.missingDependencies = true
+			return nil
+		}
+		return fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+	}
 
 	requirements, err := newLabelAttrRequirements[TReference, TMetadata](a.context, a.thread, &a.starlarkValueEncoders.Readers, namedAttr.Attr)
 	if err != nil {
@@ -389,7 +577,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 					entry,
 					visibilityFromPackage,
 					requirements,
-					a.getPropagatedAspects(namedAttr.Name),
+					aspects,
 					&missingDependencies,
 					filesCollector.addTarget,
 				),
