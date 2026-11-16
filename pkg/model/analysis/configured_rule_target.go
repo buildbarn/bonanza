@@ -743,6 +743,11 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) invokeImplementation(
 // ctx.rule.attr. In the latter case, propagatedAspects can be used to
 // apply aspects to the targets referenced by label attrs.
 //
+// The ToolchainInfo providers of the toolchains of the exec groups are
+// not requested, as aspects access the toolchains of the rule target
+// as targets through ctx.rule.toolchains. Callers that need these
+// providers should call prefetchToolchains().
+//
 // Dependencies that are missing either cause ErrMissingDependency to be
 // returned, or the missingDependencies field of the returned
 // ruleTargetAnalysis to be set. The latter allows callers to request
@@ -848,8 +853,7 @@ func (c *baseComputer[TReference, TMetadata]) configureRuleTargetAttrs(
 		})
 	}
 
-	// Obtain the values of label attrs, and the providers of
-	// toolchains.
+	// Obtain the values of label attrs.
 	if err := a.configureLabelAttrs(
 		model_core.Nested(configuredRule, configuredRule.Message.LabelAttrs),
 		usageLabelAttrs,
@@ -857,7 +861,6 @@ func (c *baseComputer[TReference, TMetadata]) configureRuleTargetAttrs(
 	); err != nil {
 		return nil, model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference]{}, nil, err
 	}
-	a.prefetchToolchains(execGroups)
 	return a, configuredRule, execGroups, nil
 }
 
@@ -932,6 +935,7 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
+	a.prefetchToolchains(execGroups)
 	subrules, err := a.configureSubrules(model_core.Nested(configuredRule, configuredRule.Message.Subrules))
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
