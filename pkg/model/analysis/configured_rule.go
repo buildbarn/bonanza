@@ -60,8 +60,8 @@ func getSubruleDefinition[TReference any](e CompiledBzlFileGlobalValueGetter[TRe
 }
 
 // getLabelAttrOptions returns the label options of an attr if it is of
-// type label, label_keyed_string_dict, or label_list. For other attr
-// types, nil is returned.
+// type label, label_keyed_string_dict, label_list, or
+// string_keyed_label_dict. For other attr types, nil is returned.
 func getLabelAttrOptions(attr *model_starlark_pb.Attr) (labelOptions *model_starlark_pb.Attr_LabelOptions, isScalar, isLabelAttr bool) {
 	switch attrType := attr.GetType().(type) {
 	case *model_starlark_pb.Attr_Label:
@@ -70,6 +70,8 @@ func getLabelAttrOptions(attr *model_starlark_pb.Attr) (labelOptions *model_star
 		return attrType.LabelKeyedStringDict.DictKeyOptions, false, true
 	case *model_starlark_pb.Attr_LabelList:
 		return attrType.LabelList.ListValueOptions, false, true
+	case *model_starlark_pb.Attr_StringKeyedLabelDict:
+		return attrType.StringKeyedLabelDict.DictValueOptions, false, true
 	default:
 		return nil, false, false
 	}

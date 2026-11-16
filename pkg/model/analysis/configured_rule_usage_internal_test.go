@@ -578,3 +578,30 @@ func TestGetDefaultValueLabels(t *testing.T) {
 	_, err = lookupResolvedLabel(originalLabels, resolvedLabels, "@@rules+//:d")
 	require.EqualError(t, err, "label \"@@rules+//:d\" is not contained in the default value")
 }
+
+func TestGetLabelAttrOptions(t *testing.T) {
+	labelOptions := &model_starlark_pb.Attr_LabelOptions{}
+	for _, tc := range []struct {
+		name             string
+		attr             *model_starlark_pb.Attr
+		expectedScalar   bool
+		expectedIsLabels bool
+	}{
+		{"Label", &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_Label{Label: &model_starlark_pb.Attr_LabelType{ValueOptions: labelOptions}}}, true, true},
+		{"LabelKeyedStringDict", &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_LabelKeyedStringDict{LabelKeyedStringDict: &model_starlark_pb.Attr_LabelKeyedStringDictType{DictKeyOptions: labelOptions}}}, false, true},
+		{"LabelList", &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{ListValueOptions: labelOptions}}}, false, true},
+		{"StringKeyedLabelDict", &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_StringKeyedLabelDict{StringKeyedLabelDict: &model_starlark_pb.Attr_StringKeyedLabelDictType{DictValueOptions: labelOptions}}}, false, true},
+		{"String", &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}}}, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			actualOptions, isScalar, isLabelAttr := getLabelAttrOptions(tc.attr)
+			require.Equal(t, tc.expectedScalar, isScalar)
+			require.Equal(t, tc.expectedIsLabels, isLabelAttr)
+			if tc.expectedIsLabels {
+				require.Same(t, labelOptions, actualOptions)
+			} else {
+				require.Nil(t, actualOptions)
+			}
+		})
+	}
+}

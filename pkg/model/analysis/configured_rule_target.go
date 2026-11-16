@@ -1251,8 +1251,8 @@ GetConfigurationFreeAttrValues:
 		}
 
 		switch namedAttr.Attr.GetType().(type) {
-		case *model_starlark_pb.Attr_Label, *model_starlark_pb.Attr_LabelList, *model_starlark_pb.Attr_LabelKeyedStringDict,
-			*model_starlark_pb.Attr_Output, *model_starlark_pb.Attr_OutputList:
+		case *model_starlark_pb.Attr_Label, *model_starlark_pb.Attr_LabelKeyedStringDict, *model_starlark_pb.Attr_LabelList,
+			*model_starlark_pb.Attr_StringKeyedLabelDict, *model_starlark_pb.Attr_Output, *model_starlark_pb.Attr_OutputList:
 			// Don't set these, as they depend on the
 			// configuration.
 		default:
