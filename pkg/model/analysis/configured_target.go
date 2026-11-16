@@ -288,7 +288,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 
 // computeConfiguredTargetValueWithAspects applies the last aspect in
 // the list of aspects provided in the key to the target.
-func (*baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAspects(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAspects(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
 	targetLabel, err := label.NewCanonicalLabel(key.Message.Label)
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
@@ -380,9 +380,11 @@ func (*baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAspe
 				ProviderInstances: model_core.PatchList(e, model_core.Nested(ownerConfiguredTarget, ownerConfiguredTarget.Message.ProviderInstances)).Merge(patcher),
 			}
 		}), nil
-	case *model_starlark_pb.Target_Definition_RuleTarget, *model_starlark_pb.Target_Definition_TestSuite:
-		// TODO: Add support for applying aspects.
-		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("applying aspects to rule targets is not supported yet")
+	case *model_starlark_pb.Target_Definition_RuleTarget:
+		return c.computeAspectTargetValue(ctx, key, e, targetLabel, model_core.Nested(targetValue, targetKind.RuleTarget))
+	case *model_starlark_pb.Target_Definition_TestSuite:
+		// TODO: Add support for applying aspects to test suites.
+		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("applying aspects to test suites is not supported yet")
 	default:
 		// Aspects never apply to package groups and source
 		// files.

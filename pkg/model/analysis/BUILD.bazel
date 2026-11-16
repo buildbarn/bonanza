@@ -26,6 +26,7 @@ go_library(
         "compiled_bzl_file.go",
         "computer.go",
         "configured_aspect.go",
+        "configured_aspect_target.go",
         "configured_label_attr.go",
         "configured_rule.go",
         "configured_rule_target.go",

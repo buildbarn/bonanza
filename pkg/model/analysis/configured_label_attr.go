@@ -221,12 +221,16 @@ func checkRequiredProviders(
 // is returned. Targets that don't meet the requirements of the label
 // attr cause an error to be returned. If onConfiguredTarget is
 // provided, it is called for every target that is referenced.
+//
+// Aspects that are provided are applied to all targets that are
+// referenced.
 func newConfiguredTargetReferenceCreator[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	e configuredTargetReferenceCreatorEnvironment[TReference, TMetadata],
 	configuration *labelAttrConfiguration[TReference],
 	entry *labelAttrConfigurationEntry[TReference],
 	visibilityFromPackage label.CanonicalPackage,
 	requirements *labelAttrRequirements[TReference, TMetadata],
+	aspects model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference],
 	missingDependencies *bool,
 	onConfiguredTarget func(resolvedLabel string, providerInstances model_core.Message[[]*model_starlark_pb.Struct, TReference]) error,
 ) func(label.ResolvedLabel) (eval.Value, error) {
@@ -278,6 +282,7 @@ func newConfiguredTargetReferenceCreator[TReference object.BasicReference, TMeta
 				&model_analysis_pb.TargetProviders_Key{
 					Label:                  resolvedLabelStr,
 					ConfigurationReference: patchedConfigurationReference.Message,
+					Aspects:                model_core.PatchList(e, aspects).Merge(patchedConfigurationReference.Patcher),
 				},
 				patchedConfigurationReference.Patcher,
 			),
@@ -407,6 +412,7 @@ func configureResolvedLabelAttrs[TReference object.BasicReference, TMetadata mod
 							&configuration.entries[i],
 							/* visibilityFromPackage = */ label.CanonicalPackage{},
 							requirements,
+							/* aspects = */ model_core.NewSimpleMessage[TReference]([]*model_starlark_pb.AppliedAspect(nil)),
 							&missingDependencies,
 							onConfiguredTarget,
 						),

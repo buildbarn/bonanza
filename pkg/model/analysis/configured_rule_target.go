@@ -64,8 +64,22 @@ type ruleTargetAnalysis[TReference object.BasicReference, TMetadata model_core.R
 	attrValues               map[string]any
 	edgeTransitionAttrValues map[string]any
 	files                    *labelAttrFiles[TReference, TMetadata]
-	outputsValues            map[string]any
-	splitAttrValues          map[string]any
+
+	// If set, aspects that are being applied to the rule target,
+	// and need to be propagated to the targets referenced by its
+	// label attrs, keyed by attr name.
+	propagatedAspects func(attrName string) model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference]
+	outputsValues     map[string]any
+	splitAttrValues   map[string]any
+}
+
+// getPropagatedAspects returns the aspects that need to be applied to
+// the targets referenced by a label attr of the rule.
+func (a *ruleTargetAnalysis[TReference, TMetadata]) getPropagatedAspects(attrName string) model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference] {
+	if a.propagatedAspects == nil {
+		return model_core.NewSimpleMessage[TReference]([]*model_starlark_pb.AppliedAspect(nil))
+	}
+	return a.propagatedAspects(attrName)
 }
 
 // attrs iterates over all attrs of the rule, providing the value of the
@@ -375,6 +389,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 					entry,
 					visibilityFromPackage,
 					requirements,
+					a.getPropagatedAspects(namedAttr.Name),
 					&missingDependencies,
 					filesCollector.addTarget,
 				),
@@ -439,9 +454,9 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureLabelAttr(
 // that may be invoked by the rule implementation function. Doing this
 // eagerly prevents restarts of the implementation function when
 // subrules are invoked.
-func (a *ruleTargetAnalysis[TReference, TMetadata]) configureSubrules(configuredRule model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference]) (map[string]configuredSubrule[TReference], error) {
-	subrules := make(map[string]configuredSubrule[TReference], len(configuredRule.Message.Subrules))
-	for _, configuredSubruleValue := range configuredRule.Message.Subrules {
+func (a *ruleTargetAnalysis[TReference, TMetadata]) configureSubrules(configuredSubrules model_core.Message[[]*model_analysis_pb.ConfiguredSubrule, TReference]) (map[string]configuredSubrule[TReference], error) {
+	subrules := make(map[string]configuredSubrule[TReference], len(configuredSubrules.Message))
+	for _, configuredSubruleValue := range configuredSubrules.Message {
 		subruleDefinition, err := getSubruleDefinition(a.environment, configuredSubruleValue.Identifier)
 		if err != nil {
 			if errors.Is(err, evaluation.ErrMissingDependency) {
@@ -456,7 +471,7 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureSubrules(configured
 			a.thread,
 			a.starlarkValueEncoders,
 			model_core.Nested(subruleDefinition, subruleDefinition.Message.Attrs),
-			model_core.Nested(configuredRule, configuredSubruleValue.Attrs),
+			model_core.Nested(configuredSubrules, configuredSubruleValue.Attrs),
 			/* files = */ nil,
 		)
 		if err != nil {
@@ -496,22 +511,24 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) prefetchToolchains(execGroup
 }
 
 // registerSubruleInvoker registers a callback in the Starlark thread
-// that is invoked when the rule implementation function calls into a
-// subrule.
-func (a *ruleTargetAnalysis[TReference, TMetadata]) registerSubruleInvoker(
+// that is invoked when the implementation function of a rule or aspect
+// calls into a subrule. permittedSubruleIdentifiers contains the
+// identifiers of the subrules that the rule or aspect declares.
+func registerSubruleInvoker[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	thread *eval.Thread,
 	tc *targetContext[TReference, TMetadata],
+	permittedSubruleIdentifiers []string,
 	subrules map[string]configuredSubrule[TReference],
 	ruleImplementationWrappers model_core.Message[*model_analysis_pb.RuleImplementationWrappers_Value, TReference],
 ) {
 	// Subrules may only invoke subrules that they declare
 	// themselves. Keep track of the stack of (sub)rules that are
 	// currently being invoked.
-	thread := a.thread
-	permittedSubruleIdentifiersStack := [][]string{a.ruleDefinition.Message.SubruleIdentifiers}
+	permittedSubruleIdentifiersStack := [][]string{permittedSubruleIdentifiers}
 	thread.SetLocal(model_starlark.SubruleInvokerKey, func(subruleIdentifier label.CanonicalStarlarkIdentifier, args eval.Args) (eval.Value, error) {
 		subruleIdentifierStr := subruleIdentifier.String()
 		if !slices.Contains(permittedSubruleIdentifiersStack[len(permittedSubruleIdentifiersStack)-1], subruleIdentifierStr) {
-			return nil, fmt.Errorf("subrule %#v cannot be invoked from within the current (sub)rule", subruleIdentifierStr)
+			return nil, fmt.Errorf("subrule %#v cannot be invoked from within the current rule, aspect or subrule", subruleIdentifierStr)
 		}
 		subrule, ok := subrules[subruleIdentifierStr]
 		if !ok {
@@ -593,6 +610,131 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) invokeImplementation(
 	return providerInstances, nil
 }
 
+// configureRuleTargetAttrs computes the values of the attrs of a rule
+// target, and the state of its exec groups. This is used both when
+// analyzing the rule target itself, and when applying aspects to it, as
+// aspects have access to the attrs of the rule target through
+// ctx.rule.attr. In the latter case, propagatedAspects can be used to
+// apply aspects to the targets referenced by label attrs.
+//
+// Dependencies that are missing either cause ErrMissingDependency to be
+// returned, or the missingDependencies field of the returned
+// ruleTargetAnalysis to be set. The latter allows callers to request
+// additional dependencies before restarting.
+func (c *baseComputer[TReference, TMetadata]) configureRuleTargetAttrs(
+	ctx context.Context,
+	e ConfiguredTargetEnvironment[TReference, TMetadata],
+	thread *eval.Thread,
+	starlarkValueEncoders *StarlarkValueEncoders[TReference],
+	analysisEncoders *AnalysisEncoders[TReference],
+	targetLabel label.CanonicalLabel,
+	ruleIdentifier label.CanonicalStarlarkIdentifier,
+	ruleDefinition model_core.Message[*model_starlark_pb.Rule_Definition, TReference],
+	ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference],
+	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
+	outputRegistrar *targetOutputRegistrar[TReference, TMetadata],
+	propagatedAspects func(attrName string) model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference],
+) (*ruleTargetAnalysis[TReference, TMetadata], model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference], []targetContextExecGroupState, error) {
+	attrValues, edgeTransitionAttrValues, err := getConfigurationFreeAttrValues[TReference, TMetadata](
+		thread,
+		starlarkValueEncoders,
+		targetLabel,
+		ruleTarget,
+		ruleDefinition,
+	)
+	if err != nil {
+		return nil, model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference]{}, nil, err
+	}
+
+	a := &ruleTargetAnalysis[TReference, TMetadata]{
+		computer:               c,
+		context:                ctx,
+		environment:            e,
+		thread:                 thread,
+		starlarkValueEncoders:  starlarkValueEncoders,
+		analysisEncoders:       analysisEncoders,
+		targetLabel:            targetLabel,
+		ruleIdentifier:         ruleIdentifier,
+		ruleDefinition:         ruleDefinition,
+		ruleTarget:             ruleTarget,
+		configurationReference: configurationReference,
+		outputRegistrar:        outputRegistrar,
+
+		attrValues:               attrValues,
+		edgeTransitionAttrValues: edgeTransitionAttrValues,
+		files:                    newLabelAttrFiles[TReference, TMetadata](ctx, thread, &starlarkValueEncoders.Readers),
+		outputsValues:            map[string]any{},
+		splitAttrValues:          map[string]any{},
+		propagatedAspects:        propagatedAspects,
+	}
+
+	// Obtain properties of the rule that are shared with other
+	// targets, and the values of non-label attrs that use
+	// select(). These are all independent of each other, so
+	// request them at the same time.
+	missingConfiguredRuleUsage := false
+	var usageLabelAttrs model_core.Message[[]*model_analysis_pb.IndexedConfiguredLabelAttr, TReference]
+	if explicitPublicAttrIndices, needed := getConfiguredRuleUsageExplicitPublicAttrIndices(ruleDefinition.Message, ruleTarget.Message.PublicAttrValues); needed {
+		patchedConfigurationReference := model_core.Patch(e, configurationReference)
+		configuredRuleUsage := e.GetConfiguredRuleUsageValue(
+			model_core.NewPatchedMessage(
+				&model_analysis_pb.ConfiguredRuleUsage_Key{
+					Identifier:                ruleIdentifier.String(),
+					ConfigurationReference:    patchedConfigurationReference.Message,
+					ExplicitPublicAttrIndices: explicitPublicAttrIndices,
+				},
+				patchedConfigurationReference.Patcher,
+			),
+		)
+		if configuredRuleUsage.IsSet() {
+			usageLabelAttrs = model_core.Nested(configuredRuleUsage, configuredRuleUsage.Message.LabelAttrs)
+		} else {
+			missingConfiguredRuleUsage = true
+		}
+	}
+	patchedConfigurationReference := model_core.Patch(e, configurationReference)
+	configuredRule := e.GetConfiguredRuleValue(
+		model_core.NewPatchedMessage(
+			&model_analysis_pb.ConfiguredRule_Key{
+				Identifier:             ruleIdentifier.String(),
+				ConfigurationReference: patchedConfigurationReference.Message,
+			},
+			patchedConfigurationReference.Patcher,
+		),
+	)
+	if err := a.configureNonLabelAttrs(); err != nil {
+		return nil, model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference]{}, nil, err
+	}
+	if missingConfiguredRuleUsage || !configuredRule.IsSet() || a.missingDependencies {
+		return nil, model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference]{}, nil, evaluation.ErrMissingDependency
+	}
+
+	execGroupPlatformLabels, err := getExecGroupPlatformLabels(ruleDefinition.Message, configuredRule)
+	if err != nil {
+		return nil, model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference]{}, nil, err
+	}
+	execGroups := make([]targetContextExecGroupState, 0, len(configuredRule.Message.ExecGroups))
+	for _, execGroup := range configuredRule.Message.ExecGroups {
+		execGroups = append(execGroups, targetContextExecGroupState{
+			platformPkixPublicKey: execGroup.PlatformPkixPublicKey,
+			toolchainIdentifiers:  execGroup.ToolchainIdentifiers,
+			toolchainInfos:        make([]eval.Value, len(execGroup.ToolchainIdentifiers)),
+		})
+	}
+
+	// Obtain the values of label attrs, and the providers of
+	// toolchains.
+	if err := a.configureLabelAttrs(
+		model_core.Nested(configuredRule, configuredRule.Message.LabelAttrs),
+		usageLabelAttrs,
+		execGroupPlatformLabels,
+	); err != nil {
+		return nil, model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference]{}, nil, err
+	}
+	a.prefetchToolchains(execGroups)
+	return a, configuredRule, execGroups, nil
+}
+
 // computeRuleTargetValue analyzes a rule target by invoking the rule's
 // implementation function.
 func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
@@ -633,17 +775,6 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	attrValues, edgeTransitionAttrValues, err := getConfigurationFreeAttrValues[TReference, TMetadata](
-		thread,
-		starlarkValueEncoders,
-		targetLabel,
-		ruleTarget,
-		ruleDefinition,
-	)
-	if err != nil {
-		return PatchedConfiguredTargetValue[TMetadata]{}, err
-	}
-
 	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
 	outputRegistrar := &targetOutputRegistrar[TReference, TMetadata]{
 		configurationReference: configurationReference,
@@ -658,95 +789,27 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 		}
 	}()
 
-	a := &ruleTargetAnalysis[TReference, TMetadata]{
-		computer:               c,
-		context:                ctx,
-		environment:            e,
-		thread:                 thread,
-		starlarkValueEncoders:  starlarkValueEncoders,
-		analysisEncoders:       analysisEncoders,
-		targetLabel:            targetLabel,
-		ruleIdentifier:         ruleIdentifier,
-		ruleDefinition:         ruleDefinition,
-		ruleTarget:             ruleTarget,
-		configurationReference: configurationReference,
-		outputRegistrar:        outputRegistrar,
-
-		attrValues:               attrValues,
-		edgeTransitionAttrValues: edgeTransitionAttrValues,
-		files:                    newLabelAttrFiles[TReference, TMetadata](ctx, thread, &starlarkValueEncoders.Readers),
-		outputsValues:            map[string]any{},
-		splitAttrValues:          map[string]any{},
-	}
-
-	// Obtain properties of the rule that are shared with other
-	// targets, and the values of non-label attrs that use
-	// select(). These are all independent of each other, so
-	// request them at the same time.
-	missingConfiguredRuleUsage := false
-	var usageLabelAttrs model_core.Message[[]*model_analysis_pb.IndexedConfiguredLabelAttr, TReference]
-	if explicitPublicAttrIndices, needed := getConfiguredRuleUsageExplicitPublicAttrIndices(ruleDefinition.Message, ruleTarget.Message.PublicAttrValues); needed {
-		patchedConfigurationReference := model_core.Patch(e, configurationReference)
-		configuredRuleUsage := e.GetConfiguredRuleUsageValue(
-			model_core.NewPatchedMessage(
-				&model_analysis_pb.ConfiguredRuleUsage_Key{
-					Identifier:                ruleIdentifier.String(),
-					ConfigurationReference:    patchedConfigurationReference.Message,
-					ExplicitPublicAttrIndices: explicitPublicAttrIndices,
-				},
-				patchedConfigurationReference.Patcher,
-			),
-		)
-		if configuredRuleUsage.IsSet() {
-			usageLabelAttrs = model_core.Nested(configuredRuleUsage, configuredRuleUsage.Message.LabelAttrs)
-		} else {
-			missingConfiguredRuleUsage = true
-		}
-	}
-	patchedConfigurationReference := model_core.Patch(e, configurationReference)
-	configuredRule := e.GetConfiguredRuleValue(
-		model_core.NewPatchedMessage(
-			&model_analysis_pb.ConfiguredRule_Key{
-				Identifier:             ruleIdentifier.String(),
-				ConfigurationReference: patchedConfigurationReference.Message,
-			},
-			patchedConfigurationReference.Patcher,
-		),
+	a, configuredRule, execGroups, err := c.configureRuleTargetAttrs(
+		ctx,
+		e,
+		thread,
+		starlarkValueEncoders,
+		analysisEncoders,
+		targetLabel,
+		ruleIdentifier,
+		ruleDefinition,
+		ruleTarget,
+		configurationReference,
+		outputRegistrar,
+		/* propagatedAspects = */ nil,
 	)
-	if err := a.configureNonLabelAttrs(); err != nil {
-		return PatchedConfiguredTargetValue[TMetadata]{}, err
-	}
-	if missingConfiguredRuleUsage || !configuredRule.IsSet() || a.missingDependencies {
-		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
-	}
-
-	execGroupPlatformLabels, err := getExecGroupPlatformLabels(ruleDefinition.Message, configuredRule)
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	execGroups := make([]targetContextExecGroupState, 0, len(configuredRule.Message.ExecGroups))
-	for _, execGroup := range configuredRule.Message.ExecGroups {
-		execGroups = append(execGroups, targetContextExecGroupState{
-			platformPkixPublicKey: execGroup.PlatformPkixPublicKey,
-			toolchainIdentifiers:  execGroup.ToolchainIdentifiers,
-			toolchainInfos:        make([]eval.Value, len(execGroup.ToolchainIdentifiers)),
-		})
-	}
-
-	// Obtain the values of label attrs and subrule attrs, and the
-	// providers of toolchains.
-	if err := a.configureLabelAttrs(
-		model_core.Nested(configuredRule, configuredRule.Message.LabelAttrs),
-		usageLabelAttrs,
-		execGroupPlatformLabels,
-	); err != nil {
-		return PatchedConfiguredTargetValue[TMetadata]{}, err
-	}
-	subrules, err := a.configureSubrules(configuredRule)
+	subrules, err := a.configureSubrules(model_core.Nested(configuredRule, configuredRule.Message.Subrules))
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	a.prefetchToolchains(execGroups)
 	if a.missingDependencies {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -783,7 +846,7 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 		rc.actions.Discard()
 	}()
 
-	a.registerSubruleInvoker(rc.targetContext, subrules, ruleImplementationWrappers)
+	registerSubruleInvoker(thread, rc.targetContext, ruleDefinition.Message.SubruleIdentifiers, subrules, ruleImplementationWrappers)
 	identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
