@@ -255,6 +255,218 @@ func getExecGroupPlatformLabels[TReference any](ruleDefinition *model_starlark_p
 	return execGroupPlatformLabels, nil
 }
 
+type configureExecGroupsEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
+	getProviderFromVisibleConfiguredTargetEnvironment[TReference, TMetadata]
+	ResolvedToolchainsValueGetter[TReference, TMetadata]
+}
+
+// configureExecGroups resolves the toolchains and execution platforms
+// of the exec groups of a rule or aspect. Labels of constraint values
+// are resolved relative to the package declaring the rule or aspect.
+//
+// In addition to the configured exec groups, a map of exec group names
+// to the labels of the execution platforms that were selected for them
+// is returned.
+func configureExecGroups[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
+	e configureExecGroupsEnvironment[TReference, TMetadata],
+	valueReaders *model_starlark.ValueReaders[TReference],
+	definingPackage label.CanonicalPackage,
+	namedExecGroups []*model_starlark_pb.NamedExecGroup,
+	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
+) ([]*model_analysis_pb.ConfiguredExecGroup, map[string]string, error) {
+	missingDependencies := false
+	execGroups := make([]*model_analysis_pb.ConfiguredExecGroup, 0, len(namedExecGroups))
+	execGroupPlatformLabels := make(map[string]string, len(namedExecGroups))
+	for _, namedExecGroup := range namedExecGroups {
+		execGroupDefinition := namedExecGroup.ExecGroup
+		if execGroupDefinition == nil {
+			return nil, nil, fmt.Errorf("missing definition of exec group %#v", namedExecGroup.Name)
+		}
+		execCompatibleWith, err := constraintValuesToConstraints(
+			ctx,
+			e,
+			valueReaders,
+			definingPackage,
+			execGroupDefinition.ExecCompatibleWith,
+		)
+		if err != nil {
+			if errors.Is(err, evaluation.ErrMissingDependency) {
+				missingDependencies = true
+				continue
+			}
+			return nil, nil, fmt.Errorf("invalid constraint values for exec group %#v: %w", namedExecGroup.Name, err)
+		}
+		patchedConfigurationReference := model_core.Patch(e, configurationReference)
+		resolvedToolchains := e.GetResolvedToolchainsValue(
+			model_core.NewPatchedMessage(
+				&model_analysis_pb.ResolvedToolchains_Key{
+					ExecCompatibleWith:     execCompatibleWith,
+					ConfigurationReference: patchedConfigurationReference.Message,
+					Toolchains:             execGroupDefinition.Toolchains,
+				},
+				patchedConfigurationReference.Patcher,
+			),
+		)
+		if !resolvedToolchains.IsSet() {
+			missingDependencies = true
+			continue
+		}
+		toolchainIdentifiers := resolvedToolchains.Message.ToolchainIdentifiers
+		if actual, expected := len(toolchainIdentifiers), len(execGroupDefinition.Toolchains); actual != expected {
+			return nil, nil, fmt.Errorf("obtained %d resolved toolchains, while exec group %#v depends on %d toolchains", actual, namedExecGroup.Name, expected)
+		}
+		execGroups = append(execGroups, &model_analysis_pb.ConfiguredExecGroup{
+			ToolchainIdentifiers:  toolchainIdentifiers,
+			PlatformLabel:         resolvedToolchains.Message.PlatformLabel,
+			PlatformPkixPublicKey: resolvedToolchains.Message.PlatformPkixPublicKey,
+		})
+		execGroupPlatformLabels[namedExecGroup.Name] = resolvedToolchains.Message.PlatformLabel
+	}
+	if missingDependencies {
+		return nil, nil, evaluation.ErrMissingDependency
+	}
+	return execGroups, execGroupPlatformLabels, nil
+}
+
+// getSubruleDefinitions obtains the definitions of all subrules that
+// may be invoked by a rule or aspect, either directly or through other
+// subrules.
+func getSubruleDefinitions[TReference any](e CompiledBzlFileGlobalValueGetter[TReference], subruleIdentifiers []string) (map[string]model_core.Message[*model_starlark_pb.Subrule_Definition, TReference], error) {
+	subruleDefinitions := map[string]model_core.Message[*model_starlark_pb.Subrule_Definition, TReference]{}
+	pendingSubruleIdentifiers := slices.Clone(subruleIdentifiers)
+	seenSubruleIdentifiers := map[string]struct{}{}
+	missingDependencies := false
+	for len(pendingSubruleIdentifiers) > 0 {
+		subruleIdentifier := pendingSubruleIdentifiers[len(pendingSubruleIdentifiers)-1]
+		pendingSubruleIdentifiers = pendingSubruleIdentifiers[:len(pendingSubruleIdentifiers)-1]
+		if _, ok := seenSubruleIdentifiers[subruleIdentifier]; ok {
+			continue
+		}
+		seenSubruleIdentifiers[subruleIdentifier] = struct{}{}
+
+		subruleDefinition, err := getSubruleDefinition(e, subruleIdentifier)
+		if err != nil {
+			if errors.Is(err, evaluation.ErrMissingDependency) {
+				missingDependencies = true
+				continue
+			}
+			return nil, err
+		}
+		subruleDefinitions[subruleIdentifier] = subruleDefinition
+		pendingSubruleIdentifiers = append(pendingSubruleIdentifiers, subruleDefinition.Message.SubruleIdentifiers...)
+	}
+	if missingDependencies {
+		return nil, evaluation.ErrMissingDependency
+	}
+	return subruleDefinitions, nil
+}
+
+type configureBuiltinTransitionLabelAttrEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
+	configureDefaultLabelAttrEnvironment[TReference, TMetadata]
+	performBuiltinTransitionEnvironment[TReference, TMetadata]
+}
+
+// configureBuiltinTransitionLabelAttr configures a label attr that
+// does not use a user-defined transition, and always uses its default
+// value. This is the case for attrs of subrules, and private attrs of
+// aspects. The labels contained in the default value are resolved,
+// having their visibility checked relative to the package declaring
+// the subrule or aspect.
+func configureBuiltinTransitionLabelAttr[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
+	e configureBuiltinTransitionLabelAttrEnvironment[TReference, TMetadata],
+	valueReaders *model_starlark.ValueReaders[TReference],
+	cfg model_core.Message[*model_starlark_pb.Transition, TReference],
+	defaultValue model_core.Message[*model_starlark_pb.Value, TReference],
+	visibilityFromPackage label.CanonicalPackage,
+	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
+	execGroupPlatformLabels map[string]string,
+	patcher *model_core.ReferenceMessagePatcher[TMetadata],
+) (*model_analysis_pb.ConfiguredLabelAttr, error) {
+	patchedTransition, err := performBuiltinTransition(e, cfg, configurationReference, execGroupPlatformLabels)
+	if err != nil {
+		return nil, err
+	}
+	configuration := newLabelAttrConfigurationFromTransition(
+		model_core.Unpatch(e, patchedTransition).Decay(),
+		/* mayHaveMultipleConfigurations = */ false,
+	)
+	return configureDefaultLabelAttr(
+		ctx,
+		e,
+		valueReaders,
+		&configuration,
+		defaultValue,
+		visibilityFromPackage,
+		patcher,
+	)
+}
+
+// configureSubrules configures the attrs of all subrules that may be
+// invoked by a rule or aspect. Subrule attrs are always private, and
+// can't use user-defined transitions. This means that their values can
+// be computed without having access to any of the target's attrs.
+func configureSubrules[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	ctx context.Context,
+	e configureBuiltinTransitionLabelAttrEnvironment[TReference, TMetadata],
+	valueReaders *model_starlark.ValueReaders[TReference],
+	subruleDefinitions map[string]model_core.Message[*model_starlark_pb.Subrule_Definition, TReference],
+	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
+	execGroupPlatformLabels map[string]string,
+	patcher *model_core.ReferenceMessagePatcher[TMetadata],
+) ([]*model_analysis_pb.ConfiguredSubrule, error) {
+	missingDependencies := false
+	sortedSubruleIdentifiers := slices.Sorted(maps.Keys(subruleDefinitions))
+	subrules := make([]*model_analysis_pb.ConfiguredSubrule, 0, len(sortedSubruleIdentifiers))
+	for _, subruleIdentifierStr := range sortedSubruleIdentifiers {
+		subruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(subruleIdentifierStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid subrule identifier %#v: %w", subruleIdentifierStr, err)
+		}
+		subruleDefinition := subruleDefinitions[subruleIdentifierStr]
+		subrulePackage := subruleIdentifier.GetCanonicalLabel().GetCanonicalPackage()
+		attrs := make([]*model_analysis_pb.ConfiguredLabelAttr, 0, len(subruleDefinition.Message.Attrs))
+		for _, namedAttr := range subruleDefinition.Message.Attrs {
+			labelOptions, _, isLabelAttr := getLabelAttrOptions(namedAttr.Attr)
+			if !isLabelAttr || labelOptions == nil {
+				return nil, fmt.Errorf("attr %#v of subrule %#v is not a label attr", namedAttr.Name, subruleIdentifierStr)
+			}
+			defaultValue := namedAttr.Attr.GetDefault()
+			if defaultValue == nil {
+				return nil, fmt.Errorf("attr %#v of subrule %#v does not have a default value", namedAttr.Name, subruleIdentifierStr)
+			}
+			configuredAttr, err := configureBuiltinTransitionLabelAttr(
+				ctx,
+				e,
+				valueReaders,
+				model_core.Nested(subruleDefinition, labelOptions.Cfg),
+				model_core.Nested(subruleDefinition, defaultValue),
+				subrulePackage,
+				configurationReference,
+				execGroupPlatformLabels,
+				patcher,
+			)
+			if err != nil {
+				if errors.Is(err, evaluation.ErrMissingDependency) {
+					missingDependencies = true
+					continue
+				}
+				return nil, fmt.Errorf("attr %#v of subrule %#v: %w", namedAttr.Name, subruleIdentifierStr, err)
+			}
+			attrs = append(attrs, configuredAttr)
+		}
+		subrules = append(subrules, &model_analysis_pb.ConfiguredSubrule{
+			Identifier: subruleIdentifierStr,
+			Attrs:      attrs,
+		})
+	}
+	if missingDependencies {
+		return nil, evaluation.ErrMissingDependency
+	}
+	return subrules, nil
+}
+
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredRule_Key, TReference], e ConfiguredRuleEnvironment[TReference, TMetadata]) (PatchedConfiguredRuleValue[TMetadata], error) {
 	ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(key.Message.Identifier)
 	if err != nil {
@@ -275,151 +487,40 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 	// Resolve the toolchains and execution platforms of all exec
 	// groups. Labels of constraint values are resolved relative to
 	// the package declaring the rule.
-	rulePackage := ruleIdentifier.GetCanonicalLabel().GetCanonicalPackage()
-	missingDependencies := false
-	namedExecGroups := ruleDefinition.Message.ExecGroups
-	execGroups := make([]*model_analysis_pb.ConfiguredExecGroup, 0, len(namedExecGroups))
-	execGroupPlatformLabels := make(map[string]string, len(namedExecGroups))
-	for _, namedExecGroup := range namedExecGroups {
-		execGroupDefinition := namedExecGroup.ExecGroup
-		if execGroupDefinition == nil {
-			return PatchedConfiguredRuleValue[TMetadata]{}, fmt.Errorf("missing definition of exec group %#v", namedExecGroup.Name)
-		}
-		execCompatibleWith, err := constraintValuesToConstraints(
-			ctx,
-			e,
-			valueReaders,
-			rulePackage,
-			execGroupDefinition.ExecCompatibleWith,
-		)
-		if err != nil {
-			if errors.Is(err, evaluation.ErrMissingDependency) {
-				missingDependencies = true
-				continue
-			}
-			return PatchedConfiguredRuleValue[TMetadata]{}, fmt.Errorf("invalid constraint values for exec group %#v: %w", namedExecGroup.Name, err)
-		}
-		patchedConfigurationReference := model_core.Patch(e, configurationReference)
-		resolvedToolchains := e.GetResolvedToolchainsValue(
-			model_core.NewPatchedMessage(
-				&model_analysis_pb.ResolvedToolchains_Key{
-					ExecCompatibleWith:     execCompatibleWith,
-					ConfigurationReference: patchedConfigurationReference.Message,
-					Toolchains:             execGroupDefinition.Toolchains,
-				},
-				patchedConfigurationReference.Patcher,
-			),
-		)
-		if !resolvedToolchains.IsSet() {
-			missingDependencies = true
-			continue
-		}
-		toolchainIdentifiers := resolvedToolchains.Message.ToolchainIdentifiers
-		if actual, expected := len(toolchainIdentifiers), len(execGroupDefinition.Toolchains); actual != expected {
-			return PatchedConfiguredRuleValue[TMetadata]{}, fmt.Errorf("obtained %d resolved toolchains, while exec group %#v depends on %d toolchains", actual, namedExecGroup.Name, expected)
-		}
-		execGroups = append(execGroups, &model_analysis_pb.ConfiguredExecGroup{
-			ToolchainIdentifiers:  toolchainIdentifiers,
-			PlatformLabel:         resolvedToolchains.Message.PlatformLabel,
-			PlatformPkixPublicKey: resolvedToolchains.Message.PlatformPkixPublicKey,
-		})
-		execGroupPlatformLabels[namedExecGroup.Name] = resolvedToolchains.Message.PlatformLabel
-	}
-
-	// Obtain the definitions of all subrules that may be invoked by
-	// the rule, either directly or through other subrules.
-	subruleDefinitions := map[string]model_core.Message[*model_starlark_pb.Subrule_Definition, TReference]{}
-	pendingSubruleIdentifiers := slices.Clone(ruleDefinition.Message.SubruleIdentifiers)
-	seenSubruleIdentifiers := map[string]struct{}{}
-	for len(pendingSubruleIdentifiers) > 0 {
-		subruleIdentifier := pendingSubruleIdentifiers[len(pendingSubruleIdentifiers)-1]
-		pendingSubruleIdentifiers = pendingSubruleIdentifiers[:len(pendingSubruleIdentifiers)-1]
-		if _, ok := seenSubruleIdentifiers[subruleIdentifier]; ok {
-			continue
-		}
-		seenSubruleIdentifiers[subruleIdentifier] = struct{}{}
-
-		subruleDefinition, err := getSubruleDefinition(e, subruleIdentifier)
-		if err != nil {
-			if errors.Is(err, evaluation.ErrMissingDependency) {
-				missingDependencies = true
-				continue
-			}
+	execGroups, execGroupPlatformLabels, execGroupsErr := configureExecGroups(
+		ctx,
+		e,
+		valueReaders,
+		ruleIdentifier.GetCanonicalLabel().GetCanonicalPackage(),
+		ruleDefinition.Message.ExecGroups,
+		configurationReference,
+	)
+	subruleDefinitions, subrulesErr := getSubruleDefinitions(e, ruleDefinition.Message.SubruleIdentifiers)
+	for _, err := range []error{execGroupsErr, subrulesErr} {
+		if err != nil && !errors.Is(err, evaluation.ErrMissingDependency) {
 			return PatchedConfiguredRuleValue[TMetadata]{}, err
 		}
-		subruleDefinitions[subruleIdentifier] = subruleDefinition
-		pendingSubruleIdentifiers = append(pendingSubruleIdentifiers, subruleDefinition.Message.SubruleIdentifiers...)
 	}
-
-	if missingDependencies {
+	if execGroupsErr != nil || subrulesErr != nil {
 		return PatchedConfiguredRuleValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.ConfiguredRule_Value, error) {
-		// Configure the attrs of all subrules. Subrule attrs are
-		// always private, and can't use user-defined
-		// transitions. This means that their values can be
-		// computed without having access to any of the target's
-		// attrs.
-		sortedSubruleIdentifiers := slices.Sorted(maps.Keys(subruleDefinitions))
-		subrules := make([]*model_analysis_pb.ConfiguredSubrule, 0, len(sortedSubruleIdentifiers))
-		for _, subruleIdentifierStr := range sortedSubruleIdentifiers {
-			subruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(subruleIdentifierStr)
-			if err != nil {
-				return nil, fmt.Errorf("invalid subrule identifier %#v: %w", subruleIdentifierStr, err)
+		missingDependencies := false
+		subrules, err := configureSubrules(
+			ctx,
+			e,
+			valueReaders,
+			subruleDefinitions,
+			configurationReference,
+			execGroupPlatformLabels,
+			patcher,
+		)
+		if err != nil {
+			if !errors.Is(err, evaluation.ErrMissingDependency) {
+				return nil, err
 			}
-			subruleDefinition := subruleDefinitions[subruleIdentifierStr]
-			subrulePackage := subruleIdentifier.GetCanonicalLabel().GetCanonicalPackage()
-			attrs := make([]*model_analysis_pb.ConfiguredLabelAttr, 0, len(subruleDefinition.Message.Attrs))
-			for _, namedAttr := range subruleDefinition.Message.Attrs {
-				labelOptions, _, isLabelAttr := getLabelAttrOptions(namedAttr.Attr)
-				if !isLabelAttr || labelOptions == nil {
-					return nil, fmt.Errorf("attr %#v of subrule %#v is not a label attr", namedAttr.Name, subruleIdentifierStr)
-				}
-				defaultValue := namedAttr.Attr.GetDefault()
-				if defaultValue == nil {
-					return nil, fmt.Errorf("attr %#v of subrule %#v does not have a default value", namedAttr.Name, subruleIdentifierStr)
-				}
-
-				patchedTransition, err := performBuiltinTransition(
-					e,
-					model_core.Nested(subruleDefinition, labelOptions.Cfg),
-					configurationReference,
-					execGroupPlatformLabels,
-				)
-				if err != nil {
-					if errors.Is(err, evaluation.ErrMissingDependency) {
-						missingDependencies = true
-						continue
-					}
-					return nil, fmt.Errorf("attr %#v of subrule %#v: %w", namedAttr.Name, subruleIdentifierStr, err)
-				}
-				configuration := newLabelAttrConfigurationFromTransition(
-					model_core.Unpatch(e, patchedTransition).Decay(),
-					/* mayHaveMultipleConfigurations = */ false,
-				)
-				configuredAttr, err := configureDefaultLabelAttr(
-					ctx,
-					e,
-					valueReaders,
-					&configuration,
-					model_core.Nested(subruleDefinition, defaultValue),
-					subrulePackage,
-					patcher,
-				)
-				if err != nil {
-					if errors.Is(err, evaluation.ErrMissingDependency) {
-						missingDependencies = true
-						continue
-					}
-					return nil, fmt.Errorf("attr %#v of subrule %#v: %w", namedAttr.Name, subruleIdentifierStr, err)
-				}
-				attrs = append(attrs, configuredAttr)
-			}
-			subrules = append(subrules, &model_analysis_pb.ConfiguredSubrule{
-				Identifier: subruleIdentifierStr,
-				Attrs:      attrs,
-			})
+			missingDependencies = true
 		}
 
 		// Apply the outgoing edge transitions of all label attrs,
