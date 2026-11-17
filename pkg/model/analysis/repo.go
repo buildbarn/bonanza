@@ -19,6 +19,7 @@ import (
 	"unicode/utf8"
 
 	"bonanza.build/pkg/diff"
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/label"
 	"bonanza.build/pkg/model/chunking"
 	model_command "bonanza.build/pkg/model/command"
@@ -971,13 +972,14 @@ func parseSubresourceIntegrityOrSHA256(integrity, sha256 string) (*model_fetch_p
 
 func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	ctx context.Context,
-	moduleName string,
+	module label.Module,
 	moduleDefinition *model_analysis_pb.BuildListModule_Definition,
 	e RepoEnvironment[TReference, TMetadata],
 	singleVersionOverridePatchLabels []string,
 	singleVersionOverridePatchCommands []string,
 	singleVersionOverridePatchStrip int,
 ) (PatchedRepoValue[TMetadata], error) {
+	moduleName := module.String()
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	if !gotFileReader {
 		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -1055,7 +1057,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	// Process overlay files stored in source.json. These are files
 	// that are added to the source archive, such as BUILD.bazel files
 	// for projects that don't provide their own.
-	overlayFiles := make([]overlayFile[TReference], 0, len(sourceJSON.Overlay))
+	overlayFiles := make([]overlayFile[TReference], 0, len(sourceJSON.Overlay)+1)
 	for _, overlayEntry := range sourceJSON.Overlay {
 		overlayURL, err := url.JoinPath(
 			moduleDefinition.RegistryUrl,
@@ -1094,6 +1096,16 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 			filename: overlayEntry.key,
 			contents: model_core.Nested(overlayContentsValue, overlayContentsValue.Message.Exists.Contents),
 		})
+	}
+
+	// Obtain the MODULE.bazel file that was used to perform module
+	// resolution, which is the one stored in the registry. It may
+	// differ from the one contained in the source archive.
+	moduleFileContentsValue := e.GetModuleDotBazelContentsValue(&model_analysis_pb.ModuleDotBazelContents_Key{
+		ModuleInstance: module.ToModuleInstance(nil).String(),
+	})
+	if !moduleFileContentsValue.IsSet() {
+		missingDependencies = true
 	}
 
 	// Process patches stored in source.json.
@@ -1186,6 +1198,15 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("file at URL %#v does not exist", sourceJSON.URL)
 	}
 
+	// Replace MODULE.bazel with the one that was used to perform
+	// module resolution. As patches to MODULE.bazel are ignored,
+	// this ensures that the repo's MODULE.bazel file is identical
+	// to what was used to perform module resolution.
+	overlayFiles = append(overlayFiles, overlayFile[TReference]{
+		filename: dotbazel.ModuleFilename,
+		contents: model_core.Nested(moduleFileContentsValue, moduleFileContentsValue.Message.Contents),
+	})
+
 	// TODO: Process singleVersionOverridePatchCommands!
 
 	return c.applyPatches(
@@ -1259,7 +1280,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 
 	// Add overlay files. Like Bazel, do this before applying patches,
 	// so that patches may modify these files.
-	for _, overlay := range overlayFiles {
+	addOverlayFile := func(overlay overlayFile[TReference]) error {
 		r := &changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
 			loadOptions: loadOptions,
 			stack:       util.NewNonEmptyStack(rootDirectory),
@@ -1268,10 +1289,10 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 			path.UNIXFormat.NewParser(overlay.filename),
 			path.NewRelativeScopeWalker(r),
 		); err != nil {
-			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("cannot resolve path of overlay file %#v: %w", overlay.filename, err)
+			return fmt.Errorf("cannot resolve path of overlay file %#v: %w", overlay.filename, err)
 		}
 		if r.TerminalName == nil {
-			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("path of overlay file %#v does not resolve to a file", overlay.filename)
+			return fmt.Errorf("path of overlay file %#v does not resolve to a file", overlay.filename)
 		}
 		if err := r.stack.Peek().setFile(
 			loadOptions,
@@ -1282,7 +1303,13 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 				},
 			},
 		); err != nil {
-			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("cannot add overlay file %#v: %w", overlay.filename, err)
+			return fmt.Errorf("cannot add overlay file %#v: %w", overlay.filename, err)
+		}
+		return nil
+	}
+	for _, overlay := range overlayFiles {
+		if err := addOverlayFile(overlay); err != nil {
+			return PatchedRepoValue[TMetadata]{}, err
 		}
 	}
 
@@ -1305,6 +1332,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 			},
 			patchedFiles,
 			patchedFilesWriter,
+			/* ignoreModuleFile = */ true,
 		)
 		if err != nil {
 			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("patch %q: %w", patch.filename, err)
@@ -1322,6 +1350,9 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 	)
 }
 
+// applyPatch applies a patch file to the contents of a directory. If
+// ignoreModuleFile is set, changes to MODULE.bazel at the root of the
+// directory are skipped.
 func applyPatch[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	ctx context.Context,
 	rootDirectory *changeTrackingDirectory[TReference, TMetadata],
@@ -1331,6 +1362,7 @@ func applyPatch[TReference object.BasicReference, TMetadata model_core.Reference
 	openFile func() (io.Reader, error),
 	patchedFiles filesystem.FileReader,
 	patchedFilesWriter *model_filesystem.SectionWriter,
+	ignoreModuleFile bool,
 ) error {
 	patchedFile, err := openFile()
 	if err != nil {
@@ -1343,6 +1375,27 @@ func applyPatch[TReference object.BasicReference, TMetadata model_core.Reference
 	}
 
 	for _, file := range files {
+		// Resolve the path of the file to write. If requested,
+		// skip changes to MODULE.bazel at the root of the repo.
+		r := &changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
+			loadOptions: loadOptions,
+			stack:       util.NewNonEmptyStack(rootDirectory),
+		}
+		if err := path.Resolve(
+			path.UNIXFormat.NewParser(file.NewName),
+			path.NewRelativeScopeWalker(
+				newStrippingComponentWalker(r, patchStrip),
+			),
+		); err != nil {
+			return fmt.Errorf("cannot resolve path %#v: %w", file.NewName, err)
+		}
+		if r.TerminalName == nil {
+			return fmt.Errorf("path %#v does not resolve to a file", file.NewName)
+		}
+		if ignoreModuleFile && r.stack.Peek() == rootDirectory && *r.TerminalName == dotbazel.ModuleComponent {
+			continue
+		}
+
 		var fileContents changeTrackingFileContents[TReference, TMetadata]
 		isExecutable := false
 		if !file.IsNew {
@@ -1403,22 +1456,6 @@ func applyPatch[TReference object.BasicReference, TMetadata model_core.Reference
 		patchedFileOffsetBytes := patchedFilesWriter.GetOffsetBytes()
 		if err := diff.ReplaceTextFragments(patchedFilesWriter, srcReplace, file.TextFragments, fragmentsOffsetsBytes); err != nil {
 			return fmt.Errorf("failed to replace text fragments to %#v: %w", file.OldName, err)
-		}
-
-		r := &changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
-			loadOptions: loadOptions,
-			stack:       util.NewNonEmptyStack(rootDirectory),
-		}
-		if err := path.Resolve(
-			path.UNIXFormat.NewParser(file.NewName),
-			path.NewRelativeScopeWalker(
-				newStrippingComponentWalker(r, patchStrip),
-			),
-		); err != nil {
-			return fmt.Errorf("cannot resolve path %#v: %w", file.NewName, err)
-		}
-		if r.TerminalName == nil {
-			return fmt.Errorf("path %#v does not resolve to a file", file.NewName)
 		}
 
 		if file.NewMode != 0 {
@@ -3435,6 +3472,7 @@ func (rc *repositoryContext[TReference, TMetadata]) doPatch(thread *eval.Thread,
 		},
 		mrc.patchedFiles,
 		mrc.patchedFilesWriter,
+		/* ignoreModuleFile = */ false,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("cannot apply patch %q: %w", patchFile.GetUNIXString(), err)
@@ -3880,7 +3918,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 		if moduleDefinition := moduleDefinitionValue.Message.Definition; moduleDefinition != nil {
 			return c.fetchModuleFromRegistry(
 				ctx,
-				moduleName,
+				moduleInstance.GetModule(),
 				moduleDefinition,
 				e,
 				singleVersionOverridePatchLabels,

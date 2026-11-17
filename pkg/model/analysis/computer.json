@@ -607,6 +607,7 @@
             "FinalBuildListModuleDefinition",
             "HTTPArchiveContents",
             "HTTPFileContents",
+            "ModuleDotBazelContents",
             "ModuleExtensionRepo",
             "ModuleOverrideDefinition",
             "ModuleWithLocalOverrideRootDirectory",
