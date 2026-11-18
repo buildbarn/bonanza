@@ -828,57 +828,44 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				return PatchedFileRootValue[TMetadata]{}, err
 			}
 
-			rootDirectory := changeTrackingDirectory[TReference, TMetadata]{
-				unmodifiedDirectory: newUnmodifiedDirectoryFromContents(model_core.Nested(symlinkTarget, symlinkTarget.Message.RootDirectory)),
-			}
-			loadOptions := &changeTrackingDirectoryLoadOptions[TReference]{
-				context:                ctx,
-				directoryEntriesReader: directoryReaders.DirectoryEntries,
-			}
-
 			// Validate the type and properties of the target file.
+			targetRootDirectory := model_core.Nested(symlinkTarget, symlinkTarget.Message.RootDirectory)
 			targetPath, err := fileGetPathInDirectoryLayout(symlinkTargetFile, key.Message.DirectoryLayout)
 			if err != nil {
 				return PatchedFileRootValue[TMetadata]{}, err
 			}
-			targetResolver := changeTrackingDirectorySymlinkFollowingResolver[TReference, TMetadata]{
-				loadOptions: loadOptions,
-				stack:       util.NewNonEmptyStack(&rootDirectory),
-			}
+			targetResolver := model_filesystem.NewDirectoryComponentWalker[TReference](
+				ctx,
+				directoryReaders.DirectoryEntries,
+				func() (path.ComponentWalker, error) {
+					return nil, errors.New("path escapes the root directory")
+				},
+				model_core.Message[*model_filesystem_pb.DirectoryReference, TReference]{},
+				[]model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{targetRootDirectory},
+			)
 			if err := path.Resolve(
 				path.UNIXFormat.NewParser(targetPath),
 				path.NewLoopDetectingScopeWalker(
-					path.NewRelativeScopeWalker(&targetResolver),
+					path.NewRelativeScopeWalker(targetResolver),
 				),
 			); err != nil {
 				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("cannot resolve %#v: %w", targetPath, err)
 			}
-			targetFile := targetResolver.file
+			targetFileProperties := targetResolver.GetCurrentFileProperties()
 			switch o.Type {
 			case model_starlark_pb.File_Owner_FILE:
-				if targetFile == nil {
+				if !targetFileProperties.IsSet() {
 					return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("path %#v resolves to a directory, while a file was expected", targetPath)
 				}
-				if source.Symlink.IsExecutable && !targetFile.isExecutable {
+				if source.Symlink.IsExecutable && !targetFileProperties.Message.IsExecutable {
 					return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("file at path %#v is not executable, even though it should be", targetPath)
 				}
 			case model_starlark_pb.File_Owner_DIRECTORY:
-				if targetFile != nil {
+				if targetFileProperties.IsSet() {
 					return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("path %#v resolves to a file, while a directory was expected", targetPath)
 				}
 			default:
 				return PatchedFileRootValue[TMetadata]{}, errors.New("unknown file type")
-			}
-
-			symlinkResolver := changeTrackingDirectoryNewFileResolver[TReference, TMetadata]{
-				loadOptions: loadOptions,
-				stack:       util.NewNonEmptyStack(&rootDirectory),
-			}
-			if err := path.Resolve(path.UNIXFormat.NewParser(symlinkPath), &symlinkResolver); err != nil {
-				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("cannot resolve %#v: %w", symlinkPath, err)
-			}
-			if symlinkResolver.TerminalName == nil {
-				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("%#v does not resolve to a file", symlinkPath)
 			}
 
 			// Make the target of the symlink relative to
@@ -893,18 +880,43 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			}
 			relativeTargetPath := strings.Repeat("../", strings.Count(symlinkPath[equalComponentsBytes:], "/")) + targetPath[equalComponentsBytes:]
 
-			d := symlinkResolver.stack.Peek()
-			if err := d.setSymlink(loadOptions, *symlinkResolver.TerminalName, path.UNIXFormat.NewParser(relativeTargetPath)); err != nil {
+			// Return a file root containing both the target
+			// and the symlink.
+			var rootDirectory model_filesystem.MergedDirectory[TReference]
+			rootDirectory.MergeDirectoryContents(targetRootDirectory)
+			symlinkResolver := mergedDirectoryResolver[TReference]{
+				directory: &rootDirectory,
+			}
+			if err := path.Resolve(
+				path.UNIXFormat.NewParser(symlinkPath),
+				path.NewRelativeScopeWalker(&symlinkResolver),
+			); err != nil {
+				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("cannot resolve %#v: %w", symlinkPath, err)
+			}
+			if symlinkResolver.terminalName == nil {
+				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("%#v does not resolve to a file", symlinkPath)
+			}
+			if err := symlinkResolver.directory.AddSymlink(*symlinkResolver.terminalName, path.UNIXFormat.NewParser(relativeTargetPath)); err != nil {
 				return PatchedFileRootValue[TMetadata]{}, fmt.Errorf("failed to create symlink at %#v: %w", symlinkPath, err)
 			}
 
-			return createFileRootFromChangeTrackingDirectory(
+			createdRootDirectory, err := model_filesystem.CreateMergedDirectory(
 				ctx,
-				e,
 				directoryReaders.DirectoryEntries,
 				directoryCreationParameters,
+				e,
+				model_filesystem.MergeConflictPolicyError,
 				&rootDirectory,
 			)
+			if err != nil {
+				return PatchedFileRootValue[TMetadata]{}, err
+			}
+			return model_core.NewPatchedMessage(
+				&model_analysis_pb.FileRoot_Value{
+					RootDirectory: createdRootDirectory.Message.Message,
+				},
+				createdRootDirectory.Message.Patcher,
+			), nil
 		default:
 			return PatchedFileRootValue[TMetadata]{}, errors.New("unknown output source type")
 		}

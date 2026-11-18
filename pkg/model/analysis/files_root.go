@@ -12,23 +12,21 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
-
-	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 )
 
-type addFilesToChangeTrackingDirectoryEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
+type addFilesToMergedDirectoryEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	model_core.ExistingObjectCapturer[TReference, TMetadata]
 
 	FilesRootValueGetter[TReference, TMetadata]
 	FileRootValueGetter[TReference, TMetadata]
 }
 
-func addFilesToChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
-	e addFilesToChangeTrackingDirectoryEnvironment[TReference, TMetadata],
+// addFilesToMergedDirectory merges the root directories of all files
+// contained in a list into a MergedDirectory.
+func addFilesToMergedDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	e addFilesToMergedDirectoryEnvironment[TReference, TMetadata],
 	files model_core.Message[[]*model_starlark_pb.List_Element, TReference],
-	out *changeTrackingDirectory[TReference, TMetadata],
-	loadOptions *changeTrackingDirectoryLoadOptions[TReference],
+	out *model_filesystem.MergedDirectory[TReference],
 	directoryLayout model_analysis_pb.DirectoryLayout,
 ) error {
 	missingDependencies := false
@@ -49,15 +47,13 @@ func addFilesToChangeTrackingDirectory[TReference object.BasicReference, TMetada
 				missingDependencies = true
 				continue
 			}
-			if err := out.mergeContents(model_core.Nested(v, v.Message.RootDirectory), loadOptions); err != nil {
-				return fmt.Errorf("list element at index %d: %w", i, err)
-			}
+			out.MergeDirectoryContents(model_core.Nested(v, v.Message.RootDirectory))
 		case *model_starlark_pb.List_Element_Leaf:
 			file, ok := level.Leaf.Kind.(*model_starlark_pb.Value_File)
 			if !ok {
 				return fmt.Errorf("element at index %d is not a file", i)
 			}
-			if err := addFileToChangeTrackingDirectory(e, model_core.Nested(files, file.File), out, loadOptions, directoryLayout); err != nil {
+			if err := addFileToMergedDirectory(e, model_core.Nested(files, file.File), out, directoryLayout); err != nil {
 				if errors.Is(err, evaluation.ErrMissingDependency) {
 					missingDependencies = true
 					continue
@@ -74,11 +70,12 @@ func addFilesToChangeTrackingDirectory[TReference object.BasicReference, TMetada
 	return nil
 }
 
-func addFileToChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
-	e addFilesToChangeTrackingDirectoryEnvironment[TReference, TMetadata],
+// addFileToMergedDirectory merges the root directory of a single file
+// into a MergedDirectory.
+func addFileToMergedDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
+	e addFilesToMergedDirectoryEnvironment[TReference, TMetadata],
 	file model_core.Message[*model_starlark_pb.File, TReference],
-	out *changeTrackingDirectory[TReference, TMetadata],
-	loadOptions *changeTrackingDirectoryLoadOptions[TReference],
+	out *model_filesystem.MergedDirectory[TReference],
 	directoryLayout model_analysis_pb.DirectoryLayout,
 ) error {
 	patchedFile := model_core.Patch(e, file)
@@ -94,9 +91,7 @@ func addFileToChangeTrackingDirectory[TReference object.BasicReference, TMetadat
 	if !v.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
-	if err := out.mergeContents(model_core.Nested(v, v.Message.RootDirectory), loadOptions); err != nil {
-		return err
-	}
+	out.MergeDirectoryContents(model_core.Nested(v, v.Message.RootDirectory))
 	return nil
 }
 
@@ -114,41 +109,20 @@ func (*baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.Co
 		return PatchedFilesRootValue[TMetadata]{}, err
 	}
 
-	var rootDirectory changeTrackingDirectory[TReference, TMetadata]
-	if err := addFilesToChangeTrackingDirectory(
-		e,
-		files,
-		&rootDirectory,
-		&changeTrackingDirectoryLoadOptions[TReference]{
-			context:                ctx,
-			directoryEntriesReader: directoryReaders.DirectoryEntries,
-		},
-		key.Message.DirectoryLayout,
-	); err != nil {
+	var rootDirectory model_filesystem.MergedDirectory[TReference]
+	if err := addFilesToMergedDirectory(e, files, &rootDirectory, key.Message.DirectoryLayout); err != nil {
 		return PatchedFilesRootValue[TMetadata]{}, err
 	}
 
-	group, groupCtx := errgroup.WithContext(ctx)
-	var createdRootDirectory model_filesystem.CreatedDirectory[TMetadata]
-	group.Go(func() error {
-		return model_filesystem.CreateDirectoryMerkleTree[TMetadata, TMetadata](
-			groupCtx,
-			semaphore.NewWeighted(1),
-			group,
-			directoryCreationParameters,
-			&capturableChangeTrackingDirectory[TReference, TMetadata]{
-				options: &capturableChangeTrackingDirectoryOptions[TReference, TMetadata]{
-					context:                ctx,
-					directoryEntriesReader: directoryReaders.DirectoryEntries,
-					objectCapturer:         e,
-				},
-				directory: &rootDirectory,
-			},
-			model_filesystem.NewSimpleDirectoryMerkleTreeCapturer[TMetadata](e),
-			&createdRootDirectory,
-		)
-	})
-	if err := group.Wait(); err != nil {
+	createdRootDirectory, err := model_filesystem.CreateMergedDirectory(
+		ctx,
+		directoryReaders.DirectoryEntries,
+		directoryCreationParameters,
+		e,
+		model_filesystem.MergeConflictPolicyError,
+		&rootDirectory,
+	)
+	if err != nil {
 		return PatchedFilesRootValue[TMetadata]{}, err
 	}
 

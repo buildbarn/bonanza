@@ -288,13 +288,13 @@ func TestChangeTrackingDirectoryMergeContents(t *testing.T) {
 		// directories whose messages are equal, and the
 		// contents of the files need to be compared.
 		var d testChangeTrackingDirectory
-		require.NoError(t, d.mergeContents(newContents("Hello", false), loadOptions))
+		require.NoError(t, d.mergeDirectoryMessage(newUnmodifiedDirectoryFromContents(newContents("Hello", false)), loadOptions))
 		dir := d.directories[newTestComponent("dir")]
 		require.NoError(t, dir.maybeLoadContents(loadOptions))
 		sub := dir.directories[newTestComponent("sub")]
 		require.NoError(t, sub.maybeLoadContents(loadOptions))
 
-		require.NoError(t, d.mergeContents(newContents("Hello", false), loadOptions))
+		require.NoError(t, d.mergeDirectoryMessage(newUnmodifiedDirectoryFromContents(newContents("Hello", false)), loadOptions))
 		require.Len(t, sub.files, 1)
 	})
 
@@ -302,20 +302,20 @@ func TestChangeTrackingDirectoryMergeContents(t *testing.T) {
 		// The full path of the conflicting file should be
 		// reported.
 		var d testChangeTrackingDirectory
-		require.NoError(t, d.mergeContents(newContents("Hello", false), loadOptions))
+		require.NoError(t, d.mergeDirectoryMessage(newUnmodifiedDirectoryFromContents(newContents("Hello", false)), loadOptions))
 		require.EqualError(
 			t,
-			d.mergeContents(newContents("World", false), loadOptions),
+			d.mergeDirectoryMessage(newUnmodifiedDirectoryFromContents(newContents("World", false)), loadOptions),
 			"file \"dir/sub/a\" conflicts with an existing file with different contents",
 		)
 	})
 
 	t.Run("FileWithDifferentExecutableBit", func(t *testing.T) {
 		var d testChangeTrackingDirectory
-		require.NoError(t, d.mergeContents(newContents("Hello", false), loadOptions))
+		require.NoError(t, d.mergeDirectoryMessage(newUnmodifiedDirectoryFromContents(newContents("Hello", false)), loadOptions))
 		require.EqualError(
 			t,
-			d.mergeContents(newContents("Hello", true), loadOptions),
+			d.mergeDirectoryMessage(newUnmodifiedDirectoryFromContents(newContents("Hello", true)), loadOptions),
 			"file \"dir/sub/a\" conflicts with an existing file with different contents",
 		)
 	})
@@ -330,10 +330,10 @@ func TestChangeTrackingDirectoryMergeContents(t *testing.T) {
 		var d testChangeTrackingDirectory
 		d.setDirectorySimple(newTestComponent("dir"), dir)
 
-		require.NoError(t, d.mergeContents(newContents("Hello", false), loadOptions))
+		require.NoError(t, d.mergeDirectoryMessage(newUnmodifiedDirectoryFromContents(newContents("Hello", false)), loadOptions))
 		require.EqualError(
 			t,
-			d.mergeContents(newContents("World", false), loadOptions),
+			d.mergeDirectoryMessage(newUnmodifiedDirectoryFromContents(newContents("World", false)), loadOptions),
 			"file \"dir/sub/a\" conflicts with an existing file with different contents",
 		)
 	})

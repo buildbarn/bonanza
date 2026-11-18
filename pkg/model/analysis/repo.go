@@ -219,14 +219,6 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) mergeDirectoryMessageAt
 	return nil
 }
 
-// mergeContents recursively merges the contents of a given directory
-// message into an already existing changeTrackingDirectory. Files and
-// symbolic links that exist in both directories must be identical. Any
-// conflicts will cause merging to fail.
-func (d *changeTrackingDirectory[TReference, TMetadata]) mergeContents(contents model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
-	return d.mergeContentsAtPath(nil, contents, options)
-}
-
 func (d *changeTrackingDirectory[TReference, TMetadata]) mergeContentsAtPath(dPath *path.Trace, contents model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
 	if err := d.maybeLoadContents(options); err != nil {
 		return err

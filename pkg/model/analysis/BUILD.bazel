@@ -53,6 +53,7 @@ go_library(
         "label_attr_files.go",
         "label_attr_requirements.go",
         "macro_expansion_context.go",
+        "merged_directory_resolver.go",
         "module_dot_bazel_contents.go",
         "module_extension_repo.go",
         "module_extension_repo_names.go",
