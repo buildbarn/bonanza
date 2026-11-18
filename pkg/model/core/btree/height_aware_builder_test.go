@@ -60,7 +60,7 @@ func TestHeightAwareBuilder(t *testing.T) {
 
 		chunker0.EXPECT().PopMultiple(btree.PopLargeEnough)
 		chunker0.EXPECT().PopMultiple(btree.PopAll)
-		chunker1.EXPECT().PopMultiple(btree.PopChild)
+		chunker1.EXPECT().PopMultiple(btree.PopLargeEnough)
 		chunker1.EXPECT().PopMultiple(btree.PopAll).
 			Return(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]{
 				node,
@@ -145,7 +145,7 @@ func TestHeightAwareBuilder(t *testing.T) {
 		// should be returned as the root of the tree.
 		chunker0.EXPECT().PopMultiple(btree.PopLargeEnough)
 		chunker0.EXPECT().PopMultiple(btree.PopAll)
-		chunker1.EXPECT().PopMultiple(btree.PopChild)
+		chunker1.EXPECT().PopMultiple(btree.PopLargeEnough)
 		chunker1.EXPECT().PopMultiple(btree.PopAll).
 			Return(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.ReferenceMetadata]{
 				node1,

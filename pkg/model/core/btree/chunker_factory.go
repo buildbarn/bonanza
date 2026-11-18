@@ -23,9 +23,6 @@ const (
 	// point. This can be used to flush definitive parts of a B-tree
 	// to storage, so that memory usage remains bounded.
 	PopDefinitive PopThreshold = iota
-	// PopChild only pops chunks of nodes if it is certain that the
-	// current level of the B-tree is not going to be the root.
-	PopChild
 	// PopLargeEnough only pops chunks of nodes if they are at least as
 	// large as the desired minimum size.
 	PopLargeEnough

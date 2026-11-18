@@ -123,6 +123,12 @@ func (b *heightAwareBuilder[TNode, TMetadata]) PushChild(node model_core.Patched
 // FinalizeList finalizes the B-tree by returning the list of nodes to
 // be contained in the root node. If the B-tree contains no entries, an
 // empty list is returned.
+//
+// Additional levels are added to the B-tree until the root node is
+// smaller than the minimum object size, or only contains a single
+// node. This makes the root suitable for being embedded into the nodes
+// of another B-tree, without causing the objects of that B-tree to
+// exceed the maximum object size.
 func (b *heightAwareBuilder[TNode, TMetadata]) FinalizeList() (model_core.PatchedMessage[[]TNode, TMetadata], error) {
 	if len(b.levels) == 0 {
 		return model_core.NewSimplePatchedMessage[TMetadata, []TNode](nil), nil
@@ -137,15 +143,14 @@ func (b *heightAwareBuilder[TNode, TMetadata]) FinalizeList() (model_core.Patche
 		return model_core.PatchedMessage[[]TNode, TMetadata]{}, err
 	}
 
-	// Drain parent nodes at the top until a single node root remains.
+	// Drain parent nodes at the top until the root is smaller than
+	// the minimum object size.
 	for childLevel := bottomLevels; childLevel < len(b.levels); childLevel++ {
 		parentLevel := childLevel + 1
 		for {
 			threshold := PopAll
 			if parentLevel == len(b.levels) {
-				// Only create an additional level at the top
-				// of the tree if it has multiple children.
-				threshold = PopChild
+				threshold = PopLargeEnough
 			}
 			children := b.levels[childLevel].PopMultiple(threshold)
 			if len(children) == 0 {

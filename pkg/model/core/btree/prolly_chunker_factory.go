@@ -283,11 +283,6 @@ func (c *prollyChunker[TNode, TMetadata]) PopMultiple(threshold PopThreshold) mo
 		if !ok || !c.isLargeEnough(c.getLastCutPointInHorizon(firstCutPoint), len(c.nodes)) {
 			return nil
 		}
-	case PopChild:
-		firstCutPoint, ok := c.getFirstCutPoint()
-		if !ok || !c.isLargeEnough(firstCutPoint, len(c.nodes)) {
-			return nil
-		}
 	case PopLargeEnough:
 		if !c.isLargeEnough(0, len(c.nodes)) {
 			return nil
