@@ -215,7 +215,10 @@ message Result {
   Failure failure = 1;
 
   // If set, list of outcomes of the keys that were evaluated during
-  // this build.
+  // this build. Outcomes are provided for all requested keys that were
+  // evaluated, even if their values are constant. For other keys,
+  // outcomes are only provided if their values are variable (i.e.,
+  // they depend on keys for which overrides are provided).
   bonanza.model.core.DecodableReference outcomes_reference = 2
       [(bonanza.model.core.object_format) = {
         proto_list_type_name:

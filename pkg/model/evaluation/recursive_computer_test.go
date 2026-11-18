@@ -152,57 +152,40 @@ func TestRecursiveComputer(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// TODO: Validate references. Length is incorrect!
+		// As the requested key does not depend on any keys for
+		// which overrides are provided, its value is constant.
+		// It should nevertheless be part of the evaluations, as
+		// the caller needs to be able to obtain its value. The
+		// key itself is not embedded, as the caller already
+		// knows it.
 		evaluations, _ := patchedEvaluations.SortAndSetReferences()
-		require.Len(t, evaluations.Message, 0)
-
-		/*
-			testutil.RequireEqualProto(t, &model_evaluation_pb.Evaluations{
-				Level: &model_evaluation_pb.Evaluations_Leaf_{
-					Leaf: &model_evaluation_pb.Evaluations_Leaf{
-						// &wrapperspb.UInt32Value{Value: 93}
-						KeyReference: []byte{
-							0x0c, 0xfe, 0x3c, 0x1c, 0x36, 0x0e, 0x96, 0x44,
-							0x16, 0xc0, 0x88, 0xf3, 0xfb, 0x93, 0xd4, 0x68,
-							0xbe, 0x6a, 0xfd, 0xe0, 0x35, 0xc4, 0x8e, 0xf4,
-							0x41, 0xe7, 0x61, 0x11, 0xa8, 0x1b, 0xe3, 0xdd,
-							0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-						},
-						Graphlet: &model_evaluation_pb.Graphlet{
-							Value: &model_core_pb.Any{
-								Value: util.Must(anypb.New(&wrapperspb.UInt64Value{
-									Value: 12200160415121876738,
-								})),
-								References: &model_core_pb.ReferenceSet{},
-							},
-							DirectVariableDependencyKeys: []*model_evaluation_pb.Keys{
-								{
-									Level: &model_evaluation_pb.Keys_Leaf{
-										Leaf: &model_core_pb.Any{
-											Value: util.Must(anypb.New(&wrapperspb.UInt32Value{
-												Value: 92,
-											})),
-											References: &model_core_pb.ReferenceSet{},
-										},
-									},
-								},
-								{
-									Level: &model_evaluation_pb.Keys_Leaf{
-										Leaf: &model_core_pb.Any{
-											Value: util.Must(anypb.New(&wrapperspb.UInt32Value{
-												Value: 91,
-											})),
-											References: &model_core_pb.ReferenceSet{},
-										},
-									},
+		require.Len(t, evaluations.Message, 1)
+		testutil.RequireEqualProto(t, &model_evaluation_pb.Evaluations{
+			Level: &model_evaluation_pb.Evaluations_Leaf_{
+				Leaf: &model_evaluation_pb.Evaluations_Leaf{
+					// &wrapperspb.UInt32Value{Value: 93}
+					KeyReference: []byte{
+						0x0c, 0xfe, 0x3c, 0x1c, 0x36, 0x0e, 0x96, 0x44,
+						0x16, 0xc0, 0x88, 0xf3, 0xfb, 0x93, 0xd4, 0x68,
+						0xbe, 0x6a, 0xfd, 0xe0, 0x35, 0xc4, 0x8e, 0xf4,
+						0x41, 0xe7, 0x61, 0x11, 0xa8, 0x1b, 0xe3, 0xdd,
+						0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					},
+					Graphlet: &model_evaluation_pb.Graphlet{
+						Evaluation: &model_evaluation_pb.Graphlet_EvaluationInline{
+							EvaluationInline: &model_evaluation_pb.Evaluation{
+								Value: &model_core_pb.Any{
+									Value: util.Must(anypb.New(&wrapperspb.UInt64Value{
+										Value: 12200160415121876738,
+									})),
+									References: &model_core_pb.ReferenceSet{},
 								},
 							},
-							// TODO: DependencyEvaluations: []*model_evaluation_pb.Evaluations{},
 						},
 					},
 				},
-			}, evaluations.Message[0])
-		*/
+			},
+		}, evaluations.Message[0])
 	})
 
 	t.Run("Cycle", func(t *testing.T) {

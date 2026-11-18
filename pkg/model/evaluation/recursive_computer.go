@@ -766,7 +766,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetEvaluations(ctx context.C
 	rc.lock.RLock()
 	topLevelKeyStates := map[*KeyState[TReference, TMetadata]]struct{}{}
 	for _, ks := range keyStates {
-		if ks.valueState.isEvaluated() && (ks.valueState.getError() != nil || ks.valueState.isVariableDependency()) {
+		// Include requested keys even if their values are
+		// constant, as the caller needs to be able to obtain
+		// the values of all keys that it requested.
+		if ks.valueState.isEvaluated() {
 			gatherTopLevelKeyStates(topLevelKeyStates, ks)
 		}
 	}
@@ -1676,12 +1679,13 @@ type noDependenciesValueState[TReference object.BasicReference, TMetadata model_
 	evaluatedValueState[TReference, TMetadata]
 }
 
-func (noDependenciesValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
-	panic("key cannot be embedded into another graphlet, as it is not a variable dependency")
-}
-
+// getHoistedDependencies returns the dependencies that need to be
+// placed next to the graphlet of a key whose value is constant. As
+// such keys don't have any variable dependencies, it returns nothing.
+// Graphlets of such keys are only created if they are requested, so
+// that the caller can obtain their values.
 func (noDependenciesValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
-	panic("key cannot be embedded into another graphlet, as it is not a variable dependency")
+	return nil
 }
 
 func (noDependenciesValueState[TReference, TMetadata]) getDependenciesHashRecordReference() object.LocalReference {
@@ -2129,6 +2133,10 @@ func (computedValueState[TReference, TMetadata]) getError() error {
 type noDependenciesComputedValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	noDependenciesValueState[TReference, TMetadata]
 	computedValueState[TReference, TMetadata]
+}
+
+func (vs *noDependenciesComputedValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+	return vs, newValueOnlyGraphlet(vs.value), nil
 }
 
 func (vs *noDependenciesComputedValueState[TReference, TMetadata]) upload(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], error) {
@@ -2709,6 +2717,14 @@ func (noDependenciesUploadedValueState[TReference, TMetadata]) getError() error 
 	return nil
 }
 
+func (vs *noDependenciesUploadedValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+	value, err := vs.getValue(ctx, rc)
+	if err != nil {
+		return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
+	}
+	return vs, newValueOnlyGraphlet(value), nil
+}
+
 type variableDependenciesUploadedValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	evaluatedValueState[TReference, TMetadata]
 	variableDependencyValueState[TReference, TMetadata]
@@ -2779,9 +2795,16 @@ func (overriddenValueState[TReference, TMetadata]) getError() error {
 }
 
 func (vs *overriddenValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+	return vs, newValueOnlyGraphlet(vs.value), nil
+}
+
+// newValueOnlyGraphlet creates a graphlet for a key that does not have
+// any variable dependencies, meaning that the graphlet only consists
+// of the key's value.
+func newValueOnlyGraphlet[TReference any](value model_core.TopLevelMessage[*anypb.Any, TReference]) model_core.Message[*model_evaluation_pb.Graphlet, TReference] {
 	// TODO: Should this also use inlinedtree?
-	wrappedValue := model_core.WrapTopLevelAny(vs.value).Decay()
-	return vs, model_core.Nested(
+	wrappedValue := model_core.WrapTopLevelAny(value).Decay()
+	return model_core.Nested(
 		wrappedValue,
 		&model_evaluation_pb.Graphlet{
 			Evaluation: &model_evaluation_pb.Graphlet_EvaluationInline{
@@ -2790,7 +2813,7 @@ func (vs *overriddenValueState[TReference, TMetadata]) getGraphlet(ctx context.C
 				},
 			},
 		},
-	), nil
+	)
 }
 
 func (overriddenValueState[TReference, TMetadata]) getHoistedDependencies() []*KeyState[TReference, TMetadata] {
