@@ -133,7 +133,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) walkDirectory(
 			nodesCount++
 		}
 	}
-	if nodesCount >= math.MaxUint32 {
+	if uint64(nodesCount) >= math.MaxUint32 {
 		return status.Errorf(codes.InvalidArgument, "Directory %#v contains too many entries", directoryPath.GetUNIXString())
 	}
 
