@@ -108,29 +108,14 @@ func PatchList[
 	capturer ExistingObjectCapturer[TReference, TMetadata],
 	existingList Message[[]*TMessage, TReference],
 ) PatchedMessage[[]*TMessage, TMetadata] {
-	return MustBuildPatchedMessage(func(patcher *ReferenceMessagePatcher[TMetadata]) []*TMessage {
-		if existingList.OutgoingReferences.GetDegree() == 0 {
-			return existingList.Message
-		}
-
-		a := referenceMessageAdder[TMetadata, TReference]{
-			patcher:            patcher,
-			outgoingReferences: existingList.OutgoingReferences,
-			createMetadata: func(index int) TMetadata {
-				return capturer.CaptureExistingObject(
-					existingList.OutgoingReferences.GetOutgoingReference(index),
-				)
-			},
-		}
-
-		newList := make([]*TMessage, 0, len(existingList.Message))
-		for _, element := range existingList.Message {
-			clonedElement := proto.CloneOf(TMessagePtr(element))
-			a.addReferenceMessagesRecursively(clonedElement.ProtoReflect())
-			newList = append(newList, clonedElement)
-		}
-		return newList
-	})
+	return NewPatchedMessageListFromExisting[TMessage, TMessagePtr](
+		existingList,
+		func(index int) TMetadata {
+			return capturer.CaptureExistingObject(
+				existingList.OutgoingReferences.GetOutgoingReference(index),
+			)
+		},
+	)
 }
 
 // ObjectReferencer is the inverse of ObjectCapturer, allowing metadata

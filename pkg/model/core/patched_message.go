@@ -60,6 +60,41 @@ func NewPatchedMessageFromExisting[
 	})
 }
 
+// NewPatchedMessageListFromExisting is identical to
+// NewPatchedMessageFromExisting(), except that it converts a list of
+// messages.
+func NewPatchedMessageListFromExisting[
+	TMessage any,
+	TMessagePtr interface {
+		*TMessage
+		proto.Message
+	},
+	TMetadata ReferenceMetadata,
+	TReference object.BasicReference,
+](
+	existingList Message[[]*TMessage, TReference],
+	createMetadata ReferenceMetadataCreator[TMetadata],
+) PatchedMessage[[]*TMessage, TMetadata] {
+	return MustBuildPatchedMessage(func(patcher *ReferenceMessagePatcher[TMetadata]) []*TMessage {
+		if existingList.OutgoingReferences.GetDegree() == 0 {
+			return existingList.Message
+		}
+
+		a := referenceMessageAdder[TMetadata, TReference]{
+			patcher:            patcher,
+			outgoingReferences: existingList.OutgoingReferences,
+			createMetadata:     createMetadata,
+		}
+		newList := make([]*TMessage, 0, len(existingList.Message))
+		for _, element := range existingList.Message {
+			clonedElement := proto.CloneOf(TMessagePtr(element))
+			a.addReferenceMessagesRecursively(clonedElement.ProtoReflect())
+			newList = append(newList, clonedElement)
+		}
+		return newList
+	})
+}
+
 // NewSimplePatchedMessage is a helper function for creating instances
 // of PatchedMessage for messages that don't contain any references.
 func NewSimplePatchedMessage[TMetadata ReferenceMetadata, TMessage any](v TMessage) PatchedMessage[TMessage, TMetadata] {
