@@ -3,6 +3,7 @@ package dotbazel
 import (
 	"bonanza.build/pkg/label"
 
+	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
@@ -20,6 +21,12 @@ const (
 )
 
 var (
+	// ModuleComponent is the pathname component of ModuleFilename.
+	ModuleComponent = path.MustNewComponent(ModuleFilename)
+
+	// RepoComponent is the pathname component of RepoFilename.
+	RepoComponent = path.MustNewComponent(RepoFilename)
+
 	// ModuleTargetName is the target name of ModuleFilename within
 	// the root package of a repository.
 	ModuleTargetName = util.Must(label.NewTargetName(ModuleFilename))

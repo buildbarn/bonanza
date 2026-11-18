@@ -367,7 +367,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to open workspace directory: %s", err))
 	}
-	moduleDotBazelFile, err := workspaceDirectory.OpenRead(path.MustNewComponent(dotbazel.ModuleFilename))
+	moduleDotBazelFile, err := workspaceDirectory.OpenRead(dotbazel.ModuleComponent)
 	workspaceDirectory.Close()
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to open MODULE.bazel: %s", err))

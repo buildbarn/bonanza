@@ -26,7 +26,7 @@ import (
 // If REPO.bazel does not exist or does not call ignore_directories(),
 // an NFA is returned that does not match any directories.
 func getIgnoredDirectoriesNFA(ctx context.Context, moduleRootDirectory filesystem.Directory, moduleName label.Module) (*glob.NFA, error) {
-	f, err := moduleRootDirectory.OpenRead(path.MustNewComponent(dotbazel.RepoFilename))
+	f, err := moduleRootDirectory.OpenRead(dotbazel.RepoComponent)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return &glob.NFAMatchingNothing, nil
