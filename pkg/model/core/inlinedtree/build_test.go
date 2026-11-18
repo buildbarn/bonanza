@@ -6,8 +6,8 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
+	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
-	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
 
@@ -25,7 +25,7 @@ func TestBuild(t *testing.T) {
 		// If no candidates are provided, there is no data,
 		// meaning an empty message needs to be emitted.
 		output, err := inlinedtree.Build(
-			inlinedtree.CandidateList[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]{},
+			inlinedtree.CandidateList[*model_command_pb.PathPattern, model_core.ReferenceMetadata]{},
 			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				MaximumSizeBytes: 16 * 1024,
@@ -34,7 +34,7 @@ func TestBuild(t *testing.T) {
 		require.NoError(t, err)
 
 		references, metadata := output.Patcher.SortAndSetReferences()
-		testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryContents{}, output.Message)
+		testutil.RequireEqualProto(t, &model_command_pb.PathPattern{}, output.Message)
 		require.Empty(t, references)
 		require.Empty(t, metadata)
 	})
@@ -47,33 +47,31 @@ func TestBuild(t *testing.T) {
 		encoder := NewMockDeterministicBinaryEncoder(ctrl)
 		encoder.EXPECT().GetDecodingParametersSizeBytes().Return(4)
 
-		leaves := &model_filesystem_pb.Leaves{
-			Symlinks: []*model_filesystem_pb.SymlinkNode{{
-				Name:   "a",
-				Target: "b",
+		leaves := &model_command_pb.PathPattern_Children{
+			Children: []*model_command_pb.PathPattern_Child{{
+				Name:    "a",
+				Pattern: &model_command_pb.PathPattern{},
 			}},
 		}
-		leavesInline := &model_filesystem_pb.DirectoryContents_LeavesInline{
-			LeavesInline: leaves,
+		leavesInline := &model_command_pb.PathPattern_ChildrenInline{
+			ChildrenInline: leaves,
 		}
 		parentAppender := NewMockParentAppenderForTesting(ctrl)
 		metadata1 := NewMockReferenceMetadata(ctrl)
 		parentAppender.EXPECT().Call(gomock.Any(), nil).
-			Do(func(output model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Leaves = leavesInline
+			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
+				output.Message.Children = leavesInline
 			}).
 			Times(2)
 		parentAppender.EXPECT().Call(gomock.Any(), gomock.Not(nil)).
-			Do(func(output model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Leaves = &model_filesystem_pb.DirectoryContents_LeavesExternal{
-					LeavesExternal: &model_filesystem_pb.LeavesReference{
-						Reference: &model_core_pb.DecodableReference{
-							Reference: output.Patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
-								LocalReference: externalObject.Value.GetLocalReference(),
-								Metadata:       metadata1,
-							}),
-							DecodingParameters: externalObject.GetDecodingParameters(),
-						},
+			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
+				output.Message.Children = &model_command_pb.PathPattern_ChildrenExternal{
+					ChildrenExternal: &model_core_pb.DecodableReference{
+						Reference: output.Patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
+							LocalReference: externalObject.Value.GetLocalReference(),
+							Metadata:       metadata1,
+						}),
+						DecodingParameters: externalObject.GetDecodingParameters(),
 					},
 				}
 			}).
@@ -81,7 +79,7 @@ func TestBuild(t *testing.T) {
 		metadata1.EXPECT().Discard()
 
 		output, err := inlinedtree.Build(
-			inlinedtree.CandidateList[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]{{
+			inlinedtree.CandidateList[*model_command_pb.PathPattern, model_core.ReferenceMetadata]{{
 				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoBinaryMarshaler(leaves)),
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
@@ -94,8 +92,8 @@ func TestBuild(t *testing.T) {
 		require.NoError(t, err)
 
 		references, metadata := output.Patcher.SortAndSetReferences()
-		testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryContents{
-			Leaves: leavesInline,
+		testutil.RequireEqualProto(t, &model_command_pb.PathPattern{
+			Children: leavesInline,
 		}, output.Message)
 		require.Empty(t, references)
 		require.Empty(t, metadata)
@@ -112,32 +110,30 @@ func TestBuild(t *testing.T) {
 				return in, []byte{1, 2, 3, 4}, nil
 			})
 
-		leaves := &model_filesystem_pb.Leaves{
-			Symlinks: []*model_filesystem_pb.SymlinkNode{{
-				Name:   "This is a very long symbolic link name",
-				Target: "This is a very long symbolic link target",
-			}},
+		leaves := &model_command_pb.PathPattern_Children{
+			Children: []*model_command_pb.PathPattern_Child{
+				{Name: "This is a very long path pattern child name", Pattern: &model_command_pb.PathPattern{}},
+				{Name: "This is another long path pattern child name", Pattern: &model_command_pb.PathPattern{}},
+			},
 		}
 		parentAppender := NewMockParentAppenderForTesting(ctrl)
 		parentAppender.EXPECT().Call(gomock.Any(), nil).
-			Do(func(output model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Leaves = &model_filesystem_pb.DirectoryContents_LeavesInline{
-					LeavesInline: leaves,
+			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
+				output.Message.Children = &model_command_pb.PathPattern_ChildrenInline{
+					ChildrenInline: leaves,
 				}
 			}).
 			Times(1)
 		metadata1 := NewMockReferenceMetadata(ctrl)
 		parentAppender.EXPECT().Call(gomock.Any(), gomock.Not(nil)).
-			Do(func(output model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Leaves = &model_filesystem_pb.DirectoryContents_LeavesExternal{
-					LeavesExternal: &model_filesystem_pb.LeavesReference{
-						Reference: &model_core_pb.DecodableReference{
-							Reference: output.Patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
-								LocalReference: externalObject.Value.GetLocalReference(),
-								Metadata:       metadata1,
-							}),
-							DecodingParameters: externalObject.GetDecodingParameters(),
-						},
+			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
+				output.Message.Children = &model_command_pb.PathPattern_ChildrenExternal{
+					ChildrenExternal: &model_core_pb.DecodableReference{
+						Reference: output.Patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
+							LocalReference: externalObject.Value.GetLocalReference(),
+							Metadata:       metadata1,
+						}),
+						DecodingParameters: externalObject.GetDecodingParameters(),
 					},
 				}
 			}).
@@ -145,7 +141,7 @@ func TestBuild(t *testing.T) {
 		metadata1.EXPECT().Discard().Times(1)
 
 		output, err := inlinedtree.Build(
-			inlinedtree.CandidateList[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]{{
+			inlinedtree.CandidateList[*model_command_pb.PathPattern, model_core.ReferenceMetadata]{{
 				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoBinaryMarshaler(leaves)),
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
@@ -158,20 +154,18 @@ func TestBuild(t *testing.T) {
 		require.NoError(t, err)
 
 		references, metadata := output.Patcher.SortAndSetReferences()
-		testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryContents{
-			Leaves: &model_filesystem_pb.DirectoryContents_LeavesExternal{
-				LeavesExternal: &model_filesystem_pb.LeavesReference{
-					Reference: &model_core_pb.DecodableReference{
-						Reference: &model_core_pb.Reference{
-							Index: 1,
-						},
-						DecodingParameters: []byte{1, 2, 3, 4},
+		testutil.RequireEqualProto(t, &model_command_pb.PathPattern{
+			Children: &model_command_pb.PathPattern_ChildrenExternal{
+				ChildrenExternal: &model_core_pb.DecodableReference{
+					Reference: &model_core_pb.Reference{
+						Index: 1,
 					},
+					DecodingParameters: []byte{1, 2, 3, 4},
 				},
 			},
 		}, output.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
-			object.MustNewSHA256V1LocalReference("013ab9b8d7bfdce48a964249f169d6b99bb58ec55b11a7df0f7305ae8a5577df", 84, 0, 0, 0),
+			object.MustNewSHA256V1LocalReference("a7293026e8db38c82bc46e2a6c033b5bbaafc3c17e9bbc9737bcf313997dfc8a", 99, 0, 0, 0),
 		}, references)
 		require.Equal(t, []model_core.ReferenceMetadata{
 			metadata1,
@@ -184,38 +178,38 @@ func TestBuild(t *testing.T) {
 		// the data externally.
 		encoder := NewMockDeterministicBinaryEncoder(ctrl)
 
-		leaves := &model_filesystem_pb.Leaves{
-			Symlinks: []*model_filesystem_pb.SymlinkNode{{
-				Name:   "This is a very long symbolic link name",
-				Target: "This is a very long symbolic link target",
-			}},
+		leaves := &model_command_pb.PathPattern_Children{
+			Children: []*model_command_pb.PathPattern_Child{
+				{Name: "This is a very long path pattern child name", Pattern: &model_command_pb.PathPattern{}},
+				{Name: "This is another long path pattern child name", Pattern: &model_command_pb.PathPattern{}},
+			},
 		}
-		leavesInline := &model_filesystem_pb.DirectoryContents_LeavesInline{
-			LeavesInline: leaves,
+		leavesInline := &model_command_pb.PathPattern_ChildrenInline{
+			ChildrenInline: leaves,
 		}
 		parentAppender := NewMockParentAppenderForTesting(ctrl)
 		parentAppender.EXPECT().Call(gomock.Any(), nil).
-			Do(func(output model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Leaves = leavesInline
+			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
+				output.Message.Children = leavesInline
 			}).
 			Times(2)
 
 		output, err := inlinedtree.Build(
-			inlinedtree.CandidateList[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]{{
+			inlinedtree.CandidateList[*model_command_pb.PathPattern, model_core.ReferenceMetadata]{{
 				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoBinaryMarshaler(leaves)),
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
 			}},
 			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-				MaximumSizeBytes: 100,
+				MaximumSizeBytes: 200,
 			},
 		)
 		require.NoError(t, err)
 
 		references, metadata := output.Patcher.SortAndSetReferences()
-		testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryContents{
-			Leaves: leavesInline,
+		testutil.RequireEqualProto(t, &model_command_pb.PathPattern{
+			Children: leavesInline,
 		}, output.Message)
 		require.Empty(t, references)
 		require.Empty(t, metadata)
@@ -226,37 +220,37 @@ func TestBuild(t *testing.T) {
 		// forces inlining to be performed. In this case there
 		// should be no need to invoke the ParentAppender to
 		// compute the size of the externally stored instance.
-		leaves := &model_filesystem_pb.Leaves{
-			Symlinks: []*model_filesystem_pb.SymlinkNode{{
-				Name:   "This is a very long symbolic link name",
-				Target: "This is a very long symbolic link target",
-			}},
+		leaves := &model_command_pb.PathPattern_Children{
+			Children: []*model_command_pb.PathPattern_Child{
+				{Name: "This is a very long path pattern child name", Pattern: &model_command_pb.PathPattern{}},
+				{Name: "This is another long path pattern child name", Pattern: &model_command_pb.PathPattern{}},
+			},
 		}
-		leavesInline := &model_filesystem_pb.DirectoryContents_LeavesInline{
-			LeavesInline: leaves,
+		leavesInline := &model_command_pb.PathPattern_ChildrenInline{
+			ChildrenInline: leaves,
 		}
 		parentAppender := NewMockParentAppenderForTesting(ctrl)
 		parentAppender.EXPECT().Call(gomock.Any(), nil).
-			Do(func(output model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Leaves = leavesInline
+			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
+				output.Message.Children = leavesInline
 			}).
 			Times(2)
 
 		output, err := inlinedtree.Build(
-			inlinedtree.CandidateList[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]{{
+			inlinedtree.CandidateList[*model_command_pb.PathPattern, model_core.ReferenceMetadata]{{
 				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](encoding.BinaryMarshaler(nil)),
 				ParentAppender:  parentAppender.Call,
 			}},
 			inlinedtree.Options{
 				ReferenceFormat:  util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
-				MaximumSizeBytes: 100,
+				MaximumSizeBytes: 200,
 			},
 		)
 		require.NoError(t, err)
 
 		references, metadata := output.Patcher.SortAndSetReferences()
-		testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryContents{
-			Leaves: leavesInline,
+		testutil.RequireEqualProto(t, &model_command_pb.PathPattern{
+			Children: leavesInline,
 		}, output.Message)
 		require.Empty(t, references)
 		require.Empty(t, metadata)

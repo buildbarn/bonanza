@@ -7,7 +7,7 @@ import (
 	"bonanza.build/pkg/ds"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
-	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
+	model_command_pb "bonanza.build/pkg/proto/model/command"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -298,4 +298,4 @@ func Build[
 
 // ParentAppenderForTesting is an instantiation of ParentAppender for
 // generating mocks to be used by tests.
-type ParentAppenderForTesting ParentAppender[*model_filesystem_pb.DirectoryContents, model_core.ReferenceMetadata]
+type ParentAppenderForTesting ParentAppender[*model_command_pb.PathPattern, model_core.ReferenceMetadata]
