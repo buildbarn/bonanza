@@ -6,13 +6,10 @@ import (
 	"sort"
 	"sync/atomic"
 
-	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
-	model_encoding "bonanza.build/pkg/model/encoding"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
-	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -95,13 +92,11 @@ type unfinalizedNode[TFile model_core.ReferenceMetadata] struct {
 }
 
 type directoryMerkleTreeBuilder[TDirectory, TFile model_core.ReferenceMetadata] struct {
-	context               context.Context
-	concurrency           *semaphore.Weighted
-	group                 *errgroup.Group
-	directoryEncoder      model_encoding.DeterministicBinaryEncoder
-	referenceFormat       object.ReferenceFormat
-	directoriesParameters chunking.Parameters
-	capturer              DirectoryMerkleTreeCapturer[TDirectory, TFile]
+	context     context.Context
+	concurrency *semaphore.Weighted
+	group       *errgroup.Group
+	parameters  *DirectoryCreationParameters
+	capturer    DirectoryMerkleTreeCapturer[TDirectory, TFile]
 }
 
 func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) walkDirectory(
@@ -265,12 +260,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) finalizeDirectory(ud *un
 		b.context,
 		model_core.CreatedObjectCapturerFunc[TDirectory](b.capturer.CaptureDirectory),
 	)
-	treeBuilder := NewDirectoryEntriesBTreeBuilder(
-		b.directoriesParameters,
-		b.referenceFormat,
-		b.directoryEncoder,
-		parentNodeComputer,
-	)
+	treeBuilder := newDirectoryEntriesBTreeBuilder(b.parameters, parentNodeComputer)
 	defer treeBuilder.Discard()
 
 	// First section: the contents of all subdirectories, in the
@@ -416,24 +406,22 @@ func NewDirectoryEntryParentNodeComputer[TMetadata model_core.ReferenceMetadata]
 	}
 }
 
-// NewDirectoryEntriesBTreeBuilder creates a B-tree builder that is
+// newDirectoryEntriesBTreeBuilder creates a B-tree builder that is
 // capable of constructing the B-trees of directories.
-func NewDirectoryEntriesBTreeBuilder[TMetadata model_core.ReferenceMetadata](
-	parameters chunking.Parameters,
-	referenceFormat object.ReferenceFormat,
-	encoder model_encoding.DeterministicBinaryEncoder,
+func newDirectoryEntriesBTreeBuilder[TMetadata model_core.ReferenceMetadata](
+	parameters *DirectoryCreationParameters,
 	parentNodeComputer btree.ParentNodeComputer[*model_filesystem_pb.DirectoryEntry, TMetadata],
 ) btree.Builder[*model_filesystem_pb.DirectoryEntry, TMetadata] {
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			parameters,
+			parameters.directoriesParameters,
 			/* isParent = */ func(entry *model_filesystem_pb.DirectoryEntry) bool {
 				return entry.GetParent() != nil
 			},
 		),
 		btree.NewObjectCreatingNodeMerger(
-			encoder,
-			referenceFormat,
+			parameters.encoder,
+			parameters.referenceFormat,
 			parentNodeComputer,
 		),
 	)
@@ -539,13 +527,11 @@ func CreateDirectoryMerkleTree[TDirectory, TFile model_core.ReferenceMetadata](
 	out *CreatedDirectory[TDirectory],
 ) error {
 	b := directoryMerkleTreeBuilder[TDirectory, TFile]{
-		context:               ctx,
-		concurrency:           concurrency,
-		group:                 group,
-		directoryEncoder:      directoryParameters.encoder,
-		referenceFormat:       directoryParameters.referenceFormat,
-		directoriesParameters: directoryParameters.directoriesParameters,
-		capturer:              capturer,
+		context:     ctx,
+		concurrency: concurrency,
+		group:       group,
+		parameters:  directoryParameters,
+		capturer:    capturer,
 	}
 
 	var parent unfinalizedDirectory[TDirectory, TFile]
