@@ -345,7 +345,18 @@ func main() {
 	fmt.Printf("}\n")
 
 	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeObject(value model_core.Message[proto.Message, TReference]) (any, error) {\n")
-	fmt.Printf("\tswitch typedValue := value.Message.(type) {\n")
+	hasObjects := false
+	for _, functionDefinition := range computerDefinition.Functions {
+		if functionDefinition.ObjectType != nil {
+			hasObjects = true
+		}
+	}
+	if hasObjects {
+		fmt.Printf("\tswitch typedValue := value.Message.(type) {\n")
+	} else {
+		// Prevent "declared and not used" errors.
+		fmt.Printf("\tswitch value.Message.(type) {\n")
+	}
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		if computerDefinition.Functions[functionName].ObjectType != nil {
 			fmt.Printf("\tcase *pb.%s_Value:\n", getMessageName(functionName))
