@@ -224,12 +224,19 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextEvaluatableKey(ct
 				// encountered twice. That key is part of
 				// the cycle, meaning it blocks at least one
 				// other key on the cycle.
-				visited := map[*KeyState[TReference, TMetadata]]struct{}{}
+				//
+				// Keep track of the path that was followed,
+				// so that the keys on the cycle can be
+				// reported.
+				var path []*KeyState[TReference, TMetadata]
+				pathIndices := map[*KeyState[TReference, TMetadata]]int{}
 				for {
-					if _, ok := visited[ksCyclic]; ok {
+					if index, ok := pathIndices[ksCyclic]; ok {
+						path = path[index:]
 						break
 					}
-					visited[ksCyclic] = struct{}{}
+					pathIndices[ksCyclic] = len(path)
+					path = append(path, ksCyclic)
 					i := slices.IndexFunc(blockedOn[ksCyclic], func(ksBlocker *KeyState[TReference, TMetadata]) bool {
 						return ksBlocker.isBlockedCyclic(blockedOn, blockedCyclic)
 					})
@@ -238,6 +245,24 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextEvaluatableKey(ct
 					}
 					ksCyclic = blockedOn[ksCyclic][i]
 				}
+
+				// Construct an error containing all keys on
+				// the cycle. path[0] is ksCyclic, which is
+				// blocked on path[1], and so on. The last key
+				// on the path is blocked on ksCyclic. This
+				// causes the stack trace to start and end
+				// with ksCyclic.
+				errCycle := NestedError[TReference, TMetadata]{
+					KeyState: ksCyclic,
+					Err:      errors.New("cyclic dependency detected"),
+				}
+				for i := len(path) - 1; i >= 0; i-- {
+					errCycle = NestedError[TReference, TMetadata]{
+						KeyState: path[i],
+						Err:      errCycle,
+					}
+				}
+
 				// Unblock all keys blocked by the cyclic key
 				// before marking any of them as failed. Keys
 				// may also be blocked on each other. Marking
@@ -255,10 +280,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextEvaluatableKey(ct
 				}
 				for _, ksBlocked := range ksBlockedList {
 					ksBlocked.valueState = ksBlocked.valueState.gotFailedDependency(
-						NestedError[TReference, TMetadata]{
-							KeyState: ksCyclic,
-							Err:      errors.New("cyclic dependency detected"),
-						},
+						errCycle,
 					)
 					rc.evaluatedKeyState(ksBlocked)
 				}

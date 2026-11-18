@@ -259,17 +259,13 @@ func TestRecursiveComputer(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		require.Equal(
-			t,
-			model_evaluation.NestedError[object.LocalReference, model_core.ReferenceMetadata]{
-				KeyState: keyState,
-				Err:      errors.New("cyclic dependency detected"),
-			},
-			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-				queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
-				return recursiveComputer.WaitForEvaluation(ctx, keyState)
-			}),
-		)
+		// The error should contain the cycle, starting and
+		// ending with the key that depends on itself.
+		err = program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+			queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
+			return recursiveComputer.WaitForEvaluation(ctx, keyState)
+		})
+		require.Equal(t, []uint32{42, 42}, getCycleTestStackTrace(t, ctx, recursiveComputer, err))
 	})
 
 	t.Run("CycleBehindDependency", func(t *testing.T) {
@@ -337,7 +333,10 @@ func TestRecursiveComputer(t *testing.T) {
 			queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
 			return recursiveComputer.WaitForEvaluation(ctx, keyState)
 		})
-		require.ErrorContains(t, err, "cyclic dependency detected")
+		// The error should contain the cycle between keys 1
+		// and 2, starting and ending with the key on the cycle
+		// that the requested key depends on.
+		require.Equal(t, []uint32{1, 2, 1}, getCycleTestStackTrace(t, ctx, recursiveComputer, err))
 	})
 
 	t.Run("CycleWithInterdependentBlockedKeys", func(t *testing.T) {
@@ -1134,4 +1133,25 @@ func TestRecursiveComputerObject(t *testing.T) {
 			}),
 		)
 	})
+}
+
+// getCycleTestStackTrace returns the keys contained in a chain of
+// NestedErrors, and checks that the chain ends with an error
+// indicating that a cyclic dependency was detected.
+func getCycleTestStackTrace(t *testing.T, ctx context.Context, recursiveComputer *model_evaluation.RecursiveComputer[object.LocalReference, model_core.ReferenceMetadata], err error) []uint32 {
+	var keys []uint32
+	for {
+		var nestedErr model_evaluation.NestedError[object.LocalReference, model_core.ReferenceMetadata]
+		if !errors.As(err, &nestedErr) {
+			break
+		}
+		key, errKey := recursiveComputer.GetKeyStateKeyMessage(ctx, nestedErr.KeyState)
+		require.NoError(t, errKey)
+		value, errKey := model_core.UnmarshalTopLevelAnyNew(key)
+		require.NoError(t, errKey)
+		keys = append(keys, value.Message.(*wrapperspb.UInt32Value).Value)
+		err = nestedErr.Err
+	}
+	require.EqualError(t, err, "cyclic dependency detected")
+	return keys
 }
