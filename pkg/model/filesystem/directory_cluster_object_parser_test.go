@@ -3,14 +3,16 @@ package filesystem_test
 import (
 	"testing"
 
+	"bonanza.build/pkg/encoding/varint"
 	model_core "bonanza.build/pkg/model/core"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	model_core_pb "bonanza.build/pkg/proto/model/core"
+	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
-	"github.com/buildbarn/bb-storage/pkg/testutil"
+	"github.com/stretchr/testify/require"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestDirectoryClusterObjectParser(t *testing.T) {
@@ -23,8 +25,54 @@ func TestDirectoryClusterObjectParser(t *testing.T) {
 			),
 			nil,
 		)
-		testutil.RequirePrefixedStatus(t, status.Error(codes.InvalidArgument, "Failed to parse directory: "), err)
+		require.Error(t, err)
 	})
 
-	// TODO: Add more testing coverage.
+	t.Run("NestedDirectories", func(t *testing.T) {
+		// Directory "a" is stored inline and contains directory
+		// "b", while the entries of directory "c" are stored
+		// in another object.
+		entries := []*model_filesystem_pb.DirectoryEntry{
+			directoryContentsEntry(
+				directoryContentsEntry(),
+				directoryNodeEntry("b", 0),
+			),
+			directoryContentsEntry(&model_filesystem_pb.DirectoryEntry{
+				Level: &model_filesystem_pb.DirectoryEntry_Parent_{
+					Parent: &model_filesystem_pb.DirectoryEntry_Parent{
+						Reference: &model_core_pb.DecodableReference{
+							Reference: &model_core_pb.Reference{Index: 1},
+						},
+						FirstName:      "x",
+						LeafNodesCount: 100,
+					},
+				},
+			}),
+			directoryNodeEntry("a", 1),
+			directoryNodeEntry("c", 0),
+		}
+		var data []byte
+		for _, entry := range entries {
+			element, err := proto.Marshal(entry)
+			require.NoError(t, err)
+			data = varint.AppendForward(data, len(element))
+			data = append(data, element...)
+		}
+
+		cluster, err := objectParser.ParseObject(
+			model_core.NewSimpleMessage[object.LocalReference](data),
+			nil,
+		)
+		require.NoError(t, err)
+
+		// Directories should be stored in topological order,
+		// with the root directory corresponding to the object
+		// in its entirety.
+		directories := cluster.Message.Directories
+		require.Len(t, directories, 4)
+		require.Equal(t, []int{1, 3, -1, -1}, directories[0].ChildDirectoryIndices)
+		require.Equal(t, []int{2, -1}, directories[1].ChildDirectoryIndices)
+		require.Empty(t, directories[2].ChildDirectoryIndices)
+		require.Equal(t, []int{-1}, directories[3].ChildDirectoryIndices)
+	})
 }

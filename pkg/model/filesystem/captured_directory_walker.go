@@ -32,10 +32,9 @@ type CapturedDirectory interface {
 // all the transitively created instances of ObjectContentsWalker that
 // are returned by NewCapturedDirectoryWalker().
 type capturedDirectoryWalkerOptions struct {
-	directoryContentsParser model_parser.MessageObjectParser[object.LocalReference, *model_filesystem_pb.DirectoryContents]
-	leavesParser            model_parser.MessageObjectParser[object.LocalReference, *model_filesystem_pb.Leaves]
-	fileParameters          *FileCreationParameters
-	rootDirectory           CapturedDirectory
+	entriesParser  model_parser.MessageObjectParser[object.LocalReference, []*model_filesystem_pb.DirectoryEntry]
+	fileParameters *FileCreationParameters
+	rootDirectory  CapturedDirectory
 }
 
 // openFile opens a file underneath the root directory for reading. This
@@ -64,49 +63,46 @@ func (o *capturedDirectoryWalkerOptions) openFile(pathTrace *path.Trace) (filesy
 	return d.OpenRead(components[len(components)-1])
 }
 
-// gatherWalkersForLeaves creates ObjectContentsWalkers for all files
-// contained in the provided Leaves message.
-func (o *capturedDirectoryWalkerOptions) gatherWalkersForLeaves(leaves model_core.Message[*model_filesystem_pb.Leaves, object.LocalReference], pathTrace *path.Trace, walkers []dag.ObjectContentsWalker) error {
-	for _, childFile := range leaves.Message.Files {
-		childPathTrace := pathTrace.Append(path.MustNewComponent(childFile.Name))
-		properties := childFile.Properties
-		if properties == nil {
-			return status.Errorf(codes.InvalidArgument, "File %#v does not have any properties", childPathTrace.GetUNIXString())
-		}
-		if contents := properties.Contents; contents != nil {
-			switch level := contents.Level.(type) {
-			case *model_filesystem_pb.FileContents_List_:
-				index, err := model_core.GetIndexFromReferenceMessage(level.List.Reference.GetReference(), len(walkers))
-				if err != nil {
-					return util.StatusWrapf(err, "Invalid file contents list reference index for file %#v", childPathTrace.GetUNIXString())
-				}
-				walkers[index] = &recomputingConcatenatedFileWalker{
-					options:   o,
-					reference: leaves.OutgoingReferences.GetOutgoingReference(index),
-					pathTrace: childPathTrace,
-				}
-			case *model_filesystem_pb.FileContents_ChunkReference:
-				index, err := model_core.GetIndexFromReferenceMessage(level.ChunkReference.Reference, len(walkers))
-				if err != nil {
-					return util.StatusWrapf(err, "Invalid chunk reference index for file %#v", childPathTrace.GetUNIXString())
-				}
-				walkers[index] = &smallFileWalker{
-					options:   o,
-					reference: leaves.OutgoingReferences.GetOutgoingReference(index),
-					pathTrace: childPathTrace,
-					sizeBytes: uint32(contents.TotalSizeBytes),
-				}
-			case *model_filesystem_pb.FileContents_Hole:
-			default:
-				return status.Errorf(codes.InvalidArgument, "File %#v has an unknown file contents type", childPathTrace.GetUNIXString())
+// gatherWalkersForFile creates an ObjectContentsWalker for the contents
+// of a file, if the file is non-empty.
+func (o *capturedDirectoryWalkerOptions) gatherWalkersForFile(object *model_core.CreatedObjectTree, properties *model_filesystem_pb.FileProperties, pathTrace *path.Trace, walkers []dag.ObjectContentsWalker) error {
+	if properties == nil {
+		return status.Errorf(codes.InvalidArgument, "File %#v does not have any properties", pathTrace.GetUNIXString())
+	}
+	if contents := properties.Contents; contents != nil {
+		switch level := contents.Level.(type) {
+		case *model_filesystem_pb.FileContents_List_:
+			index, err := model_core.GetIndexFromReferenceMessage(level.List.Reference.GetReference(), len(walkers))
+			if err != nil {
+				return util.StatusWrapf(err, "Invalid file contents list reference index for file %#v", pathTrace.GetUNIXString())
 			}
+			walkers[index] = &recomputingConcatenatedFileWalker{
+				options:   o,
+				reference: object.Contents.GetOutgoingReference(index),
+				pathTrace: pathTrace,
+			}
+		case *model_filesystem_pb.FileContents_ChunkReference:
+			index, err := model_core.GetIndexFromReferenceMessage(level.ChunkReference.Reference, len(walkers))
+			if err != nil {
+				return util.StatusWrapf(err, "Invalid chunk reference index for file %#v", pathTrace.GetUNIXString())
+			}
+			walkers[index] = &smallFileWalker{
+				options:   o,
+				reference: object.Contents.GetOutgoingReference(index),
+				pathTrace: pathTrace,
+				sizeBytes: uint32(contents.TotalSizeBytes),
+			}
+		case *model_filesystem_pb.FileContents_Hole:
+		default:
+			return status.Errorf(codes.InvalidArgument, "File %#v has an unknown file contents type", pathTrace.GetUNIXString())
 		}
 	}
 	return nil
 }
 
 // capturedDirectoryWalker is an ObjectContentsWalker that is backed by
-// a CreatedObjectTree corresponding to a Directory message.
+// a CreatedObjectTree corresponding to the top level of a directory's
+// B-tree.
 type capturedDirectoryWalker struct {
 	options            *capturedDirectoryWalkerOptions
 	object             *model_core.CreatedObjectTree
@@ -116,10 +112,10 @@ type capturedDirectoryWalker struct {
 
 // NewCapturedDirectoryWalker returns an implementation of
 // ObjectContentsWalker that is capable of walking over a hierarchy of
-// Directory and Leaves objects that were created using
-// CreateDirectoryMerkleTree and captured using
-// FileDiscardingDirectoryMerkleTreeCapturer. This makes it possible to
-// upload such directory hierarchies to a storage server.
+// directory objects that were created using CreateDirectoryMerkleTree
+// and captured using FileDiscardingDirectoryMerkleTreeCapturer. This
+// makes it possible to upload such directory hierarchies to a storage
+// server.
 //
 // These Merkle trees do not contain any file contents, but it is
 // permitted for the storage server to request them. If that happens, we
@@ -127,18 +123,13 @@ type capturedDirectoryWalker struct {
 // caller must provide a handle to the root directory on which the
 // provided Merkle tree is based.
 func NewCapturedDirectoryWalker(directoryParameters *DirectoryAccessParameters, fileParameters *FileCreationParameters, rootDirectory CapturedDirectory, rootObject *model_core.CreatedObjectTree, decodingParameters []byte) dag.ObjectContentsWalker {
-	directoryEncodedObjectParser := model_parser.NewEncodedObjectParser[object.LocalReference](
-		directoryParameters.GetEncoder(),
-	)
 	return &capturedDirectoryWalker{
 		options: &capturedDirectoryWalkerOptions{
-			directoryContentsParser: model_parser.NewChainedObjectParser(
-				directoryEncodedObjectParser,
-				model_parser.NewProtoObjectParser[object.LocalReference, model_filesystem_pb.DirectoryContents](),
-			),
-			leavesParser: model_parser.NewChainedObjectParser(
-				directoryEncodedObjectParser,
-				model_parser.NewProtoObjectParser[object.LocalReference, model_filesystem_pb.Leaves](),
+			entriesParser: model_parser.NewChainedObjectParser(
+				model_parser.NewEncodedObjectParser[object.LocalReference](
+					directoryParameters.GetEncoder(),
+				),
+				model_parser.NewProtoListObjectParser[object.LocalReference, model_filesystem_pb.DirectoryEntry](),
 			),
 			fileParameters: fileParameters,
 			rootDirectory:  rootDirectory,
@@ -148,90 +139,157 @@ func NewCapturedDirectoryWalker(directoryParameters *DirectoryAccessParameters, 
 	}
 }
 
-func (w *capturedDirectoryWalker) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
-	directory, err := w.options.directoryContentsParser.ParseObject(model_core.NewRawMessage(w.object.Contents), w.decodingParameters)
+func (o *capturedDirectoryWalkerOptions) parseEntries(object *model_core.CreatedObjectTree, decodingParameters []byte, pathTrace *path.Trace) ([]*model_filesystem_pb.DirectoryEntry, error) {
+	entries, err := o.entriesParser.ParseObject(model_core.NewRawMessage(object.Contents), decodingParameters)
 	if err != nil {
-		return nil, nil, util.StatusWrapf(err, "Failed to decode directory %#v", w.pathTrace.GetUNIXString())
+		return nil, util.StatusWrapf(err, "Failed to decode entries of directory %#v", pathTrace.GetUNIXString())
 	}
+	return entries.Message, nil
+}
 
+func (w *capturedDirectoryWalker) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
+	entries, err := w.options.parseEntries(w.object, w.decodingParameters, w.pathTrace)
+	if err != nil {
+		return nil, nil, err
+	}
 	walkers := make([]dag.ObjectContentsWalker, w.object.GetDegree())
-	if err := w.gatherWalkers(directory.Message, w.pathTrace, walkers); err != nil {
+	if err := w.options.gatherWalkersForDirectory(w.object, entries, w.pathTrace, walkers); err != nil {
 		return nil, nil, err
 	}
 	return w.object.Contents, walkers, nil
-}
-
-func (w *capturedDirectoryWalker) gatherWalkers(directory *model_filesystem_pb.DirectoryContents, pathTrace *path.Trace, walkers []dag.ObjectContentsWalker) error {
-	switch leaves := directory.Leaves.(type) {
-	case *model_filesystem_pb.DirectoryContents_LeavesExternal:
-		index, err := model_core.GetIndexFromReferenceMessage(leaves.LeavesExternal.Reference.GetReference(), len(walkers))
-		if err != nil {
-			return util.StatusWrapf(err, "Invalid reference index for leaves of directory %#v", pathTrace.GetUNIXString())
-		}
-		walkers[index] = &capturedLeavesWalker{
-			options:            w.options,
-			object:             &w.object.Metadata[index],
-			decodingParameters: leaves.LeavesExternal.Reference.DecodingParameters,
-			pathTrace:          pathTrace,
-		}
-	case *model_filesystem_pb.DirectoryContents_LeavesInline:
-		if err := w.options.gatherWalkersForLeaves(model_core.NewMessage(leaves.LeavesInline, w.object.Contents), pathTrace, walkers); err != nil {
-			return err
-		}
-	default:
-		return status.Errorf(codes.InvalidArgument, "Invalid leaves type for directory %#v", pathTrace.GetUNIXString())
-	}
-
-	for _, childDirectory := range directory.Directories {
-		childPathTrace := pathTrace.Append(path.MustNewComponent(childDirectory.Name))
-		switch contents := childDirectory.Directory.GetContents().(type) {
-		case *model_filesystem_pb.Directory_ContentsExternal:
-			index, err := model_core.GetIndexFromReferenceMessage(contents.ContentsExternal.Reference.GetReference(), len(walkers))
-			if err != nil {
-				return util.StatusWrapf(err, "Invalid reference index for directory %#v", childPathTrace.GetUNIXString())
-			}
-			walkers[index] = &capturedDirectoryWalker{
-				options:            w.options,
-				object:             &w.object.Metadata[index],
-				decodingParameters: contents.ContentsExternal.Reference.DecodingParameters,
-				pathTrace:          childPathTrace,
-			}
-		case *model_filesystem_pb.Directory_ContentsInline:
-			if err := w.gatherWalkers(contents.ContentsInline, childPathTrace, walkers); err != nil {
-				return err
-			}
-		default:
-			return status.Errorf(codes.InvalidArgument, "Invalid contents type for directory %#v", childPathTrace.GetUNIXString())
-		}
-	}
-	return nil
 }
 
 func (capturedDirectoryWalker) Discard() {}
 
-// capturedLeaves is an ObjectContentsWalker that is backed by a
-// CreatedObjectTree corresponding to a Leaves message.
-type capturedLeavesWalker struct {
+// collectDirectoryNames returns the names of all subdirectories of a
+// directory, in the order in which their contents are stored in the
+// first section of the directory's B-tree. As all objects are
+// available in memory, parts of the B-tree stored in other objects can
+// be parsed directly.
+func (o *capturedDirectoryWalkerOptions) collectDirectoryNames(object *model_core.CreatedObjectTree, entries []*model_filesystem_pb.DirectoryEntry, pathTrace *path.Trace, names []string) ([]string, error) {
+	for _, entry := range entries {
+		switch level := entry.Level.(type) {
+		case *model_filesystem_pb.DirectoryEntry_Parent_:
+			// Only traverse into parts of the B-tree that
+			// contain subdirectory nodes.
+			if level.Parent.DirectoryNodesCount > 0 {
+				index, err := model_core.GetIndexFromReferenceMessage(level.Parent.Reference.GetReference(), object.GetDegree())
+				if err != nil {
+					return nil, util.StatusWrapf(err, "Invalid parent node reference index in directory %#v", pathTrace.GetUNIXString())
+				}
+				childObject := &object.Metadata[index]
+				childEntries, err := o.parseEntries(childObject, level.Parent.Reference.DecodingParameters, pathTrace)
+				if err != nil {
+					return nil, err
+				}
+				names, err = o.collectDirectoryNames(childObject, childEntries, pathTrace, names)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case *model_filesystem_pb.DirectoryEntry_Node_:
+			if level.Node.GetDirectory() != nil {
+				names = append(names, level.Node.Name)
+			}
+		case *model_filesystem_pb.DirectoryEntry_DirectoryContents_:
+		default:
+			return nil, status.Errorf(codes.InvalidArgument, "Invalid entry level type in directory %#v", pathTrace.GetUNIXString())
+		}
+	}
+	return names, nil
+}
+
+// gatherWalkersForDirectory creates ObjectContentsWalkers for all
+// objects referenced by the top level of a directory's B-tree.
+func (o *capturedDirectoryWalkerOptions) gatherWalkersForDirectory(object *model_core.CreatedObjectTree, entries []*model_filesystem_pb.DirectoryEntry, pathTrace *path.Trace, walkers []dag.ObjectContentsWalker) error {
+	names, err := o.collectDirectoryNames(object, entries, pathTrace, nil)
+	if err != nil {
+		return err
+	}
+	return o.gatherWalkersForEntries(object, entries, pathTrace, names, walkers)
+}
+
+// gatherWalkersForEntries creates ObjectContentsWalkers for all objects
+// referenced by a list of entries that are part of a directory's
+// B-tree. As directory_contents elements do not contain the names of
+// the subdirectories, these need to be provided separately. They are
+// needed to be able to reopen files.
+func (o *capturedDirectoryWalkerOptions) gatherWalkersForEntries(object *model_core.CreatedObjectTree, entries []*model_filesystem_pb.DirectoryEntry, pathTrace *path.Trace, names []string, walkers []dag.ObjectContentsWalker) error {
+	for _, entry := range entries {
+		switch level := entry.Level.(type) {
+		case *model_filesystem_pb.DirectoryEntry_Parent_:
+			contentsCount := uint64(level.Parent.DirectoryContentsCount)
+			if uint64(len(names)) < contentsCount {
+				return status.Errorf(codes.InvalidArgument, "Directory %#v contains more subdirectory contents than names", pathTrace.GetUNIXString())
+			}
+			index, err := model_core.GetIndexFromReferenceMessage(level.Parent.Reference.GetReference(), len(walkers))
+			if err != nil {
+				return util.StatusWrapf(err, "Invalid parent node reference index in directory %#v", pathTrace.GetUNIXString())
+			}
+			walkers[index] = &capturedEntriesWalker{
+				options:            o,
+				object:             &object.Metadata[index],
+				decodingParameters: level.Parent.Reference.DecodingParameters,
+				pathTrace:          pathTrace,
+				names:              names[:contentsCount],
+			}
+			names = names[contentsCount:]
+		case *model_filesystem_pb.DirectoryEntry_Node_:
+			if file, ok := level.Node.Kind.(*model_filesystem_pb.DirectoryEntry_Node_File); ok {
+				name, ok := path.NewComponent(level.Node.Name)
+				if !ok {
+					return status.Errorf(codes.InvalidArgument, "Directory %#v contains a file with invalid name %#v", pathTrace.GetUNIXString(), level.Node.Name)
+				}
+				if err := o.gatherWalkersForFile(object, file.File, pathTrace.Append(name), walkers); err != nil {
+					return err
+				}
+			}
+		case *model_filesystem_pb.DirectoryEntry_DirectoryContents_:
+			if len(names) < 1 {
+				return status.Errorf(codes.InvalidArgument, "Directory %#v contains more subdirectory contents than names", pathTrace.GetUNIXString())
+			}
+			name, ok := path.NewComponent(names[0])
+			if !ok {
+				return status.Errorf(codes.InvalidArgument, "Directory %#v contains a subdirectory with invalid name %#v", pathTrace.GetUNIXString(), names[0])
+			}
+			names = names[1:]
+			if err := o.gatherWalkersForDirectory(object, level.DirectoryContents.Entries, pathTrace.Append(name), walkers); err != nil {
+				return err
+			}
+		default:
+			return status.Errorf(codes.InvalidArgument, "Invalid entry level type in directory %#v", pathTrace.GetUNIXString())
+		}
+	}
+	if len(names) > 0 {
+		return status.Errorf(codes.InvalidArgument, "Directory %#v contains fewer subdirectory contents than names", pathTrace.GetUNIXString())
+	}
+	return nil
+}
+
+// capturedEntriesWalker is an ObjectContentsWalker that is backed by a
+// CreatedObjectTree corresponding to a list of DirectoryEntry messages,
+// which is part of a directory's B-tree.
+type capturedEntriesWalker struct {
 	options            *capturedDirectoryWalkerOptions
 	object             *model_core.CreatedObjectTree
 	decodingParameters []byte
 	pathTrace          *path.Trace
+	names              []string
 }
 
-func (w *capturedLeavesWalker) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
-	leaves, err := w.options.leavesParser.ParseObject(model_core.NewRawMessage(w.object.Contents), w.decodingParameters)
+func (w *capturedEntriesWalker) GetContents(ctx context.Context) (*object.Contents, []dag.ObjectContentsWalker, error) {
+	entries, err := w.options.parseEntries(w.object, w.decodingParameters, w.pathTrace)
 	if err != nil {
-		return nil, nil, util.StatusWrapf(err, "Failed to decode leaves of directory %#v", w.pathTrace.GetUNIXString())
+		return nil, nil, err
 	}
-
 	walkers := make([]dag.ObjectContentsWalker, w.object.GetDegree())
-	if err := w.options.gatherWalkersForLeaves(model_core.NewMessage(leaves.Message, w.object.Contents), w.pathTrace, walkers); err != nil {
+	if err := w.options.gatherWalkersForEntries(w.object, entries, w.pathTrace, w.names, walkers); err != nil {
 		return nil, nil, err
 	}
 	return w.object.Contents, walkers, nil
 }
 
-func (capturedLeavesWalker) Discard() {}
+func (capturedEntriesWalker) Discard() {}
 
 // smallFileWalker is an ObjectContentsWalker that is backed by a file
 // that is small enough to store in a single chunk.

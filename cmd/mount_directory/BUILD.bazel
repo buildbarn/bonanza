@@ -12,7 +12,6 @@ go_library(
         "//pkg/model/filesystem/virtual",
         "//pkg/model/parser",
         "//pkg/proto/configuration/mount_directory",
-        "//pkg/proto/model/filesystem",
         "//pkg/proto/storage/object",
         "//pkg/storage/object",
         "//pkg/storage/object/grpc",

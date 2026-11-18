@@ -5,6 +5,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/render"
+	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/compile"
@@ -390,54 +391,98 @@ func TestRendererJSON(t *testing.T) {
 	})
 }
 
-func TestRendererDirectory(t *testing.T) {
-	directory := &model_filesystem_pb.DirectoryContents{
-		Directories: []*model_filesystem_pb.DirectoryNode{{
-			Name: "sub",
-			Directory: &model_filesystem_pb.Directory{
-				Contents: &model_filesystem_pb.Directory_ContentsInline{
-					ContentsInline: &model_filesystem_pb.DirectoryContents{
-						Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-							LeavesInline: &model_filesystem_pb.Leaves{
-								Symlinks: []*model_filesystem_pb.SymlinkNode{{Name: "link", Target: "../file"}},
-							},
-						},
-					},
-				},
+// fileEntry creates a DirectoryEntry for a regular file.
+func fileEntry(name string, properties *model_filesystem_pb.FileProperties) *model_filesystem_pb.DirectoryEntry {
+	return &model_filesystem_pb.DirectoryEntry{
+		Level: &model_filesystem_pb.DirectoryEntry_Node_{
+			Node: &model_filesystem_pb.DirectoryEntry_Node{
+				Name: name,
+				Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: properties},
 			},
-		}},
-		Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-			LeavesInline: &model_filesystem_pb.Leaves{
-				Files: []*model_filesystem_pb.FileNode{
-					{
-						Name: "file",
-						Properties: &model_filesystem_pb.FileProperties{
-							IsExecutable: true,
-							Contents:     &model_filesystem_pb.FileContents{TotalSizeBytes: 1843200},
-						},
-					},
-					{
-						Name:       "empty",
-						Properties: &model_filesystem_pb.FileProperties{},
-					},
-					{
-						Name: "small",
-						Properties: &model_filesystem_pb.FileProperties{
-							Contents: &model_filesystem_pb.FileContents{
-								TotalSizeBytes: 412,
-								// 1,233 line breaks, ending with a newline.
-								Utf8Stat: 1233<<2 | 1<<1 | 1,
-							},
-						},
-					},
+		},
+	}
+}
+
+// symlinkEntry creates a DirectoryEntry for a symbolic link.
+func symlinkEntry(name, target string) *model_filesystem_pb.DirectoryEntry {
+	return &model_filesystem_pb.DirectoryEntry{
+		Level: &model_filesystem_pb.DirectoryEntry_Node_{
+			Node: &model_filesystem_pb.DirectoryEntry_Node{
+				Name: name,
+				Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{
+					Symlink: &model_filesystem_pb.SymlinkProperties{Target: target},
 				},
 			},
 		},
 	}
+}
+
+// directoryNodeEntry creates a DirectoryEntry for a subdirectory node.
+func directoryNodeEntry(name string) *model_filesystem_pb.DirectoryEntry {
+	return &model_filesystem_pb.DirectoryEntry{
+		Level: &model_filesystem_pb.DirectoryEntry_Node_{
+			Node: &model_filesystem_pb.DirectoryEntry_Node{
+				Name: name,
+				Kind: &model_filesystem_pb.DirectoryEntry_Node_Directory{
+					Directory: &model_filesystem_pb.DirectoryProperties{},
+				},
+			},
+		},
+	}
+}
+
+// directoryContentsEntry creates a DirectoryEntry containing the
+// contents of a subdirectory.
+func directoryContentsEntry(entries ...*model_filesystem_pb.DirectoryEntry) *model_filesystem_pb.DirectoryEntry {
+	return &model_filesystem_pb.DirectoryEntry{
+		Level: &model_filesystem_pb.DirectoryEntry_DirectoryContents_{
+			DirectoryContents: &model_filesystem_pb.DirectoryEntry_DirectoryContents{Entries: entries},
+		},
+	}
+}
+
+// parentEntry creates a DirectoryEntry referring to entries stored in
+// another object.
+func parentEntry(parent *model_filesystem_pb.DirectoryEntry_Parent) *model_filesystem_pb.DirectoryEntry {
+	parent.Reference = &model_core_pb.DecodableReference{
+		Reference: &model_core_pb.Reference{Index: 1},
+	}
+	return &model_filesystem_pb.DirectoryEntry{
+		Level: &model_filesystem_pb.DirectoryEntry_Parent_{Parent: parent},
+	}
+}
+
+// directoryEntriesToProtoReflect converts a list of directory entries
+// to a form that can be provided to Renderer.MessageList().
+func directoryEntriesToProtoReflect(entries []*model_filesystem_pb.DirectoryEntry) []protoreflect.Message {
+	list := make([]protoreflect.Message, 0, len(entries))
+	for _, entry := range entries {
+		list = append(list, entry.ProtoReflect())
+	}
+	return list
+}
+
+func TestRendererDirectory(t *testing.T) {
+	directory := []*model_filesystem_pb.DirectoryEntry{
+		directoryContentsEntry(symlinkEntry("link", "../file")),
+		fileEntry("empty", &model_filesystem_pb.FileProperties{}),
+		fileEntry("file", &model_filesystem_pb.FileProperties{
+			IsExecutable: true,
+			Contents:     &model_filesystem_pb.FileContents{TotalSizeBytes: 1843200},
+		}),
+		fileEntry("small", &model_filesystem_pb.FileProperties{
+			Contents: &model_filesystem_pb.FileContents{
+				TotalSizeBytes: 412,
+				// 1,233 line breaks, ending with a newline.
+				Utf8Stat: 1233<<2 | 1<<1 | 1,
+			},
+		}),
+		directoryNodeEntry("sub"),
+	}
 
 	r := render.Renderer{Pretty: true}
 	blocks := render.Layout(
-		r.Message(model_core.NewSimpleMessage[object.LocalReference](directory.ProtoReflect())),
+		r.MessageList(model_core.NewSimpleMessage[object.LocalReference](directoryEntriesToProtoReflect(directory))),
 		render.LayoutOptions{Width: 80},
 	)
 	require.Len(t, blocks, 1)
@@ -462,29 +507,154 @@ func TestRendererDirectory(t *testing.T) {
 	require.Equal(t, []render.Segment{{Text: "412   B"}}, rows[2][1])
 }
 
-func TestRendererLeaves(t *testing.T) {
-	leaves := &model_filesystem_pb.Leaves{
-		Files: []*model_filesystem_pb.FileNode{{
-			Name: "file",
-			Properties: &model_filesystem_pb.FileProperties{
-				Contents: &model_filesystem_pb.FileContents{TotalSizeBytes: 412},
-			},
-		}},
-		Symlinks: []*model_filesystem_pb.SymlinkNode{{Name: "link", Target: "file"}},
+func TestRendererDirectoryEntriesField(t *testing.T) {
+	// Fields of type repeated DirectoryEntry should be rendered as
+	// a directory, as opposed to a JSON list.
+	contents := &model_filesystem_pb.DirectoryEntry_DirectoryContents{
+		Entries: []*model_filesystem_pb.DirectoryEntry{
+			symlinkEntry("link", "target"),
+		},
 	}
 
 	r := render.Renderer{Pretty: true}
 	blocks := render.Layout(
-		r.Message(model_core.NewSimpleMessage[object.LocalReference](leaves.ProtoReflect())),
+		r.Message(model_core.NewSimpleMessage[object.LocalReference](contents.ProtoReflect())),
+		render.LayoutOptions{Width: 80},
+	)
+	require.Equal(
+		t,
+		"{\n\"entries\": \nlr-x\t\t\tlink → target\n}",
+		render.PlainText(blocks, ""),
+	)
+}
+
+func TestRendererDirectoryExternalChildren(t *testing.T) {
+	// The contents of directories "b" and "c" are stored in the
+	// same external object. Both should be listed, linking to the
+	// same object.
+	directory := []*model_filesystem_pb.DirectoryEntry{
+		directoryContentsEntry(),
+		parentEntry(&model_filesystem_pb.DirectoryEntry_Parent{
+			DirectoryContentsCount: 2,
+		}),
+		directoryNodeEntry("a"),
+		directoryNodeEntry("b"),
+		directoryNodeEntry("c"),
+	}
+	reference := object.MustNewSHA256V1LocalReference("8b1a9953c4611296a827abf8c47804d7e6c49c6b2c4e7e3f5d6a7b8c9d0e1f20", 123, 1, 2, 0)
+
+	r := render.Renderer{Pretty: true}
+	blocks := render.Layout(
+		r.MessageList(model_core.NewMessage(
+			directoryEntriesToProtoReflect(directory),
+			object.OutgoingReferencesList[object.LocalReference]{reference},
+		)),
 		render.LayoutOptions{Width: 80},
 	)
 	require.Len(t, blocks, 1)
 	require.Equal(
 		t,
-		"-r--\t412   B\t\tfile\n"+
-			"lr-x\t\t\tlink → file",
+		"dr-x\t\t\ta/\n"+
+			"dr-x\t\t\tb/ (index 0)\n"+
+			"dr-x\t\t\tc/ (index 1)",
 		render.PlainText(blocks, ""),
 	)
+
+	rows := blocks[0].Table.Rows
+	require.Len(t, rows, 3)
+	for _, row := range rows[1:] {
+		var link *render.LinkTarget
+		for _, segment := range row[3] {
+			if segment.Link != nil {
+				link = segment.Link
+			}
+		}
+		require.NotNil(t, link)
+		require.Equal(t, reference, link.Reference.Value)
+
+		// The index should be displayed in grey.
+		lastSegment := row[3][len(row[3])-1]
+		require.Equal(t, render.RoleDim, lastSegment.Role)
+	}
+}
+
+func TestRendererDirectoryExternalNodes(t *testing.T) {
+	// The nodes of the directory are stored in an external
+	// object, while the contents of its only subdirectory are
+	// stored inline. The name of the subdirectory is unknown.
+	directory := []*model_filesystem_pb.DirectoryEntry{
+		directoryContentsEntry(symlinkEntry("link", "target")),
+		parentEntry(&model_filesystem_pb.DirectoryEntry_Parent{
+			FirstName:           "a",
+			LeafNodesCount:      3,
+			DirectoryNodesCount: 1,
+		}),
+	}
+	reference := object.MustNewSHA256V1LocalReference("8b1a9953c4611296a827abf8c47804d7e6c49c6b2c4e7e3f5d6a7b8c9d0e1f20", 123, 1, 2, 0)
+
+	r := render.Renderer{Pretty: true}
+	blocks := render.Layout(
+		r.MessageList(model_core.NewMessage(
+			directoryEntriesToProtoReflect(directory),
+			object.OutgoingReferencesList[object.LocalReference]{reference},
+		)),
+		render.LayoutOptions{Width: 80},
+	)
+	require.Len(t, blocks, 1)
+	require.Equal(
+		t,
+		"\t\t\ta… (4 entries)\n"+
+			"lr-x\t\t\t#0/link → target",
+		render.PlainText(blocks, ""),
+	)
+}
+
+func TestRendererDirectoryEntryList(t *testing.T) {
+	// An object referenced by a DirectoryEntry.Parent contains a
+	// part of a directory's B-tree. It contains two subdirectory
+	// nodes, but the contents of only one subdirectory. As it's
+	// not known which subdirectory these contents belong to, the
+	// contents should be displayed separately.
+	entries := []*model_filesystem_pb.DirectoryEntry{
+		directoryContentsEntry(symlinkEntry("link", "../a")),
+		symlinkEntry("a", "target"),
+		directoryNodeEntry("b"),
+		directoryNodeEntry("c"),
+	}
+	list := make([]protoreflect.Message, 0, len(entries))
+	for _, entry := range entries {
+		list = append(list, entry.ProtoReflect())
+	}
+
+	r := render.Renderer{Pretty: true}
+	blocks := render.Layout(
+		r.MessageList(model_core.NewSimpleMessage[object.LocalReference](list)),
+		render.LayoutOptions{Width: 80},
+	)
+	require.Len(t, blocks, 1)
+	require.Equal(
+		t,
+		"lr-x\t\t\ta → target\n"+
+			"dr-x\t\t\tb/\n"+
+			"dr-x\t\t\tc/\n"+
+			"lr-x\t\t\t#0/link → ../a",
+		render.PlainText(blocks, ""),
+	)
+
+	t.Run("CompleteDirectory", func(t *testing.T) {
+		// If the counts match, the list is assumed to be a
+		// complete directory (e.g., an object referenced by a
+		// DirectoryReference), and names are matched.
+		list := []protoreflect.Message{
+			directoryContentsEntry(symlinkEntry("link", "../a")).ProtoReflect(),
+			directoryNodeEntry("b").ProtoReflect(),
+		}
+		blocks := render.Layout(
+			r.MessageList(model_core.NewSimpleMessage[object.LocalReference](list)),
+			render.LayoutOptions{Width: 80},
+		)
+		require.Equal(t, "lr-x\t\t\tb/link → ../a", render.PlainText(blocks, ""))
+	})
 }
 
 // newStringValue creates a Value message containing a string that is

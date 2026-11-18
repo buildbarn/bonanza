@@ -10,7 +10,6 @@ import (
 	model_filesystem_virtual "bonanza.build/pkg/model/filesystem/virtual"
 	model_parser "bonanza.build/pkg/model/parser"
 	"bonanza.build/pkg/proto/configuration/mount_directory"
-	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
@@ -93,13 +92,6 @@ func main() {
 				),
 			),
 		)
-		leavesReader := model_parser.LookupParsedObjectReader(
-			parsedObjectPoolIngester,
-			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[object.LocalReference](directoryEncoder),
-				model_parser.NewProtoObjectParser[object.LocalReference, model_filesystem_pb.Leaves](),
-			),
-		)
 		directoryClusterReader := model_parser.LookupParsedObjectReader(
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
@@ -152,17 +144,20 @@ func main() {
 		directoryFactory := model_filesystem_virtual.NewObjectBackedDirectoryFactory(
 			rootHandleAllocator.New(),
 			directoryClusterReader,
-			leavesReader,
 			fileFactory,
 			virtual.NewBaseSymlinkFactory(
 				/* defaultAttributesSetter = */ func(requested virtual.AttributesMask, attributes *virtual.Attributes) {},
 			),
 			util.DefaultErrorLogger,
 		)
+		rootDirectoriesCount, err := model_filesystem.GetDirectoryDirectoriesCount(rootDirectoryCluster.Message.Directories[0].Entries)
+		if err != nil {
+			return util.StatusWrap(err, "Invalid root directory")
+		}
 		rootDirectory := directoryFactory.LookupDirectory(
 			rootDirectoryReference,
 			rootDirectoryIndex,
-			uint32(len(rootDirectoryCluster.Message[0].Directory.Directories)),
+			rootDirectoriesCount,
 		)
 
 		if err := mount.Expose(siblingsGroup, rootDirectory); err != nil {

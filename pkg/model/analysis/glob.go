@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 
 	"bonanza.build/pkg/glob"
 	model_core "bonanza.build/pkg/model/core"
@@ -24,108 +23,70 @@ import (
 // symbolic links encountered during glob() expansion.
 type globPathResolver[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	walker  *globDirectoryWalker[TReference, TMetadata]
-	stack   util.NonEmptyStack[model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]]
+	stack   util.NonEmptyStack[model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]]
 	gotFile bool
 }
 
-func (r *globPathResolver[TReference, TMetadata]) OnDirectory(name path.Component) (path.GotDirectoryOrSymlink, error) {
+// lookupNode looks up a node in the current directory. If the node is
+// a directory, its contents are pushed onto the stack.
+func (r *globPathResolver[TReference, TMetadata]) lookupNode(name path.Component) (*model_filesystem_pb.DirectoryEntry_Node, error) {
 	w := r.walker
 	d := r.stack.Peek()
-	n := name.String()
-	directories := d.Message.Directories
-	if i, ok := sort.Find(
-		len(directories),
-		func(i int) int { return strings.Compare(n, directories[i].Name) },
-	); ok {
-		childDirectory, err := model_filesystem.DirectoryGetContents(
-			w.context,
-			w.directoryReaders.DirectoryContents,
-			model_core.Nested(d, directories[i].Directory),
-		)
+	node, directoryIndex, err := model_filesystem.DirectoryLookupNode(w.context, w.directoryReaders.DirectoryEntries, d, name)
+	if err != nil {
+		return nil, err
+	}
+	if !node.IsSet() {
+		return nil, errors.New("path does not exist")
+	}
+	if node.Message.GetDirectory() != nil {
+		childDirectory, err := model_filesystem.DirectoryGetChild(w.context, w.directoryReaders.DirectoryEntries, d, directoryIndex)
 		if err != nil {
 			return nil, err
 		}
 		r.stack.Push(childDirectory)
+	}
+	return node.Message, nil
+}
+
+func (r *globPathResolver[TReference, TMetadata]) OnDirectory(name path.Component) (path.GotDirectoryOrSymlink, error) {
+	node, err := r.lookupNode(name)
+	if err != nil {
+		return nil, err
+	}
+	switch kind := node.Kind.(type) {
+	case *model_filesystem_pb.DirectoryEntry_Node_Directory:
 		return path.GotDirectory{
 			Child:        r,
 			IsReversible: true,
 		}, nil
-	}
-
-	leaves, err := model_filesystem.DirectoryGetLeaves(w.context, w.directoryReaders.Leaves, d)
-	if err != nil {
-		return nil, err
-	}
-
-	files := leaves.Message.Files
-	if _, ok := sort.Find(
-		len(files),
-		func(i int) int { return strings.Compare(n, files[i].Name) },
-	); ok {
-		return nil, errors.New("path resolves to a regular file, while a directory was expected")
-	}
-
-	symlinks := leaves.Message.Symlinks
-	if i, ok := sort.Find(
-		len(symlinks),
-		func(i int) int { return strings.Compare(n, symlinks[i].Name) },
-	); ok {
+	case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
 		return path.GotSymlink{
 			Parent: path.NewRelativeScopeWalker(r),
-			Target: path.UNIXFormat.NewParser(symlinks[i].Target),
+			Target: path.UNIXFormat.NewParser(kind.Symlink.Target),
 		}, nil
+	default:
+		return nil, errors.New("path resolves to a regular file, while a directory was expected")
 	}
-
-	return nil, errors.New("path does not exist")
 }
 
 func (r *globPathResolver[TReference, TMetadata]) OnTerminal(name path.Component) (*path.GotSymlink, error) {
-	w := r.walker
-	d := r.stack.Peek()
-	n := name.String()
-	directories := d.Message.Directories
-	if i, ok := sort.Find(
-		len(directories),
-		func(i int) int { return strings.Compare(n, directories[i].Name) },
-	); ok {
-		childDirectory, err := model_filesystem.DirectoryGetContents(
-			w.context,
-			w.directoryReaders.DirectoryContents,
-			model_core.Nested(d, directories[i].Directory),
-		)
-		if err != nil {
-			return nil, err
-		}
-		r.stack.Push(childDirectory)
-		return nil, nil
-	}
-
-	leaves, err := model_filesystem.DirectoryGetLeaves(w.context, w.directoryReaders.Leaves, d)
+	node, err := r.lookupNode(name)
 	if err != nil {
 		return nil, err
 	}
-
-	files := leaves.Message.Files
-	if _, ok := sort.Find(
-		len(files),
-		func(i int) int { return strings.Compare(n, files[i].Name) },
-	); ok {
+	switch kind := node.Kind.(type) {
+	case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+		return nil, nil
+	case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+		return &path.GotSymlink{
+			Parent: path.NewRelativeScopeWalker(r),
+			Target: path.UNIXFormat.NewParser(kind.Symlink.Target),
+		}, nil
+	default:
 		r.gotFile = true
 		return nil, nil
 	}
-
-	symlinks := leaves.Message.Symlinks
-	if i, ok := sort.Find(
-		len(symlinks),
-		func(i int) int { return strings.Compare(n, symlinks[i].Name) },
-	); ok {
-		return &path.GotSymlink{
-			Parent: path.NewRelativeScopeWalker(r),
-			Target: path.UNIXFormat.NewParser(symlinks[i].Target),
-		}, nil
-	}
-
-	return nil, errors.New("path does not exist")
 }
 
 func (r *globPathResolver[TReference, TMetadata]) OnUp() (path.ComponentWalker, error) {
@@ -136,6 +97,17 @@ func (r *globPathResolver[TReference, TMetadata]) OnUp() (path.ComponentWalker, 
 	return r, nil
 }
 
+// globMatcherWriteString writes all characters of a string into a
+// glob matcher. It returns false if the matcher can no longer match.
+func globMatcherWriteString(m *glob.Matcher, s string) bool {
+	for _, r := range s {
+		if !m.WriteRune(r) {
+			return false
+		}
+	}
+	return true
+}
+
 type globDirectoryWalker[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	context            context.Context
 	computer           *baseComputer[TReference, TMetadata]
@@ -144,126 +116,109 @@ type globDirectoryWalker[TReference object.BasicReference, TMetadata model_core.
 	matchedPaths       []string
 }
 
-func (w *globDirectoryWalker[TReference, TMetadata]) walkDirectory(dStack util.NonEmptyStack[model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]], dPath *path.Trace, dMatcher *glob.Matcher) error {
+func (w *globDirectoryWalker[TReference, TMetadata]) walkDirectory(dStack util.NonEmptyStack[model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]], dPath *path.Trace, dMatcher *glob.Matcher) error {
 	var childMatcher glob.Matcher
 	d := dStack.Peek()
 
-MatchDirectories:
-	for _, entry := range d.Message.Directories {
-		// Check whether the directory itself is a match.
-		name, ok := path.NewComponent(entry.Name)
+	var errIter error
+	directoryIndex := uint64(0)
+MatchNodes:
+	for node := range model_filesystem.DirectoryAllNodes(w.context, w.directoryReaders.DirectoryEntries, d, &errIter) {
+		name, ok := path.NewComponent(node.Message.Name)
 		if !ok {
-			return fmt.Errorf("invalid name for directory %#v in directory %#v", entry.Name, dPath.GetUNIXString())
+			return fmt.Errorf("invalid name for node %#v in directory %#v", node.Message.Name, dPath.GetUNIXString())
 		}
 		childMatcher.CopyFrom(dMatcher)
-		for _, r := range name.String() {
-			if !childMatcher.WriteRune(r) {
-				continue MatchDirectories
-			}
-		}
-		childPath := dPath.Append(name)
-		if w.includeDirectories && childMatcher.IsMatch() {
-			w.matchedPaths = append(w.matchedPaths, childPath.GetUNIXString())
-		}
-
-		// Traverse into the directory if the still reachable
-		// part of the NFA contains positive end states.
-		if childMatcher.WriteRune('/') {
-			childDirectory, err := model_filesystem.DirectoryGetContents(
-				w.context,
-				w.directoryReaders.DirectoryContents,
-				model_core.Nested(d, entry.Directory),
-			)
-			if err != nil {
-				return fmt.Errorf("failed to get directory %#v", childPath.GetUNIXString())
+		childMatches := globMatcherWriteString(&childMatcher, name.String())
+		switch kind := node.Message.Kind.(type) {
+		case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+			childDirectoryIndex := directoryIndex
+			directoryIndex++
+			if !childMatches {
+				continue MatchNodes
 			}
 
-			dStack.Push(childDirectory)
-			err = w.walkDirectory(dStack, childPath, &childMatcher)
-			dStack.PopSingle()
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	leaves, err := model_filesystem.DirectoryGetLeaves(
-		w.context,
-		w.directoryReaders.Leaves,
-		d,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to get leaves for directory %#v", dPath.GetUNIXString())
-	}
-
-MatchFiles:
-	for _, entry := range leaves.Message.Files {
-		name, ok := path.NewComponent(entry.Name)
-		if !ok {
-			return fmt.Errorf("invalid name for file %#v in directory %#v", entry.Name, dPath.GetUNIXString())
-		}
-		childMatcher.CopyFrom(dMatcher)
-		for _, r := range name.String() {
-			if !childMatcher.WriteRune(r) {
-				continue MatchFiles
-			}
-		}
-		if childMatcher.IsMatch() {
-			w.matchedPaths = append(w.matchedPaths, dPath.Append(name).GetUNIXString())
-		}
-	}
-
-MatchSymlinks:
-	for _, entry := range leaves.Message.Symlinks {
-		name, ok := path.NewComponent(entry.Name)
-		if !ok {
-			return fmt.Errorf("invalid name for symbolic link %#v in directory %#v", entry.Name, dPath.GetUNIXString())
-		}
-		childMatcher.CopyFrom(dMatcher)
-		for _, r := range name.String() {
-			if !childMatcher.WriteRune(r) {
-				continue MatchSymlinks
-			}
-		}
-
-		terminalMatch := childMatcher.IsMatch()
-		directoryMatch := childMatcher.WriteRune('/')
-		if terminalMatch || directoryMatch {
-			// Symbolic link either matches the provided
-			// pattern, or there may be paths below the
-			// symbolic link that match. Resolve the target
-			// of the symbolic link and continue traversal.
-			r := globPathResolver[TReference, TMetadata]{
-				walker: w,
-				stack:  dStack.Copy(),
-			}
+			// Check whether the directory itself is a match.
 			childPath := dPath.Append(name)
-			if err := path.Resolve(
-				path.UNIXFormat.NewParser(entry.Target),
-				path.NewLoopDetectingScopeWalker(path.NewRelativeScopeWalker(&r)),
-			); err != nil {
-				return fmt.Errorf("failed to resolve target of symbolic link %#v: %w", childPath.GetUNIXString(), err)
-			}
-
-			if terminalMatch && (r.gotFile || w.includeDirectories) {
-				// Symbolic link resolves to a regular
-				// file, or we're instructed to match
-				// directories as well.
+			if w.includeDirectories && childMatcher.IsMatch() {
 				w.matchedPaths = append(w.matchedPaths, childPath.GetUNIXString())
 			}
-			if directoryMatch && !r.gotFile {
-				// Symbolic link resolves to a
-				// directory, and there may be paths
-				// inside thatmatch the pattern.
-				//
-				// TODO: Add a recursion limit!
-				if err := w.walkDirectory(r.stack, childPath, &childMatcher); err != nil {
+
+			// Traverse into the directory if the still
+			// reachable part of the NFA contains positive
+			// end states.
+			if childMatcher.WriteRune('/') {
+				childDirectory, err := model_filesystem.DirectoryGetChild(
+					w.context,
+					w.directoryReaders.DirectoryEntries,
+					d,
+					childDirectoryIndex,
+				)
+				if err != nil {
+					return fmt.Errorf("failed to get directory %#v: %w", childPath.GetUNIXString(), err)
+				}
+
+				dStack.Push(childDirectory)
+				err = w.walkDirectory(dStack, childPath, &childMatcher)
+				dStack.PopSingle()
+				if err != nil {
 					return err
+				}
+			}
+
+		case *model_filesystem_pb.DirectoryEntry_Node_File:
+			if childMatches && childMatcher.IsMatch() {
+				w.matchedPaths = append(w.matchedPaths, dPath.Append(name).GetUNIXString())
+			}
+
+		case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+			if !childMatches {
+				continue MatchNodes
+			}
+			terminalMatch := childMatcher.IsMatch()
+			directoryMatch := childMatcher.WriteRune('/')
+			if terminalMatch || directoryMatch {
+				// Symbolic link either matches the
+				// provided pattern, or there may be
+				// paths below the symbolic link that
+				// match. Resolve the target of the
+				// symbolic link and continue traversal.
+				r := globPathResolver[TReference, TMetadata]{
+					walker: w,
+					stack:  dStack.Copy(),
+				}
+				childPath := dPath.Append(name)
+				if err := path.Resolve(
+					path.UNIXFormat.NewParser(kind.Symlink.Target),
+					path.NewLoopDetectingScopeWalker(path.NewRelativeScopeWalker(&r)),
+				); err != nil {
+					return fmt.Errorf("failed to resolve target of symbolic link %#v: %w", childPath.GetUNIXString(), err)
+				}
+
+				if terminalMatch && (r.gotFile || w.includeDirectories) {
+					// Symbolic link resolves to a
+					// regular file, or we're
+					// instructed to match
+					// directories as well.
+					w.matchedPaths = append(w.matchedPaths, childPath.GetUNIXString())
+				}
+				if directoryMatch && !r.gotFile {
+					// Symbolic link resolves to a
+					// directory, and there may be
+					// paths inside that match the
+					// pattern.
+					//
+					// TODO: Add a recursion limit!
+					if err := w.walkDirectory(r.stack, childPath, &childMatcher); err != nil {
+						return err
+					}
 				}
 			}
 		}
 	}
-
+	if errIter != nil {
+		return fmt.Errorf("failed to iterate directory %#v: %w", dPath.GetUNIXString(), errIter)
+	}
 	return nil
 }
 

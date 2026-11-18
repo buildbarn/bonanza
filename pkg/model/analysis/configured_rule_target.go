@@ -1738,8 +1738,10 @@ func (rc *targetContext[TReference, TMetadata]) setOutputToStaticDirectory(outpu
 	return output.setDefinition(
 		model_core.NewPatchedMessage(
 			&model_analysis_pb.TargetOutputDefinition{
-				Source: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory{
-					StaticPackageDirectory: createdDirectory.Message.Message,
+				Source: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_{
+					StaticPackageDirectory: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory{
+						Entries: createdDirectory.Message.Message,
+					},
 				},
 			},
 			createdDirectory.Message.Patcher,
@@ -2624,18 +2626,24 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 				}),
 			},
 			{
-				ExternalMessage: model_core.ProtoToBinaryMarshaler(createdInitialOutputDirectory.Message),
-				Encoder:         rc.actionEncoder,
-				ParentAppender: inlinedtree.Capturing(rc.context, rc.environment, func(
+				ExternalMessage: model_core.ProtoListToBinaryMarshaler(createdInitialOutputDirectory.Message),
+				Encoder:         rc.directoryCreationParameters.GetEncoder(),
+				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
-					externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
-				) {
-					actionDefinition.Message.InitialOutputDirectory = model_filesystem.GetDirectoryWithContents(
-						&createdInitialOutputDirectory,
+					externalObject *model_core.Decodable[model_core.CreatedObject[TMetadata]],
+				) error {
+					initialOutputDirectory, err := btree.MaybeMergeNodes(
+						createdInitialOutputDirectory.Message.Message,
 						externalObject,
 						actionDefinition.Patcher,
+						model_filesystem.NewDirectoryEntryParentNodeComputer(rc.context, rc.environment),
 					)
-				}),
+					if err != nil {
+						return err
+					}
+					actionDefinition.Message.InitialOutputDirectory = initialOutputDirectory
+					return nil
+				},
 			},
 		},
 		rc.computer.chunkingParameters.GetInlinedTreeOptions(),

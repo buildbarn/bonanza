@@ -227,6 +227,33 @@ func TestChangeTrackingDirectoryMergeDirectory(t *testing.T) {
 	})
 }
 
+// testDirectoryNodeEntry creates a DirectoryEntry for a subdirectory
+// node.
+func testDirectoryNodeEntry(name string, directoriesCount uint32) *model_filesystem_pb.DirectoryEntry {
+	return &model_filesystem_pb.DirectoryEntry{
+		Level: &model_filesystem_pb.DirectoryEntry_Node_{
+			Node: &model_filesystem_pb.DirectoryEntry_Node{
+				Name: name,
+				Kind: &model_filesystem_pb.DirectoryEntry_Node_Directory{
+					Directory: &model_filesystem_pb.DirectoryProperties{
+						DirectoriesCount: directoriesCount,
+					},
+				},
+			},
+		},
+	}
+}
+
+// testDirectoryContentsEntry creates a DirectoryEntry containing the
+// contents of a subdirectory.
+func testDirectoryContentsEntry(entries ...*model_filesystem_pb.DirectoryEntry) *model_filesystem_pb.DirectoryEntry {
+	return &model_filesystem_pb.DirectoryEntry{
+		Level: &model_filesystem_pb.DirectoryEntry_DirectoryContents_{
+			DirectoryContents: &model_filesystem_pb.DirectoryEntry_DirectoryContents{Entries: entries},
+		},
+	}
+}
+
 func TestChangeTrackingDirectoryMergeContents(t *testing.T) {
 	loadOptions := &changeTrackingDirectoryLoadOptions[model_core.CreatedObjectTree]{
 		context: context.Background(),
@@ -234,41 +261,23 @@ func TestChangeTrackingDirectoryMergeContents(t *testing.T) {
 
 	// newContents creates directory contents containing a single
 	// file at path "dir/sub/a", stored in inline messages.
-	newContents := func(data string, isExecutable bool) model_core.Message[*model_filesystem_pb.DirectoryContents, model_core.CreatedObjectTree] {
-		return newTestMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_filesystem_pb.DirectoryContents {
-			return &model_filesystem_pb.DirectoryContents{
-				Directories: []*model_filesystem_pb.DirectoryNode{{
-					Name: "dir",
-					Directory: &model_filesystem_pb.Directory{
-						Contents: &model_filesystem_pb.Directory_ContentsInline{
-							ContentsInline: &model_filesystem_pb.DirectoryContents{
-								Directories: []*model_filesystem_pb.DirectoryNode{{
-									Name: "sub",
-									Directory: &model_filesystem_pb.Directory{
-										Contents: &model_filesystem_pb.Directory_ContentsInline{
-											ContentsInline: &model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Files: []*model_filesystem_pb.FileNode{{
-															Name:       "a",
-															Properties: newTestFileProperties(patcher, data, isExecutable),
-														}},
-													},
-												},
-											},
-										},
-									},
-								}},
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{},
+	newContents := func(data string, isExecutable bool) model_core.Message[[]*model_filesystem_pb.DirectoryEntry, model_core.CreatedObjectTree] {
+		return newTestMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_filesystem_pb.DirectoryEntry {
+			return []*model_filesystem_pb.DirectoryEntry{
+				testDirectoryContentsEntry(
+					testDirectoryContentsEntry(&model_filesystem_pb.DirectoryEntry{
+						Level: &model_filesystem_pb.DirectoryEntry_Node_{
+							Node: &model_filesystem_pb.DirectoryEntry_Node{
+								Name: "a",
+								Kind: &model_filesystem_pb.DirectoryEntry_Node_File{
+									File: newTestFileProperties(patcher, data, isExecutable),
 								},
 							},
 						},
-					},
-				}},
-				Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-					LeavesInline: &model_filesystem_pb.Leaves{},
-				},
+					}),
+					testDirectoryNodeEntry("sub", 0),
+				),
+				testDirectoryNodeEntry("dir", 1),
 			}
 		})
 	}

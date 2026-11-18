@@ -148,15 +148,15 @@ var File_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_p
 
 const file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc = "" +
 	"\n" +
-	"Kbonanza.build/pkg/proto/configuration/mount_directory/mount_directory.proto\x12%bonanza.configuration.mount_directory\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1aagithub.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/virtual/virtual.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\"\x95\a\n" +
+	"Kbonanza.build/pkg/proto/configuration/mount_directory/mount_directory.proto\x12%bonanza.configuration.mount_directory\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1aagithub.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/virtual/virtual.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\"\x92\a\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12T\n" +
 	"\x05mount\x18\x02 \x01(\v2>.buildbarn.configuration.filesystem.virtual.MountConfigurationR\x05mount\x12b\n" +
 	"\x12parsed_object_pool\x18\x03 \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\x12R\n" +
 	"\vgrpc_client\x18\x04 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\n" +
 	"grpcClient\x12?\n" +
-	"\tnamespace\x18\x05 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12\x96\x01\n" +
-	"\x18root_directory_reference\x18\x06 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceB0\xea\xd7 ,\x12*bonanza.model.filesystem.DirectoryContentsR\x16rootDirectoryReference\x12T\n" +
+	"\tnamespace\x18\x05 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12\x93\x01\n" +
+	"\x18root_directory_reference\x18\x06 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceB-\xea\xd7 )\x1a'bonanza.model.filesystem.DirectoryEntryR\x16rootDirectoryReference\x12T\n" +
 	"\x12directory_encoders\x18\a \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x11directoryEncoders\x12U\n" +
 	"\x13small_file_encoders\x18\b \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x11smallFileEncoders\x12c\n" +
 	"\x1aconcatenated_file_encoders\x18\t \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x18concatenatedFileEncoders\x128\n" +

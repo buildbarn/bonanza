@@ -105,8 +105,11 @@ func (baseComputerTester) expectGetDirectoryCreationParametersObject(t *testing.
 		testutil.EqProto(t, &model_analysis_pb.DirectoryCreationParameters_Key{}),
 	).Return(util.Must(model_filesystem.NewDirectoryCreationParametersFromProto(
 		&model_filesystem_pb.DirectoryCreationParameters{
-			Access:                    &model_filesystem_pb.DirectoryAccessParameters{},
-			DirectoryMaximumSizeBytes: 1 << 16,
+			Access: &model_filesystem_pb.DirectoryAccessParameters{},
+			DirectoriesParameters: &model_chunking_pb.Parameters{
+				MinimumSizeBytes: 1 << 15,
+				HorizonSizeBytes: 1 << 18,
+			},
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),
@@ -181,9 +184,9 @@ func (bct *baseComputerTester) expectGetDirectoryAccessParametersObject(t *testi
 	return e.EXPECT().GetDirectoryAccessParametersObject(
 		testutil.EqProto(t, &model_analysis_pb.DirectoryAccessParameters_Key{}),
 	).Return(&model_analysis.DirectoryReaders[model_core.CreatedObjectTree]{
-		DirectoryContents: model_parser.LookupParsedObjectReader(
+		DirectoryEntries: model_parser.LookupParsedObjectReader(
 			bct.parsedObjectPoolIngester,
-			model_parser.NewProtoObjectParser[model_core.CreatedObjectTree, model_filesystem_pb.DirectoryContents](),
+			model_parser.NewProtoListObjectParser[model_core.CreatedObjectTree, model_filesystem_pb.DirectoryEntry](),
 		),
 	}, true)
 }

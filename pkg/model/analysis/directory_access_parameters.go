@@ -26,9 +26,8 @@ func (baseComputer[TReference, TMetadata]) ComputeDirectoryAccessParametersValue
 // references to objects that are encoded using the directory access
 // parameters that are part of the BuildSpecification.
 type DirectoryReaders[TReference any] struct {
-	DirectoryContents model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents]
-	Leaves            model_parser.MessageObjectReader[TReference, *model_filesystem_pb.Leaves]
-	CommandOutputs    model_parser.MessageObjectReader[TReference, *model_command_pb.Outputs]
+	DirectoryEntries model_parser.MessageObjectReader[TReference, []*model_filesystem_pb.DirectoryEntry]
+	CommandOutputs   model_parser.MessageObjectReader[TReference, *model_command_pb.Outputs]
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryAccessParametersObject(directoryAccessParametersValue model_core.Message[*model_analysis_pb.DirectoryAccessParameters_Value, TReference]) (*DirectoryReaders[TReference], error) {
@@ -43,18 +42,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryAccessParametersOb
 
 	encoderObjectParser := model_parser.NewEncodedObjectParser[TReference](directoryAccessParameters.GetEncoder())
 	return &DirectoryReaders[TReference]{
-		DirectoryContents: model_parser.LookupParsedObjectReader(
+		DirectoryEntries: model_parser.LookupParsedObjectReader(
 			c.parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
 				encoderObjectParser,
-				model_parser.NewProtoObjectParser[TReference, model_filesystem_pb.DirectoryContents](),
-			),
-		),
-		Leaves: model_parser.LookupParsedObjectReader(
-			c.parsedObjectPoolIngester,
-			model_parser.NewChainedObjectParser(
-				encoderObjectParser,
-				model_parser.NewProtoObjectParser[TReference, model_filesystem_pb.Leaves](),
+				model_parser.NewProtoListObjectParser[TReference, model_filesystem_pb.DirectoryEntry](),
 			),
 		),
 		CommandOutputs: model_parser.LookupParsedObjectReader(

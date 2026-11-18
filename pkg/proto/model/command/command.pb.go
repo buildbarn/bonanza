@@ -297,9 +297,9 @@ func (x *EnvironmentVariableList) GetElements() []*EnvironmentVariableList_Eleme
 }
 
 type Outputs struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Logs          []*Log                        `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
-	OutputRoot    *filesystem.DirectoryContents `protobuf:"bytes,2,opt,name=output_root,json=outputRoot,proto3" json:"output_root,omitempty"`
+	state         protoimpl.MessageState       `protogen:"open.v1"`
+	Logs          []*Log                       `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
+	OutputRoot    []*filesystem.DirectoryEntry `protobuf:"bytes,2,rep,name=output_root,json=outputRoot,proto3" json:"output_root,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -341,7 +341,7 @@ func (x *Outputs) GetLogs() []*Log {
 	return nil
 }
 
-func (x *Outputs) GetOutputRoot() *filesystem.DirectoryContents {
+func (x *Outputs) GetOutputRoot() []*filesystem.DirectoryEntry {
 	if x != nil {
 		return x.OutputRoot
 	}
@@ -946,10 +946,10 @@ const file_bonanza_build_pkg_proto_model_command_command_proto_rawDesc = "" +
 	"\x04Leaf\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05valueB\a\n" +
-	"\x05level\"\x87\x01\n" +
+	"\x05level\"\x84\x01\n" +
 	"\aOutputs\x12.\n" +
-	"\x04logs\x18\x01 \x03(\v2\x1a.bonanza.model.command.LogR\x04logs\x12L\n" +
-	"\voutput_root\x18\x02 \x01(\v2+.bonanza.model.filesystem.DirectoryContentsR\n" +
+	"\x04logs\x18\x01 \x03(\v2\x1a.bonanza.model.command.LogR\x04logs\x12I\n" +
+	"\voutput_root\x18\x02 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\n" +
 	"outputRoot\"]\n" +
 	"\x03Log\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12B\n" +
@@ -1006,7 +1006,7 @@ var file_bonanza_build_pkg_proto_model_command_command_proto_goTypes = []any{
 	(*filesystem.DirectoryCreationParameters)(nil), // 15: bonanza.model.filesystem.DirectoryCreationParameters
 	(*filesystem.FileCreationParameters)(nil),      // 16: bonanza.model.filesystem.FileCreationParameters
 	(*core.DecodableReference)(nil),                // 17: bonanza.model.core.DecodableReference
-	(*filesystem.DirectoryContents)(nil),           // 18: bonanza.model.filesystem.DirectoryContents
+	(*filesystem.DirectoryEntry)(nil),              // 18: bonanza.model.filesystem.DirectoryEntry
 	(*filesystem.FileContents)(nil),                // 19: bonanza.model.filesystem.FileContents
 	(*durationpb.Duration)(nil),                    // 20: google.protobuf.Duration
 	(*filesystem.DirectoryReference)(nil),          // 21: bonanza.model.filesystem.DirectoryReference
@@ -1024,7 +1024,7 @@ var file_bonanza_build_pkg_proto_model_command_command_proto_depIdxs = []int32{
 	11, // 7: bonanza.model.command.ArgumentList.elements:type_name -> bonanza.model.command.ArgumentList.Element
 	12, // 8: bonanza.model.command.EnvironmentVariableList.elements:type_name -> bonanza.model.command.EnvironmentVariableList.Element
 	5,  // 9: bonanza.model.command.Outputs.logs:type_name -> bonanza.model.command.Log
-	18, // 10: bonanza.model.command.Outputs.output_root:type_name -> bonanza.model.filesystem.DirectoryContents
+	18, // 10: bonanza.model.command.Outputs.output_root:type_name -> bonanza.model.filesystem.DirectoryEntry
 	19, // 11: bonanza.model.command.Log.contents:type_name -> bonanza.model.filesystem.FileContents
 	20, // 12: bonanza.model.command.LogTiming.total_delay:type_name -> google.protobuf.Duration
 	17, // 13: bonanza.model.command.LogTiming.parent_reference:type_name -> bonanza.model.core.DecodableReference

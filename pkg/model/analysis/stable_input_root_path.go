@@ -23,14 +23,12 @@ import (
 
 func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ctx context.Context, key *model_analysis_pb.StableInputRootPath_Key, e StableInputRootPathEnvironment[TReference, TMetadata]) (PatchedStableInputRootPathValue[TMetadata], error) {
 	actionEncoders, gotActionEncoders := e.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{})
-	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 	directoryCreationParametersValue := e.GetDirectoryCreationParametersValue(&model_analysis_pb.DirectoryCreationParameters_Key{})
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 	fileCreationParametersValue := e.GetFileCreationParametersValue(&model_analysis_pb.FileCreationParameters_Key{})
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	repoPlatform := e.GetRegisteredRepoPlatformValue(&model_analysis_pb.RegisteredRepoPlatform_Key{})
 	if !gotActionEncoders ||
-		!gotDirectoryCreationParameters ||
 		!directoryCreationParametersValue.IsSet() ||
 		!gotDirectoryReaders ||
 		!fileCreationParametersValue.IsSet() ||
@@ -81,36 +79,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create command: %w", err)
 	}
 
-	createdInputRoot, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.NewSimplePatchedMessage[TMetadata](
-			model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
-				Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-					LeavesInline: &model_filesystem_pb.Leaves{},
-				},
-			}),
-		),
-		referenceFormat,
-		directoryCreationParameters.GetEncoder(),
-	)
-	if err != nil {
-		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create input root: %w", err)
-	}
-
 	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (encoding.BinaryMarshaler, error) {
 		commandReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdCommand, e)
 		if err != nil {
 			return nil, err
 		}
-		inputRootReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdInputRoot, e)
-		if err != nil {
-			return nil, err
-		}
 		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
 			CommandReference: commandReference,
-			// TODO: We shouldn't be handcrafting a
-			// DirectoryReference here.
+			// The input root is empty, meaning it is not
+			// backed by an object.
 			InputRootReference: &model_filesystem_pb.DirectoryReference{
-				Reference:                      inputRootReference,
 				MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
 			},
 		}), nil

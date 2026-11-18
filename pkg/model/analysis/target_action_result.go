@@ -111,7 +111,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 	if err != nil {
 		return PatchedTargetActionResultValue[TMetadata]{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
-	outputRoot := model_core.Patch(e, model_core.Nested(outputs, outputs.Message.GetOutputRoot()))
+	outputRoot := model_core.PatchList(e, model_core.Nested(outputs, outputs.Message.GetOutputRoot()))
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.TargetActionResult_Value{
 			OutputRoot: outputRoot.Message,

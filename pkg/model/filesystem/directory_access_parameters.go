@@ -40,7 +40,7 @@ func NewDirectoryAccessParametersFromProto(m *model_filesystem_pb.DirectoryAcces
 }
 
 // GetEncoder returns the encoder that should be used to encode or
-// decode directory contents and leaves objects.
+// decode objects containing DirectoryEntry messages.
 func (p *DirectoryAccessParameters) GetEncoder() model_encoding.DeterministicBinaryEncoder {
 	return p.encoder
 }

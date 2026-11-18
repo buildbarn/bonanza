@@ -10,29 +10,6 @@ import "google/protobuf/wrappers.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/filesystem";
 
-message Leaves {
-  // The files in the directory. Files MUST be stored in alphabetical
-  // order.
-  repeated FileNode files = 1;
-
-  // The symbolic links in the directory. Symbolic links MUST be
-  // stored in alphabetical order.
-  repeated SymlinkNode symlinks = 2;
-}
-
-message LeavesReference {
-  // Reference to an object containing a Leaves message.
-  bonanza.model.core.DecodableReference reference = 1
-      [(bonanza.model.core.object_format) = {
-        proto_type_name:
-          "bonanza.model.filesystem.Leaves";
-      }];
-
-  // Value indicating up to how many levels the symbolic links contained
-  // in the current directory escape it.
-  google.protobuf.UInt32Value maximum_symlink_escapement_levels = 2;
-}
-
 message FileProperties {
   // The contents of the file. If the file is empty (i.e., zero bytes in
   // size), this field is left unset.
@@ -43,65 +20,143 @@ message FileProperties {
   bool is_executable = 2;
 }
 
-message FileNode {
-  // The name of the file.
-  string name = 1;
-
-  // All properties of the file, except for its name.
-  FileProperties properties = 2;
-}
-
-message SymlinkNode {
-  // The name of the symbolic link.
-  string name = 1;
-
+message SymlinkProperties {
   // The target of the symbolic link. The path separator used is a
   // forward slash. The target path can be relative to the parent
   // directory of the symbolic link, or it can be an absolute path
   // starting with a forward slash.
-  string target = 2;
+  string target = 1;
 }
 
-message DirectoryContents {
-  oneof leaves {
-    // The leaves are large enough, that it could not be inlined into
-    // the current directory.
-    LeavesReference leaves_external = 1;
+message DirectoryProperties {
+  // The number of subdirectories present in the subdirectory. This
+  // value needs to be provided to make the link count of directories
+  // accurate when exposed through a virtual file system, without
+  // requiring that the contents of the subdirectory are loaded.
+  uint32 directories_count = 1;
+}
 
-    // The leaves are small enough, that its contents have been inlined.
-    Leaves leaves_inline = 2;
+// An entry in the B-tree that stores the contents of a directory.
+//
+// The B-tree consists of two sections:
+//
+// 1. One directory_contents element for each subdirectory, stored in
+//    the same order as the subdirectory nodes in the second section.
+//
+// 2. One node for each file, symbolic link and subdirectory contained
+//    in the directory, stored in alphabetical order. These nodes
+//    contain all properties of files and symbolic links, but only a
+//    small amount of metadata of subdirectories. This makes it possible
+//    to list the contents of a directory by only scanning this section.
+//
+// Each entry can be thought of as having a key: directory_contents
+// elements have the empty string as their key, while nodes have their
+// name as their key. As names cannot be empty, this means that all
+// entries in the B-tree are sorted by key.
+//
+// To obtain the contents of a subdirectory, its name is first looked up
+// in the second section. Its index among the subdirectory nodes yields
+// the index of the subdirectory's contents in the first section.
+message DirectoryEntry {
+  message DirectoryContents {
+    // The top level of the subdirectory's B-tree.
+    repeated DirectoryEntry entries = 1;
   }
 
-  // The subdirectories in the directory.
-  repeated DirectoryNode directories = 3;
-}
+  message Parent {
+    // Reference to an object containing additional entries.
+    bonanza.model.core.DecodableReference reference = 1
+        [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.filesystem.DirectoryEntry";
+        }];
 
-message Directory {
-  oneof contents {
-    // The contents of the directory are large enough, that it could not
-    // be inlined into the current directory.
-    DirectoryReference contents_external = 1;
+    // The key of the first entry contained in this part of the B-tree.
+    // This is the name of the first node, or the empty string if this
+    // part of the B-tree starts with a directory_contents element.
+    //
+    // This value can be used to look up nodes by name without loading
+    // the objects referenced by this B-tree. When looking up nodes,
+    // parts of the B-tree that don't contain any nodes can be skipped.
+    string first_name = 2;
 
-    // The contents of the directory are small enough, that its contents
-    // have been inlined.
-    DirectoryContents contents_inline = 2;
+    // The number of nodes for files and symbolic links contained in
+    // this part of the B-tree. Nodes for subdirectories are not
+    // included, as they are counted by directory_nodes_count. The
+    // total number of nodes (i.e., elements in the second section) is
+    // equal to the sum of these two fields.
+    uint32 leaf_nodes_count = 3;
+
+    // The number of nodes for subdirectories contained in this part of
+    // the B-tree. This value can be used to compute the index of a
+    // subdirectory among all subdirectories, which is needed to locate
+    // its contents in the first section. It can also be used to
+    // compute the link count of the directory.
+    uint32 directory_nodes_count = 4;
+
+    // The number of directory_contents elements (i.e., elements in the
+    // first section) contained in this part of the B-tree.
+    uint32 directory_contents_count = 5;
+
+    // Value indicating up to how many levels the symbolic links
+    // contained in this part of the B-tree, including the ones
+    // contained in the directory hierarchies of the subdirectories,
+    // escape the directory to which this B-tree belongs. The semantics
+    // of this field are identical to
+    // DirectoryReference.maximum_symlink_escapement_levels.
+    //
+    // This value can be used to determine whether symbolic links
+    // escape, without loading the objects referenced by this B-tree.
+    google.protobuf.UInt32Value maximum_symlink_escapement_levels = 6;
   }
-}
 
-message DirectoryNode {
-  // The name of the subdirectory.
-  string name = 1;
+  message Node {
+    // The name of the file, symbolic link or subdirectory.
+    string name = 1;
 
-  // The contents of the subdirectory.
-  Directory directory = 2;
+    oneof kind {
+      // The node is a regular file.
+      FileProperties file = 2;
+
+      // The node is a symbolic link.
+      SymlinkProperties symlink = 3;
+
+      // The node is a subdirectory. Its contents are stored in the
+      // corresponding directory_contents element in the first section.
+      DirectoryProperties directory = 4;
+    }
+  }
+
+  oneof level {
+    // More entries are stored in another object.
+    Parent parent = 1;
+
+    // A file, symbolic link or subdirectory contained in the directory.
+    // Only permitted in the second section.
+    Node node = 2;
+
+    // The contents of a subdirectory. Only permitted in the first
+    // section.
+    //
+    // The top level of the subdirectory's B-tree is identical to how it
+    // would be stored if the subdirectory were a root directory. Any
+    // maximum_symlink_escapement_levels of parent nodes contained
+    // within are relative to the subdirectory, not to the directory
+    // containing this entry.
+    DirectoryContents directory_contents = 3;
+  }
 }
 
 message DirectoryReference {
-  // Reference to an object containing a Directory message.
+  // Reference to an object containing the top level of a directory's
+  // B-tree.
+  //
+  // As objects cannot be empty, this field is left unset if the
+  // directory is empty.
   bonanza.model.core.DecodableReference reference = 1
       [(bonanza.model.core.object_format) = {
-        proto_type_name:
-          "bonanza.model.filesystem.DirectoryContents";
+        proto_list_type_name:
+          "bonanza.model.filesystem.DirectoryEntry";
       }];
 
   // The number of subdirectories present in the directory. This value
@@ -205,19 +260,27 @@ message MaybeInlineFileContents {
 }
 
 message DirectoryAccessParameters {
-  // Encoders that were used when creating objects containing Directory
-  // and Leaves messages.
+  // Encoders that were used when creating objects containing
+  // DirectoryEntry messages.
   repeated bonanza.model.encoding.BinaryEncoder encoders = 1;
 }
 
 message DirectoryCreationParameters {
   // Parameters that need to be used when either accessing or creating
-  // objects containing Directory and Leaves messages.
+  // objects containing DirectoryEntry messages.
   DirectoryAccessParameters access = 1;
 
-  // The maximum size of Directory messages in bytes, prior to applying
-  // any encoding steps.
-  uint32 directory_maximum_size_bytes = 2;
+  // Parameters of the chunking algorithm that is used to partition the
+  // B-trees of directories into objects.
+  //
+  // The top level of a directory's B-tree is either smaller than the
+  // minimum size, or consists of a single entry. Additional
+  // levels are added to the B-tree as needed. This ensures that
+  // individual directory_contents elements remain small enough to be
+  // chunked. This rule also applies to root directories, so that the
+  // top level of a directory's B-tree does not depend on whether it is
+  // a root directory or a subdirectory.
+  bonanza.model.chunking.Parameters directories_parameters = 2;
 }
 
 message FileAccessParameters {

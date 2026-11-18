@@ -63,13 +63,12 @@ func getStarlarkFileProperties[TReference object.BasicReference, TMetadata model
 	}
 	componentWalker := model_filesystem.NewDirectoryComponentWalker[TReference](
 		ctx,
-		directoryReaders.DirectoryContents,
-		directoryReaders.Leaves,
+		directoryReaders.DirectoryEntries,
 		func() (path.ComponentWalker, error) {
 			return nil, errors.New("path resolution escapes input root")
 		},
-		model_core.Message[*model_filesystem_pb.Directory, TReference]{},
-		[]model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]{
+		model_core.Message[*model_filesystem_pb.DirectoryReference, TReference]{},
+		[]model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{
 			model_core.Nested(targetOutput, targetOutput.Message.RootDirectory),
 		},
 	)
@@ -446,10 +445,9 @@ func (s *sourceFileAndDependenciesCopierSource[TReference, TMetadata]) clone() (
 	}
 	newSource.currentRepo = model_filesystem.NewDirectoryComponentWalker[TReference](
 		newSource.context,
-		newSource.directoryReaders.DirectoryContents,
-		newSource.directoryReaders.Leaves,
+		newSource.directoryReaders.DirectoryEntries,
 		newSource.handleRepoOnUp,
-		model_core.Message[*model_filesystem_pb.Directory, TReference]{},
+		model_core.Message[*model_filesystem_pb.DirectoryReference, TReference]{},
 		currentDirectories,
 	)
 	return newSource, nil
@@ -471,7 +469,11 @@ func (s *sourceFileAndDependenciesCopierSource[TReference, TMetadata]) mergeCurr
 		return errors.New("not inside a repo")
 	}
 	// TODO: We should omit directories belonging to different packages.
-	return target.mergeDirectoryMessage(s.currentRepo.GetCurrentDirectory(), s.loadOptions)
+	currentDirectory, err := s.currentRepo.GetCurrentDirectory()
+	if err != nil {
+		return err
+	}
+	return target.mergeDirectoryMessage(newUnmodifiedDirectoryFromContents(currentDirectory), s.loadOptions)
 }
 
 func (s *sourceFileAndDependenciesCopierSource[TReference, TMetadata]) pushDirectory(name path.Component) error {
@@ -545,14 +547,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			// of the file that was requested (and any
 			// symlink targets).
 			originalOutputRootDirectory := changeTrackingDirectory[TReference, TMetadata]{
-				unmodifiedDirectory: model_core.Nested(
-					targetActionResult,
-					&model_filesystem_pb.Directory{
-						Contents: &model_filesystem_pb.Directory_ContentsInline{
-							ContentsInline: targetActionResult.Message.OutputRoot,
-						},
-					},
-				),
+				unmodifiedDirectory: newUnmodifiedDirectoryFromContents(model_core.Nested(targetActionResult, targetActionResult.Message.OutputRoot)),
 			}
 			filePath, err := model_starlark.FileGetInputRootPath(f, nil)
 			if err != nil {
@@ -560,9 +555,8 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			}
 			filePathParser := path.UNIXFormat.NewParser(filePath)
 			loadOptions := &changeTrackingDirectoryLoadOptions[TReference]{
-				context:                 ctx,
-				directoryContentsReader: directoryReaders.DirectoryContents,
-				leavesReader:            directoryReaders.Leaves,
+				context:                ctx,
+				directoryEntriesReader: directoryReaders.DirectoryEntries,
 			}
 			trimmedOutputRootDirectory := &changeTrackingDirectory[TReference, TMetadata]{}
 			copier := newFileAndDependenciesCopier[TReference, TMetadata](loadOptions)
@@ -607,11 +601,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 					return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 				}
 				if err := originalOutputRootDirectory.mergeDirectoryMessage(
-					model_core.Nested(targetActionInputRoot, &model_filesystem_pb.Directory{
-						Contents: &model_filesystem_pb.Directory_ContentsExternal{
-							ContentsExternal: targetActionInputRoot.Message.InputRootReference,
-						},
-					}),
+					newUnmodifiedDirectoryFromReference(model_core.Nested(targetActionInputRoot, targetActionInputRoot.Message.InputRootReference)),
 					loadOptions,
 				); err != nil {
 					return PatchedFileRootValue[TMetadata]{}, err
@@ -639,7 +629,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				return createFileRootFromChangeTrackingDirectory(
 					ctx,
 					e,
-					directoryReaders.DirectoryContents,
+					directoryReaders.DirectoryEntries,
 					directoryCreationParameters,
 					trimmedOutputRootDirectory,
 				)
@@ -670,7 +660,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				return createFileRootFromChangeTrackingDirectory(
 					ctx,
 					e,
-					directoryReaders.DirectoryContents,
+					directoryReaders.DirectoryEntries,
 					directoryCreationParameters,
 					externalDirectory,
 				)
@@ -771,7 +761,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				},
 				createdDirectory.Message.Patcher,
 			), nil
-		case *model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory:
+		case *model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_:
 			// Output file was already computed during configuration.
 			// For example by calling ctx.actions.write() or
 			// ctx.actions.symlink(target_path=...).
@@ -797,7 +787,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 					directoryCreationParameters,
 					&pathPrependingDirectory[TMetadata, TMetadata]{
 						components: components,
-						directory:  model_core.Patch(e, model_core.Nested(output, source.StaticPackageDirectory)),
+						directory:  model_core.PatchList(e, model_core.Nested(output, source.StaticPackageDirectory.GetEntries())),
 					},
 					model_filesystem.NewSimpleDirectoryMerkleTreeCapturer(e),
 					&createdDirectory,
@@ -839,16 +829,11 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			}
 
 			rootDirectory := changeTrackingDirectory[TReference, TMetadata]{
-				unmodifiedDirectory: model_core.Nested(symlinkTarget, &model_filesystem_pb.Directory{
-					Contents: &model_filesystem_pb.Directory_ContentsInline{
-						ContentsInline: symlinkTarget.Message.RootDirectory,
-					},
-				}),
+				unmodifiedDirectory: newUnmodifiedDirectoryFromContents(model_core.Nested(symlinkTarget, symlinkTarget.Message.RootDirectory)),
 			}
 			loadOptions := &changeTrackingDirectoryLoadOptions[TReference]{
-				context:                 ctx,
-				directoryContentsReader: directoryReaders.DirectoryContents,
-				leavesReader:            directoryReaders.Leaves,
+				context:                ctx,
+				directoryEntriesReader: directoryReaders.DirectoryEntries,
 			}
 
 			// Validate the type and properties of the target file.
@@ -916,7 +901,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			return createFileRootFromChangeTrackingDirectory(
 				ctx,
 				e,
-				directoryReaders.DirectoryContents,
+				directoryReaders.DirectoryEntries,
 				directoryCreationParameters,
 				&rootDirectory,
 			)
@@ -936,9 +921,8 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 		return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	loadOptions := &changeTrackingDirectoryLoadOptions[TReference]{
-		context:                 ctx,
-		directoryContentsReader: directoryReaders.DirectoryContents,
-		leavesReader:            directoryReaders.Leaves,
+		context:                ctx,
+		directoryEntriesReader: directoryReaders.DirectoryEntries,
 	}
 	copier := newFileAndDependenciesCopier[TReference, TMetadata](loadOptions)
 	var externalDirectory changeTrackingDirectory[TReference, TMetadata]
@@ -976,7 +960,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 	return createFileRootFromChangeTrackingDirectory(
 		ctx,
 		e,
-		directoryReaders.DirectoryContents,
+		directoryReaders.DirectoryEntries,
 		directoryCreationParameters,
 		rootDirectory,
 	)
@@ -985,7 +969,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 func createFileRootFromChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	ctx context.Context,
 	e FileRootEnvironment[TReference, TMetadata],
-	directoryContentsReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents],
+	directoryEntriesReader model_parser.MessageObjectReader[TReference, []*model_filesystem_pb.DirectoryEntry],
 	directoryCreationParameters *model_filesystem.DirectoryCreationParameters,
 	rootDirectory *changeTrackingDirectory[TReference, TMetadata],
 ) (PatchedFileRootValue[TMetadata], error) {
@@ -999,9 +983,9 @@ func createFileRootFromChangeTrackingDirectory[TReference object.BasicReference,
 			directoryCreationParameters,
 			&capturableChangeTrackingDirectory[TReference, TMetadata]{
 				options: &capturableChangeTrackingDirectoryOptions[TReference, TMetadata]{
-					context:                 ctx,
-					directoryContentsReader: directoryContentsReader,
-					objectCapturer:          e,
+					context:                ctx,
+					directoryEntriesReader: directoryEntriesReader,
+					objectCapturer:         e,
 				},
 				directory: rootDirectory,
 			},
@@ -1023,7 +1007,7 @@ func createFileRootFromChangeTrackingDirectory[TReference object.BasicReference,
 
 type pathPrependingDirectory[TDirectory, TFile model_core.ReferenceMetadata] struct {
 	components []path.Component
-	directory  model_core.PatchedMessage[*model_filesystem_pb.DirectoryContents, TDirectory]
+	directory  model_core.PatchedMessage[[]*model_filesystem_pb.DirectoryEntry, TDirectory]
 }
 
 func (pathPrependingDirectory[TDirectory, TFile]) Close() error {

@@ -106,6 +106,7 @@ go_library(
         "target_providers.go",
         "target_variant.go",
         "test_suite_tests.go",
+        "unmodified_directory.go",
         "used_module_extension.go",
         "used_module_extensions.go",
         "user_defined_transition.go",

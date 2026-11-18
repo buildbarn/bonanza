@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 
 	"bonanza.build/pkg/glob"
@@ -29,25 +28,25 @@ var allPackagesPattern = util.Must(glob.NewNFAFromPatterns([]string{"**"}, nil))
 func getPackageDirectory[TReference object.BasicReference](
 	ctx context.Context,
 	e RepoValueGetter[TReference],
-	directoryContentsReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents],
+	directoryEntriesReader model_parser.MessageObjectReader[TReference, []*model_filesystem_pb.DirectoryEntry],
 	canonicalPackageStr string,
-) (model_core.Message[*model_filesystem_pb.DirectoryContents, TReference], error) {
+) (model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], error) {
 	canonicalPackage, err := label.NewCanonicalPackage(canonicalPackageStr)
 	if err != nil {
-		return model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]{}, errors.New("invalid base package")
+		return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, errors.New("invalid base package")
 	}
 
 	repoValue := e.GetRepoValue(&model_analysis_pb.Repo_Key{
 		CanonicalRepo: canonicalPackage.GetCanonicalRepo().String(),
 	})
 	if !repoValue.IsSet() {
-		return model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]{}, evaluation.ErrMissingDependency
+		return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, evaluation.ErrMissingDependency
 	}
 
 	// Obtain the root directory of the repo.
-	baseDirectory, err := model_parser.Dereference(ctx, directoryContentsReader, model_core.Nested(repoValue, repoValue.Message.RootDirectoryReference.GetReference()))
+	baseDirectory, err := model_filesystem.DirectoryDereference(ctx, directoryEntriesReader, model_core.Nested(repoValue, repoValue.Message.RootDirectoryReference))
 	if err != nil {
-		return model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]{}, err
+		return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, err
 	}
 
 	// Traverse into the directory belonging to the package path.
@@ -55,22 +54,17 @@ func getPackageDirectory[TReference object.BasicReference](
 		canonicalPackage.GetPackagePath(),
 		func(r rune) bool { return r == '/' },
 	) {
-		directories := baseDirectory.Message.Directories
-		directoryIndex, ok := sort.Find(
-			len(directories),
-			func(i int) int { return strings.Compare(component, directories[i].Name) },
-		)
+		name, ok := path.NewComponent(component)
 		if !ok {
-			// Base package does not exist.
-			return model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]{}, nil
+			return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, errors.New("invalid base package")
 		}
-		baseDirectory, err = model_filesystem.DirectoryGetContents(
-			ctx,
-			directoryContentsReader,
-			model_core.Nested(baseDirectory, directories[directoryIndex].Directory),
-		)
+		baseDirectory, err = model_filesystem.DirectoryLookupChild(ctx, directoryEntriesReader, baseDirectory, name)
 		if err != nil {
-			return model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]{}, err
+			return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, err
+		}
+		if !baseDirectory.IsSet() {
+			// Base package does not exist.
+			return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, nil
 		}
 	}
 	return baseDirectory, nil
@@ -82,7 +76,7 @@ func (*baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx c
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	packageDirectory, err := getPackageDirectory(ctx, e, directoryReaders.DirectoryContents, key.BasePackage)
+	packageDirectory, err := getPackageDirectory(ctx, e, directoryReaders.DirectoryEntries, key.BasePackage)
 	if err != nil {
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, err
 	}
@@ -103,7 +97,7 @@ func (*baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx c
 		context:          ctx,
 		directoryReaders: directoryReaders,
 	}
-	packageAtBasePackage, err := directoryIsPackage(ctx, directoryReaders.Leaves, packageDirectory)
+	packageAtBasePackage, err := directoryIsPackage(ctx, directoryReaders.DirectoryEntries, packageDirectory)
 	if err != nil {
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, err
 	}
@@ -131,14 +125,15 @@ type packageExistenceChecker[TReference any] struct {
 // packages. Only packages whose relative path is matched are returned,
 // and directories are only traversed if they may contain matching
 // packages.
-func (pec *packageExistenceChecker[TReference]) findPackagesBelow(d model_core.Message[*model_filesystem_pb.DirectoryContents, TReference], dTrace *path.Trace, dMatcher *glob.Matcher) error {
+func (pec *packageExistenceChecker[TReference]) findPackagesBelow(d model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], dTrace *path.Trace, dMatcher *glob.Matcher) error {
 	var childMatcher glob.Matcher
 
+	var errIter error
 MatchDirectories:
-	for _, entry := range d.Message.Directories {
-		name, ok := path.NewComponent(entry.Name)
+	for node, childDirectory := range model_filesystem.DirectoryAllChildren(pec.context, pec.directoryReaders.DirectoryEntries, d, &errIter) {
+		name, ok := path.NewComponent(node.Message.Name)
 		if !ok {
-			return fmt.Errorf("invalid directory name %#v in directory %#v", entry.Name, dTrace.GetUNIXString())
+			return fmt.Errorf("invalid directory name %#v in directory %#v", node.Message.Name, dTrace.GetUNIXString())
 		}
 		childMatcher.CopyFrom(dMatcher)
 		for _, r := range name.String() {
@@ -155,16 +150,7 @@ MatchDirectories:
 		}
 		childTrace := dTrace.Append(name)
 
-		childDirectory, err := model_filesystem.DirectoryGetContents(
-			pec.context,
-			pec.directoryReaders.DirectoryContents,
-			model_core.Nested(d, entry.Directory),
-		)
-		if err != nil {
-			return fmt.Errorf("failed to get contents of directory %#v: %w", childTrace.GetUNIXString(), err)
-		}
-
-		directoryIsPackage, err := directoryIsPackage(pec.context, pec.directoryReaders.Leaves, childDirectory)
+		directoryIsPackage, err := directoryIsPackage(pec.context, pec.directoryReaders.DirectoryEntries, childDirectory)
 		if err != nil {
 			return fmt.Errorf("failed to determine whether directory %#v is a package: %w", dTrace.GetUNIXString(), err)
 		}
@@ -181,26 +167,23 @@ MatchDirectories:
 			}
 		}
 	}
+	if errIter != nil {
+		return fmt.Errorf("failed to iterate subdirectories of directory %#v: %w", dTrace.GetUNIXString(), errIter)
+	}
 	return nil
 }
 
 // directoryPackage returns true if the provided directory is the root
 // directory of a package. A directory is a root directory of a package
 // if it contains a BUILD.bazel or BUILD file.
-func directoryIsPackage[TReference any](ctx context.Context, leavesReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.Leaves], d model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]) (bool, error) {
-	leaves, err := model_filesystem.DirectoryGetLeaves(ctx, leavesReader, d)
-	if err != nil {
-		return false, err
-	}
-
+func directoryIsPackage[TReference any](ctx context.Context, entriesReader model_parser.MessageObjectReader[TReference, []*model_filesystem_pb.DirectoryEntry], d model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]) (bool, error) {
 	// TODO: Should we also consider symlinks having such names?
-	files := leaves.Message.Files
 	for _, filename := range buildDotBazelTargetNames {
-		filenameStr := filename.String()
-		if _, ok := sort.Find(
-			len(files),
-			func(i int) int { return strings.Compare(filenameStr, files[i].Name) },
-		); ok {
+		node, _, err := model_filesystem.DirectoryLookupNode(ctx, entriesReader, d, path.MustNewComponent(filename.String()))
+		if err != nil {
+			return false, err
+		}
+		if node.IsSet() && node.Message.GetFile() != nil {
 			// Current directory is a package.
 			return true, nil
 		}

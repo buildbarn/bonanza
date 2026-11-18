@@ -77,11 +77,11 @@ message BuildSpecification {
       // the leading "@" (e.g., "rules_go").
       string name = 1;
 
-      // Reference to a Directory message that describes the root directory
-      // of this module. The root directory MUST contain a file named
-      // "MODULE.bazel". It MUST NOT contain any symbolic links whose
-      // targets escape the root directory (i.e.,
-      // maximum_symlink_escapement_levels MUST be zero).
+      // Reference to the root directory of this module. The root
+      // directory MUST contain a file named "MODULE.bazel". It MUST NOT
+      // contain any symbolic links whose targets escape the root
+      // directory (i.e., maximum_symlink_escapement_levels MUST be
+      // zero).
       bonanza.model.filesystem.DirectoryReference root_directory_reference = 2;
     }
 
@@ -641,7 +641,7 @@ message TargetActionDefinition {
   // running the action. For example, if this action is expected to
   // write to output file "a/b.txt", the initial output directory will
   // contain an empty directory named "a".
-  bonanza.model.filesystem.Directory initial_output_directory = 6;
+  repeated bonanza.model.filesystem.DirectoryEntry initial_output_directory = 6;
 
   // Additional environments that need to be present when executing the
   // action. These have a higher precedence than the ones provided by
@@ -655,6 +655,11 @@ message TargetActionDefinition {
 }
 
 message TargetOutputDefinition {
+  message StaticPackageDirectory {
+    // The top level of the B-tree of the directory hierarchy.
+    repeated bonanza.model.filesystem.DirectoryEntry entries = 1;
+  }
+
   message ExpandTemplate {
     // File that contains the template for the output file's
     // contents.
@@ -706,7 +711,7 @@ message TargetOutputDefinition {
     // directory hierarchy containing the file or symlink in question,
     // rooted at the output directory of the current package and
     // configuration.
-    bonanza.model.filesystem.DirectoryContents static_package_directory = 4;
+    StaticPackageDirectory static_package_directory = 4;
 
     // Output of ctx.actions.symlink(target_file=...).
     Symlink symlink = 5;
@@ -1446,7 +1451,7 @@ message FileRoot {
     //
     // If the requested file is a symlink, its target(s) will also be
     // part of the directory structure.
-    bonanza.model.filesystem.DirectoryContents root_directory = 1;
+    repeated bonanza.model.filesystem.DirectoryEntry root_directory = 1;
   }
 }
 
@@ -1460,7 +1465,7 @@ message FilesInPackage {
     // Directory of the package, with child directories removed that
     // belong to nested packages. Furthermore, file contents are
     // removed, thereby making all files empty.
-    bonanza.model.filesystem.DirectoryContents directory = 1;
+    repeated bonanza.model.filesystem.DirectoryEntry directory = 1;
   }
 }
 
@@ -1482,7 +1487,7 @@ message FilesRoot {
     // the list, placed at the location they would appear inside the
     // input root of an action that depends on them, or inside a
     // runfiles directory of a tool that depends on them.
-    bonanza.model.filesystem.DirectoryContents root_directory = 1;
+    repeated bonanza.model.filesystem.DirectoryEntry root_directory = 1;
   }
 }
 
@@ -1814,10 +1819,9 @@ message ModuleWithLocalOverrideRootDirectory {
   }
 
   message Value {
-    // Reference to a Directory message that describes the root
-    // directory of the module, if the client provided an explicit copy
-    // of its source code as part of the build specification. If not
-    // set, no such copy was provided.
+    // Reference to the root directory of the module, if the client
+    // provided an explicit copy of its source code as part of the build
+    // specification. If not set, no such copy was provided.
     //
     // This is provided on a per-module basis, so that changes to the
     // source code of one module don't affect the repos of others.
@@ -2460,6 +2464,11 @@ message RepoPlatformHostPath {
   }
 
   message Value {
+    message Directory {
+      // The top level of the B-tree of the directory hierarchy.
+      repeated bonanza.model.filesystem.DirectoryEntry entries = 1;
+    }
+
     oneof captured_path {
       // The provided path corresponds to (a symlink pointing to) a
       // file. The contents of the file are provided.
@@ -2469,7 +2478,7 @@ message RepoPlatformHostPath {
       // directory. The resulting directory may not contain any symlinks
       // that escape the directory hierarchy. If such symlinks are
       // encountered when creating this directory, they are expanded.
-      bonanza.model.filesystem.DirectoryContents directory = 2;
+      Directory directory = 2;
     }
   }
 }
@@ -2736,7 +2745,7 @@ message TargetActionResult {
 
   message Value {
     // The contents of output files and directories of this action.
-    bonanza.model.filesystem.DirectoryContents output_root = 1;
+    repeated bonanza.model.filesystem.DirectoryEntry output_root = 1;
   }
 }
 

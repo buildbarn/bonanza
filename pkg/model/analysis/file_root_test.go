@@ -2,6 +2,7 @@ package analysis_test
 
 import (
 	"encoding"
+	"sort"
 	"testing"
 
 	model_analysis "bonanza.build/pkg/model/analysis"
@@ -18,32 +19,157 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// emptyLeaves can be embedded into DirectoryContents messages to
-// indicate that a directory contains no files or symlinks.
-var emptyLeaves = &model_filesystem_pb.DirectoryContents_LeavesInline{
-	LeavesInline: &model_filesystem_pb.Leaves{},
+// testFileNode is a regular file that can be added to a directory
+// using testLeaves.
+type testFileNode struct {
+	Name       string
+	Properties *model_filesystem_pb.FileProperties
 }
 
-func directoryNode(name string, contents *model_filesystem_pb.DirectoryContents) *model_filesystem_pb.DirectoryNode {
-	return &model_filesystem_pb.DirectoryNode{
-		Name: name,
-		Directory: &model_filesystem_pb.Directory{
-			Contents: &model_filesystem_pb.Directory_ContentsInline{
-				ContentsInline: contents,
+// testSymlinkNode is a symbolic link that can be added to a directory
+// using testLeaves.
+type testSymlinkNode struct {
+	Name   string
+	Target string
+}
+
+// testLeaves contains the files and symbolic links of a directory
+// that is constructed using newTestDirectory().
+type testLeaves struct {
+	Files    []*testFileNode
+	Symlinks []*testSymlinkNode
+}
+
+// emptyLeaves can be provided to newTestDirectory() to indicate that a
+// directory contains no files or symlinks.
+var emptyLeaves = &testLeaves{}
+
+// newTestDirectory creates the entries of a directory containing files and
+// symbolic links. Subdirectories can be added using withDirectories().
+func newTestDirectory(leaves *testLeaves) []*model_filesystem_pb.DirectoryEntry {
+	var entries []*model_filesystem_pb.DirectoryEntry
+	for _, file := range leaves.Files {
+		entries = append(entries, &model_filesystem_pb.DirectoryEntry{
+			Level: &model_filesystem_pb.DirectoryEntry_Node_{
+				Node: &model_filesystem_pb.DirectoryEntry_Node{
+					Name: file.Name,
+					Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: file.Properties},
+				},
 			},
-		},
+		})
 	}
+	for _, symlink := range leaves.Symlinks {
+		entries = append(entries, &model_filesystem_pb.DirectoryEntry{
+			Level: &model_filesystem_pb.DirectoryEntry_Node_{
+				Node: &model_filesystem_pb.DirectoryEntry_Node{
+					Name: symlink.Name,
+					Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{
+						Symlink: &model_filesystem_pb.SymlinkProperties{Target: symlink.Target},
+					},
+				},
+			},
+		})
+	}
+	return sortTestDirectory(entries, nil)
+}
+
+// sortTestDirectory constructs the entries of a directory from a list of
+// nodes and the contents of the subdirectories, keyed by name. Nodes
+// are sorted by name, and are preceded by the contents of the
+// subdirectories in the same order.
+func sortTestDirectory(nodes []*model_filesystem_pb.DirectoryEntry, contents map[string][]*model_filesystem_pb.DirectoryEntry) []*model_filesystem_pb.DirectoryEntry {
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].GetNode().Name < nodes[j].GetNode().Name
+	})
+	var entries []*model_filesystem_pb.DirectoryEntry
+	for _, node := range nodes {
+		if node.GetNode().GetDirectory() != nil {
+			entries = append(entries, &model_filesystem_pb.DirectoryEntry{
+				Level: &model_filesystem_pb.DirectoryEntry_DirectoryContents_{
+					DirectoryContents: &model_filesystem_pb.DirectoryEntry_DirectoryContents{
+						Entries: contents[node.GetNode().Name],
+					},
+				},
+			})
+		}
+	}
+	return append(entries, nodes...)
+}
+
+// testDirectoryDirectoriesCount returns the number of subdirectories
+// of a directory constructed using newTestDirectory().
+func testDirectoryDirectoriesCount(directory []*model_filesystem_pb.DirectoryEntry) uint32 {
+	count := uint32(0)
+	for _, entry := range directory {
+		if entry.GetNode().GetDirectory() != nil {
+			count++
+		}
+	}
+	return count
+}
+
+// testDirectoryMarshaler marshals a directory into an object that can
+// be referenced by a DirectoryReference.
+func testDirectoryMarshaler(directory []*model_filesystem_pb.DirectoryEntry) encoding.BinaryMarshaler {
+	return model_core.NewProtoListBinaryMarshaler(directory)
+}
+
+// testDirectoryNode is a child directory that can be added to a
+// directory using withDirectories().
+type testDirectoryNode struct {
+	name      string
+	directory []*model_filesystem_pb.DirectoryEntry
+}
+
+func directoryNode(name string, directory []*model_filesystem_pb.DirectoryEntry) testDirectoryNode {
+	return testDirectoryNode{
+		name:      name,
+		directory: directory,
+	}
+}
+
+// withDirectories adds child directories to a directory. The
+// contents of all child directories are stored inline.
+func withDirectories(directory []*model_filesystem_pb.DirectoryEntry, children ...testDirectoryNode) []*model_filesystem_pb.DirectoryEntry {
+	var nodes []*model_filesystem_pb.DirectoryEntry
+	var existingContents [][]*model_filesystem_pb.DirectoryEntry
+	for _, entry := range directory {
+		if node := entry.GetNode(); node != nil {
+			nodes = append(nodes, entry)
+		} else {
+			existingContents = append(existingContents, entry.GetDirectoryContents().GetEntries())
+		}
+	}
+	contents := map[string][]*model_filesystem_pb.DirectoryEntry{}
+	directoryIndex := 0
+	for _, node := range nodes {
+		if node.GetNode().GetDirectory() != nil {
+			contents[node.GetNode().Name] = existingContents[directoryIndex]
+			directoryIndex++
+		}
+	}
+	for _, child := range children {
+		nodes = append(nodes, &model_filesystem_pb.DirectoryEntry{
+			Level: &model_filesystem_pb.DirectoryEntry_Node_{
+				Node: &model_filesystem_pb.DirectoryEntry_Node{
+					Name: child.name,
+					Kind: &model_filesystem_pb.DirectoryEntry_Node_Directory{
+						Directory: &model_filesystem_pb.DirectoryProperties{
+							DirectoriesCount: testDirectoryDirectoriesCount(child.directory),
+						},
+					},
+				},
+			},
+		})
+		contents[child.name] = child.directory
+	}
+	return sortTestDirectory(nodes, contents)
 }
 
 // singleChildDirectoryContents can be used to construct a directory
 // that only contains a single child that is also a directory.
-func singleChildDirectoryContents(name string, childContents *model_filesystem_pb.DirectoryContents) *model_filesystem_pb.DirectoryContents {
-	return &model_filesystem_pb.DirectoryContents{
-		Directories: []*model_filesystem_pb.DirectoryNode{
-			directoryNode(name, childContents),
-		},
-		Leaves: emptyLeaves,
-	}
+func singleChildDirectoryContents(name string, childContents []*model_filesystem_pb.DirectoryEntry) []*model_filesystem_pb.DirectoryEntry {
+	return withDirectories(newTestDirectory(emptyLeaves), directoryNode(name, childContents))
 }
 
 func TestFileRoot(t *testing.T) {
@@ -126,16 +252,12 @@ func TestFileRoot(t *testing.T) {
 				return &model_analysis_pb.Repo_Value{
 					RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
 						Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-							return model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{{
-											Name:       "bar",
-											Properties: &model_filesystem_pb.FileProperties{},
-										}},
-									},
-								},
-							})
+							return testDirectoryMarshaler(newTestDirectory(&testLeaves{
+								Files: []*testFileNode{{
+									Name:       "bar",
+									Properties: &model_filesystem_pb.FileProperties{},
+								}},
+							}))
 						})),
 						DirectoriesCount:               0,
 						MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
@@ -175,22 +297,18 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.Repo_Value{
 						RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-								return model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
-									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-										LeavesInline: &model_filesystem_pb.Leaves{
-											Files: []*model_filesystem_pb.FileNode{
-												{
-													Name:       "bar",
-													Properties: &model_filesystem_pb.FileProperties{},
-												},
-												{
-													Name:       "foo",
-													Properties: &model_filesystem_pb.FileProperties{},
-												},
-											},
+								return testDirectoryMarshaler(newTestDirectory(&testLeaves{
+									Files: []*testFileNode{
+										{
+											Name:       "bar",
+											Properties: &model_filesystem_pb.FileProperties{},
+										},
+										{
+											Name:       "foo",
+											Properties: &model_filesystem_pb.FileProperties{},
 										},
 									},
-								})
+								}))
 							})),
 							DirectoriesCount:               0,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
@@ -225,18 +343,14 @@ func TestFileRoot(t *testing.T) {
 							"external",
 							singleChildDirectoryContents(
 								"myrepo+",
-								&model_filesystem_pb.DirectoryContents{
-									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-										LeavesInline: &model_filesystem_pb.Leaves{
-											Files: []*model_filesystem_pb.FileNode{
-												{
-													Name:       "bar",
-													Properties: &model_filesystem_pb.FileProperties{},
-												},
-											},
+								newTestDirectory(&testLeaves{
+									Files: []*testFileNode{
+										{
+											Name:       "bar",
+											Properties: &model_filesystem_pb.FileProperties{},
 										},
 									},
-								},
+								}),
 							),
 						),
 					}
@@ -253,18 +367,14 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.FileRoot_Value{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{
-											{
-												Name:       "bar",
-												Properties: &model_filesystem_pb.FileProperties{},
-											},
-										},
+							newTestDirectory(&testLeaves{
+								Files: []*testFileNode{
+									{
+										Name:       "bar",
+										Properties: &model_filesystem_pb.FileProperties{},
 									},
 								},
-							},
+							}),
 						),
 					}
 				}, fileRoot)
@@ -295,66 +405,40 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.Repo_Value{
 						RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-								return model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
-									Directories: []*model_filesystem_pb.DirectoryNode{
-										directoryNode("dir1", &model_filesystem_pb.DirectoryContents{
-											Directories: []*model_filesystem_pb.DirectoryNode{
-												directoryNode("nested", &model_filesystem_pb.DirectoryContents{
-													Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-														LeavesInline: &model_filesystem_pb.Leaves{
-															Symlinks: []*model_filesystem_pb.SymlinkNode{
-																{Name: "file3", Target: "../../file3"},
-															},
-														},
-													},
-												}),
-												// TODO: Directories belonging to other packages should
-												// likely be removed.
-												/*
-													directoryNode("other_package", &model_filesystem_pb.DirectoryContents{
-														Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-															LeavesInline: &model_filesystem_pb.Leaves{
-																Files: []*model_filesystem_pb.FileNode{
-																	{Name: "BUILD.bazel", Properties: &model_filesystem_pb.FileProperties{}},
-																	{Name: "foo", Properties: &model_filesystem_pb.FileProperties{}},
-																},
-															},
-														},
-													}),
-												*/
-											},
-											Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-												LeavesInline: &model_filesystem_pb.Leaves{
-													Symlinks: []*model_filesystem_pb.SymlinkNode{
-														{Name: "dir2", Target: "../dir2"},
-														{Name: "file1", Target: "../file1"},
-														{Name: "file5", Target: "../../otherrepo+/file5"},
-													},
-												},
-											},
-										}),
-										directoryNode("dir2", &model_filesystem_pb.DirectoryContents{
-											Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-												LeavesInline: &model_filesystem_pb.Leaves{
-													Symlinks: []*model_filesystem_pb.SymlinkNode{
-														{Name: "file2", Target: "../file2"},
-														{Name: "self", Target: "."},
-													},
-												},
-											},
-										}),
+								return testDirectoryMarshaler(withDirectories(newTestDirectory(&testLeaves{
+									Files: []*testFileNode{
+										{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
+										{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
+										{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
+										{Name: "file4", Properties: &model_filesystem_pb.FileProperties{}},
 									},
-									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-										LeavesInline: &model_filesystem_pb.Leaves{
-											Files: []*model_filesystem_pb.FileNode{
-												{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
-												{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
-												{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
-												{Name: "file4", Properties: &model_filesystem_pb.FileProperties{}},
-											},
+								}), directoryNode("dir1", withDirectories(newTestDirectory(&testLeaves{
+									Symlinks: []*testSymlinkNode{
+										{Name: "dir2", Target: "../dir2"},
+										{Name: "file1", Target: "../file1"},
+										{Name: "file5", Target: "../../otherrepo+/file5"},
+									},
+								}), directoryNode("nested", newTestDirectory(&testLeaves{
+									Symlinks: []*testSymlinkNode{
+										{Name: "file3", Target: "../../file3"},
+									},
+								})),
+								// TODO: Directories belonging to other packages should
+								// likely be removed.
+								/*
+									directoryNode("other_package", newTestDirectory(&testLeaves{
+												Files: []*testFileNode{
+													{Name: "BUILD.bazel", Properties: &model_filesystem_pb.FileProperties{}},
+													{Name: "foo", Properties: &model_filesystem_pb.FileProperties{}},
+												},
+											})),
+								*/)),
+									directoryNode("dir2", newTestDirectory(&testLeaves{
+										Symlinks: []*testSymlinkNode{
+											{Name: "file2", Target: "../file2"},
+											{Name: "self", Target: "."},
 										},
-									},
-								})
+									}))))
 							})),
 							DirectoriesCount:               0,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
@@ -369,16 +453,12 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.Repo_Value{
 						RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-								return model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
-									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-										LeavesInline: &model_filesystem_pb.Leaves{
-											Files: []*model_filesystem_pb.FileNode{
-												{Name: "file5", Properties: &model_filesystem_pb.FileProperties{}},
-												{Name: "file6", Properties: &model_filesystem_pb.FileProperties{}},
-											},
-										},
+								return testDirectoryMarshaler(newTestDirectory(&testLeaves{
+									Files: []*testFileNode{
+										{Name: "file5", Properties: &model_filesystem_pb.FileProperties{}},
+										{Name: "file6", Properties: &model_filesystem_pb.FileProperties{}},
 									},
-								})
+								}))
 							})),
 							DirectoriesCount:               0,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
@@ -408,65 +488,34 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.FileRoot_Value{
 						RootDirectory: singleChildDirectoryContents(
 							"external",
-							&model_filesystem_pb.DirectoryContents{
-								Directories: []*model_filesystem_pb.DirectoryNode{
-									directoryNode("myrepo+", &model_filesystem_pb.DirectoryContents{
-										Directories: []*model_filesystem_pb.DirectoryNode{
-											directoryNode("dir1", &model_filesystem_pb.DirectoryContents{
-												Directories: []*model_filesystem_pb.DirectoryNode{
-													directoryNode("nested", &model_filesystem_pb.DirectoryContents{
-														Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-															LeavesInline: &model_filesystem_pb.Leaves{
-																Symlinks: []*model_filesystem_pb.SymlinkNode{
-																	{Name: "file3", Target: "../../file3"},
-																},
-															},
-														},
-													}),
-												},
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Symlinks: []*model_filesystem_pb.SymlinkNode{
-															{Name: "dir2", Target: "../dir2"},
-															{Name: "file1", Target: "../file1"},
-															{Name: "file5", Target: "../../otherrepo+/file5"},
-														},
-													},
-												},
-											}),
-											directoryNode("dir2", &model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Symlinks: []*model_filesystem_pb.SymlinkNode{
-															{Name: "file2", Target: "../file2"},
-															{Name: "self", Target: "."},
-														},
-													},
-												},
-											}),
-										},
-										Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-											LeavesInline: &model_filesystem_pb.Leaves{
-												Files: []*model_filesystem_pb.FileNode{
-													{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
-													{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
-													{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
-												},
-											},
-										},
-									}),
-									directoryNode("otherrepo+", &model_filesystem_pb.DirectoryContents{
-										Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-											LeavesInline: &model_filesystem_pb.Leaves{
-												Files: []*model_filesystem_pb.FileNode{
-													{Name: "file5", Properties: &model_filesystem_pb.FileProperties{}},
-												},
-											},
-										},
-									}),
+							withDirectories(newTestDirectory(emptyLeaves), directoryNode("myrepo+", withDirectories(newTestDirectory(&testLeaves{
+								Files: []*testFileNode{
+									{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
+									{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
+									{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
 								},
-								Leaves: emptyLeaves,
-							},
+							}), directoryNode("dir1", withDirectories(newTestDirectory(&testLeaves{
+								Symlinks: []*testSymlinkNode{
+									{Name: "dir2", Target: "../dir2"},
+									{Name: "file1", Target: "../file1"},
+									{Name: "file5", Target: "../../otherrepo+/file5"},
+								},
+							}), directoryNode("nested", newTestDirectory(&testLeaves{
+								Symlinks: []*testSymlinkNode{
+									{Name: "file3", Target: "../../file3"},
+								},
+							})))),
+								directoryNode("dir2", newTestDirectory(&testLeaves{
+									Symlinks: []*testSymlinkNode{
+										{Name: "file2", Target: "../file2"},
+										{Name: "self", Target: "."},
+									},
+								})))),
+								directoryNode("otherrepo+", newTestDirectory(&testLeaves{
+									Files: []*testFileNode{
+										{Name: "file5", Properties: &model_filesystem_pb.FileProperties{}},
+									},
+								}))),
 						),
 					}
 				}, fileRoot)
@@ -477,65 +526,34 @@ func TestFileRoot(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_RUNFILES)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
 					return &model_analysis_pb.FileRoot_Value{
-						RootDirectory: &model_filesystem_pb.DirectoryContents{
-							Directories: []*model_filesystem_pb.DirectoryNode{
-								directoryNode("myrepo+", &model_filesystem_pb.DirectoryContents{
-									Directories: []*model_filesystem_pb.DirectoryNode{
-										directoryNode("dir1", &model_filesystem_pb.DirectoryContents{
-											Directories: []*model_filesystem_pb.DirectoryNode{
-												directoryNode("nested", &model_filesystem_pb.DirectoryContents{
-													Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-														LeavesInline: &model_filesystem_pb.Leaves{
-															Symlinks: []*model_filesystem_pb.SymlinkNode{
-																{Name: "file3", Target: "../../file3"},
-															},
-														},
-													},
-												}),
-											},
-											Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-												LeavesInline: &model_filesystem_pb.Leaves{
-													Symlinks: []*model_filesystem_pb.SymlinkNode{
-														{Name: "dir2", Target: "../dir2"},
-														{Name: "file1", Target: "../file1"},
-														{Name: "file5", Target: "../../otherrepo+/file5"},
-													},
-												},
-											},
-										}),
-										directoryNode("dir2", &model_filesystem_pb.DirectoryContents{
-											Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-												LeavesInline: &model_filesystem_pb.Leaves{
-													Symlinks: []*model_filesystem_pb.SymlinkNode{
-														{Name: "file2", Target: "../file2"},
-														{Name: "self", Target: "."},
-													},
-												},
-											},
-										}),
-									},
-									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-										LeavesInline: &model_filesystem_pb.Leaves{
-											Files: []*model_filesystem_pb.FileNode{
-												{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
-												{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
-												{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
-											},
-										},
-									},
-								}),
-								directoryNode("otherrepo+", &model_filesystem_pb.DirectoryContents{
-									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-										LeavesInline: &model_filesystem_pb.Leaves{
-											Files: []*model_filesystem_pb.FileNode{
-												{Name: "file5", Properties: &model_filesystem_pb.FileProperties{}},
-											},
-										},
-									},
-								}),
+						RootDirectory: withDirectories(newTestDirectory(emptyLeaves), directoryNode("myrepo+", withDirectories(newTestDirectory(&testLeaves{
+							Files: []*testFileNode{
+								{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
+								{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
+								{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
 							},
-							Leaves: emptyLeaves,
-						},
+						}), directoryNode("dir1", withDirectories(newTestDirectory(&testLeaves{
+							Symlinks: []*testSymlinkNode{
+								{Name: "dir2", Target: "../dir2"},
+								{Name: "file1", Target: "../file1"},
+								{Name: "file5", Target: "../../otherrepo+/file5"},
+							},
+						}), directoryNode("nested", newTestDirectory(&testLeaves{
+							Symlinks: []*testSymlinkNode{
+								{Name: "file3", Target: "../../file3"},
+							},
+						})))),
+							directoryNode("dir2", newTestDirectory(&testLeaves{
+								Symlinks: []*testSymlinkNode{
+									{Name: "file2", Target: "../file2"},
+									{Name: "self", Target: "."},
+								},
+							})))),
+							directoryNode("otherrepo+", newTestDirectory(&testLeaves{
+								Files: []*testFileNode{
+									{Name: "file5", Properties: &model_filesystem_pb.FileProperties{}},
+								},
+							}))),
 					}
 				}, fileRoot)
 				fileRoot.Discard()
@@ -600,32 +618,28 @@ func TestFileRoot(t *testing.T) {
 									singleChildDirectoryContents(
 										"external", singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Files: []*model_filesystem_pb.FileNode{
-															{
-																Name:       "foo.d",
-																Properties: &model_filesystem_pb.FileProperties{},
-															},
-															{
-																Name: "foo.o",
-																Properties: &model_filesystem_pb.FileProperties{
-																	Contents: &model_filesystem_pb.FileContents{
-																		Level: &model_filesystem_pb.FileContents_ChunkReference{
-																			ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																				return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
-																			})),
-																		},
-																		TotalSizeBytes: 21,
-																		Utf8Stat:       1,
-																	},
+											newTestDirectory(&testLeaves{
+												Files: []*testFileNode{
+													{
+														Name:       "foo.d",
+														Properties: &model_filesystem_pb.FileProperties{},
+													},
+													{
+														Name: "foo.o",
+														Properties: &model_filesystem_pb.FileProperties{
+															Contents: &model_filesystem_pb.FileContents{
+																Level: &model_filesystem_pb.FileContents_ChunkReference{
+																	ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																		return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
+																	})),
 																},
+																TotalSizeBytes: 21,
+																Utf8Stat:       1,
 															},
 														},
 													},
 												},
-											},
+											}),
 										),
 									),
 								),
@@ -669,26 +683,22 @@ func TestFileRoot(t *testing.T) {
 										"external",
 										singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Files: []*model_filesystem_pb.FileNode{{
-															Name: "foo.o",
-															Properties: &model_filesystem_pb.FileProperties{
-																Contents: &model_filesystem_pb.FileContents{
-																	Level: &model_filesystem_pb.FileContents_ChunkReference{
-																		ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																			return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
-																		})),
-																	},
-																	TotalSizeBytes: 21,
-																	Utf8Stat:       1,
-																},
+											newTestDirectory(&testLeaves{
+												Files: []*testFileNode{{
+													Name: "foo.o",
+													Properties: &model_filesystem_pb.FileProperties{
+														Contents: &model_filesystem_pb.FileContents{
+															Level: &model_filesystem_pb.FileContents_ChunkReference{
+																ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																	return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
+																})),
 															},
-														}},
+															TotalSizeBytes: 21,
+															Utf8Stat:       1,
+														},
 													},
-												},
-											},
+												}},
+											}),
 										),
 									),
 								),
@@ -705,28 +715,24 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.FileRoot_Value{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{
-											{
-												Name: "foo.o",
-												Properties: &model_filesystem_pb.FileProperties{
-													Contents: &model_filesystem_pb.FileContents{
-														Level: &model_filesystem_pb.FileContents_ChunkReference{
-															ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
-															})),
-														},
-														TotalSizeBytes: 21,
-														Utf8Stat:       1,
-													},
+							newTestDirectory(&testLeaves{
+								Files: []*testFileNode{
+									{
+										Name: "foo.o",
+										Properties: &model_filesystem_pb.FileProperties{
+											Contents: &model_filesystem_pb.FileContents{
+												Level: &model_filesystem_pb.FileContents_ChunkReference{
+													ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+														return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
+													})),
 												},
+												TotalSizeBytes: 21,
+												Utf8Stat:       1,
 											},
 										},
 									},
 								},
-							},
+							}),
 						),
 					}
 				}, fileRoot)
@@ -788,34 +794,23 @@ func TestFileRoot(t *testing.T) {
 									singleChildDirectoryContents(
 										"external", singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Directories: []*model_filesystem_pb.DirectoryNode{
-													directoryNode(
-														"mydir", &model_filesystem_pb.DirectoryContents{
-															Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-																LeavesInline: &model_filesystem_pb.Leaves{
-																	Files: []*model_filesystem_pb.FileNode{
-																		{
-																			Name:       "myfile",
-																			Properties: &model_filesystem_pb.FileProperties{},
-																		},
-																	},
-																},
-															},
-														},
-													),
-												},
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Files: []*model_filesystem_pb.FileNode{
-															{
-																Name:       "unrelated_file",
-																Properties: &model_filesystem_pb.FileProperties{},
-															},
-														},
+											withDirectories(newTestDirectory(&testLeaves{
+												Files: []*testFileNode{
+													{
+														Name:       "unrelated_file",
+														Properties: &model_filesystem_pb.FileProperties{},
 													},
 												},
-											},
+											}), directoryNode(
+												"mydir", newTestDirectory(&testLeaves{
+													Files: []*testFileNode{
+														{
+															Name:       "myfile",
+															Properties: &model_filesystem_pb.FileProperties{},
+														},
+													},
+												}),
+											)),
 										),
 									),
 								),
@@ -861,16 +856,12 @@ func TestFileRoot(t *testing.T) {
 											"myrepo+",
 											singleChildDirectoryContents(
 												"mydir",
-												&model_filesystem_pb.DirectoryContents{
-													Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-														LeavesInline: &model_filesystem_pb.Leaves{
-															Files: []*model_filesystem_pb.FileNode{{
-																Name:       "myfile",
-																Properties: &model_filesystem_pb.FileProperties{},
-															}},
-														},
-													},
-												},
+												newTestDirectory(&testLeaves{
+													Files: []*testFileNode{{
+														Name:       "myfile",
+														Properties: &model_filesystem_pb.FileProperties{},
+													}},
+												}),
 											),
 										),
 									),
@@ -890,18 +881,14 @@ func TestFileRoot(t *testing.T) {
 							"myrepo+",
 							singleChildDirectoryContents(
 								"mydir",
-								&model_filesystem_pb.DirectoryContents{
-									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-										LeavesInline: &model_filesystem_pb.Leaves{
-											Files: []*model_filesystem_pb.FileNode{
-												{
-													Name:       "myfile",
-													Properties: &model_filesystem_pb.FileProperties{},
-												},
-											},
+								newTestDirectory(&testLeaves{
+									Files: []*testFileNode{
+										{
+											Name:       "myfile",
+											Properties: &model_filesystem_pb.FileProperties{},
 										},
 									},
-								},
+								}),
 							),
 						),
 					}
@@ -964,21 +951,17 @@ func TestFileRoot(t *testing.T) {
 									singleChildDirectoryContents(
 										"external", singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Files: []*model_filesystem_pb.FileNode{{
-															Name:       "qux",
-															Properties: &model_filesystem_pb.FileProperties{},
-														}},
-														Symlinks: []*model_filesystem_pb.SymlinkNode{
-															{Name: "bar", Target: "baz"},
-															{Name: "baz", Target: "qux"},
-															{Name: "unrelated", Target: "qux"},
-														},
-													},
+											newTestDirectory(&testLeaves{
+												Files: []*testFileNode{{
+													Name:       "qux",
+													Properties: &model_filesystem_pb.FileProperties{},
+												}},
+												Symlinks: []*testSymlinkNode{
+													{Name: "bar", Target: "baz"},
+													{Name: "baz", Target: "qux"},
+													{Name: "unrelated", Target: "qux"},
 												},
-											},
+											}),
 										),
 									),
 								),
@@ -1022,20 +1005,16 @@ func TestFileRoot(t *testing.T) {
 										"external",
 										singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Files: []*model_filesystem_pb.FileNode{{
-															Name:       "qux",
-															Properties: &model_filesystem_pb.FileProperties{},
-														}},
-														Symlinks: []*model_filesystem_pb.SymlinkNode{
-															{Name: "bar", Target: "baz"},
-															{Name: "baz", Target: "qux"},
-														},
-													},
+											newTestDirectory(&testLeaves{
+												Files: []*testFileNode{{
+													Name:       "qux",
+													Properties: &model_filesystem_pb.FileProperties{},
+												}},
+												Symlinks: []*testSymlinkNode{
+													{Name: "bar", Target: "baz"},
+													{Name: "baz", Target: "qux"},
 												},
-											},
+											}),
 										),
 									),
 								),
@@ -1052,20 +1031,16 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.FileRoot_Value{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{{
-											Name:       "qux",
-											Properties: &model_filesystem_pb.FileProperties{},
-										}},
-										Symlinks: []*model_filesystem_pb.SymlinkNode{
-											{Name: "bar", Target: "baz"},
-											{Name: "baz", Target: "qux"},
-										},
-									},
+							newTestDirectory(&testLeaves{
+								Files: []*testFileNode{{
+									Name:       "qux",
+									Properties: &model_filesystem_pb.FileProperties{},
+								}},
+								Symlinks: []*testSymlinkNode{
+									{Name: "bar", Target: "baz"},
+									{Name: "baz", Target: "qux"},
 								},
-							},
+							}),
 						),
 					}
 				}, fileRoot)
@@ -1129,16 +1104,12 @@ func TestFileRoot(t *testing.T) {
 									singleChildDirectoryContents(
 										"external", singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Symlinks: []*model_filesystem_pb.SymlinkNode{
-															{Name: "bar", Target: "baz"},
-															{Name: "baz", Target: "qux"},
-														},
-													},
+											newTestDirectory(&testLeaves{
+												Symlinks: []*testSymlinkNode{
+													{Name: "bar", Target: "baz"},
+													{Name: "baz", Target: "qux"},
 												},
-											},
+											}),
 										),
 									),
 								),
@@ -1163,7 +1134,7 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.TargetActionInputRoot_Value{
 						InputRootReference: &model_filesystem_pb.DirectoryReference{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-								return model_core.NewProtoBinaryMarshaler(singleChildDirectoryContents(
+								return testDirectoryMarshaler(singleChildDirectoryContents(
 									"bazel-out",
 									singleChildDirectoryContents(
 										"Cg6Kx80o8BPYmGdgWYfRZvbKyWojQ7snQzHOx70XAwRPAAAAAAAAAA.",
@@ -1172,19 +1143,15 @@ func TestFileRoot(t *testing.T) {
 											singleChildDirectoryContents(
 												"external", singleChildDirectoryContents(
 													"myrepo+",
-													&model_filesystem_pb.DirectoryContents{
-														Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-															LeavesInline: &model_filesystem_pb.Leaves{
-																Files: []*model_filesystem_pb.FileNode{{
-																	Name:       "quux",
-																	Properties: &model_filesystem_pb.FileProperties{},
-																}},
-																Symlinks: []*model_filesystem_pb.SymlinkNode{
-																	{Name: "qux", Target: "quux"},
-																},
-															},
+													newTestDirectory(&testLeaves{
+														Files: []*testFileNode{{
+															Name:       "quux",
+															Properties: &model_filesystem_pb.FileProperties{},
+														}},
+														Symlinks: []*testSymlinkNode{
+															{Name: "qux", Target: "quux"},
 														},
-													},
+													}),
 												),
 											),
 										),
@@ -1232,21 +1199,17 @@ func TestFileRoot(t *testing.T) {
 										"external",
 										singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Files: []*model_filesystem_pb.FileNode{{
-															Name:       "quux",
-															Properties: &model_filesystem_pb.FileProperties{},
-														}},
-														Symlinks: []*model_filesystem_pb.SymlinkNode{
-															{Name: "bar", Target: "baz"},
-															{Name: "baz", Target: "qux"},
-															{Name: "qux", Target: "quux"},
-														},
-													},
+											newTestDirectory(&testLeaves{
+												Files: []*testFileNode{{
+													Name:       "quux",
+													Properties: &model_filesystem_pb.FileProperties{},
+												}},
+												Symlinks: []*testSymlinkNode{
+													{Name: "bar", Target: "baz"},
+													{Name: "baz", Target: "qux"},
+													{Name: "qux", Target: "quux"},
 												},
-											},
+											}),
 										),
 									),
 								),
@@ -1263,21 +1226,17 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.FileRoot_Value{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{{
-											Name:       "quux",
-											Properties: &model_filesystem_pb.FileProperties{},
-										}},
-										Symlinks: []*model_filesystem_pb.SymlinkNode{
-											{Name: "bar", Target: "baz"},
-											{Name: "baz", Target: "qux"},
-											{Name: "qux", Target: "quux"},
-										},
-									},
+							newTestDirectory(&testLeaves{
+								Files: []*testFileNode{{
+									Name:       "quux",
+									Properties: &model_filesystem_pb.FileProperties{},
+								}},
+								Symlinks: []*testSymlinkNode{
+									{Name: "bar", Target: "baz"},
+									{Name: "baz", Target: "qux"},
+									{Name: "qux", Target: "quux"},
 								},
-							},
+							}),
 						),
 					}
 				}, fileRoot)
@@ -1340,51 +1299,29 @@ func TestFileRoot(t *testing.T) {
 									singleChildDirectoryContents(
 										"external", singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Directories: []*model_filesystem_pb.DirectoryNode{
-													directoryNode("dir1", &model_filesystem_pb.DirectoryContents{
-														Directories: []*model_filesystem_pb.DirectoryNode{
-															directoryNode("nested", &model_filesystem_pb.DirectoryContents{
-																Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-																	LeavesInline: &model_filesystem_pb.Leaves{
-																		Symlinks: []*model_filesystem_pb.SymlinkNode{
-																			{Name: "file3", Target: "../../file3"},
-																		},
-																	},
-																},
-															}),
-														},
-														Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-															LeavesInline: &model_filesystem_pb.Leaves{
-																Symlinks: []*model_filesystem_pb.SymlinkNode{
-																	{Name: "dir2", Target: "../dir2"},
-																	{Name: "file1", Target: "../file1"},
-																},
-															},
-														},
-													}),
-													directoryNode("dir2", &model_filesystem_pb.DirectoryContents{
-														Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-															LeavesInline: &model_filesystem_pb.Leaves{
-																Symlinks: []*model_filesystem_pb.SymlinkNode{
-																	{Name: "file2", Target: "../file2"},
-																	{Name: "self", Target: "."},
-																},
-															},
-														},
-													}),
+											withDirectories(newTestDirectory(&testLeaves{
+												Files: []*testFileNode{
+													{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
+													{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
+													{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
+													{Name: "file4", Properties: &model_filesystem_pb.FileProperties{}},
 												},
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Files: []*model_filesystem_pb.FileNode{
-															{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
-															{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
-															{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
-															{Name: "file4", Properties: &model_filesystem_pb.FileProperties{}},
-														},
+											}), directoryNode("dir1", withDirectories(newTestDirectory(&testLeaves{
+												Symlinks: []*testSymlinkNode{
+													{Name: "dir2", Target: "../dir2"},
+													{Name: "file1", Target: "../file1"},
+												},
+											}), directoryNode("nested", newTestDirectory(&testLeaves{
+												Symlinks: []*testSymlinkNode{
+													{Name: "file3", Target: "../../file3"},
+												},
+											})))),
+												directoryNode("dir2", newTestDirectory(&testLeaves{
+													Symlinks: []*testSymlinkNode{
+														{Name: "file2", Target: "../file2"},
+														{Name: "self", Target: "."},
 													},
-												},
-											},
+												}))),
 										),
 									),
 								),
@@ -1427,50 +1364,28 @@ func TestFileRoot(t *testing.T) {
 									singleChildDirectoryContents(
 										"external", singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Directories: []*model_filesystem_pb.DirectoryNode{
-													directoryNode("dir1", &model_filesystem_pb.DirectoryContents{
-														Directories: []*model_filesystem_pb.DirectoryNode{
-															directoryNode("nested", &model_filesystem_pb.DirectoryContents{
-																Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-																	LeavesInline: &model_filesystem_pb.Leaves{
-																		Symlinks: []*model_filesystem_pb.SymlinkNode{
-																			{Name: "file3", Target: "../../file3"},
-																		},
-																	},
-																},
-															}),
-														},
-														Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-															LeavesInline: &model_filesystem_pb.Leaves{
-																Symlinks: []*model_filesystem_pb.SymlinkNode{
-																	{Name: "dir2", Target: "../dir2"},
-																	{Name: "file1", Target: "../file1"},
-																},
-															},
-														},
-													}),
-													directoryNode("dir2", &model_filesystem_pb.DirectoryContents{
-														Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-															LeavesInline: &model_filesystem_pb.Leaves{
-																Symlinks: []*model_filesystem_pb.SymlinkNode{
-																	{Name: "file2", Target: "../file2"},
-																	{Name: "self", Target: "."},
-																},
-															},
-														},
-													}),
+											withDirectories(newTestDirectory(&testLeaves{
+												Files: []*testFileNode{
+													{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
+													{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
+													{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
 												},
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Files: []*model_filesystem_pb.FileNode{
-															{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
-															{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
-															{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
-														},
+											}), directoryNode("dir1", withDirectories(newTestDirectory(&testLeaves{
+												Symlinks: []*testSymlinkNode{
+													{Name: "dir2", Target: "../dir2"},
+													{Name: "file1", Target: "../file1"},
+												},
+											}), directoryNode("nested", newTestDirectory(&testLeaves{
+												Symlinks: []*testSymlinkNode{
+													{Name: "file3", Target: "../../file3"},
+												},
+											})))),
+												directoryNode("dir2", newTestDirectory(&testLeaves{
+													Symlinks: []*testSymlinkNode{
+														{Name: "file2", Target: "../file2"},
+														{Name: "self", Target: "."},
 													},
-												},
-											},
+												}))),
 										),
 									),
 								),
@@ -1487,50 +1402,28 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.FileRoot_Value{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Directories: []*model_filesystem_pb.DirectoryNode{
-									directoryNode("dir1", &model_filesystem_pb.DirectoryContents{
-										Directories: []*model_filesystem_pb.DirectoryNode{
-											directoryNode("nested", &model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Symlinks: []*model_filesystem_pb.SymlinkNode{
-															{Name: "file3", Target: "../../file3"},
-														},
-													},
-												},
-											}),
-										},
-										Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-											LeavesInline: &model_filesystem_pb.Leaves{
-												Symlinks: []*model_filesystem_pb.SymlinkNode{
-													{Name: "dir2", Target: "../dir2"},
-													{Name: "file1", Target: "../file1"},
-												},
-											},
-										},
-									}),
-									directoryNode("dir2", &model_filesystem_pb.DirectoryContents{
-										Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-											LeavesInline: &model_filesystem_pb.Leaves{
-												Symlinks: []*model_filesystem_pb.SymlinkNode{
-													{Name: "file2", Target: "../file2"},
-													{Name: "self", Target: "."},
-												},
-											},
-										},
-									}),
+							withDirectories(newTestDirectory(&testLeaves{
+								Files: []*testFileNode{
+									{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
+									{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
+									{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
 								},
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{
-											{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
-											{Name: "file2", Properties: &model_filesystem_pb.FileProperties{}},
-											{Name: "file3", Properties: &model_filesystem_pb.FileProperties{}},
-										},
+							}), directoryNode("dir1", withDirectories(newTestDirectory(&testLeaves{
+								Symlinks: []*testSymlinkNode{
+									{Name: "dir2", Target: "../dir2"},
+									{Name: "file1", Target: "../file1"},
+								},
+							}), directoryNode("nested", newTestDirectory(&testLeaves{
+								Symlinks: []*testSymlinkNode{
+									{Name: "file3", Target: "../../file3"},
+								},
+							})))),
+								directoryNode("dir2", newTestDirectory(&testLeaves{
+									Symlinks: []*testSymlinkNode{
+										{Name: "file2", Target: "../file2"},
+										{Name: "self", Target: "."},
 									},
-								},
-							},
+								}))),
 						),
 					}
 				}, fileRoot)
@@ -1603,28 +1496,24 @@ func TestFileRoot(t *testing.T) {
 							"external",
 							singleChildDirectoryContents(
 								"myrepo+",
-								&model_filesystem_pb.DirectoryContents{
-									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-										LeavesInline: &model_filesystem_pb.Leaves{
-											Files: []*model_filesystem_pb.FileNode{
-												{
-													Name: "template",
-													Properties: &model_filesystem_pb.FileProperties{
-														Contents: &model_filesystem_pb.FileContents{
-															Level: &model_filesystem_pb.FileContents_ChunkReference{
-																ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																	return model_core.NewRawBinaryMarshaler([]byte("{{first_name}} {{last_name}}"))
-																})),
-															},
-															TotalSizeBytes: 28,
-															Utf8Stat:       1,
-														},
+								newTestDirectory(&testLeaves{
+									Files: []*testFileNode{
+										{
+											Name: "template",
+											Properties: &model_filesystem_pb.FileProperties{
+												Contents: &model_filesystem_pb.FileContents{
+													Level: &model_filesystem_pb.FileContents_ChunkReference{
+														ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+															return model_core.NewRawBinaryMarshaler([]byte("{{first_name}} {{last_name}}"))
+														})),
 													},
+													TotalSizeBytes: 28,
+													Utf8Stat:       1,
 												},
 											},
 										},
 									},
-								},
+								}),
 							),
 						),
 					}
@@ -1666,29 +1555,25 @@ func TestFileRoot(t *testing.T) {
 										"external",
 										singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Files: []*model_filesystem_pb.FileNode{
-															{
-																Name: "output",
-																Properties: &model_filesystem_pb.FileProperties{
-																	Contents: &model_filesystem_pb.FileContents{
-																		Level: &model_filesystem_pb.FileContents_ChunkReference{
-																			ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																				return model_core.NewRawBinaryMarshaler([]byte("Albert Einstein"))
-																			})),
-																		},
-																		TotalSizeBytes: 15,
-																		Utf8Stat:       1,
-																	},
-																	IsExecutable: true,
+											newTestDirectory(&testLeaves{
+												Files: []*testFileNode{
+													{
+														Name: "output",
+														Properties: &model_filesystem_pb.FileProperties{
+															Contents: &model_filesystem_pb.FileContents{
+																Level: &model_filesystem_pb.FileContents_ChunkReference{
+																	ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																		return model_core.NewRawBinaryMarshaler([]byte("Albert Einstein"))
+																	})),
 																},
+																TotalSizeBytes: 15,
+																Utf8Stat:       1,
 															},
+															IsExecutable: true,
 														},
 													},
 												},
-											},
+											}),
 										),
 									),
 								),
@@ -1705,29 +1590,25 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.FileRoot_Value{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{
-											{
-												Name: "output",
-												Properties: &model_filesystem_pb.FileProperties{
-													Contents: &model_filesystem_pb.FileContents{
-														Level: &model_filesystem_pb.FileContents_ChunkReference{
-															ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																return model_core.NewRawBinaryMarshaler([]byte("Albert Einstein"))
-															})),
-														},
-														TotalSizeBytes: 15,
-														Utf8Stat:       1,
-													},
-													IsExecutable: true,
+							newTestDirectory(&testLeaves{
+								Files: []*testFileNode{
+									{
+										Name: "output",
+										Properties: &model_filesystem_pb.FileProperties{
+											Contents: &model_filesystem_pb.FileContents{
+												Level: &model_filesystem_pb.FileContents_ChunkReference{
+													ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+														return model_core.NewRawBinaryMarshaler([]byte("Albert Einstein"))
+													})),
 												},
+												TotalSizeBytes: 15,
+												Utf8Stat:       1,
 											},
+											IsExecutable: true,
 										},
 									},
 								},
-							},
+							}),
 						),
 					}
 				}, fileRoot)
@@ -1762,18 +1643,16 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory{
-								StaticPackageDirectory: &model_filesystem_pb.DirectoryContents{
-									Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-										LeavesInline: &model_filesystem_pb.Leaves{
-											Symlinks: []*model_filesystem_pb.SymlinkNode{
-												{
-													Name:   "passwd",
-													Target: "/etc/passwd",
-												},
+							Source: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_{
+								StaticPackageDirectory: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory{
+									Entries: newTestDirectory(&testLeaves{
+										Symlinks: []*testSymlinkNode{
+											{
+												Name:   "passwd",
+												Target: "/etc/passwd",
 											},
 										},
-									},
+									}),
 								},
 							},
 						},
@@ -1815,18 +1694,14 @@ func TestFileRoot(t *testing.T) {
 										"external",
 										singleChildDirectoryContents(
 											"myrepo+",
-											&model_filesystem_pb.DirectoryContents{
-												Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-													LeavesInline: &model_filesystem_pb.Leaves{
-														Symlinks: []*model_filesystem_pb.SymlinkNode{
-															{
-																Name:   "passwd",
-																Target: "/etc/passwd",
-															},
-														},
+											newTestDirectory(&testLeaves{
+												Symlinks: []*testSymlinkNode{
+													{
+														Name:   "passwd",
+														Target: "/etc/passwd",
 													},
 												},
-											},
+											}),
 										),
 									),
 								),
@@ -1843,18 +1718,14 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.FileRoot_Value{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Symlinks: []*model_filesystem_pb.SymlinkNode{
-											{
-												Name:   "passwd",
-												Target: "/etc/passwd",
-											},
-										},
+							newTestDirectory(&testLeaves{
+								Symlinks: []*testSymlinkNode{
+									{
+										Name:   "passwd",
+										Target: "/etc/passwd",
 									},
 								},
-							},
+							}),
 						),
 					}
 				}, fileRoot)
@@ -1910,18 +1781,14 @@ func TestFileRoot(t *testing.T) {
 						"external",
 						singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{
-											{
-												Name:       "a",
-												Properties: &model_filesystem_pb.FileProperties{},
-											},
-										},
+							newTestDirectory(&testLeaves{
+								Files: []*testFileNode{
+									{
+										Name:       "a",
+										Properties: &model_filesystem_pb.FileProperties{},
 									},
 								},
-							},
+							}),
 						),
 					),
 				}
@@ -1993,9 +1860,7 @@ func TestFileRoot(t *testing.T) {
 							"myrepo+",
 							singleChildDirectoryContents(
 								"a",
-								&model_filesystem_pb.DirectoryContents{
-									Leaves: emptyLeaves,
-								},
+								newTestDirectory(emptyLeaves),
 							),
 						),
 					),
@@ -2067,18 +1932,14 @@ func TestFileRoot(t *testing.T) {
 						"external",
 						singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{
-											{
-												Name:       "a",
-												Properties: &model_filesystem_pb.FileProperties{},
-											},
-										},
+							newTestDirectory(&testLeaves{
+								Files: []*testFileNode{
+									{
+										Name:       "a",
+										Properties: &model_filesystem_pb.FileProperties{},
 									},
 								},
-							},
+							}),
 						),
 					),
 				}
@@ -2112,7 +1973,7 @@ func TestFileRoot(t *testing.T) {
 			//         output = output,
 			//         target_file = File("@@myrepo+//:a"),
 			//     )
-			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout, target *model_filesystem_pb.DirectoryContents) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
+			run := func(t *testing.T, directoryLayout model_analysis_pb.DirectoryLayout, target []*model_filesystem_pb.DirectoryEntry) model_analysis.PatchedFileRootValue[model_core.CreatedObjectTree] {
 				e := NewMockFileRootEnvironmentForTesting(ctrl)
 				bct.expectCaptureExistingObject(e)
 				bct.expectGetDirectoryCreationParametersObject(t, e)
@@ -2182,67 +2043,50 @@ func TestFileRoot(t *testing.T) {
 						"external",
 						singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{
-											{
-												Name:       "a",
-												Properties: &model_filesystem_pb.FileProperties{},
-											},
-										},
+							newTestDirectory(&testLeaves{
+								Files: []*testFileNode{
+									{
+										Name:       "a",
+										Properties: &model_filesystem_pb.FileProperties{},
 									},
 								},
-							},
+							}),
 						),
 					),
 				)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
 					return &model_analysis_pb.FileRoot_Value{
-						RootDirectory: &model_filesystem_pb.DirectoryContents{
-							Directories: []*model_filesystem_pb.DirectoryNode{
-								directoryNode("bazel-out", singleChildDirectoryContents(
-									"Cg6Kx80o8BPYmGdgWYfRZvbKyWojQ7snQzHOx70XAwRPAAAAAAAAAA.",
+						RootDirectory: withDirectories(newTestDirectory(emptyLeaves), directoryNode("bazel-out", singleChildDirectoryContents(
+							"Cg6Kx80o8BPYmGdgWYfRZvbKyWojQ7snQzHOx70XAwRPAAAAAAAAAA.",
+							singleChildDirectoryContents(
+								"bin",
+								singleChildDirectoryContents(
+									"external",
 									singleChildDirectoryContents(
-										"bin",
-										singleChildDirectoryContents(
-											"external",
-											singleChildDirectoryContents(
-												"myrepo+",
-												&model_filesystem_pb.DirectoryContents{
-													Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-														LeavesInline: &model_filesystem_pb.Leaves{
-															Symlinks: []*model_filesystem_pb.SymlinkNode{
-																{
-																	Name:   "b",
-																	Target: "../../../../../external/myrepo+/a",
-																},
-															},
-														},
-													},
-												},
-											),
-										),
-									),
-								)),
-								directoryNode("external", singleChildDirectoryContents(
-									"myrepo+",
-									&model_filesystem_pb.DirectoryContents{
-										Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-											LeavesInline: &model_filesystem_pb.Leaves{
-												Files: []*model_filesystem_pb.FileNode{
-													{
-														Name:       "a",
-														Properties: &model_filesystem_pb.FileProperties{},
-													},
+										"myrepo+",
+										newTestDirectory(&testLeaves{
+											Symlinks: []*testSymlinkNode{
+												{
+													Name:   "b",
+													Target: "../../../../../external/myrepo+/a",
 												},
 											},
+										}),
+									),
+								),
+							),
+						)),
+							directoryNode("external", singleChildDirectoryContents(
+								"myrepo+",
+								newTestDirectory(&testLeaves{
+									Files: []*testFileNode{
+										{
+											Name:       "a",
+											Properties: &model_filesystem_pb.FileProperties{},
 										},
 									},
-								)),
-							},
-							Leaves: emptyLeaves,
-						},
+								}),
+							))),
 					}
 				}, fileRoot)
 				fileRoot.Discard()
@@ -2254,42 +2098,34 @@ func TestFileRoot(t *testing.T) {
 					model_analysis_pb.DirectoryLayout_RUNFILES,
 					singleChildDirectoryContents(
 						"myrepo+",
-						&model_filesystem_pb.DirectoryContents{
-							Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-								LeavesInline: &model_filesystem_pb.Leaves{
-									Files: []*model_filesystem_pb.FileNode{
-										{
-											Name:       "a",
-											Properties: &model_filesystem_pb.FileProperties{},
-										},
-									},
+						newTestDirectory(&testLeaves{
+							Files: []*testFileNode{
+								{
+									Name:       "a",
+									Properties: &model_filesystem_pb.FileProperties{},
 								},
 							},
-						},
+						}),
 					),
 				)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
 					return &model_analysis_pb.FileRoot_Value{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
-							&model_filesystem_pb.DirectoryContents{
-								Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-									LeavesInline: &model_filesystem_pb.Leaves{
-										Files: []*model_filesystem_pb.FileNode{
-											{
-												Name:       "a",
-												Properties: &model_filesystem_pb.FileProperties{},
-											},
-										},
-										Symlinks: []*model_filesystem_pb.SymlinkNode{
-											{
-												Name:   "b",
-												Target: "a",
-											},
-										},
+							newTestDirectory(&testLeaves{
+								Files: []*testFileNode{
+									{
+										Name:       "a",
+										Properties: &model_filesystem_pb.FileProperties{},
 									},
 								},
-							},
+								Symlinks: []*testSymlinkNode{
+									{
+										Name:   "b",
+										Target: "a",
+									},
+								},
+							}),
 						),
 					}
 				}, fileRoot)

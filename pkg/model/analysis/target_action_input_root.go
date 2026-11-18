@@ -23,7 +23,7 @@ import (
 
 var componentMainWorkspaceName = path.MustNewComponent("_main")
 
-func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionInputRoot_Key, TReference], e TargetActionInputRootEnvironment[TReference, TMetadata]) (PatchedTargetActionInputRootValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionInputRoot_Key, TReference], e TargetActionInputRootEnvironment[TReference, TMetadata]) (PatchedTargetActionInputRootValue[TMetadata], error) {
 	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 
 	id := model_core.Nested(key, key.Message.Id)
@@ -61,9 +61,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 
 	var rootDirectory changeTrackingDirectory[TReference, TMetadata]
 	loadOptions := &changeTrackingDirectoryLoadOptions[TReference]{
-		context:                 ctx,
-		directoryContentsReader: directoryReaders.DirectoryContents,
-		leavesReader:            directoryReaders.Leaves,
+		context:                ctx,
+		directoryEntriesReader: directoryReaders.DirectoryEntries,
 	}
 
 	// Add empty directories for the output directory of the current
@@ -83,7 +82,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 			return PatchedTargetActionInputRootValue[TMetadata]{}, fmt.Errorf("failed to create directory %#v: %w", component.String(), err)
 		}
 	}
-	outputDirectory.unmodifiedDirectory = model_core.Nested(action, actionDefinition.InitialOutputDirectory)
+	outputDirectory.unmodifiedDirectory = newUnmodifiedDirectoryFromContents(model_core.Nested(action, actionDefinition.InitialOutputDirectory))
 
 	// Add input files.
 	if err := addFilesToChangeTrackingDirectory(
@@ -178,9 +177,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 			directoryCreationParameters,
 			&capturableChangeTrackingDirectory[TReference, TMetadata]{
 				options: &capturableChangeTrackingDirectoryOptions[TReference, TMetadata]{
-					context:                 ctx,
-					directoryContentsReader: directoryReaders.DirectoryContents,
-					objectCapturer:          e,
+					context:                ctx,
+					directoryEntriesReader: directoryReaders.DirectoryEntries,
+					objectCapturer:         e,
 				},
 				directory: &rootDirectory,
 			},
@@ -192,22 +191,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(
 		return PatchedTargetActionInputRootValue[TMetadata]{}, err
 	}
 
-	rootDirectoryObject, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoToBinaryMarshaler(createdRootDirectory.Message),
-		c.referenceFormat,
-		directoryCreationParameters.GetEncoder(),
-	)
+	inputRootReference, err := createdRootDirectory.CaptureDirectoryReference(ctx, directoryCreationParameters, e)
 	if err != nil {
 		return PatchedTargetActionInputRootValue[TMetadata]{}, err
 	}
-
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.TargetActionInputRoot_Value, error) {
-		inputRootReference, err := patcher.CaptureAndAddDecodableReference(ctx, rootDirectoryObject, e)
-		if err != nil {
-			return nil, err
-		}
 		return &model_analysis_pb.TargetActionInputRoot_Value{
-			InputRootReference: createdRootDirectory.ToDirectoryReference(inputRootReference),
+			InputRootReference: inputRootReference.Merge(patcher),
 		}, nil
 	})
 }

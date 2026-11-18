@@ -120,9 +120,8 @@ func (*baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.Co
 		files,
 		&rootDirectory,
 		&changeTrackingDirectoryLoadOptions[TReference]{
-			context:                 ctx,
-			directoryContentsReader: directoryReaders.DirectoryContents,
-			leavesReader:            directoryReaders.Leaves,
+			context:                ctx,
+			directoryEntriesReader: directoryReaders.DirectoryEntries,
 		},
 		key.Message.DirectoryLayout,
 	); err != nil {
@@ -139,9 +138,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.Co
 			directoryCreationParameters,
 			&capturableChangeTrackingDirectory[TReference, TMetadata]{
 				options: &capturableChangeTrackingDirectoryOptions[TReference, TMetadata]{
-					context:                 ctx,
-					directoryContentsReader: directoryReaders.DirectoryContents,
-					objectCapturer:          e,
+					context:                ctx,
+					directoryEntriesReader: directoryReaders.DirectoryEntries,
+					objectCapturer:         e,
 				},
 				directory: &rootDirectory,
 			},

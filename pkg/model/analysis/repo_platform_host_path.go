@@ -5,7 +5,6 @@ import (
 	"encoding"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 
 	model_core "bonanza.build/pkg/model/core"
@@ -14,7 +13,6 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
-	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
@@ -173,22 +171,26 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	if err != nil {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
-	outputRoot := outputs.Message.OutputRoot
-	if outputRoot == nil {
-		return PatchedRepoPlatformHostPathValue[TMetadata]{}, errors.New("action did not yield an output root")
-	}
+	outputRoot := model_core.Nested(outputs, outputs.Message.GetOutputRoot())
 
-	directories := outputRoot.Directories
-	if index, ok := sort.Find(
-		len(directories),
-		func(i int) int { return strings.Compare(capturedFilename, directories[i].Name) },
-	); ok {
+	capturedComponent, ok := path.NewComponent(capturedFilename)
+	if !ok {
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, errors.New("invalid captured filename")
+	}
+	capturedNode, capturedDirectoryIndex, err := model_filesystem.DirectoryLookupNode(ctx, directoryReaders.DirectoryEntries, outputRoot, capturedComponent)
+	if err != nil {
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to look up captured path in output root: %w", err)
+	}
+	if !capturedNode.IsSet() {
+		return PatchedRepoPlatformHostPathValue[TMetadata]{}, errors.New("action did not capture host path")
+	}
+	if capturedNode.Message.GetDirectory() != nil {
 		// The captured path is a directory. Check whether it
 		// contains any more symlinks that point to locations
 		// outside this directory. If so, invoke
 		// RepoPlatformHostPath recursively.
 		rootDirectory := changeTrackingDirectory[TReference, TMetadata]{
-			unmodifiedDirectory: model_core.Nested(outputs, directories[index].Directory),
+			unmodifiedDirectory: newUnmodifiedDirectoryFromChild(outputRoot, int(capturedDirectoryIndex)),
 		}
 
 		virtualRootScopeWalkerFactory, err := path.NewVirtualRootScopeWalkerFactory(path.UNIXFormat.NewParser(key.AbsolutePath), nil)
@@ -199,9 +201,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 			context:     ctx,
 			environment: e,
 			directoryLoadOptions: &changeTrackingDirectoryLoadOptions[TReference]{
-				context:                 ctx,
-				directoryContentsReader: directoryReaders.DirectoryContents,
-				leavesReader:            directoryReaders.Leaves,
+				context:                ctx,
+				directoryEntriesReader: directoryReaders.DirectoryEntries,
 			},
 			virtualRootScopeWalkerFactory: virtualRootScopeWalkerFactory,
 		}
@@ -223,9 +224,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 				directoryCreationParameters,
 				&capturableChangeTrackingDirectory[TReference, TMetadata]{
 					options: &capturableChangeTrackingDirectoryOptions[TReference, TMetadata]{
-						context:                 groupCtx,
-						directoryContentsReader: directoryReaders.DirectoryContents,
-						objectCapturer:          e,
+						context:                groupCtx,
+						directoryEntriesReader: directoryReaders.DirectoryEntries,
+						objectCapturer:         e,
 					},
 					directory: &rootDirectory,
 				},
@@ -239,26 +240,19 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.RepoPlatformHostPath_Value{
-				CapturedPath: &model_analysis_pb.RepoPlatformHostPath_Value_Directory{
-					Directory: createdRootDirectory.Message.Message,
+				CapturedPath: &model_analysis_pb.RepoPlatformHostPath_Value_Directory_{
+					Directory: &model_analysis_pb.RepoPlatformHostPath_Value_Directory{
+						Entries: createdRootDirectory.Message.Message,
+					},
 				},
 			},
 			createdRootDirectory.Message.Patcher,
 		), nil
 	}
 
-	leaves, err := model_filesystem.DirectoryGetLeaves(ctx, directoryReaders.Leaves, model_core.Nested(outputs, outputRoot))
-	if err != nil {
-		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to read leaves of output root: %w", err)
-	}
-
-	files := leaves.Message.Files
-	if index, ok := sort.Find(
-		len(files),
-		func(i int) int { return strings.Compare(capturedFilename, files[i].Name) },
-	); ok {
+	if file := capturedNode.Message.GetFile(); file != nil {
 		// The captured path is a regular file.
-		patchedFileProperties := model_core.Patch(e, model_core.Nested(leaves, files[index].Properties))
+		patchedFileProperties := model_core.Patch(e, model_core.Nested(capturedNode, file))
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.RepoPlatformHostPath_Value{
 				CapturedPath: &model_analysis_pb.RepoPlatformHostPath_Value_File{
@@ -433,15 +427,11 @@ func (sr *changeTrackingDirectorySymlinksRelativizer[TReference, TMetadata]) rel
 						return err
 					}
 					d.setFileSimple(name, f)
-				case *model_analysis_pb.RepoPlatformHostPath_Value_Directory:
+				case *model_analysis_pb.RepoPlatformHostPath_Value_Directory_:
 					d.setDirectorySimple(
 						name,
 						&changeTrackingDirectory[TReference, TMetadata]{
-							unmodifiedDirectory: model_core.Nested(replacement, &model_filesystem_pb.Directory{
-								Contents: &model_filesystem_pb.Directory_ContentsInline{
-									ContentsInline: capturedPath.Directory,
-								},
-							}),
+							unmodifiedDirectory: newUnmodifiedDirectoryFromContents(model_core.Nested(replacement, capturedPath.Directory.GetEntries())),
 						},
 					)
 				default:

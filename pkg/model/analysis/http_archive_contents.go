@@ -389,23 +389,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ct
 	if l := createdRootDirectory.MaximumSymlinkEscapementLevels; l == nil || l.Value != 0 {
 		return PatchedHTTPArchiveContentsValue[TMetadata]{}, errors.New("archive contains one or more symbolic links that potentially escape the archive's root directory")
 	}
-	createdRootDirectoryObject, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoToBinaryMarshaler(createdRootDirectory.Message),
-		c.referenceFormat,
-		directoryCreationParameters.GetEncoder(),
-	)
+	contentsReference, err := createdRootDirectory.CaptureDirectoryReference(ctx, directoryCreationParameters, e)
 	if err != nil {
 		return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 	}
 
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.HttpArchiveContents_Value, error) {
-		contentsReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdRootDirectoryObject, e)
-		if err != nil {
-			return nil, err
-		}
 		return &model_analysis_pb.HttpArchiveContents_Value{
 			Exists: &model_analysis_pb.HttpArchiveContents_Value_Exists{
-				Contents: createdRootDirectory.ToDirectoryReference(contentsReference),
+				Contents: contentsReference.Merge(patcher),
 				Sha256:   httpFileContentsValue.Message.Exists.Sha256,
 			},
 		}, nil

@@ -15,15 +15,55 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
+// symlinkEntry creates a DirectoryEntry for a symbolic link.
+func symlinkEntry(name, target string) *model_filesystem_pb.DirectoryEntry {
+	return &model_filesystem_pb.DirectoryEntry{
+		Level: &model_filesystem_pb.DirectoryEntry_Node_{
+			Node: &model_filesystem_pb.DirectoryEntry_Node{
+				Name: name,
+				Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{
+					Symlink: &model_filesystem_pb.SymlinkProperties{
+						Target: target,
+					},
+				},
+			},
+		},
+	}
+}
+
+// directoryNodeEntry creates a DirectoryEntry for a subdirectory node.
+func directoryNodeEntry(name string, directoriesCount uint32) *model_filesystem_pb.DirectoryEntry {
+	return &model_filesystem_pb.DirectoryEntry{
+		Level: &model_filesystem_pb.DirectoryEntry_Node_{
+			Node: &model_filesystem_pb.DirectoryEntry_Node{
+				Name: name,
+				Kind: &model_filesystem_pb.DirectoryEntry_Node_Directory{
+					Directory: &model_filesystem_pb.DirectoryProperties{
+						DirectoriesCount: directoriesCount,
+					},
+				},
+			},
+		},
+	}
+}
+
+// directoryContentsEntry creates a DirectoryEntry containing the
+// contents of a subdirectory.
+func directoryContentsEntry(entries ...*model_filesystem_pb.DirectoryEntry) *model_filesystem_pb.DirectoryEntry {
+	return &model_filesystem_pb.DirectoryEntry{
+		Level: &model_filesystem_pb.DirectoryEntry_DirectoryContents_{
+			DirectoryContents: &model_filesystem_pb.DirectoryEntry_DirectoryContents{
+				Entries: entries,
+			},
+		},
+	}
+}
+
 func TestNewCreatedDirectoryBare(t *testing.T) {
 	t.Run("Empty", func(t *testing.T) {
 		cd, err := model_filesystem.NewCreatedDirectoryBare(
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
-				&model_filesystem_pb.DirectoryContents{
-					Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-						LeavesInline: &model_filesystem_pb.Leaves{},
-					},
-				},
+				[]*model_filesystem_pb.DirectoryEntry(nil),
 			),
 		)
 		require.NoError(t, err)
@@ -37,15 +77,8 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 	t.Run("RootSymlinkNotEscaping", func(t *testing.T) {
 		cd, err := model_filesystem.NewCreatedDirectoryBare(
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
-				&model_filesystem_pb.DirectoryContents{
-					Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-						LeavesInline: &model_filesystem_pb.Leaves{
-							Symlinks: []*model_filesystem_pb.SymlinkNode{{
-								Name:   "hello",
-								Target: "target",
-							}},
-						},
-					},
+				[]*model_filesystem_pb.DirectoryEntry{
+					symlinkEntry("hello", "target"),
 				},
 			),
 		)
@@ -60,15 +93,8 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 	t.Run("RootSymlinkEscapingSingleLevel", func(t *testing.T) {
 		cd, err := model_filesystem.NewCreatedDirectoryBare(
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
-				&model_filesystem_pb.DirectoryContents{
-					Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-						LeavesInline: &model_filesystem_pb.Leaves{
-							Symlinks: []*model_filesystem_pb.SymlinkNode{{
-								Name:   "hello",
-								Target: "../target",
-							}},
-						},
-					},
+				[]*model_filesystem_pb.DirectoryEntry{
+					symlinkEntry("hello", "../target"),
 				},
 			),
 		)
@@ -83,15 +109,8 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 	t.Run("RootSymlinkAbsolute", func(t *testing.T) {
 		cd, err := model_filesystem.NewCreatedDirectoryBare(
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
-				&model_filesystem_pb.DirectoryContents{
-					Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-						LeavesInline: &model_filesystem_pb.Leaves{
-							Symlinks: []*model_filesystem_pb.SymlinkNode{{
-								Name:   "hello",
-								Target: "/target",
-							}},
-						},
-					},
+				[]*model_filesystem_pb.DirectoryEntry{
+					symlinkEntry("hello", "/target"),
 				},
 			),
 		)
@@ -99,26 +118,73 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 		require.Nil(t, cd.MaximumSymlinkEscapementLevels)
 	})
 
-	t.Run("DirectoryEscapingMultipleLevels", func(t *testing.T) {
+	t.Run("ParentEscapingMultipleLevels", func(t *testing.T) {
+		// Parent nodes in the directory's own B-tree are
+		// relative to the directory itself.
 		cd, err := model_filesystem.NewCreatedDirectoryBare(
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
-				&model_filesystem_pb.DirectoryContents{
-					Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-						LeavesInline: &model_filesystem_pb.Leaves{},
+				[]*model_filesystem_pb.DirectoryEntry{{
+					Level: &model_filesystem_pb.DirectoryEntry_Parent_{
+						Parent: &model_filesystem_pb.DirectoryEntry_Parent{
+							Reference: &model_core_pb.DecodableReference{
+								Reference: &model_core_pb.Reference{Index: 1},
+							},
+							FirstName:                      "hello",
+							DirectoryNodesCount:            1,
+							DirectoryContentsCount:         1,
+							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
+						},
 					},
-					Directories: []*model_filesystem_pb.DirectoryNode{{
-						Name: "hello",
-						Directory: &model_filesystem_pb.Directory{
-							Contents: &model_filesystem_pb.Directory_ContentsExternal{
-								ContentsExternal: &model_filesystem_pb.DirectoryReference{
-									Reference: &model_core_pb.DecodableReference{
-										Reference: &model_core_pb.Reference{Index: 1},
-									},
-									MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
+				}},
+			),
+		)
+		require.NoError(t, err)
+		testutil.RequireEqualProto(
+			t,
+			&wrapperspb.UInt32Value{Value: 3},
+			cd.MaximumSymlinkEscapementLevels,
+		)
+	})
+
+	t.Run("CollapsedChildEscapingMultipleLevels", func(t *testing.T) {
+		// Parent nodes of a collapsed subdirectory are relative
+		// to the subdirectory, meaning they need to be
+		// decremented by one.
+		cd, err := model_filesystem.NewCreatedDirectoryBare(
+			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+				[]*model_filesystem_pb.DirectoryEntry{
+					directoryContentsEntry(&model_filesystem_pb.DirectoryEntry{
+						Level: &model_filesystem_pb.DirectoryEntry_Parent_{
+							Parent: &model_filesystem_pb.DirectoryEntry_Parent{
+								Reference: &model_core_pb.DecodableReference{
+									Reference: &model_core_pb.Reference{Index: 1},
 								},
+								FirstName:                      "a",
+								LeafNodesCount:                 100,
+								MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
 							},
 						},
-					}},
+					}),
+					directoryNodeEntry("hello", 0),
+				},
+			),
+		)
+		require.NoError(t, err)
+		testutil.RequireEqualProto(
+			t,
+			&wrapperspb.UInt32Value{Value: 2},
+			cd.MaximumSymlinkEscapementLevels,
+		)
+	})
+
+	t.Run("InlineChildEscapingMultipleLevels", func(t *testing.T) {
+		cd, err := model_filesystem.NewCreatedDirectoryBare(
+			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
+				[]*model_filesystem_pb.DirectoryEntry{
+					directoryContentsEntry(
+						symlinkEntry("hello", "../../../target"),
+					),
+					directoryNodeEntry("hello", 0),
 				},
 			),
 		)

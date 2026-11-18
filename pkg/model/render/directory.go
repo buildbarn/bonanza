@@ -2,7 +2,6 @@ package render
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -15,8 +14,15 @@ import (
 // renderDirectory renders the contents of a directory as a table,
 // similar to the output of "ls -lR". Subdirectories that are stored
 // inline are expanded, while ones that are stored in separate objects
-// are displayed as links.
-func renderDirectory(directory model_core.Message[*model_filesystem_pb.DirectoryContents, object.LocalReference]) Doc {
+// are displayed as links. Nodes stored in separate objects are
+// displayed as a single link.
+//
+// If partial is set, the entries may only form a part of a directory's
+// B-tree (e.g., an object referenced by a DirectoryEntry.Parent). In
+// that case subdirectory nodes are only matched with their contents if
+// the number of nodes and contents are equal. Otherwise, contents are
+// displayed separately, using their index as a name.
+func renderDirectory(directory model_core.Message[[]*model_filesystem_pb.DirectoryEntry, object.LocalReference], partial bool) Doc {
 	return Table(
 		[]TableColumn{
 			{Name: "Type"},
@@ -24,50 +30,70 @@ func renderDirectory(directory model_core.Message[*model_filesystem_pb.Directory
 			{Name: "Lines", AlignRight: true},
 			{Name: "Path"},
 		},
-		renderDirectoryRows(directory, ""),
+		renderDirectoryRows(directory, "", partial),
 	)
+}
+
+// externalDirectory is used by renderDirectoryRows to store a
+// subdirectory whose contents are stored in another object. Multiple
+// subdirectories may be stored in the same object.
+type externalDirectory struct {
+	parent *model_filesystem_pb.DirectoryEntry_Parent
+	index  uint32
 }
 
 func directoryErrorf(format string, args ...any) []Doc {
 	return []Doc{Styled(RoleError, fmt.Sprintf(format, args...))}
 }
 
-func renderDirectoryRows(dirMessage model_core.Message[*model_filesystem_pb.DirectoryContents, object.LocalReference], path string) [][]Doc {
+func renderDirectoryRows(dirMessage model_core.Message[[]*model_filesystem_pb.DirectoryEntry, object.LocalReference], path string, partial bool) [][]Doc {
 	var rows [][]Doc
-
-	var names []string
-	contents := map[string]any{}
-	addEntry := func(name string, value any) {
-		if _, ok := contents[name]; ok {
-			rows = append(rows, directoryErrorf("duplicate entry %s", name))
-		} else {
-			contents[name] = value
-			names = append(names, name)
-		}
-	}
-
-	directory := dirMessage.Message
-	for _, subdir := range directory.Directories {
-		addEntry(subdir.Name, subdir)
-	}
-	switch leaves := directory.Leaves.(type) {
-	case *model_filesystem_pb.DirectoryContents_LeavesExternal:
-		addEntry("...", leaves.LeavesExternal)
-	case *model_filesystem_pb.DirectoryContents_LeavesInline:
-		for _, file := range leaves.LeavesInline.Files {
-			addEntry(file.Name, file)
-		}
-		for _, symlink := range leaves.LeavesInline.Symlinks {
-			addEntry(symlink.Name, symlink)
-		}
-	}
-
-	if len(names) == 0 {
+	entries := dirMessage.Message
+	if len(entries) == 0 {
 		// Directory has no contents. Render it as just itself.
 		return append(rows, []Doc{Text("dr-x"), Text(""), Text(""), Text(path)})
 	}
 
-	slices.Sort(names)
+	// Determine where the contents of each subdirectory are
+	// stored. Subdirectories are identified by their index in the
+	// first section of the B-tree.
+	knownDirectoryNames := map[int]bool{}
+	inlineDirectories := map[int][]*model_filesystem_pb.DirectoryEntry{}
+	externalDirectories := map[int]externalDirectory{}
+	directoryNodesSeen, directoryContentsSeen := 0, 0
+	for _, entry := range entries {
+		switch level := entry.Level.(type) {
+		case *model_filesystem_pb.DirectoryEntry_Parent_:
+			directoryNodesSeen += int(level.Parent.DirectoryNodesCount)
+			for i := range level.Parent.DirectoryContentsCount {
+				externalDirectories[directoryContentsSeen] = externalDirectory{
+					parent: level.Parent,
+					index:  i,
+				}
+				directoryContentsSeen++
+			}
+		case *model_filesystem_pb.DirectoryEntry_Node_:
+			if level.Node.GetDirectory() != nil {
+				knownDirectoryNames[directoryNodesSeen] = true
+				directoryNodesSeen++
+			}
+		case *model_filesystem_pb.DirectoryEntry_DirectoryContents_:
+			inlineDirectories[directoryContentsSeen] = level.DirectoryContents.Entries
+			directoryContentsSeen++
+		}
+	}
+
+	// If the entries only form a part of a directory's B-tree,
+	// the subdirectory nodes and contents stored in it don't
+	// necessarily correspond to each other. Assume the entries form
+	// a complete directory if their counts match.
+	if partial {
+		if directoryNodesSeen == directoryContentsSeen {
+			partial = false
+		} else {
+			clear(knownDirectoryNames)
+		}
+	}
 
 	// Only display the path of the directory in full for the first
 	// entry. For subsequent entries, dim it to make the names of
@@ -81,34 +107,14 @@ func renderDirectoryRows(dirMessage model_core.Message[*model_filesystem_pb.Dire
 		return Styled(RoleDim, path)
 	}
 
-	for _, name := range names {
-		switch file := contents[name].(type) {
-		case *model_filesystem_pb.DirectoryNode:
-			switch contents := file.Directory.GetContents().(type) {
-			case *model_filesystem_pb.Directory_ContentsExternal:
-				rows = append(rows, []Doc{
-					Text("dr-x"),
-					Text(""),
-					Text(""),
-					Concat(
-						getPathPrefix(path),
-						Text(name+"/"),
-						fieldReferenceLink(
-							model_core.Nested(dirMessage, contents.ContentsExternal.Reference),
-							contents.ContentsExternal, "reference",
-							Text("..."),
-						),
-					),
-				})
-			case *model_filesystem_pb.Directory_ContentsInline:
-				children := renderDirectoryRows(model_core.Nested(dirMessage, contents.ContentsInline), path+file.Name+"/")
-				if len(children) > 0 {
-					firstPrefix = true
-				}
-				rows = append(rows, children...)
+	renderSubdirectory := func(name string, directoryIndex int) {
+		if contents, ok := inlineDirectories[directoryIndex]; ok {
+			children := renderDirectoryRows(model_core.Nested(dirMessage, contents), path+name+"/", false)
+			if len(children) > 0 {
+				firstPrefix = true
 			}
-
-		case *model_filesystem_pb.LeavesReference:
+			rows = append(rows, children...)
+		} else if external, ok := externalDirectories[directoryIndex]; ok {
 			rows = append(rows, []Doc{
 				Text("dr-x"),
 				Text(""),
@@ -116,58 +122,118 @@ func renderDirectoryRows(dirMessage model_core.Message[*model_filesystem_pb.Dire
 				Concat(
 					getPathPrefix(path),
 					fieldReferenceLink(
-						model_core.Nested(dirMessage, file.Reference),
-						file, "reference",
-						Text(name),
+						model_core.Nested(dirMessage, external.parent.Reference),
+						external.parent, "reference",
+						Text(name+"/"),
 					),
+					// The index of the subdirectory's
+					// contents within the part of the
+					// B-tree stored in the linked
+					// object, to make it easier to find.
+					Styled(RoleDim, fmt.Sprintf(" (index %d)", external.index)),
 				),
 			})
+		} else {
+			rows = append(rows, directoryErrorf("contents of subdirectory %s are missing", name))
+		}
+	}
 
-		case *model_filesystem_pb.FileNode:
-			mode := "-r--"
-			if file.Properties.GetIsExecutable() {
-				mode = "-r-x"
+	directoryIndex := 0
+	for _, entry := range entries {
+		switch level := entry.Level.(type) {
+		case *model_filesystem_pb.DirectoryEntry_Parent_:
+			// Nodes stored in another object.
+			if nodesCount := level.Parent.LeafNodesCount + level.Parent.DirectoryNodesCount; nodesCount > 0 {
+				rows = append(rows, []Doc{
+					Text(""),
+					Text(""),
+					Text(""),
+					Concat(
+						getPathPrefix(path),
+						fieldReferenceLink(
+							model_core.Nested(dirMessage, level.Parent.Reference),
+							level.Parent, "reference",
+							Text(fmt.Sprintf("%s… (%d entries)", level.Parent.FirstName, nodesCount)),
+						),
+					),
+				})
 			}
+			directoryIndex += int(level.Parent.DirectoryNodesCount)
 
-			pathDoc := Text(file.Name)
-			var totalSizeBytes uint64
-			// Empty files are valid text files without any lines.
-			linesDoc := Text("0")
-			if contents := file.Properties.GetContents(); contents != nil {
-				switch reference := contents.Level.(type) {
-				case *model_filesystem_pb.FileContents_ChunkReference:
-					pathDoc = fieldReferenceLink(
-						model_core.Nested(dirMessage, reference.ChunkReference),
-						contents, "chunk_reference",
-						pathDoc,
-					)
-				case *model_filesystem_pb.FileContents_List_:
-					pathDoc = fieldReferenceLink(
-						model_core.Nested(dirMessage, reference.List.Reference),
-						reference.List, "reference",
-						pathDoc,
-					)
+		case *model_filesystem_pb.DirectoryEntry_Node_:
+			node := level.Node
+			switch kind := node.Kind.(type) {
+			case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+				if partial {
+					// The contents of the subdirectory
+					// can't be identified.
+					rows = append(rows, []Doc{
+						Text("dr-x"),
+						Text(""),
+						Text(""),
+						Concat(getPathPrefix(path), Text(node.Name+"/")),
+					})
+				} else {
+					renderSubdirectory(node.Name, directoryIndex)
 				}
-				totalSizeBytes = contents.TotalSizeBytes
-				linesDoc = renderLines(utf8stat.Stat(contents.Utf8Stat))
-			}
-			rows = append(rows, []Doc{
-				Text(mode),
-				renderSize(totalSizeBytes),
-				linesDoc,
-				Concat(getPathPrefix(path), pathDoc),
-			})
+				directoryIndex++
 
-		case *model_filesystem_pb.SymlinkNode:
-			rows = append(rows, []Doc{
-				Text("lr-x"),
-				Text(""),
-				Text(""),
-				Concat(
-					getPathPrefix(path),
-					Text(file.Name+" → "+file.Target),
-				),
-			})
+			case *model_filesystem_pb.DirectoryEntry_Node_File:
+				mode := "-r--"
+				if kind.File.GetIsExecutable() {
+					mode = "-r-x"
+				}
+
+				pathDoc := Text(node.Name)
+				var totalSizeBytes uint64
+				// Empty files are valid text files without
+				// any lines.
+				linesDoc := Text("0")
+				if contents := kind.File.GetContents(); contents != nil {
+					switch reference := contents.Level.(type) {
+					case *model_filesystem_pb.FileContents_ChunkReference:
+						pathDoc = fieldReferenceLink(
+							model_core.Nested(dirMessage, reference.ChunkReference),
+							contents, "chunk_reference",
+							pathDoc,
+						)
+					case *model_filesystem_pb.FileContents_List_:
+						pathDoc = fieldReferenceLink(
+							model_core.Nested(dirMessage, reference.List.Reference),
+							reference.List, "reference",
+							pathDoc,
+						)
+					}
+					totalSizeBytes = contents.TotalSizeBytes
+					linesDoc = renderLines(utf8stat.Stat(contents.Utf8Stat))
+				}
+				rows = append(rows, []Doc{
+					Text(mode),
+					renderSize(totalSizeBytes),
+					linesDoc,
+					Concat(getPathPrefix(path), pathDoc),
+				})
+
+			case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+				rows = append(rows, []Doc{
+					Text("lr-x"),
+					Text(""),
+					Text(""),
+					Concat(
+						getPathPrefix(path),
+						Text(node.Name+" → "+kind.Symlink.Target),
+					),
+				})
+			}
+		}
+	}
+
+	// Subdirectories whose nodes are stored in another object,
+	// while their contents are stored in this object or are
+	// referenced by it. Their names are unknown.
+	for i := 0; i < directoryContentsSeen; i++ {
+		if !knownDirectoryNames[i] {
+			renderSubdirectory(fmt.Sprintf("#%d", i), i)
 		}
 	}
 	return rows

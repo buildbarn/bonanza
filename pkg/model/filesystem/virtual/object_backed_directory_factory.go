@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"sort"
-	"strings"
+	"iter"
 
 	"bonanza.build/pkg/encoding/varint"
 	model_core "bonanza.build/pkg/model/core"
@@ -36,19 +35,17 @@ type ObjectBackedDirectoryFactory struct {
 	handleAllocator                             virtual.ResolvableHandleAllocator
 	directoryClusterReader                      model_parser.MessageObjectReader[object.LocalReference, model_filesystem.DirectoryCluster]
 	directoryClusterDecodingParametersSizeBytes int
-	leavesReader                                model_parser.MessageObjectReader[object.LocalReference, *model_filesystem_pb.Leaves]
 	fileFactory                                 FileFactory
 	symlinkFactory                              virtual.SymlinkFactory
 	errorLogger                                 util.ErrorLogger
 }
 
 // NewObjectBackedDirectoryFactory creates an
-// ObjectBackedDirectoryFactory that reads directory and leaves objects
-// from a given storage backend.
+// ObjectBackedDirectoryFactory that reads directory objects from a
+// given storage backend.
 func NewObjectBackedDirectoryFactory(
 	handleAllocation virtual.ResolvableHandleAllocation,
 	directoryClusterReader model_parser.MessageObjectReader[object.LocalReference, model_filesystem.DirectoryCluster],
-	leavesReader model_parser.MessageObjectReader[object.LocalReference, *model_filesystem_pb.Leaves],
 	fileFactory FileFactory,
 	symlinkFactory virtual.SymlinkFactory,
 	errorLogger util.ErrorLogger,
@@ -56,10 +53,9 @@ func NewObjectBackedDirectoryFactory(
 	df := &ObjectBackedDirectoryFactory{
 		directoryClusterReader:                      directoryClusterReader,
 		directoryClusterDecodingParametersSizeBytes: directoryClusterReader.GetDecodingParametersSizeBytes(),
-		leavesReader:                                leavesReader,
-		fileFactory:                                 fileFactory,
-		symlinkFactory:                              symlinkFactory,
-		errorLogger:                                 errorLogger,
+		fileFactory:    fileFactory,
+		symlinkFactory: symlinkFactory,
+		errorLogger:    errorLogger,
 	}
 	df.handleAllocator = handleAllocation.AsResolvableAllocator(df.resolveHandle)
 	return df
@@ -106,11 +102,11 @@ func (df *ObjectBackedDirectoryFactory) resolveHandle(r io.ByteReader) (virtual.
 		return virtual.DirectoryChild{}, virtual.StatusErrBadHandle
 	}
 
-	symlinkIndex, err := varint.ReadForward[uint](r)
+	entryIndex, err := varint.ReadForward[uint](r)
 	if err != nil {
 		return virtual.DirectoryChild{}, virtual.StatusErrBadHandle
 	}
-	if symlinkIndex == 0 {
+	if entryIndex == 0 {
 		// File handle resolves to the directory.
 		directoriesCount, err := varint.ReadForward[uint32](r)
 		if err != nil {
@@ -129,29 +125,32 @@ func (df *ObjectBackedDirectoryFactory) resolveHandle(r io.ByteReader) (virtual.
 		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch directory cluster with reference %s", model_core.DecodableLocalReferenceToString(clusterReference)))
 		return virtual.DirectoryChild{}, virtual.StatusErrIO
 	}
-	if directoryIndex > uint(len(cluster.Message)) {
+	if directoryIndex >= uint(len(cluster.Message.Directories)) {
 		return virtual.DirectoryChild{}, virtual.StatusErrIO
 	}
-
-	leaves, err := model_filesystem.DirectoryGetLeaves(
-		ctx,
-		df.leavesReader,
-		model_core.Nested(cluster, cluster.Message[directoryIndex].Directory),
+	entries := cluster.Message.Directories[directoryIndex].Entries
+	if entryIndex > uint(len(entries)) {
+		return virtual.DirectoryChild{}, virtual.StatusErrIO
+	}
+	symlink := entries[entryIndex-1].GetNode().GetSymlink()
+	if symlink == nil {
+		return virtual.DirectoryChild{}, virtual.StatusErrIO
+	}
+	leaf, s := df.createSymlink(
+		model_filesystem.DirectoryClusterNode{
+			Location: model_filesystem.DirectoryClusterLocation{
+				Reference: clusterReference,
+				Cluster:   cluster,
+				Index:     int(directoryIndex),
+			},
+			EntryIndex: int(entryIndex - 1),
+		},
+		symlink.Target,
 	)
-	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", model_core.DecodableLocalReferenceToString(clusterReference)))
-		return virtual.DirectoryChild{}, virtual.StatusErrIO
-	}
-
-	symlinks := leaves.Message.Symlinks
-	if symlinkIndex > uint(len(symlinks)) {
-		return virtual.DirectoryChild{}, virtual.StatusErrIO
-	}
-	symlink, s := df.createSymlink(clusterReference, directoryIndex, symlinkIndex, symlinks[symlinkIndex-1].Target)
 	if s != virtual.StatusOK {
 		return virtual.DirectoryChild{}, s
 	}
-	return virtual.DirectoryChild{}.FromLeaf(symlink), virtual.StatusOK
+	return virtual.DirectoryChild{}.FromLeaf(leaf), virtual.StatusOK
 }
 
 // LookupDirectory returns a virtual file system directory object that
@@ -173,12 +172,13 @@ func (df *ObjectBackedDirectoryFactory) LookupDirectory(clusterReference model_c
 		})
 }
 
-func (df *ObjectBackedDirectoryFactory) createSymlink(clusterReference model_core.Decodable[object.LocalReference], directoryIndex, symlinkIndex uint, target string) (virtual.LinkableLeaf, virtual.Status) {
+func (df *ObjectBackedDirectoryFactory) createSymlink(node model_filesystem.DirectoryClusterNode, target string) (virtual.LinkableLeaf, virtual.Status) {
+	clusterReference := node.Location.Reference
 	handle := varint.AppendForward(nil, clusterReference.Value.GetReferenceFormat().ToProto())
 	handle = append(handle, clusterReference.Value.GetRawReference()...)
 	handle = append(handle, clusterReference.GetDecodingParameters()...)
-	handle = varint.AppendForward(handle, directoryIndex)
-	handle = varint.AppendForward(handle, symlinkIndex+1)
+	handle = varint.AppendForward(handle, node.Location.Index)
+	handle = varint.AppendForward(handle, node.EntryIndex+1)
 	symlink, err := df.symlinkFactory.LookupSymlink(path.UNIXFormat.NewParser(target))
 	if err != nil {
 		df.errorLogger.Log(util.StatusWrapf(err, "Failed to create symbolic link with target %#v", target))
@@ -196,16 +196,15 @@ type objectBackedDirectory struct {
 	directoriesCount uint32
 }
 
-func (d *objectBackedDirectory) lookupFile(fileNode model_core.Message[*model_filesystem_pb.FileNode, object.LocalReference]) (virtual.Leaf, virtual.Status) {
+func (d *objectBackedDirectory) lookupFile(node model_core.Message[*model_filesystem_pb.DirectoryEntry_Node, object.LocalReference], properties *model_filesystem_pb.FileProperties) (virtual.LinkableLeaf, virtual.Status) {
 	df := d.factory
-	properties := fileNode.Message.Properties
 	if properties == nil {
-		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "File %#v does not have any properties", fileNode.Message.Name))
+		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "File %#v does not have any properties", node.Message.Name))
 		return nil, virtual.StatusErrIO
 	}
-	fileContents, err := model_filesystem.NewFileContentsEntryFromProto(model_core.Nested(fileNode, properties.Contents))
+	fileContents, err := model_filesystem.NewFileContentsEntryFromProto(model_core.Nested(node, properties.Contents))
 	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Invalid contents for file %#v", fileNode.Message.Name))
+		df.errorLogger.Log(util.StatusWrapf(err, "Invalid contents for file %#v", node.Message.Name))
 		return nil, virtual.StatusErrIO
 	}
 	f, err := df.fileFactory.LookupFile(
@@ -213,7 +212,7 @@ func (d *objectBackedDirectory) lookupFile(fileNode model_core.Message[*model_fi
 		properties.IsExecutable,
 	)
 	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to look up file %#v", fileNode.Message.Name))
+		df.errorLogger.Log(util.StatusWrapf(err, "Failed to look up file %#v", node.Message.Name))
 		return nil, virtual.StatusErrIO
 	}
 	return f, virtual.StatusOK
@@ -229,233 +228,192 @@ func (d *objectBackedDirectory) VirtualGetAttributes(ctx context.Context, reques
 	attributes.SetSizeBytes(uint64(d.clusterReference.Value.GetSizeBytes()))
 }
 
-func (d *objectBackedDirectory) getDirectory(ctx context.Context) (model_core.Message[*model_filesystem.Directory, object.LocalReference], virtual.Status) {
+func (d *objectBackedDirectory) getDirectory(ctx context.Context) (model_filesystem.DirectoryClusterLocation, virtual.Status) {
 	df := d.factory
 	cluster, err := df.directoryClusterReader.ReadObject(ctx, d.clusterReference)
 	if err != nil {
 		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch directory cluster with reference %s", model_core.DecodableLocalReferenceToString(d.clusterReference)))
-		return model_core.Message[*model_filesystem.Directory, object.LocalReference]{}, virtual.StatusErrIO
+		return model_filesystem.DirectoryClusterLocation{}, virtual.StatusErrIO
 	}
-	if d.directoryIndex >= uint(len(cluster.Message)) {
-		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "Directory index %d is out of range, as directory cluster with reference %s only contains %d directories", d.directoryIndex, model_core.DecodableLocalReferenceToString(d.clusterReference), len(cluster.Message)))
-		return model_core.Message[*model_filesystem.Directory, object.LocalReference]{}, virtual.StatusErrIO
+	if d.directoryIndex >= uint(len(cluster.Message.Directories)) {
+		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "Directory index %d is out of range, as directory cluster with reference %s only contains %d directories", d.directoryIndex, model_core.DecodableLocalReferenceToString(d.clusterReference), len(cluster.Message.Directories)))
+		return model_filesystem.DirectoryClusterLocation{}, virtual.StatusErrIO
 	}
-	return model_core.Nested(cluster, &cluster.Message[d.directoryIndex]), virtual.StatusOK
+	return model_filesystem.DirectoryClusterLocation{
+		Reference: d.clusterReference,
+		Cluster:   cluster,
+		Index:     int(d.directoryIndex),
+	}, virtual.StatusOK
 }
 
-func (d objectBackedDirectory) lookupDirectoryNode(directoryNode model_core.Message[*model_filesystem_pb.DirectoryNode, object.LocalReference], childDirectoryIndex int) (virtual.Directory, virtual.Status) {
-	df := d.factory
-	switch contents := directoryNode.Message.Directory.GetContents().(type) {
-	case *model_filesystem_pb.Directory_ContentsExternal:
-		childReference, err := model_core.FlattenDecodableReference(model_core.Nested(directoryNode, contents.ContentsExternal.Reference))
-		if err != nil {
-			df.errorLogger.Log(util.StatusWrapf(err, "Invalid reference for directory with name %#v in directory %d in directory cluster with reference %s", directoryNode.Message.Name, d.directoryIndex, model_core.DecodableLocalReferenceToString(d.clusterReference)))
-			return nil, virtual.StatusErrIO
-		}
-		return df.LookupDirectory(childReference, 0, contents.ContentsExternal.DirectoriesCount), virtual.StatusOK
-	case *model_filesystem_pb.Directory_ContentsInline:
-		return df.LookupDirectory(d.clusterReference, uint(childDirectoryIndex), uint32(len(contents.ContentsInline.Directories))), virtual.StatusOK
-	default:
-		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "Invalid contents for directory with name %#v in directory %d in directory cluster with reference %s", directoryNode.Message.Name, d.directoryIndex, model_core.DecodableLocalReferenceToString(d.clusterReference)))
-		return nil, virtual.StatusErrIO
+func (d *objectBackedDirectory) lookupChildDirectory(location model_filesystem.DirectoryClusterLocation, directoriesCount uint32) virtual.Directory {
+	return d.factory.LookupDirectory(location.Reference, uint(location.Index), directoriesCount)
+}
+
+func (d *objectBackedDirectory) logError(err error, format string, args ...any) {
+	d.factory.errorLogger.Log(util.StatusWrapf(err, "Directory %d in directory cluster with reference %s: "+format, append([]any{d.directoryIndex, model_core.DecodableLocalReferenceToString(d.clusterReference)}, args...)...))
+}
+
+// lookupNode looks up a file, symbolic link or subdirectory having a
+// given name in the current directory.
+func (d *objectBackedDirectory) lookupNode(ctx context.Context, name path.Component) (model_filesystem.DirectoryClusterLocation, model_filesystem.DirectoryClusterNode, bool, virtual.Status) {
+	location, s := d.getDirectory(ctx)
+	if s != virtual.StatusOK {
+		return model_filesystem.DirectoryClusterLocation{}, model_filesystem.DirectoryClusterNode{}, false, s
 	}
+	node, found, err := model_filesystem.LookupDirectoryClusterNode(ctx, d.factory.directoryClusterReader, &location, name.String())
+	if err != nil {
+		d.logError(err, "Failed to look up %#v", name.String())
+		return model_filesystem.DirectoryClusterLocation{}, model_filesystem.DirectoryClusterNode{}, false, virtual.StatusErrIO
+	}
+	return location, node, found, virtual.StatusOK
 }
 
 func (d *objectBackedDirectory) VirtualLookup(ctx context.Context, name path.Component, requested virtual.AttributesMask, out *virtual.Attributes) (virtual.DirectoryChild, virtual.Status) {
-	df := d.factory
-	directory, s := d.getDirectory(ctx)
+	location, node, found, s := d.lookupNode(ctx, name)
 	if s != virtual.StatusOK {
 		return virtual.DirectoryChild{}, s
 	}
+	if !found {
+		return virtual.DirectoryChild{}, virtual.StatusErrNoEnt
+	}
 
-	// The filesystem model requires that entries stored in a
-	// Directory message are sorted alphabetically. Make use of this
-	// fact by performing binary searching when looking up entries.
-	n := name.String()
-	directories := directory.Message.Directory.Directories
-	if i, ok := sort.Find(
-		len(directories),
-		func(i int) int { return strings.Compare(n, directories[i].Name) },
-	); ok {
-		child, s := d.lookupDirectoryNode(model_core.Nested(directory, directories[i]), directory.Message.ChildDirectoryIndices[i])
+	nodeMessage := node.GetNode()
+	switch kind := nodeMessage.Message.Kind.(type) {
+	case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+		childLocation, err := model_filesystem.ResolveDirectoryClusterChild(ctx, d.factory.directoryClusterReader, &location, node.DirectoryIndex)
+		if err != nil {
+			d.logError(err, "Failed to resolve subdirectory %#v", name.String())
+			return virtual.DirectoryChild{}, virtual.StatusErrIO
+		}
+		child := d.lookupChildDirectory(childLocation, kind.Directory.DirectoriesCount)
+		child.VirtualGetAttributes(ctx, requested, out)
+		return virtual.DirectoryChild{}.FromDirectory(child), virtual.StatusOK
+	case *model_filesystem_pb.DirectoryEntry_Node_File:
+		child, s := d.lookupFile(nodeMessage, kind.File)
 		if s != virtual.StatusOK {
 			return virtual.DirectoryChild{}, s
 		}
 		child.VirtualGetAttributes(ctx, requested, out)
-		return virtual.DirectoryChild{}.FromDirectory(child), virtual.StatusOK
-	}
-
-	leaves, err := model_filesystem.DirectoryGetLeaves(ctx, df.leavesReader, model_core.Nested(directory, directory.Message.Directory))
-	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", model_core.DecodableLocalReferenceToString(d.clusterReference)))
-		return virtual.DirectoryChild{}, virtual.StatusErrIO
-	}
-
-	files := leaves.Message.Files
-	if i, ok := sort.Find(
-		len(files),
-		func(i int) int { return strings.Compare(n, files[i].Name) },
-	); ok {
-		entry := files[i]
-		child, s := d.lookupFile(model_core.Nested(leaves, entry))
+		return virtual.DirectoryChild{}.FromLeaf(child), virtual.StatusOK
+	case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+		child, s := d.factory.createSymlink(node, kind.Symlink.Target)
 		if s != virtual.StatusOK {
-			return virtual.DirectoryChild{}, virtual.StatusErrIO
+			return virtual.DirectoryChild{}, s
 		}
 		child.VirtualGetAttributes(ctx, requested, out)
 		return virtual.DirectoryChild{}.FromLeaf(child), virtual.StatusOK
+	default:
+		d.logError(status.Error(codes.InvalidArgument, "Unknown node type"), "Invalid node %#v", name.String())
+		return virtual.DirectoryChild{}, virtual.StatusErrIO
 	}
-
-	symlinks := leaves.Message.Symlinks
-	if i, ok := sort.Find(
-		len(symlinks),
-		func(i int) int { return strings.Compare(n, symlinks[i].Name) },
-	); ok {
-		f, s := df.createSymlink(d.clusterReference, d.directoryIndex, uint(i), symlinks[i].Target)
-		if s != virtual.StatusOK {
-			return virtual.DirectoryChild{}, virtual.StatusErrIO
-		}
-		f.VirtualGetAttributes(ctx, requested, out)
-		return virtual.DirectoryChild{}.FromLeaf(f), virtual.StatusOK
-	}
-
-	return virtual.DirectoryChild{}, virtual.StatusErrNoEnt
 }
 
 func (d *objectBackedDirectory) VirtualOpenChild(ctx context.Context, name path.Component, shareAccess virtual.ShareMask, createAttributes *virtual.Attributes, existingOptions *virtual.OpenExistingOptions, requested virtual.AttributesMask, openedFileAttributes *virtual.Attributes) (virtual.Leaf, virtual.AttributesMask, virtual.ChangeInfo, virtual.Status) {
-	df := d.factory
-	directory, s := d.getDirectory(ctx)
+	_, node, found, s := d.lookupNode(ctx, name)
 	if s != virtual.StatusOK {
 		return nil, 0, virtual.ChangeInfo{}, s
 	}
+	if !found {
+		return virtual.ReadOnlyDirectoryOpenChildDoesntExist(createAttributes)
+	}
 
-	n := name.String()
-	directories := directory.Message.Directory.Directories
-	if _, ok := sort.Find(
-		len(directories),
-		func(i int) int { return strings.Compare(n, directories[i].Name) },
-	); ok {
+	nodeMessage := node.GetNode()
+	switch kind := nodeMessage.Message.Kind.(type) {
+	case *model_filesystem_pb.DirectoryEntry_Node_Directory:
 		return virtual.ReadOnlyDirectoryOpenChildWrongFileType(existingOptions, virtual.StatusErrIsDir)
-	}
-
-	leaves, err := model_filesystem.DirectoryGetLeaves(
-		ctx,
-		df.leavesReader,
-		model_core.Nested(directory, directory.Message.Directory),
-	)
-	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", model_core.DecodableLocalReferenceToString(d.clusterReference)))
-		return nil, 0, virtual.ChangeInfo{}, virtual.StatusErrIO
-	}
-
-	files := leaves.Message.Files
-	if i, ok := sort.Find(
-		len(files),
-		func(i int) int { return strings.Compare(n, files[i].Name) },
-	); ok {
+	case *model_filesystem_pb.DirectoryEntry_Node_File:
 		if existingOptions == nil {
 			return nil, 0, virtual.ChangeInfo{}, virtual.StatusErrExist
 		}
-
-		leaf, s := d.lookupFile(model_core.Nested(leaves, files[i]))
+		leaf, s := d.lookupFile(nodeMessage, kind.File)
 		if s != virtual.StatusOK {
 			return nil, 0, virtual.ChangeInfo{}, s
 		}
 		s = leaf.VirtualOpenSelf(ctx, shareAccess, existingOptions, requested, openedFileAttributes)
 		return leaf, existingOptions.ToAttributesMask(), virtual.ChangeInfo{}, s
-	}
-
-	symlinks := leaves.Message.Symlinks
-	if _, ok := sort.Find(
-		len(symlinks),
-		func(i int) int { return strings.Compare(n, symlinks[i].Name) },
-	); ok {
+	case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
 		return virtual.ReadOnlyDirectoryOpenChildWrongFileType(existingOptions, virtual.StatusErrSymlink)
+	default:
+		d.logError(status.Error(codes.InvalidArgument, "Unknown node type"), "Invalid node %#v", name.String())
+		return nil, 0, virtual.ChangeInfo{}, virtual.StatusErrIO
 	}
-
-	return virtual.ReadOnlyDirectoryOpenChildDoesntExist(createAttributes)
 }
 
 func (d *objectBackedDirectory) VirtualReadDir(ctx context.Context, firstCookie uint64, requested virtual.AttributesMask, reporter virtual.DirectoryEntryReporter) virtual.Status {
 	df := d.factory
-	directory, s := d.getDirectory(ctx)
+	location, s := d.getDirectory(ctx)
 	if s != virtual.StatusOK {
 		return s
 	}
 
-	i := firstCookie
-	nextCookieOffset := uint64(1)
+	// Iterate over all nodes, starting at the cookie. Parts of the
+	// B-tree that precede the cookie are not loaded. The contents
+	// of subdirectories are obtained by iterating over the second
+	// section of the B-tree in lockstep, which is only started
+	// once the first subdirectory is encountered.
+	var errChildren error
+	var nextChild func() (model_filesystem.DirectoryClusterLocation, bool)
+	var stopChildren func()
+	defer func() {
+		if stopChildren != nil {
+			stopChildren()
+		}
+	}()
 
-	directories := directory.Message.Directory.Directories
-	for ; i < uint64(len(directories)); i++ {
-		entry := directories[i]
-		name, ok := path.NewComponent(entry.Name)
+	var errNodes error
+	for node := range model_filesystem.AllDirectoryClusterNodes(ctx, df.directoryClusterReader, &location, firstCookie, &errNodes) {
+		nodeMessage := node.GetNode()
+		name, ok := path.NewComponent(nodeMessage.Message.Name)
 		if !ok {
-			df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "Directory %#v has an invalid name", entry.Name))
+			d.logError(status.Error(codes.InvalidArgument, "Invalid name"), "Node %#v has an invalid name", nodeMessage.Message.Name)
 			return virtual.StatusErrIO
 		}
-		child, s := d.lookupDirectoryNode(model_core.Nested(directory, entry), directory.Message.ChildDirectoryIndices[i])
-		if s != virtual.StatusOK {
-			return s
-		}
+
+		var child virtual.DirectoryChild
 		var attributes virtual.Attributes
-		child.VirtualGetAttributes(ctx, requested, &attributes)
-		if !reporter.ReportEntry(nextCookieOffset+i, name, virtual.DirectoryChild{}.FromDirectory(child), &attributes) {
+		switch kind := nodeMessage.Message.Kind.(type) {
+		case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+			if stopChildren == nil {
+				nextChild, stopChildren = iter.Pull(model_filesystem.AllDirectoryClusterChildren(ctx, df.directoryClusterReader, &location, node.DirectoryIndex, &errChildren))
+			}
+			childLocation, ok := nextChild()
+			if !ok {
+				if errChildren == nil {
+					errChildren = status.Error(codes.InvalidArgument, "Directory contains fewer subdirectory contents than subdirectory nodes")
+				}
+				d.logError(errChildren, "Failed to resolve subdirectory %#v", name.String())
+				return virtual.StatusErrIO
+			}
+			childDirectory := d.lookupChildDirectory(childLocation, kind.Directory.DirectoriesCount)
+			childDirectory.VirtualGetAttributes(ctx, requested, &attributes)
+			child = virtual.DirectoryChild{}.FromDirectory(childDirectory)
+		case *model_filesystem_pb.DirectoryEntry_Node_File:
+			leaf, s := d.lookupFile(nodeMessage, kind.File)
+			if s != virtual.StatusOK {
+				return s
+			}
+			leaf.VirtualGetAttributes(ctx, requested, &attributes)
+			child = virtual.DirectoryChild{}.FromLeaf(leaf)
+		case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+			leaf, s := df.createSymlink(node, kind.Symlink.Target)
+			if s != virtual.StatusOK {
+				return s
+			}
+			leaf.VirtualGetAttributes(ctx, requested, &attributes)
+			child = virtual.DirectoryChild{}.FromLeaf(leaf)
+		default:
+			d.logError(status.Error(codes.InvalidArgument, "Unknown node type"), "Invalid node %#v", name.String())
+			return virtual.StatusErrIO
+		}
+		if !reporter.ReportEntry(node.Ordinal+1, name, child, &attributes) {
 			return virtual.StatusOK
 		}
 	}
-	i -= uint64(len(directories))
-	nextCookieOffset += uint64(len(directories))
-
-	leaves, err := model_filesystem.DirectoryGetLeaves(
-		ctx,
-		df.leavesReader,
-		model_core.Nested(directory, directory.Message.Directory),
-	)
-	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to fetch leaves of directory cluster with reference %s", model_core.DecodableLocalReferenceToString(d.clusterReference)))
+	if errNodes != nil {
+		d.logError(errNodes, "Failed to iterate nodes")
 		return virtual.StatusErrIO
 	}
-
-	files := leaves.Message.Files
-	for ; i < uint64(len(files)); i++ {
-		entry := files[i]
-		name, ok := path.NewComponent(entry.Name)
-		if !ok {
-			df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "File %#v has an invalid name", entry.Name))
-			return virtual.StatusErrIO
-		}
-		child, s := d.lookupFile(model_core.Nested(leaves, entry))
-		if s != virtual.StatusOK {
-			return s
-		}
-		var attributes virtual.Attributes
-		child.VirtualGetAttributes(ctx, requested, &attributes)
-		if !reporter.ReportEntry(nextCookieOffset+i, name, virtual.DirectoryChild{}.FromLeaf(child), &attributes) {
-			return virtual.StatusOK
-		}
-	}
-	i -= uint64(len(files))
-	nextCookieOffset += uint64(len(files))
-
-	symlinks := leaves.Message.Symlinks
-	for ; i < uint64(len(symlinks)); i++ {
-		entry := symlinks[i]
-		name, ok := path.NewComponent(entry.Name)
-		if !ok {
-			df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "Symbolic link %#v has an invalid name", entry.Name))
-			return virtual.StatusErrIO
-		}
-		child, s := df.createSymlink(d.clusterReference, d.directoryIndex, uint(i), entry.Target)
-		if s != virtual.StatusOK {
-			return s
-		}
-		var attributes virtual.Attributes
-		child.VirtualGetAttributes(ctx, requested, &attributes)
-		if !reporter.ReportEntry(nextCookieOffset+i, name, virtual.DirectoryChild{}.FromLeaf(child), &attributes) {
-			return virtual.StatusOK
-		}
-	}
-
 	return virtual.StatusOK
 }
 

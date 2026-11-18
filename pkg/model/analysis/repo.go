@@ -119,7 +119,7 @@ type changeTrackingDirectory[TReference object.BasicReference, TMetadata model_c
 	// are still identical to the original version. If not set, the
 	// directory has been accessed and potentially modified,
 	// requiring it to be recomputed and uploaded once again.
-	unmodifiedDirectory model_core.Message[*model_filesystem_pb.Directory, TReference]
+	unmodifiedDirectory unmodifiedDirectory[TReference]
 
 	directories map[path.Component]*changeTrackingDirectory[TReference, TMetadata]
 	files       map[path.Component]*changeTrackingFile[TReference, TMetadata]
@@ -127,15 +127,7 @@ type changeTrackingDirectory[TReference object.BasicReference, TMetadata model_c
 }
 
 func (d *changeTrackingDirectory[TReference, TMetadata]) maximumSymlinkEscapementLevelsAtMost(maximumEscapementLevels uint32) bool {
-	if directory := d.unmodifiedDirectory; directory.IsSet() {
-		if contentsExternal, ok := directory.Message.GetContents().(*model_filesystem_pb.Directory_ContentsExternal); ok {
-			currentMaximumEscapementLevels := contentsExternal.ContentsExternal.MaximumSymlinkEscapementLevels
-			if currentMaximumEscapementLevels != nil && currentMaximumEscapementLevels.Value <= maximumEscapementLevels {
-				return true
-			}
-		}
-	}
-	return false
+	return d.unmodifiedDirectory.maximumSymlinkEscapementLevelsAtMost(maximumEscapementLevels)
 }
 
 // repoRuleStableInputRootPathUUID is a randomly generated UUID that is
@@ -144,59 +136,78 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) maximumSymlinkEscapemen
 // actions to be stable.
 const repoRuleStableInputRootPathUUID = "c6add83b-eeae-4755-9dde-68ad80fed342"
 
-func (d *changeTrackingDirectory[TReference, TMetadata]) setContents(contents model_core.Message[*model_filesystem_pb.DirectoryContents, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
-	leaves, err := model_filesystem.DirectoryGetLeaves(options.context, options.leavesReader, contents)
-	if err != nil {
-		return err
-	}
+func (d *changeTrackingDirectory[TReference, TMetadata]) setContents(contents model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
+	d.files = map[path.Component]*changeTrackingFile[TReference, TMetadata]{}
+	d.symlinks = map[path.Component]path.Parser{}
+	d.directories = map[path.Component]*changeTrackingDirectory[TReference, TMetadata]{}
+	return forEachDirectoryNode(
+		options.context,
+		options.directoryEntriesReader,
+		contents,
+		func(name path.Component, node model_core.Message[*model_filesystem_pb.DirectoryEntry_Node, TReference], directoryIndex int) error {
+			switch kind := node.Message.Kind.(type) {
+			case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+				d.setDirectorySimple(name, &changeTrackingDirectory[TReference, TMetadata]{
+					unmodifiedDirectory: newUnmodifiedDirectoryFromChild(contents, directoryIndex),
+				})
+			case *model_filesystem_pb.DirectoryEntry_Node_File:
+				f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(node, kind.File))
+				if err != nil {
+					return fmt.Errorf("file %#v: %w", name.String(), err)
+				}
+				d.files[name] = f
+			case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+				d.symlinks[name] = path.UNIXFormat.NewParser(kind.Symlink.Target)
+			default:
+				return fmt.Errorf("node %#v has an unknown type", name.String())
+			}
+			return nil
+		},
+	)
+}
 
-	d.files = make(map[path.Component]*changeTrackingFile[TReference, TMetadata], len(leaves.Message.Files))
-	for _, file := range leaves.Message.Files {
-		name, ok := path.NewComponent(file.Name)
+// forEachDirectoryNode invokes a callback for each file, symbolic link
+// and subdirectory contained in a directory. For subdirectories, the
+// index of the subdirectory is provided, which may be used to obtain
+// its contents.
+func forEachDirectoryNode[TReference any](
+	ctx context.Context,
+	directoryEntriesReader model_parser.MessageObjectReader[TReference, []*model_filesystem_pb.DirectoryEntry],
+	contents model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference],
+	callback func(name path.Component, node model_core.Message[*model_filesystem_pb.DirectoryEntry_Node, TReference], directoryIndex int) error,
+) error {
+	var errIter error
+	directoryIndex := 0
+	for node := range model_filesystem.DirectoryAllNodes(ctx, directoryEntriesReader, contents, &errIter) {
+		name, ok := path.NewComponent(node.Message.Name)
 		if !ok {
-			return fmt.Errorf("file %#v has an invalid name", file.Name)
+			return fmt.Errorf("node %#v has an invalid name", node.Message.Name)
 		}
-		f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(leaves, file.Properties))
-		if err != nil {
-			return fmt.Errorf("file %#v: %w", file.Name, err)
+		currentDirectoryIndex := -1
+		if node.Message.GetDirectory() != nil {
+			currentDirectoryIndex = directoryIndex
+			directoryIndex++
 		}
-		d.files[name] = f
+		if err := callback(name, node, currentDirectoryIndex); err != nil {
+			return err
+		}
 	}
-	d.symlinks = make(map[path.Component]path.Parser, len(leaves.Message.Symlinks))
-	for _, symlink := range leaves.Message.Symlinks {
-		name, ok := path.NewComponent(symlink.Name)
-		if !ok {
-			return fmt.Errorf("symbolic link %#v has an invalid name", symlink.Name)
-		}
-		d.symlinks[name] = path.UNIXFormat.NewParser(symlink.Target)
-	}
-
-	d.directories = make(map[path.Component]*changeTrackingDirectory[TReference, TMetadata], len(contents.Message.Directories))
-	for _, directory := range contents.Message.Directories {
-		name, ok := path.NewComponent(directory.Name)
-		if !ok {
-			return fmt.Errorf("directory %#v has an invalid name", directory.Name)
-		}
-		d.setDirectorySimple(name, &changeTrackingDirectory[TReference, TMetadata]{
-			unmodifiedDirectory: model_core.Nested(contents, directory.Directory),
-		})
-	}
-	return nil
+	return errIter
 }
 
 // mergeDirectoryMessage recursively merges the contents of a given
 // directory message into an already existing changeTrackingDirectory.
 // Files and symbolic links that exist in both directories must be
 // identical. Any conflicts will cause merging to fail.
-func (d *changeTrackingDirectory[TReference, TMetadata]) mergeDirectoryMessage(directoryMessage model_core.Message[*model_filesystem_pb.Directory, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
+func (d *changeTrackingDirectory[TReference, TMetadata]) mergeDirectoryMessage(directoryMessage unmodifiedDirectory[TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
 	return d.mergeDirectoryMessageAtPath(nil, directoryMessage, options)
 }
 
-func (d *changeTrackingDirectory[TReference, TMetadata]) mergeDirectoryMessageAtPath(dPath *path.Trace, directoryMessage model_core.Message[*model_filesystem_pb.Directory, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
+func (d *changeTrackingDirectory[TReference, TMetadata]) mergeDirectoryMessageAtPath(dPath *path.Trace, directoryMessage unmodifiedDirectory[TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
 	// There is no need to perform any merging if both directories
 	// are backed by the same message.
-	if !d.unmodifiedDirectory.IsSet() || !model_core.MessagesEqual(d.unmodifiedDirectory, directoryMessage) {
-		directoryContents, err := model_filesystem.DirectoryGetContents(options.context, options.directoryContentsReader, directoryMessage)
+	if !d.unmodifiedDirectory.IsSet() || !d.unmodifiedDirectory.isEqualTo(&directoryMessage) {
+		directoryContents, err := directoryMessage.load(options.context, options.directoryEntriesReader)
 		if err != nil {
 			return err
 		}
@@ -211,68 +222,50 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) mergeDirectoryMessageAt
 // message into an already existing changeTrackingDirectory. Files and
 // symbolic links that exist in both directories must be identical. Any
 // conflicts will cause merging to fail.
-func (d *changeTrackingDirectory[TReference, TMetadata]) mergeContents(contents model_core.Message[*model_filesystem_pb.DirectoryContents, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
+func (d *changeTrackingDirectory[TReference, TMetadata]) mergeContents(contents model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
 	return d.mergeContentsAtPath(nil, contents, options)
 }
 
-func (d *changeTrackingDirectory[TReference, TMetadata]) mergeContentsAtPath(dPath *path.Trace, contents model_core.Message[*model_filesystem_pb.DirectoryContents, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
+func (d *changeTrackingDirectory[TReference, TMetadata]) mergeContentsAtPath(dPath *path.Trace, contents model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], options *changeTrackingDirectoryLoadOptions[TReference]) error {
 	if err := d.maybeLoadContents(options); err != nil {
 		return err
 	}
 
-	leaves, err := model_filesystem.DirectoryGetLeaves(options.context, options.leavesReader, contents)
-	if err != nil {
-		return err
-	}
-
-	for _, file := range leaves.Message.Files {
-		name, ok := path.NewComponent(file.Name)
-		if !ok {
-			return fmt.Errorf("file %#v has an invalid name", dPath.GetUNIXString()+"/"+file.Name)
-		}
-		f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(leaves, file.Properties))
-		if err != nil {
-			return fmt.Errorf("file %#v: %w", dPath.Append(name).GetUNIXString(), err)
-		}
-		if err := d.mergeFile(dPath, name, f); err != nil {
-			return err
-		}
-	}
-	for _, symlink := range leaves.Message.Symlinks {
-		name, ok := path.NewComponent(symlink.Name)
-		if !ok {
-			return fmt.Errorf("symbolic link %#v has an invalid name", dPath.GetUNIXString()+"/"+symlink.Name)
-		}
-		if err := d.mergeSymlink(dPath, name, path.UNIXFormat.NewParser(symlink.Target)); err != nil {
-			return err
-		}
-	}
-
-	for _, directory := range contents.Message.Directories {
-		name, ok := path.NewComponent(directory.Name)
-		if !ok {
-			return fmt.Errorf("directory %#v has an invalid name", dPath.GetUNIXString()+"/"+directory.Name)
-		}
-
-		childPath := dPath.Append(name)
-		newDirectory := model_core.Nested(contents, directory.Directory)
-		if _, ok := d.files[name]; ok {
-			return fmt.Errorf("directory %#v conflicts with an existing file", childPath.GetUNIXString())
-		} else if _, ok := d.symlinks[name]; ok {
-			return fmt.Errorf("directory %#v conflicts with an existing symbolic link", childPath.GetUNIXString())
-		} else if child, ok := d.directories[name]; ok {
-			// Recurse into the already existing directory
-			// to merge their contents.
-			if err := child.mergeDirectoryMessageAtPath(childPath, newDirectory, options); err != nil {
-				return err
+	return forEachDirectoryNode(
+		options.context,
+		options.directoryEntriesReader,
+		contents,
+		func(name path.Component, node model_core.Message[*model_filesystem_pb.DirectoryEntry_Node, TReference], directoryIndex int) error {
+			childPath := dPath.Append(name)
+			switch kind := node.Message.Kind.(type) {
+			case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+				newDirectory := newUnmodifiedDirectoryFromChild(contents, directoryIndex)
+				if _, ok := d.files[name]; ok {
+					return fmt.Errorf("directory %#v conflicts with an existing file", childPath.GetUNIXString())
+				} else if _, ok := d.symlinks[name]; ok {
+					return fmt.Errorf("directory %#v conflicts with an existing symbolic link", childPath.GetUNIXString())
+				} else if child, ok := d.directories[name]; ok {
+					// Recurse into the already existing
+					// directory to merge their contents.
+					return child.mergeDirectoryMessageAtPath(childPath, newDirectory, options)
+				}
+				d.setDirectorySimple(name, &changeTrackingDirectory[TReference, TMetadata]{
+					unmodifiedDirectory: newDirectory,
+				})
+				return nil
+			case *model_filesystem_pb.DirectoryEntry_Node_File:
+				f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(node, kind.File))
+				if err != nil {
+					return fmt.Errorf("file %#v: %w", childPath.GetUNIXString(), err)
+				}
+				return d.mergeFile(dPath, name, f)
+			case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+				return d.mergeSymlink(dPath, name, path.UNIXFormat.NewParser(kind.Symlink.Target))
+			default:
+				return fmt.Errorf("node %#v has an unknown type", childPath.GetUNIXString())
 			}
-		} else {
-			d.setDirectorySimple(name, &changeTrackingDirectory[TReference, TMetadata]{
-				unmodifiedDirectory: newDirectory,
-			})
-		}
-	}
-	return nil
+		},
+	)
 }
 
 // mergeDirectory recursively merges the contents of a given
@@ -458,16 +451,15 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) setSymlink(loadOptions 
 }
 
 type changeTrackingDirectoryLoadOptions[TReference any] struct {
-	context                 context.Context
-	directoryContentsReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents]
-	leavesReader            model_parser.MessageObjectReader[TReference, *model_filesystem_pb.Leaves]
+	context                context.Context
+	directoryEntriesReader model_parser.MessageObjectReader[TReference, []*model_filesystem_pb.DirectoryEntry]
 }
 
 func (d *changeTrackingDirectory[TReference, TMetadata]) maybeLoadContents(options *changeTrackingDirectoryLoadOptions[TReference]) error {
 	if directory := d.unmodifiedDirectory; directory.IsSet() {
 		// Directory has not been accessed before. Load it from
 		// storage and ingest its contents.
-		contents, err := model_filesystem.DirectoryGetContents(options.context, options.directoryContentsReader, directory)
+		contents, err := directory.load(options.context, options.directoryEntriesReader)
 		if err != nil {
 			return err
 		}
@@ -618,13 +610,12 @@ func (r *changeTrackingDirectoryResolver[TReference, TMetadata]) OnUp() (path.Co
 }
 
 type capturableChangeTrackingDirectoryOptions[TReference, TMetadata any] struct {
-	context                 context.Context
-	directoryContentsReader model_parser.MessageObjectReader[TReference, *model_filesystem_pb.DirectoryContents]
-	leavesReader            model_parser.MessageObjectReader[TReference, *model_filesystem_pb.Leaves]
-	fileCreationParameters  *model_filesystem.FileCreationParameters
-	fileMerkleTreeCapturer  model_filesystem.FileMerkleTreeCapturer[TMetadata]
-	patchedFiles            io.ReaderAt
-	objectCapturer          model_core.ExistingObjectCapturer[TReference, TMetadata]
+	context                context.Context
+	directoryEntriesReader model_parser.MessageObjectReader[TReference, []*model_filesystem_pb.DirectoryEntry]
+	fileCreationParameters *model_filesystem.FileCreationParameters
+	fileMerkleTreeCapturer model_filesystem.FileMerkleTreeCapturer[TMetadata]
+	patchedFiles           io.ReaderAt
+	objectCapturer         model_core.ExistingObjectCapturer[TReference, TMetadata]
 }
 
 type capturableChangeTrackingDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -645,7 +636,7 @@ func (cd *capturableChangeTrackingDirectory[TReference, TMetadata]) EnterCaptura
 		// Directory has not been modified. Load the copy from
 		// storage, so that it may potentially be inlined into
 		// the parent directory.
-		contents, err := model_filesystem.DirectoryGetContents(cd.options.context, cd.options.directoryContentsReader, directory)
+		contents, err := directory.load(cd.options.context, cd.options.directoryEntriesReader)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -653,7 +644,7 @@ func (cd *capturableChangeTrackingDirectory[TReference, TMetadata]) EnterCaptura
 		// MaximumSymlinkEscapementLevels, which may be readily
 		// available if this was a reference. Should we add a
 		// utility function to model_filesystem to prevent this?
-		patchedContents := model_core.Patch(cd.options.objectCapturer, contents)
+		patchedContents := model_core.PatchList(cd.options.objectCapturer, contents)
 		createdDirectory, err := model_filesystem.NewCreatedDirectoryBare(patchedContents)
 		return createdDirectory, nil, err
 	}
@@ -681,9 +672,8 @@ func (cd *capturableChangeTrackingDirectory[TReference, TMetadata]) OpenForFileM
 func (cd *capturableChangeTrackingDirectory[TReference, TMetadata]) ReadDir() ([]filesystem.FileInfo, error) {
 	d := cd.directory
 	if err := d.maybeLoadContents(&changeTrackingDirectoryLoadOptions[TReference]{
-		context:                 cd.options.context,
-		directoryContentsReader: cd.options.directoryContentsReader,
-		leavesReader:            cd.options.leavesReader,
+		context:                cd.options.context,
+		directoryEntriesReader: cd.options.directoryEntriesReader,
 	}); err != nil {
 		return nil, err
 	}
@@ -1247,21 +1237,13 @@ func (c *baseComputer[TReference, TMetadata]) applyPatches(
 	}
 
 	rootDirectory := &changeTrackingDirectory[TReference, TMetadata]{
-		unmodifiedDirectory: model_core.Nested(
-			rootRef,
-			&model_filesystem_pb.Directory{
-				Contents: &model_filesystem_pb.Directory_ContentsExternal{
-					ContentsExternal: rootRef.Message,
-				},
-			},
-		),
+		unmodifiedDirectory: newUnmodifiedDirectoryFromReference(model_core.Nested(rootRef, rootRef.Message)),
 	}
 
 	// Strip the provided directory prefix.
 	loadOptions := &changeTrackingDirectoryLoadOptions[TReference]{
-		context:                 ctx,
-		directoryContentsReader: directoryReaders.DirectoryContents,
-		leavesReader:            directoryReaders.Leaves,
+		context:                ctx,
+		directoryEntriesReader: directoryReaders.DirectoryEntries,
 	}
 	rootDirectoryResolver := changeTrackingDirectoryResolver[TReference, TMetadata]{
 		loadOptions: loadOptions,
@@ -1582,9 +1564,8 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetDirectoryRe
 		if v, ok := mrc.environment.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{}); ok {
 			mrc.directoryReaders = v
 			mrc.directoryLoadOptions = &changeTrackingDirectoryLoadOptions[TReference]{
-				context:                 mrc.context,
-				directoryContentsReader: v.DirectoryContents,
-				leavesReader:            v.Leaves,
+				context:                mrc.context,
+				directoryEntriesReader: v.DirectoryEntries,
 			}
 		}
 	}
@@ -1698,14 +1679,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeAddExternalRep
 			if rootDirectoryReference == nil {
 				return errors.New("root directory reference is not set")
 			}
-			repoDirectory.unmodifiedDirectory = model_core.Nested(
-				repo,
-				&model_filesystem_pb.Directory{
-					Contents: &model_filesystem_pb.Directory_ContentsExternal{
-						ContentsExternal: rootDirectoryReference,
-					},
-				},
-			)
+			repoDirectory.unmodifiedDirectory = newUnmodifiedDirectoryFromReference(model_core.Nested(repo, rootDirectoryReference))
 		}
 	}
 	return nil
@@ -1936,14 +1910,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtrac
 
 	// Determine which directory to place inside the file system.
 	archiveRootDirectory := changeTrackingDirectory[TReference, TMetadata]{
-		unmodifiedDirectory: model_core.Nested(
-			archiveContentsValue,
-			&model_filesystem_pb.Directory{
-				Contents: &model_filesystem_pb.Directory_ContentsExternal{
-					ContentsExternal: archiveContentsValue.Message.Exists.Contents,
-				},
-			},
-		),
+		unmodifiedDirectory: newUnmodifiedDirectoryFromReference(model_core.Nested(archiveContentsValue, archiveContentsValue.Message.Exists.Contents)),
 	}
 	rootDirectoryResolver := changeTrackingDirectoryResolver[TReference, TMetadata]{
 		loadOptions: mrc.directoryLoadOptions,
@@ -2300,11 +2267,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 	// repo directory contents from the results and copy it into the
 	// input root.
 	outputRootDirectory := changeTrackingDirectory[TReference, TMetadata]{
-		unmodifiedDirectory: model_core.Nested(outputs, &model_filesystem_pb.Directory{
-			Contents: &model_filesystem_pb.Directory_ContentsInline{
-				ContentsInline: outputs.Message.GetOutputRoot(),
-			},
-		}),
+		unmodifiedDirectory: newUnmodifiedDirectoryFromContents(model_core.Nested(outputs, outputs.Message.GetOutputRoot())),
 	}
 	inputRepoDirectory := mrc.inputRootDirectory
 	outputRepoDirectory := &outputRootDirectory
@@ -2738,36 +2701,16 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 		return nil, fmt.Errorf("failed to create command: %w", err)
 	}
 
-	createdInputRoot, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.NewSimplePatchedMessage[TMetadata](
-			model_core.NewProtoBinaryMarshaler(&model_filesystem_pb.DirectoryContents{
-				Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-					LeavesInline: &model_filesystem_pb.Leaves{},
-				},
-			}),
-		),
-		referenceFormat,
-		mrc.directoryCreationParameters.GetEncoder(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create input root: %w", err)
-	}
-
 	action, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (encoding.BinaryMarshaler, error) {
 		commandReference, err := patcher.CaptureAndAddDecodableReference(mrc.context, createdCommand, mrc.environment)
 		if err != nil {
 			return nil, err
 		}
-		inputRootReference, err := patcher.CaptureAndAddDecodableReference(mrc.context, createdInputRoot, mrc.environment)
-		if err != nil {
-			return nil, err
-		}
 		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
 			CommandReference: commandReference,
-			// TODO: We shouldn't be handcrafting a
-			// DirectoryReference here.
+			// The input root is empty, meaning it is not
+			// backed by an object.
 			InputRootReference: &model_filesystem_pb.DirectoryReference{
-				Reference:                      inputRootReference,
 				MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
 			},
 		}), nil
@@ -3777,7 +3720,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 	)
 }
 
-func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTrackingDirectory(
+func (*baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTrackingDirectory(
 	ctx context.Context,
 	e model_core.ObjectCapturer[TReference, TMetadata],
 	rootDirectory *changeTrackingDirectory[TReference, TMetadata],
@@ -3786,12 +3729,10 @@ func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTracking
 	fileCreationParameters *model_filesystem.FileCreationParameters,
 	patchedFiles io.ReaderAt,
 ) (model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, TMetadata], error) {
-	if directory := rootDirectory.unmodifiedDirectory; directory.IsSet() {
-		if contentsExternal, ok := directory.Message.GetContents().(*model_filesystem_pb.Directory_ContentsExternal); ok {
-			// Directory remained completely unmodified.
-			// Simply return the original directory.
-			return model_core.Patch(e, model_core.Nested(directory, contentsExternal.ContentsExternal)), nil
-		}
+	if reference := rootDirectory.unmodifiedDirectory.reference; reference.IsSet() {
+		// Directory remained completely unmodified. Simply
+		// return the original directory.
+		return model_core.Patch(e, reference), nil
 	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
@@ -3804,13 +3745,12 @@ func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTracking
 			directoryCreationParameters,
 			&capturableChangeTrackingDirectory[TReference, TMetadata]{
 				options: &capturableChangeTrackingDirectoryOptions[TReference, TMetadata]{
-					context:                 groupCtx,
-					directoryContentsReader: directoryReaders.DirectoryContents,
-					leavesReader:            directoryReaders.Leaves,
-					fileCreationParameters:  fileCreationParameters,
-					fileMerkleTreeCapturer:  model_filesystem.NewSimpleFileMerkleTreeCapturer(e),
-					patchedFiles:            patchedFiles,
-					objectCapturer:          e,
+					context:                groupCtx,
+					directoryEntriesReader: directoryReaders.DirectoryEntries,
+					fileCreationParameters: fileCreationParameters,
+					fileMerkleTreeCapturer: model_filesystem.NewSimpleFileMerkleTreeCapturer(e),
+					patchedFiles:           patchedFiles,
+					objectCapturer:         e,
 				},
 				directory: rootDirectory,
 			},
@@ -3824,22 +3764,7 @@ func (c *baseComputer[TReference, TMetadata]) createMerkleTreeFromChangeTracking
 
 	// Store the root directory itself. We don't embed it into the
 	// response, as that prevents it from being accessed separately.
-	createdRootDirectoryObject, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoToBinaryMarshaler(createdRootDirectory.Message),
-		c.referenceFormat,
-		directoryCreationParameters.GetEncoder(),
-	)
-	if err != nil {
-		return model_core.PatchedMessage[*model_filesystem_pb.DirectoryReference, TMetadata]{}, err
-	}
-
-	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_filesystem_pb.DirectoryReference, error) {
-		directoryReference, err := patcher.CaptureAndAddDecodableReference(ctx, createdRootDirectoryObject, e)
-		if err != nil {
-			return nil, err
-		}
-		return createdRootDirectory.ToDirectoryReference(directoryReference), nil
-	})
+	return createdRootDirectory.CaptureDirectoryReference(ctx, directoryCreationParameters, e)
 }
 
 func (c *baseComputer[TReference, TMetadata]) returnRepoMerkleTree(

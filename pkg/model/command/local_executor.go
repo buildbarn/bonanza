@@ -458,34 +458,30 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 
 		// Create subdirectories that should be present when the command
 		// is executed, such as the input root directory.
-		inputRootReference, err := model_core.FlattenDecodableReference(model_core.Nested(actionMessage, actionMessage.Message.InputRootReference.GetReference()))
-		if err != nil {
-			result.Status = status.Convert(util.StatusWrap(err, "Invalid input root reference")).Proto()
-			return &result
+		// Empty input roots are not backed by an object.
+		inputRootContentsFetcher := virtual.EmptyInitialContentsFetcher
+		if inputRootReferenceMessage := actionMessage.Message.InputRootReference.GetReference(); inputRootReferenceMessage != nil {
+			inputRootReference, err := model_core.FlattenDecodableReference(model_core.Nested(actionMessage, inputRootReferenceMessage))
+			if err != nil {
+				result.Status = status.Convert(util.StatusWrap(err, "Invalid input root reference")).Proto()
+				return &result
+			}
+			inputRootContentsFetcher = model_filesystem_virtual.NewObjectBackedInitialContentsFetcher(
+				ctxWithIOError,
+				model_parser.LookupParsedObjectReader(
+					parsedObjectPoolIngester,
+					model_parser.NewChainedObjectParser(
+						model_parser.NewEncodedObjectParser[object.LocalReference](directoryEncoder),
+						model_filesystem.NewDirectoryClusterObjectParser[object.LocalReference](),
+					),
+				),
+				inputFileFactory,
+				e.symlinkFactory,
+				inputRootReference,
+			)
 		}
 		if err := buildDirectory.CreateChildren(map[path.Component]virtual.InitialChild{
-			inputRootDirectoryComponent: virtual.InitialChild{}.FromDirectory(
-				model_filesystem_virtual.NewObjectBackedInitialContentsFetcher(
-					ctxWithIOError,
-					model_parser.LookupParsedObjectReader(
-						parsedObjectPoolIngester,
-						model_parser.NewChainedObjectParser(
-							model_parser.NewEncodedObjectParser[object.LocalReference](directoryEncoder),
-							model_filesystem.NewDirectoryClusterObjectParser[object.LocalReference](),
-						),
-					),
-					model_parser.LookupParsedObjectReader(
-						parsedObjectPoolIngester,
-						model_parser.NewChainedObjectParser(
-							model_parser.NewEncodedObjectParser[object.LocalReference](directoryEncoder),
-							model_parser.NewProtoObjectParser[object.LocalReference, model_filesystem_pb.Leaves](),
-						),
-					),
-					inputFileFactory,
-					e.symlinkFactory,
-					inputRootReference,
-				),
-			),
+			inputRootDirectoryComponent:  virtual.InitialChild{}.FromDirectory(inputRootContentsFetcher),
 			serverLogsDirectoryComponent: virtual.InitialChild{}.FromDirectory(virtual.EmptyInitialContentsFetcher),
 			temporaryDirectoryComponent:  virtual.InitialChild{}.FromDirectory(virtual.EmptyInitialContentsFetcher),
 		}, false); err != nil {
@@ -859,13 +855,13 @@ func (d *prepopulatedCapturableDirectory) EnterCapturableDirectory(name path.Com
 		// accessed yet.
 		//
 		// Instead of traversing into it and computing a Merkle
-		// tree, use the original Directory message that backs
+		// tree, use the original directory entries that back
 		// the InitialContentsFetcher.
 		if err := getRawDirectory.Err; err != nil {
 			return nil, nil, err
 		}
 		createdDirectory, err := model_filesystem.NewCreatedDirectoryBare(
-			model_core.NewPatchedMessageFromExisting(
+			model_core.NewPatchedMessageListFromExisting(
 				getRawDirectory.RawDirectory,
 				func(index int) dag.ObjectContentsWalker {
 					return dag.ExistingObjectContentsWalker

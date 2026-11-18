@@ -192,6 +192,11 @@ func (r *Renderer) Message(m model_core.Message[protoreflect.Message, object.Loc
 // MessageList renders a list of messages, such as the contents of an
 // object containing a varint separated list of messages.
 func (r *Renderer) MessageList(list model_core.Message[[]protoreflect.Message, object.LocalReference]) Doc {
+	if r.Pretty {
+		if d := renderPrettyList(list); d != nil {
+			return d
+		}
+	}
 	elements := make([]Doc, 0, len(list.Message))
 	for _, element := range list.Message {
 		elements = append(elements, r.Message(model_core.Nested(list, element)))
@@ -219,7 +224,17 @@ func (r *Renderer) renderMessageCommon(m model_core.Message[protoreflect.Message
 	// Iterate over all message fields and render their values.
 	m.Message.Range(func(fieldDescriptor protoreflect.FieldDescriptor, value protoreflect.Value) bool {
 		var valueDoc Doc
-		if fieldDescriptor.IsList() {
+		if fieldDescriptor.IsList() && r.Pretty && isDirectoryEntryField(fieldDescriptor) {
+			// Lists of directory entries correspond to the
+			// top level of a directory's B-tree. Render
+			// them as a directory.
+			list := value.List()
+			entries := make([]*model_filesystem_pb.DirectoryEntry, 0, list.Len())
+			for i := range list.Len() {
+				entries = append(entries, list.Get(i).Message().Interface().(*model_filesystem_pb.DirectoryEntry))
+			}
+			valueDoc = renderDirectory(model_core.Nested(m, entries) /* partial = */, false)
+		} else if fieldDescriptor.IsList() {
 			// Repeated fields should be rendered as JSON lists.
 			list := value.List()
 			elements := make([]Doc, 0, list.Len())
@@ -269,22 +284,48 @@ func (r *Renderer) renderMessageCommon(m model_core.Message[protoreflect.Message
 	return Sequence(Text("{"), Text("}"), entries, false, false)
 }
 
+var directoryEntryFullName = (&model_filesystem_pb.DirectoryEntry{}).ProtoReflect().Descriptor().FullName()
+
+// isDirectoryEntryField returns true if a field is of type
+// bonanza.model.filesystem.DirectoryEntry.
+func isDirectoryEntryField(fieldDescriptor protoreflect.FieldDescriptor) bool {
+	messageDescriptor := fieldDescriptor.Message()
+	return messageDescriptor != nil && messageDescriptor.FullName() == directoryEntryFullName
+}
+
+// renderPrettyList renders a list of messages using a representation
+// that is specific to its type. It returns nil if no such
+// representation exists.
+func renderPrettyList(list model_core.Message[[]protoreflect.Message, object.LocalReference]) Doc {
+	if len(list.Message) == 0 {
+		return nil
+	}
+	switch list.Message[0].Interface().(type) {
+	case *model_filesystem_pb.DirectoryEntry:
+		// Part of a directory's B-tree. Render it as a
+		// directory, keeping in mind that it may not contain
+		// all of the directory's entries.
+		entries := make([]*model_filesystem_pb.DirectoryEntry, 0, len(list.Message))
+		for _, element := range list.Message {
+			entry, ok := element.Interface().(*model_filesystem_pb.DirectoryEntry)
+			if !ok {
+				return nil
+			}
+			entries = append(entries, entry)
+		}
+		return renderDirectory(
+			model_core.Nested(list, entries),
+			/* partial = */ true,
+		)
+	}
+	return nil
+}
+
 // renderPretty renders a message using a representation that is
 // specific to its type. It returns nil if no such representation
 // exists, meaning the message should be rendered as JSON.
 func (*Renderer) renderPretty(m model_core.Message[protoreflect.Message, object.LocalReference]) Doc {
 	switch v := m.Message.Interface().(type) {
-	case *model_filesystem_pb.DirectoryContents:
-		return renderDirectory(model_core.Nested(m, v))
-	case *model_filesystem_pb.Leaves:
-		// Leaves may be stored externally if a directory is
-		// large. Render them as a directory without any
-		// subdirectories.
-		return renderDirectory(model_core.Nested(m, &model_filesystem_pb.DirectoryContents{
-			Leaves: &model_filesystem_pb.DirectoryContents_LeavesInline{
-				LeavesInline: v,
-			},
-		}))
 	case *model_starlark_pb.CompiledProgram_FunctionEntry_Leaf:
 		return renderFunctionEntryLeaf(v)
 	}

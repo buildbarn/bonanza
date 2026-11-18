@@ -24,37 +24,29 @@ func TestPackagesAtAndBelow(t *testing.T) {
 
 	// packageDirectory creates a directory that contains a BUILD
 	// file, followed by a number of child directories.
-	buildFileLeaves := &model_filesystem_pb.DirectoryContents_LeavesInline{
-		LeavesInline: &model_filesystem_pb.Leaves{
-			Files: []*model_filesystem_pb.FileNode{{
-				Name:       "BUILD.bazel",
-				Properties: &model_filesystem_pb.FileProperties{},
-			}},
-		},
+	buildFileLeaves := &testLeaves{
+		Files: []*testFileNode{{
+			Name:       "BUILD.bazel",
+			Properties: &model_filesystem_pb.FileProperties{},
+		}},
 	}
-	packageDirectory := func(children ...*model_filesystem_pb.DirectoryNode) *model_filesystem_pb.DirectoryContents {
-		return &model_filesystem_pb.DirectoryContents{
-			Directories: children,
-			Leaves:      buildFileLeaves,
-		}
+	packageDirectory := func(children ...testDirectoryNode) []*model_filesystem_pb.DirectoryEntry {
+		return withDirectories(newTestDirectory(buildFileLeaves), children...)
 	}
-	plainDirectory := func(children ...*model_filesystem_pb.DirectoryNode) *model_filesystem_pb.DirectoryContents {
-		return &model_filesystem_pb.DirectoryContents{
-			Directories: children,
-			Leaves:      emptyLeaves,
-		}
+	plainDirectory := func(children ...testDirectoryNode) []*model_filesystem_pb.DirectoryEntry {
+		return withDirectories(newTestDirectory(emptyLeaves), children...)
 	}
 
 	// compute computes the packages below "@@main+//foo" for a
 	// directory hierarchy where "foo" has the provided children.
-	compute := func(t *testing.T, fooChildren []*model_filesystem_pb.DirectoryNode, includes, excludes []string) (*model_analysis_pb.PackagesAtAndBelow_Value, error) {
+	compute := func(t *testing.T, fooChildren []testDirectoryNode, includes, excludes []string) (*model_analysis_pb.PackagesAtAndBelow_Value, error) {
 		e := NewMockPackagesAtAndBelowEnvironmentForTesting(ctrl)
 		e.EXPECT().GetDirectoryAccessParametersObject(
 			testutil.EqProto(t, &model_analysis_pb.DirectoryAccessParameters_Key{}),
 		).Return(&analysis.DirectoryReaders[model_core.CreatedObjectTree]{
-			DirectoryContents: model_parser.LookupParsedObjectReader(
+			DirectoryEntries: model_parser.LookupParsedObjectReader(
 				bct.parsedObjectPoolIngester,
-				model_parser.NewProtoObjectParser[model_core.CreatedObjectTree, model_filesystem_pb.DirectoryContents](),
+				model_parser.NewProtoListObjectParser[model_core.CreatedObjectTree, model_filesystem_pb.DirectoryEntry](),
 			),
 		}, true)
 		e.EXPECT().GetRepoValue(
@@ -63,7 +55,7 @@ func TestPackagesAtAndBelow(t *testing.T) {
 			return &model_analysis_pb.Repo_Value{
 				RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
 					Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-						return model_core.NewProtoBinaryMarshaler(plainDirectory(
+						return testDirectoryMarshaler(plainDirectory(
 							directoryNode("foo", packageDirectory(fooChildren...)),
 						))
 					})),
@@ -88,7 +80,7 @@ func TestPackagesAtAndBelow(t *testing.T) {
 	// Directory hierarchy below "@@main+//foo" containing packages
 	// "a", "b/c", "b/d/e" and "x". "a/nested" is a package as well,
 	// but it should not be returned, as it is contained in "a".
-	fooChildren := []*model_filesystem_pb.DirectoryNode{
+	fooChildren := []testDirectoryNode{
 		directoryNode("a", packageDirectory(
 			directoryNode("nested", packageDirectory()),
 		)),
@@ -132,10 +124,10 @@ func TestPackagesAtAndBelow(t *testing.T) {
 
 	t.Run("Pruning", func(t *testing.T) {
 		// Directories that cannot contain any matches should
-		// not be loaded. Directory "broken" has invalid
-		// contents, causing an error if it is loaded.
-		children := append([]*model_filesystem_pb.DirectoryNode{
-			{Name: "broken", Directory: &model_filesystem_pb.Directory{}},
+		// not be inspected. Directory "broken" has invalid
+		// contents, causing an error if it is inspected.
+		children := append([]testDirectoryNode{
+			directoryNode("broken", []*model_filesystem_pb.DirectoryEntry{{}}),
 		}, fooChildren...)
 
 		_, err := compute(t, children, []string{"**"}, nil)

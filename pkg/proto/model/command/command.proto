@@ -158,7 +158,7 @@ message Outputs {
   // If Command.output_path_pattern is set, the contents of the files
   // and directories matched by the provided pattern after execution of
   // the command completed.
-  bonanza.model.filesystem.DirectoryContents output_root = 2;
+  repeated bonanza.model.filesystem.DirectoryEntry output_root = 2;
 }
 
 // Log contains the data that was written to a log by a command, such as

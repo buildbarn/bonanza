@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
-	"strings"
+	"iter"
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
@@ -32,7 +31,7 @@ type currentPackageLimitingDirectoryOptions[TReference any] struct {
 // features like glob() work.
 type currentPackageLimitingDirectory[TReference any, TMetadata model_core.ReferenceMetadata] struct {
 	options   *currentPackageLimitingDirectoryOptions[TReference]
-	directory model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]
+	directory model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]
 }
 
 func (d *currentPackageLimitingDirectory[TReference, TMetadata]) Close() error {
@@ -41,122 +40,75 @@ func (d *currentPackageLimitingDirectory[TReference, TMetadata]) Close() error {
 }
 
 func (d *currentPackageLimitingDirectory[TReference, TMetadata]) ReadDir() ([]filesystem.FileInfo, error) {
-	leaves, err := model_filesystem.DirectoryGetLeaves(
-		d.options.context,
-		d.options.directoryReaders.Leaves,
-		d.directory,
-	)
-	if err != nil {
-		return nil, err
-	}
+	ctx := d.options.context
+	reader := d.options.directoryReaders.DirectoryEntries
 
-	// Iterate over all children in sorted order. As the individual
-	// lists of directories, files and symlinks are already sorted,
-	// we merely need to merge them.
-	directories := d.directory.Message.Directories
-	files := leaves.Message.Files
-	symlinks := leaves.Message.Symlinks
-	fileInfos := make([]filesystem.FileInfo, 0, len(directories)+len(files)+len(symlinks))
-	for len(directories) > 0 || len(files) > 0 || len(symlinks) > 0 {
-		if len(directories) > 0 {
-			entry := directories[0]
-			if (len(files) == 0 || entry.Name < files[0].Name) &&
-				(len(symlinks) == 0 || entry.Name < symlinks[0].Name) {
-				// Report directory if it is not a package.
-				childDirectory, err := model_filesystem.DirectoryGetContents(
-					d.options.context,
-					d.options.directoryReaders.DirectoryContents,
-					model_core.Nested(d.directory, entry.Directory),
-				)
-				if err != nil {
-					return nil, fmt.Errorf("failed to get contents for directory %#v: %w", entry.Name, err)
-				}
+	// Iterate over the contents of subdirectories in lockstep with
+	// the nodes, so that we can determine whether subdirectories
+	// are packages.
+	var errChildren error
+	nextChild, stopChildren := iter.Pull2(model_filesystem.DirectoryAllChildren(ctx, reader, d.directory, &errChildren))
+	defer stopChildren()
 
-				isPackage, err := directoryIsPackage(
-					d.options.context,
-					d.options.directoryReaders.Leaves,
-					childDirectory,
-				)
-				if err != nil {
-					return nil, err
-				}
-				if !isPackage {
-					name, ok := path.NewComponent(entry.Name)
-					if !ok {
-						return nil, fmt.Errorf("invalid name for directory %#v", entry.Name)
-					}
-					fileInfos = append(fileInfos, filesystem.NewFileInfo(name, filesystem.FileTypeDirectory, false))
-				}
-				directories = directories[1:]
-				continue
-			}
-		}
-
-		if len(files) > 0 {
-			entry := files[0]
-			if len(symlinks) == 0 || entry.Name < symlinks[0].Name {
-				// Report regular file.
-				name, ok := path.NewComponent(entry.Name)
-				if !ok {
-					return nil, fmt.Errorf("invalid name for file %#v", entry.Name)
-				}
-				fileInfos = append(fileInfos, filesystem.NewFileInfo(name, filesystem.FileTypeRegularFile, entry.Properties.GetIsExecutable()))
-				files = files[1:]
-				continue
-			}
-		}
-
-		// Report symbolic link.
-		entry := symlinks[0]
-		name, ok := path.NewComponent(entry.Name)
+	// Nodes are stored in alphabetical order, meaning the results
+	// don't need to be sorted.
+	var fileInfos []filesystem.FileInfo
+	var errNodes error
+	for node := range model_filesystem.DirectoryAllNodes(ctx, reader, d.directory, &errNodes) {
+		name, ok := path.NewComponent(node.Message.Name)
 		if !ok {
-			return nil, fmt.Errorf("invalid name for symbolic link %#v", entry.Name)
+			return nil, fmt.Errorf("invalid name for node %#v", node.Message.Name)
 		}
-		fileInfos = append(fileInfos, filesystem.NewFileInfo(name, filesystem.FileTypeSymlink, false))
-		symlinks = symlinks[1:]
+		switch kind := node.Message.Kind.(type) {
+		case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+			// Only report directories that are not packages.
+			_, childDirectory, ok := nextChild()
+			if !ok {
+				if errChildren != nil {
+					return nil, errChildren
+				}
+				return nil, fmt.Errorf("contents of directory %#v are missing", node.Message.Name)
+			}
+			isPackage, err := directoryIsPackage(ctx, reader, childDirectory)
+			if err != nil {
+				return nil, err
+			}
+			if !isPackage {
+				fileInfos = append(fileInfos, filesystem.NewFileInfo(name, filesystem.FileTypeDirectory, false))
+			}
+		case *model_filesystem_pb.DirectoryEntry_Node_File:
+			fileInfos = append(fileInfos, filesystem.NewFileInfo(name, filesystem.FileTypeRegularFile, kind.File.GetIsExecutable()))
+		case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+			fileInfos = append(fileInfos, filesystem.NewFileInfo(name, filesystem.FileTypeSymlink, false))
+		default:
+			return nil, fmt.Errorf("node %#v has an unknown type", node.Message.Name)
+		}
+	}
+	if errNodes != nil {
+		return nil, errNodes
 	}
 	return fileInfos, nil
 }
 
 func (d *currentPackageLimitingDirectory[TReference, TMetadata]) Readlink(name path.Component) (path.Parser, error) {
-	leaves, err := model_filesystem.DirectoryGetLeaves(
-		d.options.context,
-		d.options.directoryReaders.Leaves,
-		d.directory,
-	)
+	node, _, err := model_filesystem.DirectoryLookupNode(d.options.context, d.options.directoryReaders.DirectoryEntries, d.directory, name)
 	if err != nil {
 		return nil, err
 	}
-
-	symlinks := leaves.Message.Symlinks
-	nameStr := name.String()
-	index, ok := sort.Find(
-		len(symlinks),
-		func(i int) int { return strings.Compare(nameStr, symlinks[i].Name) },
-	)
-	if !ok {
+	symlink := node.Message.GetSymlink()
+	if symlink == nil {
 		panic("attempted to read a symbolic link that was not reported by ReadDir()")
 	}
-	return path.UNIXFormat.NewParser(symlinks[index].Target), nil
+	return path.UNIXFormat.NewParser(symlink.Target), nil
 }
 
 func (d *currentPackageLimitingDirectory[TReference, TMetadata]) EnterCapturableDirectory(name path.Component) (*model_filesystem.CreatedDirectory[TMetadata], model_filesystem.CapturableDirectory[TMetadata, TMetadata], error) {
-	directories := d.directory.Message.Directories
-	nameStr := name.String()
-	index, ok := sort.Find(
-		len(directories),
-		func(i int) int { return strings.Compare(nameStr, directories[i].Name) },
-	)
-	if !ok {
-		panic("attempted to enter a directory that was not reported by ReadDir()")
-	}
-	childDirectory, err := model_filesystem.DirectoryGetContents(
-		d.options.context,
-		d.options.directoryReaders.DirectoryContents,
-		model_core.Nested(d.directory, directories[index].Directory),
-	)
+	childDirectory, err := model_filesystem.DirectoryLookupChild(d.options.context, d.options.directoryReaders.DirectoryEntries, d.directory, name)
 	if err != nil {
 		return nil, nil, err
+	}
+	if !childDirectory.IsSet() {
+		panic("attempted to enter a directory that was not reported by ReadDir()")
 	}
 	return nil, &currentPackageLimitingDirectory[TReference, TMetadata]{
 		options:   d.options,
@@ -182,7 +134,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeFilesInPackageValue(ctx conte
 		return PatchedFilesInPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	packageDirectory, err := getPackageDirectory(ctx, e, directoryReaders.DirectoryContents, key.Package)
+	packageDirectory, err := getPackageDirectory(ctx, e, directoryReaders.DirectoryEntries, key.Package)
 	if err != nil {
 		return PatchedFilesInPackageValue[TMetadata]{}, err
 	}

@@ -89,86 +89,81 @@ type filesUnderDirectoryReporter[TReference object.BasicReference, TMetadata mod
 	directoryFile    *model_starlark.File[TReference, TMetadata]
 
 	// Mutable fields.
-	directoriesStack []model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]
+	directoriesStack []model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]
 }
 
 func (r *filesUnderDirectoryReporter[TReference, TMetadata]) yieldFilesUnderCurrentDirectory(trace *path.Trace) (bool, error) {
 	currentDirectory := r.directoriesStack[len(r.directoriesStack)-1]
-	for _, entry := range currentDirectory.Message.Directories {
-		name, ok := path.NewComponent(entry.Name)
-		if !ok {
-			return false, fmt.Errorf("invalid name %#v for directory under directory %#v", entry.Name, trace.GetUNIXString())
-		}
-		childTrace := trace.Append(name)
 
-		childDirectory, err := model_filesystem.DirectoryGetContents(
-			r.context,
-			r.directoryReaders.DirectoryContents,
-			model_core.Nested(currentDirectory, entry.Directory),
-		)
-		if err != nil {
-			return false, fmt.Errorf("failed to get contents of directory %#v: %w", childTrace.GetUNIXString(), err)
-		}
+	// Iterate over the contents of subdirectories in lockstep with
+	// the nodes, as we traverse into all subdirectories.
+	var errChildren error
+	nextChild, stopChildren := iter.Pull2(model_filesystem.DirectoryAllChildren(r.context, r.directoryReaders.DirectoryEntries, currentDirectory, &errChildren))
+	defer stopChildren()
 
-		r.directoriesStack = append(r.directoriesStack, childDirectory)
-		if shouldContinue, err := r.yieldFilesUnderCurrentDirectory(childTrace); !shouldContinue {
-			return shouldContinue, err
-		}
-		r.directoriesStack = r.directoriesStack[:len(r.directoriesStack)-1]
-	}
-
-	leaves, err := model_filesystem.DirectoryGetLeaves(
+	var errIter error
+	for node := range model_filesystem.DirectoryAllNodes(
 		r.context,
-		r.directoryReaders.Leaves,
+		r.directoryReaders.DirectoryEntries,
 		currentDirectory,
-	)
-	if err != nil {
-		return false, err
-	}
-
-	for _, entry := range leaves.Message.Files {
-		name, ok := path.NewComponent(entry.Name)
+		&errIter,
+	) {
+		name, ok := path.NewComponent(node.Message.Name)
 		if !ok {
-			return false, fmt.Errorf("invalid name %#v for file under directory %#v", entry.Name, trace.GetUNIXString())
+			return false, fmt.Errorf("invalid name %#v for node under directory %#v", node.Message.Name, trace.GetUNIXString())
 		}
 		childTrace := trace.Append(name)
 
-		if !r.yield(r.directoryFile.WithTreeRelativePath(childTrace)) {
-			return false, nil
-		}
-	}
+		switch kind := node.Message.Kind.(type) {
+		case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+			_, childDirectory, ok := nextChild()
+			if !ok {
+				if errChildren != nil {
+					return false, fmt.Errorf("failed to get contents of directory %#v: %w", childTrace.GetUNIXString(), errChildren)
+				}
+				return false, fmt.Errorf("contents of directory %#v are missing", childTrace.GetUNIXString())
+			}
 
-	for _, entry := range leaves.Message.Symlinks {
-		name, ok := path.NewComponent(entry.Name)
-		if !ok {
-			return false, fmt.Errorf("invalid name %#v for symlink under directory %#v", entry.Name, trace.GetUNIXString())
-		}
-		childTrace := trace.Append(name)
+			r.directoriesStack = append(r.directoriesStack, childDirectory)
+			if shouldContinue, err := r.yieldFilesUnderCurrentDirectory(childTrace); !shouldContinue {
+				return shouldContinue, err
+			}
+			r.directoriesStack = r.directoriesStack[:len(r.directoriesStack)-1]
 
-		// To be consistent with how Bazel works, only report
-		// symlinks if they refer to files. If they refer to
-		// directories, we don't recurse into them.
-		directoryComponentWalker := model_filesystem.NewDirectoryComponentWalker(
-			r.context,
-			r.directoryReaders.DirectoryContents,
-			r.directoryReaders.Leaves,
-			func() (path.ComponentWalker, error) {
-				return nil, errors.New("path escapes the input root")
-			},
-			model_core.Message[*model_filesystem_pb.Directory, TReference]{},
-			append([]model_core.Message[*model_filesystem_pb.DirectoryContents, TReference](nil), r.directoriesStack...),
-		)
-		if err := path.Resolve(
-			path.UNIXFormat.NewParser(entry.Target),
-			path.NewRelativeScopeWalker(directoryComponentWalker),
-		); err != nil {
-			return false, fmt.Errorf("failed to resolve symlink %#v: %w", childTrace.GetUNIXString(), err)
-		}
-		if directoryComponentWalker.GetCurrentFileProperties().IsSet() {
+		case *model_filesystem_pb.DirectoryEntry_Node_File:
 			if !r.yield(r.directoryFile.WithTreeRelativePath(childTrace)) {
 				return false, nil
 			}
+
+		case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+			// To be consistent with how Bazel works, only
+			// report symlinks if they refer to files. If
+			// they refer to directories, we don't recurse
+			// into them.
+			directoryComponentWalker := model_filesystem.NewDirectoryComponentWalker(
+				r.context,
+				r.directoryReaders.DirectoryEntries,
+				func() (path.ComponentWalker, error) {
+					return nil, errors.New("path escapes the input root")
+				},
+				model_core.Message[*model_filesystem_pb.DirectoryReference, TReference]{},
+				append([]model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference](nil), r.directoriesStack...),
+			)
+			if err := path.Resolve(
+				path.UNIXFormat.NewParser(kind.Symlink.Target),
+				path.NewRelativeScopeWalker(directoryComponentWalker),
+			); err != nil {
+				return false, fmt.Errorf("failed to resolve symlink %#v: %w", childTrace.GetUNIXString(), err)
+			}
+			if directoryComponentWalker.GetCurrentFileProperties().IsSet() {
+				if !r.yield(r.directoryFile.WithTreeRelativePath(childTrace)) {
+					return false, nil
+				}
+			}
 		}
+	}
+	if errIter != nil {
+		return false, fmt.Errorf("failed to iterate directory %#v: %w", trace.GetUNIXString(), errIter)
 	}
 	return true, nil
 }
@@ -221,13 +216,12 @@ func expandFileIfDirectory[TReference object.BasicReference, TMetadata model_cor
 	}
 	directoryComponentWalker := model_filesystem.NewDirectoryComponentWalker(
 		ctx,
-		directoryReaders.DirectoryContents,
-		directoryReaders.Leaves,
+		directoryReaders.DirectoryEntries,
 		func() (path.ComponentWalker, error) {
 			return nil, errors.New("path escapes the input root")
 		},
-		model_core.Message[*model_filesystem_pb.Directory, TReference]{},
-		[]model_core.Message[*model_filesystem_pb.DirectoryContents, TReference]{
+		model_core.Message[*model_filesystem_pb.DirectoryReference, TReference]{},
+		[]model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{
 			model_core.Nested(fileRoot, fileRoot.Message.RootDirectory),
 		},
 	)

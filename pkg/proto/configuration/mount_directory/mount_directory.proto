@@ -25,8 +25,8 @@ message ApplicationConfiguration {
 
   bonanza.model.core.WeakDecodableReference root_directory_reference = 6
       [(bonanza.model.core.object_format) = {
-        proto_type_name:
-          "bonanza.model.filesystem.DirectoryContents";
+        proto_list_type_name:
+          "bonanza.model.filesystem.DirectoryEntry";
       }];
 
   repeated bonanza.model.encoding.BinaryEncoder directory_encoders = 7;

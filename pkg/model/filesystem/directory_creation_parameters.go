@@ -1,9 +1,12 @@
 package filesystem
 
 import (
+	"bonanza.build/pkg/model/chunking"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
+
+	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,8 +17,8 @@ import (
 // trees of directories.
 type DirectoryCreationParameters struct {
 	*DirectoryAccessParameters
-	referenceFormat           object.ReferenceFormat
-	directoryMaximumSizeBytes int
+	referenceFormat       object.ReferenceFormat
+	directoriesParameters chunking.Parameters
 }
 
 // NewDirectoryCreationParametersFromProto converts the directory
@@ -32,14 +35,14 @@ func NewDirectoryCreationParametersFromProto(m *model_filesystem_pb.DirectoryCre
 		return nil, err
 	}
 
-	maximumObjectSizeBytes := uint32(referenceFormat.GetMaximumObjectSizeBytes())
-	if m.DirectoryMaximumSizeBytes > maximumObjectSizeBytes {
-		return nil, status.Errorf(codes.InvalidArgument, "Maximum size of directories is above maximum object size of %d bytes", maximumObjectSizeBytes)
+	directoriesParameters, err := chunking.NewParametersFromProto(m.DirectoriesParameters, referenceFormat)
+	if err != nil {
+		return nil, util.StatusWrap(err, "Invalid directories parameters")
 	}
 
 	return &DirectoryCreationParameters{
 		DirectoryAccessParameters: accessParameters,
 		referenceFormat:           referenceFormat,
-		directoryMaximumSizeBytes: int(m.DirectoryMaximumSizeBytes),
+		directoriesParameters:     directoriesParameters,
 	}, nil
 }
