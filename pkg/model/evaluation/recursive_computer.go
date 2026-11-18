@@ -555,6 +555,14 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsParentNodeComp
 	})
 }
 
+// getEvaluationsForSortedList creates a B-tree of evaluations for a
+// list of keys, sorted by key reference.
+//
+// This function must be called without the RecursiveComputer's lock
+// held. As value states are immutable, graphlets are computed without
+// holding the lock. The lock is only acquired to obtain the value
+// states of the keys, and to store new value states that were computed
+// along the way.
 func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(ctx context.Context, sortedKeyStates []*KeyState[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_evaluation_pb.Evaluations, TMetadata], error) {
 	evaluationsBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
@@ -573,8 +581,24 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(
 
 	for _, ks := range sortedKeyStates {
 		evaluations, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_evaluation_pb.Evaluations, error) {
-			newValueState, graphlet, err := ks.valueState.getGraphlet(ctx, rc, ks)
-			ks.valueState = newValueState
+			rc.lock.RLock()
+			valueState := ks.valueState
+			rc.lock.RUnlock()
+
+			newValueState, graphlet, err := valueState.getGraphlet(ctx, rc, ks)
+
+			// Computing the graphlet may have yielded a
+			// value state that allows the graphlet to be
+			// recomputed more efficiently. Only store it if
+			// the value state has not been replaced in the
+			// meantime (e.g., due to it being uploaded).
+			// Instances of valueState are either pointers
+			// or empty structs, meaning they are comparable.
+			rc.lock.Lock()
+			if ks.valueState == valueState {
+				ks.valueState = newValueState
+			}
+			rc.lock.Unlock()
 			if err != nil {
 				return nil, err
 			}
@@ -656,7 +680,8 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getKeysForSortedList(ctx con
 
 // gatherTopLevelKeyStates recursively gathers all hoisted dependencies
 // of a KeyState. This should be invoked when creating a top-level list
-// of evaluation results, which can be returned to the client.
+// of evaluation results, which can be returned to the client. This
+// function must be called with the RecursiveComputer's lock held.
 func gatherTopLevelKeyStates[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](out map[*KeyState[TReference, TMetadata]]struct{}, ks *KeyState[TReference, TMetadata]) {
 	if _, ok := out[ks]; !ok {
 		out[ks] = struct{}{}
@@ -670,15 +695,14 @@ func gatherTopLevelKeyStates[TReference object.BasicReference, TMetadata model_c
 // for all provided KeyStates, including all of their transitive
 // dependencies.
 func (rc *RecursiveComputer[TReference, TMetadata]) GetEvaluations(ctx context.Context, keyStates []*KeyState[TReference, TMetadata]) (model_core.PatchedMessage[[]*model_evaluation_pb.Evaluations, TMetadata], error) {
-	rc.lock.Lock()
-	defer rc.lock.Unlock()
-
+	rc.lock.RLock()
 	topLevelKeyStates := map[*KeyState[TReference, TMetadata]]struct{}{}
 	for _, ks := range keyStates {
 		if ks.valueState.isEvaluated() && (ks.valueState.getError() != nil || ks.valueState.isVariableDependency()) {
 			gatherTopLevelKeyStates(topLevelKeyStates, ks)
 		}
 	}
+	rc.lock.RUnlock()
 
 	return rc.getEvaluationsForSortedList(ctx, sortedKeyStates(topLevelKeyStates))
 }
@@ -1085,6 +1109,10 @@ type variableDependenciesGatherer[TReference object.BasicReference, TMetadata mo
 	nestedVariableDependencies  map[*KeyState[TReference, TMetadata]]struct{}
 }
 
+// gatherDependencies recursively gathers variable dependencies that
+// should either be hoisted or nested. As this requires access to the
+// value states of the dependencies, this method must be called with the
+// RecursiveComputer's lock held.
 func (g *variableDependenciesGatherer[TReference, TMetadata]) gatherDependencies(variableDependencies []*KeyState[TReference, TMetadata]) {
 	for _, ksDep := range variableDependencies {
 		if cmp := bytes.Compare(g.keyRawReference, ksDep.keyReference.GetRawReference()); cmp < 0 {
@@ -1134,12 +1162,16 @@ func (rc *RecursiveComputer[TReference, TMetadata]) newVariableDependenciesCompu
 	if len(directVariableDependencies) == 0 {
 		panic("key does not have any direct variable dependencies")
 	}
+	// Gathering dependencies requires access to the value states
+	// of other keys, which may be replaced concurrently.
 	gatherer := variableDependenciesGatherer[TReference, TMetadata]{
 		keyRawReference:             ks.keyReference.GetRawReference(),
 		hoistedVariableDependencies: map[*KeyState[TReference, TMetadata]]struct{}{},
 		nestedVariableDependencies:  map[*KeyState[TReference, TMetadata]]struct{}{},
 	}
+	rc.lock.RLock()
 	gatherer.gatherDependencies(directVariableDependencies)
+	rc.lock.RUnlock()
 	hoistedVariableDependencies := sortedKeyStates(gatherer.hoistedVariableDependencies)
 	if len(hoistedVariableDependencies) == 0 {
 		panic("key does not have any hoisted variable dependencies")
@@ -1234,7 +1266,11 @@ func (kf *staticMessageFetcher[TReference, TMetadata]) getNative(ctx context.Con
 // the key or any error that occurred computing it.
 type KeyState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	// Constant fields.
-	keyReference      object.LocalReference
+	keyReference object.LocalReference
+	// Keys that are overridden are created without a message
+	// fetcher. It is set with the RecursiveComputer's lock held
+	// when the key is first requested as a dependency, which is
+	// before any code that reads it can obtain the KeyState.
 	keyMessageFetcher messageFetcher[TReference, TMetadata]
 	isLookup          bool
 
@@ -1634,7 +1670,9 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGr
 		keyRawReference:            ks.keyReference.GetRawReference(),
 		nestedVariableDependencies: map[*KeyState[TReference, TMetadata]]struct{}{},
 	}
+	rc.lock.RLock()
 	gatherer.gatherDependencies(vs.directVariableDependencies)
+	rc.lock.RUnlock()
 	nestedVariableDependencies := sortedKeyStates(gatherer.nestedVariableDependencies)
 
 	evaluationsParentNodeComputer := rc.getEvaluationsParentNodeComputer(ctx)

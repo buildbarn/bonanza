@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -546,4 +547,130 @@ func TestRecursiveComputerCache(t *testing.T) {
 		require.Equal(t, uint32(5), value)
 		require.NotZero(t, evaluations[keyR])
 	})
+}
+
+func TestRecursiveComputerConcurrentUploadAndGetEvaluations(t *testing.T) {
+	// Uploading keys having variable dependencies and requesting
+	// their evaluations both cause graphlets to be computed, which
+	// replaces the value states of the keys and their dependencies.
+	// Run these concurrently, so that the race detector can catch
+	// any unsynchronized access to value states. As the exact
+	// interleaving is not deterministic, this test is not
+	// guaranteed to catch all races.
+	ctx := context.Background()
+	h := newCacheTestHarness(t)
+
+	// Keys 1 to 10 are overridden, making them variable
+	// dependencies. Keys 100 to 199 form a chain, where each key
+	// also depends on one of the overridden keys. This causes
+	// dependencies to be nested into graphlets.
+	const overriddenKeys, firstChainKey, chainLength = 10, 100, 100
+	functions := map[uint32]func(get func(uint32) (uint32, bool)) (uint32, bool){}
+	for i := uint32(0); i < chainLength; i++ {
+		key := firstChainKey + i
+		functions[key] = func(get func(uint32) (uint32, bool)) (uint32, bool) {
+			v, ok := get(key%overriddenKeys + 1)
+			if key > firstChainKey {
+				previous, okPrevious := get(key - 1)
+				v += previous
+				ok = ok && okPrevious
+			}
+			return v, ok
+		}
+	}
+	lastKey := uint32(firstChainKey + chainLength - 1)
+	computer := &cacheTestComputer{
+		functions:   functions,
+		root:        lastKey,
+		evaluations: map[uint32]int{},
+	}
+	queues := model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](4).NewQueues()
+	recursiveComputer := model_evaluation.NewRecursiveComputer(
+		computer,
+		queues,
+		object.SHA256V1ReferenceFormat,
+		testChunkingParameters,
+		h.storage,
+		h.storage,
+		/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("9aa6b4ec3b3a1b6c3c4d7b0b07dcb1f3ee5e2e2a59a4b2e5e1f4e0de8d0e5c1a", 100, 0, 0, 0),
+		h.evaluationReader,
+		h.lookupResultReader,
+		h.keysReader,
+		h.cacheDeterministicEncoder,
+		h.cacheKeyedEncoder,
+		h.clock,
+		cacheTestIndirectionMaximumAge,
+	)
+	for key := uint32(1); key <= overriddenKeys; key++ {
+		require.NoError(t, recursiveComputer.OverrideKeyState(cacheTestKeyReference(key), cacheTestKey(key)))
+	}
+
+	probeKeyState, err := recursiveComputer.GetOrCreateKeyState(
+		util.Must(
+			model_core.MarshalTopLevelAny(
+				model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+					&wrapperspb.StringValue{Value: "probe"},
+				),
+			),
+		),
+	)
+	require.NoError(t, err)
+	require.NoError(t, program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+		queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
+		return recursiveComputer.WaitForEvaluation(ctx, probeKeyState)
+	}))
+
+	var chainKeyStates []*model_evaluation.KeyState[object.LocalReference, model_core.ReferenceMetadata]
+	for i := uint32(0); i < chainLength; i++ {
+		ks, err := recursiveComputer.GetOrCreateKeyState(cacheTestKey(firstChainKey + i))
+		require.NoError(t, err)
+		chainKeyStates = append(chainKeyStates, ks)
+	}
+
+	// Upload all keys, while concurrently requesting evaluations
+	// until uploading completes.
+	recursiveComputer.GracefullyStopUploading()
+	var wg sync.WaitGroup
+	var uploadingDone atomic.Bool
+	errs := make(chan error, 9)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer uploadingDone.Store(true)
+		for {
+			shouldContinue, err := recursiveComputer.ProcessNextUploadableKey(ctx)
+			if err != nil {
+				errs <- err
+				return
+			}
+			if !shouldContinue {
+				return
+			}
+		}
+	}()
+	for i := range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := i; !uploadingDone.Load(); j = (j + 8) % len(chainKeyStates) {
+				evaluations, err := recursiveComputer.GetEvaluations(ctx, chainKeyStates[j:j+1])
+				if err != nil {
+					errs <- err
+					return
+				}
+				evaluations.Discard()
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		require.NoError(t, err)
+	}
+
+	// Requesting evaluations after uploading should still work.
+	evaluations, err := recursiveComputer.GetEvaluations(ctx, chainKeyStates)
+	require.NoError(t, err)
+	require.NotEmpty(t, evaluations.Message)
+	evaluations.Discard()
 }
