@@ -86,18 +86,19 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 	}
 	stableFingerprint := sha256.Sum256(marshaledStableTarget)
 
-	var resultReference model_core.Decodable[TReference]
+	actionReference := model_core.CopyDecodable(
+		createdAction,
+		e.ReferenceObject(capturedAction),
+	)
+	var resultReference *model_core.Decodable[TReference]
 	var errExecution error
 	for range c.executionClient.RunAction(
 		ctx,
 		fetchPlatformECDHPublicKey,
 		&model_executewithstorage.Action[TReference]{
-			Reference: model_core.CopyDecodable(
-				createdAction,
-				e.ReferenceObject(capturedAction),
-			),
-			Encoders: actionEncodersValue.Message.ActionEncoders,
-			Format:   fetchActionObjectFormat,
+			Reference: &actionReference,
+			Encoders:  actionEncodersValue.Message.ActionEncoders,
+			Format:    fetchActionObjectFormat,
 		},
 		&encryptedaction_pb.Action_AdditionalData{
 			StableFingerprint: stableFingerprint[:],
@@ -111,8 +112,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 	if errExecution != nil {
 		return PatchedHTTPFileContentsValue[TMetadata]{}, errExecution
 	}
+	if resultReference == nil {
+		return PatchedHTTPFileContentsValue[TMetadata]{}, errors.New("fetcher did not return a result")
+	}
 
-	result, err := actionEncoders.Readers.FetchResult.ReadObject(ctx, resultReference)
+	result, err := actionEncoders.Readers.FetchResult.ReadObject(ctx, *resultReference)
 	if err != nil {
 		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to read completion event: %w", err)
 	}

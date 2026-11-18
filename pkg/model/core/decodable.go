@@ -131,3 +131,27 @@ func DecodableLocalReferenceToWeakProto[TReference object.BasicReference](refere
 		DecodingParameters: reference.GetDecodingParameters(),
 	}
 }
+
+// NewOptionalDecodableLocalReferenceFromWeakProto converts a
+// WeakDecodableReference Protobuf message that may be absent to its
+// native counterpart. If the message is not set, nil is returned.
+func NewOptionalDecodableLocalReferenceFromWeakProto(referenceFormat object.ReferenceFormat, m *model_core_pb.WeakDecodableReference) (*Decodable[object.LocalReference], error) {
+	if m == nil {
+		return nil, nil
+	}
+	reference, err := NewDecodableLocalReferenceFromWeakProto(referenceFormat, m)
+	if err != nil {
+		return nil, err
+	}
+	return &reference, nil
+}
+
+// OptionalDecodableLocalReferenceToWeakProto converts a reference
+// containing decoding parameters that may be absent to a Protobuf
+// message. If the reference is absent, nil is returned.
+func OptionalDecodableLocalReferenceToWeakProto[TReference object.BasicReference](reference *Decodable[TReference]) *model_core_pb.WeakDecodableReference {
+	if reference == nil {
+		return nil
+	}
+	return DecodableLocalReferenceToWeakProto(*reference)
+}

@@ -84,7 +84,7 @@ func NewExecutor(
 	cacheLookupResultIndirectionMaximumAge time.Duration,
 	binaryEncoderFactory model_encoding.BinaryEncoderFactory,
 	clock clock.Clock,
-) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
+) remoteworker.Executor[*model_executewithstorage.NamespacedAction, *model_core.Decodable[object.LocalReference], *model_core.Decodable[object.LocalReference]] {
 	return &executor{
 		objectDownloader:                       objectDownloader,
 		computerFactory:                        computerFactory,
@@ -108,61 +108,55 @@ func (executor) CheckReadiness(ctx context.Context) error {
 
 var actionObjectFormat = model_core.NewProtoObjectFormat(&model_evaluation_pb.Action{})
 
-func (e *executor) Execute(ctx context.Context, action *model_executewithstorage.Action[object.GlobalReference], executionTimeout time.Duration, executionEvents chan<- model_core.Decodable[object.LocalReference]) (model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
+func (e *executor) Execute(ctx context.Context, action *model_executewithstorage.NamespacedAction, executionTimeout time.Duration, executionEvents chan<- *model_core.Decodable[object.LocalReference]) (*model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
 	// Objects created during evaluation are buffered in memory,
 	// and written to storage in the background. If writing fails,
 	// evaluation is interrupted and the error is returned.
 	evictionSet, err := eviction.NewSetFromConfiguration[object.LocalReference](e.bufferedObjectsCacheReplacementPolicy)
 	if err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrap(err, "Failed to create eviction set for buffered objects")
+		return nil, 0, 0, util.StatusWrap(err, "Failed to create eviction set for buffered objects")
 	}
 	objectPool := buffered.NewObjectPool(
 		e.bufferedObjectsLimit,
 		eviction.NewMetricsSet(evictionSet, "BufferedObjectPool"),
 	)
-	var resultReference model_core.Decodable[object.LocalReference]
+	var resultReference *model_core.Decodable[object.LocalReference]
 	var resultCode remoteworker_pb.CurrentState_Completed_Result
 	if err := program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
 		dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-			return objectPool.SendQueuedObjects(ctx, e.dagUploaderClient, action.Reference.Value.GetNamespace())
+			return objectPool.SendQueuedObjects(ctx, e.dagUploaderClient, action.Namespace)
 		})
 
 		var err error
 		resultReference, resultCode, err = e.execute(ctx, action, executionEvents, objectPool)
 		return err
 	}); err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, err
+		return nil, 0, 0, err
 	}
 	return resultReference, 0, resultCode, nil
 }
 
-func (e *executor) execute(ctx context.Context, action *model_executewithstorage.Action[object.GlobalReference], executionEvents chan<- model_core.Decodable[object.LocalReference], objectPool *buffered.ObjectPool) (model_core.Decodable[object.LocalReference], remoteworker_pb.CurrentState_Completed_Result, error) {
+func (e *executor) execute(ctx context.Context, action *model_executewithstorage.NamespacedAction, executionEvents chan<- *model_core.Decodable[object.LocalReference], objectPool *buffered.ObjectPool) (*model_core.Decodable[object.LocalReference], remoteworker_pb.CurrentState_Completed_Result, error) {
 	if !proto.Equal(action.Format, actionObjectFormat) {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
+		return nil, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
 	}
 
-	actionGlobalReference := action.Reference.Value
-	instanceName := actionGlobalReference.InstanceName
-	referenceFormat := action.Reference.Value.GetReferenceFormat()
+	instanceName := action.Namespace.InstanceName
+	referenceFormat := action.Namespace.ReferenceFormat
 
 	deterministicActionEncoder, err := e.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
 		action.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
 	if err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, util.StatusWrap(err, "Failed to create deterministic action encoder")
+		return nil, 0, util.StatusWrap(err, "Failed to create deterministic action encoder")
 	}
 	keyedActionEncoder, err := e.binaryEncoderFactory.NewKeyedBinaryEncoderFromProto(
 		action.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
 	if err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, util.StatusWrap(err, "Failed to create keyed action encoder")
+		return nil, 0, util.StatusWrap(err, "Failed to create keyed action encoder")
 	}
 
 	objectManager := buffered.NewObjectManager(objectPool)
@@ -185,18 +179,23 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 				model_parser.NewProtoObjectParser[buffered.Reference, model_evaluation_pb.Action](),
 			),
 		)
-		actionMessage, err := actionReader.ReadObject(
-			ctx,
-			model_core.CopyDecodable(
-				action.Reference,
-				objectExporter.ImportReference(actionGlobalReference.LocalReference),
-			),
-		)
-		if err != nil {
-			result.Failure = &model_evaluation_pb.Result_Failure{
-				Status: status.Convert(err).Proto(),
+		// An action that is not backed by an object is empty.
+		actionMessage := model_core.NewSimpleMessage[buffered.Reference](&model_evaluation_pb.Action{})
+		if action.Reference != nil {
+			var err error
+			actionMessage, err = actionReader.ReadObject(
+				ctx,
+				model_core.CopyDecodable(
+					*action.Reference,
+					objectExporter.ImportReference(action.Reference.Value),
+				),
+			)
+			if err != nil {
+				result.Failure = &model_evaluation_pb.Result_Failure{
+					Status: status.Convert(err).Proto(),
+				}
+				return &result
 			}
-			return &result
 		}
 		chunkingParameters, err := chunking.NewParametersFromProto(actionMessage.Message.ChunkingParameters, referenceFormat)
 		if err != nil {
@@ -319,7 +318,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 		recursiveComputer := NewRecursiveComputer(
 			NewLeakCheckingComputer(
 				e.computerFactory.NewComputer(
-					action.Reference.Value.GetNamespace(),
+					action.Namespace,
 					parsedObjectPoolIngester,
 					objectExporter,
 					chunkingParameters,
@@ -495,32 +494,42 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 					if err != nil {
 						return err
 					}
-					createdProgress, err := model_core.MarshalAndEncodeDeterministic(
-						model_core.ProtoToBinaryMarshaler(progress),
-						referenceFormat,
-						deterministicActionEncoder,
-					)
-					if err != nil {
-						return err
-					}
-					capturedProgress, err := createdProgress.Value.Capture(ctx, objectManager)
-					if err != nil {
-						if ctx.Err() != nil {
-							return nil
+
+					// Store the progress in an object. As
+					// objects cannot be empty, don't provide
+					// a reference if the progress message is
+					// empty (e.g., if all counters are zero).
+					var progressReference *model_core.Decodable[object.LocalReference]
+					if proto.Size(progress.Message) > 0 {
+						createdProgress, err := model_core.MarshalAndEncodeDeterministic(
+							model_core.ProtoToBinaryMarshaler(progress),
+							referenceFormat,
+							deterministicActionEncoder,
+						)
+						if err != nil {
+							return err
 						}
-						return err
-					}
-					progressReference, err := objectExporter.ExportReference(ctx, objectManager.ReferenceObject(capturedProgress))
-					if err != nil {
-						if ctx.Err() != nil {
-							return nil
+						capturedProgress, err := createdProgress.Value.Capture(ctx, objectManager)
+						if err != nil {
+							if ctx.Err() != nil {
+								return nil
+							}
+							return err
 						}
-						return err
+						exportedProgressReference, err := objectExporter.ExportReference(ctx, objectManager.ReferenceObject(capturedProgress))
+						if err != nil {
+							if ctx.Err() != nil {
+								return nil
+							}
+							return err
+						}
+						decodableProgressReference := model_core.CopyDecodable(createdProgress, exportedProgressReference)
+						progressReference = &decodableProgressReference
 					}
 
 					select {
 					case <-ctx.Done():
-					case executionEvents <- model_core.CopyDecodable(createdProgress, progressReference):
+					case executionEvents <- progressReference:
 					}
 				}
 			})
@@ -638,38 +647,42 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 		return &result
 	})
 
-	createdResult, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoToBinaryMarshaler(resultMessage),
-		referenceFormat,
-		deterministicActionEncoder,
-	)
-	if err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
-	}
-	capturedResult, err := createdResult.Value.Capture(ctx, objectManager)
-	if err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, util.StatusWrap(err, "Failed to capture result")
-	}
-
-	resultReference, err := objectExporter.ExportReference(ctx, objectManager.ReferenceObject(capturedResult))
-	if err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, util.StatusWrap(err, "Failed to export result")
+	// Store the result in an object. As objects cannot be empty,
+	// don't return a result reference if the result message is
+	// empty (e.g., if evaluation succeeded without yielding any
+	// outcomes).
+	var resultReference *model_core.Decodable[object.LocalReference]
+	if proto.Size(resultMessage.Message) > 0 {
+		createdResult, err := model_core.MarshalAndEncodeDeterministic(
+			model_core.ProtoToBinaryMarshaler(resultMessage),
+			referenceFormat,
+			deterministicActionEncoder,
+		)
+		if err != nil {
+			return nil, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
+		}
+		capturedResult, err := createdResult.Value.Capture(ctx, objectManager)
+		if err != nil {
+			return nil, 0, util.StatusWrap(err, "Failed to capture result")
+		}
+		exportedResultReference, err := objectExporter.ExportReference(ctx, objectManager.ReferenceObject(capturedResult))
+		if err != nil {
+			return nil, 0, util.StatusWrap(err, "Failed to export result")
+		}
+		decodableResultReference := model_core.CopyDecodable(createdResult, exportedResultReference)
+		resultReference = &decodableResultReference
 	}
 
 	// Tags are created asynchronously. Wait for them to be written,
 	// so that subsequent builds can make use of the cached
 	// evaluation results.
 	if err := objectPool.FlushTags(ctx); err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, util.StatusWrap(err, "Failed to write cached evaluation results")
+		return nil, 0, util.StatusWrap(err, "Failed to write cached evaluation results")
 	}
 
 	resultCode := remoteworker_pb.CurrentState_Completed_SUCCEEDED
 	if resultMessage.Message.Failure != nil {
 		resultCode = remoteworker_pb.CurrentState_Completed_FAILED
 	}
-	return model_core.CopyDecodable(createdResult, resultReference), resultCode, nil
+	return resultReference, resultCode, nil
 }

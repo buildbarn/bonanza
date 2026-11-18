@@ -13,7 +13,7 @@ import (
 )
 
 type objectExportingClient[TInternal, TExternal any] struct {
-	base     remoteexecution.Client[*Action[TExternal], model_core.Decodable[TExternal], model_core.Decodable[TExternal]]
+	base     remoteexecution.Client[*Action[TExternal], *model_core.Decodable[TExternal], *model_core.Decodable[TExternal]]
 	exporter model_core.ObjectExporter[TInternal, TExternal]
 }
 
@@ -25,9 +25,9 @@ type objectExportingClient[TInternal, TExternal any] struct {
 // reside in local memory to storage, so that the worker executing the
 // action has access to them as well.
 func NewObjectExportingClient[TInternal, TExternal any](
-	base remoteexecution.Client[*Action[TExternal], model_core.Decodable[TExternal], model_core.Decodable[TExternal]],
+	base remoteexecution.Client[*Action[TExternal], *model_core.Decodable[TExternal], *model_core.Decodable[TExternal]],
 	exporter model_core.ObjectExporter[TInternal, TExternal],
-) remoteexecution.Client[*Action[TInternal], model_core.Decodable[TInternal], model_core.Decodable[TInternal]] {
+) remoteexecution.Client[*Action[TInternal], *model_core.Decodable[TInternal], *model_core.Decodable[TInternal]] {
 	return &objectExportingClient[TInternal, TExternal]{
 		base:     base,
 		exporter: exporter,
@@ -39,44 +39,41 @@ func (c *objectExportingClient[TInternal, TExternal]) RunAction(
 	platformECDHPublicKey *ecdh.PublicKey,
 	action *Action[TInternal],
 	actionAdditionalData *encryptedaction_pb.Action_AdditionalData,
-	resultReferenceOut *model_core.Decodable[TInternal],
+	resultReferenceOut **model_core.Decodable[TInternal],
 	errOut *error,
-) iter.Seq[model_core.Decodable[TInternal]] {
-	externalActionReference, err := c.exporter.ExportReference(ctx, action.Reference.Value)
-	if err != nil {
-		*errOut = util.StatusWrap(err, "Failed to export action")
-		return func(yield func(model_core.Decodable[TInternal]) bool) {}
+) iter.Seq[*model_core.Decodable[TInternal]] {
+	var externalActionReference *model_core.Decodable[TExternal]
+	if action.Reference != nil {
+		reference, err := c.exporter.ExportReference(ctx, action.Reference.Value)
+		if err != nil {
+			*errOut = util.StatusWrap(err, "Failed to export action")
+			return func(yield func(*model_core.Decodable[TInternal]) bool) {}
+		}
+		decodableReference := model_core.CopyDecodable(*action.Reference, reference)
+		externalActionReference = &decodableReference
 	}
 
 	ctxWithCancel, cancel := context.WithCancel(ctx)
-	var baseResultReference model_core.Decodable[TExternal]
+	var baseResultReference *model_core.Decodable[TExternal]
 	var baseErr error
 	eventReferences := c.base.RunAction(
 		ctxWithCancel,
 		platformECDHPublicKey,
 		&Action[TExternal]{
-			Reference: model_core.CopyDecodable(
-				action.Reference,
-				externalActionReference,
-			),
-			Encoders: action.Encoders,
-			Format:   action.Format,
+			Reference: externalActionReference,
+			Encoders:  action.Encoders,
+			Format:    action.Format,
 		},
 		actionAdditionalData,
 		&baseResultReference,
 		&baseErr,
 	)
-	return func(yield func(model_core.Decodable[TInternal]) bool) {
+	return func(yield func(*model_core.Decodable[TInternal]) bool) {
 		defer cancel()
 
 		// Convert event references to native types.
 		for eventReference := range eventReferences {
-			if !yield(
-				model_core.CopyDecodable(
-					eventReference,
-					c.exporter.ImportReference(eventReference.Value),
-				),
-			) {
+			if !yield(c.importReference(eventReference)) {
 				break
 			}
 		}
@@ -86,10 +83,17 @@ func (c *objectExportingClient[TInternal, TExternal]) RunAction(
 			*errOut = baseErr
 			return
 		}
-		*resultReferenceOut = model_core.CopyDecodable(
-			baseResultReference,
-			c.exporter.ImportReference(baseResultReference.Value),
-		)
+		*resultReferenceOut = c.importReference(baseResultReference)
 		*errOut = nil
 	}
+}
+
+// importReference converts an execution event or result reference that
+// may be absent to its native type.
+func (c *objectExportingClient[TInternal, TExternal]) importReference(reference *model_core.Decodable[TExternal]) *model_core.Decodable[TInternal] {
+	if reference == nil {
+		return nil
+	}
+	importedReference := model_core.CopyDecodable(*reference, c.exporter.ImportReference(reference.Value))
+	return &importedReference
 }

@@ -15,7 +15,6 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	"bonanza.build/pkg/proto/configuration/bonanza_builder"
-	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_executewithstorage_pb "bonanza.build/pkg/proto/model/executewithstorage"
 	remoteexecution_pb "bonanza.build/pkg/proto/remoteexecution"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
@@ -148,7 +147,7 @@ func main() {
 						model_analysis.NewBaseComputerFactory[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]](
 							filePool,
 							model_executewithstorage.NewProtoClient(
-								remoteexecution.NewProtoClient[*model_executewithstorage_pb.Action, model_core_pb.WeakDecodableReference, model_core_pb.WeakDecodableReference](
+								remoteexecution.NewProtoClient[*model_executewithstorage_pb.Action, model_executewithstorage_pb.Event, model_executewithstorage_pb.Result](
 									remoteexecution.NewRemoteClient(
 										remoteexecution_pb.NewExecutionClient(executionGRPCClient),
 										executionClientPrivateKey,

@@ -17,7 +17,6 @@ go_library(
         "//pkg/model/parser",
         "//pkg/model/starlark",
         "//pkg/proto/configuration/bonanza_builder",
-        "//pkg/proto/model/core",
         "//pkg/proto/model/executewithstorage",
         "//pkg/proto/remoteexecution",
         "//pkg/proto/remoteworker",

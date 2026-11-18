@@ -815,7 +815,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	}
 	builderClient := model_executewithstorage.NewNamespaceAddingClient(
 		model_executewithstorage.NewProtoClient(
-			remoteexecution.NewProtoClient[*model_executewithstorage_pb.Action, model_core_pb.WeakDecodableReference, model_core_pb.WeakDecodableReference](
+			remoteexecution.NewProtoClient[*model_executewithstorage_pb.Action, model_executewithstorage_pb.Event, model_executewithstorage_pb.Result](
 				remoteexecution.NewRemoteClient(
 					remoteexecution_pb.NewExecutionClient(remoteExecutorClient),
 					clientPrivateKey,
@@ -823,7 +823,10 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 				),
 			),
 		),
-		instanceName,
+		object.Namespace{
+			InstanceName:    instanceName,
+			ReferenceFormat: referenceFormat,
+		},
 	)
 
 	builderPKIXPublicKey, err := base64.StdEncoding.DecodeString(commonFlags.RemoteExecutorBuilderPkixPublicKey)
@@ -891,7 +894,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	}
 
 	logger.Info(formatted.Join(formatted.Text("Performing "+commandName+" "), actionLink))
-	var resultReference model_core.Decodable[object.LocalReference]
+	var resultReference *model_core.Decodable[object.LocalReference]
 	var errBuild error
 	namespace := object.Namespace{
 		InstanceName:    instanceName,
@@ -909,12 +912,9 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		context.Background(),
 		builderECDHPublicKey,
 		&model_executewithstorage.Action[object.LocalReference]{
-			Reference: model_core.CopyDecodable(
-				createdAction,
-				actionReference,
-			),
-			Encoders: defaultEncoders,
-			Format:   evaluationActionObjectFormat,
+			Reference: &decodableActionReference,
+			Encoders:  defaultEncoders,
+			Format:    evaluationActionObjectFormat,
 		},
 		&encryptedaction_pb.Action_AdditionalData{
 			ExecutionTimeout: &durationpb.Duration{Seconds: 24 * 60 * 60},
@@ -922,9 +922,15 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		&resultReference,
 		&errBuild,
 	) {
-		progress, err := progressReader.ReadObject(context.Background(), progressReference)
-		if err != nil {
-			logger.Fatal(formatted.Textf("Failed to read progress message: %s", err))
+		// The builder does not provide a progress reference if the
+		// progress message is empty.
+		progress := model_core.NewSimpleMessage[object.LocalReference](&model_evaluation_pb.Progress{})
+		if progressReference != nil {
+			var err error
+			progress, err = progressReader.ReadObject(context.Background(), *progressReference)
+			if err != nil {
+				logger.Fatal(formatted.Textf("Failed to read progress message: %s", err))
+			}
 		}
 		logger.RemovePreviousLines(progressLinesWritten)
 		progressLinesWritten = 0
@@ -1004,12 +1010,15 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		),
 	)
 
-	result, err := resultReader.ReadObject(
-		context.Background(),
-		resultReference,
-	)
-	if err != nil {
-		logger.Fatal(formatted.Textf("Failed to read result message: %s", err))
+	// The builder does not return a result reference if the result
+	// message is empty.
+	result := model_core.NewSimpleMessage[object.LocalReference](&model_evaluation_pb.Result{})
+	if resultReference != nil {
+		var err error
+		result, err = resultReader.ReadObject(context.Background(), *resultReference)
+		if err != nil {
+			logger.Fatal(formatted.Textf("Failed to read result message: %s", err))
+		}
 	}
 
 	var outcomesReference *model_core.Decodable[object.LocalReference]

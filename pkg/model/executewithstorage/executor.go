@@ -5,7 +5,6 @@ import (
 	"time"
 
 	model_core "bonanza.build/pkg/model/core"
-	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_executewithstorage_pb "bonanza.build/pkg/proto/model/executewithstorage"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
 	"bonanza.build/pkg/remoteworker"
@@ -15,7 +14,7 @@ import (
 )
 
 type executor struct {
-	remoteworker.Executor[*Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]]
+	remoteworker.Executor[*NamespacedAction, *model_core.Decodable[object.LocalReference], *model_core.Decodable[object.LocalReference]]
 }
 
 // NewExecutor creates a decorator for the remote worker executor that
@@ -25,22 +24,24 @@ type executor struct {
 //
 // The advantage of using this decorator is that the caller can use
 // native types for decodable references, as opposed to sending and
-// receiving their Protobuf message equivalents.
+// receiving their Protobuf message equivalents. Executors may provide
+// nil execution event and result references to indicate that these
+// messages are empty.
 func NewExecutor(
-	base remoteworker.Executor[*Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]],
-) remoteworker.Executor[*model_executewithstorage_pb.Action, *model_core_pb.WeakDecodableReference, *model_core_pb.WeakDecodableReference] {
+	base remoteworker.Executor[*NamespacedAction, *model_core.Decodable[object.LocalReference], *model_core.Decodable[object.LocalReference]],
+) remoteworker.Executor[*model_executewithstorage_pb.Action, *model_executewithstorage_pb.Event, *model_executewithstorage_pb.Result] {
 	return &executor{
 		Executor: base,
 	}
 }
 
-func (e *executor) Execute(ctx context.Context, action *model_executewithstorage_pb.Action, executionTimeout time.Duration, executionEventMessages chan<- *model_core_pb.WeakDecodableReference) (*model_core_pb.WeakDecodableReference, time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
+func (e *executor) Execute(ctx context.Context, action *model_executewithstorage_pb.Action, executionTimeout time.Duration, executionEventMessages chan<- *model_executewithstorage_pb.Event) (*model_executewithstorage_pb.Result, time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
 	namespace, err := object.NewNamespace(action.Namespace)
 	if err != nil {
 		return nil, 0, 0, util.StatusWrap(err, "Invalid namespace")
 	}
 
-	actionReference, err := model_core.NewDecodableLocalReferenceFromWeakProto(
+	actionReference, err := model_core.NewOptionalDecodableLocalReferenceFromWeakProto(
 		namespace.ReferenceFormat,
 		action.ActionReference,
 	)
@@ -48,24 +49,26 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 		return nil, 0, 0, util.StatusWrap(err, "Invalid action reference")
 	}
 
-	executionEvents := make(chan model_core.Decodable[object.LocalReference], 1)
+	executionEvents := make(chan *model_core.Decodable[object.LocalReference], 1)
 	storedAllExecutionEvents := make(chan struct{})
 	go func() {
 		for executionEvent := range executionEvents {
-			executionEventMessages <- model_core.DecodableLocalReferenceToWeakProto(executionEvent)
+			executionEventMessages <- &model_executewithstorage_pb.Event{
+				EventReference: model_core.OptionalDecodableLocalReferenceToWeakProto(executionEvent),
+			}
 		}
 		close(storedAllExecutionEvents)
 	}()
 
 	resultReference, virtualExecutionDuration, resultCode, err := e.Executor.Execute(
 		ctx,
-		&Action[object.GlobalReference]{
-			Reference: model_core.CopyDecodable(
-				actionReference,
-				namespace.WithLocalReference(actionReference.Value),
-			),
-			Encoders: action.ActionEncoders,
-			Format:   action.ActionFormat,
+		&NamespacedAction{
+			Namespace: namespace,
+			Action: Action[object.LocalReference]{
+				Reference: actionReference,
+				Encoders:  action.ActionEncoders,
+				Format:    action.ActionFormat,
+			},
 		},
 		executionTimeout,
 		executionEvents,
@@ -77,5 +80,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	return model_core.DecodableLocalReferenceToWeakProto(resultReference), virtualExecutionDuration, resultCode, nil
+	return &model_executewithstorage_pb.Result{
+		ResultReference: model_core.OptionalDecodableLocalReferenceToWeakProto(resultReference),
+	}, virtualExecutionDuration, resultCode, nil
 }

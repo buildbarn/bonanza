@@ -20,7 +20,6 @@ go_library(
         "//pkg/remoteexecution",
         "//pkg/remoteworker",
         "//pkg/storage/object",
-        "//pkg/storage/object/namespacemapping",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",
     ],

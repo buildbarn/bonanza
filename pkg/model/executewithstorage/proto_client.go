@@ -25,14 +25,25 @@ import (
 // the client used to create the object, allowing the worker to decode
 // it. The format needs to be provided so that the worker can reject
 // misrouted requests.
+//
+// The reference may be nil, indicating that the action message is
+// empty. As objects cannot be empty, no object is stored in that case.
 type Action[TReference any] struct {
-	Reference model_core.Decodable[TReference]
+	Reference *model_core.Decodable[TReference]
 	Encoders  []*model_encoding_pb.BinaryEncoder
 	Format    *model_core_pb.ObjectFormat
 }
 
+// NamespacedAction is an Action whose object, and any objects it
+// references, are stored in a given namespace. Any execution events and
+// results are written to the same namespace.
+type NamespacedAction struct {
+	Namespace object.Namespace
+	Action[object.LocalReference]
+}
+
 type protoClient struct {
-	base remoteexecution.Client[*model_executewithstorage_pb.Action, *model_core_pb.WeakDecodableReference, *model_core_pb.WeakDecodableReference]
+	base remoteexecution.Client[*model_executewithstorage_pb.Action, *model_executewithstorage_pb.Event, *model_executewithstorage_pb.Result]
 }
 
 // NewProtoClient creates a decorator for the remote execution client
@@ -42,10 +53,12 @@ type protoClient struct {
 //
 // The advantage of using this decorator is that the caller can use
 // native types for decodable references, as opposed to sending and
-// receiving their Protobuf message equivalents.
+// receiving their Protobuf message equivalents. If the worker does not
+// provide execution event or result references, these are set to nil,
+// indicating that these messages are empty.
 func NewProtoClient(
-	base remoteexecution.Client[*model_executewithstorage_pb.Action, *model_core_pb.WeakDecodableReference, *model_core_pb.WeakDecodableReference],
-) remoteexecution.Client[*Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
+	base remoteexecution.Client[*model_executewithstorage_pb.Action, *model_executewithstorage_pb.Event, *model_executewithstorage_pb.Result],
+) remoteexecution.Client[*NamespacedAction, *model_core.Decodable[object.LocalReference], *model_core.Decodable[object.LocalReference]] {
 	return &protoClient{
 		base: base,
 	}
@@ -54,34 +67,33 @@ func NewProtoClient(
 func (c *protoClient) RunAction(
 	ctx context.Context,
 	platformECDHPublicKey *ecdh.PublicKey,
-	action *Action[object.GlobalReference],
+	action *NamespacedAction,
 	actionAdditionalData *encryptedaction_pb.Action_AdditionalData,
-	resultReferenceOut *model_core.Decodable[object.LocalReference],
+	resultReferenceOut **model_core.Decodable[object.LocalReference],
 	errOut *error,
-) iter.Seq[model_core.Decodable[object.LocalReference]] {
+) iter.Seq[*model_core.Decodable[object.LocalReference]] {
 	// Convert the action reference.
-	var resultReferenceMessage *model_core_pb.WeakDecodableReference
+	var resultMessage *model_executewithstorage_pb.Result
 	var errBase error
-	namespace := action.Reference.Value.GetNamespace()
 	executionEventMessages := c.base.RunAction(
 		ctx,
 		platformECDHPublicKey,
 		&model_executewithstorage_pb.Action{
-			Namespace:       namespace.ToProto(),
+			Namespace:       action.Namespace.ToProto(),
 			ActionEncoders:  action.Encoders,
-			ActionReference: model_core.DecodableLocalReferenceToWeakProto(action.Reference),
+			ActionReference: model_core.OptionalDecodableLocalReferenceToWeakProto(action.Reference),
 			ActionFormat:    action.Format,
 		},
 		actionAdditionalData,
-		&resultReferenceMessage,
+		&resultMessage,
 		&errBase,
 	)
 
-	referenceFormat := namespace.ReferenceFormat
-	return func(yield func(model_core.Decodable[object.LocalReference]) bool) {
+	referenceFormat := action.Namespace.ReferenceFormat
+	return func(yield func(*model_core.Decodable[object.LocalReference]) bool) {
 		// Convert the execution event references.
 		for executionEventMessage := range executionEventMessages {
-			executionEventReference, err := model_core.NewDecodableLocalReferenceFromWeakProto(referenceFormat, executionEventMessage)
+			executionEventReference, err := model_core.NewOptionalDecodableLocalReferenceFromWeakProto(referenceFormat, executionEventMessage.EventReference)
 			if err != nil {
 				*errOut = util.StatusWrapWithCode(err, codes.Internal, "Received invalid execution event reference")
 				return
@@ -97,7 +109,7 @@ func (c *protoClient) RunAction(
 		}
 
 		// Convert the result reference.
-		resultReference, err := model_core.NewDecodableLocalReferenceFromWeakProto(referenceFormat, resultReferenceMessage)
+		resultReference, err := model_core.NewOptionalDecodableLocalReferenceFromWeakProto(referenceFormat, resultMessage.GetResultReference())
 		if err != nil {
 			*errOut = util.StatusWrapWithCode(err, codes.Internal, "Received invalid result reference")
 			return

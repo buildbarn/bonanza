@@ -92,6 +92,94 @@ func (x *Action) GetActionFormat() *core.ObjectFormat {
 	return nil
 }
 
+type Event struct {
+	state          protoimpl.MessageState       `protogen:"open.v1"`
+	EventReference *core.WeakDecodableReference `protobuf:"bytes,1,opt,name=event_reference,json=eventReference,proto3" json:"event_reference,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Event) Reset() {
+	*x = Event{}
+	mi := &file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Event) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Event) ProtoMessage() {}
+
+func (x *Event) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Event.ProtoReflect.Descriptor instead.
+func (*Event) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Event) GetEventReference() *core.WeakDecodableReference {
+	if x != nil {
+		return x.EventReference
+	}
+	return nil
+}
+
+type Result struct {
+	state           protoimpl.MessageState       `protogen:"open.v1"`
+	ResultReference *core.WeakDecodableReference `protobuf:"bytes,1,opt,name=result_reference,json=resultReference,proto3" json:"result_reference,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *Result) Reset() {
+	*x = Result{}
+	mi := &file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Result) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Result) ProtoMessage() {}
+
+func (x *Result) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Result.ProtoReflect.Descriptor instead.
+func (*Result) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Result) GetResultReference() *core.WeakDecodableReference {
+	if x != nil {
+		return x.ResultReference
+	}
+	return nil
+}
+
 var File_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDesc = "" +
@@ -101,7 +189,11 @@ const file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_p
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12N\n" +
 	"\x0faction_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eactionEncoders\x12U\n" +
 	"\x10action_reference\x18\x03 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceR\x0factionReference\x12E\n" +
-	"\raction_format\x18\x04 \x01(\v2 .bonanza.model.core.ObjectFormatR\factionFormatB2Z0bonanza.build/pkg/proto/model/executewithstorageb\x06proto3"
+	"\raction_format\x18\x04 \x01(\v2 .bonanza.model.core.ObjectFormatR\factionFormat\"\\\n" +
+	"\x05Event\x12S\n" +
+	"\x0fevent_reference\x18\x01 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceR\x0eeventReference\"_\n" +
+	"\x06Result\x12U\n" +
+	"\x10result_reference\x18\x01 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceR\x0fresultReferenceB2Z0bonanza.build/pkg/proto/model/executewithstorageb\x06proto3"
 
 var (
 	file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescOnce sync.Once
@@ -115,24 +207,28 @@ func file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_pr
 	return file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescData
 }
 
-var file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_goTypes = []any{
 	(*Action)(nil),                      // 0: bonanza.model.executewithstorage.Action
-	(*object.Namespace)(nil),            // 1: bonanza.storage.object.Namespace
-	(*encoding.BinaryEncoder)(nil),      // 2: bonanza.model.encoding.BinaryEncoder
-	(*core.WeakDecodableReference)(nil), // 3: bonanza.model.core.WeakDecodableReference
-	(*core.ObjectFormat)(nil),           // 4: bonanza.model.core.ObjectFormat
+	(*Event)(nil),                       // 1: bonanza.model.executewithstorage.Event
+	(*Result)(nil),                      // 2: bonanza.model.executewithstorage.Result
+	(*object.Namespace)(nil),            // 3: bonanza.storage.object.Namespace
+	(*encoding.BinaryEncoder)(nil),      // 4: bonanza.model.encoding.BinaryEncoder
+	(*core.WeakDecodableReference)(nil), // 5: bonanza.model.core.WeakDecodableReference
+	(*core.ObjectFormat)(nil),           // 6: bonanza.model.core.ObjectFormat
 }
 var file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_depIdxs = []int32{
-	1, // 0: bonanza.model.executewithstorage.Action.namespace:type_name -> bonanza.storage.object.Namespace
-	2, // 1: bonanza.model.executewithstorage.Action.action_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	3, // 2: bonanza.model.executewithstorage.Action.action_reference:type_name -> bonanza.model.core.WeakDecodableReference
-	4, // 3: bonanza.model.executewithstorage.Action.action_format:type_name -> bonanza.model.core.ObjectFormat
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	3, // 0: bonanza.model.executewithstorage.Action.namespace:type_name -> bonanza.storage.object.Namespace
+	4, // 1: bonanza.model.executewithstorage.Action.action_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	5, // 2: bonanza.model.executewithstorage.Action.action_reference:type_name -> bonanza.model.core.WeakDecodableReference
+	6, // 3: bonanza.model.executewithstorage.Action.action_format:type_name -> bonanza.model.core.ObjectFormat
+	5, // 4: bonanza.model.executewithstorage.Event.event_reference:type_name -> bonanza.model.core.WeakDecodableReference
+	5, // 5: bonanza.model.executewithstorage.Result.result_reference:type_name -> bonanza.model.core.WeakDecodableReference
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_init() }
@@ -146,7 +242,7 @@ func file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_pr
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

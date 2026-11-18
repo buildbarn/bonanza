@@ -24,8 +24,9 @@ option go_package = "bonanza.build/pkg/proto/model/executewithstorage";
 // easily reference other objects. This also ensures that messages sent
 // via the scheduler remain bounded in size.
 //
-// As execution event and results are also backed by storage, this
-// protocol assumes they are of type WeakDecodableReference.
+// As execution events and results are also backed by storage, this
+// protocol declares Event and Result messages that reference objects
+// in storage.
 message Action {
   // The namespace in storage where the action is stored and where
   // results may be written.
@@ -35,9 +36,28 @@ message Action {
   repeated bonanza.model.encoding.BinaryEncoder action_encoders = 2;
 
   // Reference to an object in storage describing the action to perform.
+  // If not set, the action message is empty. As objects in storage
+  // cannot be empty, no object is stored in that case.
   bonanza.model.core.WeakDecodableReference action_reference = 3;
 
   // The format of the data contained in the action object. This can be
   // used by workers to reject actions that they are unable to process.
   bonanza.model.core.ObjectFormat action_format = 4;
+}
+
+// Execution event that is emitted by a worker while an action is being
+// executed.
+message Event {
+  // Reference to an object in storage containing the execution event,
+  // which is encoded using the action encoders. If not set, the
+  // execution event message is empty.
+  bonanza.model.core.WeakDecodableReference event_reference = 1;
+}
+
+// Result of an action that is returned by a worker upon completion.
+message Result {
+  // Reference to an object in storage containing the result, which is
+  // encoded using the action encoders. If not set, the result message
+  // is empty.
+  bonanza.model.core.WeakDecodableReference result_reference = 1;
 }

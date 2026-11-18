@@ -52,7 +52,7 @@ func NewLocalExecutor(
 	fetcher Fetcher,
 	filePool pool.FilePool,
 	binaryEncoderFactory model_encoding.BinaryEncoderFactory,
-) remoteworker.Executor[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]] {
+) remoteworker.Executor[*model_executewithstorage.NamespacedAction, *model_core.Decodable[object.LocalReference], *model_core.Decodable[object.LocalReference]] {
 	return &localExecutor{
 		objectDownloader: objectDownloader,
 		parsedObjectPool: parsedObjectPool,
@@ -70,25 +70,24 @@ func (localExecutor) CheckReadiness(ctx context.Context) error {
 
 var actionObjectFormat = model_core.NewProtoObjectFormat(&model_fetch_pb.Action{})
 
-func (e *localExecutor) Execute(ctx context.Context, action *model_executewithstorage.Action[object.GlobalReference], executionTimeout time.Duration, executionEvents chan<- model_core.Decodable[object.LocalReference]) (model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
-	if !proto.Equal(action.Format, actionObjectFormat) {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
+func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_executewithstorage.NamespacedAction, executionTimeout time.Duration, executionEvents chan<- *model_core.Decodable[object.LocalReference]) (*model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
+	if !proto.Equal(namespacedAction.Format, actionObjectFormat) {
+		return nil, 0, 0, status.Error(codes.InvalidArgument, "This worker cannot execute actions of this type")
 	}
-	referenceFormat := action.Reference.Value.GetReferenceFormat()
+	namespace := namespacedAction.Namespace
+	referenceFormat := namespace.ReferenceFormat
 	actionEncoder, err := e.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
-		action.Encoders,
+		namespacedAction.Encoders,
 		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 	)
 	if err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid action encoders")
+		return nil, 0, 0, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid action encoders")
 	}
 
 	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester(
 		e.parsedObjectPool,
 		model_parser.NewDownloadingObjectReader(
-			object_namespacemapping.NewNamespaceAddingDownloader(e.objectDownloader, action.Reference.Value.InstanceName),
+			object_namespacemapping.NewNamespaceAddingDownloader(e.objectDownloader, namespace.InstanceName),
 		),
 	)
 
@@ -102,12 +101,17 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 				model_parser.NewProtoObjectParser[object.LocalReference, model_fetch_pb.Action](),
 			),
 		)
-		action, err := actionReader.ReadObject(ctx, model_core.CopyDecodable(action.Reference, action.Reference.Value.GetLocalReference()))
-		if err != nil {
-			result.Outcome = &model_fetch_pb.Result_Failure{
-				Failure: status.Convert(util.StatusWrap(err, "Failed to read action")).Proto(),
+		// An action that is not backed by an object is empty.
+		action := model_core.NewSimpleMessage[object.LocalReference](&model_fetch_pb.Action{})
+		if namespacedAction.Reference != nil {
+			var err error
+			action, err = actionReader.ReadObject(ctx, *namespacedAction.Reference)
+			if err != nil {
+				result.Outcome = &model_fetch_pb.Result_Failure{
+					Failure: status.Convert(util.StatusWrap(err, "Failed to read action")).Proto(),
+				}
+				return &result
 			}
-			return &result
 		}
 
 		fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(action.Message.FileCreationParameters, referenceFormat, e.binaryEncoderFactory)
@@ -231,31 +235,37 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		return &result
 	})
 
-	createdResult, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoToBinaryMarshaler(result),
-		referenceFormat,
-		actionEncoder,
-	)
-	if err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
-	}
-	resultReference := createdResult.Value.GetLocalReference()
-	if err := e.dagUploader.UploadDAG(
-		ctx,
-		action.Reference.Value.WithLocalReference(resultReference),
-		dag.NewSimpleObjectContentsWalker(
-			createdResult.Value.Contents,
-			createdResult.Value.Metadata,
-		),
-	); err != nil {
-		var badReference model_core.Decodable[object.LocalReference]
-		return badReference, 0, 0, util.StatusWrap(err, "Failed to upload result")
+	// Store the result in an object. As objects cannot be empty,
+	// don't return a result reference if the result message is
+	// empty.
+	var resultReference *model_core.Decodable[object.LocalReference]
+	if proto.Size(result.Message) > 0 {
+		createdResult, err := model_core.MarshalAndEncodeDeterministic(
+			model_core.ProtoToBinaryMarshaler(result),
+			referenceFormat,
+			actionEncoder,
+		)
+		if err != nil {
+			return nil, 0, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
+		}
+		localResultReference := createdResult.Value.GetLocalReference()
+		if err := e.dagUploader.UploadDAG(
+			ctx,
+			namespace.WithLocalReference(localResultReference),
+			dag.NewSimpleObjectContentsWalker(
+				createdResult.Value.Contents,
+				createdResult.Value.Metadata,
+			),
+		); err != nil {
+			return nil, 0, 0, util.StatusWrap(err, "Failed to upload result")
+		}
+		decodableResultReference := model_core.CopyDecodable(createdResult, localResultReference)
+		resultReference = &decodableResultReference
 	}
 
 	resultCode := remoteworker_pb.CurrentState_Completed_SUCCEEDED
 	if _, ok := result.Message.Outcome.(*model_fetch_pb.Result_Failure); ok {
 		resultCode = remoteworker_pb.CurrentState_Completed_FAILED
 	}
-	return model_core.CopyDecodable(createdResult, resultReference), virtualExecutionDuration, resultCode, nil
+	return resultReference, virtualExecutionDuration, resultCode, nil
 }

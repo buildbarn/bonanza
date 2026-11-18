@@ -31,7 +31,7 @@ import (
 
 type baseComputerFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	filePool             pool.FilePool
-	executionClient      remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]]
+	executionClient      remoteexecution.Client[*model_executewithstorage.NamespacedAction, *model_core.Decodable[object.LocalReference], *model_core.Decodable[object.LocalReference]]
 	bzlFileBuiltins      map[string]eval.Value
 	buildFileBuiltins    map[string]eval.Value
 	objectStoreSemaphore *semaphore.Weighted
@@ -43,7 +43,7 @@ type baseComputerFactory[TReference object.BasicReference, TMetadata model_core.
 // of Bazel projects.
 func NewBaseComputerFactory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	filePool pool.FilePool,
-	executionClient remoteexecution.Client[*model_executewithstorage.Action[object.GlobalReference], model_core.Decodable[object.LocalReference], model_core.Decodable[object.LocalReference]],
+	executionClient remoteexecution.Client[*model_executewithstorage.NamespacedAction, *model_core.Decodable[object.LocalReference], *model_core.Decodable[object.LocalReference]],
 	bzlFileBuiltins map[string]eval.Value,
 	buildFileBuiltins map[string]eval.Value,
 	objectStoreSemaphore *semaphore.Weighted,
@@ -69,7 +69,7 @@ func (cf *baseComputerFactory[TReference, TMetadata]) NewComputer(namespace obje
 			model_executewithstorage.NewObjectExportingClient(
 				model_executewithstorage.NewNamespaceAddingClient(
 					cf.executionClient,
-					namespace.InstanceName,
+					namespace,
 				),
 				objectExporter,
 			),
@@ -86,7 +86,7 @@ type baseComputer[TReference object.BasicReference, TMetadata model_core.Referen
 	referenceFormat          object.ReferenceFormat
 	chunkingParameters       chunking.Parameters
 	filePool                 pool.FilePool
-	executionClient          remoteexecution.Client[*model_executewithstorage.Action[TReference], model_core.Decodable[TReference], model_core.Decodable[TReference]]
+	executionClient          remoteexecution.Client[*model_executewithstorage.Action[TReference], *model_core.Decodable[TReference], *model_core.Decodable[TReference]]
 	bzlFileBuiltins          map[string]eval.Value
 	buildFileBuiltins        map[string]eval.Value
 	discardingObjectCapturer model_core.ObjectCapturer[TReference, model_core.NoopReferenceMetadata]
@@ -101,7 +101,7 @@ func NewBaseComputer[TReference object.BasicReference, TMetadata model_core.Refe
 	referenceFormat object.ReferenceFormat,
 	chunkingParameters chunking.Parameters,
 	filePool pool.FilePool,
-	executionClient remoteexecution.Client[*model_executewithstorage.Action[TReference], model_core.Decodable[TReference], model_core.Decodable[TReference]],
+	executionClient remoteexecution.Client[*model_executewithstorage.Action[TReference], *model_core.Decodable[TReference], *model_core.Decodable[TReference]],
 	bzlFileBuiltins map[string]eval.Value,
 	buildFileBuiltins map[string]eval.Value,
 	objectStoreSemaphore *semaphore.Weighted,
@@ -374,4 +374,4 @@ func (c *baseComputer[TReference, TMetadata]) newStarlarkThread(ctx context.Cont
 
 // ExecutionClientForTesting is used to generate mocks for unit testing
 // BaseComputer.
-type ExecutionClientForTesting remoteexecution.Client[*model_executewithstorage.Action[model_core.CreatedObjectTree], model_core.Decodable[model_core.CreatedObjectTree], model_core.Decodable[model_core.CreatedObjectTree]]
+type ExecutionClientForTesting remoteexecution.Client[*model_executewithstorage.Action[model_core.CreatedObjectTree], *model_core.Decodable[model_core.CreatedObjectTree], *model_core.Decodable[model_core.CreatedObjectTree]]

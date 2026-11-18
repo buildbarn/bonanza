@@ -63,13 +63,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 	}
 	commandReferenceSHA256 := sha256.Sum256(commandReference.Value.GetRawReference())
 
-	var resultReference model_core.Decodable[TReference]
+	var resultReference *model_core.Decodable[TReference]
 	var errExecution error
 	for range c.executionClient.RunAction(
 		ctx,
 		platformECDHPublicKey,
 		&model_executewithstorage.Action[TReference]{
-			Reference: actionReference,
+			Reference: &actionReference,
 			Encoders:  actionEncodersValue.Message.ActionEncoders,
 			Format:    commandActionObjectFormat,
 		},
@@ -85,12 +85,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 	if errExecution != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, errExecution
 	}
+	if resultReference == nil {
+		return PatchedRawActionResultValue[TMetadata]{}, errors.New("worker did not return a result")
+	}
 
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.RawActionResult_Value {
 		return &model_analysis_pb.RawActionResult_Value{
 			ResultReference: patcher.AddDecodableReference(
 				model_core.CopyDecodable(
-					resultReference,
+					*resultReference,
 					model_core.CaptureExistingObject(e, resultReference.Value),
 				),
 			),
