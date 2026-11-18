@@ -213,8 +213,47 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextEvaluatableKey(ct
 						panic("no cyclic blocked keys found")
 					}
 				}
-				for _, ksBlocked := range ksCyclic.blocking {
+
+				// isBlockedCyclic() also returns true for
+				// keys that are merely blocked on a cycle,
+				// such as the requested key. Such keys may
+				// not block any other keys, meaning that
+				// failing the keys they block would not
+				// make any progress. Follow blockers that
+				// are blocked on a cycle until a key is
+				// encountered twice. That key is part of
+				// the cycle, meaning it blocks at least one
+				// other key on the cycle.
+				visited := map[*KeyState[TReference, TMetadata]]struct{}{}
+				for {
+					if _, ok := visited[ksCyclic]; ok {
+						break
+					}
+					visited[ksCyclic] = struct{}{}
+					i := slices.IndexFunc(blockedOn[ksCyclic], func(ksBlocker *KeyState[TReference, TMetadata]) bool {
+						return ksBlocker.isBlockedCyclic(blockedOn, blockedCyclic)
+					})
+					if i < 0 {
+						panic("cyclic blocked key is not blocked on any other cyclic blocked key")
+					}
+					ksCyclic = blockedOn[ksCyclic][i]
+				}
+				// Unblock all keys blocked by the cyclic key
+				// before marking any of them as failed. Keys
+				// may also be blocked on each other. Marking
+				// one of them as failed would decrement the
+				// blocked count of others, causing it to no
+				// longer match blockedOn. Unblocking a key
+				// removes it from the keys blocking it, so
+				// that this no longer happens.
+				//
+				// Iterate over a copy, as forceUnblockKeyState()
+				// removes entries from ksCyclic.blocking.
+				ksBlockedList := slices.Clone(ksCyclic.blocking)
+				for _, ksBlocked := range ksBlockedList {
 					rc.forceUnblockKeyState(ksBlocked, blockedOn[ksBlocked])
+				}
+				for _, ksBlocked := range ksBlockedList {
 					ksBlocked.valueState = ksBlocked.valueState.gotFailedDependency(
 						NestedError[TReference, TMetadata]{
 							KeyState: ksCyclic,
@@ -224,6 +263,13 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextEvaluatableKey(ct
 					rc.evaluatedKeyState(ksBlocked)
 				}
 			}
+
+			// Breaking cycles either causes keys to be
+			// queued for evaluation, or reduces the number
+			// of blocked keys. Check whether keys were
+			// queued on this queue before waiting, as
+			// we won't be woken up for those.
+			continue
 		}
 
 		if err := rceq.queuedKeysWait.Wait(ctx, &rc.lock); err != nil {

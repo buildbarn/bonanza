@@ -272,6 +272,145 @@ func TestRecursiveComputer(t *testing.T) {
 		)
 	})
 
+	t.Run("CycleBehindDependency", func(t *testing.T) {
+		// The requested key does not take part in a cycle, but
+		// depends on keys that do. Cycle detection should
+		// cause the keys on the cycle to fail, as opposed to
+		// picking the requested key and making no progress.
+		computer := NewMockComputerForTesting(ctrl)
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+				// 100 -> 1 -> 2 -> 1.
+				dependency := uint32(1)
+				if key.Message.(*wrapperspb.UInt32Value).Value == 1 {
+					dependency = 2
+				}
+				v := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
+					Value: dependency,
+				}))
+				require.False(t, v.IsSet())
+				return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
+			}).
+			AnyTimes()
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		objectManager := NewMockObjectManagerForTesting(ctrl)
+		tagStore := NewMockBoundStoreForTesting(ctrl)
+		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
+		lookupResultReader := NewMockLookupResultReaderForTesting(ctrl)
+		lookupResultReader.EXPECT().GetDecodingParametersSizeBytes().Return(16).AnyTimes()
+
+		queuesFactory := model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
+		queues := queuesFactory.NewQueues()
+		recursiveComputer := model_evaluation.NewRecursiveComputer(
+			computer,
+			queues,
+			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
+			objectManager,
+			tagStore,
+			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("0e847672a7a34ba848ec92f4000a9f86049e5557496cfcede0db7744bf77c12b", 8575, 0, 0, 0),
+			NewMockProtoEvaluationReaderForTesting(ctrl),
+			lookupResultReader,
+			NewMockKeysReaderForTesting(ctrl),
+			NewMockDeterministicBinaryEncoder(ctrl),
+			NewMockKeyedBinaryEncoder(ctrl),
+			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
+		)
+
+		keyState, err := recursiveComputer.GetOrCreateKeyState(
+			util.Must(
+				model_core.MarshalTopLevelAny(
+					model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+						&wrapperspb.UInt32Value{
+							Value: 100,
+						},
+					),
+				),
+			),
+		)
+		require.NoError(t, err)
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		err = program.RunLocal(timeoutCtx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+			queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
+			return recursiveComputer.WaitForEvaluation(ctx, keyState)
+		})
+		require.ErrorContains(t, err, "cyclic dependency detected")
+	})
+
+	t.Run("CycleWithInterdependentBlockedKeys", func(t *testing.T) {
+		// Key 1 is part of a cycle, and blocks keys 2 and 3.
+		// Key 3 is also blocked on key 2. Failing key 2 should
+		// not interfere with unblocking key 3.
+		computer := NewMockComputerForTesting(ctrl)
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+				// 100 -> 2, 2 -> 1, 1 -> {1, 3}, 3 -> {1, 2}.
+				dependencies := map[uint32][]uint32{
+					100: {2},
+					2:   {1},
+					1:   {1, 3},
+					3:   {1, 2},
+				}[key.Message.(*wrapperspb.UInt32Value).Value]
+				for _, dependency := range dependencies {
+					v := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
+						Value: dependency,
+					}))
+					require.False(t, v.IsSet())
+				}
+				return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
+			}).
+			AnyTimes()
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		objectManager := NewMockObjectManagerForTesting(ctrl)
+		tagStore := NewMockBoundStoreForTesting(ctrl)
+		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
+		lookupResultReader := NewMockLookupResultReaderForTesting(ctrl)
+		lookupResultReader.EXPECT().GetDecodingParametersSizeBytes().Return(16).AnyTimes()
+
+		queuesFactory := model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
+		queues := queuesFactory.NewQueues()
+		recursiveComputer := model_evaluation.NewRecursiveComputer(
+			computer,
+			queues,
+			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
+			objectManager,
+			tagStore,
+			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("0e847672a7a34ba848ec92f4000a9f86049e5557496cfcede0db7744bf77c12b", 8575, 0, 0, 0),
+			NewMockProtoEvaluationReaderForTesting(ctrl),
+			lookupResultReader,
+			NewMockKeysReaderForTesting(ctrl),
+			NewMockDeterministicBinaryEncoder(ctrl),
+			NewMockKeyedBinaryEncoder(ctrl),
+			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
+		)
+
+		keyState, err := recursiveComputer.GetOrCreateKeyState(
+			util.Must(
+				model_core.MarshalTopLevelAny(
+					model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+						&wrapperspb.UInt32Value{
+							Value: 100,
+						},
+					),
+				),
+			),
+		)
+		require.NoError(t, err)
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		err = program.RunLocal(timeoutCtx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+			queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
+			return recursiveComputer.WaitForEvaluation(ctx, keyState)
+		})
+		require.ErrorContains(t, err, "cyclic dependency detected")
+	})
+
 	t.Run("ErrorPropagation", func(t *testing.T) {
 		// Have a simple function that calls a couple of levels
 		// deep. At some point this will return an error, which
