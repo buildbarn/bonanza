@@ -256,32 +256,95 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) maybeFinalizeDirectory(u
 }
 
 func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) finalizeDirectory(ud *unfinalizedDirectory[TDirectory, TFile]) (CreatedDirectory[TDirectory], error) {
-	parentNodeComputer := NewDirectoryEntryParentNodeComputer(
+	nodes := make([]DirectoryNode[TDirectory], 0, len(ud.nodes))
+	for _, unfinalizedNode := range ud.nodes {
+		node := unfinalizedNode.node
+		if unfinalizedNode.directoryIndex >= 0 {
+			nodes = append(nodes, DirectoryNode[TDirectory]{
+				Name:      node.Name,
+				Directory: &ud.directories[unfinalizedNode.directoryIndex],
+			})
+			continue
+		}
+		patcher := model_core.NewReferenceMessagePatcher[TDirectory]()
+		if file, ok := node.Kind.(*model_filesystem_pb.DirectoryEntry_Node_File); ok && unfinalizedNode.fileContents.IsSet() {
+			file.File.Contents = unfinalizedNode.fileContents.Message
+			patcher = model_core.MapReferenceMessagePatcherMetadata(
+				unfinalizedNode.fileContents.Patcher,
+				func(capturedObject model_core.MetadataEntry[TFile]) TDirectory {
+					return b.capturer.CaptureFileNode(capturedObject.Metadata)
+				},
+			)
+		}
+		nodes = append(nodes, DirectoryNode[TDirectory]{
+			Name: node.Name,
+			Leaf: model_core.NewPatchedMessage(node, patcher),
+		})
+	}
+	return CreateDirectory(
 		b.context,
+		b.parameters,
 		model_core.CreatedObjectCapturerFunc[TDirectory](b.capturer.CaptureDirectory),
+		nodes,
 	)
-	treeBuilder := newDirectoryEntriesBTreeBuilder(b.parameters, parentNodeComputer)
+}
+
+// DirectoryNode is a file, symbolic link or subdirectory that is
+// provided to CreateDirectory().
+type DirectoryNode[TDirectory model_core.ReferenceMetadata] struct {
+	// The name of the node.
+	Name string
+
+	// If the node is a file or a symbolic link, the node's message.
+	// The node's name must be equal to Name.
+	Leaf model_core.PatchedMessage[*model_filesystem_pb.DirectoryEntry_Node, TDirectory]
+
+	// If the node is a subdirectory, the subdirectory that was
+	// created previously.
+	Directory *CreatedDirectory[TDirectory]
+}
+
+// CreateDirectory creates the B-tree of a single directory, given its
+// files, symbolic links and subdirectories. The nodes must be provided
+// in alphabetical order. Subdirectories must have been created
+// previously.
+//
+// This function can be used to construct directory hierarchies from
+// existing files and directories, as opposed to obtaining them from a
+// file system, as done by CreateDirectoryMerkleTree().
+func CreateDirectory[TDirectory model_core.ReferenceMetadata](
+	ctx context.Context,
+	parameters *DirectoryCreationParameters,
+	capturer model_core.CreatedObjectCapturer[TDirectory],
+	nodes []DirectoryNode[TDirectory],
+) (CreatedDirectory[TDirectory], error) {
+	treeBuilder := newDirectoryEntriesBTreeBuilder(
+		parameters,
+		NewDirectoryEntryParentNodeComputer(ctx, capturer),
+	)
 	defer treeBuilder.Discard()
 
 	// First section: the contents of all subdirectories, in the
 	// same order as the subdirectory nodes.
 	var escapementLevels maximumSymlinkEscapementLevels
-	for _, unfinalizedNode := range ud.nodes {
-		if unfinalizedNode.directoryIndex < 0 {
-			if symlink, ok := unfinalizedNode.node.Kind.(*model_filesystem_pb.DirectoryEntry_Node_Symlink); ok {
+	directoriesCount := uint32(0)
+	for _, node := range nodes {
+		if node.Directory == nil {
+			if symlink, ok := node.Leaf.Message.Kind.(*model_filesystem_pb.DirectoryEntry_Node_Symlink); ok {
 				escapementCounter := NewEscapementCountingScopeWalker()
 				if err := path.Resolve(path.UNIXFormat.NewParser(symlink.Symlink.Target), escapementCounter); err != nil {
-					return CreatedDirectory[TDirectory]{}, util.StatusWrapf(err, "Failed to resolve target of symbolic link %#v", unfinalizedNode.node.Name)
+					return CreatedDirectory[TDirectory]{}, util.StatusWrapf(err, "Failed to resolve target of symbolic link %#v", node.Name)
 				}
 				escapementLevels.raise(escapementCounter.GetLevels())
 			}
 			continue
 		}
 
-		createdDirectory := &ud.directories[unfinalizedNode.directoryIndex]
+		createdDirectory := node.Directory
 		var child maximumSymlinkEscapementLevels
 		child.raise(createdDirectory.MaximumSymlinkEscapementLevels)
 		escapementLevels.raiseChild(&child)
+		directoriesCount++
 
 		// The top level of the subdirectory's B-tree is bounded
 		// in size, meaning it can be embedded as is.
@@ -304,30 +367,26 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) finalizeDirectory(ud *un
 
 	// Second section: nodes for all files, symbolic links and
 	// subdirectories, in alphabetical order.
-	for _, unfinalizedNode := range ud.nodes {
-		node := unfinalizedNode.node
-		patcher := model_core.NewReferenceMessagePatcher[TDirectory]()
-		if unfinalizedNode.directoryIndex >= 0 {
-			node.Kind = &model_filesystem_pb.DirectoryEntry_Node_Directory{
-				Directory: &model_filesystem_pb.DirectoryProperties{
-					DirectoriesCount: ud.directories[unfinalizedNode.directoryIndex].DirectoriesCount,
+	for _, node := range nodes {
+		var patchedNode model_core.PatchedMessage[*model_filesystem_pb.DirectoryEntry_Node, TDirectory]
+		if node.Directory != nil {
+			patchedNode = model_core.NewSimplePatchedMessage[TDirectory](&model_filesystem_pb.DirectoryEntry_Node{
+				Name: node.Name,
+				Kind: &model_filesystem_pb.DirectoryEntry_Node_Directory{
+					Directory: &model_filesystem_pb.DirectoryProperties{
+						DirectoriesCount: node.Directory.DirectoriesCount,
+					},
 				},
-			}
-		} else if file, ok := node.Kind.(*model_filesystem_pb.DirectoryEntry_Node_File); ok && unfinalizedNode.fileContents.IsSet() {
-			file.File.Contents = unfinalizedNode.fileContents.Message
-			patcher = model_core.MapReferenceMessagePatcherMetadata(
-				unfinalizedNode.fileContents.Patcher,
-				func(capturedObject model_core.MetadataEntry[TFile]) TDirectory {
-					return b.capturer.CaptureFileNode(capturedObject.Metadata)
-				},
-			)
+			})
+		} else {
+			patchedNode = node.Leaf
 		}
 		if err := treeBuilder.PushChild(
 			model_core.NewPatchedMessage(
 				&model_filesystem_pb.DirectoryEntry{
-					Level: &model_filesystem_pb.DirectoryEntry_Node_{Node: node},
+					Level: &model_filesystem_pb.DirectoryEntry_Node_{Node: patchedNode.Message},
 				},
-				patcher,
+				patchedNode.Patcher,
 			),
 		); err != nil {
 			return CreatedDirectory[TDirectory]{}, err
@@ -346,7 +405,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) finalizeDirectory(ud *un
 	}
 	return CreatedDirectory[TDirectory]{
 		Message:                        entries,
-		DirectoriesCount:               uint32(len(ud.directories)),
+		DirectoriesCount:               directoriesCount,
 		MaximumSymlinkEscapementLevels: escapementLevels.toProto(),
 	}, nil
 }
