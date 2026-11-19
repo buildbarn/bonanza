@@ -146,9 +146,9 @@ func (or *remappingOutgoingReferences[TReference]) GetOutgoingReference(index in
 }
 
 func (or *remappingOutgoingReferences[TReference]) DetachOutgoingReferences() object.OutgoingReferences[TReference] {
-	list := make(object.OutgoingReferencesList[TReference], len(or.indices))
+	list := make(object.OutgoingReferencesList[TReference], 0, len(or.indices))
 	for _, index := range or.indices {
-		list = append(list, or.outer.GetOutgoingReference(int(or.indices[index]-1)))
+		list = append(list, or.outer.GetOutgoingReference(int(index-1)))
 	}
 	return list
 }

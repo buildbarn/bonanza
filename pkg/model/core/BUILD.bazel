@@ -40,6 +40,7 @@ go_library(
 go_test(
     name = "core_test",
     srcs = [
+        "message_test.go",
         "mocks_core_test.go",
         "patched_message_test.go",
         "reference_message_patcher_test.go",
