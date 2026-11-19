@@ -1003,6 +1003,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 							/* outcomesReference = */ nil,
 							longestType,
 						),
+						evaluatingKey.Key.GetValue(),
 						evaluatingKey.Progress,
 						&messageFormatter,
 						messageColumns,
@@ -1087,11 +1088,15 @@ func formatMessageDescription(description model_evaluation.MessageDescription) f
 // evaluation function of a key to the key's description. If the
 // progress contains a counter, the line is rendered as a progress bar.
 // Columns is the width of the terminal available to the line.
-func formatEvaluatingKeyProgress(line formatted.Node, progressAny *anypb.Any, messageFormatter *messageFormatter, columns int) formatted.Node {
-	if progressAny == nil || !messageFormatter.renderer.Pretty {
+func formatEvaluatingKeyProgress(line formatted.Node, key *anypb.Any, marshaledProgress []byte, messageFormatter *messageFormatter, columns int) formatted.Node {
+	if marshaledProgress == nil || !messageFormatter.renderer.Pretty {
 		return line
 	}
-	progress, err := progressAny.UnmarshalNew()
+	progressMessageType, err := model_evaluation.GetProgressMessageType(key.MessageName())
+	if err != nil {
+		return line
+	}
+	progress, err := model_format.NewDynamicProto(progressMessageType).Unmarshal(marshaledProgress)
 	if err != nil {
 		return line
 	}

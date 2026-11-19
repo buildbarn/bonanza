@@ -580,11 +580,20 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress(ctx context.Cont
 			if err != nil {
 				return nil, err
 			}
-			var progressAny *anypb.Any
+			var marshaledProgress []byte
 			if progress := evaluatingKeysProgress[i]; progress != nil {
-				progressAny, err = anypb.New(progress)
+				// The type of the progress message is
+				// implied by the type of the key.
+				marshaledProgress, err = model_format.ProtoMarshaler[proto.Message]{}.NewMarshaler(progress).MarshalBinary()
 				if err != nil {
 					return nil, fmt.Errorf("failed to marshal progress of key with reference %s: %w", ks.keyReference, err)
+				}
+				if marshaledProgress == nil {
+					// Progress messages whose fields all
+					// have default values marshal to an
+					// empty byte sequence. Ensure these
+					// are still sent to the client.
+					marshaledProgress = []byte{}
 				}
 			}
 			evaluatingKeysMessages = append(evaluatingKeysMessages, &model_evaluation_pb.Progress_EvaluatingKey{
@@ -592,7 +601,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress(ctx context.Cont
 				FirstEvaluationStart:   timestamppb.New(ks.firstEvaluationStart),
 				CurrentEvaluationStart: timestamppb.New(ks.currentEvaluationStart),
 				Restarts:               ks.restarts,
-				Progress:               progressAny,
+				Progress:               marshaledProgress,
 			})
 		}
 		return &model_evaluation_pb.Progress{

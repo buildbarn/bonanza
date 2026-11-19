@@ -13,7 +13,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
-	anypb "google.golang.org/protobuf/types/known/anypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -841,7 +840,7 @@ type Progress_EvaluatingKey struct {
 	FirstEvaluationStart   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=first_evaluation_start,json=firstEvaluationStart,proto3" json:"first_evaluation_start,omitempty"`
 	CurrentEvaluationStart *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=current_evaluation_start,json=currentEvaluationStart,proto3" json:"current_evaluation_start,omitempty"`
 	Restarts               uint32                 `protobuf:"varint,4,opt,name=restarts,proto3" json:"restarts,omitempty"`
-	Progress               *anypb.Any             `protobuf:"bytes,5,opt,name=progress,proto3" json:"progress,omitempty"`
+	Progress               []byte                 `protobuf:"bytes,5,opt,name=progress,proto3,oneof" json:"progress,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -904,7 +903,7 @@ func (x *Progress_EvaluatingKey) GetRestarts() uint32 {
 	return 0
 }
 
-func (x *Progress_EvaluatingKey) GetProgress() *anypb.Any {
+func (x *Progress_EvaluatingKey) GetProgress() []byte {
 	if x != nil {
 		return x.Progress
 	}
@@ -994,7 +993,7 @@ var File_bonanza_build_pkg_proto_model_evaluation_evaluation_proto protoreflect.
 
 const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "" +
 	"\n" +
-	"9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x12\x18bonanza.model.evaluation\x1a5bonanza.build/pkg/proto/model/chunking/chunking.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a\x19google/protobuf/any.proto\x1a google/protobuf/descriptor.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\"0\n" +
+	"9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x12\x18bonanza.model.evaluation\x1a5bonanza.build/pkg/proto/model/chunking/chunking.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a google/protobuf/descriptor.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17google/rpc/status.proto\"0\n" +
 	"\x12MessageDescription\x12\x1a\n" +
 	"\btemplate\x18\x01 \x01(\tR\btemplate\"\xa3\x01\n" +
 	"\x0fProgressCounter\x12\x18\n" +
@@ -1033,7 +1032,7 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	"\x06Action\x12\x83\x01\n" +
 	"\x13overrides_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB*\xea\xd7 &\x1a$bonanza.model.evaluation.EvaluationsR\x12overridesReference\x12E\n" +
 	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\x12S\n" +
-	"\x13chunking_parameters\x18\x03 \x01(\v2\".bonanza.model.chunking.ParametersR\x12chunkingParameters\"\xe8\x05\n" +
+	"\x13chunking_parameters\x18\x03 \x01(\v2\".bonanza.model.chunking.ParametersR\x12chunkingParameters\"\xe4\x05\n" +
 	"\bProgress\x12,\n" +
 	"\x12blocked_keys_count\x18\x01 \x01(\x04R\x10blockedKeysCount\x124\n" +
 	"\x16evaluatable_keys_count\x18\x02 \x01(\x04R\x14evaluatableKeysCount\x12f\n" +
@@ -1041,13 +1040,14 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	" additional_evaluating_keys_count\x18\x04 \x01(\x04R\x1dadditionalEvaluatingKeysCount\x120\n" +
 	"\x14evaluated_keys_count\x18\x05 \x01(\x04R\x12evaluatedKeysCount\x120\n" +
 	"\x14uploading_keys_count\x18\x06 \x01(\x04R\x12uploadingKeysCount\x120\n" +
-	"\x14completed_keys_count\x18\a \x01(\x04R\x12completedKeysCount\x1a\xb0\x02\n" +
+	"\x14completed_keys_count\x18\a \x01(\x04R\x12completedKeysCount\x1a\xac\x02\n" +
 	"\rEvaluatingKey\x12)\n" +
 	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12P\n" +
 	"\x16first_evaluation_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x14firstEvaluationStart\x12T\n" +
 	"\x18current_evaluation_start\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x16currentEvaluationStart\x12\x1a\n" +
-	"\brestarts\x18\x04 \x01(\rR\brestarts\x120\n" +
-	"\bprogress\x18\x05 \x01(\v2\x14.google.protobuf.AnyR\bprogress\"\xca\x02\n" +
+	"\brestarts\x18\x04 \x01(\rR\brestarts\x12\x1f\n" +
+	"\bprogress\x18\x05 \x01(\fH\x00R\bprogress\x88\x01\x01B\v\n" +
+	"\t_progress\"\xca\x02\n" +
 	"\x06Result\x12B\n" +
 	"\afailure\x18\x01 \x01(\v2(.bonanza.model.evaluation.Result.FailureR\afailure\x12\x81\x01\n" +
 	"\x12outcomes_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB*\xea\xd7 &\x1a$bonanza.model.evaluation.EvaluationsR\x11outcomesReference\x1ax\n" +
@@ -1092,9 +1092,8 @@ var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_goTypes = []a
 	(*core.DecodableReference)(nil),     // 17: bonanza.model.core.DecodableReference
 	(*chunking.Parameters)(nil),         // 18: bonanza.model.chunking.Parameters
 	(*timestamppb.Timestamp)(nil),       // 19: google.protobuf.Timestamp
-	(*anypb.Any)(nil),                   // 20: google.protobuf.Any
-	(*status.Status)(nil),               // 21: google.rpc.Status
-	(*descriptorpb.MessageOptions)(nil), // 22: google.protobuf.MessageOptions
+	(*status.Status)(nil),               // 20: google.rpc.Status
+	(*descriptorpb.MessageOptions)(nil), // 21: google.protobuf.MessageOptions
 }
 var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []int32{
 	0,  // 0: bonanza.model.evaluation.ProgressCounter.unit:type_name -> bonanza.model.evaluation.ProgressCounter.Unit
@@ -1119,18 +1118,17 @@ var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_depIdxs = []i
 	15, // 19: bonanza.model.evaluation.Progress.EvaluatingKey.key:type_name -> bonanza.model.core.Any
 	19, // 20: bonanza.model.evaluation.Progress.EvaluatingKey.first_evaluation_start:type_name -> google.protobuf.Timestamp
 	19, // 21: bonanza.model.evaluation.Progress.EvaluatingKey.current_evaluation_start:type_name -> google.protobuf.Timestamp
-	20, // 22: bonanza.model.evaluation.Progress.EvaluatingKey.progress:type_name -> google.protobuf.Any
-	15, // 23: bonanza.model.evaluation.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
-	21, // 24: bonanza.model.evaluation.Result.Failure.status:type_name -> google.rpc.Status
-	22, // 25: bonanza.model.evaluation.key_description:extendee -> google.protobuf.MessageOptions
-	22, // 26: bonanza.model.evaluation.progress_description:extendee -> google.protobuf.MessageOptions
-	1,  // 27: bonanza.model.evaluation.key_description:type_name -> bonanza.model.evaluation.MessageDescription
-	1,  // 28: bonanza.model.evaluation.progress_description:type_name -> bonanza.model.evaluation.MessageDescription
-	29, // [29:29] is the sub-list for method output_type
-	29, // [29:29] is the sub-list for method input_type
-	27, // [27:29] is the sub-list for extension type_name
-	25, // [25:27] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	15, // 22: bonanza.model.evaluation.Result.Failure.stack_trace_keys:type_name -> bonanza.model.core.Any
+	20, // 23: bonanza.model.evaluation.Result.Failure.status:type_name -> google.rpc.Status
+	21, // 24: bonanza.model.evaluation.key_description:extendee -> google.protobuf.MessageOptions
+	21, // 25: bonanza.model.evaluation.progress_description:extendee -> google.protobuf.MessageOptions
+	1,  // 26: bonanza.model.evaluation.key_description:type_name -> bonanza.model.evaluation.MessageDescription
+	1,  // 27: bonanza.model.evaluation.progress_description:type_name -> bonanza.model.evaluation.MessageDescription
+	28, // [28:28] is the sub-list for method output_type
+	28, // [28:28] is the sub-list for method input_type
+	26, // [26:28] is the sub-list for extension type_name
+	24, // [24:26] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_init() }
@@ -1150,6 +1148,7 @@ func file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_init() {
 		(*Evaluations_Leaf_)(nil),
 		(*Evaluations_Parent_)(nil),
 	}
+	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[12].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

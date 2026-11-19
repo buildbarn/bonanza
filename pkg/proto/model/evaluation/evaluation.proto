@@ -4,7 +4,6 @@ package bonanza.model.evaluation;
 
 import "bonanza.build/pkg/proto/model/chunking/chunking.proto";
 import "bonanza.build/pkg/proto/model/core/core.proto";
-import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
 import "google/rpc/status.proto";
@@ -236,9 +235,16 @@ message Progress {
     uint32 restarts = 4;
 
     // If set, the progress that the evaluation function reported for
-    // the current attempt. The type of the message is specific to the
-    // type of the key, and may not contain any references to objects.
-    google.protobuf.Any progress = 5;
+    // the current attempt, stored as a marshaled Protobuf message. As
+    // the type of the message is implied by the type of the key, it
+    // is not stored. Progress messages of keys of type Foo.Key have
+    // type Foo.Progress.
+    //
+    // Progress messages may not contain any references to objects.
+    // This field has explicit presence, as progress messages may
+    // marshal to an empty byte sequence (e.g., when all fields have
+    // their default value).
+    optional bytes progress = 5;
   }
 
   // Keys for which the evaluation function is currently being executed,

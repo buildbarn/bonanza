@@ -30,6 +30,8 @@ type Environment[TReference any, TMetadata model_core.ReferenceMetadata] interfa
 	// that was reported previously. Progress is discarded when the
 	// evaluation function returns.
 	//
+	// The message is returned to clients without type information,
+	// meaning that its type must be implied by the type of the key.
 	// The message may not contain any references to objects, and may
 	// not be modified after being provided to this method.
 	ReportProgress(progress proto.Message)
