@@ -4,6 +4,7 @@ package bonanza.model.executewithstorage;
 
 import "bonanza.build/pkg/proto/model/core/core.proto";
 import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
+import "bonanza.build/pkg/proto/model/format/format.proto";
 import "bonanza.build/pkg/proto/storage/object/object.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/executewithstorage";
@@ -42,7 +43,7 @@ message Action {
 
   // The format of the data contained in the action object. This can be
   // used by workers to reject actions that they are unable to process.
-  bonanza.model.core.ObjectFormat action_format = 4;
+  bonanza.model.format.Format action_format = 4;
 }
 
 // Execution event that is emitted by a worker while an action is being

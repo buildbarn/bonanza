@@ -9,6 +9,7 @@ package executewithstorage
 import (
 	core "bonanza.build/pkg/proto/model/core"
 	encoding "bonanza.build/pkg/proto/model/encoding"
+	format "bonanza.build/pkg/proto/model/format"
 	object "bonanza.build/pkg/proto/storage/object"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -29,7 +30,7 @@ type Action struct {
 	Namespace       *object.Namespace            `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	ActionEncoders  []*encoding.BinaryEncoder    `protobuf:"bytes,2,rep,name=action_encoders,json=actionEncoders,proto3" json:"action_encoders,omitempty"`
 	ActionReference *core.WeakDecodableReference `protobuf:"bytes,3,opt,name=action_reference,json=actionReference,proto3" json:"action_reference,omitempty"`
-	ActionFormat    *core.ObjectFormat           `protobuf:"bytes,4,opt,name=action_format,json=actionFormat,proto3" json:"action_format,omitempty"`
+	ActionFormat    *format.Format               `protobuf:"bytes,4,opt,name=action_format,json=actionFormat,proto3" json:"action_format,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -85,7 +86,7 @@ func (x *Action) GetActionReference() *core.WeakDecodableReference {
 	return nil
 }
 
-func (x *Action) GetActionFormat() *core.ObjectFormat {
+func (x *Action) GetActionFormat() *format.Format {
 	if x != nil {
 		return x.ActionFormat
 	}
@@ -184,12 +185,12 @@ var File_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_pro
 
 const file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDesc = "" +
 	"\n" +
-	"Ibonanza.build/pkg/proto/model/executewithstorage/executewithstorage.proto\x12 bonanza.model.executewithstorage\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\"\xb7\x02\n" +
+	"Ibonanza.build/pkg/proto/model/executewithstorage/executewithstorage.proto\x12 bonanza.model.executewithstorage\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a1bonanza.build/pkg/proto/model/format/format.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\"\xb3\x02\n" +
 	"\x06Action\x12?\n" +
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12N\n" +
 	"\x0faction_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eactionEncoders\x12U\n" +
-	"\x10action_reference\x18\x03 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceR\x0factionReference\x12E\n" +
-	"\raction_format\x18\x04 \x01(\v2 .bonanza.model.core.ObjectFormatR\factionFormat\"\\\n" +
+	"\x10action_reference\x18\x03 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceR\x0factionReference\x12A\n" +
+	"\raction_format\x18\x04 \x01(\v2\x1c.bonanza.model.format.FormatR\factionFormat\"\\\n" +
 	"\x05Event\x12S\n" +
 	"\x0fevent_reference\x18\x01 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceR\x0eeventReference\"_\n" +
 	"\x06Result\x12U\n" +
@@ -215,13 +216,13 @@ var file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_pro
 	(*object.Namespace)(nil),            // 3: bonanza.storage.object.Namespace
 	(*encoding.BinaryEncoder)(nil),      // 4: bonanza.model.encoding.BinaryEncoder
 	(*core.WeakDecodableReference)(nil), // 5: bonanza.model.core.WeakDecodableReference
-	(*core.ObjectFormat)(nil),           // 6: bonanza.model.core.ObjectFormat
+	(*format.Format)(nil),               // 6: bonanza.model.format.Format
 }
 var file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_depIdxs = []int32{
 	3, // 0: bonanza.model.executewithstorage.Action.namespace:type_name -> bonanza.storage.object.Namespace
 	4, // 1: bonanza.model.executewithstorage.Action.action_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
 	5, // 2: bonanza.model.executewithstorage.Action.action_reference:type_name -> bonanza.model.core.WeakDecodableReference
-	6, // 3: bonanza.model.executewithstorage.Action.action_format:type_name -> bonanza.model.core.ObjectFormat
+	6, // 3: bonanza.model.executewithstorage.Action.action_format:type_name -> bonanza.model.format.Format
 	5, // 4: bonanza.model.executewithstorage.Event.event_reference:type_name -> bonanza.model.core.WeakDecodableReference
 	5, // 5: bonanza.model.executewithstorage.Result.result_reference:type_name -> bonanza.model.core.WeakDecodableReference
 	6, // [6:6] is the sub-list for method output_type

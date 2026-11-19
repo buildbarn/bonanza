@@ -7,11 +7,11 @@
 package core
 
 import (
+	format "bonanza.build/pkg/proto/model/format"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
 	anypb "google.golang.org/protobuf/types/known/anypb"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -24,104 +24,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ObjectFormat struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Format:
-	//
-	//	*ObjectFormat_Raw
-	//	*ObjectFormat_ProtoTypeName
-	//	*ObjectFormat_ProtoListTypeName
-	Format        isObjectFormat_Format `protobuf_oneof:"format"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ObjectFormat) Reset() {
-	*x = ObjectFormat{}
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ObjectFormat) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ObjectFormat) ProtoMessage() {}
-
-func (x *ObjectFormat) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ObjectFormat.ProtoReflect.Descriptor instead.
-func (*ObjectFormat) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ObjectFormat) GetFormat() isObjectFormat_Format {
-	if x != nil {
-		return x.Format
-	}
-	return nil
-}
-
-func (x *ObjectFormat) GetRaw() *emptypb.Empty {
-	if x != nil {
-		if x, ok := x.Format.(*ObjectFormat_Raw); ok {
-			return x.Raw
-		}
-	}
-	return nil
-}
-
-func (x *ObjectFormat) GetProtoTypeName() string {
-	if x != nil {
-		if x, ok := x.Format.(*ObjectFormat_ProtoTypeName); ok {
-			return x.ProtoTypeName
-		}
-	}
-	return ""
-}
-
-func (x *ObjectFormat) GetProtoListTypeName() string {
-	if x != nil {
-		if x, ok := x.Format.(*ObjectFormat_ProtoListTypeName); ok {
-			return x.ProtoListTypeName
-		}
-	}
-	return ""
-}
-
-type isObjectFormat_Format interface {
-	isObjectFormat_Format()
-}
-
-type ObjectFormat_Raw struct {
-	Raw *emptypb.Empty `protobuf:"bytes,1,opt,name=raw,proto3,oneof"`
-}
-
-type ObjectFormat_ProtoTypeName struct {
-	ProtoTypeName string `protobuf:"bytes,2,opt,name=proto_type_name,json=protoTypeName,proto3,oneof"`
-}
-
-type ObjectFormat_ProtoListTypeName struct {
-	ProtoListTypeName string `protobuf:"bytes,3,opt,name=proto_list_type_name,json=protoListTypeName,proto3,oneof"`
-}
-
-func (*ObjectFormat_Raw) isObjectFormat_Format() {}
-
-func (*ObjectFormat_ProtoTypeName) isObjectFormat_Format() {}
-
-func (*ObjectFormat_ProtoListTypeName) isObjectFormat_Format() {}
-
 type Reference struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Index         uint32                 `protobuf:"fixed32,1,opt,name=index,proto3" json:"index,omitempty"`
@@ -131,7 +33,7 @@ type Reference struct {
 
 func (x *Reference) Reset() {
 	*x = Reference{}
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -143,7 +45,7 @@ func (x *Reference) String() string {
 func (*Reference) ProtoMessage() {}
 
 func (x *Reference) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[1]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -156,7 +58,7 @@ func (x *Reference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reference.ProtoReflect.Descriptor instead.
 func (*Reference) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{1}
+	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Reference) GetIndex() uint32 {
@@ -176,7 +78,7 @@ type DecodableReference struct {
 
 func (x *DecodableReference) Reset() {
 	*x = DecodableReference{}
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -188,7 +90,7 @@ func (x *DecodableReference) String() string {
 func (*DecodableReference) ProtoMessage() {}
 
 func (x *DecodableReference) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -201,7 +103,7 @@ func (x *DecodableReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecodableReference.ProtoReflect.Descriptor instead.
 func (*DecodableReference) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{2}
+	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *DecodableReference) GetReference() *Reference {
@@ -228,7 +130,7 @@ type WeakDecodableReference struct {
 
 func (x *WeakDecodableReference) Reset() {
 	*x = WeakDecodableReference{}
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -240,7 +142,7 @@ func (x *WeakDecodableReference) String() string {
 func (*WeakDecodableReference) ProtoMessage() {}
 
 func (x *WeakDecodableReference) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -253,7 +155,7 @@ func (x *WeakDecodableReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WeakDecodableReference.ProtoReflect.Descriptor instead.
 func (*WeakDecodableReference) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *WeakDecodableReference) GetReference() []byte {
@@ -279,7 +181,7 @@ type ReferenceSet struct {
 
 func (x *ReferenceSet) Reset() {
 	*x = ReferenceSet{}
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -291,7 +193,7 @@ func (x *ReferenceSet) String() string {
 func (*ReferenceSet) ProtoMessage() {}
 
 func (x *ReferenceSet) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -304,7 +206,7 @@ func (x *ReferenceSet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReferenceSet.ProtoReflect.Descriptor instead.
 func (*ReferenceSet) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{4}
+	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ReferenceSet) GetIndices() []uint32 {
@@ -324,7 +226,7 @@ type Any struct {
 
 func (x *Any) Reset() {
 	*x = Any{}
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -336,7 +238,7 @@ func (x *Any) String() string {
 func (*Any) ProtoMessage() {}
 
 func (x *Any) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -349,7 +251,7 @@ func (x *Any) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Any.ProtoReflect.Descriptor instead.
 func (*Any) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{5}
+	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Any) GetValue() *anypb.Any {
@@ -369,7 +271,7 @@ func (x *Any) GetReferences() *ReferenceSet {
 var file_bonanza_build_pkg_proto_model_core_core_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
-		ExtensionType: (*ObjectFormat)(nil),
+		ExtensionType: (*format.Format)(nil),
 		Field:         66941,
 		Name:          "bonanza.model.core.object_format",
 		Tag:           "bytes,66941,opt,name=object_format",
@@ -379,7 +281,7 @@ var file_bonanza_build_pkg_proto_model_core_core_proto_extTypes = []protoimpl.Ex
 
 // Extension fields to descriptorpb.FieldOptions.
 var (
-	// optional bonanza.model.core.ObjectFormat object_format = 66941;
+	// optional bonanza.model.format.Format object_format = 66941;
 	E_ObjectFormat = &file_bonanza_build_pkg_proto_model_core_core_proto_extTypes[0]
 )
 
@@ -387,12 +289,7 @@ var File_bonanza_build_pkg_proto_model_core_core_proto protoreflect.FileDescript
 
 const file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc = "" +
 	"\n" +
-	"-bonanza.build/pkg/proto/model/core/core.proto\x12\x12bonanza.model.core\x1a\x19google/protobuf/any.proto\x1a google/protobuf/descriptor.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xa1\x01\n" +
-	"\fObjectFormat\x12*\n" +
-	"\x03raw\x18\x01 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x03raw\x12(\n" +
-	"\x0fproto_type_name\x18\x02 \x01(\tH\x00R\rprotoTypeName\x121\n" +
-	"\x14proto_list_type_name\x18\x03 \x01(\tH\x00R\x11protoListTypeNameB\b\n" +
-	"\x06format\"!\n" +
+	"-bonanza.build/pkg/proto/model/core/core.proto\x12\x12bonanza.model.core\x1a1bonanza.build/pkg/proto/model/format/format.proto\x1a\x19google/protobuf/any.proto\x1a google/protobuf/descriptor.proto\"!\n" +
 	"\tReference\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\aR\x05index\"\x82\x01\n" +
 	"\x12DecodableReference\x12;\n" +
@@ -407,8 +304,8 @@ const file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\v2\x14.google.protobuf.AnyR\x05value\x12@\n" +
 	"\n" +
 	"references\x18\x02 \x01(\v2 .bonanza.model.core.ReferenceSetR\n" +
-	"references:f\n" +
-	"\robject_format\x12\x1d.google.protobuf.FieldOptions\x18\xfd\x8a\x04 \x01(\v2 .bonanza.model.core.ObjectFormatR\fobjectFormatB$Z\"bonanza.build/pkg/proto/model/coreb\x06proto3"
+	"references:b\n" +
+	"\robject_format\x12\x1d.google.protobuf.FieldOptions\x18\xfd\x8a\x04 \x01(\v2\x1c.bonanza.model.format.FormatR\fobjectFormatB$Z\"bonanza.build/pkg/proto/model/coreb\x06proto3"
 
 var (
 	file_bonanza_build_pkg_proto_model_core_core_proto_rawDescOnce sync.Once
@@ -422,30 +319,28 @@ func file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP() []byte {
 	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescData
 }
 
-var file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_bonanza_build_pkg_proto_model_core_core_proto_goTypes = []any{
-	(*ObjectFormat)(nil),              // 0: bonanza.model.core.ObjectFormat
-	(*Reference)(nil),                 // 1: bonanza.model.core.Reference
-	(*DecodableReference)(nil),        // 2: bonanza.model.core.DecodableReference
-	(*WeakDecodableReference)(nil),    // 3: bonanza.model.core.WeakDecodableReference
-	(*ReferenceSet)(nil),              // 4: bonanza.model.core.ReferenceSet
-	(*Any)(nil),                       // 5: bonanza.model.core.Any
-	(*emptypb.Empty)(nil),             // 6: google.protobuf.Empty
-	(*anypb.Any)(nil),                 // 7: google.protobuf.Any
-	(*descriptorpb.FieldOptions)(nil), // 8: google.protobuf.FieldOptions
+	(*Reference)(nil),                 // 0: bonanza.model.core.Reference
+	(*DecodableReference)(nil),        // 1: bonanza.model.core.DecodableReference
+	(*WeakDecodableReference)(nil),    // 2: bonanza.model.core.WeakDecodableReference
+	(*ReferenceSet)(nil),              // 3: bonanza.model.core.ReferenceSet
+	(*Any)(nil),                       // 4: bonanza.model.core.Any
+	(*anypb.Any)(nil),                 // 5: google.protobuf.Any
+	(*descriptorpb.FieldOptions)(nil), // 6: google.protobuf.FieldOptions
+	(*format.Format)(nil),             // 7: bonanza.model.format.Format
 }
 var file_bonanza_build_pkg_proto_model_core_core_proto_depIdxs = []int32{
-	6, // 0: bonanza.model.core.ObjectFormat.raw:type_name -> google.protobuf.Empty
-	1, // 1: bonanza.model.core.DecodableReference.reference:type_name -> bonanza.model.core.Reference
-	7, // 2: bonanza.model.core.Any.value:type_name -> google.protobuf.Any
-	4, // 3: bonanza.model.core.Any.references:type_name -> bonanza.model.core.ReferenceSet
-	8, // 4: bonanza.model.core.object_format:extendee -> google.protobuf.FieldOptions
-	0, // 5: bonanza.model.core.object_format:type_name -> bonanza.model.core.ObjectFormat
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	5, // [5:6] is the sub-list for extension type_name
-	4, // [4:5] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0, // 0: bonanza.model.core.DecodableReference.reference:type_name -> bonanza.model.core.Reference
+	5, // 1: bonanza.model.core.Any.value:type_name -> google.protobuf.Any
+	3, // 2: bonanza.model.core.Any.references:type_name -> bonanza.model.core.ReferenceSet
+	6, // 3: bonanza.model.core.object_format:extendee -> google.protobuf.FieldOptions
+	7, // 4: bonanza.model.core.object_format:type_name -> bonanza.model.format.Format
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	4, // [4:5] is the sub-list for extension type_name
+	3, // [3:4] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_core_core_proto_init() }
@@ -453,18 +348,13 @@ func file_bonanza_build_pkg_proto_model_core_core_proto_init() {
 	if File_bonanza_build_pkg_proto_model_core_core_proto != nil {
 		return
 	}
-	file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[0].OneofWrappers = []any{
-		(*ObjectFormat_Raw)(nil),
-		(*ObjectFormat_ProtoTypeName)(nil),
-		(*ObjectFormat_ProtoListTypeName)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   5,
 			NumExtensions: 1,
 			NumServices:   0,
 		},

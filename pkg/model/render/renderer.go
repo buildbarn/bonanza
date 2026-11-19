@@ -9,6 +9,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
+	model_format_pb "bonanza.build/pkg/proto/model/format"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
 
@@ -34,7 +35,7 @@ type Renderer struct {
 	ReferenceFormat *object.ReferenceFormat
 	// Object format to use for reference fields that lack an
 	// object_format option.
-	FallbackObjectFormat *model_core_pb.ObjectFormat
+	FallbackObjectFormat *model_format_pb.Format
 	// If set, called for every message that is rendered as JSON.
 	// This can be used to inspect field values while rendering.
 	OnMessage func(m protoreflect.Message)
@@ -55,12 +56,12 @@ func jsonValue(v any) Doc {
 // Reference renders a reference to an object as a quoted string. If
 // the format of the object is known, the reference links to the
 // object.
-func Reference(reference model_core.Decodable[object.LocalReference], objectFormat *model_core_pb.ObjectFormat) Doc {
+func Reference(reference model_core.Decodable[object.LocalReference], objectFormat *model_format_pb.Format) Doc {
 	text := Styled(RoleReference, fmt.Sprintf("%#v", model_core.DecodableLocalReferenceToString(reference)))
 	return referenceLink(reference, objectFormat, text)
 }
 
-func referenceLink(reference model_core.Decodable[object.LocalReference], objectFormat *model_core_pb.ObjectFormat, text Doc) Doc {
+func referenceLink(reference model_core.Decodable[object.LocalReference], objectFormat *model_format_pb.Format, text Doc) Doc {
 	if objectFormat == nil {
 		// Valid reference, but there is no type information.
 		// Display the reference without turning it into a link.
@@ -72,12 +73,12 @@ func referenceLink(reference model_core.Decodable[object.LocalReference], object
 	return Link(LinkTarget{Reference: reference, ObjectFormat: objectFormat}, text)
 }
 
-func getFieldObjectFormat(fieldDescriptor protoreflect.FieldDescriptor) *model_core_pb.ObjectFormat {
+func getFieldObjectFormat(fieldDescriptor protoreflect.FieldDescriptor) *model_format_pb.Format {
 	fieldOptions, ok := fieldDescriptor.Options().(*descriptorpb.FieldOptions)
 	if !ok {
 		return nil
 	}
-	return proto.GetExtension(fieldOptions, model_core_pb.E_ObjectFormat).(*model_core_pb.ObjectFormat)
+	return proto.GetExtension(fieldOptions, model_core_pb.E_ObjectFormat).(*model_format_pb.Format)
 }
 
 // fieldReferenceLink renders text that links to the object referenced

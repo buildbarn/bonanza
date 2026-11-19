@@ -7,9 +7,9 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
-	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_encoding_pb "bonanza.build/pkg/proto/model/encoding"
 	model_executewithstorage_pb "bonanza.build/pkg/proto/model/executewithstorage"
+	model_format_pb "bonanza.build/pkg/proto/model/format"
 	"bonanza.build/pkg/remoteexecution"
 	"bonanza.build/pkg/storage/object"
 
@@ -31,7 +31,7 @@ import (
 type Action[TReference any] struct {
 	Reference *model_core.Decodable[TReference]
 	Encoders  []*model_encoding_pb.BinaryEncoder
-	Format    *model_core_pb.ObjectFormat
+	Format    *model_format_pb.Format
 }
 
 // NamespacedAction is an Action whose object, and any objects it

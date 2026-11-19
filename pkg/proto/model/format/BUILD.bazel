@@ -1,0 +1,25 @@
+load("@protobuf//bazel:proto_library.bzl", "proto_library")
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+
+proto_library(
+    name = "format_proto",
+    srcs = ["format.proto"],
+    import_prefix = "bonanza.build",
+    visibility = ["//visibility:public"],
+    deps = ["@protobuf//:empty_proto"],
+)
+
+go_proto_library(
+    name = "format_go_proto",
+    importpath = "bonanza.build/pkg/proto/model/format",
+    proto = ":format_proto",
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "format",
+    embed = [":format_go_proto"],
+    importpath = "bonanza.build/pkg/proto/model/format",
+    visibility = ["//visibility:public"],
+)

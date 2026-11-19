@@ -22,6 +22,7 @@ go_library(
         "//pkg/model/starlark",
         "//pkg/proto/model/core",
         "//pkg/proto/model/filesystem",
+        "//pkg/proto/model/format",
         "//pkg/proto/model/starlark",
         "//pkg/starlark/compile",
         "//pkg/starlark/syntax",

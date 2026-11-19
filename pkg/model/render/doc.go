@@ -16,7 +16,7 @@ package render
 
 import (
 	model_core "bonanza.build/pkg/model/core"
-	model_core_pb "bonanza.build/pkg/proto/model/core"
+	model_format_pb "bonanza.build/pkg/proto/model/format"
 	"bonanza.build/pkg/storage/object"
 )
 
@@ -53,7 +53,7 @@ const (
 // converting them to URLs.
 type LinkTarget struct {
 	Reference    model_core.Decodable[object.LocalReference]
-	ObjectFormat *model_core_pb.ObjectFormat
+	ObjectFormat *model_format_pb.Format
 }
 
 // Doc is a document that can be laid out using Layout().

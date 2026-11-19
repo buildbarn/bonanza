@@ -1,7 +1,7 @@
 package core
 
 import (
-	model_core_pb "bonanza.build/pkg/proto/model/core"
+	model_format_pb "bonanza.build/pkg/proto/model/format"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -9,13 +9,13 @@ import (
 // ObjectFormatToPath converts an object format to a set of pathname
 // components. This corresponds to the paths accepted by tools like
 // bonanza_browser.
-func ObjectFormatToPath(objectFormat *model_core_pb.ObjectFormat) ([]string, bool) {
+func ObjectFormatToPath(objectFormat *model_format_pb.Format) ([]string, bool) {
 	switch format := objectFormat.GetFormat().(type) {
-	case *model_core_pb.ObjectFormat_Raw:
+	case *model_format_pb.Format_Raw:
 		return []string{"raw"}, true
-	case *model_core_pb.ObjectFormat_ProtoTypeName:
+	case *model_format_pb.Format_ProtoTypeName:
 		return []string{"proto", format.ProtoTypeName}, true
-	case *model_core_pb.ObjectFormat_ProtoListTypeName:
+	case *model_format_pb.Format_ProtoListTypeName:
 		return []string{"proto_list", format.ProtoListTypeName}, true
 	default:
 		return nil, false
@@ -24,9 +24,9 @@ func ObjectFormatToPath(objectFormat *model_core_pb.ObjectFormat) ([]string, boo
 
 // NewProtoObjectFormat creates a new ObjectFormat message that
 // corresponds to the type of the provided Protobuf message.
-func NewProtoObjectFormat(m proto.Message) *model_core_pb.ObjectFormat {
-	return &model_core_pb.ObjectFormat{
-		Format: &model_core_pb.ObjectFormat_ProtoTypeName{
+func NewProtoObjectFormat(m proto.Message) *model_format_pb.Format {
+	return &model_format_pb.Format{
+		Format: &model_format_pb.Format_ProtoTypeName{
 			ProtoTypeName: string(m.ProtoReflect().Descriptor().FullName()),
 		},
 	}
@@ -34,9 +34,9 @@ func NewProtoObjectFormat(m proto.Message) *model_core_pb.ObjectFormat {
 
 // NewProtoListObjectFormat creates a new ObjectFormat message that
 // corresponds to a list of the type of the provided Protobuf message.
-func NewProtoListObjectFormat(m proto.Message) *model_core_pb.ObjectFormat {
-	return &model_core_pb.ObjectFormat{
-		Format: &model_core_pb.ObjectFormat_ProtoListTypeName{
+func NewProtoListObjectFormat(m proto.Message) *model_format_pb.Format {
+	return &model_format_pb.Format{
+		Format: &model_format_pb.Format_ProtoListTypeName{
 			ProtoListTypeName: string(m.ProtoReflect().Descriptor().FullName()),
 		},
 	}

@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package bonanza.model.core;
 
+import "bonanza.build/pkg/proto/model/format/format.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
-import "google/protobuf/empty.proto";
 
 option go_package = "bonanza.build/pkg/proto/model/core";
 
@@ -12,22 +12,7 @@ extend google.protobuf.FieldOptions {
   // If the field is a DecodableReference or WeakDecodableReference,
   // this option denotes the format of the data contained in the object
   // that it references.
-  ObjectFormat object_format = 66941;
-}
-
-message ObjectFormat {
-  oneof format {
-    // The referenced object stores binary data (e.g., a file chunk).
-    google.protobuf.Empty raw = 1;
-
-    // The referenced object stores a Protobuf message. The full name of
-    // the message type is provided.
-    string proto_type_name = 2;
-
-    // The referenced object stores a varint separated list of Protobuf
-    // messages. The full name of the message type is provided.
-    string proto_list_type_name = 3;
-  }
+  bonanza.model.format.Format object_format = 66941;
 }
 
 // Reference to another object contained in the same namespace.
