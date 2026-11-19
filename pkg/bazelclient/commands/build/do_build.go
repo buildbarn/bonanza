@@ -955,9 +955,9 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		// not shown at the bottom of the screen.
 		evaluatingKeysToDisplay := progress.Message.OldestEvaluatingKeys
 		additionalEvaluatingKeysCount := progress.Message.AdditionalEvaluatingKeysCount
-		_, terminalLines, err := term.GetSize(1)
+		terminalColumns, terminalLines, err := term.GetSize(1)
 		if err != nil {
-			terminalLines = 24
+			terminalColumns, terminalLines = 80, 24
 		}
 		maximumEvaluatingKeysToDisplay := terminalLines - progressLinesWritten - 1
 		if additionalEvaluatingKeysCount > 0 || len(evaluatingKeysToDisplay) > maximumEvaluatingKeysToDisplay {
@@ -980,7 +980,8 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 
 		for _, evaluatingKey := range evaluatingKeysToDisplay {
 			logger.Info(
-				formatted.NoWrap(
+				formatted.Truncate(
+					terminalColumns,
 					formatKey(
 						namespace,
 						model_core.Nested(progress, evaluatingKey.Key),

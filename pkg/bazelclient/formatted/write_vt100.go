@@ -49,6 +49,16 @@ func (sas *vt100SingleAttributeState) setCurrentToDesired(w io.StringWriter, wro
 type vt100AttributesState struct {
 	bold            vt100SingleAttributeState
 	foregroundColor vt100SingleAttributeState
+	backgroundColor vt100SingleAttributeState
+
+	// The number of cells of text that still need to be written
+	// with a background color, as requested by ProgressBar().
+	backgroundCells int
+
+	// If set, the number of cells of text that may still be
+	// written, as requested by Truncate().
+	truncating     bool
+	remainingCells int
 }
 
 func (as *vt100AttributesState) setCurrentToDesired(w io.StringWriter) (int, error) {
@@ -59,6 +69,12 @@ func (as *vt100AttributesState) setCurrentToDesired(w io.StringWriter) (int, err
 	}
 
 	nPart, err := as.foregroundColor.setCurrentToDesired(w, &wroteAttributes)
+	nTotal += nPart
+	if err != nil {
+		return nTotal, err
+	}
+
+	nPart, err = as.backgroundColor.setCurrentToDesired(w, &wroteAttributes)
 	nTotal += nPart
 	if err != nil {
 		return nTotal, err
@@ -80,6 +96,7 @@ func WriteVT100(n Node, w io.StringWriter) (int, error) {
 	attributesState := vt100AttributesState{
 		bold:            newVT100AttributeState(22),
 		foregroundColor: newVT100AttributeState(39),
+		backgroundColor: newVT100AttributeState(49),
 	}
 	nTotal, err := n.writeVT100(w, &attributesState)
 	if err != nil {
