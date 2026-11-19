@@ -6,6 +6,7 @@ import (
 	"unique"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
@@ -57,12 +58,12 @@ func (*directoryClusterObjectParser[TReference]) ParseObject(in model_core.Messa
 	if len(decodingParameters) > 0 {
 		return model_core.Message[DirectoryCluster, TReference]{}, status.Error(codes.InvalidArgument, "Unexpected decoding parameters")
 	}
-	entries, err := model_parser.NewProtoListObjectParser[TReference, model_filesystem_pb.DirectoryEntry]().ParseObject(in, nil)
+	entries, err := model_format.NewProtoList[model_filesystem_pb.DirectoryEntry]().Unmarshal(in.Message)
 	if err != nil {
 		return model_core.Message[DirectoryCluster, TReference]{}, err
 	}
 	var cluster DirectoryCluster
-	if err := cluster.addDirectory(entries.Message); err != nil {
+	if err := cluster.addDirectory(entries); err != nil {
 		return model_core.Message[DirectoryCluster, TReference]{}, err
 	}
 	return model_core.Nested(in, cluster), nil

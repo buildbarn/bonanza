@@ -4,10 +4,13 @@ import (
 	"unique"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_format "bonanza.build/pkg/model/format"
 	"bonanza.build/pkg/model/parser"
-	model_parser "bonanza.build/pkg/model/parser"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type fileContentsListObjectParser[TReference object.BasicReference] struct{}
@@ -20,12 +23,14 @@ func NewFileContentsListObjectParser[TReference object.BasicReference]() parser.
 }
 
 func (fileContentsListObjectParser[TReference]) ParseObject(in model_core.Message[[]byte, TReference], decodingParameters []byte) (FileContentsList[TReference], error) {
-	l, err := model_parser.NewProtoListObjectParser[TReference, model_filesystem_pb.FileContents]().
-		ParseObject(in, decodingParameters)
+	if len(decodingParameters) > 0 {
+		return nil, status.Error(codes.InvalidArgument, "Unexpected decoding parameters")
+	}
+	l, err := model_format.NewProtoList[model_filesystem_pb.FileContents]().Unmarshal(in.Message)
 	if err != nil {
 		return nil, err
 	}
-	return NewFileContentsListFromProto(l)
+	return NewFileContentsListFromProto(model_core.Nested(in, l))
 }
 
 type fileContentsListObjectParserKey struct{}

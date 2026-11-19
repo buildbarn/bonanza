@@ -9,6 +9,7 @@ go_library(
         "dereference.go",
         "downloading_object_reader.go",
         "encoded_object_parser.go",
+        "format_object_parser.go",
         "message_object_parser.go",
         "message_object_reader.go",
         "object_parser.go",
@@ -22,9 +23,9 @@ go_library(
     importpath = "bonanza.build/pkg/model/parser",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/encoding/varint",
         "//pkg/model/core",
         "//pkg/model/encoding",
+        "//pkg/model/format",
         "//pkg/proto/configuration/model/parser",
         "//pkg/proto/model/core",
         "//pkg/storage/object",
@@ -33,6 +34,5 @@ go_library(
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
-        "@org_golang_google_protobuf//reflect/protoreflect",
     ],
 )
