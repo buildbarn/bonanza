@@ -33,7 +33,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -1064,7 +1063,9 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) ReferenceObject
 	return e.computer.objectManager.ReferenceObject(capturedObject)
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) (*KeyState[TReference, TMetadata], valueState[TReference, TMetadata]) {
+// getValueState returns the key state and value state of a key on which
+// the current key depends. The type URL of the key is returned as well.
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) (*KeyState[TReference, TMetadata], valueState[TReference, TMetadata], string) {
 	rc := e.computer
 	key, err := model_core.MarshalTopLevelAny(model_core.Unpatch(rc.objectManager, patchedKey))
 	if err != nil {
@@ -1086,7 +1087,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(p
 	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.TypeUrl, evaluationQueue)
 	if !ks.valueState.isEvaluated() {
 		e.missingDependencies[ks] = struct{}{}
-		return nil, nil
+		return nil, nil, ""
 	}
 	if err := ks.valueState.getError(); err != nil {
 		// In case of failures we always assume that the
@@ -1098,38 +1099,50 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(p
 			KeyState: ks,
 			Err:      err,
 		})
-		return nil, nil
+		return nil, nil, ""
 	}
 	if ks.valueState.isVariableDependency() {
 		e.directVariableDependencies[ks] = struct{}{}
 	}
-	return ks, ks.valueState
+	return ks, ks.valueState, key.Message.TypeUrl
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueFromState(vs valueState[TReference, TMetadata], valueMessageType protoreflect.MessageType) model_core.Message[proto.Message, TReference] {
+// setDependencyError reports that a value derived from the value of a
+// dependency could not be obtained (e.g., because the value could not
+// be unmarshaled, or because no object could be computed from it). The
+// failure is reported in the same way as a failure to compute the
+// dependency's value, so that the evaluation results contain the key
+// that caused the failure.
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) setDependencyError(ks *KeyState[TReference, TMetadata], err error) {
+	e.computer.lock.Lock()
+	e.directVariableDependencies[ks] = struct{}{}
+	e.computer.lock.Unlock()
+	e.setError(NestedError[TReference, TMetadata]{
+		KeyState: ks,
+		Err:      err,
+	})
+}
+
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetValue(patchedKey model_core.PatchedMessage[proto.Message, TMetadata], valueUnmarshaler model_format.Unmarshaler[any]) model_core.TopLevelMessage[any, TReference] {
+	ks, vs, _ := e.getValueState(patchedKey)
+	if vs == nil {
+		return model_core.TopLevelMessage[any, TReference]{}
+	}
 	marshaledValue, err := vs.getValue(e.context, e.computer)
 	if err != nil {
 		e.setError(err)
-		return model_core.Message[proto.Message, TReference]{}
+		return model_core.TopLevelMessage[any, TReference]{}
 	}
-	value := valueMessageType.New().Interface()
-	if err := proto.Unmarshal(marshaledValue.Message, value); err != nil {
-		e.setError(err)
-		return model_core.Message[proto.Message, TReference]{}
+	value, err := valueUnmarshaler.Unmarshal(marshaledValue.Message)
+	if err != nil {
+		e.setDependencyError(ks, err)
+		return model_core.TopLevelMessage[any, TReference]{}
 	}
-	return model_core.NewMessage(value, marshaledValue.OutgoingReferences)
+	return model_core.NewTopLevelMessage(value, marshaledValue.OutgoingReferences)
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetValue(patchedKey model_core.PatchedMessage[proto.Message, TMetadata], valueMessageType protoreflect.MessageType) model_core.Message[proto.Message, TReference] {
-	_, vs := e.getValueState(patchedKey)
-	if vs == nil {
-		return model_core.Message[proto.Message, TReference]{}
-	}
-	return e.getValueFromState(vs, valueMessageType)
-}
-
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetObject(patchedKey model_core.PatchedMessage[proto.Message, TMetadata], valueMessageType protoreflect.MessageType) (any, bool) {
-	ks, vs := e.getValueState(patchedKey)
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetObject(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) (any, bool) {
+	ks, vs, keyTypeURL := e.getValueState(patchedKey)
 	if vs == nil {
 		return nil, false
 	}
@@ -1137,22 +1150,14 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetObject(patch
 		return *object, true
 	}
 
-	value := e.getValueFromState(vs, valueMessageType)
-	if !value.IsSet() {
+	value, err := vs.getValue(e.context, e.computer)
+	if err != nil {
+		e.setError(err)
 		return nil, false
 	}
-	object, err := e.computer.base.ComputeObject(value)
+	object, err := e.computer.base.ComputeObject(keyTypeURL, value)
 	if err != nil {
-		// Report this in the same way as a failure to compute
-		// the key's value, so that the evaluation results
-		// contain the key that caused the failure.
-		e.computer.lock.Lock()
-		e.directVariableDependencies[ks] = struct{}{}
-		e.computer.lock.Unlock()
-		e.setError(NestedError[TReference, TMetadata]{
-			KeyState: ks,
-			Err:      err,
-		})
+		e.setDependencyError(ks, err)
 		return nil, false
 	}
 
@@ -2095,10 +2100,7 @@ func (vs *computingValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 			directVariableDependencies: sortedKeyStates(e.directVariableDependencies),
 		}, nil
 	}
-	marshaledValue, err := model_core.MarshalTopLevelBinary(
-		model_core.Unpatch(rc.objectManager, value).
-			ToMarshaler(model_format.ProtoMarshaler[proto.Message]{}),
-	)
+	marshaledValue, err := model_core.MarshalTopLevelBinary(model_core.Unpatch(rc.objectManager, value))
 	if err != nil {
 		return &evaluationFailedValueState[TReference, TMetadata]{
 			err:                        fmt.Errorf("failed to marshal value yielded by evaluation function: %w", err),

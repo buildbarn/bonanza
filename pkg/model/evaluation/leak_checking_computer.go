@@ -2,12 +2,13 @@ package evaluation
 
 import (
 	"context"
+	"encoding"
 	"fmt"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_format "bonanza.build/pkg/model/format"
 
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type leakCheckingComputer[TReference any, TMetadata model_core.ReferenceMetadata] struct {
@@ -24,7 +25,7 @@ func NewLeakCheckingComputer[TReference any, TMetadata model_core.ReferenceMetad
 	}
 }
 
-func (c *leakCheckingComputer[TReference, TMetadata]) ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error) {
+func (c *leakCheckingComputer[TReference, TMetadata]) ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata], error) {
 	objectManager := model_core.NewLeakCheckingObjectManager(e)
 	value, err := c.Computer.ComputeValue(
 		ctx,
@@ -36,9 +37,9 @@ func (c *leakCheckingComputer[TReference, TMetadata]) ComputeValue(ctx context.C
 	)
 	if err != nil {
 		if c := objectManager.GetCurrentValidMetadataCount(); c != 0 {
-			return model_core.PatchedMessage[proto.Message, TMetadata]{}, fmt.Errorf("leaked %d metadata values", c)
+			return model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata]{}, fmt.Errorf("leaked %d metadata values", c)
 		}
-		return model_core.PatchedMessage[proto.Message, TMetadata]{}, err
+		return model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata]{}, err
 	}
 
 	// Unwrap ReferenceMetadata objects created by the base implementation.
@@ -52,7 +53,7 @@ func (c *leakCheckingComputer[TReference, TMetadata]) ComputeValue(ctx context.C
 		),
 	)
 	if c := objectManager.GetCurrentValidMetadataCount(); c != 0 {
-		return model_core.PatchedMessage[proto.Message, TMetadata]{}, fmt.Errorf("leaked %d metadata values", c)
+		return model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata]{}, fmt.Errorf("leaked %d metadata values", c)
 	}
 	return mappedValue, nil
 }
@@ -66,7 +67,7 @@ type leakCheckingEnvironment[TReference any, TMetadata model_core.ReferenceMetad
 	environment Environment[TReference, TMetadata]
 }
 
-func (e *leakCheckingEnvironment[TReference, TMetadata]) GetValue(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]], valueMessageType protoreflect.MessageType) model_core.Message[proto.Message, TReference] {
+func (e *leakCheckingEnvironment[TReference, TMetadata]) GetValue(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]], valueUnmarshaler model_format.Unmarshaler[any]) model_core.TopLevelMessage[any, TReference] {
 	return e.environment.GetValue(
 		model_core.NewPatchedMessage(
 			key.Message,
@@ -77,11 +78,11 @@ func (e *leakCheckingEnvironment[TReference, TMetadata]) GetValue(key model_core
 				},
 			),
 		),
-		valueMessageType,
+		valueUnmarshaler,
 	)
 }
 
-func (e *leakCheckingEnvironment[TReference, TMetadata]) GetObject(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]], valueMessageType protoreflect.MessageType) (any, bool) {
+func (e *leakCheckingEnvironment[TReference, TMetadata]) GetObject(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]]) (any, bool) {
 	return e.environment.GetObject(
 		model_core.NewPatchedMessage(
 			key.Message,
@@ -92,6 +93,5 @@ func (e *leakCheckingEnvironment[TReference, TMetadata]) GetObject(key model_cor
 				},
 			),
 		),
-		valueMessageType,
 	)
 }

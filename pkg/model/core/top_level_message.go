@@ -70,6 +70,12 @@ func MarshalTopLevelBinary[TMessage encoding.BinaryMarshaler, TReference any](m 
 	return NewTopLevelMessage(data, m.OutgoingReferences), nil
 }
 
+// IsSet returns true if the instance of TopLevelMessage is
+// initialized.
+func (m TopLevelMessage[TMessage, TReference]) IsSet() bool {
+	return m.OutgoingReferences != nil
+}
+
 // Decay a top-level message to a plain message.
 func (m TopLevelMessage[TMessage, TReference]) Decay() Message[TMessage, TReference] {
 	return NewMessage(m.Message, m.OutgoingReferences)

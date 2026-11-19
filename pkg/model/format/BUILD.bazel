@@ -4,6 +4,7 @@ go_library(
     name = "format",
     srcs = [
         "dynamic_proto.go",
+        "erase.go",
         "format.go",
         "proto.go",
         "proto_list.go",

@@ -2,6 +2,7 @@ package evaluation
 
 import (
 	"context"
+	"encoding"
 	"errors"
 
 	model_core "bonanza.build/pkg/model/core"
@@ -17,8 +18,13 @@ import (
 // progress.
 var ErrMissingDependency = errors.New("missing dependency")
 
-// Computer of values belonging to keys. Both keys and values are always
-// provided in the form of a Protobuf message.
+// Computer of values belonging to keys. Keys are always provided in the
+// form of a Protobuf message. Values are opaque to the evaluation
+// framework. They are yielded by the computer in the form of a
+// BinaryMarshaler. They are unmarshaled using an Unmarshaler that is
+// provided by the caller of Environment.GetValue(), or by
+// ComputeObject(), which is provided the type URL of the key to
+// determine the type of the value.
 //
 // Values may have an object associated with them, consisting of an
 // arbitrary Go value that is derived from the message. These are useful
@@ -27,8 +33,8 @@ var ErrMissingDependency = errors.New("missing dependency")
 // exists. Objects are not written to the cache, and can't depend on
 // anything other than the value.
 type Computer[TReference any, TMetadata model_core.ReferenceMetadata] interface {
-	ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error)
-	ComputeObject(value model_core.Message[proto.Message, TReference]) (any, error)
+	ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata], error)
+	ComputeObject(keyTypeURL string, value model_core.TopLevelMessage[[]byte, TReference]) (any, error)
 	IsLookup(typeURL string) bool
 }
 

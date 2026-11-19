@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -126,7 +127,7 @@ func (*cacheTestComputer) getValue(e model_evaluation.Environment[object.LocalRe
 		model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
 			&wrapperspb.UInt32Value{Value: key},
 		),
-		(*wrapperspb.UInt32Value)(nil).ProtoReflect().Type(),
+		uint32ValueUnmarshaler,
 	)
 	if !value.IsSet() {
 		return 0, false
@@ -134,16 +135,16 @@ func (*cacheTestComputer) getValue(e model_evaluation.Environment[object.LocalRe
 	return value.Message.(*wrapperspb.UInt32Value).Value, true
 }
 
-func (c *cacheTestComputer) ComputeValue(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
+func (c *cacheTestComputer) ComputeValue(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[encoding.BinaryMarshaler, model_core.ReferenceMetadata], error) {
 	if _, ok := key.Message.(*wrapperspb.StringValue); ok {
 		v, ok := c.getValue(e, c.root)
 		if !ok {
-			return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
+			return model_core.PatchedMessage[encoding.BinaryMarshaler, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 		}
 		c.lock.Lock()
 		c.rootValue = v
 		c.lock.Unlock()
-		return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
+		return protoValue(
 			&wrapperspb.UInt32Value{Value: v},
 		), nil
 	}
@@ -157,14 +158,14 @@ func (c *cacheTestComputer) ComputeValue(ctx context.Context, key model_core.Mes
 		return c.getValue(e, dependency)
 	})
 	if !ok {
-		return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
+		return model_core.PatchedMessage[encoding.BinaryMarshaler, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
+	return protoValue(
 		&wrapperspb.UInt32Value{Value: v},
 	), nil
 }
 
-func (*cacheTestComputer) ComputeObject(value model_core.Message[proto.Message, object.LocalReference]) (any, error) {
+func (*cacheTestComputer) ComputeObject(keyTypeURL string, value model_core.TopLevelMessage[[]byte, object.LocalReference]) (any, error) {
 	panic("values do not have objects")
 }
 

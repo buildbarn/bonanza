@@ -195,3 +195,26 @@ func TestToPath(t *testing.T) {
 		require.False(t, ok)
 	})
 }
+
+func TestEraseUnmarshaler(t *testing.T) {
+	u := model_format.EraseUnmarshaler(model_format.NewProto[wrapperspb.StringValue]())
+
+	t.Run("Success", func(t *testing.T) {
+		value, err := u.Unmarshal([]byte{0x0a, 0x01, 0x61})
+		require.NoError(t, err)
+		testutil.RequireEqualProto(t, &wrapperspb.StringValue{Value: "a"}, value.(*wrapperspb.StringValue))
+	})
+
+	t.Run("Failure", func(t *testing.T) {
+		// Errors should not yield a typed nil pointer wrapped in
+		// a non-nil interface value.
+		value, err := u.Unmarshal([]byte{0xff})
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+		require.Nil(t, value)
+	})
+
+	t.Run("Comparable", func(t *testing.T) {
+		// Erased unmarshalers should remain usable as keys.
+		require.True(t, u == model_format.EraseUnmarshaler(model_format.NewProto[wrapperspb.StringValue]()))
+	})
+}

@@ -186,9 +186,11 @@ func main() {
 	}
 	fmt.Printf("import (\n")
 	fmt.Printf("\t\"context\"\n")
+	fmt.Printf("\t\"encoding\"\n")
 	fmt.Printf("\t\"bonanza.build/pkg/model/evaluation\"\n")
 	fmt.Printf("\t\"bonanza.build/pkg/storage/object\"\n")
 	fmt.Printf("\tmodel_core \"bonanza.build/pkg/model/core\"\n")
+	fmt.Printf("\tmodel_format \"bonanza.build/pkg/model/format\"\n")
 	fmt.Printf("\t\"google.golang.org/protobuf/proto\"\n")
 	fmt.Printf("\t\"google.golang.org/protobuf/types/known/anypb\"\n")
 	fmt.Printf("\tpb %#v\n", computerDefinition.ProtoPackage)
@@ -270,10 +272,12 @@ func main() {
 	fmt.Printf("type typedEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {\n")
 	fmt.Printf("\tevaluation.Environment[TReference, TMetadata]\n")
 	fmt.Printf("}\n")
-	// Message types of values, which need to be provided to
-	// Environment.GetValue() and Environment.GetObject().
+	// Formats of values. These are used to marshal values yielded
+	// by Computer.Compute*Value(), and to unmarshal values returned
+	// by Environment.GetValue() and provided to ComputeObject().
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
-		fmt.Printf("var valueMessageType%s = (*pb.%s_Value)(nil).ProtoReflect().Type()\n", functionName, getMessageName(functionName))
+		fmt.Printf("var valueFormat%s = model_format.NewProto[pb.%s_Value]()\n", functionName, getMessageName(functionName))
+		fmt.Printf("var valueUnmarshaler%s = model_format.EraseUnmarshaler(valueFormat%s)\n", functionName, functionName)
 	}
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		functionDefinition := computerDefinition.Functions[functionName]
@@ -283,7 +287,7 @@ func main() {
 			functionDefinition.getKeyType(functionName, true),
 			getMessageName(functionName),
 		)
-		fmt.Printf("\tm := e.Environment.GetValue(%s, valueMessageType%s)\n", functionDefinition.keyToPatchedMessage(), functionName)
+		fmt.Printf("\tm := e.Environment.GetValue(%s, valueUnmarshaler%s)\n", functionDefinition.keyToPatchedMessage(), functionName)
 		fmt.Printf("\tif !m.IsSet() {\n")
 		fmt.Printf("\t\treturn model_core.Message[*pb.%s_Value, TReference]{}\n", getMessageName(functionName))
 		fmt.Printf("\t}\n")
@@ -299,7 +303,7 @@ func main() {
 				functionDefinition.getKeyType(functionName, true),
 				objectType.Type,
 			)
-			fmt.Printf("\tv, ok := e.Environment.GetObject(%s, valueMessageType%s)\n", functionDefinition.keyToPatchedMessage(), functionName)
+			fmt.Printf("\tv, ok := e.Environment.GetObject(%s)\n", functionDefinition.keyToPatchedMessage())
 			fmt.Printf("\tif !ok {\n")
 			fmt.Printf("\t\treturn nil, false\n")
 			fmt.Printf("\t}\n")
@@ -335,41 +339,42 @@ func main() {
 	fmt.Printf("\treturn &typedComputer[TReference, TMetadata]{base: base}\n")
 	fmt.Printf("}\n")
 
-	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e evaluation.Environment[TReference, TMetadata]) (model_core.PatchedMessage[proto.Message, TMetadata], error) {\n")
+	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e evaluation.Environment[TReference, TMetadata]) (model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata], error) {\n")
 	fmt.Printf("\ttypedE := typedEnvironment[TReference, TMetadata]{Environment: e}\n")
 	fmt.Printf("\tswitch typedKey := key.Message.(type) {\n")
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		functionDefinition := computerDefinition.Functions[functionName]
 		fmt.Printf("\tcase *pb.%s_Key:\n", getMessageName(functionName))
 		fmt.Printf("\t\tm, err := c.base.Compute%sValue(ctx, %s, &typedE)\n", functionName, functionDefinition.typedKeyToArgument(functionName))
-		fmt.Printf("\t\treturn model_core.NewPatchedMessage[proto.Message](m.Message, m.Patcher), err\n")
+		fmt.Printf("\t\treturn m.ToMarshaler(valueFormat%s), err\n", functionName)
 	}
 	fmt.Printf("\tdefault:\n")
 	fmt.Printf("\t\tpanic(\"unrecognized key type\")\n")
 	fmt.Printf("\t}\n")
 	fmt.Printf("}\n")
 
-	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeObject(value model_core.Message[proto.Message, TReference]) (any, error) {\n")
-	hasObjects := false
-	for _, functionDefinition := range computerDefinition.Functions {
-		if functionDefinition.ObjectType != nil {
-			hasObjects = true
-		}
-	}
-	if hasObjects {
-		fmt.Printf("\tswitch typedValue := value.Message.(type) {\n")
-	} else {
-		// Prevent "declared and not used" errors.
-		fmt.Printf("\tswitch value.Message.(type) {\n")
-	}
+	// Type URLs of keys of functions that yield objects. These are
+	// used by ComputeObject() to determine how values need to be
+	// unmarshaled.
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		if computerDefinition.Functions[functionName].ObjectType != nil {
-			fmt.Printf("\tcase *pb.%s_Value:\n", getMessageName(functionName))
+			fmt.Printf("var keyTypeURL%s = \"type.googleapis.com/\" + string((*pb.%s_Key)(nil).ProtoReflect().Descriptor().FullName())\n", functionName, getMessageName(functionName))
+		}
+	}
+	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeObject(keyTypeURL string, value model_core.TopLevelMessage[[]byte, TReference]) (any, error) {\n")
+	fmt.Printf("\tswitch keyTypeURL {\n")
+	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
+		if computerDefinition.Functions[functionName].ObjectType != nil {
+			fmt.Printf("\tcase keyTypeURL%s:\n", functionName)
+			fmt.Printf("\t\ttypedValue, err := valueFormat%s.Unmarshal(value.Message)\n", functionName)
+			fmt.Printf("\t\tif err != nil {\n")
+			fmt.Printf("\t\t\treturn nil, err\n")
+			fmt.Printf("\t\t}\n")
 			fmt.Printf("\t\treturn c.base.Compute%sObject(model_core.Message[*pb.%s_Value, TReference]{Message: typedValue, OutgoingReferences: value.OutgoingReferences})\n", functionName, getMessageName(functionName))
 		}
 	}
 	fmt.Printf("\tdefault:\n")
-	fmt.Printf("\t\tpanic(\"value type has no object\")\n")
+	fmt.Printf("\t\tpanic(\"key type has no object\")\n")
 	fmt.Printf("\t}\n")
 	fmt.Printf("}\n")
 
