@@ -41,13 +41,13 @@ func (c *objectExportingClient[TInternal, TExternal]) RunAction(
 	actionAdditionalData *encryptedaction_pb.Action_AdditionalData,
 	resultReferenceOut **model_core.Decodable[TInternal],
 	errOut *error,
-) iter.Seq[*model_core.Decodable[TInternal]] {
+) iter.Seq[remoteexecution.ExecutionUpdate[*model_core.Decodable[TInternal]]] {
 	var externalActionReference *model_core.Decodable[TExternal]
 	if action.Reference != nil {
 		reference, err := c.exporter.ExportReference(ctx, action.Reference.Value)
 		if err != nil {
 			*errOut = util.StatusWrap(err, "Failed to export action")
-			return func(yield func(*model_core.Decodable[TInternal]) bool) {}
+			return func(yield func(remoteexecution.ExecutionUpdate[*model_core.Decodable[TInternal]]) bool) {}
 		}
 		decodableReference := model_core.CopyDecodable(*action.Reference, reference)
 		externalActionReference = &decodableReference
@@ -68,12 +68,18 @@ func (c *objectExportingClient[TInternal, TExternal]) RunAction(
 		&baseResultReference,
 		&baseErr,
 	)
-	return func(yield func(*model_core.Decodable[TInternal]) bool) {
+	return func(yield func(remoteexecution.ExecutionUpdate[*model_core.Decodable[TInternal]]) bool) {
 		defer cancel()
 
 		// Convert event references to native types.
-		for eventReference := range eventReferences {
-			if !yield(c.importReference(eventReference)) {
+		for baseUpdate := range eventReferences {
+			update, _ := remoteexecution.MapExecutionUpdateEvent(
+				baseUpdate,
+				func(eventReference *model_core.Decodable[TExternal]) (*model_core.Decodable[TInternal], error) {
+					return c.importReference(eventReference), nil
+				},
+			)
+			if !yield(update) {
 				break
 			}
 		}

@@ -910,7 +910,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		),
 	)
 	progressLinesWritten := 0
-	for progressReference := range builderClient.RunAction(
+	for update := range builderClient.RunAction(
 		context.Background(),
 		builderECDHPublicKey,
 		&model_executewithstorage.Action[object.LocalReference]{
@@ -924,8 +924,13 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		&resultReference,
 		&errBuild,
 	) {
+		if !update.HasEvent {
+			continue
+		}
+
 		// The builder does not provide a progress reference if the
 		// progress message is empty.
+		progressReference := update.Event
 		progress := model_core.NewSimpleMessage[object.LocalReference](&model_evaluation_pb.Progress{})
 		if progressReference != nil {
 			var err error

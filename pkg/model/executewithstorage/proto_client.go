@@ -71,7 +71,7 @@ func (c *protoClient) RunAction(
 	actionAdditionalData *encryptedaction_pb.Action_AdditionalData,
 	resultReferenceOut **model_core.Decodable[object.LocalReference],
 	errOut *error,
-) iter.Seq[*model_core.Decodable[object.LocalReference]] {
+) iter.Seq[remoteexecution.ExecutionUpdate[*model_core.Decodable[object.LocalReference]]] {
 	// Convert the action reference.
 	var resultMessage *model_executewithstorage_pb.Result
 	var errBase error
@@ -90,15 +90,24 @@ func (c *protoClient) RunAction(
 	)
 
 	referenceFormat := action.Namespace.ReferenceFormat
-	return func(yield func(*model_core.Decodable[object.LocalReference]) bool) {
+	return func(yield func(remoteexecution.ExecutionUpdate[*model_core.Decodable[object.LocalReference]]) bool) {
 		// Convert the execution event references.
-		for executionEventMessage := range executionEventMessages {
-			executionEventReference, err := model_core.NewOptionalDecodableLocalReferenceFromWeakProto(referenceFormat, executionEventMessage.EventReference)
+		for executionUpdate := range executionEventMessages {
+			update, err := remoteexecution.MapExecutionUpdateEvent(
+				executionUpdate,
+				func(executionEventMessage *model_executewithstorage_pb.Event) (*model_core.Decodable[object.LocalReference], error) {
+					executionEventReference, err := model_core.NewOptionalDecodableLocalReferenceFromWeakProto(referenceFormat, executionEventMessage.EventReference)
+					if err != nil {
+						return nil, util.StatusWrapWithCode(err, codes.Internal, "Received invalid execution event reference")
+					}
+					return executionEventReference, nil
+				},
+			)
 			if err != nil {
-				*errOut = util.StatusWrapWithCode(err, codes.Internal, "Received invalid execution event reference")
+				*errOut = err
 				return
 			}
-			if !yield(executionEventReference) {
+			if !yield(update) {
 				break
 			}
 		}

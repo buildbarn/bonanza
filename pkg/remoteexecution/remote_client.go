@@ -37,21 +37,21 @@ func NewRemoteClient(
 }
 
 // RunAction encrypts an action and sends it to a scheduler to request
-// its execution on a worker. An iterator is returned that yields any
-// execution events reported by the worker. Upon completion, the result
-// is set.
-func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecdh.PublicKey, actionPlaintext []byte, actionAdditionalData *encryptedaction_pb.Action_AdditionalData, result *[]byte, errOut *error) iter.Seq[[]byte] {
+// its execution on a worker. An iterator is returned that yields the
+// stage of execution and any execution events reported by the worker.
+// Upon completion, the result is set.
+func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecdh.PublicKey, actionPlaintext []byte, actionAdditionalData *encryptedaction_pb.Action_AdditionalData, result *[]byte, errOut *error) iter.Seq[ExecutionUpdate[[]byte]] {
 	marshaledPlatformECDHPublicKey, err := x509.MarshalPKIXPublicKey(platformECDHPublicKey)
 	if err != nil {
 		*errOut = util.StatusWrapfWithCode(err, codes.InvalidArgument, "Failed to obtain marshal platform ECDH public key")
-		return func(func([]byte) bool) {}
+		return func(func(ExecutionUpdate[[]byte]) bool) {}
 	}
 
 	// Compute shared secret for encrypting the action.
 	sharedSecret, err := c.clientPrivateKey.ECDH(platformECDHPublicKey)
 	if err != nil {
 		*errOut = util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to obtain shared secret")
-		return func(func([]byte) bool) {}
+		return func(func(ExecutionUpdate[[]byte]) bool) {}
 	}
 
 	// Encrypt the action.
@@ -62,10 +62,10 @@ func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecd
 	}
 	if err := encryptedaction.ActionSetCiphertext(action, sharedSecret, actionPlaintext); err != nil {
 		*errOut = err
-		return func(func([]byte) bool) {}
+		return func(func(ExecutionUpdate[[]byte]) bool) {}
 	}
 
-	return func(yield func([]byte) bool) {
+	return func(yield func(ExecutionUpdate[[]byte]) bool) {
 		ctxWithCancel, cancel := context.WithCancel(ctx)
 		defer cancel()
 		client, err := c.executionClient.Execute(ctxWithCancel, &remoteexecution_pb.ExecuteRequest{
@@ -94,21 +94,28 @@ func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecd
 			}
 
 			switch stage := response.Stage.(type) {
+			case *remoteexecution_pb.ExecuteResponse_Queued_:
+				if !yield(ExecutionUpdate[[]byte]{Stage: ExecutionStageQueued}) {
+					*errOut = status.Error(codes.Canceled, "Caller canceled iteration of execution updates")
+					return
+				}
 			case *remoteexecution_pb.ExecuteResponse_Executing_:
-				// Worker has posted an execution event.
-				// Unmarshal it and yield it to the
+				// If the worker has posted an execution
+				// event, unmarshal it and yield it to the
 				// caller.
+				update := ExecutionUpdate[[]byte]{Stage: ExecutionStageExecuting}
 				if lastEventMessage := stage.Executing.LastEvent; lastEventMessage != nil {
 					lastEvent, err := eventEncoder.DecodeEvent(lastEventMessage, false)
 					if err != nil {
 						*errOut = util.StatusWrapWithCode(err, codes.Internal, "Failed to decrypt last event")
 						return
 					}
-
-					if !yield(lastEvent) {
-						*errOut = status.Error(codes.Canceled, "Caller canceled iteration of execution events")
-						return
-					}
+					update.Event = lastEvent
+					update.HasEvent = true
+				}
+				if !yield(update) {
+					*errOut = status.Error(codes.Canceled, "Caller canceled iteration of execution updates")
+					return
 				}
 			case *remoteexecution_pb.ExecuteResponse_Completed_:
 				// Action has completed. Unmarshal and

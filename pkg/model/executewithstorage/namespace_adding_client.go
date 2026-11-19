@@ -38,7 +38,7 @@ func (c *namespaceAddingClient) RunAction(
 	actionAdditionalData *encryptedaction_pb.Action_AdditionalData,
 	resultReferenceOut **model_core.Decodable[object.LocalReference],
 	errOut *error,
-) iter.Seq[*model_core.Decodable[object.LocalReference]] {
+) iter.Seq[remoteexecution.ExecutionUpdate[*model_core.Decodable[object.LocalReference]]] {
 	return c.base.RunAction(
 		ctx,
 		platformECDHPublicKey,
