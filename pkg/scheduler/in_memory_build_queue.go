@@ -501,19 +501,13 @@ func (bq *InMemoryBuildQueue) Execute(in *remoteexecution_pb.ExecuteRequest, out
 // operation in case of network failure.
 func (bq *InMemoryBuildQueue) WaitExecution(in *remoteexecution_pb.WaitExecutionRequest, out remoteexecution_pb.Execution_WaitExecutionServer) error {
 	bq.enter(bq.clock.Now())
-	for {
-		o, ok := bq.operationsNameMap[in.Name]
-		if !ok {
-			bq.leave()
-			return status.Errorf(codes.NotFound, "Operation with name %#v not found", in.Name)
-		}
+	defer bq.leave()
 
-		bq.enter(bq.clock.Now())
-		if bq.operationsNameMap[in.Name] == o {
-			defer bq.leave()
-			return o.waitExecution(bq, out)
-		}
+	o, ok := bq.operationsNameMap[in.Name]
+	if !ok {
+		return status.Errorf(codes.NotFound, "Operation with name %#v not found", in.Name)
 	}
+	return o.waitExecution(bq, out)
 }
 
 type verificationPrivateKey struct {
