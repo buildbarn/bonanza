@@ -1722,6 +1722,15 @@ message HttpFileContents {
     HttpFetchOptions fetch_options = 1;
   }
 
+  message Progress {
+    option (bonanza.model.evaluation.progress_description) = {
+      template: "{downloaded}"
+    };
+
+    // The number of bytes of the file that have been downloaded.
+    bonanza.model.evaluation.ProgressCounter downloaded = 1;
+  }
+
   message Value {
     // If set, the file was fetched successfully. If not set, fetching
     // the file failed with a non-200 HTTP status code.
@@ -2446,6 +2455,24 @@ message RawActionResult {
       template: "Executing action"
     };
     ExecuteRequest execute_request = 1;
+  }
+
+  message Progress {
+    option (bonanza.model.evaluation.progress_description) = {
+      template: "{stage}"
+    };
+
+    enum Stage {
+      // The action is queued in the scheduler, waiting for a worker
+      // to become available.
+      QUEUED = 0;
+
+      // The action is executing on a worker.
+      EXECUTING = 1;
+    }
+
+    // The stage of execution the action is currently in.
+    Stage stage = 1;
   }
 
   message Value {

@@ -4,6 +4,7 @@ package bonanza.model.evaluation;
 
 import "bonanza.build/pkg/proto/model/chunking/chunking.proto";
 import "bonanza.build/pkg/proto/model/core/core.proto";
+import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
 import "google/rpc/status.proto";
@@ -47,6 +48,39 @@ extend google.protobuf.MessageOptions {
   // Human readable description of messages that are used as evaluation
   // keys.
   MessageDescription key_description = 66942;
+
+  // Human readable description of messages that are used to report
+  // the progress of the evaluation of a key.
+  MessageDescription progress_description = 66943;
+}
+
+// ProgressCounter can be embedded into messages that are used to report
+// the progress of the evaluation of a key. Tools can use it to display
+// a progress bar.
+//
+// Templates of message descriptions may refer to fields of this type,
+// in which case they are rendered in the form "12.3 MiB of 40.1 MiB". Messages
+// that are used to report progress may contain at most one field of this type,
+// so that tools can unambiguously determine which counter to use to display a
+// progress bar.
+message ProgressCounter {
+  enum Unit {
+    // The counter is a number of items (e.g., files, actions).
+    ITEMS = 0;
+
+    // The counter is a size in bytes.
+    BYTES = 1;
+  }
+
+  // The amount of work that has been completed.
+  uint64 current = 1;
+
+  // The total amount of work that needs to be completed, or zero if
+  // unknown.
+  uint64 total = 2;
+
+  // The unit in which the counter is expressed.
+  Unit unit = 3;
 }
 
 // Keys is a list of evaluation keys. It can, for example, be used to
@@ -200,6 +234,11 @@ message Progress {
     // The number of times a previous attempt was made to evaluate this
     // key, but failed due missing dependencies.
     uint32 restarts = 4;
+
+    // If set, the progress that the evaluation function reported for
+    // the current attempt. The type of the message is specific to the
+    // type of the key, and may not contain any references to objects.
+    google.protobuf.Any progress = 5;
   }
 
   // Keys for which the evaluation function is currently being executed,

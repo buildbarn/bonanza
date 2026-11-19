@@ -11,6 +11,7 @@ proto_library(
         "//pkg/proto/model/chunking:chunking_proto",
         "//pkg/proto/model/core:core_proto",
         "@googleapis//google/rpc:status_proto",
+        "@protobuf//:any_proto",
         "@protobuf//:descriptor_proto",
         "@protobuf//:timestamp_proto",
     ],

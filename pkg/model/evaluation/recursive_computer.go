@@ -315,6 +315,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) ProcessNextEvaluatableKey(ct
 
 	rc.lock.Lock()
 	rc.evaluatingKeys.remove(ks)
+	ks.progress = nil
 	if oldValueState := ks.valueState; !oldValueState.isEvaluated() {
 		ks.valueState = newValueState
 		if len(missingDependencies) == 0 {
@@ -563,8 +564,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) WaitForEvaluation(ctx contex
 func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress(ctx context.Context) (model_core.PatchedMessage[*model_evaluation_pb.Progress, TMetadata], error) {
 	rc.lock.Lock()
 	evaluatingKeys := make([]*KeyState[TReference, TMetadata], 0, rc.evaluatingKeys.count)
+	evaluatingKeysProgress := make([]proto.Message, 0, rc.evaluatingKeys.count)
 	for ks := rc.evaluatingKeys.head.nextKey; ks != &rc.evaluatingKeys.head; ks = ks.nextKey {
 		evaluatingKeys = append(evaluatingKeys, ks)
+		evaluatingKeysProgress = append(evaluatingKeysProgress, ks.progress)
 	}
 	rc.lock.Unlock()
 
@@ -572,16 +575,24 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress(ctx context.Cont
 		// TODO: Set additional_evaluating_keys_count if we have
 		// too many keys to fit in a message.
 		evaluatingKeysMessages := make([]*model_evaluation_pb.Progress_EvaluatingKey, 0, len(evaluatingKeys))
-		for _, ks := range evaluatingKeys {
+		for i, ks := range evaluatingKeys {
 			key, err := ks.keyMessageFetcher.getAny(ctx, rc)
 			if err != nil {
 				return nil, err
+			}
+			var progressAny *anypb.Any
+			if progress := evaluatingKeysProgress[i]; progress != nil {
+				progressAny, err = anypb.New(progress)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal progress of key with reference %s: %w", ks.keyReference, err)
+				}
 			}
 			evaluatingKeysMessages = append(evaluatingKeysMessages, &model_evaluation_pb.Progress_EvaluatingKey{
 				Key:                    model_core.Patch(rc.objectManager, model_core.WrapTopLevelAny(key).Decay()).Merge(patcher),
 				FirstEvaluationStart:   timestamppb.New(ks.firstEvaluationStart),
 				CurrentEvaluationStart: timestamppb.New(ks.currentEvaluationStart),
 				Restarts:               ks.restarts,
+				Progress:               progressAny,
 			})
 		}
 		return &model_evaluation_pb.Progress{
@@ -1065,6 +1076,13 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) ReferenceObject
 
 // getValueState returns the key state and value state of a key on which
 // the current key depends. The type URL of the key is returned as well.
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) ReportProgress(progress proto.Message) {
+	rc := e.computer
+	rc.lock.Lock()
+	e.keyState.progress = progress
+	rc.lock.Unlock()
+}
+
 func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) (*KeyState[TReference, TMetadata], valueState[TReference, TMetadata], string) {
 	rc := e.computer
 	key, err := model_core.MarshalTopLevelAny(model_core.Unpatch(rc.objectManager, patchedKey))
@@ -1378,6 +1396,11 @@ type KeyState[TReference object.BasicReference, TMetadata model_core.ReferenceMe
 	firstEvaluationStart   time.Time
 	currentEvaluationStart time.Time
 	restarts               uint32
+
+	// The progress that the evaluation function reported most
+	// recently while evaluating the key. This field is cleared when
+	// the evaluation function returns.
+	progress proto.Message
 }
 
 func sortedKeyStates[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](keyStates map[*KeyState[TReference, TMetadata]]struct{}) []*KeyState[TReference, TMetadata] {

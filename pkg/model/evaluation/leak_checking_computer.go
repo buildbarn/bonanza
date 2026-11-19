@@ -95,3 +95,7 @@ func (e *leakCheckingEnvironment[TReference, TMetadata]) GetObject(key model_cor
 		),
 	)
 }
+
+func (e *leakCheckingEnvironment[TReference, TMetadata]) ReportProgress(progress proto.Message) {
+	e.environment.ReportProgress(progress)
+}

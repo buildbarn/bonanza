@@ -205,6 +205,87 @@ func TestRecursiveComputer(t *testing.T) {
 		}, evaluations.Message[0])
 	})
 
+	t.Run("ReportProgress", func(t *testing.T) {
+		// Progress reported by the evaluation function should
+		// be returned by GetProgress() while the key is being
+		// evaluated, and be discarded afterwards.
+		progressReported := make(chan struct{})
+		finishEvaluation := make(chan struct{})
+		computer := NewMockComputerForTesting(ctrl)
+		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[encoding.BinaryMarshaler, model_core.ReferenceMetadata], error) {
+				e.ReportProgress(&wrapperspb.StringValue{Value: "Halfway there"})
+				close(progressReported)
+				<-finishEvaluation
+				return protoValue(&wrapperspb.UInt64Value{Value: 42}), nil
+			})
+		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		objectManager := NewMockObjectManagerForTesting(ctrl)
+		tagStore := NewMockBoundStoreForTesting(ctrl)
+		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
+		lookupResultReader := NewMockLookupResultReaderForTesting(ctrl)
+		lookupResultReader.EXPECT().GetDecodingParametersSizeBytes().Return(16).AnyTimes()
+
+		queuesFactory := model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[object.LocalReference, model_core.ReferenceMetadata](1)
+		queues := queuesFactory.NewQueues()
+		recursiveComputer := model_evaluation.NewRecursiveComputer(
+			computer,
+			queues,
+			object.SHA256V1ReferenceFormat,
+			testChunkingParameters,
+			objectManager,
+			tagStore,
+			/* actionTagKeyReference = */ object.MustNewSHA256V1LocalReference("f07997aa26d63ad33c8b2e6f920ae9b42c93bacb67c84ae529d065c6d572d342", 2323, 0, 0, 0),
+			NewMockProtoEvaluationReaderForTesting(ctrl),
+			lookupResultReader,
+			NewMockKeysReaderForTesting(ctrl),
+			model_encoding.NewChainedDeterministicBinaryEncoder(nil),
+			NewMockKeyedBinaryEncoder(ctrl),
+			clock.SystemClock,
+			/* cacheLookupResultIndirectionMaximumAge = */ 24*time.Hour,
+		)
+
+		keyState, err := recursiveComputer.GetOrCreateKeyState(
+			util.Must(
+				model_core.MarshalTopLevelAny(
+					model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
+						&wrapperspb.UInt32Value{Value: 7},
+					),
+				),
+			),
+		)
+		require.NoError(t, err)
+
+		require.NoError(
+			t,
+			program.RunLocal(ctx, func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+				queues.ProcessAllEvaluatableKeys(dependenciesGroup, recursiveComputer)
+
+				<-progressReported
+				progress, err := recursiveComputer.GetProgress(ctx)
+				require.NoError(t, err)
+				require.Len(t, progress.Message.OldestEvaluatingKeys, 1)
+				testutil.RequireEqualProto(
+					t,
+					util.Must(anypb.New(&wrapperspb.StringValue{Value: "Halfway there"})),
+					progress.Message.OldestEvaluatingKeys[0].Progress,
+				)
+				progress.Discard()
+
+				close(finishEvaluation)
+				if err := recursiveComputer.WaitForEvaluation(ctx, keyState); err != nil {
+					return err
+				}
+
+				progress, err = recursiveComputer.GetProgress(ctx)
+				require.NoError(t, err)
+				require.Empty(t, progress.Message.OldestEvaluatingKeys)
+				progress.Discard()
+				return nil
+			}),
+		)
+	})
+
 	t.Run("Cycle", func(t *testing.T) {
 		// Provide a computer that does nothing more than
 		// request its own value recursively. This should

@@ -23,4 +23,14 @@ type Environment[TReference any, TMetadata model_core.ReferenceMetadata] interfa
 	// unmarshaling the value itself.
 	GetValue(key model_core.PatchedMessage[proto.Message, TMetadata], valueUnmarshaler model_format.Unmarshaler[any]) model_core.TopLevelMessage[any, TReference]
 	GetObject(key model_core.PatchedMessage[proto.Message, TMetadata]) (any, bool)
+
+	// ReportProgress can be invoked by implementations of Computer to
+	// publish the progress of evaluating the current key (e.g., the
+	// number of bytes downloaded). Each call replaces the progress
+	// that was reported previously. Progress is discarded when the
+	// evaluation function returns.
+	//
+	// The message may not contain any references to objects, and may
+	// not be modified after being provided to this method.
+	ReportProgress(progress proto.Message)
 }

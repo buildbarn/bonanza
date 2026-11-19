@@ -8,6 +8,7 @@ import (
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 
+	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
 	"google.golang.org/protobuf/proto"
@@ -204,6 +205,164 @@ func TestDescribeKey(t *testing.T) {
 				require.ErrorContains(t, err, tc.err)
 
 				_, ok, err = model_evaluation.DescribeKey(dynamicpb.NewMessage(messageDescriptor))
+				require.False(t, ok)
+				require.ErrorContains(t, err, tc.err)
+			})
+		}
+	})
+}
+
+// newProgressMessageDescriptor creates a message descriptor for a
+// progress message having the given fields and progress description
+// template.
+func newProgressMessageDescriptor(t *testing.T, name, template string, fields []*descriptorpb.FieldDescriptorProto) protoreflect.MessageDescriptor {
+	options := &descriptorpb.MessageOptions{}
+	proto.SetExtension(options, model_evaluation_pb.E_ProgressDescription, &model_evaluation_pb.MessageDescription{
+		Template: template,
+	})
+	file, err := protodesc.NewFile(&descriptorpb.FileDescriptorProto{
+		Name:    proto.String("progress_description_test_" + name + ".proto"),
+		Package: proto.String("progress_description_test_" + name),
+		Syntax:  proto.String("proto3"),
+		Dependency: []string{
+			"bonanza.build/pkg/proto/model/core/core.proto",
+			"bonanza.build/pkg/proto/model/evaluation/evaluation.proto",
+		},
+		MessageType: []*descriptorpb.DescriptorProto{{
+			Name:    proto.String("Progress"),
+			Options: options,
+			Field:   fields,
+		}},
+	}, protoregistry.GlobalFiles)
+	require.NoError(t, err)
+	return file.Messages().ByName("Progress")
+}
+
+func messageField(name string, number int32, typeName string, repeated bool) *descriptorpb.FieldDescriptorProto {
+	field := &descriptorpb.FieldDescriptorProto{
+		Name:     proto.String(name),
+		Number:   proto.Int32(number),
+		Type:     descriptorpb.FieldDescriptorProto_TYPE_MESSAGE.Enum(),
+		TypeName: proto.String(typeName),
+		JsonName: proto.String(name),
+	}
+	if repeated {
+		field.Label = descriptorpb.FieldDescriptorProto_LABEL_REPEATED.Enum()
+	}
+	return field
+}
+
+func TestDescribeProgress(t *testing.T) {
+	t.Run("NoDescription", func(t *testing.T) {
+		// Key descriptions should not be used to describe
+		// progress messages, and vice versa.
+		_, ok, err := model_evaluation.DescribeProgress((&model_analysis_pb.ConfiguredTarget_Key{}).ProtoReflect())
+		require.NoError(t, err)
+		require.False(t, ok)
+
+		_, ok, err = model_evaluation.DescribeKey((&model_analysis_pb.RawActionResult_Progress{}).ProtoReflect())
+		require.NoError(t, err)
+		require.False(t, ok)
+	})
+
+	t.Run("Enum", func(t *testing.T) {
+		description, ok, err := model_evaluation.DescribeProgress((&model_analysis_pb.RawActionResult_Progress{
+			Stage: model_analysis_pb.RawActionResult_Progress_EXECUTING,
+		}).ProtoReflect())
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "EXECUTING", description.String())
+		require.Nil(t, description.Counter)
+	})
+
+	t.Run("CounterBytes", func(t *testing.T) {
+		for _, tc := range []struct {
+			current, total uint64
+			text           string
+		}{
+			{0, 0, "0 B"},
+			{1023, 0, "1023 B"},
+			{1024, 4096, "1.0 KiB of 4.0 KiB"},
+			{12897485, 42047652, "12.3 MiB of 40.1 MiB"},
+			{3 << 40, 0, "3.0 TiB"},
+		} {
+			counter := &model_evaluation_pb.ProgressCounter{
+				Current: tc.current,
+				Total:   tc.total,
+				Unit:    model_evaluation_pb.ProgressCounter_BYTES,
+			}
+			description, ok, err := model_evaluation.DescribeProgress((&model_analysis_pb.HttpFileContents_Progress{
+				Downloaded: counter,
+			}).ProtoReflect())
+			require.NoError(t, err)
+			require.True(t, ok)
+			require.Equal(t, []model_evaluation.MessageDescriptionSegment{
+				{Text: tc.text, IsField: true},
+			}, description.Segments)
+			require.Same(t, counter, description.Counter)
+		}
+	})
+
+	t.Run("UnsetCounter", func(t *testing.T) {
+		description, ok, err := model_evaluation.DescribeProgress((&model_analysis_pb.HttpFileContents_Progress{}).ProtoReflect())
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "0", description.String())
+		require.Nil(t, description.Counter)
+	})
+
+	t.Run("CounterItemsInDynamicMessage", func(t *testing.T) {
+		messageDescriptor := newProgressMessageDescriptor(t, "items", "Extracted {extracted} files", []*descriptorpb.FieldDescriptorProto{
+			messageField("extracted", 1, ".bonanza.model.evaluation.ProgressCounter", false),
+		})
+		progress := dynamicpb.NewMessage(messageDescriptor)
+		counter := progress.Mutable(messageDescriptor.Fields().ByName("extracted")).Message()
+		counterFields := counter.Descriptor().Fields()
+		counter.Set(counterFields.ByName("current"), protoreflect.ValueOfUint64(3))
+		counter.Set(counterFields.ByName("total"), protoreflect.ValueOfUint64(10))
+
+		description, ok, err := model_evaluation.DescribeProgress(progress)
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "Extracted 3 of 10 files", description.String())
+		testutil.RequireEqualProto(t, &model_evaluation_pb.ProgressCounter{
+			Current: 3,
+			Total:   10,
+		}, description.Counter)
+	})
+
+	t.Run("InvalidProgressMessages", func(t *testing.T) {
+		for _, tc := range []struct {
+			name   string
+			fields []*descriptorpb.FieldDescriptorProto
+			err    string
+		}{
+			{
+				"MultipleCounters",
+				[]*descriptorpb.FieldDescriptorProto{
+					messageField("a", 1, ".bonanza.model.evaluation.ProgressCounter", false),
+					messageField("b", 2, ".bonanza.model.evaluation.ProgressCounter", false),
+				},
+				"are both of type",
+			},
+			{
+				"RepeatedCounter",
+				[]*descriptorpb.FieldDescriptorProto{
+					messageField("a", 1, ".bonanza.model.evaluation.ProgressCounter", true),
+				},
+				"is a repeated field",
+			},
+			{
+				"Reference",
+				[]*descriptorpb.FieldDescriptorProto{
+					messageField("a", 1, ".bonanza.model.core.DecodableReference", false),
+				},
+				"may contain references to objects",
+			},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				messageDescriptor := newProgressMessageDescriptor(t, "invalid_"+tc.name, "Hello", tc.fields)
+				ok, err := model_evaluation.ValidateProgressDescription(messageDescriptor)
 				require.False(t, ok)
 				require.ErrorContains(t, err, tc.err)
 			})

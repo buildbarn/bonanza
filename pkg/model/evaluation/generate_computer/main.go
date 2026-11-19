@@ -21,6 +21,9 @@ type functionDefinition struct {
 	DependsOn             []string `json:"dependsOn"`
 	ObjectType            *objectTypeDefinition
 	IsLookup              *bool `json:"isLookup"`
+	// Whether the function reports progress while evaluating keys,
+	// using a message named ${functionName}.Progress.
+	HasProgress bool `json:"hasProgress"`
 }
 
 func getMessageName(s string) string {
@@ -253,9 +256,24 @@ func main() {
 		}
 	}
 
+	// Interfaces containing a single method for reporting the
+	// progress of evaluating a key. Method names include the name
+	// of the function, so that helper functions can depend on the
+	// ability to report progress for multiple functions.
+	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
+		if computerDefinition.Functions[functionName].HasProgress {
+			fmt.Printf("type %sProgressReporter interface {\n", functionName)
+			fmt.Printf("\tReport%sProgress(progress *pb.%s_Progress)\n", functionName, getMessageName(functionName))
+			fmt.Printf("}\n")
+		}
+	}
+
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		fmt.Printf("type %sEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {\n", functionName)
 		functionDefinition := computerDefinition.Functions[functionName]
+		if functionDefinition.HasProgress {
+			fmt.Printf("\t%sProgressReporter\n", functionName)
+		}
 		for _, dependencyName := range slices.Sorted(slices.Values(functionDefinition.DependsOn)) {
 			dependencyDefinition := computerDefinition.Functions[dependencyName]
 			_, valueTypeArguments := dependencyDefinition.getValueGetterTypeParameters(dependencyName)
@@ -308,6 +326,18 @@ func main() {
 			fmt.Printf("\t\treturn nil, false\n")
 			fmt.Printf("\t}\n")
 			fmt.Printf("\treturn v.(%s), true\n", objectType.Type)
+			fmt.Printf("}\n")
+		}
+	}
+
+	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
+		if computerDefinition.Functions[functionName].HasProgress {
+			fmt.Printf(
+				"func (e *typedEnvironment[TReference, TMetadata]) Report%sProgress(progress *pb.%s_Progress) {\n",
+				functionName,
+				getMessageName(functionName),
+			)
+			fmt.Printf("\te.Environment.ReportProgress(progress)\n")
 			fmt.Printf("}\n")
 		}
 	}
