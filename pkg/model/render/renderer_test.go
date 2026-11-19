@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_format "bonanza.build/pkg/model/format"
 	"bonanza.build/pkg/model/render"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
@@ -11,6 +12,7 @@ import (
 	"bonanza.build/pkg/starlark/compile"
 	"bonanza.build/pkg/storage/object"
 
+	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
 	"google.golang.org/protobuf/proto"
@@ -388,6 +390,72 @@ func TestRendererJSON(t *testing.T) {
 		}
 		r.Message(model_core.NewSimpleMessage[object.LocalReference](value.ProtoReflect()))
 		require.Equal(t, []string{"Value", "Tuple", "Value", "MaybeInlineFileContents", "Value"}, observed)
+	})
+}
+
+func TestRendererOpaque(t *testing.T) {
+	// Instead of rendering the indices contained in the reference
+	// set, the references themselves should be rendered, linking to
+	// the referenced objects in raw form.
+	reference1 := object.MustNewSHA256V1LocalReference("8b1a9953c4611296a827abf8c47804d7e6c49c6b2c4e7e3f5d6a7b8c9d0e1f20", 123, 1, 2, 0)
+	reference2 := object.MustNewSHA256V1LocalReference("0b1a9953c4611296a827abf8c47804d7e6c49c6b2c4e7e3f5d6a7b8c9d0e1f20", 456, 0, 0, 0)
+	reference3 := object.MustNewSHA256V1LocalReference("1b1a9953c4611296a827abf8c47804d7e6c49c6b2c4e7e3f5d6a7b8c9d0e1f20", 789, 0, 0, 0)
+
+	r := render.Renderer{}
+	blocks := render.Layout(
+		r.Message(model_core.NewMessage(
+			(&model_core_pb.Opaque{
+				Value: []byte("Hello"),
+				References: &model_core_pb.ReferenceSet{
+					Indices: []uint32{1, 3},
+				},
+			}).ProtoReflect(),
+			object.OutgoingReferencesList[object.LocalReference]{reference1, reference2, reference3},
+		)),
+		render.LayoutOptions{SingleLine: true},
+	)
+	require.Equal(
+		t,
+		`{"references": [`+
+			`"`+model_core.DecodableLocalReferenceToString(model_core.Decodable[object.LocalReference]{Value: reference1})+`", `+
+			`"`+model_core.DecodableLocalReferenceToString(model_core.Decodable[object.LocalReference]{Value: reference3})+`"`+
+			`], "value": "SGVsbG8="}`,
+		render.PlainText(blocks, ""),
+	)
+
+	var links []*render.LinkTarget
+	for _, block := range blocks {
+		for _, segment := range block.Segments {
+			if segment.Link != nil {
+				links = append(links, segment.Link)
+			}
+		}
+	}
+	require.Len(t, links, 2)
+	require.Equal(t, reference1, links[0].Reference.Value)
+	require.Equal(t, reference3, links[1].Reference.Value)
+	require.Empty(t, links[0].Reference.GetDecodingParameters())
+	testutil.RequireEqualProto(t, model_format.Raw{}.ToProto(), links[0].ObjectFormat)
+
+	t.Run("InvalidReferenceSet", func(t *testing.T) {
+		require.Equal(
+			t,
+			"[ rpc error: code = InvalidArgument desc = Reference message set contains indices in range [1, 4], which is outside expected range [1, 3] ]",
+			render.PlainText(
+				render.Layout(
+					r.Message(model_core.NewMessage(
+						(&model_core_pb.Opaque{
+							References: &model_core_pb.ReferenceSet{
+								Indices: []uint32{1, 4},
+							},
+						}).ProtoReflect(),
+						object.OutgoingReferencesList[object.LocalReference]{reference1, reference2, reference3},
+					)),
+					render.LayoutOptions{SingleLine: true},
+				),
+				"",
+			),
+		)
 	})
 }
 

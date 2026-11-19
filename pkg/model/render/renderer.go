@@ -178,7 +178,8 @@ func (r *Renderer) TopLevelMessage(m model_core.TopLevelMessage[protoreflect.Mes
 // model_core_pb.Any, its payload is rendered with an added "@type"
 // field, similar to how protojson renders an anypb.Any.
 func (r *Renderer) Message(m model_core.Message[protoreflect.Message, object.LocalReference]) Doc {
-	if message, ok := m.Message.Interface().(*model_core_pb.Any); ok {
+	switch message := m.Message.Interface().(type) {
+	case *model_core_pb.Any:
 		anyValue, err := model_core.UnmarshalAnyNew(model_core.Nested(m, message))
 		if err != nil {
 			return errorf("%s", err)
@@ -187,8 +188,46 @@ func (r *Renderer) Message(m model_core.Message[protoreflect.Message, object.Loc
 			model_core.Nested(anyValue.Decay(), anyValue.Message.ProtoReflect()),
 			map[string]Doc{"@type": jsonValue(message.Value.GetTypeUrl())},
 		)
+	case *model_core_pb.Opaque:
+		return r.renderOpaque(model_core.Nested(m, message))
 	}
 	return r.renderMessageCommon(m, map[string]Doc{})
+}
+
+var rawFormat = model_format.Raw{}.ToProto()
+
+// renderOpaque renders a model_core_pb.Opaque. As the format of its
+// payload is not known, the payload is rendered as a byte string.
+// Instead of rendering the indices of the outgoing references of the
+// outer message contained in the reference set, the references
+// themselves are rendered, so that they can be inspected.
+//
+// As decoding parameters of these references are stored in the
+// payload, the references are rendered without any. Furthermore, the
+// format of the referenced objects is unknown. The resulting links
+// thus only permit inspecting the objects in raw form.
+func (*Renderer) renderOpaque(m model_core.Message[*model_core_pb.Opaque, object.LocalReference]) Doc {
+	flattened, err := model_core.FlattenOpaque(m)
+	if err != nil {
+		return errorf("%s", err)
+	}
+	degree := flattened.OutgoingReferences.GetDegree()
+	references := make([]Doc, 0, degree)
+	for i := range degree {
+		references = append(
+			references,
+			Reference(
+				model_core.Decodable[object.LocalReference]{
+					Value: flattened.OutgoingReferences.GetOutgoingReference(i),
+				},
+				rawFormat,
+			),
+		)
+	}
+	return renderFields(map[string]Doc{
+		"references": Sequence(Text("["), Text("]"), references, false, false),
+		"value":      jsonValue(flattened.Message),
+	})
 }
 
 // MessageList renders a list of messages, such as the contents of an
@@ -266,8 +305,12 @@ func (r *Renderer) renderMessageCommon(m model_core.Message[protoreflect.Message
 		return true
 	})
 
-	// Sort fields by name and join them together in a single JSON
-	// object.
+	return renderFields(fields)
+}
+
+// renderFields joins the rendered values of fields of a message
+// together in a single JSON object, sorted by field name.
+func renderFields(fields map[string]Doc) Doc {
 	entries := make([]Doc, 0, len(fields))
 	for _, name := range slices.Sorted(maps.Keys(fields)) {
 		marshaledName, err := json.Marshal(name)
