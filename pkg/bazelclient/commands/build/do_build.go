@@ -962,10 +962,15 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		// not shown at the bottom of the screen.
 		evaluatingKeysToDisplay := progress.Message.OldestEvaluatingKeys
 		additionalEvaluatingKeysCount := progress.Message.AdditionalEvaluatingKeysCount
-		terminalColumns, terminalLines, err := term.GetSize(1)
+		// Progress messages are written to stderr, prefixed
+		// with the logger's prefix for informational messages.
+		// Prevent lines from wrapping, as that would cause
+		// them to be removed incorrectly.
+		terminalColumns, terminalLines, err := term.GetSize(int(os.Stderr.Fd()))
 		if err != nil {
 			terminalColumns, terminalLines = 80, 24
 		}
+		messageColumns := max(terminalColumns-utf8.RuneCountInString(logging.InfoPrefix), 0)
 		maximumEvaluatingKeysToDisplay := terminalLines - progressLinesWritten - 1
 		if additionalEvaluatingKeysCount > 0 || len(evaluatingKeysToDisplay) > maximumEvaluatingKeysToDisplay {
 			maximumEvaluatingKeysToDisplay--
@@ -988,7 +993,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		for _, evaluatingKey := range evaluatingKeysToDisplay {
 			logger.Info(
 				formatted.Truncate(
-					terminalColumns,
+					messageColumns,
 					formatEvaluatingKeyProgress(
 						formatKey(
 							namespace,
@@ -1000,7 +1005,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 						),
 						evaluatingKey.Progress,
 						&messageFormatter,
-						terminalColumns,
+						messageColumns,
 					),
 				),
 			)
@@ -1081,7 +1086,8 @@ func formatMessageDescription(description model_evaluation.MessageDescription) f
 // formatEvaluatingKeyProgress appends the progress reported by the
 // evaluation function of a key to the key's description. If the
 // progress contains a counter, the line is rendered as a progress bar.
-func formatEvaluatingKeyProgress(line formatted.Node, progressAny *anypb.Any, messageFormatter *messageFormatter, terminalColumns int) formatted.Node {
+// Columns is the width of the terminal available to the line.
+func formatEvaluatingKeyProgress(line formatted.Node, progressAny *anypb.Any, messageFormatter *messageFormatter, columns int) formatted.Node {
 	if progressAny == nil || !messageFormatter.renderer.Pretty {
 		return line
 	}
@@ -1100,15 +1106,15 @@ func formatEvaluatingKeyProgress(line formatted.Node, progressAny *anypb.Any, me
 	const minimumPadding = 2
 	progressNode := formatMessageDescription(description)
 	progressWidth := plainTextWidth(progressNode)
-	padding := terminalColumns - plainTextWidth(line) - progressWidth
+	padding := columns - plainTextWidth(line) - progressWidth
 	if padding < minimumPadding {
-		line = formatted.Truncate(terminalColumns-progressWidth-minimumPadding, line)
+		line = formatted.Truncate(columns-progressWidth-minimumPadding, line)
 		padding = minimumPadding
 	}
 	line = formatted.Join(line, formatted.Text(strings.Repeat(" ", padding)), progressNode)
 	if counter := description.Counter; counter != nil && counter.Total > 0 {
 		current := min(counter.Current, counter.Total)
-		line = formatted.ProgressBar(int(uint64(terminalColumns)*current/counter.Total), line)
+		line = formatted.ProgressBar(int(uint64(columns)*current/counter.Total), line)
 	}
 	return line
 }

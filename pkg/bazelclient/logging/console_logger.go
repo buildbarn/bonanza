@@ -14,6 +14,11 @@ import (
 // message using Set Graphic Rendition (SGR) escape sequences.
 type FormattedNodeWriter func(message formatted.Node, w io.StringWriter) (int, error)
 
+// InfoPrefix is the text that is placed in front of messages that are
+// logged using Info(). Callers that want to prevent messages from
+// wrapping need to take its width into account.
+const InfoPrefix = "INFO: "
+
 type consoleLogger struct {
 	w              io.Writer
 	writeFormatted FormattedNodeWriter
@@ -51,7 +56,7 @@ func (l *consoleLogger) Info(message formatted.Node) {
 	var b bytes.Buffer
 	l.writeFormatted(
 		formatted.Join(
-			formatted.Green(formatted.Text("INFO: ")),
+			formatted.Green(formatted.Text(InfoPrefix)),
 			message,
 			formatted.Text("\n"),
 		),
