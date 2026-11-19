@@ -17,6 +17,7 @@ go_library(
         "//pkg/model/executewithstorage",
         "//pkg/model/filesystem",
         "//pkg/model/filesystem/virtual",
+        "//pkg/model/format",
         "//pkg/model/parser",
         "//pkg/proto/model/command",
         "//pkg/proto/model/core",

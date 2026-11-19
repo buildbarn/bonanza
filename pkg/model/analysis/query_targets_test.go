@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_format "bonanza.build/pkg/model/format"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 
@@ -20,7 +21,7 @@ func TestQueryTargets(t *testing.T) {
 
 	newTargetLabelsObject := func(build func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
 		return newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-			return model_core.NewProtoListBinaryMarshaler(build(patcher))
+			return model_format.NewProtoList[model_analysis_pb.TargetLabel]().NewMarshaler(build(patcher))
 		})
 	}
 	leafTargetLabel := func(l string) *model_analysis_pb.TargetLabel {

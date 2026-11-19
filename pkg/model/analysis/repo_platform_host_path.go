@@ -10,6 +10,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
@@ -63,7 +64,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	const capturedFilename = "captured"
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
 						Level: &model_command_pb.ArgumentList_Element_Leaf{
@@ -133,7 +134,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
 		}), nil

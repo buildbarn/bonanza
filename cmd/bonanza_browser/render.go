@@ -6,6 +6,7 @@ import (
 	"time"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_format "bonanza.build/pkg/model/format"
 	"bonanza.build/pkg/model/render"
 	browser_pb "bonanza.build/pkg/proto/browser"
 	model_encoding_pb "bonanza.build/pkg/proto/model/encoding"
@@ -204,7 +205,7 @@ func (mr *messageRenderer) renderSegments(segments []render.Segment) []g.Node {
 		}
 
 		if link := segment.Link; link != nil && mr.basePath != "" {
-			if pathSegments, ok := model_core.ObjectFormatToPath(link.ObjectFormat); ok {
+			if pathSegments, ok := model_format.ToPath(link.ObjectFormat); ok {
 				// Links are styled uniformly, regardless
 				// of the role of the text.
 				href := path.Join(

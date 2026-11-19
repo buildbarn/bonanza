@@ -26,6 +26,7 @@ go_library(
         "//pkg/model/evaluation",
         "//pkg/model/executewithstorage",
         "//pkg/model/filesystem",
+        "//pkg/model/format",
         "//pkg/model/parser",
         "//pkg/model/render",
         "//pkg/proto/encryptedaction",

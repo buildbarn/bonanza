@@ -7,6 +7,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_format "bonanza.build/pkg/model/format"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
@@ -83,7 +84,7 @@ func TestHeightAwareBuilderRootSize(t *testing.T) {
 		return root.Message
 	}
 	rootSizeBytes := func(root []*model_filesystem_pb.FileContents) int {
-		data, err := model_core.NewProtoListBinaryMarshaler(root).MarshalBinary()
+		data, err := model_format.NewProtoList[model_filesystem_pb.FileContents]().NewMarshaler(root).MarshalBinary()
 		require.NoError(t, err)
 		return len(data)
 	}

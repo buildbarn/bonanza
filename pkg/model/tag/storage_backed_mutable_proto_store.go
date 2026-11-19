@@ -7,6 +7,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_initialsizeclass_pb "bonanza.build/pkg/proto/model/initialsizeclass"
 	"bonanza.build/pkg/storage/dag"
@@ -220,7 +221,7 @@ func (ps *storageBackedMutableProtoStore[T, TProto]) Get(ctx context.Context, ta
 			if err := func() error {
 				createdObject, err := model_core.MarshalAndEncodeKeyed(
 					model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
-						model_core.NewProtoBinaryMarshaler(handleToWrite.message),
+						model_format.Proto[T, TProto]{}.NewMarshaler(handleToWrite.message),
 					),
 					ps.referenceFormat,
 					ps.objectEncoder,

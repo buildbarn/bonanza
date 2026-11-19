@@ -10,6 +10,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
+	model_format "bonanza.build/pkg/model/format"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
@@ -21,7 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-var fetchActionObjectFormat = model_core.NewProtoObjectFormat(&model_fetch_pb.Action{})
+var fetchActionObjectFormat = model_format.NewProto[model_fetch_pb.Action]().ToProto()
 
 func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx context.Context, key *model_analysis_pb.HttpFileContents_Key, e HTTPFileContentsEnvironment[TReference, TMetadata]) (PatchedHTTPFileContentsValue[TMetadata], error) {
 	actionEncodersValue := e.GetActionEncodersValue(&model_analysis_pb.ActionEncoders_Key{})
@@ -55,7 +56,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 	referenceFormat := c.referenceFormat
 	createdAction, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewSimplePatchedMessage[TMetadata](
-			model_core.NewProtoBinaryMarshaler(&model_fetch_pb.Action{
+			model_format.NewProto[model_fetch_pb.Action]().NewMarshaler(&model_fetch_pb.Action{
 				FileCreationParameters: fileCreationParametersValue.Message.FileCreationParameters,
 				Target:                 target,
 			}),

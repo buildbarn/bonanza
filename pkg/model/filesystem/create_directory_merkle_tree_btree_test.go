@@ -10,6 +10,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
@@ -177,7 +178,7 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 	// Store the top level of the B-tree in an object, so that the
 	// directory can be accessed through a DirectoryReference.
 	rootObject, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoListToBinaryMarshaler(createdRootDirectory.Message),
+		createdRootDirectory.Message.ToMarshaler(model_format.NewProtoList[model_filesystem_pb.DirectoryEntry]()),
 		object.SHA256V1ReferenceFormat,
 		directoryParameters.GetEncoder(),
 	)

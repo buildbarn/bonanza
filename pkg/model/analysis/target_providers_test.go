@@ -6,6 +6,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_format "bonanza.build/pkg/model/format"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 
@@ -171,7 +172,7 @@ func TestTargetProviders(t *testing.T) {
 		// meaning they may not be stored inline. Merging
 		// instances of OutputGroupInfo should still work.
 		valuesObject := newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-			return model_core.NewProtoListBinaryMarshaler([]*model_starlark_pb.List_Element{
+			return model_format.NewProtoList[model_starlark_pb.List_Element]().NewMarshaler([]*model_starlark_pb.List_Element{
 				{Level: &model_starlark_pb.List_Element_Leaf{Leaf: boolValue(false)}},
 				{Level: &model_starlark_pb.List_Element_Leaf{Leaf: boolValue(true)}},
 			})

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_format "bonanza.build/pkg/model/format"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 
@@ -20,7 +21,7 @@ func TestPackageGroupContains(t *testing.T) {
 
 	newOverridesObject := func(build func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_starlark_pb.PackageGroup_Package) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
 		return newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-			return model_core.NewProtoBinaryMarshaler(&model_starlark_pb.PackageGroup_Subpackages_Overrides{
+			return model_format.NewProto[model_starlark_pb.PackageGroup_Subpackages_Overrides]().NewMarshaler(&model_starlark_pb.PackageGroup_Subpackages_Overrides{
 				Packages: build(patcher),
 			})
 		})

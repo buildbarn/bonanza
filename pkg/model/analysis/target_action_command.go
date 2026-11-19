@@ -15,6 +15,7 @@ import (
 	"bonanza.build/pkg/model/core/inlinedtree"
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	model_format "bonanza.build/pkg/model/format"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
@@ -695,7 +696,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			),
 			// Fields that can be stored externally if needed.
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(argumentsList),
+				ExternalMessage: argumentsList.ToMarshaler(model_format.NewProtoList[model_command_pb.ArgumentList_Element]()),
 				Encoder:         actionEncoders.Encoder,
 				ParentAppender: func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
@@ -724,7 +725,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				},
 			),
 			{
-				ExternalMessage: model_core.ProtoToBinaryMarshaler(outputPathPatternChildren),
+				ExternalMessage: outputPathPatternChildren.ToMarshaler(model_format.NewProto[model_command_pb.PathPattern_Children]()),
 				Encoder:         actionEncoders.Encoder,
 				ParentAppender: inlinedtree.Capturing(ctx, e, func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
@@ -744,7 +745,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		return PatchedTargetActionCommandValue[TMetadata]{}, err
 	}
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoToBinaryMarshaler(command),
+		command.ToMarshaler(model_format.NewProto[model_command_pb.Command]()),
 		referenceFormat,
 		actionEncoders.Encoder,
 	)

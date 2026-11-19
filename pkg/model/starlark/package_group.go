@@ -13,6 +13,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
@@ -98,7 +99,7 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](ctx context
 		}
 
 		inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_starlark_pb.PackageGroup_Subpackages, TMetadata]{
-			ExternalMessage: model_core.NewPatchedMessage(model_core.NewProtoBinaryMarshaler(&overrides), patcher),
+			ExternalMessage: model_core.NewPatchedMessage(model_format.NewProto[model_starlark_pb.PackageGroup_Subpackages_Overrides]().NewMarshaler(&overrides), patcher),
 			Encoder:         encoder,
 			ParentAppender: inlinedtree.Capturing(ctx, objectCapturer, func(
 				subpackages model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata],

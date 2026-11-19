@@ -6,6 +6,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_format "bonanza.build/pkg/model/format"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 
@@ -21,7 +22,7 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 
 	newConfiguration := func(platform string) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
 		return newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-			return model_core.NewProtoListBinaryMarshaler([]*model_analysis_pb.BuildSettingOverride{{
+			return model_format.NewProtoList[model_analysis_pb.BuildSettingOverride]().NewMarshaler([]*model_analysis_pb.BuildSettingOverride{{
 				Level: &model_analysis_pb.BuildSettingOverride_Leaf_{
 					Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
 						Label: "@@bazel_tools+//command_line_option:platforms",

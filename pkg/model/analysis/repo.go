@@ -29,6 +29,7 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
@@ -2162,7 +2163,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 			),
 			// Fields that can be stored externally if needed.
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(argumentList),
+				ExternalMessage: argumentList.ToMarshaler(model_format.NewProtoList[model_command_pb.ArgumentList_Element]()),
 				Encoder:         mrc.actionEncoder,
 				ParentAppender: func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
@@ -2182,7 +2183,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(environmentVariableList),
+				ExternalMessage: environmentVariableList.ToMarshaler(model_format.NewProtoList[model_command_pb.EnvironmentVariableList_Element]()),
 				Encoder:         mrc.actionEncoder,
 				ParentAppender: func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
@@ -2202,7 +2203,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoToBinaryMarshaler(outputPathPatternChildren),
+				ExternalMessage: outputPathPatternChildren.ToMarshaler(model_format.NewProto[model_command_pb.PathPattern_Children]()),
 				Encoder:         mrc.actionEncoder,
 				ParentAppender: inlinedtree.Capturing(mrc.context, mrc.environment, func(
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
@@ -2222,7 +2223,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 		return nil, err
 	}
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoToBinaryMarshaler(command),
+		command.ToMarshaler(model_format.NewProto[model_command_pb.Command]()),
 		referenceFormat,
 		mrc.actionEncoder,
 	)
@@ -2241,7 +2242,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
 		}), nil
@@ -2540,7 +2541,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *eval
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
 						Level: &model_command_pb.ArgumentList_Element_Leaf{
@@ -2579,7 +2580,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *eval
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
 		}), nil
@@ -2698,7 +2699,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
 						Level: &model_command_pb.ArgumentList_Element_Leaf{
@@ -2735,7 +2736,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
 			CommandReference: commandReference,
 			// The input root is empty, meaning it is not
 			// backed by an object.
@@ -2881,7 +2882,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
 						Level: &model_command_pb.ArgumentList_Element_Leaf{
@@ -2925,7 +2926,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
 		}), nil
@@ -3037,7 +3038,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
 						Level: &model_command_pb.ArgumentList_Element_Leaf{
@@ -3076,7 +3077,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
 		}), nil

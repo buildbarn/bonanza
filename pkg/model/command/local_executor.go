@@ -17,6 +17,7 @@ import (
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_filesystem_virtual "bonanza.build/pkg/model/filesystem/virtual"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -215,7 +216,7 @@ func captureLog(ctx context.Context, file virtual.LinkableLeaf, writableFileUplo
 	return fileContents, true, nil
 }
 
-var actionObjectFormat = model_core.NewProtoObjectFormat(&model_command_pb.Action{})
+var actionObjectFormat = model_format.NewProto[model_command_pb.Action]().ToProto()
 
 func (e *localExecutor) Execute(ctx context.Context, action *model_executewithstorage.NamespacedAction, executionTimeout time.Duration, executionEvents chan<- *model_core.Decodable[object.LocalReference]) (*model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
 	// Reject actions that this worker can't process.
@@ -655,7 +656,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			// Action has one or more outputs. Upload them and
 			// attach a reference to the result message.
 			if createdObject, err := model_core.MarshalAndEncodeDeterministic(
-				model_core.NewPatchedMessage(model_core.NewProtoBinaryMarshaler(&outputs), outputsPatcher),
+				model_core.NewPatchedMessage(model_format.NewProto[model_command_pb.Outputs]().NewMarshaler(&outputs), outputsPatcher),
 				referenceFormat,
 				directoryEncoder,
 			); err != nil {
@@ -694,7 +695,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	var resultReference *model_core.Decodable[object.LocalReference]
 	if proto.Size(result.Message) > 0 {
 		createdResult, err := model_core.MarshalAndEncodeDeterministic(
-			model_core.ProtoToBinaryMarshaler(result),
+			result.ToMarshaler(model_format.NewProto[model_command_pb.Result]()),
 			referenceFormat,
 			actionEncoder,
 		)

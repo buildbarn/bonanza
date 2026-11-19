@@ -18,6 +18,7 @@ go_library(
     deps = [
         "//pkg/model/core",
         "//pkg/model/encoding",
+        "//pkg/model/format",
         "//pkg/model/parser",
         "//pkg/proto/model/initialsizeclass",
         "//pkg/storage/dag",

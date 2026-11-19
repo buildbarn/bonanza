@@ -9,6 +9,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 
@@ -53,7 +54,7 @@ func GetPathPatternInlineCandidate[TMetadata model_core.ReferenceMetadata](
 	objectCapturer model_core.CreatedObjectCapturer[TMetadata],
 ) inlinedtree.Candidate[*model_command_pb.PathPattern_Children, TMetadata] {
 	return inlinedtree.Candidate[*model_command_pb.PathPattern_Children, TMetadata]{
-		ExternalMessage: model_core.ProtoToBinaryMarshaler(grandChildren),
+		ExternalMessage: grandChildren.ToMarshaler(model_format.NewProto[model_command_pb.PathPattern_Children]()),
 		Encoder:         encoder,
 		ParentAppender: inlinedtree.Capturing(ctx, objectCapturer, func(
 			children model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],

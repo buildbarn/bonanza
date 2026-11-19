@@ -18,6 +18,7 @@ go_library(
         "//pkg/label",
         "//pkg/model/core",
         "//pkg/model/core/btree",
+        "//pkg/model/format",
         "//pkg/model/parser",
         "//pkg/model/starlark",
         "//pkg/proto/model/core",

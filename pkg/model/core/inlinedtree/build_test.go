@@ -6,6 +6,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
+	model_format "bonanza.build/pkg/model/format"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	object_pb "bonanza.build/pkg/proto/storage/object"
@@ -80,7 +81,7 @@ func TestBuild(t *testing.T) {
 
 		output, err := inlinedtree.Build(
 			inlinedtree.CandidateList[*model_command_pb.PathPattern, model_core.ReferenceMetadata]{{
-				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoBinaryMarshaler(leaves)),
+				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_format.NewProto[model_command_pb.PathPattern_Children]().NewMarshaler(leaves)),
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
 			}},
@@ -142,7 +143,7 @@ func TestBuild(t *testing.T) {
 
 		output, err := inlinedtree.Build(
 			inlinedtree.CandidateList[*model_command_pb.PathPattern, model_core.ReferenceMetadata]{{
-				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoBinaryMarshaler(leaves)),
+				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_format.NewProto[model_command_pb.PathPattern_Children]().NewMarshaler(leaves)),
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
 			}},
@@ -196,7 +197,7 @@ func TestBuild(t *testing.T) {
 
 		output, err := inlinedtree.Build(
 			inlinedtree.CandidateList[*model_command_pb.PathPattern, model_core.ReferenceMetadata]{{
-				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_core.NewProtoBinaryMarshaler(leaves)),
+				ExternalMessage: model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](model_format.NewProto[model_command_pb.PathPattern_Children]().NewMarshaler(leaves)),
 				Encoder:         encoder,
 				ParentAppender:  parentAppender.Call,
 			}},

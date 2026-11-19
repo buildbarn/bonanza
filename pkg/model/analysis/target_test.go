@@ -7,6 +7,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_format "bonanza.build/pkg/model/format"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 
@@ -324,7 +325,7 @@ func newMacroExpansionContextsParent(patcher *model_core.ReferenceMessagePatcher
 		Level: &model_starlark_pb.MacroExpansionContext_Entry_Parent_{
 			Parent: &model_starlark_pb.MacroExpansionContext_Entry_Parent{
 				Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-					return model_core.NewProtoListBinaryMarshaler(children)
+					return model_format.NewProtoList[model_starlark_pb.MacroExpansionContext_Entry]().NewMarshaler(children)
 				})),
 				FirstNameSuffix: nameSuffixes[0],
 			},
@@ -359,7 +360,7 @@ func newMacroInstancesParent(patcher *model_core.ReferenceMessagePatcher[model_c
 		Level: &model_starlark_pb.MacroInstance_Entry_Parent_{
 			Parent: &model_starlark_pb.MacroInstance_Entry_Parent{
 				Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-					return model_core.NewProtoListBinaryMarshaler(children)
+					return model_format.NewProtoList[model_starlark_pb.MacroInstance_Entry]().NewMarshaler(children)
 				})),
 			},
 		},

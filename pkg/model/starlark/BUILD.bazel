@@ -60,6 +60,7 @@ go_library(
         "//pkg/model/core/inlinedtree",
         "//pkg/model/encoding",
         "//pkg/model/filesystem",
+        "//pkg/model/format",
         "//pkg/model/parser",
         "//pkg/proto/model/core",
         "//pkg/proto/model/filesystem",

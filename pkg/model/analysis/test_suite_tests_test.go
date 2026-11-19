@@ -6,6 +6,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_format "bonanza.build/pkg/model/format"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 
@@ -170,7 +171,7 @@ func TestTestSuiteTests(t *testing.T) {
 							Level: &model_starlark_pb.TestSuite_Test_Parent_{
 								Parent: &model_starlark_pb.TestSuite_Test_Parent{
 									Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-										return model_core.NewProtoListBinaryMarshaler(newTestSuiteTests("@@main+//foo:a", "@@main+//foo:b"))
+										return model_format.NewProtoList[model_starlark_pb.TestSuite_Test]().NewMarshaler(newTestSuiteTests("@@main+//foo:a", "@@main+//foo:b"))
 									})),
 								},
 							},

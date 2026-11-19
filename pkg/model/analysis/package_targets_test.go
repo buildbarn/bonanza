@@ -8,6 +8,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -62,7 +63,7 @@ func TestPackageTargets(t *testing.T) {
 	// targets, which can be referenced by parent nodes.
 	newTargetsObject := func(targets ...*model_analysis_pb.Package_Value_Target) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
 		return newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-			return model_core.NewProtoListBinaryMarshaler(targets)
+			return model_format.NewProtoList[model_analysis_pb.Package_Value_Target]().NewMarshaler(targets)
 		})
 	}
 	newParent := func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree], createdObject model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]], firstName, lastName string) *model_analysis_pb.Package_Value_Target {

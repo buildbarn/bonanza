@@ -6,6 +6,7 @@ import (
 
 	"bonanza.build/pkg/bazelclient/formatted"
 	model_core "bonanza.build/pkg/model/core"
+	model_format "bonanza.build/pkg/model/format"
 	"bonanza.build/pkg/model/render"
 	"bonanza.build/pkg/storage/object"
 
@@ -113,7 +114,7 @@ func (mf *messageFormatter) formatSegments(segments []render.Segment) formatted.
 		}
 
 		if link := segment.Link; link != nil && mf.objectBaseURL != "" {
-			if pathSegments, ok := model_core.ObjectFormatToPath(link.ObjectFormat); ok {
+			if pathSegments, ok := model_format.ToPath(link.ObjectFormat); ok {
 				if linkURL, err := url.JoinPath(
 					mf.objectBaseURL,
 					append(

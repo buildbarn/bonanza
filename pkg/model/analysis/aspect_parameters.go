@@ -7,6 +7,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_format "bonanza.build/pkg/model/format"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -95,7 +96,7 @@ func encodeAspectParameters[TReference object.BasicReference, TMetadata model_co
 		return nil, fmt.Errorf("failed to encode parameters of aspect %#v: %w", aspect.Message.Identifier, err)
 	}
 	createdObject, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoToBinaryMarshaler(fields),
+		fields.ToMarshaler(model_format.NewProto[model_starlark_pb.Struct_Fields]()),
 		referenceFormat,
 		analysisEncoder,
 	)

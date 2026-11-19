@@ -1,10 +1,12 @@
 package core
 
 import (
+	"encoding"
 	"math/bits"
 	"sync/atomic"
 
 	"bonanza.build/pkg/encoding/varint"
+	model_format "bonanza.build/pkg/model/format"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	"bonanza.build/pkg/storage/object"
 
@@ -48,6 +50,22 @@ func NewSimpleTopLevelMessage[TReference, TMessage any](m TMessage) TopLevelMess
 		Message:            m,
 		OutgoingReferences: object.OutgoingReferences[TReference](object.OutgoingReferencesList[TReference]{}),
 	}
+}
+
+// ToMarshaler converts a TopLevelMessage to one that is marshalable,
+// using a given marshaler.
+func (m TopLevelMessage[TMessage, TReference]) ToMarshaler(marshaler model_format.Marshaler[TMessage]) TopLevelMessage[encoding.BinaryMarshaler, TReference] {
+	return NewTopLevelMessage(marshaler.NewMarshaler(m.Message), m.OutgoingReferences)
+}
+
+// MarshalTopLevelBinary marshals the contents of a TopLevelMessage,
+// while leaving its outgoing references intact.
+func MarshalTopLevelBinary[TMessage encoding.BinaryMarshaler, TReference any](m TopLevelMessage[TMessage, TReference]) (TopLevelMessage[[]byte, TReference], error) {
+	data, err := m.Message.MarshalBinary()
+	if err != nil {
+		return TopLevelMessage[[]byte, TReference]{}, err
+	}
+	return NewTopLevelMessage(data, m.OutgoingReferences), nil
 }
 
 // Decay a top-level message to a plain message.
@@ -201,7 +219,7 @@ func ComputeTopLevelMessageReference[TMessage proto.Message, TReference object.B
 	m TopLevelMessage[TMessage, TReference],
 	referenceFormat object.ReferenceFormat,
 ) (object.LocalReference, error) {
-	data, err := NewProtoBinaryMarshaler(m.Message).MarshalBinary()
+	data, err := marshalOptions.Marshal(m.Message)
 	if err != nil {
 		var badReference object.LocalReference
 		return badReference, err

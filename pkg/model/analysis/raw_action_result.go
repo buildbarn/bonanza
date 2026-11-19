@@ -15,6 +15,7 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 	"bonanza.build/pkg/model/evaluation"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
+	model_format "bonanza.build/pkg/model/format"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
@@ -24,7 +25,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
-var commandActionObjectFormat = model_core.NewProtoObjectFormat(&model_command_pb.Action{})
+var commandActionObjectFormat = model_format.NewProto[model_command_pb.Action]().ToProto()
 
 func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.RawActionResult_Key, TReference], e RawActionResultEnvironment[TReference, TMetadata]) (PatchedRawActionResultValue[TMetadata], error) {
 	actionEncodersValue := e.GetActionEncodersValue(&model_analysis_pb.ActionEncoders_Key{})

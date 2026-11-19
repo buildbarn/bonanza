@@ -6,6 +6,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_format "bonanza.build/pkg/model/format"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	object_pb "bonanza.build/pkg/proto/storage/object"
@@ -23,7 +24,7 @@ type testChangeTrackingDirectory = changeTrackingDirectory[model_core.CreatedObj
 func newTestChunkReference(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree], data string) *model_core_pb.DecodableReference {
 	createdObject := util.Must(
 		model_core.MarshalAndEncodeDeterministic(
-			model_core.NewSimplePatchedMessage[model_core.CreatedObjectTree](model_core.NewRawBinaryMarshaler([]byte(data))),
+			model_core.NewSimplePatchedMessage[model_core.CreatedObjectTree](model_format.Raw{}.NewMarshaler([]byte(data))),
 			util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 			model_encoding.NewChainedDeterministicBinaryEncoder(nil),
 		),

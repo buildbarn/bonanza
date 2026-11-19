@@ -15,6 +15,7 @@ import (
 	"bonanza.build/pkg/model/core/buffered"
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_tag "bonanza.build/pkg/model/tag"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -106,7 +107,7 @@ func (executor) CheckReadiness(ctx context.Context) error {
 	return nil
 }
 
-var actionObjectFormat = model_core.NewProtoObjectFormat(&model_evaluation_pb.Action{})
+var actionObjectFormat = model_format.NewProto[model_evaluation_pb.Action]().ToProto()
 
 func (e *executor) Execute(ctx context.Context, action *model_executewithstorage.NamespacedAction, executionTimeout time.Duration, executionEvents chan<- *model_core.Decodable[object.LocalReference]) (*model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
 	// Objects created during evaluation are buffered in memory,
@@ -502,7 +503,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 					var progressReference *model_core.Decodable[object.LocalReference]
 					if proto.Size(progress.Message) > 0 {
 						createdProgress, err := model_core.MarshalAndEncodeDeterministic(
-							model_core.ProtoToBinaryMarshaler(progress),
+							progress.ToMarshaler(model_format.NewProto[model_evaluation_pb.Progress]()),
 							referenceFormat,
 							deterministicActionEncoder,
 						)
@@ -592,7 +593,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 		}
 		if len(outcomes.Message) > 0 {
 			createdEvaluations, err := model_core.MarshalAndEncodeDeterministic(
-				model_core.ProtoListToBinaryMarshaler(outcomes),
+				outcomes.ToMarshaler(model_format.NewProtoList[model_evaluation_pb.Evaluations]()),
 				referenceFormat,
 				deterministicActionEncoder,
 			)
@@ -654,7 +655,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 	var resultReference *model_core.Decodable[object.LocalReference]
 	if proto.Size(resultMessage.Message) > 0 {
 		createdResult, err := model_core.MarshalAndEncodeDeterministic(
-			model_core.ProtoToBinaryMarshaler(resultMessage),
+			resultMessage.ToMarshaler(model_format.NewProto[model_evaluation_pb.Result]()),
 			referenceFormat,
 			deterministicActionEncoder,
 		)

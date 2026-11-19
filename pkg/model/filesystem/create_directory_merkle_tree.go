@@ -8,6 +8,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
+	model_format "bonanza.build/pkg/model/format"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 
@@ -552,7 +553,7 @@ func (cd *CreatedDirectory[TDirectory]) CaptureDirectoryReference(
 		return model_core.NewSimplePatchedMessage[TDirectory](cd.ToDirectoryReference(nil)), nil
 	}
 	createdObject, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoListToBinaryMarshaler(cd.Message),
+		cd.Message.ToMarshaler(model_format.NewProtoList[model_filesystem_pb.DirectoryEntry]()),
 		parameters.referenceFormat,
 		parameters.GetEncoder(),
 	)

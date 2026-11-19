@@ -14,6 +14,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/evaluation"
+	model_format "bonanza.build/pkg/model/format"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -353,7 +354,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 	}
 
 	createdConfiguration, err := model_core.MarshalAndEncodeDeterministic(
-		model_core.ProtoListToBinaryMarshaler(buildSettingOverrides),
+		buildSettingOverrides.ToMarshaler(model_format.NewProtoList[model_analysis_pb.BuildSettingOverride]()),
 		c.referenceFormat,
 		analysisEncoders.Encoder,
 	)

@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_format "bonanza.build/pkg/model/format"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_format_pb "bonanza.build/pkg/proto/model/format"
@@ -67,7 +68,7 @@ func referenceLink(reference model_core.Decodable[object.LocalReference], object
 		// Display the reference without turning it into a link.
 		return text
 	}
-	if _, ok := model_core.ObjectFormatToPath(objectFormat); !ok {
+	if _, ok := model_format.ToPath(objectFormat); !ok {
 		return errorf("Reference field with unknown object format type")
 	}
 	return Link(LinkTarget{Reference: reference, ObjectFormat: objectFormat}, text)

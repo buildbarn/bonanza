@@ -8,6 +8,7 @@ import (
 
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
@@ -65,7 +66,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) encoding.BinaryMarshaler {
 			patcher.Merge(commandReference.Patcher)
 			patcher.Merge(inputRootReference.Patcher)
-			return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
+			return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
 				CommandReference:   commandReference.Message,
 				InputRootReference: inputRootReference.Message,
 			})

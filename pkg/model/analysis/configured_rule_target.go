@@ -20,8 +20,10 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	model_format "bonanza.build/pkg/model/format"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_command_pb "bonanza.build/pkg/proto/model/command"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -2045,7 +2047,7 @@ func (rc *targetContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(
 			),
 			// Fields that can be stored externally if needed.
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(runfilesFiles),
+				ExternalMessage: runfilesFiles.ToMarshaler(model_format.NewProtoList[model_starlark_pb.List_Element]()),
 				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata],
@@ -2069,7 +2071,7 @@ func (rc *targetContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(runfilesSymlinks),
+				ExternalMessage: runfilesSymlinks.ToMarshaler(model_format.NewProtoList[model_starlark_pb.List_Element]()),
 				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata],
@@ -2093,7 +2095,7 @@ func (rc *targetContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(runfilesRootSymlinks),
+				ExternalMessage: runfilesRootSymlinks.ToMarshaler(model_format.NewProtoList[model_starlark_pb.List_Element]()),
 				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata],
@@ -2528,7 +2530,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 			),
 			// Fields that can be stored externally if needed.
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(argsList),
+				ExternalMessage: argsList.ToMarshaler(model_format.NewProtoList[model_analysis_pb.Args]()),
 				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
@@ -2548,7 +2550,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(envList),
+				ExternalMessage: envList.ToMarshaler(model_format.NewProtoList[model_command_pb.EnvironmentVariableList_Element]()),
 				Encoder:         rc.actionEncoder,
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
@@ -2568,7 +2570,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(encodedInputs),
+				ExternalMessage: encodedInputs.ToMarshaler(model_format.NewProtoList[model_starlark_pb.List_Element]()),
 				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
@@ -2592,7 +2594,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(toolsList),
+				ExternalMessage: toolsList.ToMarshaler(model_format.NewProtoList[model_analysis_pb.FilesToRunProvider]()),
 				Encoder:         rc.analysisEncoders.Encoder,
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
@@ -2612,7 +2614,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoToBinaryMarshaler(outputPathPatternChildren),
+				ExternalMessage: outputPathPatternChildren.ToMarshaler(model_format.NewProto[model_command_pb.PathPattern_Children]()),
 				Encoder:         rc.actionEncoder,
 				ParentAppender: inlinedtree.Capturing(rc.context, rc.environment, func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
@@ -2626,7 +2628,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 				}),
 			},
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(createdInitialOutputDirectory.Message),
+				ExternalMessage: createdInitialOutputDirectory.Message.ToMarshaler(model_format.NewProtoList[model_filesystem_pb.DirectoryEntry]()),
 				Encoder:         rc.directoryCreationParameters.GetEncoder(),
 				ParentAppender: func(
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],

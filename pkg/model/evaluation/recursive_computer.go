@@ -17,6 +17,7 @@ import (
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/core/inlinedtree"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_tag "bonanza.build/pkg/model/tag"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
@@ -800,7 +801,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getCacheLookupTagKeyHash(ks 
 // object's contents without resolving the tag.
 func (rc *RecursiveComputer[TReference, TMetadata]) storeLookupResult(ctx context.Context, tagKeyHash model_tag.DecodableKeyHash, lookupResult model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult, TMetadata]) (TReference, error) {
 	createdLookupResult, err := model_core.MarshalAndEncodeKeyed(
-		model_core.ProtoToBinaryMarshaler(lookupResult),
+		lookupResult.ToMarshaler(model_format.NewProto[model_evaluation_cache_pb.LookupResult]()),
 		rc.referenceFormat,
 		rc.cacheKeyedEncoder,
 		tagKeyHash.GetDecodingParameters(),
@@ -972,7 +973,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) buildEvaluation(ctx context.
 		return model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata]{}, err
 	}
 	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_pb.Evaluation, TMetadata]{
-		ExternalMessage: model_core.ProtoListToBinaryMarshaler(directVariableDependenciesList),
+		ExternalMessage: directVariableDependenciesList.ToMarshaler(model_format.NewProtoList[model_evaluation_pb.Keys]()),
 		Encoder:         rc.cacheDeterministicEncoder,
 		ParentAppender: func(
 			evaluation model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata],
@@ -1004,7 +1005,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) buildGraphletEvaluation(ctx 
 		return inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{}, err
 	}
 	return inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{
-		ExternalMessage: model_core.ProtoToBinaryMarshaler(evaluation),
+		ExternalMessage: evaluation.ToMarshaler(model_format.NewProto[model_evaluation_pb.Evaluation]()),
 		Encoder:         rc.cacheDeterministicEncoder,
 		ParentAppender: inlinedtree.Capturing(ctx, rc.objectManager, func(
 			graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata],
@@ -1753,7 +1754,7 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGr
 		return variableDependenciesMarshaledValueState[TReference, TMetadata]{}, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
 	}
 	inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{
-		ExternalMessage: model_core.ProtoListToBinaryMarshaler(dependencyEvaluationsList),
+		ExternalMessage: dependencyEvaluationsList.ToMarshaler(model_format.NewProtoList[model_evaluation_pb.Evaluations]()),
 		Encoder:         rc.cacheDeterministicEncoder,
 		ParentAppender: func(
 			graphlet model_core.PatchedMessage[*model_evaluation_pb.Graphlet, TMetadata],
@@ -2547,7 +2548,7 @@ func newKeysInlineCandidate[TParentMessage any, TReference object.BasicReference
 		return inlinedtree.Candidate[TParentMessage, TMetadata]{}, err
 	}
 	return inlinedtree.Candidate[TParentMessage, TMetadata]{
-		ExternalMessage: model_core.ProtoListToBinaryMarshaler(keysList),
+		ExternalMessage: keysList.ToMarshaler(model_format.NewProtoList[model_evaluation_pb.Keys]()),
 		Encoder:         rc.cacheDeterministicEncoder,
 		ParentAppender: func(
 			parent model_core.PatchedMessage[TParentMessage, TMetadata],

@@ -10,6 +10,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
 	"bonanza.build/pkg/model/core/inlinedtree"
+	model_format "bonanza.build/pkg/model/format"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/compile"
 	"bonanza.build/pkg/starlark/eval"
@@ -107,7 +108,7 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadat
 			),
 			// Fields that can be stored externally if needed.
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(globalsValues),
+				ExternalMessage: globalsValues.ToMarshaler(model_format.NewProtoList[model_starlark_pb.List_Element]()),
 				Encoder:         options.ObjectEncoder,
 				ParentAppender: func(
 					compiledProgram model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata],
@@ -130,7 +131,7 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadat
 				},
 			},
 			{
-				ExternalMessage: model_core.ProtoListToBinaryMarshaler(functions),
+				ExternalMessage: functions.ToMarshaler(model_format.NewProtoList[model_starlark_pb.CompiledProgram_FunctionEntry]()),
 				Encoder:         options.ObjectEncoder,
 				ParentAppender: func(
 					compiledProgram model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata],

@@ -9,6 +9,7 @@ import (
 	model_command "bonanza.build/pkg/model/command"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
@@ -58,7 +59,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_core.NewProtoBinaryMarshaler(&model_command_pb.Command{
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{{
 					Level: &model_command_pb.ArgumentList_Element_Leaf{
 						Leaf: "pwd",
@@ -84,7 +85,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		if err != nil {
 			return nil, err
 		}
-		return model_core.NewProtoBinaryMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
 			CommandReference: commandReference,
 			// The input root is empty, meaning it is not
 			// backed by an object.

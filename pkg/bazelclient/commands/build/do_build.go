@@ -27,6 +27,7 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	"bonanza.build/pkg/model/render"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
@@ -586,7 +587,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			continue
 		}
 		createdObject, err := model_core.MarshalAndEncodeDeterministic(
-			model_core.ProtoListToBinaryMarshaler(createdRootDirectory.Message),
+			createdRootDirectory.Message.ToMarshaler(model_format.NewProtoList[model_filesystem_pb.DirectoryEntry]()),
 			referenceFormat,
 			directoryParameters.GetEncoder(),
 		)
@@ -686,7 +687,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			return nil, err
 		}
 
-		return model_core.NewProtoListBinaryMarshaler([]*model_evaluation_pb.Evaluations{{
+		return model_format.NewProtoList[model_evaluation_pb.Evaluations]().NewMarshaler([]*model_evaluation_pb.Evaluations{{
 			Level: &model_evaluation_pb.Evaluations_Leaf_{
 				Leaf: &model_evaluation_pb.Evaluations_Leaf{
 					KeyReference: buildSpecificationKeyReference.GetRawReference(),
@@ -741,7 +742,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			return nil, err
 		}
 
-		return model_core.NewProtoBinaryMarshaler(&model_evaluation_pb.Action{
+		return model_format.NewProto[model_evaluation_pb.Action]().NewMarshaler(&model_evaluation_pb.Action{
 			OverridesReference: overridesReference,
 			RequestedKeys: []*model_evaluation_pb.Keys{{
 				Level: &model_evaluation_pb.Keys_Leaf{
@@ -842,8 +843,8 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	actionReferenceStr := model_core.DecodableLocalReferenceToString(decodableActionReference)
 	actionLink := formatted.Text(actionReferenceStr)
 	browserURL := commonFlags.BrowserUrl
-	evaluationActionObjectFormat := model_core.NewProtoObjectFormat(&model_evaluation_pb.Action{})
-	evaluationActionPathComponents, _ := model_core.ObjectFormatToPath(evaluationActionObjectFormat)
+	evaluationActionObjectFormat := model_format.NewProto[model_evaluation_pb.Action]().ToProto()
+	evaluationActionPathComponents, _ := model_format.ToPath(evaluationActionObjectFormat)
 	if browserURL != "" {
 		if actionURL, err := url.JoinPath(
 			browserURL,

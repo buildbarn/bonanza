@@ -22,6 +22,7 @@ go_library(
         "//pkg/model/core/inlinedtree",
         "//pkg/model/encoding",
         "//pkg/model/executewithstorage",
+        "//pkg/model/format",
         "//pkg/model/parser",
         "//pkg/model/tag",
         "//pkg/proto/model/core",

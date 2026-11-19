@@ -1,0 +1,40 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "format",
+    srcs = [
+        "dynamic_proto.go",
+        "format.go",
+        "proto.go",
+        "proto_list.go",
+        "raw.go",
+    ],
+    importpath = "bonanza.build/pkg/model/format",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/encoding/varint",
+        "//pkg/proto/model/format",
+        "@com_github_buildbarn_bb_storage//pkg/util",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//types/known/emptypb",
+    ],
+)
+
+go_test(
+    name = "format_test",
+    srcs = ["format_test.go"],
+    deps = [
+        ":format",
+        "//pkg/proto/model/format",
+        "@com_github_buildbarn_bb_storage//pkg/testutil",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/emptypb",
+        "@org_golang_google_protobuf//types/known/wrapperspb",
+    ],
+)

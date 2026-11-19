@@ -15,6 +15,7 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
@@ -68,7 +69,7 @@ func (localExecutor) CheckReadiness(ctx context.Context) error {
 	return nil
 }
 
-var actionObjectFormat = model_core.NewProtoObjectFormat(&model_fetch_pb.Action{})
+var actionObjectFormat = model_format.NewProto[model_fetch_pb.Action]().ToProto()
 
 func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_executewithstorage.NamespacedAction, executionTimeout time.Duration, executionEvents chan<- *model_core.Decodable[object.LocalReference]) (*model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
 	if !proto.Equal(namespacedAction.Format, actionObjectFormat) {
@@ -241,7 +242,7 @@ func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_exe
 	var resultReference *model_core.Decodable[object.LocalReference]
 	if proto.Size(result.Message) > 0 {
 		createdResult, err := model_core.MarshalAndEncodeDeterministic(
-			model_core.ProtoToBinaryMarshaler(result),
+			result.ToMarshaler(model_format.NewProto[model_fetch_pb.Result]()),
 			referenceFormat,
 			actionEncoder,
 		)

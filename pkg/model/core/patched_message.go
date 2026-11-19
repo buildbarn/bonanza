@@ -5,6 +5,7 @@ import (
 	"math"
 
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_format "bonanza.build/pkg/model/format"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	"bonanza.build/pkg/storage/object"
 
@@ -298,24 +299,10 @@ func MarshalAny[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMe
 	), nil
 }
 
-// ProtoToBinaryMarshaler is a convenience function for converting a
-// PatchedMessage containing a Protobuf message to one that is
-// marshalable.
-func ProtoToBinaryMarshaler[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMessage[TMessage, TMetadata]) PatchedMessage[encoding.BinaryMarshaler, TMetadata] {
-	return NewPatchedMessage(
-		NewProtoBinaryMarshaler(m.Message),
-		m.Patcher,
-	)
-}
-
-// ProtoListToBinaryMarshaler is a convenience function for converting a
-// PatchedMessage containing a list of Protobuf messages to one that is
-// marshalable.
-func ProtoListToBinaryMarshaler[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMessage[[]TMessage, TMetadata]) PatchedMessage[encoding.BinaryMarshaler, TMetadata] {
-	return NewPatchedMessage(
-		NewProtoListBinaryMarshaler(m.Message),
-		m.Patcher,
-	)
+// ToMarshaler converts a PatchedMessage to one that is marshalable,
+// using a given marshaler.
+func (m PatchedMessage[TMessage, TMetadata]) ToMarshaler(marshaler model_format.Marshaler[TMessage]) PatchedMessage[encoding.BinaryMarshaler, TMetadata] {
+	return NewPatchedMessage(marshaler.NewMarshaler(m.Message), m.Patcher)
 }
 
 // FlattenPatchedSingletonList converts a PatchedMessage containing a

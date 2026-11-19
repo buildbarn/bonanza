@@ -22,6 +22,7 @@ go_library(
         "//pkg/model/core/btree",
         "//pkg/model/encoding",
         "//pkg/model/evaluation",
+        "//pkg/model/format",
         "//pkg/model/parser",
         "//pkg/model/render",
         "//pkg/proto/browser",

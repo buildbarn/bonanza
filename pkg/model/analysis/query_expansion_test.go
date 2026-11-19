@@ -16,6 +16,7 @@ import (
 	model_analysis "bonanza.build/pkg/model/analysis"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
@@ -271,7 +272,7 @@ func TestQueryExpansion(t *testing.T) {
 			Level: &model_analysis_pb.TargetLabel_Parent_{
 				Parent: &model_analysis_pb.TargetLabel_Parent{
 					Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-						return model_core.NewProtoListBinaryMarshaler(newTargetLabels(labels...))
+						return model_format.NewProtoList[model_analysis_pb.TargetLabel]().NewMarshaler(newTargetLabels(labels...))
 					})),
 					FirstLabel: firstLabel,
 					LastLabel:  lastLabel,

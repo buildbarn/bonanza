@@ -7,6 +7,7 @@ import (
 
 	model_analysis "bonanza.build/pkg/model/analysis"
 	model_core "bonanza.build/pkg/model/core"
+	model_format "bonanza.build/pkg/model/format"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
@@ -111,7 +112,7 @@ func testDirectoryDirectoriesCount(directory []*model_filesystem_pb.DirectoryEnt
 // testDirectoryMarshaler marshals a directory into an object that can
 // be referenced by a DirectoryReference.
 func testDirectoryMarshaler(directory []*model_filesystem_pb.DirectoryEntry) encoding.BinaryMarshaler {
-	return model_core.NewProtoListBinaryMarshaler(directory)
+	return model_format.NewProtoList[model_filesystem_pb.DirectoryEntry]().NewMarshaler(directory)
 }
 
 // testDirectoryNode is a child directory that can be added to a
@@ -177,7 +178,7 @@ func TestFileRoot(t *testing.T) {
 	bct := newBaseComputerTester(ctrl)
 
 	exampleConfiguration := newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-		return model_core.NewProtoListBinaryMarshaler([]*model_analysis_pb.BuildSettingOverride{{
+		return model_format.NewProtoList[model_analysis_pb.BuildSettingOverride]().NewMarshaler([]*model_analysis_pb.BuildSettingOverride{{
 			Level: &model_analysis_pb.BuildSettingOverride_Leaf_{
 				Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
 					Label: "@@bazel_tools+//command_line_option:platforms",
@@ -630,7 +631,7 @@ func TestFileRoot(t *testing.T) {
 															Contents: &model_filesystem_pb.FileContents{
 																Level: &model_filesystem_pb.FileContents_ChunkReference{
 																	ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																		return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
+																		return model_format.Raw{}.NewMarshaler([]byte("File contents go here"))
 																	})),
 																},
 																TotalSizeBytes: 21,
@@ -690,7 +691,7 @@ func TestFileRoot(t *testing.T) {
 														Contents: &model_filesystem_pb.FileContents{
 															Level: &model_filesystem_pb.FileContents_ChunkReference{
 																ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																	return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
+																	return model_format.Raw{}.NewMarshaler([]byte("File contents go here"))
 																})),
 															},
 															TotalSizeBytes: 21,
@@ -723,7 +724,7 @@ func TestFileRoot(t *testing.T) {
 											Contents: &model_filesystem_pb.FileContents{
 												Level: &model_filesystem_pb.FileContents_ChunkReference{
 													ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-														return model_core.NewRawBinaryMarshaler([]byte("File contents go here"))
+														return model_format.Raw{}.NewMarshaler([]byte("File contents go here"))
 													})),
 												},
 												TotalSizeBytes: 21,
@@ -1504,7 +1505,7 @@ func TestFileRoot(t *testing.T) {
 												Contents: &model_filesystem_pb.FileContents{
 													Level: &model_filesystem_pb.FileContents_ChunkReference{
 														ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-															return model_core.NewRawBinaryMarshaler([]byte("{{first_name}} {{last_name}}"))
+															return model_format.Raw{}.NewMarshaler([]byte("{{first_name}} {{last_name}}"))
 														})),
 													},
 													TotalSizeBytes: 28,
@@ -1563,7 +1564,7 @@ func TestFileRoot(t *testing.T) {
 															Contents: &model_filesystem_pb.FileContents{
 																Level: &model_filesystem_pb.FileContents_ChunkReference{
 																	ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																		return model_core.NewRawBinaryMarshaler([]byte("Albert Einstein"))
+																		return model_format.Raw{}.NewMarshaler([]byte("Albert Einstein"))
 																	})),
 																},
 																TotalSizeBytes: 15,
@@ -1598,7 +1599,7 @@ func TestFileRoot(t *testing.T) {
 											Contents: &model_filesystem_pb.FileContents{
 												Level: &model_filesystem_pb.FileContents_ChunkReference{
 													ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-														return model_core.NewRawBinaryMarshaler([]byte("Albert Einstein"))
+														return model_format.Raw{}.NewMarshaler([]byte("Albert Einstein"))
 													})),
 												},
 												TotalSizeBytes: 15,

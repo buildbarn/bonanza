@@ -31,6 +31,7 @@ go_test(
     embed = [":inlinedtree"],
     deps = [
         "//pkg/model/core",
+        "//pkg/model/format",
         "//pkg/proto/model/command",
         "//pkg/proto/model/core",
         "//pkg/proto/storage/object",
