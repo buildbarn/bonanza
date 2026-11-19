@@ -2,7 +2,11 @@ package core
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"runtime"
+	"slices"
+	"sort"
+	"strings"
 	"sync"
 
 	"bonanza.build/pkg/storage/object"
@@ -11,8 +15,14 @@ import (
 type leakCheckingListEntry struct {
 	previous *leakCheckingListEntry
 	next     *leakCheckingListEntry
-	stack    []byte
+	callers  []uintptr
 }
+
+// maximumLeakCheckingStackDepth is the maximum number of stack frames
+// that are captured when creating LeakCheckingReferenceMetadata.
+// Program counters are captured without symbolizing them, as that is
+// relatively cheap. Symbolization only happens when reporting leaks.
+const maximumLeakCheckingStackDepth = 32
 
 // leakCheckingState holds the bookkeeping that is shared between
 // LeakCheckingObjectManager and all LeakCheckingReferenceMetadata that
@@ -104,12 +114,15 @@ func (om *LeakCheckingObjectManager[TReference, TMetadata]) CaptureCreatedObject
 }
 
 func (om *LeakCheckingObjectManager[TReference, TMetadata]) wrap(base TMetadata) *LeakCheckingReferenceMetadata[TMetadata] {
+	// Skip runtime.Callers() and wrap(), so that the stack starts
+	// at CaptureCreatedObject() or CaptureExistingObject().
+	var pcs [maximumLeakCheckingStackDepth]uintptr
+	n := runtime.Callers(2, pcs[:])
 	rm := &LeakCheckingReferenceMetadata[TMetadata]{
 		base:  base,
 		state: &om.state,
 		entry: leakCheckingListEntry{
-			// TODO: This is too heavy to always leave enabled.
-			// stack: debug.Stack(),
+			callers: slices.Clone(pcs[:n]),
 		},
 	}
 	s := &om.state
@@ -149,18 +162,58 @@ func (om *LeakCheckingObjectManager[TReference, TMetadata]) GetCurrentValidMetad
 	s := &om.state
 	count := 0
 	s.lock.Lock()
-	seen := map[string]struct{}{}
 	for e := s.list.next; e != &s.list; e = e.next {
-		if count == 0 {
-			log.Print("---- START OF LEAKS ---")
-		}
 		count++
-		stack := string(e.stack)
-		if _, ok := seen[stack]; !ok {
-			log.Print(stack)
-			seen[stack] = struct{}{}
-		}
 	}
 	s.lock.Unlock()
 	return count
+}
+
+// FormatLeaks returns a human readable description of all
+// ReferenceMetadata objects that are still valid, grouped by the stack
+// trace at which they were created. Groups are sorted by the number of
+// objects leaked, in descending order.
+func (om *LeakCheckingObjectManager[TReference, TMetadata]) FormatLeaks() string {
+	type leakGroup struct {
+		callers []uintptr
+		count   int
+	}
+	groups := map[string]*leakGroup{}
+
+	s := &om.state
+	s.lock.Lock()
+	for e := s.list.next; e != &s.list; e = e.next {
+		key := fmt.Sprint(e.callers)
+		if g, ok := groups[key]; ok {
+			g.count++
+		} else {
+			groups[key] = &leakGroup{
+				callers: e.callers,
+				count:   1,
+			}
+		}
+	}
+	s.lock.Unlock()
+
+	sortedGroups := make([]*leakGroup, 0, len(groups))
+	for _, g := range groups {
+		sortedGroups = append(sortedGroups, g)
+	}
+	sort.SliceStable(sortedGroups, func(i, j int) bool {
+		return sortedGroups[i].count > sortedGroups[j].count
+	})
+
+	var sb strings.Builder
+	for _, g := range sortedGroups {
+		fmt.Fprintf(&sb, "%d metadata values created at:\n", g.count)
+		frames := runtime.CallersFrames(g.callers)
+		for {
+			frame, more := frames.Next()
+			fmt.Fprintf(&sb, "\t%s\n\t\t%s:%d\n", frame.Function, frame.File, frame.Line)
+			if !more {
+				break
+			}
+		}
+	}
+	return sb.String()
 }

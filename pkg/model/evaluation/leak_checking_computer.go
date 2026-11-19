@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding"
 	"fmt"
+	"log"
 
 	model_core "bonanza.build/pkg/model/core"
 	model_format "bonanza.build/pkg/model/format"
 
+	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -37,7 +39,8 @@ func (c *leakCheckingComputer[TReference, TMetadata]) ComputeValue(ctx context.C
 	)
 	if err != nil {
 		if c := objectManager.GetCurrentValidMetadataCount(); c != 0 {
-			return model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata]{}, fmt.Errorf("leaked %d metadata values", c)
+			reportLeaks(objectManager, key, c, err)
+			return model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata]{}, fmt.Errorf("leaked %d metadata values after failing with error: %v", c, err)
 		}
 		return model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata]{}, err
 	}
@@ -53,9 +56,25 @@ func (c *leakCheckingComputer[TReference, TMetadata]) ComputeValue(ctx context.C
 		),
 	)
 	if c := objectManager.GetCurrentValidMetadataCount(); c != 0 {
+		reportLeaks(objectManager, key, c, nil)
+		mappedValue.Discard()
 		return model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata]{}, fmt.Errorf("leaked %d metadata values", c)
 	}
 	return mappedValue, nil
+}
+
+// reportLeaks writes the stack traces at which leaked ReferenceMetadata
+// objects were created to the log, together with the key that was
+// being computed.
+func reportLeaks[TReference any, TMetadata model_core.ReferenceMetadata](objectManager *model_core.LeakCheckingObjectManager[TReference, TMetadata], key model_core.Message[proto.Message, TReference], count int, err error) {
+	log.Printf(
+		"---- START OF LEAKS ---\nLeaked %d metadata values while computing %s (error: %v):\n%s\n%s---- END OF LEAKS ---",
+		count,
+		proto.MessageName(key.Message),
+		err,
+		prototext.MarshalOptions{Multiline: true, Indent: "\t"}.Format(key.Message),
+		objectManager.FormatLeaks(),
+	)
 }
 
 // leakCheckingEnvironment is a decorator for Environment that unwraps
