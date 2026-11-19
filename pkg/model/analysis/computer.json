@@ -314,7 +314,8 @@
             "FileAccessParameters",
             "FileCreationParameters",
             "HTTPFileContents"
-         ]
+         ],
+         "hasProgress": true
       },
       "HTTPFileContents": {
          "dependsOn": [

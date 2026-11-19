@@ -1691,6 +1691,18 @@ message HttpArchiveContents {
     Format format = 2;
   }
 
+  message Progress {
+    option (bonanza.model.evaluation.progress_description) = {
+      template: "{extracted}"
+    };
+
+    // The number of bytes of the archive that have been extracted.
+    // For tarballs, this corresponds to the compressed size of the
+    // archive. For ZIP archives, this corresponds to the sum of the
+    // compressed sizes of the files contained in the archive.
+    bonanza.model.evaluation.ProgressCounter extracted = 1;
+  }
+
   message Value {
     message Exists {
       // The contents of the archive.

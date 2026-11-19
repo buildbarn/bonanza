@@ -15,9 +15,10 @@ import (
 	"bonanza.build/pkg/model/evaluation"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
+	"bonanza.build/pkg/storage/object"
 
-	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -27,24 +28,72 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-type archiveFile struct {
-	isExecutable bool
-	offsetBytes  int64
-	sizeBytes    int64
+// archiveProgressReporter reports the number of bytes of an archive
+// that have been extracted. To limit overhead, progress is only
+// reported each time another mebibyte has been extracted.
+type archiveProgressReporter struct {
+	report       func(*model_analysis_pb.HttpArchiveContents_Progress)
+	totalBytes   uint64
+	currentBytes uint64
 }
 
-type archiveDirectory struct {
-	directories map[path.Component]*archiveDirectory
-	files       map[path.Component]archiveFile
+func newArchiveProgressReporter(report func(*model_analysis_pb.HttpArchiveContents_Progress), totalBytes uint64) *archiveProgressReporter {
+	pr := &archiveProgressReporter{
+		report:     report,
+		totalBytes: totalBytes,
+	}
+	pr.reportCurrent()
+	return pr
+}
+
+func (pr *archiveProgressReporter) reportCurrent() {
+	pr.report(&model_analysis_pb.HttpArchiveContents_Progress{
+		Extracted: &model_evaluation_pb.ProgressCounter{
+			Current: pr.currentBytes,
+			Total:   pr.totalBytes,
+			Unit:    model_evaluation_pb.ProgressCounter_BYTES,
+		},
+	})
+}
+
+func (pr *archiveProgressReporter) add(n uint64) {
+	previousBytes := pr.currentBytes
+	pr.currentBytes += n
+	if previousBytes>>20 != pr.currentBytes>>20 {
+		pr.reportCurrent()
+	}
+}
+
+// progressReportingReader is a decorator for io.Reader that reports
+// the number of bytes read through an archiveProgressReporter.
+type progressReportingReader struct {
+	r  io.Reader
+	pr *archiveProgressReporter
+}
+
+func (r progressReportingReader) Read(p []byte) (int, error) {
+	n, err := r.r.Read(p)
+	r.pr.add(uint64(n))
+	return n, err
+}
+
+type archiveFile[TReference any] struct {
+	isExecutable bool
+	contents     model_core.Message[*model_filesystem_pb.FileContents, TReference]
+}
+
+type archiveDirectory[TReference any] struct {
+	directories map[path.Component]*archiveDirectory[TReference]
+	files       map[path.Component]archiveFile[TReference]
 	symlinks    map[path.Component]path.Parser
 }
 
-func (d *archiveDirectory) resolveNewDirectory(filePath string) error {
+func (d *archiveDirectory[TReference]) resolveNewDirectory(filePath string) error {
 	return path.Resolve(
 		path.UNIXFormat.NewParser(filePath),
 		path.NewLoopDetectingScopeWalker(
-			path.NewRelativeScopeWalker(&archiveDirectoryCreatingResolver{
-				baseArchiveDirectoryCreatingResolver: baseArchiveDirectoryCreatingResolver{
+			path.NewRelativeScopeWalker(&archiveDirectoryCreatingResolver[TReference]{
+				baseArchiveDirectoryCreatingResolver: baseArchiveDirectoryCreatingResolver[TReference]{
 					stack: util.NewNonEmptyStack(d),
 				},
 			}),
@@ -52,9 +101,11 @@ func (d *archiveDirectory) resolveNewDirectory(filePath string) error {
 	)
 }
 
-func (d *archiveDirectory) resolveNewFile(filePath string) (*archiveDirectory, path.Component, error) {
-	r := archiveFileCreatingResolver{
-		baseArchiveDirectoryCreatingResolver: baseArchiveDirectoryCreatingResolver{
+// resolveFile resolves the parent directory and name of a file.
+// Directories that don't exist yet are created.
+func (d *archiveDirectory[TReference]) resolveFile(filePath string) (*archiveDirectory[TReference], path.Component, error) {
+	r := archiveFileCreatingResolver[TReference]{
+		baseArchiveDirectoryCreatingResolver: baseArchiveDirectoryCreatingResolver[TReference]{
 			stack: util.NewNonEmptyStack(d),
 		},
 	}
@@ -68,40 +119,52 @@ func (d *archiveDirectory) resolveNewFile(filePath string) (*archiveDirectory, p
 	if r.TerminalName == nil {
 		return nil, badComponent, errors.New("path resolves to a directory")
 	}
-
-	dChild := r.stack.Peek()
-	if _, ok := dChild.files[*r.TerminalName]; ok {
-		return nil, badComponent, errors.New("path resolves to an already existing file")
-	}
-	if _, ok := dChild.symlinks[*r.TerminalName]; ok {
-		return nil, badComponent, errors.New("path resolves to an already existing symbolic link")
-	}
-	return dChild, *r.TerminalName, nil
+	return r.stack.Peek(), *r.TerminalName, nil
 }
 
-func (d *archiveDirectory) addFile(name path.Component, extractedFilesWriter *model_filesystem.SectionWriter, f io.Reader, isExecutable bool) error {
-	fileOffsetBytes := extractedFilesWriter.GetOffsetBytes()
-	fileSizeBytes, err := io.Copy(extractedFilesWriter, f)
+func (d *archiveDirectory[TReference]) resolveNewFile(filePath string) (*archiveDirectory[TReference], path.Component, error) {
+	dChild, name, err := d.resolveFile(filePath)
 	if err != nil {
-		return err
+		return nil, name, err
 	}
+	if _, ok := dChild.files[name]; ok {
+		return nil, name, errors.New("path resolves to an already existing file")
+	}
+	if _, ok := dChild.symlinks[name]; ok {
+		return nil, name, errors.New("path resolves to an already existing symbolic link")
+	}
+	return dChild, name, nil
+}
 
+// lookupFile returns the properties of a regular file that was
+// extracted previously. This is used to process hard links.
+func (d *archiveDirectory[TReference]) lookupFile(filePath string) (archiveFile[TReference], error) {
+	dChild, name, err := d.resolveFile(filePath)
+	if err != nil {
+		return archiveFile[TReference]{}, err
+	}
+	f, ok := dChild.files[name]
+	if !ok {
+		return archiveFile[TReference]{}, errors.New("path does not resolve to a previously extracted regular file")
+	}
+	return f, nil
+}
+
+func (d *archiveDirectory[TReference]) addFile(name path.Component, contents model_core.Message[*model_filesystem_pb.FileContents, TReference], isExecutable bool) {
 	if d.files == nil {
-		d.files = map[path.Component]archiveFile{}
+		d.files = map[path.Component]archiveFile[TReference]{}
 	}
-	d.files[name] = archiveFile{
+	d.files[name] = archiveFile[TReference]{
 		isExecutable: isExecutable,
-		offsetBytes:  fileOffsetBytes,
-		sizeBytes:    fileSizeBytes,
+		contents:     contents,
 	}
-	return nil
 }
 
-type baseArchiveDirectoryCreatingResolver struct {
-	stack util.NonEmptyStack[*archiveDirectory]
+type baseArchiveDirectoryCreatingResolver[TReference any] struct {
+	stack util.NonEmptyStack[*archiveDirectory[TReference]]
 }
 
-func (r *baseArchiveDirectoryCreatingResolver) onDirectory(self path.ComponentWalker, name path.Component) (path.GotDirectoryOrSymlink, error) {
+func (r *baseArchiveDirectoryCreatingResolver[TReference]) onDirectory(self path.ComponentWalker, name path.Component) (path.GotDirectoryOrSymlink, error) {
 	d := r.stack.Peek()
 	dChild, ok := d.directories[name]
 	if !ok {
@@ -117,9 +180,9 @@ func (r *baseArchiveDirectoryCreatingResolver) onDirectory(self path.ComponentWa
 
 		// Create new directory.
 		if d.directories == nil {
-			d.directories = map[path.Component]*archiveDirectory{}
+			d.directories = map[path.Component]*archiveDirectory[TReference]{}
 		}
-		dChild = &archiveDirectory{}
+		dChild = &archiveDirectory[TReference]{}
 		d.directories[name] = dChild
 	}
 	r.stack.Push(dChild)
@@ -129,76 +192,71 @@ func (r *baseArchiveDirectoryCreatingResolver) onDirectory(self path.ComponentWa
 	}, nil
 }
 
-func (r *baseArchiveDirectoryCreatingResolver) onUp(self path.ComponentWalker) (path.ComponentWalker, error) {
+func (r *baseArchiveDirectoryCreatingResolver[TReference]) onUp(self path.ComponentWalker) (path.ComponentWalker, error) {
 	if _, ok := r.stack.PopSingle(); ok {
 		return self, nil
 	}
 	return nil, errors.New("path resolves to a location outside the build directory")
 }
 
-type archiveDirectoryCreatingResolver struct {
-	baseArchiveDirectoryCreatingResolver
+type archiveDirectoryCreatingResolver[TReference any] struct {
+	baseArchiveDirectoryCreatingResolver[TReference]
 }
 
-func (r *archiveDirectoryCreatingResolver) OnDirectory(name path.Component) (path.GotDirectoryOrSymlink, error) {
+func (r *archiveDirectoryCreatingResolver[TReference]) OnDirectory(name path.Component) (path.GotDirectoryOrSymlink, error) {
 	return r.onDirectory(r, name)
 }
 
-func (r *archiveDirectoryCreatingResolver) OnTerminal(name path.Component) (*path.GotSymlink, error) {
+func (r *archiveDirectoryCreatingResolver[TReference]) OnTerminal(name path.Component) (*path.GotSymlink, error) {
 	return path.OnTerminalViaOnDirectory(r, name)
 }
 
-func (r *archiveDirectoryCreatingResolver) OnUp() (path.ComponentWalker, error) {
+func (r *archiveDirectoryCreatingResolver[TReference]) OnUp() (path.ComponentWalker, error) {
 	return r.onUp(r)
 }
 
-type archiveFileCreatingResolver struct {
-	baseArchiveDirectoryCreatingResolver
+type archiveFileCreatingResolver[TReference any] struct {
+	baseArchiveDirectoryCreatingResolver[TReference]
 	path.TerminalNameTrackingComponentWalker
 }
 
-func (r *archiveFileCreatingResolver) OnDirectory(name path.Component) (path.GotDirectoryOrSymlink, error) {
+func (r *archiveFileCreatingResolver[TReference]) OnDirectory(name path.Component) (path.GotDirectoryOrSymlink, error) {
 	return r.onDirectory(r, name)
 }
 
-func (r *archiveFileCreatingResolver) OnUp() (path.ComponentWalker, error) {
+func (r *archiveFileCreatingResolver[TReference]) OnUp() (path.ComponentWalker, error) {
 	return r.onUp(r)
 }
 
-type capturableArchiveDirectoryOptions[TFile model_core.ReferenceMetadata] struct {
-	contentsFile           filesystem.FileReader
-	fileCreationParameters *model_filesystem.FileCreationParameters
-	fileMerkleTreeCapturer model_filesystem.FileMerkleTreeCapturer[TFile]
+// capturableArchiveDirectory is used to create a Merkle tree of the
+// directory hierarchy of an extracted archive. Merkle trees of files
+// are created while extracting the archive, meaning they merely need
+// to be attached to the directory hierarchy.
+type capturableArchiveDirectory[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
+	objectCapturer model_core.ExistingObjectCapturer[TReference, TMetadata]
+	directory      *archiveDirectory[TReference]
 }
 
-type capturableArchiveDirectory[TDirectory, TFile model_core.ReferenceMetadata] struct {
-	options   *capturableArchiveDirectoryOptions[TFile]
-	directory *archiveDirectory
-}
-
-func (ad *capturableArchiveDirectory[TDirectory, TFile]) EnterCapturableDirectory(name path.Component) (*model_filesystem.CreatedDirectory[TDirectory], model_filesystem.CapturableDirectory[TDirectory, TFile], error) {
+func (ad *capturableArchiveDirectory[TReference, TMetadata]) EnterCapturableDirectory(name path.Component) (*model_filesystem.CreatedDirectory[TMetadata], model_filesystem.CapturableDirectory[TMetadata, TMetadata], error) {
 	dChild, ok := ad.directory.directories[name]
 	if !ok {
 		panic("attempted to enter non-existent directory")
 	}
-	return nil, &capturableArchiveDirectory[TDirectory, TFile]{
-		options:   ad.options,
-		directory: dChild,
+	return nil, &capturableArchiveDirectory[TReference, TMetadata]{
+		objectCapturer: ad.objectCapturer,
+		directory:      dChild,
 	}, nil
 }
 
-func (ad *capturableArchiveDirectory[TDirectory, TFile]) OpenForFileMerkleTreeCreation(name path.Component) (model_filesystem.CapturableFile[TFile], error) {
+func (ad *capturableArchiveDirectory[TReference, TMetadata]) OpenForFileMerkleTreeCreation(name path.Component) (model_filesystem.CapturableFile[TMetadata], error) {
 	info, ok := ad.directory.files[name]
 	if !ok {
 		panic("attempted to enter non-existent file")
 	}
-	return &capturableArchiveFile[TFile]{
-		options: ad.options,
-		info:    info,
-	}, nil
+	return model_filesystem.NewSimpleCapturableFile(model_core.Patch(ad.objectCapturer, info.contents)), nil
 }
 
-func (ad *capturableArchiveDirectory[TDirectory, TFile]) ReadDir() ([]filesystem.FileInfo, error) {
+func (ad *capturableArchiveDirectory[TReference, TMetadata]) ReadDir() ([]filesystem.FileInfo, error) {
 	d := ad.directory
 	children := make(filesystem.FileInfoList, 0, len(d.directories)+len(d.files)+len(d.symlinks))
 	for name := range d.directories {
@@ -214,7 +272,7 @@ func (ad *capturableArchiveDirectory[TDirectory, TFile]) ReadDir() ([]filesystem
 	return children, nil
 }
 
-func (ad *capturableArchiveDirectory[TDirectory, TFile]) Readlink(name path.Component) (path.Parser, error) {
+func (ad *capturableArchiveDirectory[TReference, TMetadata]) Readlink(name path.Component) (path.Parser, error) {
 	target, ok := ad.directory.symlinks[name]
 	if !ok {
 		panic("attempted to read non-existent symbolic link")
@@ -222,27 +280,11 @@ func (ad *capturableArchiveDirectory[TDirectory, TFile]) Readlink(name path.Comp
 	return target, nil
 }
 
-func (capturableArchiveDirectory[TDirectory, TFile]) Close() error {
+func (capturableArchiveDirectory[TReference, TMetadata]) Close() error {
 	return nil
 }
 
-type capturableArchiveFile[TFile model_core.ReferenceMetadata] struct {
-	options *capturableArchiveDirectoryOptions[TFile]
-	info    archiveFile
-}
-
-func (af *capturableArchiveFile[TFile]) CreateFileMerkleTree(ctx context.Context) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, TFile], error) {
-	return model_filesystem.CreateFileMerkleTree(
-		ctx,
-		af.options.fileCreationParameters,
-		io.NewSectionReader(af.options.contentsFile, int64(af.info.offsetBytes), int64(af.info.sizeBytes)),
-		af.options.fileMerkleTreeCapturer,
-	)
-}
-
-func (capturableArchiveFile[TFile]) Discard() {}
-
-func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx context.Context, key *model_analysis_pb.HttpArchiveContents_Key, e HTTPArchiveContentsEnvironment[TReference, TMetadata]) (PatchedHTTPArchiveContentsValue[TMetadata], error) {
+func (*baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx context.Context, key *model_analysis_pb.HttpArchiveContents_Key, e HTTPArchiveContentsEnvironment[TReference, TMetadata]) (PatchedHTTPArchiveContentsValue[TMetadata], error) {
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
@@ -263,19 +305,31 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ct
 		return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid file contents: %w", err)
 	}
 
-	// Create a temporary file for storing copies of extracted files.
-	extractedFiles, err := c.filePool.NewFile(pool.ZeroHoleSource, 0)
-	if err != nil {
-		return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
+	// Create Merkle trees of files while extracting them. Objects
+	// are captured by the environment, which takes care of writing
+	// them to storage. Convert the resulting messages to ones
+	// containing references, so that no metadata needs to be
+	// tracked until the directory hierarchy is complete.
+	fileMerkleTreeCapturer := model_filesystem.NewSimpleFileMerkleTreeCapturer(e)
+	createFileMerkleTree := func(r io.Reader) (model_core.Message[*model_filesystem_pb.FileContents, TReference], error) {
+		fileContents, err := model_filesystem.CreateFileMerkleTree(ctx, fileCreationParameters, r, fileMerkleTreeCapturer)
+		if err != nil {
+			return model_core.Message[*model_filesystem_pb.FileContents, TReference]{}, err
+		}
+		return model_core.Unpatch(e, fileContents).Decay(), nil
 	}
-	defer extractedFiles.Close()
-	extractedFilesWriter := model_filesystem.NewSectionWriter(extractedFiles)
 
-	var rootDirectory archiveDirectory
+	var rootDirectory archiveDirectory[TReference]
 
 	switch key.Format {
 	case model_analysis_pb.HttpArchiveContents_Key_TAR_GZ, model_analysis_pb.HttpArchiveContents_Key_TAR_XZ:
-		compressedReader := fileReader.FileOpenRead(ctx, httpFileContentsEntry, 0)
+		compressedReader := progressReportingReader{
+			r: fileReader.FileOpenRead(ctx, httpFileContentsEntry, 0),
+			pr: newArchiveProgressReporter(
+				e.ReportHTTPArchiveContentsProgress,
+				httpFileContentsEntry.GetEndBytes(),
+			),
+		}
 		var decompressedReader io.Reader
 		switch key.Format {
 		case model_analysis_pb.HttpArchiveContents_Key_TAR_GZ:
@@ -306,9 +360,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ct
 				if err := rootDirectory.resolveNewDirectory(header.Name); err != nil {
 					return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid path %#v: %w", header.Name, err)
 				}
-			case tar.TypeLink:
-				panic("TODO")
-			case tar.TypeReg, tar.TypeSymlink:
+			case tar.TypeReg, tar.TypeLink, tar.TypeSymlink:
 				d, name, err := rootDirectory.resolveNewFile(header.Name)
 				if err != nil {
 					return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid path %#v: %w", header.Name, err)
@@ -316,9 +368,20 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ct
 
 				switch header.Typeflag {
 				case tar.TypeReg:
-					if err := d.addFile(name, extractedFilesWriter, tarReader, header.Mode&0o111 != 0); err != nil {
-						return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
+					contents, err := createFileMerkleTree(tarReader)
+					if err != nil {
+						return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("failed to extract file %#v: %w", header.Name, err)
 					}
+					d.addFile(name, contents, header.Mode&0o111 != 0)
+				case tar.TypeLink:
+					// Hard links refer to a file that was
+					// extracted previously. As files are
+					// immutable, they can share contents.
+					target, err := rootDirectory.lookupFile(header.Linkname)
+					if err != nil {
+						return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid hard link target %#v: %w", header.Linkname, err)
+					}
+					d.addFile(name, target.contents, target.isExecutable)
 				case tar.TypeSymlink:
 					if d.symlinks == nil {
 						d.symlinks = map[path.Component]path.Parser{}
@@ -334,6 +397,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ct
 		if err != nil {
 			return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 		}
+		var compressedSizeBytes uint64
+		for _, file := range zipReader.File {
+			compressedSizeBytes += file.CompressedSize64
+		}
+		progressReporter := newArchiveProgressReporter(e.ReportHTTPArchiveContentsProgress, compressedSizeBytes)
 		for _, file := range zipReader.File {
 			if strings.HasSuffix(file.Name, "/") {
 				if err := rootDirectory.resolveNewDirectory(file.Name); err != nil {
@@ -349,12 +417,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ct
 				if err != nil {
 					return PatchedHTTPArchiveContentsValue[TMetadata]{}, err
 				}
-				errAdd := d.addFile(name, extractedFilesWriter, f, true)
+				contents, err := createFileMerkleTree(f)
 				f.Close()
-				if errAdd != nil {
-					return PatchedHTTPArchiveContentsValue[TMetadata]{}, errAdd
+				if err != nil {
+					return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("failed to extract file %#v: %w", file.Name, err)
 				}
+				d.addFile(name, contents, true)
 			}
+			progressReporter.add(file.CompressedSize64)
 		}
 	default:
 		return PatchedHTTPArchiveContentsValue[TMetadata]{}, errors.New("unknown archive format")
@@ -368,13 +438,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ct
 			semaphore.NewWeighted(1),
 			group,
 			directoryCreationParameters,
-			&capturableArchiveDirectory[TMetadata, TMetadata]{
-				options: &capturableArchiveDirectoryOptions[TMetadata]{
-					contentsFile:           extractedFiles,
-					fileCreationParameters: fileCreationParameters,
-					fileMerkleTreeCapturer: model_filesystem.NewSimpleFileMerkleTreeCapturer(e),
-				},
-				directory: &rootDirectory,
+			&capturableArchiveDirectory[TReference, TMetadata]{
+				objectCapturer: e,
+				directory:      &rootDirectory,
 			},
 			model_filesystem.NewSimpleDirectoryMerkleTreeCapturer(e),
 			&createdRootDirectory,
@@ -403,3 +469,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ct
 		}, nil
 	})
 }
+
+// HTTPArchiveContentsEnvironmentForTesting is used to generate mocks
+// for unit testing BaseComputer.
+type HTTPArchiveContentsEnvironmentForTesting HTTPArchiveContentsEnvironment[model_core.CreatedObjectTree, model_core.CreatedObjectTree]

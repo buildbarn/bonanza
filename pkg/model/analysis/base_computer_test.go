@@ -100,10 +100,17 @@ func (baseComputerTester) expectCaptureExistingObject(e *MockFileRootEnvironment
 // expectGetDirectoryCreationParametersObject can be called by
 // tests to indicate that the analysis function needs access to
 // attributes necessary for creating new directories.
-func (baseComputerTester) expectGetDirectoryCreationParametersObject(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
+func (bct *baseComputerTester) expectGetDirectoryCreationParametersObject(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
 	return e.EXPECT().GetDirectoryCreationParametersObject(
 		testutil.EqProto(t, &model_analysis_pb.DirectoryCreationParameters_Key{}),
-	).Return(util.Must(model_filesystem.NewDirectoryCreationParametersFromProto(
+	).Return(bct.newDirectoryCreationParameters(), true)
+}
+
+// newDirectoryCreationParameters returns the attributes necessary for
+// creating new directories that analysis functions obtain from
+// DirectoryCreationParameters.
+func (baseComputerTester) newDirectoryCreationParameters() *model_filesystem.DirectoryCreationParameters {
+	return util.Must(model_filesystem.NewDirectoryCreationParametersFromProto(
 		&model_filesystem_pb.DirectoryCreationParameters{
 			Access: &model_filesystem_pb.DirectoryAccessParameters{},
 			DirectoriesParameters: &model_chunking_pb.Parameters{
@@ -113,16 +120,23 @@ func (baseComputerTester) expectGetDirectoryCreationParametersObject(t *testing.
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),
-	)), true)
+	))
 }
 
 // expectGetFileCreationParametersObject can be called by tests to
 // indicate that the analysis function needs access to attributes
 // necessary for creating new files.
-func (baseComputerTester) expectGetFileCreationParametersObject(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
+func (bct *baseComputerTester) expectGetFileCreationParametersObject(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
 	return e.EXPECT().GetFileCreationParametersObject(
 		testutil.EqProto(t, &model_analysis_pb.FileCreationParameters_Key{}),
-	).Return(util.Must(model_filesystem.NewFileCreationParametersFromProto(
+	).Return(bct.newFileCreationParameters(), true)
+}
+
+// newFileCreationParameters returns the attributes necessary for
+// creating new files that analysis functions obtain from
+// FileCreationParameters.
+func (baseComputerTester) newFileCreationParameters() *model_filesystem.FileCreationParameters {
+	return util.Must(model_filesystem.NewFileCreationParametersFromProto(
 		&model_filesystem_pb.FileCreationParameters{
 			Access: &model_filesystem_pb.FileAccessParameters{},
 			ChunkParameters: &model_chunking_pb.Parameters{
@@ -136,7 +150,7 @@ func (baseComputerTester) expectGetFileCreationParametersObject(t *testing.T, e 
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),
-	)), true)
+	))
 }
 
 // expectGetFileAccessParametersObject can be called by tests to
@@ -145,7 +159,13 @@ func (baseComputerTester) expectGetFileCreationParametersObject(t *testing.T, e 
 func (bct *baseComputerTester) expectGetFileAccessParametersObject(t *testing.T, e *MockFileRootEnvironmentForTesting) *gomock.Call {
 	return e.EXPECT().GetFileAccessParametersObject(
 		testutil.EqProto(t, &model_analysis_pb.FileAccessParameters_Key{}),
-	).Return(model_filesystem.NewFileReader(
+	).Return(bct.newFileReader(), true)
+}
+
+// newFileReader returns the reader of existing files that analysis
+// functions obtain from FileAccessParameters.
+func (bct *baseComputerTester) newFileReader() *model_filesystem.FileReader[model_core.CreatedObjectTree] {
+	return model_filesystem.NewFileReader(
 		model_parser.LookupParsedObjectReader(
 			bct.parsedObjectPoolIngester,
 			model_filesystem.NewFileContentsListObjectParser[model_core.CreatedObjectTree](),
@@ -155,7 +175,7 @@ func (bct *baseComputerTester) expectGetFileAccessParametersObject(t *testing.T,
 			model_parser.NewRawObjectParser[model_core.CreatedObjectTree](),
 		),
 		semaphore.NewWeighted(1),
-	), true)
+	)
 }
 
 // newAnalysisEncoders creates the object that analysis functions
