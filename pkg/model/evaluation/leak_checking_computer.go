@@ -7,6 +7,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type leakCheckingComputer[TReference any, TMetadata model_core.ReferenceMetadata] struct {
@@ -65,7 +66,7 @@ type leakCheckingEnvironment[TReference any, TMetadata model_core.ReferenceMetad
 	environment Environment[TReference, TMetadata]
 }
 
-func (e *leakCheckingEnvironment[TReference, TMetadata]) GetValue(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]]) model_core.Message[proto.Message, TReference] {
+func (e *leakCheckingEnvironment[TReference, TMetadata]) GetValue(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]], valueMessageType protoreflect.MessageType) model_core.Message[proto.Message, TReference] {
 	return e.environment.GetValue(
 		model_core.NewPatchedMessage(
 			key.Message,
@@ -76,10 +77,11 @@ func (e *leakCheckingEnvironment[TReference, TMetadata]) GetValue(key model_core
 				},
 			),
 		),
+		valueMessageType,
 	)
 }
 
-func (e *leakCheckingEnvironment[TReference, TMetadata]) GetObject(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]]) (any, bool) {
+func (e *leakCheckingEnvironment[TReference, TMetadata]) GetObject(key model_core.PatchedMessage[proto.Message, *model_core.LeakCheckingReferenceMetadata[TMetadata]], valueMessageType protoreflect.MessageType) (any, bool) {
 	return e.environment.GetObject(
 		model_core.NewPatchedMessage(
 			key.Message,
@@ -90,5 +92,6 @@ func (e *leakCheckingEnvironment[TReference, TMetadata]) GetObject(key model_cor
 				},
 			),
 		),
+		valueMessageType,
 	)
 }

@@ -138,7 +138,7 @@ func (x *ActionTagKeyData) GetChunkingParameters() *chunking.Parameters {
 type DependenciesHashRecord struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	KeyReference  *core.Reference        `protobuf:"bytes,1,opt,name=key_reference,json=keyReference,proto3" json:"key_reference,omitempty"`
-	Value         *core.Any              `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Value         *core.Opaque           `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -180,7 +180,7 @@ func (x *DependenciesHashRecord) GetKeyReference() *core.Reference {
 	return nil
 }
 
-func (x *DependenciesHashRecord) GetValue() *core.Any {
+func (x *DependenciesHashRecord) GetValue() *core.Opaque {
 	if x != nil {
 		return x.Value
 	}
@@ -324,7 +324,7 @@ func (x *LookupResult) GetHitGraphlet() *evaluation.Graphlet {
 	return nil
 }
 
-func (x *LookupResult) GetHitValue() *core.Any {
+func (x *LookupResult) GetHitValue() *core.Opaque {
 	if x != nil {
 		if x, ok := x.Result.(*LookupResult_HitValue); ok {
 			return x.HitValue
@@ -350,7 +350,7 @@ type LookupResult_HitGraphlet struct {
 }
 
 type LookupResult_HitValue struct {
-	HitValue *core.Any `protobuf:"bytes,4,opt,name=hit_value,json=hitValue,proto3,oneof"`
+	HitValue *core.Opaque `protobuf:"bytes,4,opt,name=hit_value,json=hitValue,proto3,oneof"`
 }
 
 func (*LookupResult_Initial_) isLookupResult_Result() {}
@@ -525,10 +525,10 @@ const file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc = 
 	"\x10ActionTagKeyData\x12O\n" +
 	"\x13common_tag_key_data\x18\x01 \x01(\v2 .bonanza.model.tag.CommonKeyDataR\x10commonTagKeyData\x12J\n" +
 	"\"key_references_with_overrides_hash\x18\x02 \x01(\fR\x1ekeyReferencesWithOverridesHash\x12S\n" +
-	"\x13chunking_parameters\x18\x03 \x01(\v2\".bonanza.model.chunking.ParametersR\x12chunkingParameters\"\x8b\x01\n" +
+	"\x13chunking_parameters\x18\x03 \x01(\v2\".bonanza.model.chunking.ParametersR\x12chunkingParameters\"\x8e\x01\n" +
 	"\x16DependenciesHashRecord\x12B\n" +
-	"\rkey_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\fkeyReference\x12-\n" +
-	"\x05value\x18\x02 \x01(\v2\x17.bonanza.model.core.AnyR\x05value\"\x83\x04\n" +
+	"\rkey_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\fkeyReference\x120\n" +
+	"\x05value\x18\x02 \x01(\v2\x1a.bonanza.model.core.OpaqueR\x05value\"\x83\x04\n" +
 	"\x10LookupTagKeyData\x12V\n" +
 	"\x18action_tag_key_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x15actionTagKeyReference\x12W\n" +
 	"\x18evaluation_key_reference\x18\x02 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x16evaluationKeyReference\x12n\n" +
@@ -539,12 +539,12 @@ const file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc = 
 	"\x05Scope\x12\v\n" +
 	"\aINVALID\x10\x00\x12\f\n" +
 	"\bGRAPHLET\x10\x01\x12\t\n" +
-	"\x05VALUE\x10\x02\"\x9f\x06\n" +
+	"\x05VALUE\x10\x02\"\xa2\x06\n" +
 	"\fLookupResult\x12P\n" +
 	"\ainitial\x18\x01 \x01(\v24.bonanza.model.evaluation.cache.LookupResult.InitialH\x00R\ainitial\x12u\n" +
 	"\x14missing_dependencies\x18\x02 \x01(\v2@.bonanza.model.evaluation.cache.LookupResult.MissingDependenciesH\x00R\x13missingDependencies\x12G\n" +
-	"\fhit_graphlet\x18\x03 \x01(\v2\".bonanza.model.evaluation.GraphletH\x00R\vhitGraphlet\x126\n" +
-	"\thit_value\x18\x04 \x01(\v2\x17.bonanza.model.core.AnyH\x00R\bhitValue\x1a\xb3\x02\n" +
+	"\fhit_graphlet\x18\x03 \x01(\v2\".bonanza.model.evaluation.GraphletH\x00R\vhitGraphlet\x129\n" +
+	"\thit_value\x18\x04 \x01(\v2\x1a.bonanza.model.core.OpaqueH\x00R\bhitValue\x1a\xb3\x02\n" +
 	"\aInitial\x12i\n" +
 	"!graphlet_variable_dependency_keys\x18\x01 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x1egraphletVariableDependencyKeys\x12c\n" +
 	"\x1evalue_variable_dependency_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\x1bvalueVariableDependencyKeys\x12X\n" +
@@ -579,7 +579,7 @@ var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_goTypes = []
 	(*tag.CommonKeyData)(nil),                    // 8: bonanza.model.tag.CommonKeyData
 	(*chunking.Parameters)(nil),                  // 9: bonanza.model.chunking.Parameters
 	(*core.Reference)(nil),                       // 10: bonanza.model.core.Reference
-	(*core.Any)(nil),                             // 11: bonanza.model.core.Any
+	(*core.Opaque)(nil),                          // 11: bonanza.model.core.Opaque
 	(*evaluation.Graphlet)(nil),                  // 12: bonanza.model.evaluation.Graphlet
 	(*evaluation.Keys)(nil),                      // 13: bonanza.model.evaluation.Keys
 	(*timestamppb.Timestamp)(nil),                // 14: google.protobuf.Timestamp
@@ -588,14 +588,14 @@ var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_depIdxs = []
 	8,  // 0: bonanza.model.evaluation.cache.ActionTagKeyData.common_tag_key_data:type_name -> bonanza.model.tag.CommonKeyData
 	9,  // 1: bonanza.model.evaluation.cache.ActionTagKeyData.chunking_parameters:type_name -> bonanza.model.chunking.Parameters
 	10, // 2: bonanza.model.evaluation.cache.DependenciesHashRecord.key_reference:type_name -> bonanza.model.core.Reference
-	11, // 3: bonanza.model.evaluation.cache.DependenciesHashRecord.value:type_name -> bonanza.model.core.Any
+	11, // 3: bonanza.model.evaluation.cache.DependenciesHashRecord.value:type_name -> bonanza.model.core.Opaque
 	10, // 4: bonanza.model.evaluation.cache.LookupTagKeyData.action_tag_key_reference:type_name -> bonanza.model.core.Reference
 	10, // 5: bonanza.model.evaluation.cache.LookupTagKeyData.evaluation_key_reference:type_name -> bonanza.model.core.Reference
 	5,  // 6: bonanza.model.evaluation.cache.LookupTagKeyData.subsequent_lookup:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup
 	6,  // 7: bonanza.model.evaluation.cache.LookupResult.initial:type_name -> bonanza.model.evaluation.cache.LookupResult.Initial
 	7,  // 8: bonanza.model.evaluation.cache.LookupResult.missing_dependencies:type_name -> bonanza.model.evaluation.cache.LookupResult.MissingDependencies
 	12, // 9: bonanza.model.evaluation.cache.LookupResult.hit_graphlet:type_name -> bonanza.model.evaluation.Graphlet
-	11, // 10: bonanza.model.evaluation.cache.LookupResult.hit_value:type_name -> bonanza.model.core.Any
+	11, // 10: bonanza.model.evaluation.cache.LookupResult.hit_value:type_name -> bonanza.model.core.Opaque
 	0,  // 11: bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.scope:type_name -> bonanza.model.evaluation.cache.LookupTagKeyData.SubsequentLookup.Scope
 	13, // 12: bonanza.model.evaluation.cache.LookupResult.Initial.graphlet_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys
 	13, // 13: bonanza.model.evaluation.cache.LookupResult.Initial.value_variable_dependency_keys:type_name -> bonanza.model.evaluation.Keys

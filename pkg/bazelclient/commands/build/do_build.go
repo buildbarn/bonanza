@@ -680,8 +680,8 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			return nil, err
 		}
 
-		buildSpecificationValue, err := model_core.MarshalAny(
-			model_core.NewPatchedMessage(&buildSpecification, buildSpecificationPatcher),
+		buildSpecificationValue, err := model_core.MarshalOpaque(
+			model_core.NewPatchedMessage(&buildSpecification, buildSpecificationPatcher).ToMarshaler(model_format.NewProto[model_analysis_pb.BuildSpecification_Value]()),
 		)
 		if err != nil {
 			return nil, err

@@ -82,14 +82,16 @@ func (e *Evaluation) GetParsedObjectPoolIngester() *model_parser.ParsedObjectPoo
 	return e.parsedObjectPoolIngester
 }
 
-// GetRequestedValue returns the value of the requested key.
-func (e *Evaluation) GetRequestedValue(ctx context.Context) (model_core.Message[*model_core_pb.Any, object.LocalReference], error) {
+// GetRequestedValue returns the value of the requested key. As values
+// are stored without type information, the caller is responsible for
+// unmarshaling it into a message of the right type.
+func (e *Evaluation) GetRequestedValue(ctx context.Context) (model_core.Message[*model_core_pb.Opaque, object.LocalReference], error) {
 	if e.outcomesReference == nil {
-		return model_core.Message[*model_core_pb.Any, object.LocalReference]{}, errors.New("evaluation did not yield any outcomes")
+		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, errors.New("evaluation did not yield any outcomes")
 	}
 	keyReference, err := model_core.ComputeTopLevelMessageReference(e.requestedKey, e.referenceFormat)
 	if err != nil {
-		return model_core.Message[*model_core_pb.Any, object.LocalReference]{}, fmt.Errorf("failed to compute reference of requested key: %w", err)
+		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, fmt.Errorf("failed to compute reference of requested key: %w", err)
 	}
 
 	evaluationsReader := model_parser.LookupParsedObjectReader(
@@ -101,7 +103,7 @@ func (e *Evaluation) GetRequestedValue(ctx context.Context) (model_core.Message[
 	)
 	outcomes, err := evaluationsReader.ReadObject(ctx, *e.outcomesReference)
 	if err != nil {
-		return model_core.Message[*model_core_pb.Any, object.LocalReference]{}, fmt.Errorf("failed to read outcomes: %w", err)
+		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, fmt.Errorf("failed to read outcomes: %w", err)
 	}
 	evaluations, err := btree.Find(
 		ctx,
@@ -119,14 +121,14 @@ func (e *Evaluation) GetRequestedValue(ctx context.Context) (model_core.Message[
 		},
 	)
 	if err != nil {
-		return model_core.Message[*model_core_pb.Any, object.LocalReference]{}, fmt.Errorf("failed to look up requested key in outcomes: %w", err)
+		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, fmt.Errorf("failed to look up requested key in outcomes: %w", err)
 	}
 	if !evaluations.IsSet() {
-		return model_core.Message[*model_core_pb.Any, object.LocalReference]{}, errors.New("requested key is not present in outcomes")
+		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, errors.New("requested key is not present in outcomes")
 	}
 	leaf, ok := evaluations.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
 	if !ok {
-		return model_core.Message[*model_core_pb.Any, object.LocalReference]{}, errors.New("outcomes entry of requested key is not a valid leaf")
+		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, errors.New("outcomes entry of requested key is not a valid leaf")
 	}
 
 	evaluation, err := model_evaluation.GraphletGetEvaluation(
@@ -141,10 +143,10 @@ func (e *Evaluation) GetRequestedValue(ctx context.Context) (model_core.Message[
 		model_core.Nested(evaluations, leaf.Leaf.Graphlet),
 	)
 	if err != nil {
-		return model_core.Message[*model_core_pb.Any, object.LocalReference]{}, fmt.Errorf("failed to obtain evaluation of requested key: %w", err)
+		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, fmt.Errorf("failed to obtain evaluation of requested key: %w", err)
 	}
 	if evaluation.Message.Value == nil {
-		return model_core.Message[*model_core_pb.Any, object.LocalReference]{}, errors.New("evaluation of requested key has no value")
+		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, errors.New("evaluation of requested key has no value")
 	}
 	return model_core.Nested(evaluation, evaluation.Message.Value), nil
 }

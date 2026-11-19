@@ -33,7 +33,7 @@ message DependenciesHashRecord {
   bonanza.model.core.Reference key_reference = 1;
 
   // The value that was computed for the key.
-  bonanza.model.core.Any value = 2;
+  bonanza.model.core.Opaque value = 2;
 }
 
 message LookupTagKeyData {
@@ -135,6 +135,6 @@ message LookupResult {
     //
     // This may also be returned as part of the initial lookup if the
     // requested key does not have any dependencies.
-    bonanza.model.core.Any hit_value = 4;
+    bonanza.model.core.Opaque hit_value = 4;
   }
 }

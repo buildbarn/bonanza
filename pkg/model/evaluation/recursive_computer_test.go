@@ -67,10 +67,10 @@ func TestRecursiveComputer(t *testing.T) {
 				// Recursion: fib(n) = fib(n-2) + fib(n-1).
 				v0 := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
 					Value: k.Value - 2,
-				}))
+				}), (*wrapperspb.UInt64Value)(nil).ProtoReflect().Type())
 				v1 := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
 					Value: k.Value - 1,
-				}))
+				}), (*wrapperspb.UInt64Value)(nil).ProtoReflect().Type())
 				if !v0.IsSet() || !v1.IsSet() {
 					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 				}
@@ -174,8 +174,8 @@ func TestRecursiveComputer(t *testing.T) {
 					Graphlet: &model_evaluation_pb.Graphlet{
 						Evaluation: &model_evaluation_pb.Graphlet_EvaluationInline{
 							EvaluationInline: &model_evaluation_pb.Evaluation{
-								Value: &model_core_pb.Any{
-									Value: util.Must(anypb.New(&wrapperspb.UInt64Value{
+								Value: &model_core_pb.Opaque{
+									Value: util.Must(proto.Marshal(&wrapperspb.UInt64Value{
 										Value: 12200160415121876738,
 									})),
 									References: &model_core_pb.ReferenceSet{},
@@ -195,7 +195,7 @@ func TestRecursiveComputer(t *testing.T) {
 		computer := NewMockComputerForTesting(ctrl)
 		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata], error) {
-				v := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](key.Message))
+				v := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata](key.Message), (*wrapperspb.UInt64Value)(nil).ProtoReflect().Type())
 				require.False(t, v.IsSet())
 				return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 			})
@@ -266,7 +266,7 @@ func TestRecursiveComputer(t *testing.T) {
 				}
 				v := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
 					Value: dependency,
-				}))
+				}), (*wrapperspb.UInt64Value)(nil).ProtoReflect().Type())
 				require.False(t, v.IsSet())
 				return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 			}).
@@ -339,7 +339,7 @@ func TestRecursiveComputer(t *testing.T) {
 				for _, dependency := range dependencies {
 					v := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
 						Value: dependency,
-					}))
+					}), (*wrapperspb.UInt64Value)(nil).ProtoReflect().Type())
 					require.False(t, v.IsSet())
 				}
 				return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
@@ -407,7 +407,7 @@ func TestRecursiveComputer(t *testing.T) {
 
 				v := e.GetValue(model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{
 					Value: k.Value - 1,
-				}))
+				}), (*wrapperspb.UInt64Value)(nil).ProtoReflect().Type())
 				if !v.IsSet() {
 					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 				}
@@ -872,8 +872,8 @@ func TestRecursiveComputer(t *testing.T) {
 		).Return(model_core.NewSimpleMessage[object.LocalReference](
 			&model_evaluation_cache_pb.LookupResult{
 				Result: &model_evaluation_cache_pb.LookupResult_HitValue{
-					HitValue: &model_core_pb.Any{
-						Value: util.Must(anypb.New(&wrapperspb.UInt64Value{
+					HitValue: &model_core_pb.Opaque{
+						Value: util.Must(proto.Marshal(&wrapperspb.UInt64Value{
 							Value: 26,
 						})),
 						References: &model_core_pb.ReferenceSet{},
@@ -1041,14 +1041,14 @@ func TestRecursiveComputerObject(t *testing.T) {
 			case 0:
 				return sourceKey(1000), nil
 			case 3:
-				v1 := e.GetValue(sourceKey(1))
-				v2 := e.GetValue(sourceKey(2))
+				v1 := e.GetValue(sourceKey(1), (*wrapperspb.UInt32Value)(nil).ProtoReflect().Type())
+				v2 := e.GetValue(sourceKey(2), (*wrapperspb.UInt32Value)(nil).ProtoReflect().Type())
 				if !v1.IsSet() || !v2.IsSet() {
 					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 				}
 				return sourceKey(3), nil
 			default:
-				object, ok := e.GetObject(sourceKey(0))
+				object, ok := e.GetObject(sourceKey(0), (*wrapperspb.UInt32Value)(nil).ProtoReflect().Type())
 				if !ok {
 					return model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 				}

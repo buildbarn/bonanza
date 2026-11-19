@@ -17,6 +17,7 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/btree"
+	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	"bonanza.build/pkg/model/render"
 	model_starlark "bonanza.build/pkg/model/starlark"
@@ -128,17 +129,13 @@ const defaultBuildOutputWidth = 80
 // order defined by label.CanonicalLabel.Compare(). It returns the
 // number of targets written.
 func printQueryResult(ctx context.Context, evaluation *build.Evaluation, output arguments.QueryOutput, w *bufio.Writer, writeFormatted func(formatted.Node, io.StringWriter) (int, error), width int) (int, error) {
-	valueAny, err := evaluation.GetRequestedValue(ctx)
+	opaqueValue, err := evaluation.GetRequestedValue(ctx)
 	if err != nil {
 		return 0, err
 	}
-	value, err := model_core.UnmarshalAnyNew(valueAny)
+	queryResult, err := model_core.UnmarshalOpaque(opaqueValue, model_format.NewProto[model_analysis_pb.QueryResult_Value]())
 	if err != nil {
 		return 0, fmt.Errorf("failed to unmarshal value: %w", err)
-	}
-	queryResult, ok := value.Message.(*model_analysis_pb.QueryResult_Value)
-	if !ok {
-		return 0, errors.New("value is not of type QueryResult.Value")
 	}
 
 	// Objects containing parents of the B-tree of targets and
@@ -184,7 +181,7 @@ func printQueryResult(ctx context.Context, evaluation *build.Evaluation, output 
 	for entry := range btree.AllLeaves(
 		ctx,
 		targetReader,
-		model_core.Nested(value.Decay(), queryResult.Targets),
+		model_core.Nested(queryResult.Decay(), queryResult.Message.Targets),
 		func(entry model_core.Message[*model_analysis_pb.QueryTarget, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
 			return entry.Message.GetParent().GetReference(), nil
 		},

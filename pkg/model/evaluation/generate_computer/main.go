@@ -270,6 +270,11 @@ func main() {
 	fmt.Printf("type typedEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {\n")
 	fmt.Printf("\tevaluation.Environment[TReference, TMetadata]\n")
 	fmt.Printf("}\n")
+	// Message types of values, which need to be provided to
+	// Environment.GetValue() and Environment.GetObject().
+	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
+		fmt.Printf("var valueMessageType%s = (*pb.%s_Value)(nil).ProtoReflect().Type()\n", functionName, getMessageName(functionName))
+	}
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		functionDefinition := computerDefinition.Functions[functionName]
 		fmt.Printf(
@@ -278,7 +283,7 @@ func main() {
 			functionDefinition.getKeyType(functionName, true),
 			getMessageName(functionName),
 		)
-		fmt.Printf("\tm := e.Environment.GetValue(%s)\n", functionDefinition.keyToPatchedMessage())
+		fmt.Printf("\tm := e.Environment.GetValue(%s, valueMessageType%s)\n", functionDefinition.keyToPatchedMessage(), functionName)
 		fmt.Printf("\tif !m.IsSet() {\n")
 		fmt.Printf("\t\treturn model_core.Message[*pb.%s_Value, TReference]{}\n", getMessageName(functionName))
 		fmt.Printf("\t}\n")
@@ -294,7 +299,7 @@ func main() {
 				functionDefinition.getKeyType(functionName, true),
 				objectType.Type,
 			)
-			fmt.Printf("\tv, ok := e.Environment.GetObject(%s)\n", functionDefinition.keyToPatchedMessage())
+			fmt.Printf("\tv, ok := e.Environment.GetObject(%s, valueMessageType%s)\n", functionDefinition.keyToPatchedMessage(), functionName)
 			fmt.Printf("\tif !ok {\n")
 			fmt.Printf("\t\treturn nil, false\n")
 			fmt.Printf("\t}\n")

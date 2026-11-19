@@ -126,6 +126,7 @@ func (*cacheTestComputer) getValue(e model_evaluation.Environment[object.LocalRe
 		model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](
 			&wrapperspb.UInt32Value{Value: key},
 		),
+		(*wrapperspb.UInt32Value)(nil).ProtoReflect().Type(),
 	)
 	if !value.IsSet() {
 		return 0, false
@@ -238,6 +239,12 @@ func cacheTestKey(n uint32) model_core.TopLevelMessage[*anypb.Any, object.LocalR
 	)
 }
 
+func cacheTestValue(n uint32) model_core.TopLevelMessage[[]byte, object.LocalReference] {
+	return model_core.NewSimpleTopLevelMessage[object.LocalReference](
+		util.Must(proto.Marshal(&wrapperspb.UInt32Value{Value: n})),
+	)
+}
+
 func cacheTestKeyReference(n uint32) object.LocalReference {
 	return util.Must(model_core.ComputeTopLevelMessageReference(cacheTestKey(n), object.SHA256V1ReferenceFormat))
 }
@@ -276,7 +283,7 @@ func (h *cacheTestHarness) build(
 	)
 
 	for key, value := range overrides {
-		require.NoError(t, recursiveComputer.OverrideKeyState(cacheTestKeyReference(key), cacheTestKey(value)))
+		require.NoError(t, recursiveComputer.OverrideKeyState(cacheTestKeyReference(key), cacheTestValue(value)))
 	}
 
 	h.builds++
@@ -602,7 +609,7 @@ func TestRecursiveComputerConcurrentUploadAndGetEvaluations(t *testing.T) {
 		cacheTestIndirectionMaximumAge,
 	)
 	for key := uint32(1); key <= overriddenKeys; key++ {
-		require.NoError(t, recursiveComputer.OverrideKeyState(cacheTestKeyReference(key), cacheTestKey(key)))
+		require.NoError(t, recursiveComputer.OverrideKeyState(cacheTestKeyReference(key), cacheTestValue(key)))
 	}
 
 	probeKeyState, err := recursiveComputer.GetOrCreateKeyState(

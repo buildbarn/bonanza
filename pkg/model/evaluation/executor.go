@@ -397,7 +397,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 				}
 				return &result
 			}
-			value, err := model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
+			value, err := model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.Value))
 			if err != nil {
 				result.Failure = &model_evaluation_pb.Result_Failure{
 					Status: status.Convert(err).Proto(),

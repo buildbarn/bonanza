@@ -52,10 +52,12 @@ message Keys {
 // evaluation.
 message Evaluation {
   // The value that was emitted by the computer for the given key.
+  // The type of the value is not stored, as it is implied by the
+  // type of the key.
   //
   // This field may be left unset if the computer yielded a native
   // (non-message) value.
-  bonanza.model.core.Any value = 1;
+  bonanza.model.core.Opaque value = 1;
 
   // Keys of dependencies that were accessed by the computer while
   // processing the current key. Only keys whose values are variable

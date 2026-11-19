@@ -33,6 +33,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -493,7 +494,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetKeyStateKeyMessage(ctx co
 	return ks.keyMessageFetcher.getAny(ctx, rc)
 }
 
-func (rc *RecursiveComputer[TReference, TMetadata]) computeDependenciesHashRecordReference(keyReference object.LocalReference, value model_core.TopLevelMessage[*anypb.Any, TReference]) object.LocalReference {
+func (rc *RecursiveComputer[TReference, TMetadata]) computeDependenciesHashRecordReference(keyReference object.LocalReference, value model_core.TopLevelMessage[[]byte, TReference]) object.LocalReference {
 	dependenciesHashRecord, _ := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.DependenciesHashRecord {
 		return &model_evaluation_cache_pb.DependenciesHashRecord{
 			KeyReference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
@@ -501,7 +502,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) computeDependenciesHashRecor
 			}),
 			Value: model_core.Patch(
 				model_core.NewDiscardingObjectCapturer[TReference](),
-				model_core.WrapTopLevelAny(value).Decay(),
+				model_core.WrapTopLevelOpaque(value).Decay(),
 			).Merge(patcher),
 		}
 	}).SortAndSetReferences()
@@ -511,7 +512,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) computeDependenciesHashRecor
 // OverrideKeyState overrides the value for a given key. This prevents
 // the key from getting evaluated, and causes evaluation of keys that
 // depend on it to receive the injected value.
-func (rc *RecursiveComputer[TReference, TMetadata]) OverrideKeyState(keyReference object.LocalReference, value model_core.TopLevelMessage[*anypb.Any, TReference]) error {
+func (rc *RecursiveComputer[TReference, TMetadata]) OverrideKeyState(keyReference object.LocalReference, value model_core.TopLevelMessage[[]byte, TReference]) error {
 	dependenciesHashRecordReference := rc.computeDependenciesHashRecordReference(keyReference, value)
 	rc.lock.Lock()
 	if _, ok := rc.keys[keyReference]; !ok {
@@ -951,7 +952,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getCachedKeyReferences(ctx c
 	return keyReferences, true, nil
 }
 
-func (rc *RecursiveComputer[TReference, TMetadata]) buildEvaluation(ctx context.Context, value model_core.Message[*model_core_pb.Any, TReference], directVariableDependencies []*KeyState[TReference, TMetadata]) (model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata], error) {
+func (rc *RecursiveComputer[TReference, TMetadata]) buildEvaluation(ctx context.Context, value model_core.Message[*model_core_pb.Opaque, TReference], directVariableDependencies []*KeyState[TReference, TMetadata]) (model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata], error) {
 	inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_pb.Evaluation, TMetadata], 0, 2)
 	defer inlineCandidates.Discard()
 
@@ -999,7 +1000,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) buildEvaluation(ctx context.
 	)
 }
 
-func (rc *RecursiveComputer[TReference, TMetadata]) buildGraphletEvaluation(ctx context.Context, value model_core.Message[*model_core_pb.Any, TReference], directVariableDependencies []*KeyState[TReference, TMetadata]) (inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata], error) {
+func (rc *RecursiveComputer[TReference, TMetadata]) buildGraphletEvaluation(ctx context.Context, value model_core.Message[*model_core_pb.Opaque, TReference], directVariableDependencies []*KeyState[TReference, TMetadata]) (inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata], error) {
 	evaluation, err := rc.buildEvaluation(ctx, value, directVariableDependencies)
 	if err != nil {
 		return inlinedtree.Candidate[*model_evaluation_pb.Graphlet, TMetadata]{}, err
@@ -1105,29 +1106,29 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(p
 	return ks, ks.valueState
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueFromState(vs valueState[TReference, TMetadata]) model_core.Message[proto.Message, TReference] {
-	anyValue, err := vs.getValue(e.context, e.computer)
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueFromState(vs valueState[TReference, TMetadata], valueMessageType protoreflect.MessageType) model_core.Message[proto.Message, TReference] {
+	marshaledValue, err := vs.getValue(e.context, e.computer)
 	if err != nil {
 		e.setError(err)
 		return model_core.Message[proto.Message, TReference]{}
 	}
-	value, err := model_core.UnmarshalTopLevelAnyNew(anyValue)
-	if err != nil {
+	value := valueMessageType.New().Interface()
+	if err := proto.Unmarshal(marshaledValue.Message, value); err != nil {
 		e.setError(err)
 		return model_core.Message[proto.Message, TReference]{}
 	}
-	return value.Decay()
+	return model_core.NewMessage(value, marshaledValue.OutgoingReferences)
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetValue(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) model_core.Message[proto.Message, TReference] {
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetValue(patchedKey model_core.PatchedMessage[proto.Message, TMetadata], valueMessageType protoreflect.MessageType) model_core.Message[proto.Message, TReference] {
 	_, vs := e.getValueState(patchedKey)
 	if vs == nil {
 		return model_core.Message[proto.Message, TReference]{}
 	}
-	return e.getValueFromState(vs)
+	return e.getValueFromState(vs, valueMessageType)
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetObject(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) (any, bool) {
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetObject(patchedKey model_core.PatchedMessage[proto.Message, TMetadata], valueMessageType protoreflect.MessageType) (any, bool) {
 	ks, vs := e.getValueState(patchedKey)
 	if vs == nil {
 		return nil, false
@@ -1136,7 +1137,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetObject(patch
 		return *object, true
 	}
 
-	value := e.getValueFromState(vs)
+	value := e.getValueFromState(vs, valueMessageType)
 	if !value.IsSet() {
 		return nil, false
 	}
@@ -1222,7 +1223,7 @@ func (g *variableDependenciesGatherer[TReference, TMetadata]) gatherDependencies
 	}
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getVariableDependenciesComputedValueState(ks *KeyState[TReference, TMetadata], value model_core.TopLevelMessage[*anypb.Any, TReference]) *variableDependenciesComputedValueState[TReference, TMetadata] {
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getVariableDependenciesComputedValueState(ks *KeyState[TReference, TMetadata], value model_core.TopLevelMessage[[]byte, TReference]) *variableDependenciesComputedValueState[TReference, TMetadata] {
 	return e.computer.newVariableDependenciesComputedValueState(ks, sortedKeyStates(e.directVariableDependencies), value)
 }
 
@@ -1230,7 +1231,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getVariableDepe
 // a key whose value has been obtained, and has a non-empty set of
 // direct variable dependencies. The list of direct variable
 // dependencies must be sorted by key reference.
-func (rc *RecursiveComputer[TReference, TMetadata]) newVariableDependenciesComputedValueState(ks *KeyState[TReference, TMetadata], directVariableDependencies []*KeyState[TReference, TMetadata], value model_core.TopLevelMessage[*anypb.Any, TReference]) *variableDependenciesComputedValueState[TReference, TMetadata] {
+func (rc *RecursiveComputer[TReference, TMetadata]) newVariableDependenciesComputedValueState(ks *KeyState[TReference, TMetadata], directVariableDependencies []*KeyState[TReference, TMetadata], value model_core.TopLevelMessage[[]byte, TReference]) *variableDependenciesComputedValueState[TReference, TMetadata] {
 	if len(directVariableDependencies) == 0 {
 		panic("key does not have any direct variable dependencies")
 	}
@@ -1487,7 +1488,7 @@ type valueState[TReference object.BasicReference, TMetadata model_core.Reference
 
 	// Get the value belonging to this key. This method is
 	// only called against keys that have been evaluated.
-	getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error)
+	getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[[]byte, TReference], error)
 	// Only return the error that occurred evaluating this key. This
 	// method is identical to calling getValue(), except that
 	// it returns no value.
@@ -1541,7 +1542,7 @@ func (unevaluatedValueState[TReference, TMetadata]) upload(ctx context.Context, 
 	panic("key has not finished evaluating")
 }
 
-func (unevaluatedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
+func (unevaluatedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[[]byte, TReference], error) {
 	panic("key has not finished evaluating")
 }
 
@@ -1606,8 +1607,8 @@ func (vs *earlyFailedValueState[TReference, TMetadata]) upload(ctx context.Conte
 	return vs, nil
 }
 
-func (vs *earlyFailedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
-	return model_core.TopLevelMessage[*anypb.Any, TReference]{}, vs.err
+func (vs *earlyFailedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[[]byte, TReference], error) {
+	return model_core.TopLevelMessage[[]byte, TReference]{}, vs.err
 }
 
 func (vs *earlyFailedValueState[TReference, TMetadata]) getError() error {
@@ -1641,8 +1642,8 @@ func (vs *evaluationFailedValueState[TReference, TMetadata]) upload(ctx context.
 	return vs, nil
 }
 
-func (vs *evaluationFailedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
-	return model_core.TopLevelMessage[*anypb.Any, TReference]{}, vs.err
+func (vs *evaluationFailedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[[]byte, TReference], error) {
+	return model_core.TopLevelMessage[[]byte, TReference]{}, vs.err
 }
 
 func (vs *evaluationFailedValueState[TReference, TMetadata]) getError() error {
@@ -1658,7 +1659,7 @@ func (evaluationFailedValueState[TReference, TMetadata]) isVariableDependency() 
 }
 
 func (vs *evaluationFailedValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
-	graphletEvaluation, err := rc.buildGraphletEvaluation(ctx, model_core.Message[*model_core_pb.Any, TReference]{}, vs.directVariableDependencies)
+	graphletEvaluation, err := rc.buildGraphletEvaluation(ctx, model_core.Message[*model_core_pb.Opaque, TReference]{}, vs.directVariableDependencies)
 	if err != nil {
 		return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
 	}
@@ -1727,7 +1728,7 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) getHois
 	return vs.hoistedVariableDependencies
 }
 
-func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata], value model_core.Message[*model_core_pb.Any, TReference]) (variableDependenciesMarshaledValueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
+func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata], value model_core.Message[*model_core_pb.Opaque, TReference]) (variableDependenciesMarshaledValueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
 	inlineCandidates := make(inlinedtree.CandidateList[*model_evaluation_pb.Graphlet, TMetadata], 0, 2)
 	defer inlineCandidates.Discard()
 
@@ -1974,7 +1975,7 @@ func (vs *lookingUpValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 					err: err,
 				}, nil
 			}
-			value, err := model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
+			value, err := model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.Value))
 			if err != nil {
 				return vs.fallBackToValueLookup(ctx, rc, ks)
 			}
@@ -1989,7 +1990,7 @@ func (vs *lookingUpValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 			if vs.scope != model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_VALUE {
 				return vs.fallBackToValueLookup(ctx, rc, ks)
 			}
-			value, err := model_core.FlattenAny(model_core.Nested(lookupResult, r.HitValue))
+			value, err := model_core.FlattenOpaque(model_core.Nested(lookupResult, r.HitValue))
 			if err != nil {
 				return vs.fallBackToValueLookup(ctx, rc, ks)
 			}
@@ -2094,7 +2095,10 @@ func (vs *computingValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 			directVariableDependencies: sortedKeyStates(e.directVariableDependencies),
 		}, nil
 	}
-	anyValue, err := model_core.MarshalTopLevelAny(model_core.Unpatch(rc.objectManager, value))
+	marshaledValue, err := model_core.MarshalTopLevelBinary(
+		model_core.Unpatch(rc.objectManager, value).
+			ToMarshaler(model_format.ProtoMarshaler[proto.Message]{}),
+	)
 	if err != nil {
 		return &evaluationFailedValueState[TReference, TMetadata]{
 			err:                        fmt.Errorf("failed to marshal value yielded by evaluation function: %w", err),
@@ -2104,11 +2108,11 @@ func (vs *computingValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 	if len(e.directVariableDependencies) == 0 {
 		return &noDependenciesComputedValueState[TReference, TMetadata]{
 			computedValueState: computedValueState[TReference, TMetadata]{
-				value: anyValue,
+				value: marshaledValue,
 			},
 		}, nil
 	}
-	return e.getVariableDependenciesComputedValueState(ks, anyValue), nil
+	return e.getVariableDependenciesComputedValueState(ks, marshaledValue), nil
 }
 
 func (vs *computingValueState[TReference, TMetadata]) getGraphlet(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], model_core.Message[*model_evaluation_pb.Graphlet, TReference], error) {
@@ -2120,10 +2124,10 @@ func (vs *computingValueState[TReference, TMetadata]) getGraphlet(ctx context.Co
 }
 
 type computedValueState[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	value model_core.TopLevelMessage[*anypb.Any, TReference]
+	value model_core.TopLevelMessage[[]byte, TReference]
 }
 
-func (vs *computedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
+func (vs *computedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[[]byte, TReference], error) {
 	return vs.value, nil
 }
 
@@ -2155,7 +2159,7 @@ func (vs *noDependenciesComputedValueState[TReference, TMetadata]) upload(ctx co
 					Result: &model_evaluation_cache_pb.LookupResult_HitValue{
 						HitValue: model_core.Patch(
 							rc.objectManager,
-							model_core.WrapTopLevelAny(vs.value).Decay(),
+							model_core.WrapTopLevelOpaque(vs.value).Decay(),
 						).Merge(patcher),
 					},
 				}
@@ -2190,7 +2194,7 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) getGrap
 		ctx,
 		rc,
 		ks,
-		model_core.WrapTopLevelAny(vs.value).Decay(),
+		model_core.WrapTopLevelOpaque(vs.value).Decay(),
 	)
 	if err != nil {
 		return vs, model_core.Message[*model_evaluation_pb.Graphlet, TReference]{}, err
@@ -2679,12 +2683,12 @@ func (vs *variableDependenciesMarshaledValueState[TReference, TMetadata]) getGra
 	return vs, vs.graphlet, nil
 }
 
-func (vs *variableDependenciesMarshaledValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
+func (vs *variableDependenciesMarshaledValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[[]byte, TReference], error) {
 	evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, vs.graphlet)
 	if err != nil {
-		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, err
+		return model_core.TopLevelMessage[[]byte, TReference]{}, err
 	}
-	return model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
+	return model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.Value))
 }
 
 func (variableDependenciesMarshaledValueState[TReference, TMetadata]) getError() error {
@@ -2701,12 +2705,12 @@ func (vs *noDependenciesUploadedValueState[TReference, TMetadata]) upload(ctx co
 	return vs, nil
 }
 
-func (vs *noDependenciesUploadedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
+func (vs *noDependenciesUploadedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[[]byte, TReference], error) {
 	rootLookupResult, err := rc.lookupResultReader.ReadObject(ctx, vs.hitValueLookupResultReference)
 	if err != nil {
-		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, err
+		return model_core.TopLevelMessage[[]byte, TReference]{}, err
 	}
-	return model_core.FlattenAny(
+	return model_core.FlattenOpaque(
 		model_core.Nested(
 			rootLookupResult,
 			rootLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitValue).HitValue,
@@ -2738,10 +2742,10 @@ func (vs *variableDependenciesUploadedValueState[TReference, TMetadata]) upload(
 	return vs, nil
 }
 
-func (vs *variableDependenciesUploadedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
+func (vs *variableDependenciesUploadedValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[[]byte, TReference], error) {
 	hitGraphletLookupResult, err := rc.lookupResultReader.ReadObject(ctx, vs.hitGraphletLookupResultReference)
 	if err != nil {
-		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, err
+		return model_core.TopLevelMessage[[]byte, TReference]{}, err
 	}
 	evaluation, err := GraphletGetEvaluation(
 		ctx,
@@ -2752,9 +2756,9 @@ func (vs *variableDependenciesUploadedValueState[TReference, TMetadata]) getValu
 		),
 	)
 	if err != nil {
-		return model_core.TopLevelMessage[*anypb.Any, TReference]{}, err
+		return model_core.TopLevelMessage[[]byte, TReference]{}, err
 	}
-	return model_core.FlattenAny(model_core.Nested(evaluation, evaluation.Message.Value))
+	return model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.Value))
 }
 
 func (variableDependenciesUploadedValueState[TReference, TMetadata]) getError() error {
@@ -2780,14 +2784,14 @@ type overriddenValueState[TReference object.BasicReference, TMetadata model_core
 	evaluatedValueState[TReference, TMetadata]
 	variableDependencyValueState[TReference, TMetadata]
 
-	value model_core.TopLevelMessage[*anypb.Any, TReference]
+	value model_core.TopLevelMessage[[]byte, TReference]
 }
 
 func (overriddenValueState[TReference, TMetadata]) upload(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata], ks *KeyState[TReference, TMetadata]) (valueState[TReference, TMetadata], error) {
 	panic("key already uploaded")
 }
 
-func (vs *overriddenValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
+func (vs *overriddenValueState[TReference, TMetadata]) getValue(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[[]byte, TReference], error) {
 	return vs.value, nil
 }
 
@@ -2802,9 +2806,9 @@ func (vs *overriddenValueState[TReference, TMetadata]) getGraphlet(ctx context.C
 // newValueOnlyGraphlet creates a graphlet for a key that does not have
 // any variable dependencies, meaning that the graphlet only consists
 // of the key's value.
-func newValueOnlyGraphlet[TReference any](value model_core.TopLevelMessage[*anypb.Any, TReference]) model_core.Message[*model_evaluation_pb.Graphlet, TReference] {
+func newValueOnlyGraphlet[TReference any](value model_core.TopLevelMessage[[]byte, TReference]) model_core.Message[*model_evaluation_pb.Graphlet, TReference] {
 	// TODO: Should this also use inlinedtree?
-	wrappedValue := model_core.WrapTopLevelAny(value).Decay()
+	wrappedValue := model_core.WrapTopLevelOpaque(value).Decay()
 	return model_core.Nested(
 		wrappedValue,
 		&model_evaluation_pb.Graphlet{
