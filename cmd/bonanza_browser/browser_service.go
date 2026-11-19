@@ -619,19 +619,6 @@ var evaluationFormats = []evaluationFormat{
 	{queryParameter: "pretty", name: "Pretty", pretty: true},
 }
 
-// getValueMessageType returns the message type of the value that
-// belongs to a given key. As values in evaluations are stored without
-// type information, it is derived from the type of the key, using the
-// naming convention that is enforced by generate_computer: values
-// of keys of type Foo.Key have type Foo.Value.
-func getValueMessageType(key *anypb.Any) (protoreflect.MessageType, error) {
-	keyMessageName := key.MessageName()
-	if keyMessageName.Name() != "Key" {
-		return nil, fmt.Errorf("key message type %#v is not named \"Key\"", keyMessageName)
-	}
-	return protoregistry.GlobalTypes.FindMessageByName(keyMessageName.Parent().Append("Value"))
-}
-
 func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g.Node, error) {
 	evaluationsListReference, err := getReferenceFromRequest(r)
 	if err != nil {
@@ -919,7 +906,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			// Attempt to derive the type from the key. If
 			// that fails, display the raw message.
 			renderedValue := model_core.Nested(evaluation, v.ProtoReflect())
-			if valueMessageType, err := getValueMessageType(keyAny.Message); err == nil {
+			if valueMessageType, err := model_evaluation.GetValueMessageType(keyAny.Message.MessageName()); err == nil {
 				if value, err := model_core.UnmarshalOpaque(model_core.Nested(evaluation, v), model_format.NewDynamicProto(valueMessageType)); err == nil {
 					renderedValue = model_core.NewMessage(value.Message.ProtoReflect(), value.OutgoingReferences)
 				}
