@@ -59,7 +59,9 @@ func (m TopLevelMessage[TMessage, TReference]) ToMarshaler(marshaler model_forma
 }
 
 // MarshalTopLevelBinary marshals the contents of a TopLevelMessage,
-// while leaving its outgoing references intact.
+// while leaving its outgoing references intact. The resulting payload
+// can be stored in a model_core_pb.Opaque by calling
+// WrapTopLevelOpaque().
 func MarshalTopLevelBinary[TMessage encoding.BinaryMarshaler, TReference any](m TopLevelMessage[TMessage, TReference]) (TopLevelMessage[[]byte, TReference], error) {
 	data, err := m.Message.MarshalBinary()
 	if err != nil {
@@ -181,12 +183,10 @@ func init() {
 	identityReferenceSetIndices.Store(&emptyIndices)
 }
 
-// WrapTopLevelAny performs te inverse of FlattenAny. Namely, it wraps
-// an anypb.Any into a model_core_pb.Any. This allows one or more
-// anypb.Any messages to be stored in a single object, together with
-// other data and references.
-func WrapTopLevelAny[TReference any](m TopLevelMessage[*anypb.Any, TReference]) TopLevelMessage[*model_core_pb.Any, TReference] {
-	degree := m.OutgoingReferences.GetDegree()
+// getIdentityReferenceSetIndices returns a list of indices
+// [1, 2, ..., degree] that can be used to construct a ReferenceSet
+// that contains all outgoing references of a top-level message.
+func getIdentityReferenceSetIndices(degree int) []uint32 {
 	indices := *identityReferenceSetIndices.Load()
 	if len(indices) < degree {
 		newLength := uint32(1 << bits.Len(uint(degree)))
@@ -196,11 +196,35 @@ func WrapTopLevelAny[TReference any](m TopLevelMessage[*anypb.Any, TReference]) 
 		}
 		identityReferenceSetIndices.Store(&indices)
 	}
+	return indices[:degree]
+}
+
+// WrapTopLevelAny performs te inverse of FlattenAny. Namely, it wraps
+// an anypb.Any into a model_core_pb.Any. This allows one or more
+// anypb.Any messages to be stored in a single object, together with
+// other data and references.
+func WrapTopLevelAny[TReference any](m TopLevelMessage[*anypb.Any, TReference]) TopLevelMessage[*model_core_pb.Any, TReference] {
 	return NewTopLevelMessage(
 		&model_core_pb.Any{
 			Value: m.Message,
 			References: &model_core_pb.ReferenceSet{
-				Indices: indices[:degree],
+				Indices: getIdentityReferenceSetIndices(m.OutgoingReferences.GetDegree()),
+			},
+		},
+		m.OutgoingReferences,
+	)
+}
+
+// WrapTopLevelOpaque performs the inverse of FlattenOpaque.
+// Namely, it wraps a marshaled payload into a
+// model_core_pb.Opaque. This allows one or more payloads to be
+// stored in a single object, together with other data and references.
+func WrapTopLevelOpaque[TReference any](m TopLevelMessage[[]byte, TReference]) TopLevelMessage[*model_core_pb.Opaque, TReference] {
+	return NewTopLevelMessage(
+		&model_core_pb.Opaque{
+			Value: m.Message,
+			References: &model_core_pb.ReferenceSet{
+				Indices: getIdentityReferenceSetIndices(m.OutgoingReferences.GetDegree()),
 			},
 		},
 		m.OutgoingReferences,

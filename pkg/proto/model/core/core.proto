@@ -98,3 +98,22 @@ message Any {
   // outer message.
   ReferenceSet references = 2;
 }
+
+// Opaque is similar to Any, except that it does not store the type
+// of its payload. It can be used in places where the type of the
+// payload can be derived from context (e.g., in the evaluation
+// framework, where the type of a value is implied by the type of its
+// key).
+//
+// As the type is not stored, the payload is not required to be a
+// single Protobuf message. It may, for example, also be a varint
+// separated list of Protobuf messages.
+message Opaque {
+  // The marshaled payload to store.
+  bytes value = 1;
+
+  // Table of outgoing references contained in the inner message,
+  // mapping each index to the corresponding outgoing reference of the
+  // outer message.
+  ReferenceSet references = 2;
+}

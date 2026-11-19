@@ -1,6 +1,7 @@
 package core
 
 import (
+	model_format "bonanza.build/pkg/model/format"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	"bonanza.build/pkg/storage/object"
 
@@ -172,6 +173,36 @@ func UnmarshalAnyNew[TReference any](m Message[*model_core_pb.Any, TReference]) 
 		return TopLevelMessage[proto.Message, TReference]{}, err
 	}
 	return UnmarshalTopLevelAnyNew(flattened)
+}
+
+// FlattenOpaque extracts the marshaled payload that's embedded in
+// a model_core_pb.Opaque message. The resulting payload only has
+// access to its own outgoing references. This function can be used to
+// access payloads that are not a single Protobuf message, such as
+// lists of messages.
+func FlattenOpaque[TReference any](m Message[*model_core_pb.Opaque, TReference]) (TopLevelMessage[[]byte, TReference], error) {
+	outgoingReferences, err := FlattenReferenceSet(Nested(m, m.Message.GetReferences()))
+	if err != nil {
+		return TopLevelMessage[[]byte, TReference]{}, err
+	}
+	return NewTopLevelMessage(m.Message.Value, outgoingReferences), nil
+}
+
+// UnmarshalOpaque extracts the payload contained in a
+// model_core_pb.Opaque, and ensures that any references contained
+// within are accessible. As model_core_pb.Opaque does not store the
+// type of the payload, an unmarshaler needs to be provided by the
+// caller.
+func UnmarshalOpaque[TMessage, TReference any](m Message[*model_core_pb.Opaque, TReference], unmarshaler model_format.Unmarshaler[TMessage]) (TopLevelMessage[TMessage, TReference], error) {
+	flattened, err := FlattenOpaque(m)
+	if err != nil {
+		return TopLevelMessage[TMessage, TReference]{}, err
+	}
+	message, err := unmarshaler.Unmarshal(flattened.Message)
+	if err != nil {
+		return TopLevelMessage[TMessage, TReference]{}, err
+	}
+	return NewTopLevelMessage(message, flattened.OutgoingReferences), nil
 }
 
 // MessagesEqual returns true if two messages contain the same data.

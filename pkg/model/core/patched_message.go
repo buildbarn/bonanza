@@ -266,9 +266,55 @@ func MarshalAny[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMe
 		return PatchedMessage[*model_core_pb.Any, TMetadata]{}, err
 	}
 
+	references, patcher := newReferenceSetPatcher(anyMessage.OutgoingReferences, metadata, m.Patcher.height)
+	return NewPatchedMessage(
+		&model_core_pb.Any{
+			Value:      anyMessage.Message,
+			References: references,
+		},
+		patcher,
+	), nil
+}
+
+// MarshalOpaque wraps a patched message into a
+// model_core_pb.Opaque message. References stored in the original
+// message are kept intact.
+//
+// As model_core_pb.Opaque does not store the type of its payload,
+// the caller must ensure that it can be derived from context when
+// unmarshaling. The payload is not required to be a single Protobuf
+// message. It may, for example, also be a list of messages.
+func MarshalOpaque[TMessage encoding.BinaryMarshaler, TMetadata ReferenceMetadata](m PatchedMessage[TMessage, TMetadata]) (PatchedMessage[*model_core_pb.Opaque, TMetadata], error) {
+	topLevelMessage, metadata := m.SortAndSetReferences()
+	value, err := topLevelMessage.Message.MarshalBinary()
+	if err != nil {
+		m.Discard()
+		return PatchedMessage[*model_core_pb.Opaque, TMetadata]{}, err
+	}
+
+	references, patcher := newReferenceSetPatcher(topLevelMessage.OutgoingReferences, metadata, m.Patcher.height)
+	return NewPatchedMessage(
+		&model_core_pb.Opaque{
+			Value:      value,
+			References: references,
+		},
+		patcher,
+	), nil
+}
+
+// newReferenceSetPatcher creates a ReferenceSet message containing
+// all outgoing references of a top-level message, and a
+// ReferenceMessagePatcher that manages the indices stored in the set.
+// This can be used to embed top-level messages into other messages,
+// while keeping their references intact.
+func newReferenceSetPatcher[TMetadata ReferenceMetadata](
+	outgoingReferences object.OutgoingReferences[object.LocalReference],
+	metadata []TMetadata,
+	height int,
+) (*model_core_pb.ReferenceSet, *ReferenceMessagePatcher[TMetadata]) {
 	// Construct a table for remapping references contained in the
 	// message to indices on the other message.
-	degree := anyMessage.OutgoingReferences.GetDegree()
+	degree := outgoingReferences.GetDegree()
 	indices := make([]uint32, 0, degree)
 	for i := 0; i < degree; i++ {
 		indices = append(indices, math.MaxUint32)
@@ -277,26 +323,17 @@ func MarshalAny[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMe
 	// Create a new reference message patcher that contains the same
 	// references and metadata as the original message, but instead
 	// managing the table used for remapping.
-	newPatcher := &ReferenceMessagePatcher[TMetadata]{
+	patcher := &ReferenceMessagePatcher[TMetadata]{
 		messagesByReference: make(map[object.LocalReference]referenceMessages[TMetadata], degree),
-		height:              m.Patcher.height,
+		height:              height,
 	}
 	for i := 0; i < degree; i++ {
-		newPatcher.messagesByReference[anyMessage.OutgoingReferences.GetOutgoingReference(i)] = referenceMessages[TMetadata]{
+		patcher.messagesByReference[outgoingReferences.GetOutgoingReference(i)] = referenceMessages[TMetadata]{
 			metadata: metadata[i],
 			indices:  []*uint32{&indices[i]},
 		}
 	}
-
-	return NewPatchedMessage(
-		&model_core_pb.Any{
-			Value: anyMessage.Message,
-			References: &model_core_pb.ReferenceSet{
-				Indices: indices,
-			},
-		},
-		newPatcher,
-	), nil
+	return &model_core_pb.ReferenceSet{Indices: indices}, patcher
 }
 
 // ToMarshaler converts a PatchedMessage to one that is marshalable,
