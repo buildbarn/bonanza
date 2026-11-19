@@ -30,6 +30,7 @@ type ActionReaders[TReference any] struct {
 	CommandPathPatternChildren model_parser.MessageObjectReader[TReference, *model_command_pb.PathPattern_Children]
 	CommandResult              model_parser.MessageObjectReader[TReference, *model_command_pb.Result]
 
+	FetchEvent  model_parser.MessageObjectReader[TReference, *model_fetch_pb.Event]
 	FetchResult model_parser.MessageObjectReader[TReference, *model_fetch_pb.Result]
 }
 
@@ -76,6 +77,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeActionEncodersObject(value 
 				),
 			),
 
+			FetchEvent: model_parser.LookupParsedObjectReader(
+				c.parsedObjectPoolIngester,
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoObjectParser[TReference, model_fetch_pb.Event](),
+				),
+			),
 			FetchResult: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
 				model_parser.NewChainedObjectParser(

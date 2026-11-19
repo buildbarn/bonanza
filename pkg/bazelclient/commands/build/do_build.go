@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"bonanza.build/pkg/bazelclient/arguments"
 	"bonanza.build/pkg/bazelclient/commands"
@@ -63,6 +64,7 @@ import (
 	"google.golang.org/grpc/security/advancedtls"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -987,13 +989,18 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			logger.Info(
 				formatted.Truncate(
 					terminalColumns,
-					formatKey(
-						namespace,
-						model_core.Nested(progress, evaluatingKey.Key),
+					formatEvaluatingKeyProgress(
+						formatKey(
+							namespace,
+							model_core.Nested(progress, evaluatingKey.Key),
+							&messageFormatter,
+							browserURL,
+							/* outcomesReference = */ nil,
+							longestType,
+						),
+						evaluatingKey.Progress,
 						&messageFormatter,
-						browserURL,
-						/* outcomesReference = */ nil,
-						longestType,
+						terminalColumns,
 					),
 				),
 			)
@@ -1057,6 +1064,64 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	}
 }
 
+// formatMessageDescription converts a human readable description of a
+// message to formatted text, emphasizing values of fields.
+func formatMessageDescription(description model_evaluation.MessageDescription) formatted.Node {
+	parts := make([]formatted.Node, 0, len(description.Segments))
+	for _, segment := range description.Segments {
+		if segment.IsField {
+			parts = append(parts, formatted.Bold(formatted.Text(segment.Text)))
+		} else {
+			parts = append(parts, formatted.Text(segment.Text))
+		}
+	}
+	return formatted.Join(parts...)
+}
+
+// formatEvaluatingKeyProgress appends the progress reported by the
+// evaluation function of a key to the key's description. If the
+// progress contains a counter, the line is rendered as a progress bar.
+func formatEvaluatingKeyProgress(line formatted.Node, progressAny *anypb.Any, messageFormatter *messageFormatter, terminalColumns int) formatted.Node {
+	if progressAny == nil || !messageFormatter.renderer.Pretty {
+		return line
+	}
+	progress, err := progressAny.UnmarshalNew()
+	if err != nil {
+		return line
+	}
+	description, ok, err := model_evaluation.DescribeProgress(progress.ProtoReflect())
+	if err != nil || !ok {
+		return line
+	}
+	// Right align the progress, so that it is displayed at a
+	// consistent location. If the line is too long to fit both the
+	// key and the progress, truncate the key, as the progress is
+	// what changes over time.
+	const minimumPadding = 2
+	progressNode := formatMessageDescription(description)
+	progressWidth := plainTextWidth(progressNode)
+	padding := terminalColumns - plainTextWidth(line) - progressWidth
+	if padding < minimumPadding {
+		line = formatted.Truncate(terminalColumns-progressWidth-minimumPadding, line)
+		padding = minimumPadding
+	}
+	line = formatted.Join(line, formatted.Text(strings.Repeat(" ", padding)), progressNode)
+	if counter := description.Counter; counter != nil && counter.Total > 0 {
+		current := min(counter.Current, counter.Total)
+		line = formatted.ProgressBar(int(uint64(terminalColumns)*current/counter.Total), line)
+	}
+	return line
+}
+
+// plainTextWidth returns the number of cells needed to display a node
+// of formatted text in a terminal, assuming each rune occupies a single
+// cell.
+func plainTextWidth(n formatted.Node) int {
+	var sb strings.Builder
+	formatted.WritePlainText(n, &sb)
+	return utf8.RuneCountInString(sb.String())
+}
+
 // formatKey formats an evaluation key on a single line, prefixed with
 // its abbreviated type.
 func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core_pb.Any, object.LocalReference], messageFormatter *messageFormatter, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference], longestType int) formatted.Node {
@@ -1083,17 +1148,7 @@ func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core
 			}
 		}
 		if description, ok, err := model_evaluation.DescribeKey(key.Message.ProtoReflect()); messageFormatter.renderer.Pretty && err == nil && ok {
-			// Display a human readable description of the
-			// key, emphasizing values of fields.
-			parts := make([]formatted.Node, 0, len(description.Segments))
-			for _, segment := range description.Segments {
-				if segment.IsField {
-					parts = append(parts, formatted.Bold(formatted.Text(segment.Text)))
-				} else {
-					parts = append(parts, formatted.Text(segment.Text))
-				}
-			}
-			body = formatted.Join(parts...)
+			body = formatMessageDescription(description)
 		} else {
 			body = messageFormatter.formatSingleLine(
 				messageFormatter.message(model_core.Nested(key.Decay(), key.Message.ProtoReflect())),

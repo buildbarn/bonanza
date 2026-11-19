@@ -13,6 +13,7 @@ import (
 	model_format "bonanza.build/pkg/model/format"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_fetch_pb "bonanza.build/pkg/proto/model/fetch"
 
 	"google.golang.org/grpc/codes"
@@ -93,7 +94,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 	)
 	var resultReference *model_core.Decodable[TReference]
 	var errExecution error
-	for range c.executionClient.RunAction(
+	for update := range c.executionClient.RunAction(
 		ctx,
 		fetchPlatformECDHPublicKey,
 		&model_executewithstorage.Action[TReference]{
@@ -108,7 +109,27 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 		&resultReference,
 		&errExecution,
 	) {
-		// TODO: Capture and propagate execution events?
+		// Report the number of bytes downloaded by the fetcher.
+		// The fetcher does not provide an event reference if
+		// the event message is empty.
+		if !update.HasEvent {
+			continue
+		}
+		event := &model_fetch_pb.Event{}
+		if update.Event != nil {
+			m, err := actionEncoders.Readers.FetchEvent.ReadObject(ctx, *update.Event)
+			if err != nil {
+				return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to read execution event: %w", err)
+			}
+			event = m.Message
+		}
+		e.ReportHTTPFileContentsProgress(&model_analysis_pb.HttpFileContents_Progress{
+			Downloaded: &model_evaluation_pb.ProgressCounter{
+				Current: event.DownloadedSizeBytes,
+				Total:   event.TotalSizeBytes,
+				Unit:    model_evaluation_pb.ProgressCounter_BYTES,
+			},
+		})
 	}
 	if errExecution != nil {
 		return PatchedHTTPFileContentsValue[TMetadata]{}, errExecution

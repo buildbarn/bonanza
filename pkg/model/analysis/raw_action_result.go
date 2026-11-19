@@ -20,6 +20,7 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
 	model_command_pb "bonanza.build/pkg/proto/model/command"
+	"bonanza.build/pkg/remoteexecution"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -66,7 +67,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 
 	var resultReference *model_core.Decodable[TReference]
 	var errExecution error
-	for range c.executionClient.RunAction(
+	for update := range c.executionClient.RunAction(
 		ctx,
 		platformECDHPublicKey,
 		&model_executewithstorage.Action[TReference]{
@@ -81,7 +82,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 		&resultReference,
 		&errExecution,
 	) {
-		// TODO: Capture and propagate execution events?
+		stage := model_analysis_pb.RawActionResult_Progress_QUEUED
+		if update.Stage == remoteexecution.ExecutionStageExecuting {
+			stage = model_analysis_pb.RawActionResult_Progress_EXECUTING
+		}
+		e.ReportRawActionResultProgress(&model_analysis_pb.RawActionResult_Progress{
+			Stage: stage,
+		})
 	}
 	if errExecution != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, errExecution

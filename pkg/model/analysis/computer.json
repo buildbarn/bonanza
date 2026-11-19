@@ -322,6 +322,7 @@
             "FileCreationParameters",
             "RegisteredFetchPlatform"
          ],
+         "hasProgress": true,
          "isLookup": false
       },
       "LabelAttrAspects": {
@@ -538,6 +539,7 @@
          "dependsOn": [
             "ActionEncoders"
          ],
+         "hasProgress": true,
          "isLookup": false,
          "keyContainsReferences": true
       },
