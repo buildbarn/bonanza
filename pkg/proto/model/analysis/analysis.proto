@@ -5,6 +5,7 @@ package bonanza.model.analysis;
 import "bonanza.build/pkg/proto/model/command/command.proto";
 import "bonanza.build/pkg/proto/model/core/core.proto";
 import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
+import "bonanza.build/pkg/proto/model/evaluation/evaluation.proto";
 import "bonanza.build/pkg/proto/model/fetch/fetch.proto";
 import "bonanza.build/pkg/proto/model/filesystem/filesystem.proto";
 import "bonanza.build/pkg/proto/model/starlark/starlark.proto";
@@ -15,7 +16,11 @@ import "google/protobuf/wrappers.proto";
 option go_package = "bonanza.build/pkg/proto/model/analysis";
 
 message ActionEncoders {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining action encoders"
+    };
+  }
 
   message Value {
     // Encoders that should be used when creating Action messages that
@@ -43,7 +48,11 @@ message ExecuteRequest {
 }
 
 message AnalysisEncoders {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining analysis encoders"
+    };
+  }
 
   message Value {
     // Encoders that should be used when creating objects containing
@@ -54,6 +63,9 @@ message AnalysisEncoders {
 
 message ActionResult {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Executing action"
+    };
     ExecuteRequest execute_request = 1;
   }
 
@@ -69,7 +81,11 @@ message ActionResult {
 }
 
 message BuildSpecification {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining build specification"
+    };
+  }
 
   message Value {
     message Module {
@@ -194,7 +210,11 @@ message BuildSpecification {
 }
 
 message BuiltinsModuleNames {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining builtins module names"
+    };
+  }
 
   message Value {
     repeated string builtins_module_names = 1;
@@ -216,6 +236,9 @@ message OutputSelection {
 
 message BuildResult {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Building {query}"
+    };
     message BuildSettingOverride {
       // The apparent label of the build setting target.
       string label = 1;
@@ -290,6 +313,9 @@ message BuildResult {
 // apparent name and the name of the repo which attempts to access it.
 message CanonicalRepoName {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Resolving repo @{to_apparent_repo} as seen from @@{from_canonical_repo}"
+    };
     // The canonical name of the repo from which the apparent repo is
     // being accessed.
     //
@@ -311,6 +337,9 @@ message CanonicalRepoName {
 
 message CompatibleExecutionPlatforms {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Selecting compatible execution platforms"
+    };
     // The constraints that must be present on the execution platform
     // for it to be considered compatible.
     //
@@ -329,6 +358,9 @@ message CompatibleExecutionPlatforms {
 
 message CompatibleToolchainsForType {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Selecting compatible toolchains of type {toolchain_type}"
+    };
     // The label of the toolchain type for which toolchains are
     // requested.
     string toolchain_type = 1;
@@ -355,6 +387,9 @@ message CompatibleToolchainsForType {
 
 message CompiledBzlFile {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Compiling {label}"
+    };
     // The label of the .bzl file. The label MUST include a canonical
     // repo name.
     string label = 1;
@@ -369,6 +404,9 @@ message CompiledBzlFile {
 
 message CompiledBzlFileGlobal {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining global {identifier}"
+    };
     string identifier = 1;
   }
 
@@ -734,6 +772,9 @@ message TargetOutputDefinition {
 // invalidated.
 message LabelAttrAspects {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Expanding aspects {aspect_identifiers} of label attribute"
+    };
     // The Starlark identifiers of the aspects, as stored in
     // Attr.LabelOptions.aspects.
     repeated string aspect_identifiers = 1;
@@ -769,6 +810,9 @@ message LabelAttrAspects {
 // invalidated.
 message AspectChain {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Computing properties of aspects {aspect_identifiers}"
+    };
     // The Starlark identifiers of the aspects, in the order in which
     // they are applied. This list MUST NOT be empty, and MUST NOT
     // contain duplicates. Aspects listed in an aspect's
@@ -834,6 +878,9 @@ message AspectChain {
 // files to be invalidated.
 message GeneratingRuleAspects {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Selecting aspects to apply to generating rules among {aspect_identifiers}"
+    };
     // The Starlark identifiers of the aspects.
     repeated string aspect_identifiers = 1;
   }
@@ -859,6 +906,9 @@ message GeneratingRuleAspects {
 // the targets they reference.
 message ConfiguredTarget {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Analyzing {label}"
+    };
     // The label of the package. The label MUST include a canonical repo
     // name, and MUST NOT include a target name if it matches the last
     // component of the package path.
@@ -1086,6 +1136,9 @@ message IndexedConfiguredLabelAttr {
 // same configuration.
 message ConfiguredRule {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Configuring rule {identifier}"
+    };
     // The Starlark identifier of the rule.
     string identifier = 1;
 
@@ -1135,6 +1188,9 @@ message ConfiguredRule {
 // neither applies to a target, it does not need to use this function.
 message ConfiguredRuleUsage {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Configuring usage of rule {identifier}"
+    };
     // The Starlark identifier of the rule.
     string identifier = 1;
 
@@ -1195,6 +1251,9 @@ message ConfiguredRuleUsage {
 // no need for an equivalent of ConfiguredRuleUsage.
 message ConfiguredAspect {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Configuring aspect {identifier}"
+    };
     // The Starlark identifier of the aspect.
     string identifier = 1;
 
@@ -1230,6 +1289,9 @@ message ConfiguredAspect {
 // values of any attrs that are explicitly set.
 message RuleUsageIncomingEdgeTransition {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Applying incoming edge transition of rule {identifier}"
+    };
     // The Starlark identifier of the rule.
     string identifier = 1;
 
@@ -1288,6 +1350,9 @@ message RuleUsageIncomingEdgeTransition {
 // - All other targets currently use an identity transition.
 message TargetIncomingEdgeTransition {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Applying incoming edge transition of {label}"
+    };
     // The label of the target.
     string label = 1;
 
@@ -1312,6 +1377,9 @@ message TargetIncomingEdgeTransition {
 
 message TargetOutput {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining output {package_relative_path} of {label}"
+    };
     // The label of the package. The label MUST include a canonical repo
     // name, and MUST NOT include a target name if it matches the last
     // component of the package path.
@@ -1332,7 +1400,11 @@ message TargetOutput {
 }
 
 message DirectoryAccessParameters {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining directory access parameters"
+    };
+  }
 
   message Value {
     bonanza.model.filesystem.DirectoryAccessParameters
@@ -1341,7 +1413,11 @@ message DirectoryAccessParameters {
 }
 
 message DirectoryCreationParameters {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining directory creation parameters"
+    };
+  }
 
   message Value {
     bonanza.model.filesystem.DirectoryCreationParameters
@@ -1350,7 +1426,11 @@ message DirectoryCreationParameters {
 }
 
 message EmptyDefaultInfo {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Creating empty DefaultInfo"
+    };
+  }
 
   message Value {
     // An instance of DefaultInfo that has all of its fields set to
@@ -1361,6 +1441,9 @@ message EmptyDefaultInfo {
 
 message ExecTransition {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Applying exec transition to platform {platform_label}"
+    };
     // The label of the platform that was resolved for the exec group
     // referenced by the attribute.
     string platform_label = 1;
@@ -1385,7 +1468,11 @@ message ExecTransition {
 }
 
 message FileAccessParameters {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining file access parameters"
+    };
+  }
 
   message Value {
     bonanza.model.filesystem.FileAccessParameters file_access_parameters = 1;
@@ -1393,7 +1480,11 @@ message FileAccessParameters {
 }
 
 message FileCreationParameters {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining file creation parameters"
+    };
+  }
 
   message Value {
     bonanza.model.filesystem.FileCreationParameters file_creation_parameters =
@@ -1403,6 +1494,9 @@ message FileCreationParameters {
 
 message FileProperties {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining properties of {path} in @@{canonical_repo}"
+    };
     // The canonical name of the repo that contains the file whose
     // properties are being requested.
     string canonical_repo = 1;
@@ -1436,6 +1530,9 @@ enum DirectoryLayout {
 
 message FileRoot {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining root of {file.label}"
+    };
     // The source file or output file's contents that are being requested.
     bonanza.model.starlark.File file = 1;
 
@@ -1457,6 +1554,9 @@ message FileRoot {
 
 message FilesInPackage {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Listing files in {package}"
+    };
     // The package for which the list of files it contains is requested.
     string package = 1;
   }
@@ -1471,6 +1571,9 @@ message FilesInPackage {
 
 message FilesRoot {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining root of files"
+    };
     // Reference to a Starlark list containing files.
     bonanza.model.core.DecodableReference list_reference = 1
         [(bonanza.model.core.object_format) = {
@@ -1493,6 +1596,9 @@ message FilesRoot {
 
 message Glob {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Expanding glob in {package}"
+    };
     // The package in which the call to glob() is made.
     string package = 1;
 
@@ -1560,6 +1666,9 @@ message HttpFetchOptions {
 
 message HttpArchiveContents {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Downloading and extracting {fetch_options.target.urls}"
+    };
     // URLs and options for determining how to fetch the file.
     HttpFetchOptions fetch_options = 1;
 
@@ -1606,6 +1715,9 @@ message HttpArchiveContents {
 
 message HttpFileContents {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Downloading {fetch_options.target.urls}"
+    };
     // URLs and options for determining how to fetch the file.
     HttpFetchOptions fetch_options = 1;
   }
@@ -1619,6 +1731,9 @@ message HttpFileContents {
 
 message MacroExpansionContext {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining expansion context of macro {macro_instance_name} in {package}"
+    };
     // The name of the package in which the macro instance is declared.
     // The package name MUST include a canonical repo name.
     string package = 1;
@@ -1645,6 +1760,9 @@ message MacroExpansionContext {
 
 message ModuleDotBazelContents {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Loading MODULE.bazel of {module_instance}"
+    };
     // The module instance whose MODULE.bazel file needs to be obtained.
     string module_instance = 1;
   }
@@ -1657,7 +1775,11 @@ message ModuleDotBazelContents {
 }
 
 message ModuleRegistryUrls {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining module registry URLs"
+    };
+  }
 
   message Value {
     // URLs of registries from which modules may be downloaded.
@@ -1667,6 +1789,9 @@ message ModuleRegistryUrls {
 
 message ModuleRepoMapping {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Computing repo mapping of {module_instance}"
+    };
     // The module instance for which a mapping of repos needs to be
     // computed.
     string module_instance = 1;
@@ -1691,6 +1816,9 @@ message ModuleRepoMapping {
 
 message ModuleExtensionRepo {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining repo @@{canonical_repo} from module extension"
+    };
     string canonical_repo = 1;
   }
 
@@ -1701,6 +1829,9 @@ message ModuleExtensionRepo {
 
 message ModuleExtensionRepoNames {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Listing repos of module extension {module_extension}"
+    };
     // Name of the module extension for which the names of the repos it
     // declares should be computed.
     string module_extension = 1;
@@ -1714,6 +1845,9 @@ message ModuleExtensionRepoNames {
 
 message ModuleExtensionRepos {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Evaluating module extension {module_extension}"
+    };
     string module_extension = 1;
   }
 
@@ -1767,7 +1901,11 @@ message BuildListModule {
 }
 
 message ModuleFinalBuildList {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Computing final module build list"
+    };
+  }
 
   message Value {
     // Modules that were referenced by the main module, or one of
@@ -1778,6 +1916,9 @@ message ModuleFinalBuildList {
 
 message FinalBuildListModuleDefinition {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining definition of module {module_name}"
+    };
     // The name of the module, without the leading "@" (e.g.,
     // "rules_go").
     string module_name = 1;
@@ -1795,7 +1936,11 @@ message FinalBuildListModuleDefinition {
 }
 
 message ModuleRoughBuildList {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Resolving module dependencies"
+    };
+  }
 
   message Value {
     repeated BuildListModule build_list = 1;
@@ -1813,6 +1958,9 @@ message OverridesListModule {
 
 message ModuleWithLocalOverrideRootDirectory {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining root directory of locally overridden module {module_name}"
+    };
     // The name of the module, without the leading "@" (e.g.,
     // "rules_go").
     string module_name = 1;
@@ -1830,7 +1978,11 @@ message ModuleWithLocalOverrideRootDirectory {
 }
 
 message ModulesWithLocalOverrides {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Listing modules with local overrides"
+    };
+  }
 
   message Value {
     // Alphabetically sorted list of names of modules for which the
@@ -1846,7 +1998,11 @@ message ModulesWithLocalOverrides {
 }
 
 message ModulesWithMultipleVersions {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Listing modules with multiple versions"
+    };
+  }
 
   message Value {
     // Alphabetically sorted list of modules for which overrides are
@@ -1859,7 +2015,11 @@ message ModulesWithMultipleVersions {
 }
 
 message ModulesWithOverrides {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Listing modules with overrides"
+    };
+  }
 
   message Value {
     // Alphabetically sorted list of modules for which overrides are
@@ -1923,7 +2083,11 @@ message ModuleOverride {
 }
 
 message ModulesWithRemoteOverrides {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Listing modules with remote overrides"
+    };
+  }
 
   message Value {
     // Alphabetically sorted list of modules for which remote overrides are in
@@ -1934,6 +2098,9 @@ message ModulesWithRemoteOverrides {
 
 message ModuleOverrideDefinition {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining override of module {module_name}"
+    };
     // The name of the module, without the leading "@" (e.g.,
     // "rules_go").
     string module_name = 1;
@@ -1951,6 +2118,9 @@ message ModuleOverrideDefinition {
 
 message Package {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Loading package {label}"
+    };
     // The label of the package. The label MUST include a canonical repo
     // name, and MUST NOT include a target name.
     string label = 1;
@@ -2024,6 +2194,9 @@ message Package {
 
 message PackageGroupContains {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Checking whether {package_group_label} contains {package}"
+    };
     // The canonical label of the package group target.
     string package_group_label = 1;
 
@@ -2043,6 +2216,9 @@ message PackageGroupContains {
 // resulting list only contains targets.
 message PackageTargets {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Listing targets in {package}"
+    };
     // The name of the package. The package name MUST include a
     // canonical repo name.
     string package = 1;
@@ -2067,6 +2243,9 @@ message PackageTargets {
 
 message PackagesAtAndBelow {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Listing packages at and below {base_package}"
+    };
     // Repo and package prefix at which the lookup should start.
     string base_package = 1;
 
@@ -2106,6 +2285,9 @@ message PackagesAtAndBelow {
 // separately.
 message QueryExpansion {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Expanding query {query}"
+    };
     // The query expression to evaluate, in normal form. All target
     // patterns contained in the query expression MUST be canonical.
     //
@@ -2141,6 +2323,9 @@ message QueryExpansion {
 // that results can be reused if the query yields different targets.
 message QueryResult {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Evaluating query {query}"
+    };
     // The query expression to evaluate. Target patterns contained in
     // the query expression MUST either be canonical or be prefixed with
     // an apparent repo name. Apparent repo names are resolved from the
@@ -2233,6 +2418,9 @@ message QueryTarget {
 // amount of memory needed to process each object.
 message QueryTargets {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining definitions of query targets"
+    };
     // Reference to an object containing labels of targets.
     bonanza.model.core.DecodableReference target_labels_reference = 1
         [(bonanza.model.core.object_format) = {
@@ -2254,6 +2442,9 @@ message QueryTargets {
 
 message RawActionResult {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Executing action"
+    };
     ExecuteRequest execute_request = 1;
   }
 
@@ -2295,7 +2486,11 @@ message ExecutionPlatform {
 }
 
 message RegisteredExecutionPlatforms {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining registered execution platforms"
+    };
+  }
 
   message Value {
     // List of platforms that are available for executing commands,
@@ -2305,7 +2500,11 @@ message RegisteredExecutionPlatforms {
 }
 
 message RegisteredFetchPlatform {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining registered fetch platform"
+    };
+  }
 
   message Value {
     // The elliptic-curve public key that identifies the platform that
@@ -2317,7 +2516,11 @@ message RegisteredFetchPlatform {
 }
 
 message RegisteredRepoPlatform {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining registered repo platform"
+    };
+  }
 
   message Value {
     message EnvironmentVariable {
@@ -2384,7 +2587,11 @@ message RegisteredToolchain {
 }
 
 message RegisteredToolchains {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining registered toolchains"
+    };
+  }
 
   message Value {
     message RegisteredToolchainType {
@@ -2405,6 +2612,9 @@ message RegisteredToolchains {
 
 message RegisteredToolchainsForType {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining registered toolchains of type {toolchain_type}"
+    };
     // The label of the toolchain type for which toolchains are
     // requested.
     string toolchain_type = 1;
@@ -2421,6 +2631,9 @@ message RegisteredToolchainsForType {
 
 message Repo {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Fetching @@{canonical_repo}"
+    };
     // The canonical name of the repo whose file contents are being
     // requested.
     string canonical_repo = 1;
@@ -2443,6 +2656,9 @@ message Repo {
 
 message RepoDefaultAttrs {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining default attrs of @@{canonical_repo}"
+    };
     // The canonical name of the repo for which the defaults specified
     // in REPO.bazel are requested.
     string canonical_repo = 1;
@@ -2457,6 +2673,9 @@ message RepoDefaultAttrs {
 
 message RepoPlatformHostPath {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Resolving host path {absolute_path}"
+    };
     // Absolute path of a file or directory on workers of the repo
     // platform whose contents should be captured. If the path refers to
     // a symlink, it should be followed.
@@ -2484,7 +2703,11 @@ message RepoPlatformHostPath {
 }
 
 message RepoPlatformLabel {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining repo platform label"
+    };
+  }
 
   message Value {
     // Apparent label of the platform() that should be used for
@@ -2501,6 +2724,9 @@ message RepoPlatformLabel {
 
 message ResolvedToolchains {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Resolving toolchains"
+    };
     // List of constraints that must be satisfied by an execution
     // platform in order for this toolchain to be selected for a target
     // building on that platform.
@@ -2543,7 +2769,11 @@ message ResolvedToolchains {
 }
 
 message RootModule {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining root module"
+    };
+  }
 
   message Value {
     // The name of the root module.
@@ -2558,7 +2788,11 @@ message RootModule {
 }
 
 message RuleImplementationWrappers {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining rule implementation wrappers"
+    };
+  }
 
   message Value {
     // Function that needs to be invoked instead of the implementation
@@ -2579,7 +2813,11 @@ message RuleImplementationWrappers {
 }
 
 message RuleImplementationWrappersIdentifiers {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining identifiers of rule implementation wrappers"
+    };
+  }
 
   message Value {
     // Identifier of the Starlark function that needs to be invoked
@@ -2601,6 +2839,9 @@ message RuleImplementationWrappersIdentifiers {
 
 message Select {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Evaluating select() on {condition_identifiers}"
+    };
     // Condition identifiers from which a selection needs to be made.
     repeated string condition_identifiers = 1;
 
@@ -2631,7 +2872,11 @@ message Select {
 }
 
 message StableInputRootPath {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining stable input root path"
+    };
+  }
 
   message Value {
     // The path at which workers belonging to the registered repo
@@ -2646,7 +2891,11 @@ message StableInputRootPath {
 }
 
 message StarlarkValueEncoders {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining Starlark value encoders"
+    };
+  }
 
   message Value {
     // Parameters that need to be used to access the contents of large
@@ -2661,6 +2910,9 @@ message StarlarkValueEncoders {
 
 message SuccessfulActionResult {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Executing action"
+    };
     ExecuteRequest execute_request = 1;
   }
 
@@ -2675,6 +2927,9 @@ message SuccessfulActionResult {
 
 message Target {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Loading target {label}"
+    };
     // The label of the target whose properties to obtain.
     string label = 1;
   }
@@ -2701,6 +2956,9 @@ message TargetActionId {
 
 message TargetAction {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining definition of an action of {id.label}"
+    };
     // The identifier of the target action.
     TargetActionId id = 1;
   }
@@ -2713,6 +2971,9 @@ message TargetAction {
 
 message TargetActionCommand {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Constructing command of an action of {id.label}"
+    };
     // The identifier of the target action.
     TargetActionId id = 1;
   }
@@ -2728,6 +2989,9 @@ message TargetActionCommand {
 
 message TargetActionInputRoot {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Constructing input root of an action of {id.label}"
+    };
     // The identifier of the target action.
     TargetActionId id = 1;
   }
@@ -2739,6 +3003,9 @@ message TargetActionInputRoot {
 
 message TargetActionResult {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Running an action of {id.label}"
+    };
     // The identifier of the target action.
     TargetActionId id = 1;
   }
@@ -2751,6 +3018,9 @@ message TargetActionResult {
 
 message TargetCompletion {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Building {label}"
+    };
     // The label of the package. The label MUST include a canonical repo
     // name, and MUST NOT include a target name if it matches the last
     // component of the package path.
@@ -2781,6 +3051,9 @@ message TargetCompletion {
 // branches are returned, including the labels of the conditions.
 message TargetDirectDependencies {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining direct dependencies of {label}"
+    };
     // The canonical label of the target whose dependencies to obtain.
     string label = 1;
 
@@ -2828,6 +3101,9 @@ message TargetLabel {
 
 message TargetProvider {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining provider {provider_identifier} of {label}"
+    };
     // The label of the package. The label MUST include a canonical repo
     // name, and MUST NOT include a target name if it matches the last
     // component of the package path.
@@ -2852,6 +3128,9 @@ message TargetProvider {
 
 message TargetProviders {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining providers of {label}"
+    };
     // The label of the package. The label MUST include a canonical repo
     // name, and MUST NOT include a target name if it matches the last
     // component of the package path.
@@ -2888,6 +3167,9 @@ message TargetProviders {
 // within, and applying the test suite's filters on tags and sizes.
 message TestSuiteTests {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Expanding tests of test suite {label}"
+    };
     // The canonical label of the test suite.
     string label = 1;
   }
@@ -2949,6 +3231,9 @@ message ModuleExtension {
 
 message UsedModuleExtension {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining usage of module extension {module_extension}"
+    };
     string module_extension = 1;
   }
 
@@ -2958,7 +3243,11 @@ message UsedModuleExtension {
 }
 
 message UsedModuleExtensions {
-  message Key {}
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Listing used module extensions"
+    };
+  }
 
   message Value {
     // List of module extensions that has one or more users. Module
@@ -2971,6 +3260,9 @@ message UsedModuleExtensions {
 
 message UserDefinedTransition {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Applying transition {transition_identifier}"
+    };
     // The Starlark identifier of the transition to apply.
     string transition_identifier = 1;
 
@@ -3017,6 +3309,9 @@ message UserDefinedTransition {
 
 message VisibleTarget {
   message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Resolving {to_label} as seen from {from_package}"
+    };
     // The package that references the label.
     string from_package = 1;
 

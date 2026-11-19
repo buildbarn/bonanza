@@ -10,6 +10,7 @@ import (
 	command "bonanza.build/pkg/proto/model/command"
 	core "bonanza.build/pkg/proto/model/core"
 	encoding "bonanza.build/pkg/proto/model/encoding"
+	_ "bonanza.build/pkg/proto/model/evaluation"
 	fetch "bonanza.build/pkg/proto/model/fetch"
 	filesystem "bonanza.build/pkg/proto/model/filesystem"
 	starlark "bonanza.build/pkg/proto/model/starlark"
@@ -16463,27 +16464,31 @@ var File_bonanza_build_pkg_proto_model_analysis_analysis_proto protoreflect.File
 
 const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\n" +
-	"5bonanza.build/pkg/proto/model/analysis/analysis.proto\x12\x16bonanza.model.analysis\x1a3bonanza.build/pkg/proto/model/command/command.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a/bonanza.build/pkg/proto/model/fetch/fetch.proto\x1a9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x1a5bonanza.build/pkg/proto/model/starlark/starlark.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"p\n" +
-	"\x0eActionEncoders\x1a\x05\n" +
-	"\x03Key\x1aW\n" +
+	"5bonanza.build/pkg/proto/model/analysis/analysis.proto\x12\x16bonanza.model.analysis\x1a3bonanza.build/pkg/proto/model/command/command.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a9bonanza.build/pkg/proto/model/evaluation/evaluation.proto\x1a/bonanza.build/pkg/proto/model/fetch/fetch.proto\x1a9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x1a5bonanza.build/pkg/proto/model/starlark/starlark.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x91\x01\n" +
+	"\x0eActionEncoders\x1a&\n" +
+	"\x03Key:\x1f\xf2\xd7 \x1b\n" +
+	"\x19Obtaining action encoders\x1aW\n" +
 	"\x05Value\x12N\n" +
 	"\x0faction_encoders\x18\x01 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eactionEncoders\"\x88\x02\n" +
 	"\x0eExecuteRequest\x127\n" +
 	"\x18platform_pkix_public_key\x18\x01 \x01(\fR\x15platformPkixPublicKey\x12u\n" +
 	"\x10action_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB\"\xea\xd7 \x1e\x12\x1cbonanza.model.command.ActionR\x0factionReference\x12F\n" +
-	"\x11execution_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\x10executionTimeout\"v\n" +
-	"\x10AnalysisEncoders\x1a\x05\n" +
-	"\x03Key\x1a[\n" +
+	"\x11execution_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\x10executionTimeout\"\x99\x01\n" +
+	"\x10AnalysisEncoders\x1a(\n" +
+	"\x03Key:!\xf2\xd7 \x1d\n" +
+	"\x1bObtaining analysis encoders\x1a[\n" +
 	"\x05Value\x12R\n" +
-	"\x11analysis_encoders\x18\x01 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x10analysisEncoders\"\x87\x02\n" +
-	"\fActionResult\x1aV\n" +
+	"\x11analysis_encoders\x18\x01 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x10analysisEncoders\"\x9f\x02\n" +
+	"\fActionResult\x1an\n" +
 	"\x03Key\x12O\n" +
-	"\x0fexecute_request\x18\x01 \x01(\v2&.bonanza.model.analysis.ExecuteRequestR\x0eexecuteRequest\x1a\x9e\x01\n" +
+	"\x0fexecute_request\x18\x01 \x01(\v2&.bonanza.model.analysis.ExecuteRequestR\x0eexecuteRequest:\x16\xf2\xd7 \x12\n" +
+	"\x10Executing action\x1a\x9e\x01\n" +
 	"\x05Value\x12\x1b\n" +
 	"\texit_code\x18\x01 \x01(\x03R\bexitCode\x12x\n" +
-	"\x11outputs_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.OutputsR\x10outputsReference\"\x9b\f\n" +
-	"\x12BuildSpecification\x1a\x05\n" +
-	"\x03Key\x1a\xfd\v\n" +
+	"\x11outputs_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.OutputsR\x10outputsReference\"\xc0\f\n" +
+	"\x12BuildSpecification\x1a*\n" +
+	"\x03Key:#\xf2\xd7 \x1f\n" +
+	"\x1dObtaining build specification\x1a\xfd\v\n" +
 	"\x05Value\x12Q\n" +
 	"\amodules\x18\x01 \x03(\v27.bonanza.model.analysis.BuildSpecification.Value.ModuleR\amodules\x12(\n" +
 	"\x10root_module_name\x18\x02 \x01(\tR\x0erootModuleName\x12y\n" +
@@ -16507,15 +16512,16 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x18root_directory_reference\x18\x02 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x16rootDirectoryReference\x1at\n" +
 	"\vUseLockfile\x12\x14\n" +
 	"\x05error\x18\x01 \x01(\bR\x05error\x12O\n" +
-	"\x16maximum_cache_duration\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x14maximumCacheDuration\"Y\n" +
-	"\x13BuiltinsModuleNames\x1a\x05\n" +
-	"\x03Key\x1a;\n" +
+	"\x16maximum_cache_duration\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x14maximumCacheDuration\"\x80\x01\n" +
+	"\x13BuiltinsModuleNames\x1a,\n" +
+	"\x03Key:%\xf2\xd7 !\n" +
+	"\x1fObtaining builtins module names\x1a;\n" +
 	"\x05Value\x122\n" +
 	"\x15builtins_module_names\x18\x01 \x03(\tR\x13builtinsModuleNames\"d\n" +
 	"\x0fOutputSelection\x12,\n" +
 	"\x12default_info_files\x18\x01 \x01(\bR\x10defaultInfoFiles\x12#\n" +
-	"\routput_groups\x18\x02 \x03(\tR\foutputGroups\"\x95\x05\n" +
-	"\vBuildResult\x1a\xfc\x04\n" +
+	"\routput_groups\x18\x02 \x03(\tR\foutputGroups\"\xad\x05\n" +
+	"\vBuildResult\x1a\x94\x05\n" +
 	"\x03Key\x12]\n" +
 	"\x0econfigurations\x18\x01 \x03(\v25.bonanza.model.analysis.BuildResult.Key.ConfigurationR\x0econfigurations\x12\x14\n" +
 	"\x05query\x18\x02 \x01(\tR\x05query\x12\x18\n" +
@@ -16530,38 +16536,44 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x17build_setting_overrides\x18\x01 \x03(\v2<.bonanza.model.analysis.BuildResult.Key.BuildSettingOverrideR\x15buildSettingOverrides\x1a;\n" +
 	"\x0fAspectParameter\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\x1a\a\n" +
-	"\x05Value\"\xa9\x01\n" +
-	"\x11CanonicalRepoName\x1a_\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x16\xf2\xd7 \x12\n" +
+	"\x10Building {query}\x1a\a\n" +
+	"\x05Value\"\xf9\x01\n" +
+	"\x11CanonicalRepoName\x1a\xae\x01\n" +
 	"\x03Key\x12.\n" +
 	"\x13from_canonical_repo\x18\x01 \x01(\tR\x11fromCanonicalRepo\x12(\n" +
-	"\x10to_apparent_repo\x18\x02 \x01(\tR\x0etoApparentRepo\x1a3\n" +
+	"\x10to_apparent_repo\x18\x02 \x01(\tR\x0etoApparentRepo:M\xf2\xd7 I\n" +
+	"GResolving repo @{to_apparent_repo} as seen from @@{from_canonical_repo}\x1a3\n" +
 	"\x05Value\x12*\n" +
-	"\x11to_canonical_repo\x18\x01 \x01(\tR\x0ftoCanonicalRepo\"\xd0\x01\n" +
-	"\x1cCompatibleExecutionPlatforms\x1aK\n" +
+	"\x11to_canonical_repo\x18\x01 \x01(\tR\x0ftoCanonicalRepo\"\x80\x02\n" +
+	"\x1cCompatibleExecutionPlatforms\x1a{\n" +
 	"\x03Key\x12D\n" +
-	"\vconstraints\x18\x01 \x03(\v2\".bonanza.model.analysis.ConstraintR\vconstraints\x1ac\n" +
+	"\vconstraints\x18\x01 \x03(\v2\".bonanza.model.analysis.ConstraintR\vconstraints:.\xf2\xd7 *\n" +
+	"(Selecting compatible execution platforms\x1ac\n" +
 	"\x05Value\x12Z\n" +
-	"\x13execution_platforms\x18\x01 \x03(\v2).bonanza.model.analysis.ExecutionPlatformR\x12executionPlatforms\"\xb7\x02\n" +
-	"\x1bCompatibleToolchainsForType\x1a\xc1\x01\n" +
+	"\x13execution_platforms\x18\x01 \x03(\v2).bonanza.model.analysis.ExecutionPlatformR\x12executionPlatforms\"\xf7\x02\n" +
+	"\x1bCompatibleToolchainsForType\x1a\x81\x02\n" +
 	"\x03Key\x12%\n" +
 	"\x0etoolchain_type\x18\x01 \x01(\tR\rtoolchainType\x12\x92\x01\n" +
-	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x1aT\n" +
+	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference:>\xf2\xd7 :\n" +
+	"8Selecting compatible toolchains of type {toolchain_type}\x1aT\n" +
 	"\x05Value\x12K\n" +
 	"\n" +
 	"toolchains\x18\x02 \x03(\v2+.bonanza.model.analysis.RegisteredToolchainR\n" +
-	"toolchains\"\xbf\x01\n" +
-	"\x0fCompiledBzlFile\x1aO\n" +
+	"toolchains\"\xd8\x01\n" +
+	"\x0fCompiledBzlFile\x1ah\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x122\n" +
-	"\x15builtins_module_names\x18\x02 \x03(\tR\x13builtinsModuleNames\x1a[\n" +
+	"\x15builtins_module_names\x18\x02 \x03(\tR\x13builtinsModuleNames:\x17\xf2\xd7 \x13\n" +
+	"\x11Compiling {label}\x1a[\n" +
 	"\x05Value\x12R\n" +
-	"\x10compiled_program\x18\x01 \x01(\v2'.bonanza.model.starlark.CompiledProgramR\x0fcompiledProgram\"~\n" +
-	"\x15CompiledBzlFileGlobal\x1a%\n" +
+	"\x10compiled_program\x18\x01 \x01(\v2'.bonanza.model.starlark.CompiledProgramR\x0fcompiledProgram\"\xa3\x01\n" +
+	"\x15CompiledBzlFileGlobal\x1aJ\n" +
 	"\x03Key\x12\x1e\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\tR\n" +
-	"identifier\x1a>\n" +
+	"identifier:#\xf2\xd7 \x1f\n" +
+	"\x1dObtaining global {identifier}\x1a>\n" +
 	"\x05Value\x125\n" +
 	"\x06global\x18\x01 \x01(\v2\x1d.bonanza.model.starlark.ValueR\x06global\"\xaf\x03\n" +
 	"\x14BuildSettingOverride\x12G\n" +
@@ -16663,20 +16675,22 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x05Write\x12;\n" +
 	"\acontent\x18\x01 \x01(\v2!.bonanza.model.analysis.Args.LeafR\acontent\x12#\n" +
 	"\ris_executable\x18\x02 \x01(\bR\fisExecutableB\b\n" +
-	"\x06source\"\x93\x02\n" +
-	"\x10LabelAttrAspects\x1a4\n" +
+	"\x06source\"\xd4\x02\n" +
+	"\x10LabelAttrAspects\x1au\n" +
 	"\x03Key\x12-\n" +
-	"\x12aspect_identifiers\x18\x01 \x03(\tR\x11aspectIdentifiers\x1a\xc8\x01\n" +
+	"\x12aspect_identifiers\x18\x01 \x03(\tR\x11aspectIdentifiers:?\xf2\xd7 ;\n" +
+	"9Expanding aspects {aspect_identifiers} of label attribute\x1a\xc8\x01\n" +
 	"\x05Value\x12O\n" +
 	"\aaspects\x18\x01 \x03(\v25.bonanza.model.analysis.LabelAttrAspects.Value.AspectR\aaspects\x1an\n" +
 	"\x06Aspect\x12\x1e\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\tR\n" +
 	"identifier\x12D\n" +
-	"\fpublic_attrs\x18\x02 \x03(\v2!.bonanza.model.starlark.NamedAttrR\vpublicAttrs\"\xdf\x04\n" +
-	"\vAspectChain\x1a4\n" +
+	"\fpublic_attrs\x18\x02 \x03(\v2!.bonanza.model.starlark.NamedAttrR\vpublicAttrs\"\x9b\x05\n" +
+	"\vAspectChain\x1ap\n" +
 	"\x03Key\x12-\n" +
-	"\x12aspect_identifiers\x18\x01 \x03(\tR\x11aspectIdentifiers\x1a\x99\x04\n" +
+	"\x12aspect_identifiers\x18\x01 \x03(\tR\x11aspectIdentifiers::\xf2\xd7 6\n" +
+	"4Computing properties of aspects {aspect_identifiers}\x1a\x99\x04\n" +
 	"\x05Value\x124\n" +
 	"\x16visible_aspect_indices\x18\x01 \x03(\rR\x14visibleAspectIndices\x12v\n" +
 	"\x18attr_propagating_aspects\x18\x02 \x01(\v2<.bonanza.model.analysis.AspectChain.Value.PropagatingAspectsR\x16attrPropagatingAspects\x12\x80\x01\n" +
@@ -16686,17 +16700,18 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x05edges\x18\x02 \x03(\v2A.bonanza.model.analysis.AspectChain.Value.PropagatingAspects.EdgeR\x05edges\x1aA\n" +
 	"\x04Edge\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12%\n" +
-	"\x0easpect_indices\x18\x02 \x03(\rR\raspectIndices\"}\n" +
-	"\x15GeneratingRuleAspects\x1a4\n" +
+	"\x0easpect_indices\x18\x02 \x03(\rR\raspectIndices\"\xcf\x01\n" +
+	"\x15GeneratingRuleAspects\x1a\x85\x01\n" +
 	"\x03Key\x12-\n" +
-	"\x12aspect_identifiers\x18\x01 \x03(\tR\x11aspectIdentifiers\x1a.\n" +
+	"\x12aspect_identifiers\x18\x01 \x03(\tR\x11aspectIdentifiers:O\xf2\xd7 K\n" +
+	"ISelecting aspects to apply to generating rules among {aspect_identifiers}\x1a.\n" +
 	"\x05Value\x12%\n" +
-	"\x0easpect_indices\x18\x01 \x03(\rR\raspectIndices\"\xf8\n" +
-	"\n" +
-	"\x10ConfiguredTarget\x1a\\\n" +
+	"\x0easpect_indices\x18\x01 \x03(\rR\raspectIndices\"\x91\v\n" +
+	"\x10ConfiguredTarget\x1au\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12?\n" +
-	"\avariant\x18\x02 \x01(\v2%.bonanza.model.starlark.TargetVariantR\avariant\x1a\x85\n" +
+	"\avariant\x18\x02 \x01(\v2%.bonanza.model.starlark.TargetVariantR\avariant:\x17\xf2\xd7 \x13\n" +
+	"\x11Analyzing {label}\x1a\x85\n" +
 	"\n" +
 	"\x05Value\x12M\n" +
 	"\x12provider_instances\x18\x01 \x03(\v2\x1e.bonanza.model.starlark.StructR\x11providerInstances\x12O\n" +
@@ -16748,128 +16763,145 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"attr_index\x18\x01 \x01(\rR\tattrIndex\x12K\n" +
 	"\n" +
 	"configured\x18\x02 \x01(\v2+.bonanza.model.analysis.ConfiguredLabelAttrR\n" +
-	"configured\"\xc1\x03\n" +
-	"\x0eConfiguredRule\x1a\xba\x01\n" +
+	"configured\"\xe6\x03\n" +
+	"\x0eConfiguredRule\x1a\xdf\x01\n" +
 	"\x03Key\x12\x1e\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\tR\n" +
 	"identifier\x12\x92\x01\n" +
-	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x1a\xf1\x01\n" +
+	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference:#\xf2\xd7 \x1f\n" +
+	"\x1dConfiguring rule {identifier}\x1a\xf1\x01\n" +
 	"\x05Value\x12L\n" +
 	"\vexec_groups\x18\x01 \x03(\v2+.bonanza.model.analysis.ConfiguredExecGroupR\n" +
 	"execGroups\x12E\n" +
 	"\bsubrules\x18\x02 \x03(\v2).bonanza.model.analysis.ConfiguredSubruleR\bsubrules\x12S\n" +
 	"\vlabel_attrs\x18\x03 \x03(\v22.bonanza.model.analysis.IndexedConfiguredLabelAttrR\n" +
-	"labelAttrs\"\xf1\x02\n" +
-	"\x13ConfiguredRuleUsage\x1a\xfb\x01\n" +
+	"labelAttrs\"\x9f\x03\n" +
+	"\x13ConfiguredRuleUsage\x1a\xa9\x02\n" +
 	"\x03Key\x12\x1e\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\tR\n" +
 	"identifier\x12\x92\x01\n" +
 	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x12?\n" +
-	"\x1cexplicit_public_attr_indices\x18\x03 \x03(\rR\x19explicitPublicAttrIndices\x1a\\\n" +
+	"\x1cexplicit_public_attr_indices\x18\x03 \x03(\rR\x19explicitPublicAttrIndices:,\xf2\xd7 (\n" +
+	"&Configuring usage of rule {identifier}\x1a\\\n" +
 	"\x05Value\x12S\n" +
 	"\vlabel_attrs\x18\x01 \x03(\v22.bonanza.model.analysis.IndexedConfiguredLabelAttrR\n" +
-	"labelAttrs\"\xc3\x03\n" +
-	"\x10ConfiguredAspect\x1a\xba\x01\n" +
+	"labelAttrs\"\xea\x03\n" +
+	"\x10ConfiguredAspect\x1a\xe1\x01\n" +
 	"\x03Key\x12\x1e\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\tR\n" +
 	"identifier\x12\x92\x01\n" +
-	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x1a\xf1\x01\n" +
+	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference:%\xf2\xd7 !\n" +
+	"\x1fConfiguring aspect {identifier}\x1a\xf1\x01\n" +
 	"\x05Value\x12L\n" +
 	"\vexec_groups\x18\x01 \x03(\v2+.bonanza.model.analysis.ConfiguredExecGroupR\n" +
 	"execGroups\x12E\n" +
 	"\bsubrules\x18\x02 \x03(\v2).bonanza.model.analysis.ConfiguredSubruleR\bsubrules\x12S\n" +
 	"\vlabel_attrs\x18\x03 \x03(\v22.bonanza.model.analysis.IndexedConfiguredLabelAttrR\n" +
-	"labelAttrs\"\xac\x04\n" +
-	"\x1fRuleUsageIncomingEdgeTransition\x1a\xfb\x01\n" +
+	"labelAttrs\"\xea\x04\n" +
+	"\x1fRuleUsageIncomingEdgeTransition\x1a\xb9\x02\n" +
 	"\x03Key\x12\x1e\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\tR\n" +
 	"identifier\x12\x92\x01\n" +
 	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x12?\n" +
-	"\x1cexplicit_public_attr_indices\x18\x03 \x03(\rR\x19explicitPublicAttrIndices\x1a\x8a\x02\n" +
+	"\x1cexplicit_public_attr_indices\x18\x03 \x03(\rR\x19explicitPublicAttrIndices:<\xf2\xd7 8\n" +
+	"6Applying incoming edge transition of rule {identifier}\x1a\x8a\x02\n" +
 	"\x05Value\x12\xa1\x01\n" +
 	"\x1eoutput_configuration_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideH\x00R\x1coutputConfigurationReference\x12S\n" +
 	"\x19depends_on_explicit_attrs\x18\x02 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x16dependsOnExplicitAttrsB\b\n" +
-	"\x06result\"\xfd\x02\n" +
-	"\x1cTargetIncomingEdgeTransition\x1a\xb0\x01\n" +
+	"\x06result\"\xb1\x03\n" +
+	"\x1cTargetIncomingEdgeTransition\x1a\xe4\x01\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x92\x01\n" +
-	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x1a\xa9\x01\n" +
+	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference:2\xf2\xd7 .\n" +
+	",Applying incoming edge transition of {label}\x1a\xa9\x01\n" +
 	"\x05Value\x12\x9f\x01\n" +
-	"\x1eoutput_configuration_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x1coutputConfigurationReference\"\xfa\x01\n" +
-	"\fTargetOutput\x1a\x90\x01\n" +
+	"\x1eoutput_configuration_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x1coutputConfigurationReference\"\xb5\x02\n" +
+	"\fTargetOutput\x1a\xcb\x01\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12?\n" +
 	"\avariant\x18\x02 \x01(\v2%.bonanza.model.starlark.TargetVariantR\avariant\x122\n" +
-	"\x15package_relative_path\x18\x03 \x01(\tR\x13packageRelativePath\x1aW\n" +
+	"\x15package_relative_path\x18\x03 \x01(\tR\x13packageRelativePath:9\xf2\xd7 5\n" +
+	"3Obtaining output {package_relative_path} of {label}\x1aW\n" +
 	"\x05Value\x12N\n" +
 	"\n" +
 	"definition\x18\x01 \x01(\v2..bonanza.model.analysis.TargetOutputDefinitionR\n" +
-	"definition\"\xa0\x01\n" +
-	"\x19DirectoryAccessParameters\x1a\x05\n" +
-	"\x03Key\x1a|\n" +
+	"definition\"\xcd\x01\n" +
+	"\x19DirectoryAccessParameters\x1a2\n" +
+	"\x03Key:+\xf2\xd7 '\n" +
+	"%Obtaining directory access parameters\x1a|\n" +
 	"\x05Value\x12s\n" +
-	"\x1bdirectory_access_parameters\x18\x01 \x01(\v23.bonanza.model.filesystem.DirectoryAccessParametersR\x19directoryAccessParameters\"\xa9\x01\n" +
-	"\x1bDirectoryCreationParameters\x1a\x05\n" +
-	"\x03Key\x1a\x82\x01\n" +
+	"\x1bdirectory_access_parameters\x18\x01 \x01(\v23.bonanza.model.filesystem.DirectoryAccessParametersR\x19directoryAccessParameters\"\xd8\x01\n" +
+	"\x1bDirectoryCreationParameters\x1a4\n" +
+	"\x03Key:-\xf2\xd7 )\n" +
+	"'Obtaining directory creation parameters\x1a\x82\x01\n" +
 	"\x05Value\x12y\n" +
-	"\x1ddirectory_creation_parameters\x18\x01 \x01(\v25.bonanza.model.filesystem.DirectoryCreationParametersR\x1bdirectoryCreationParameters\"e\n" +
-	"\x10EmptyDefaultInfo\x1a\x05\n" +
-	"\x03Key\x1aJ\n" +
+	"\x1ddirectory_creation_parameters\x18\x01 \x01(\v25.bonanza.model.filesystem.DirectoryCreationParametersR\x1bdirectoryCreationParameters\"\x87\x01\n" +
+	"\x10EmptyDefaultInfo\x1a'\n" +
+	"\x03Key: \xf2\xd7 \x1c\n" +
+	"\x1aCreating empty DefaultInfo\x1aJ\n" +
 	"\x05Value\x12A\n" +
-	"\fdefault_info\x18\x01 \x01(\v2\x1e.bonanza.model.starlark.StructR\vdefaultInfo\"\x8b\x03\n" +
-	"\x0eExecTransition\x1a\xcc\x01\n" +
+	"\fdefault_info\x18\x01 \x01(\v2\x1e.bonanza.model.starlark.StructR\vdefaultInfo\"\xc8\x03\n" +
+	"\x0eExecTransition\x1a\x89\x02\n" +
 	"\x03Key\x12%\n" +
 	"\x0eplatform_label\x18\x01 \x01(\tR\rplatformLabel\x12\x9d\x01\n" +
-	"\x1dinput_configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x1binputConfigurationReference\x1a\xa9\x01\n" +
+	"\x1dinput_configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x1binputConfigurationReference:;\xf2\xd7 7\n" +
+	"5Applying exec transition to platform {platform_label}\x1a\xa9\x01\n" +
 	"\x05Value\x12\x9f\x01\n" +
-	"\x1eoutput_configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x1coutputConfigurationReference\"\x8c\x01\n" +
-	"\x14FileAccessParameters\x1a\x05\n" +
-	"\x03Key\x1am\n" +
+	"\x1eoutput_configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x1coutputConfigurationReference\"\xb4\x01\n" +
+	"\x14FileAccessParameters\x1a-\n" +
+	"\x03Key:&\xf2\xd7 \"\n" +
+	" Obtaining file access parameters\x1am\n" +
 	"\x05Value\x12d\n" +
-	"\x16file_access_parameters\x18\x01 \x01(\v2..bonanza.model.filesystem.FileAccessParametersR\x14fileAccessParameters\"\x94\x01\n" +
-	"\x16FileCreationParameters\x1a\x05\n" +
-	"\x03Key\x1as\n" +
+	"\x16file_access_parameters\x18\x01 \x01(\v2..bonanza.model.filesystem.FileAccessParametersR\x14fileAccessParameters\"\xbe\x01\n" +
+	"\x16FileCreationParameters\x1a/\n" +
+	"\x03Key:(\xf2\xd7 $\n" +
+	"\"Obtaining file creation parameters\x1as\n" +
 	"\x05Value\x12j\n" +
-	"\x18file_creation_parameters\x18\x01 \x01(\v20.bonanza.model.filesystem.FileCreationParametersR\x16fileCreationParameters\"\x9d\x01\n" +
-	"\x0eFileProperties\x1a@\n" +
+	"\x18file_creation_parameters\x18\x01 \x01(\v20.bonanza.model.filesystem.FileCreationParametersR\x16fileCreationParameters\"\xd9\x01\n" +
+	"\x0eFileProperties\x1a|\n" +
 	"\x03Key\x12%\n" +
 	"\x0ecanonical_repo\x18\x01 \x01(\tR\rcanonicalRepo\x12\x12\n" +
-	"\x04path\x18\x02 \x01(\tR\x04path\x1aI\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path::\xf2\xd7 6\n" +
+	"4Obtaining properties of {path} in @@{canonical_repo}\x1aI\n" +
 	"\x05Value\x12@\n" +
-	"\x06exists\x18\x01 \x01(\v2(.bonanza.model.filesystem.FilePropertiesR\x06exists\"\xf2\x01\n" +
-	"\bFileRoot\x1a\x8b\x01\n" +
+	"\x06exists\x18\x01 \x01(\v2(.bonanza.model.filesystem.FilePropertiesR\x06exists\"\x98\x02\n" +
+	"\bFileRoot\x1a\xb1\x01\n" +
 	"\x03Key\x120\n" +
 	"\x04file\x18\x01 \x01(\v2\x1c.bonanza.model.starlark.FileR\x04file\x12R\n" +
-	"\x10directory_layout\x18\x02 \x01(\x0e2'.bonanza.model.analysis.DirectoryLayoutR\x0fdirectoryLayout\x1aX\n" +
+	"\x10directory_layout\x18\x02 \x01(\x0e2'.bonanza.model.analysis.DirectoryLayoutR\x0fdirectoryLayout:$\xf2\xd7  \n" +
+	"\x1eObtaining root of {file.label}\x1aX\n" +
 	"\x05Value\x12O\n" +
-	"\x0eroot_directory\x18\x01 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\rrootDirectory\"\x82\x01\n" +
-	"\x0eFilesInPackage\x1a\x1f\n" +
+	"\x0eroot_directory\x18\x01 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\rrootDirectory\"\xa4\x01\n" +
+	"\x0eFilesInPackage\x1aA\n" +
 	"\x03Key\x12\x18\n" +
-	"\apackage\x18\x01 \x01(\tR\apackage\x1aO\n" +
+	"\apackage\x18\x01 \x01(\tR\apackage: \xf2\xd7 \x1c\n" +
+	"\x1aListing files in {package}\x1aO\n" +
 	"\x05Value\x12F\n" +
-	"\tdirectory\x18\x01 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\tdirectory\"\xbb\x02\n" +
-	"\tFilesRoot\x1a\xd3\x01\n" +
+	"\tdirectory\x18\x01 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\tdirectory\"\xda\x02\n" +
+	"\tFilesRoot\x1a\xf2\x01\n" +
 	"\x03Key\x12x\n" +
 	"\x0elist_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.starlark.List.ElementR\rlistReference\x12R\n" +
-	"\x10directory_layout\x18\x02 \x01(\x0e2'.bonanza.model.analysis.DirectoryLayoutR\x0fdirectoryLayout\x1aX\n" +
+	"\x10directory_layout\x18\x02 \x01(\x0e2'.bonanza.model.analysis.DirectoryLayoutR\x0fdirectoryLayout:\x1d\xf2\xd7 \x19\n" +
+	"\x17Obtaining root of files\x1aX\n" +
 	"\x05Value\x12O\n" +
-	"\x0eroot_directory\x18\x01 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\rrootDirectory\"\xa0\x01\n" +
-	"\x04Glob\x1aj\n" +
+	"\x0eroot_directory\x18\x01 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\rrootDirectory\"\xc4\x01\n" +
+	"\x04Glob\x1a\x8d\x01\n" +
 	"\x03Key\x12\x18\n" +
 	"\apackage\x18\x01 \x01(\tR\apackage\x12\x18\n" +
 	"\apattern\x18\x02 \x01(\fR\apattern\x12/\n" +
-	"\x13include_directories\x18\x03 \x01(\bR\x12includeDirectories\x1a,\n" +
+	"\x13include_directories\x18\x03 \x01(\bR\x12includeDirectories:!\xf2\xd7 \x1d\n" +
+	"\x1bExpanding glob in {package}\x1a,\n" +
 	"\x05Value\x12#\n" +
 	"\rmatched_paths\x18\x01 \x03(\tR\fmatchedPaths\"f\n" +
 	"\x10HttpFetchOptions\x123\n" +
 	"\x06target\x18\x01 \x01(\v2\x1b.bonanza.model.fetch.TargetR\x06target\x12\x1d\n" +
 	"\n" +
-	"allow_fail\x18\x02 \x01(\bR\tallowFail\"\xbc\x03\n" +
-	"\x13HttpArchiveContents\x1a\xdc\x01\n" +
+	"allow_fail\x18\x02 \x01(\bR\tallowFail\"\xfa\x03\n" +
+	"\x13HttpArchiveContents\x1a\x9a\x02\n" +
 	"\x03Key\x12M\n" +
 	"\rfetch_options\x18\x01 \x01(\v2(.bonanza.model.analysis.HttpFetchOptionsR\ffetchOptions\x12N\n" +
 	"\x06format\x18\x02 \x01(\x0e26.bonanza.model.analysis.HttpArchiveContents.Key.FormatR\x06format\"6\n" +
@@ -16879,58 +16911,67 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x06TAR_GZ\x10\x01\x12\n" +
 	"\n" +
 	"\x06TAR_XZ\x10\x02\x12\a\n" +
-	"\x03ZIP\x10\x03\x1a\xc5\x01\n" +
+	"\x03ZIP\x10\x03:<\xf2\xd7 8\n" +
+	"6Downloading and extracting {fetch_options.target.urls}\x1a\xc5\x01\n" +
 	"\x05Value\x12P\n" +
 	"\x06exists\x18\x01 \x01(\v28.bonanza.model.analysis.HttpArchiveContents.Value.ExistsR\x06exists\x1aj\n" +
 	"\x06Exists\x12H\n" +
 	"\bcontents\x18\x01 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\bcontents\x12\x16\n" +
-	"\x06sha256\x18\x02 \x01(\fR\x06sha256\"\xae\x01\n" +
-	"\x10HttpFileContents\x1aT\n" +
+	"\x06sha256\x18\x02 \x01(\fR\x06sha256\"\xde\x01\n" +
+	"\x10HttpFileContents\x1a\x83\x01\n" +
 	"\x03Key\x12M\n" +
-	"\rfetch_options\x18\x01 \x01(\v2(.bonanza.model.analysis.HttpFetchOptionsR\ffetchOptions\x1aD\n" +
+	"\rfetch_options\x18\x01 \x01(\v2(.bonanza.model.analysis.HttpFetchOptionsR\ffetchOptions:-\xf2\xd7 )\n" +
+	"'Downloading {fetch_options.target.urls}\x1aD\n" +
 	"\x05Value\x12;\n" +
-	"\x06exists\x18\x01 \x01(\v2#.bonanza.model.fetch.Result.SuccessR\x06exists\"\xcb\x01\n" +
-	"\x15MacroExpansionContext\x1aO\n" +
+	"\x06exists\x18\x01 \x01(\v2#.bonanza.model.fetch.Result.SuccessR\x06exists\"\x9b\x02\n" +
+	"\x15MacroExpansionContext\x1a\x9e\x01\n" +
 	"\x03Key\x12\x18\n" +
 	"\apackage\x18\x01 \x01(\tR\apackage\x12.\n" +
-	"\x13macro_instance_name\x18\x02 \x03(\tR\x11macroInstanceName\x1aa\n" +
+	"\x13macro_instance_name\x18\x02 \x03(\tR\x11macroInstanceName:M\xf2\xd7 I\n" +
+	"GObtaining expansion context of macro {macro_instance_name} in {package}\x1aa\n" +
 	"\x05Value\x12X\n" +
 	"\n" +
 	"definition\x18\x01 \x01(\v28.bonanza.model.starlark.MacroExpansionContext.DefinitionR\n" +
-	"definition\"\x95\x01\n" +
-	"\x16ModuleDotBazelContents\x1a.\n" +
+	"definition\"\xc6\x01\n" +
+	"\x16ModuleDotBazelContents\x1a_\n" +
 	"\x03Key\x12'\n" +
-	"\x0fmodule_instance\x18\x01 \x01(\tR\x0emoduleInstance\x1aK\n" +
+	"\x0fmodule_instance\x18\x01 \x01(\tR\x0emoduleInstance:/\xf2\xd7 +\n" +
+	")Loading MODULE.bazel of {module_instance}\x1aK\n" +
 	"\x05Value\x12B\n" +
-	"\bcontents\x18\x01 \x01(\v2&.bonanza.model.filesystem.FileContentsR\bcontents\"I\n" +
-	"\x12ModuleRegistryUrls\x1a\x05\n" +
-	"\x03Key\x1a,\n" +
+	"\bcontents\x18\x01 \x01(\v2&.bonanza.model.filesystem.FileContentsR\bcontents\"o\n" +
+	"\x12ModuleRegistryUrls\x1a+\n" +
+	"\x03Key:$\xf2\xd7  \n" +
+	"\x1eObtaining module registry URLs\x1a,\n" +
 	"\x05Value\x12#\n" +
-	"\rregistry_urls\x18\x01 \x03(\tR\fregistryUrls\"\x87\x02\n" +
-	"\x11ModuleRepoMapping\x1a.\n" +
+	"\rregistry_urls\x18\x01 \x03(\tR\fregistryUrls\"\xba\x02\n" +
+	"\x11ModuleRepoMapping\x1aa\n" +
 	"\x03Key\x12'\n" +
-	"\x0fmodule_instance\x18\x01 \x01(\tR\x0emoduleInstance\x1a\xc1\x01\n" +
+	"\x0fmodule_instance\x18\x01 \x01(\tR\x0emoduleInstance:1\xf2\xd7 -\n" +
+	"+Computing repo mapping of {module_instance}\x1a\xc1\x01\n" +
 	"\x05Value\x12S\n" +
 	"\bmappings\x18\x01 \x03(\v27.bonanza.model.analysis.ModuleRepoMapping.Value.MappingR\bmappings\x1ac\n" +
 	"\aMapping\x12,\n" +
 	"\x12from_apparent_repo\x18\x01 \x01(\tR\x10fromApparentRepo\x12*\n" +
-	"\x11to_canonical_repo\x18\x02 \x01(\tR\x0ftoCanonicalRepo\"\x95\x01\n" +
-	"\x13ModuleExtensionRepo\x1a,\n" +
+	"\x11to_canonical_repo\x18\x02 \x01(\tR\x0ftoCanonicalRepo\"\xd4\x01\n" +
+	"\x13ModuleExtensionRepo\x1ak\n" +
 	"\x03Key\x12%\n" +
-	"\x0ecanonical_repo\x18\x01 \x01(\tR\rcanonicalRepo\x1aP\n" +
+	"\x0ecanonical_repo\x18\x01 \x01(\tR\rcanonicalRepo:=\xf2\xd7 9\n" +
+	"7Obtaining repo @@{canonical_repo} from module extension\x1aP\n" +
 	"\x05Value\x12G\n" +
 	"\n" +
 	"definition\x18\x01 \x01(\v2'.bonanza.model.starlark.Repo.DefinitionR\n" +
-	"definition\"t\n" +
-	"\x18ModuleExtensionRepoNames\x1a0\n" +
+	"definition\"\xb0\x01\n" +
+	"\x18ModuleExtensionRepoNames\x1al\n" +
 	"\x03Key\x12)\n" +
-	"\x10module_extension\x18\x01 \x01(\tR\x0fmoduleExtension\x1a&\n" +
+	"\x10module_extension\x18\x01 \x01(\tR\x0fmoduleExtension::\xf2\xd7 6\n" +
+	"4Listing repos of module extension {module_extension}\x1a&\n" +
 	"\x05Value\x12\x1d\n" +
 	"\n" +
-	"repo_names\x18\x01 \x03(\tR\trepoNames\"\xf0\x03\n" +
-	"\x14ModuleExtensionRepos\x1a0\n" +
+	"repo_names\x18\x01 \x03(\tR\trepoNames\"\xa6\x04\n" +
+	"\x14ModuleExtensionRepos\x1af\n" +
 	"\x03Key\x12)\n" +
-	"\x10module_extension\x18\x01 \x01(\tR\x0fmoduleExtension\x1a\xa5\x03\n" +
+	"\x10module_extension\x18\x01 \x01(\tR\x0fmoduleExtension:4\xf2\xd7 0\n" +
+	".Evaluating module extension {module_extension}\x1a\xa5\x03\n" +
 	"\x05Value\x12M\n" +
 	"\x05repos\x18\x01 \x03(\v27.bonanza.model.analysis.ModuleExtensionRepos.Value.RepoR\x05repos\x1a\xcc\x02\n" +
 	"\x04Repo\x122\n" +
@@ -16949,44 +16990,51 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\n" +
 	"Definition\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12!\n" +
-	"\fregistry_url\x18\x02 \x01(\tR\vregistryUrl\"n\n" +
-	"\x14ModuleFinalBuildList\x1a\x05\n" +
-	"\x03Key\x1aO\n" +
+	"\fregistry_url\x18\x02 \x01(\tR\vregistryUrl\"\x97\x01\n" +
+	"\x14ModuleFinalBuildList\x1a.\n" +
+	"\x03Key:'\xf2\xd7 #\n" +
+	"!Computing final module build list\x1aO\n" +
 	"\x05Value\x12F\n" +
 	"\n" +
-	"build_list\x18\x01 \x03(\v2'.bonanza.model.analysis.BuildListModuleR\tbuildList\"\xa5\x01\n" +
-	"\x1eFinalBuildListModuleDefinition\x1a&\n" +
+	"build_list\x18\x01 \x03(\v2'.bonanza.model.analysis.BuildListModuleR\tbuildList\"\xd9\x01\n" +
+	"\x1eFinalBuildListModuleDefinition\x1aZ\n" +
 	"\x03Key\x12\x1f\n" +
 	"\vmodule_name\x18\x01 \x01(\tR\n" +
-	"moduleName\x1a[\n" +
+	"moduleName:2\xf2\xd7 .\n" +
+	",Obtaining definition of module {module_name}\x1a[\n" +
 	"\x05Value\x12R\n" +
 	"\n" +
 	"definition\x18\x01 \x01(\v22.bonanza.model.analysis.BuildListModule.DefinitionR\n" +
-	"definition\"n\n" +
-	"\x14ModuleRoughBuildList\x1a\x05\n" +
-	"\x03Key\x1aO\n" +
+	"definition\"\x93\x01\n" +
+	"\x14ModuleRoughBuildList\x1a*\n" +
+	"\x03Key:#\xf2\xd7 \x1f\n" +
+	"\x1dResolving module dependencies\x1aO\n" +
 	"\x05Value\x12F\n" +
 	"\n" +
 	"build_list\x18\x01 \x03(\v2'.bonanza.model.analysis.BuildListModuleR\tbuildList\"E\n" +
 	"\x13OverridesListModule\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
-	"\bversions\x18\x02 \x03(\tR\bversions\"\xbf\x01\n" +
-	"$ModuleWithLocalOverrideRootDirectory\x1a&\n" +
+	"\bversions\x18\x02 \x03(\tR\bversions\"\x8a\x02\n" +
+	"$ModuleWithLocalOverrideRootDirectory\x1aq\n" +
 	"\x03Key\x12\x1f\n" +
 	"\vmodule_name\x18\x01 \x01(\tR\n" +
-	"moduleName\x1ao\n" +
+	"moduleName:I\xf2\xd7 E\n" +
+	"CObtaining root directory of locally overridden module {module_name}\x1ao\n" +
 	"\x05Value\x12f\n" +
-	"\x18root_directory_reference\x18\x01 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x16rootDirectoryReference\"N\n" +
-	"\x19ModulesWithLocalOverrides\x1a\x05\n" +
-	"\x03Key\x1a*\n" +
+	"\x18root_directory_reference\x18\x01 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x16rootDirectoryReference\"z\n" +
+	"\x19ModulesWithLocalOverrides\x1a1\n" +
+	"\x03Key:*\xf2\xd7 &\n" +
+	"$Listing modules with local overrides\x1a*\n" +
 	"\x05Value\x12!\n" +
-	"\fmodule_names\x18\x01 \x03(\tR\vmoduleNames\"\x81\x01\n" +
-	"\x1bModulesWithMultipleVersions\x1a\x05\n" +
-	"\x03Key\x1a[\n" +
+	"\fmodule_names\x18\x01 \x03(\tR\vmoduleNames\"\xaf\x01\n" +
+	"\x1bModulesWithMultipleVersions\x1a3\n" +
+	"\x03Key:,\xf2\xd7 (\n" +
+	"&Listing modules with multiple versions\x1a[\n" +
 	"\x05Value\x12R\n" +
-	"\x0eoverrides_list\x18\x01 \x03(\v2+.bonanza.model.analysis.OverridesListModuleR\roverridesList\"z\n" +
-	"\x14ModulesWithOverrides\x1a\x05\n" +
-	"\x03Key\x1a[\n" +
+	"\x0eoverrides_list\x18\x01 \x03(\v2+.bonanza.model.analysis.OverridesListModuleR\roverridesList\"\xa0\x01\n" +
+	"\x14ModulesWithOverrides\x1a+\n" +
+	"\x03Key:$\xf2\xd7  \n" +
+	"\x1eListing modules with overrides\x1a[\n" +
 	"\x05Value\x12R\n" +
 	"\x0eoverrides_list\x18\x01 \x03(\v2+.bonanza.model.analysis.OverridesListModuleR\roverridesList\"\xa8\x05\n" +
 	"\x0eModuleOverride\x12\x12\n" +
@@ -17009,23 +17057,26 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x0esingle_version\x18\x01 \x01(\v24.bonanza.model.analysis.ModuleOverride.SingleVersionH\x00R\rsingleVersion\x12f\n" +
 	"\x11multiple_versions\x18\x02 \x01(\v27.bonanza.model.analysis.ModuleOverride.MultipleVersionsH\x00R\x10multipleVersions\x12R\n" +
 	"\x0frepository_rule\x18\x03 \x01(\v2'.bonanza.model.starlark.Repo.DefinitionH\x00R\x0erepositoryRuleB\x06\n" +
-	"\x04kind\"\x7f\n" +
-	"\x1aModulesWithRemoteOverrides\x1a\x05\n" +
-	"\x03Key\x1aZ\n" +
+	"\x04kind\"\xac\x01\n" +
+	"\x1aModulesWithRemoteOverrides\x1a2\n" +
+	"\x03Key:+\xf2\xd7 '\n" +
+	"%Listing modules with remote overrides\x1aZ\n" +
 	"\x05Value\x12Q\n" +
-	"\x10module_overrides\x18\x01 \x03(\v2&.bonanza.model.analysis.ModuleOverrideR\x0fmoduleOverrides\"\x9e\x01\n" +
-	"\x18ModuleOverrideDefinition\x1a&\n" +
+	"\x10module_overrides\x18\x01 \x03(\v2&.bonanza.model.analysis.ModuleOverrideR\x0fmoduleOverrides\"\xd0\x01\n" +
+	"\x18ModuleOverrideDefinition\x1aX\n" +
 	"\x03Key\x12\x1f\n" +
 	"\vmodule_name\x18\x01 \x01(\tR\n" +
-	"moduleName\x1aZ\n" +
+	"moduleName:0\xf2\xd7 ,\n" +
+	"*Obtaining override of module {module_name}\x1aZ\n" +
 	"\x05Value\x12Q\n" +
 	"\n" +
 	"definition\x18\x01 \x01(\v21.bonanza.model.analysis.ModuleOverride.DefinitionR\n" +
-	"definition\"\xf0\x04\n" +
-	"\aPackage\x1aK\n" +
+	"definition\"\x8f\x05\n" +
+	"\aPackage\x1aj\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12.\n" +
-	"\x13macro_instance_name\x18\x02 \x03(\tR\x11macroInstanceName\x1a\x97\x04\n" +
+	"\x13macro_instance_name\x18\x02 \x03(\tR\x11macroInstanceName:\x1d\xf2\xd7 \x19\n" +
+	"\x17Loading package {label}\x1a\x97\x04\n" +
 	"\x05Value\x12F\n" +
 	"\atargets\x18\x01 \x03(\v2,.bonanza.model.analysis.Package.Value.TargetR\atargets\x12m\n" +
 	"\x18macro_expansion_contexts\x18\x02 \x03(\v23.bonanza.model.starlark.MacroExpansionContext.EntryR\x16macroExpansionContexts\x1a\xd6\x02\n" +
@@ -17037,38 +17088,43 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\n" +
 	"first_name\x18\x02 \x01(\tR\tfirstName\x12\x1b\n" +
 	"\tlast_name\x18\x03 \x01(\tR\blastNameB\a\n" +
-	"\x05level\"\x8c\x01\n" +
-	"\x14PackageGroupContains\x1aO\n" +
+	"\x05level\"\xce\x01\n" +
+	"\x14PackageGroupContains\x1a\x90\x01\n" +
 	"\x03Key\x12.\n" +
 	"\x13package_group_label\x18\x01 \x01(\tR\x11packageGroupLabel\x12\x18\n" +
-	"\apackage\x18\x02 \x01(\tR\apackage\x1a#\n" +
+	"\apackage\x18\x02 \x01(\tR\apackage:?\xf2\xd7 ;\n" +
+	"9Checking whether {package_group_label} contains {package}\x1a#\n" +
 	"\x05Value\x12\x1a\n" +
-	"\bcontains\x18\x01 \x01(\bR\bcontains\"\xe1\x01\n" +
-	"\x0ePackageTargets\x1a~\n" +
+	"\bcontains\x18\x01 \x01(\bR\bcontains\"\x86\x02\n" +
+	"\x0ePackageTargets\x1a\xa2\x01\n" +
 	"\x03Key\x12\x18\n" +
 	"\apackage\x18\x01 \x01(\tR\apackage\x12.\n" +
 	"\x13macro_instance_name\x18\x02 \x03(\tR\x11macroInstanceName\x12-\n" +
-	"\x12exclude_finalizers\x18\x03 \x01(\bR\x11excludeFinalizers\x1aO\n" +
+	"\x12exclude_finalizers\x18\x03 \x01(\bR\x11excludeFinalizers:\"\xf2\xd7 \x1e\n" +
+	"\x1cListing targets in {package}\x1aO\n" +
 	"\x05Value\x12F\n" +
-	"\atargets\x18\x01 \x03(\v2,.bonanza.model.analysis.Package.Value.TargetR\atargets\"\xd7\x01\n" +
-	"\x12PackagesAtAndBelow\x1aB\n" +
+	"\atargets\x18\x01 \x03(\v2,.bonanza.model.analysis.Package.Value.TargetR\atargets\"\x8b\x02\n" +
+	"\x12PackagesAtAndBelow\x1av\n" +
 	"\x03Key\x12!\n" +
 	"\fbase_package\x18\x01 \x01(\tR\vbasePackage\x12\x18\n" +
-	"\apattern\x18\x02 \x01(\fR\apattern\x1a}\n" +
+	"\apattern\x18\x02 \x01(\fR\apattern:2\xf2\xd7 .\n" +
+	",Listing packages at and below {base_package}\x1a}\n" +
 	"\x05Value\x125\n" +
 	"\x17package_at_base_package\x18\x01 \x01(\bR\x14packageAtBasePackage\x12=\n" +
-	"\x1bpackages_below_base_package\x18\x02 \x03(\tR\x18packagesBelowBasePackage\"\xb4\x01\n" +
-	"\x0eQueryExpansion\x1aO\n" +
+	"\x1bpackages_below_base_package\x18\x02 \x03(\tR\x18packagesBelowBasePackage\"\xd3\x01\n" +
+	"\x0eQueryExpansion\x1an\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x122\n" +
-	"\x15include_implicit_deps\x18\x02 \x01(\bR\x13includeImplicitDeps\x1aQ\n" +
+	"\x15include_implicit_deps\x18\x02 \x01(\bR\x13includeImplicitDeps:\x1d\xf2\xd7 \x19\n" +
+	"\x17Expanding query {query}\x1aQ\n" +
 	"\x05Value\x12H\n" +
-	"\rtarget_labels\x18\x01 \x03(\v2#.bonanza.model.analysis.TargetLabelR\ftargetLabels\"\x8a\x02\n" +
-	"\vQueryResult\x1a\xb2\x01\n" +
+	"\rtarget_labels\x18\x01 \x03(\v2#.bonanza.model.analysis.TargetLabelR\ftargetLabels\"\xaa\x02\n" +
+	"\vQueryResult\x1a\xd2\x01\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x122\n" +
 	"\x15include_implicit_deps\x18\x02 \x01(\bR\x13includeImplicitDeps\x12a\n" +
-	"\x11definition_detail\x18\x03 \x01(\x0e24.bonanza.model.analysis.QueryTarget.DefinitionDetailR\x10definitionDetail\x1aF\n" +
+	"\x11definition_detail\x18\x03 \x01(\x0e24.bonanza.model.analysis.QueryTarget.DefinitionDetailR\x10definitionDetail:\x1e\xf2\xd7 \x1a\n" +
+	"\x18Evaluating query {query}\x1aF\n" +
 	"\x05Value\x12=\n" +
 	"\atargets\x18\x01 \x03(\v2#.bonanza.model.analysis.QueryTargetR\atargets\"\xde\x03\n" +
 	"\vQueryTarget\x12>\n" +
@@ -17086,16 +17142,18 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x04NONE\x10\x00\x12\b\n" +
 	"\x04KIND\x10\x01\x12\b\n" +
 	"\x04FULL\x10\x02B\a\n" +
-	"\x05level\"\xcc\x02\n" +
-	"\fQueryTargets\x1a\xf3\x01\n" +
+	"\x05level\"\xfa\x02\n" +
+	"\fQueryTargets\x1a\xa1\x02\n" +
 	"\x03Key\x12\x88\x01\n" +
 	"\x17target_labels_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB(\xea\xd7 $\x1a\"bonanza.model.analysis.TargetLabelR\x15targetLabelsReference\x12a\n" +
-	"\x11definition_detail\x18\x02 \x01(\x0e24.bonanza.model.analysis.QueryTarget.DefinitionDetailR\x10definitionDetail\x1aF\n" +
+	"\x11definition_detail\x18\x02 \x01(\x0e24.bonanza.model.analysis.QueryTarget.DefinitionDetailR\x10definitionDetail:,\xf2\xd7 (\n" +
+	"&Obtaining definitions of query targets\x1aF\n" +
 	"\x05Value\x12=\n" +
-	"\atargets\x18\x01 \x03(\v2#.bonanza.model.analysis.QueryTargetR\atargets\"\xe9\x01\n" +
-	"\x0fRawActionResult\x1aV\n" +
+	"\atargets\x18\x01 \x03(\v2#.bonanza.model.analysis.QueryTargetR\atargets\"\x81\x02\n" +
+	"\x0fRawActionResult\x1an\n" +
 	"\x03Key\x12O\n" +
-	"\x0fexecute_request\x18\x01 \x01(\v2&.bonanza.model.analysis.ExecuteRequestR\x0eexecuteRequest\x1a~\n" +
+	"\x0fexecute_request\x18\x01 \x01(\v2&.bonanza.model.analysis.ExecuteRequestR\x0eexecuteRequest:\x16\xf2\xd7 \x12\n" +
+	"\x10Executing action\x1a~\n" +
 	"\x05Value\x12u\n" +
 	"\x10result_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB\"\xea\xd7 \x1e\x12\x1cbonanza.model.command.ResultR\x0fresultReference\"<\n" +
 	"\n" +
@@ -17105,17 +17163,20 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x11ExecutionPlatform\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12D\n" +
 	"\vconstraints\x18\x02 \x03(\v2\".bonanza.model.analysis.ConstraintR\vconstraints\x12/\n" +
-	"\x14exec_pkix_public_key\x18\x03 \x01(\fR\x11execPkixPublicKey\"\x8a\x01\n" +
-	"\x1cRegisteredExecutionPlatforms\x1a\x05\n" +
-	"\x03Key\x1ac\n" +
+	"\x14exec_pkix_public_key\x18\x03 \x01(\fR\x11execPkixPublicKey\"\xba\x01\n" +
+	"\x1cRegisteredExecutionPlatforms\x1a5\n" +
+	"\x03Key:.\xf2\xd7 *\n" +
+	"(Obtaining registered execution platforms\x1ac\n" +
 	"\x05Value\x12Z\n" +
-	"\x13execution_platforms\x18\x01 \x03(\v2).bonanza.model.analysis.ExecutionPlatformR\x12executionPlatforms\"m\n" +
-	"\x17RegisteredFetchPlatform\x1a\x05\n" +
-	"\x03Key\x1aK\n" +
+	"\x13execution_platforms\x18\x01 \x03(\v2).bonanza.model.analysis.ExecutionPlatformR\x12executionPlatforms\"\x98\x01\n" +
+	"\x17RegisteredFetchPlatform\x1a0\n" +
+	"\x03Key:)\xf2\xd7 %\n" +
+	"#Obtaining registered fetch platform\x1aK\n" +
 	"\x05Value\x12B\n" +
-	"\x1efetch_platform_pkix_public_key\x18\x01 \x01(\fR\x1afetchPlatformPkixPublicKey\"\xf5\x02\n" +
-	"\x16RegisteredRepoPlatform\x1a\x05\n" +
-	"\x03Key\x1a\xd3\x02\n" +
+	"\x1efetch_platform_pkix_public_key\x18\x01 \x01(\fR\x1afetchPlatformPkixPublicKey\"\x9f\x03\n" +
+	"\x16RegisteredRepoPlatform\x1a/\n" +
+	"\x03Key:(\xf2\xd7 $\n" +
+	"\"Obtaining registered repo platform\x1a\xd3\x02\n" +
 	"\x05Value\x12/\n" +
 	"\x14exec_pkix_public_key\x18\x01 \x01(\fR\x11execPkixPublicKey\x12,\n" +
 	"\x12repository_os_arch\x18\x02 \x01(\tR\x10repositoryOsArch\x12|\n" +
@@ -17130,99 +17191,114 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\ttoolchain\x18\x03 \x01(\tR\ttoolchain\x1a\x84\x01\n" +
 	"\x0eCompatibleWith\x126\n" +
 	"\x04exec\x18\x01 \x03(\v2\".bonanza.model.analysis.ConstraintR\x04exec\x12:\n" +
-	"\x06target\x18\x02 \x03(\v2\".bonanza.model.analysis.ConstraintR\x06target\"\xac\x02\n" +
-	"\x14RegisteredToolchains\x1a\x05\n" +
-	"\x03Key\x1a\x8c\x02\n" +
+	"\x06target\x18\x02 \x03(\v2\".bonanza.model.analysis.ConstraintR\x06target\"\xd3\x02\n" +
+	"\x14RegisteredToolchains\x1a,\n" +
+	"\x03Key:%\xf2\xd7 !\n" +
+	"\x1fObtaining registered toolchains\x1a\x8c\x02\n" +
 	"\x05Value\x12s\n" +
 	"\x0ftoolchain_types\x18\x01 \x03(\v2J.bonanza.model.analysis.RegisteredToolchains.Value.RegisteredToolchainTypeR\x0etoolchainTypes\x1a\x8d\x01\n" +
 	"\x17RegisteredToolchainType\x12%\n" +
 	"\x0etoolchain_type\x18\x01 \x01(\tR\rtoolchainType\x12K\n" +
 	"\n" +
 	"toolchains\x18\x02 \x03(\v2+.bonanza.model.analysis.RegisteredToolchainR\n" +
-	"toolchains\"\xa1\x01\n" +
-	"\x1bRegisteredToolchainsForType\x1a,\n" +
+	"toolchains\"\xe1\x01\n" +
+	"\x1bRegisteredToolchainsForType\x1al\n" +
 	"\x03Key\x12%\n" +
-	"\x0etoolchain_type\x18\x01 \x01(\tR\rtoolchainType\x1aT\n" +
+	"\x0etoolchain_type\x18\x01 \x01(\tR\rtoolchainType:>\xf2\xd7 :\n" +
+	"8Obtaining registered toolchains of type {toolchain_type}\x1aT\n" +
 	"\x05Value\x12K\n" +
 	"\n" +
 	"toolchains\x18\x02 \x03(\v2+.bonanza.model.analysis.RegisteredToolchainR\n" +
-	"toolchains\"\xa5\x01\n" +
-	"\x04Repo\x1a,\n" +
+	"toolchains\"\xc8\x01\n" +
+	"\x04Repo\x1aO\n" +
 	"\x03Key\x12%\n" +
-	"\x0ecanonical_repo\x18\x01 \x01(\tR\rcanonicalRepo\x1ao\n" +
+	"\x0ecanonical_repo\x18\x01 \x01(\tR\rcanonicalRepo:!\xf2\xd7 \x1d\n" +
+	"\x1bFetching @@{canonical_repo}\x1ao\n" +
 	"\x05Value\x12f\n" +
-	"\x18root_directory_reference\x18\x01 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x16rootDirectoryReference\"\xa0\x01\n" +
-	"\x10RepoDefaultAttrs\x1a,\n" +
+	"\x18root_directory_reference\x18\x01 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x16rootDirectoryReference\"\xd5\x01\n" +
+	"\x10RepoDefaultAttrs\x1aa\n" +
 	"\x03Key\x12%\n" +
-	"\x0ecanonical_repo\x18\x01 \x01(\tR\rcanonicalRepo\x1a^\n" +
+	"\x0ecanonical_repo\x18\x01 \x01(\tR\rcanonicalRepo:3\xf2\xd7 /\n" +
+	"-Obtaining default attrs of @@{canonical_repo}\x1a^\n" +
 	"\x05Value\x12U\n" +
-	"\x11inheritable_attrs\x18\x01 \x01(\v2(.bonanza.model.starlark.InheritableAttrsR\x10inheritableAttrs\"\xcc\x02\n" +
-	"\x14RepoPlatformHostPath\x1a*\n" +
+	"\x11inheritable_attrs\x18\x01 \x01(\v2(.bonanza.model.starlark.InheritableAttrsR\x10inheritableAttrs\"\xf7\x02\n" +
+	"\x14RepoPlatformHostPath\x1aU\n" +
 	"\x03Key\x12#\n" +
-	"\rabsolute_path\x18\x01 \x01(\tR\fabsolutePath\x1a\x87\x02\n" +
+	"\rabsolute_path\x18\x01 \x01(\tR\fabsolutePath:)\xf2\xd7 %\n" +
+	"#Resolving host path {absolute_path}\x1a\x87\x02\n" +
 	"\x05Value\x12>\n" +
 	"\x04file\x18\x01 \x01(\v2(.bonanza.model.filesystem.FilePropertiesH\x00R\x04file\x12\\\n" +
 	"\tdirectory\x18\x02 \x01(\v2<.bonanza.model.analysis.RepoPlatformHostPath.Value.DirectoryH\x00R\tdirectory\x1aO\n" +
 	"\tDirectory\x12B\n" +
 	"\aentries\x18\x01 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\aentriesB\x0f\n" +
-	"\rcaptured_path\"J\n" +
-	"\x11RepoPlatformLabel\x1a\x05\n" +
-	"\x03Key\x1a.\n" +
+	"\rcaptured_path\"o\n" +
+	"\x11RepoPlatformLabel\x1a*\n" +
+	"\x03Key:#\xf2\xd7 \x1f\n" +
+	"\x1dObtaining repo platform label\x1a.\n" +
 	"\x05Value\x12%\n" +
-	"\x0eapparent_label\x18\x01 \x01(\tR\rapparentLabel\"\xed\x03\n" +
-	"\x12ResolvedToolchains\x1a\xb7\x02\n" +
+	"\x0eapparent_label\x18\x01 \x01(\tR\rapparentLabel\"\x89\x04\n" +
+	"\x12ResolvedToolchains\x1a\xd3\x02\n" +
 	"\x03Key\x12T\n" +
 	"\x14exec_compatible_with\x18\x01 \x03(\v2\".bonanza.model.analysis.ConstraintR\x12execCompatibleWith\x12\x92\x01\n" +
 	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x12E\n" +
 	"\n" +
 	"toolchains\x18\x03 \x03(\v2%.bonanza.model.starlark.ToolchainTypeR\n" +
-	"toolchains\x1a\x9c\x01\n" +
+	"toolchains:\x1a\xf2\xd7 \x16\n" +
+	"\x14Resolving toolchains\x1a\x9c\x01\n" +
 	"\x05Value\x123\n" +
 	"\x15toolchain_identifiers\x18\x01 \x03(\tR\x14toolchainIdentifiers\x12%\n" +
 	"\x0eplatform_label\x18\x02 \x01(\tR\rplatformLabel\x127\n" +
-	"\x18platform_pkix_public_key\x18\x03 \x01(\fR\x15platformPkixPublicKey\"\x94\x01\n" +
+	"\x18platform_pkix_public_key\x18\x03 \x01(\fR\x15platformPkixPublicKey\"\xb1\x01\n" +
 	"\n" +
-	"RootModule\x1a\x05\n" +
-	"\x03Key\x1a\x7f\n" +
+	"RootModule\x1a\"\n" +
+	"\x03Key:\x1b\xf2\xd7 \x17\n" +
+	"\x15Obtaining root module\x1a\x7f\n" +
 	"\x05Value\x12(\n" +
 	"\x10root_module_name\x18\x01 \x01(\tR\x0erootModuleName\x12L\n" +
-	"#ignore_root_module_dev_dependencies\x18\x02 \x01(\bR\x1fignoreRootModuleDevDependencies\"\xd9\x01\n" +
-	"\x1aRuleImplementationWrappers\x1a\x05\n" +
-	"\x03Key\x1a\xb3\x01\n" +
+	"#ignore_root_module_dev_dependencies\x18\x02 \x01(\bR\x1fignoreRootModuleDevDependencies\"\x87\x02\n" +
+	"\x1aRuleImplementationWrappers\x1a3\n" +
+	"\x03Key:,\xf2\xd7 (\n" +
+	"&Obtaining rule implementation wrappers\x1a\xb3\x01\n" +
 	"\x05Value\x124\n" +
 	"\x04rule\x18\x01 \x01(\v2 .bonanza.model.starlark.FunctionR\x04rule\x12:\n" +
 	"\asubrule\x18\x02 \x01(\v2 .bonanza.model.starlark.FunctionR\asubrule\x128\n" +
-	"\x06aspect\x18\x03 \x01(\v2 .bonanza.model.starlark.FunctionR\x06aspect\"\xbd\x01\n" +
-	"%RuleImplementationWrappersIdentifiers\x1a\x05\n" +
-	"\x03Key\x1a\x8c\x01\n" +
+	"\x06aspect\x18\x03 \x01(\v2 .bonanza.model.starlark.FunctionR\x06aspect\"\xfa\x01\n" +
+	"%RuleImplementationWrappersIdentifiers\x1aB\n" +
+	"\x03Key:;\xf2\xd7 7\n" +
+	"5Obtaining identifiers of rule implementation wrappers\x1a\x8c\x01\n" +
 	"\x05Value\x12'\n" +
 	"\x0frule_identifier\x18\x01 \x01(\tR\x0eruleIdentifier\x12-\n" +
 	"\x12subrule_identifier\x18\x02 \x01(\tR\x11subruleIdentifier\x12+\n" +
-	"\x11aspect_identifier\x18\x03 \x01(\tR\x10aspectIdentifier\"\xb3\x02\n" +
-	"\x06Select\x1a\xf2\x01\n" +
+	"\x11aspect_identifier\x18\x03 \x01(\tR\x10aspectIdentifier\"\xe9\x02\n" +
+	"\x06Select\x1a\xa8\x02\n" +
 	"\x03Key\x123\n" +
 	"\x15condition_identifiers\x18\x01 \x03(\tR\x14conditionIdentifiers\x12\x92\x01\n" +
 	"\x17configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x12!\n" +
-	"\ffrom_package\x18\x03 \x01(\tR\vfromPackage\x1a4\n" +
+	"\ffrom_package\x18\x03 \x01(\tR\vfromPackage:4\xf2\xd7 0\n" +
+	".Evaluating select() on {condition_identifiers}\x1a4\n" +
 	"\x05Value\x12+\n" +
-	"\x11condition_indices\x18\x01 \x03(\rR\x10conditionIndices\"M\n" +
-	"\x13StableInputRootPath\x1a\x05\n" +
-	"\x03Key\x1a/\n" +
+	"\x11condition_indices\x18\x01 \x03(\rR\x10conditionIndices\"u\n" +
+	"\x13StableInputRootPath\x1a-\n" +
+	"\x03Key:&\xf2\xd7 \"\n" +
+	" Obtaining stable input root path\x1a/\n" +
 	"\x05Value\x12&\n" +
-	"\x0finput_root_path\x18\x01 \x01(\tR\rinputRootPath\"\xed\x01\n" +
-	"\x15StarlarkValueEncoders\x1a\x05\n" +
-	"\x03Key\x1a\xcc\x01\n" +
+	"\x0finput_root_path\x18\x01 \x01(\tR\rinputRootPath\"\x96\x02\n" +
+	"\x15StarlarkValueEncoders\x1a.\n" +
+	"\x03Key:'\xf2\xd7 #\n" +
+	"!Obtaining Starlark value encoders\x1a\xcc\x01\n" +
 	"\x05Value\x12d\n" +
 	"\x16file_access_parameters\x18\x01 \x01(\v2..bonanza.model.filesystem.FileAccessParametersR\x14fileAccessParameters\x12]\n" +
-	"\x17starlark_value_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x15starlarkValueEncoders\"\xf4\x01\n" +
-	"\x16SuccessfulActionResult\x1aV\n" +
+	"\x17starlark_value_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x15starlarkValueEncoders\"\x8c\x02\n" +
+	"\x16SuccessfulActionResult\x1an\n" +
 	"\x03Key\x12O\n" +
-	"\x0fexecute_request\x18\x01 \x01(\v2&.bonanza.model.analysis.ExecuteRequestR\x0eexecuteRequest\x1a\x81\x01\n" +
+	"\x0fexecute_request\x18\x01 \x01(\v2&.bonanza.model.analysis.ExecuteRequestR\x0eexecuteRequest:\x16\xf2\xd7 \x12\n" +
+	"\x10Executing action\x1a\x81\x01\n" +
 	"\x05Value\x12x\n" +
-	"\x11outputs_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x1a\x1dbonanza.model.command.OutputsR\x10outputsReference\"y\n" +
-	"\x06Target\x1a\x1b\n" +
+	"\x11outputs_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x1a\x1dbonanza.model.command.OutputsR\x10outputsReference\"\x97\x01\n" +
+	"\x06Target\x1a9\n" +
 	"\x03Key\x12\x14\n" +
-	"\x05label\x18\x01 \x01(\tR\x05label\x1aR\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label:\x1c\xf2\xd7 \x18\n" +
+	"\x16Loading target {label}\x1aR\n" +
 	"\x05Value\x12I\n" +
 	"\n" +
 	"definition\x18\x01 \x01(\v2).bonanza.model.starlark.Target.DefinitionR\n" +
@@ -17230,41 +17306,47 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x0eTargetActionId\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12?\n" +
 	"\avariant\x18\x02 \x01(\v2%.bonanza.model.starlark.TargetVariantR\avariant\x12\x1b\n" +
-	"\taction_id\x18\x03 \x01(\fR\bactionId\"\xa6\x01\n" +
-	"\fTargetAction\x1a=\n" +
+	"\taction_id\x18\x03 \x01(\fR\bactionId\"\xdd\x01\n" +
+	"\fTargetAction\x1at\n" +
 	"\x03Key\x126\n" +
-	"\x02id\x18\x01 \x01(\v2&.bonanza.model.analysis.TargetActionIdR\x02id\x1aW\n" +
+	"\x02id\x18\x01 \x01(\v2&.bonanza.model.analysis.TargetActionIdR\x02id:5\xf2\xd7 1\n" +
+	"/Obtaining definition of an action of {id.label}\x1aW\n" +
 	"\x05Value\x12N\n" +
 	"\n" +
 	"definition\x18\x01 \x01(\v2..bonanza.model.analysis.TargetActionDefinitionR\n" +
-	"definition\"\xd8\x01\n" +
-	"\x13TargetActionCommand\x1a=\n" +
+	"definition\"\x8f\x02\n" +
+	"\x13TargetActionCommand\x1at\n" +
 	"\x03Key\x126\n" +
-	"\x02id\x18\x01 \x01(\v2&.bonanza.model.analysis.TargetActionIdR\x02id\x1a\x81\x01\n" +
+	"\x02id\x18\x01 \x01(\v2&.bonanza.model.analysis.TargetActionIdR\x02id:5\xf2\xd7 1\n" +
+	"/Constructing command of an action of {id.label}\x1a\x81\x01\n" +
 	"\x05Value\x12x\n" +
-	"\x11command_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.CommandR\x10commandReference\"\xbf\x01\n" +
-	"\x15TargetActionInputRoot\x1a=\n" +
+	"\x11command_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB#\xea\xd7 \x1f\x12\x1dbonanza.model.command.CommandR\x10commandReference\"\xf9\x01\n" +
+	"\x15TargetActionInputRoot\x1aw\n" +
 	"\x03Key\x126\n" +
-	"\x02id\x18\x01 \x01(\v2&.bonanza.model.analysis.TargetActionIdR\x02id\x1ag\n" +
+	"\x02id\x18\x01 \x01(\v2&.bonanza.model.analysis.TargetActionIdR\x02id:8\xf2\xd7 4\n" +
+	"2Constructing input root of an action of {id.label}\x1ag\n" +
 	"\x05Value\x12^\n" +
-	"\x14input_root_reference\x18\x01 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x12inputRootReference\"\xa7\x01\n" +
-	"\x12TargetActionResult\x1a=\n" +
+	"\x14input_root_reference\x18\x01 \x01(\v2,.bonanza.model.filesystem.DirectoryReferenceR\x12inputRootReference\"\xce\x01\n" +
+	"\x12TargetActionResult\x1ad\n" +
 	"\x03Key\x126\n" +
-	"\x02id\x18\x01 \x01(\v2&.bonanza.model.analysis.TargetActionIdR\x02id\x1aR\n" +
+	"\x02id\x18\x01 \x01(\v2&.bonanza.model.analysis.TargetActionIdR\x02id:%\xf2\xd7 !\n" +
+	"\x1fRunning an action of {id.label}\x1aR\n" +
 	"\x05Value\x12I\n" +
 	"\voutput_root\x18\x01 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\n" +
-	"outputRoot\"\xf3\x01\n" +
-	"\x10TargetCompletion\x1a\x9f\x01\n" +
+	"outputRoot\"\x8b\x02\n" +
+	"\x10TargetCompletion\x1a\xb7\x01\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12?\n" +
 	"\avariant\x18\x02 \x01(\v2%.bonanza.model.starlark.TargetVariantR\avariant\x12A\n" +
-	"\aoutputs\x18\x03 \x01(\v2'.bonanza.model.analysis.OutputSelectionR\aoutputs\x1a=\n" +
+	"\aoutputs\x18\x03 \x01(\v2'.bonanza.model.analysis.OutputSelectionR\aoutputs:\x16\xf2\xd7 \x12\n" +
+	"\x10Building {label}\x1a=\n" +
 	"\x05Value\x124\n" +
-	"\x16provided_output_groups\x18\x01 \x03(\tR\x14providedOutputGroups\"\xbe\x01\n" +
-	"\x18TargetDirectDependencies\x1aO\n" +
+	"\x16provided_output_groups\x18\x01 \x03(\tR\x14providedOutputGroups\"\xee\x01\n" +
+	"\x18TargetDirectDependencies\x1a\x7f\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x122\n" +
-	"\x15include_implicit_deps\x18\x02 \x01(\bR\x13includeImplicitDeps\x1aQ\n" +
+	"\x15include_implicit_deps\x18\x02 \x01(\bR\x13includeImplicitDeps:.\xf2\xd7 *\n" +
+	"(Obtaining direct dependencies of {label}\x1aQ\n" +
 	"\x05Value\x12H\n" +
 	"\rtarget_labels\x18\x01 \x03(\v2#.bonanza.model.analysis.TargetLabelR\ftargetLabels\"\xad\x02\n" +
 	"\vTargetLabel\x12\x14\n" +
@@ -17276,24 +17358,27 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"firstLabel\x12\x1d\n" +
 	"\n" +
 	"last_label\x18\x03 \x01(\tR\tlastLabelB\a\n" +
-	"\x05level\"\xe8\x01\n" +
-	"\x0eTargetProvider\x1a\x8d\x01\n" +
+	"\x05level\"\xa3\x02\n" +
+	"\x0eTargetProvider\x1a\xc8\x01\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12?\n" +
 	"\avariant\x18\x02 \x01(\v2%.bonanza.model.starlark.TargetVariantR\avariant\x12/\n" +
-	"\x13provider_identifier\x18\x03 \x01(\tR\x12providerIdentifier\x1aF\n" +
+	"\x13provider_identifier\x18\x03 \x01(\tR\x12providerIdentifier:9\xf2\xd7 5\n" +
+	"3Obtaining provider {provider_identifier} of {label}\x1aF\n" +
 	"\x05Value\x12=\n" +
-	"\x06fields\x18\x01 \x01(\v2%.bonanza.model.starlark.Struct.FieldsR\x06fields\"\xed\x01\n" +
-	"\x0fTargetProviders\x1a\\\n" +
+	"\x06fields\x18\x01 \x01(\v2%.bonanza.model.starlark.Struct.FieldsR\x06fields\"\x94\x02\n" +
+	"\x0fTargetProviders\x1a\x82\x01\n" +
 	"\x03Key\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12?\n" +
-	"\avariant\x18\x02 \x01(\v2%.bonanza.model.starlark.TargetVariantR\avariant\x1a|\n" +
+	"\avariant\x18\x02 \x01(\v2%.bonanza.model.starlark.TargetVariantR\avariant:$\xf2\xd7  \n" +
+	"\x1eObtaining providers of {label}\x1a|\n" +
 	"\x05Value\x12M\n" +
 	"\x12provider_instances\x18\x01 \x03(\v2\x1e.bonanza.model.starlark.StructR\x11providerInstances\x12$\n" +
-	"\x0eis_file_target\x18\x02 \x01(\bR\fisFileTarget\"\x80\x01\n" +
-	"\x0eTestSuiteTests\x1a\x1b\n" +
+	"\x0eis_file_target\x18\x02 \x01(\bR\fisFileTarget\"\xad\x01\n" +
+	"\x0eTestSuiteTests\x1aH\n" +
 	"\x03Key\x12\x14\n" +
-	"\x05label\x18\x01 \x01(\tR\x05label\x1aQ\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label:+\xf2\xd7 '\n" +
+	"%Expanding tests of test suite {label}\x1aQ\n" +
 	"\x05Value\x12H\n" +
 	"\rtarget_labels\x18\x01 \x03(\v2#.bonanza.model.analysis.TargetLabelR\ftargetLabels\"\xaf\x04\n" +
 	"\x0fModuleExtension\x12\x1e\n" +
@@ -17312,20 +17397,23 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x04tags\x18\x02 \x03(\v2+.bonanza.model.analysis.ModuleExtension.TagR\x04tags\x1an\n" +
 	"\x03Tag\x12;\n" +
 	"\x05attrs\x18\x01 \x01(\v2%.bonanza.model.starlark.Struct.FieldsR\x05attrs\x12*\n" +
-	"\x11is_dev_dependency\x18\x02 \x01(\bR\x0fisDevDependency\"\xa4\x01\n" +
-	"\x13UsedModuleExtension\x1a0\n" +
+	"\x11is_dev_dependency\x18\x02 \x01(\bR\x0fisDevDependency\"\xe2\x01\n" +
+	"\x13UsedModuleExtension\x1an\n" +
 	"\x03Key\x12)\n" +
-	"\x10module_extension\x18\x01 \x01(\tR\x0fmoduleExtension\x1a[\n" +
+	"\x10module_extension\x18\x01 \x01(\tR\x0fmoduleExtension:<\xf2\xd7 8\n" +
+	"6Obtaining usage of module extension {module_extension}\x1a[\n" +
 	"\x05Value\x12R\n" +
-	"\x10module_extension\x18\x01 \x01(\v2'.bonanza.model.analysis.ModuleExtensionR\x0fmoduleExtension\"|\n" +
-	"\x14UsedModuleExtensions\x1a\x05\n" +
-	"\x03Key\x1a]\n" +
+	"\x10module_extension\x18\x01 \x01(\v2'.bonanza.model.analysis.ModuleExtensionR\x0fmoduleExtension\"\xa2\x01\n" +
+	"\x14UsedModuleExtensions\x1a+\n" +
+	"\x03Key:$\xf2\xd7  \n" +
+	"\x1eListing used module extensions\x1a]\n" +
 	"\x05Value\x12T\n" +
-	"\x11module_extensions\x18\x01 \x03(\v2'.bonanza.model.analysis.ModuleExtensionR\x10moduleExtensions\"\xe1\x05\n" +
-	"\x15UserDefinedTransition\x1a\xda\x01\n" +
+	"\x11module_extensions\x18\x01 \x03(\v2'.bonanza.model.analysis.ModuleExtensionR\x10moduleExtensions\"\x94\x06\n" +
+	"\x15UserDefinedTransition\x1a\x8d\x02\n" +
 	"\x03Key\x123\n" +
 	"\x15transition_identifier\x18\x01 \x01(\tR\x14transitionIdentifier\x12\x9d\x01\n" +
-	"\x1dinput_configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x1binputConfigurationReference\x1a\xea\x03\n" +
+	"\x1dinput_configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x1binputConfigurationReference:1\xf2\xd7 -\n" +
+	"+Applying transition {transition_identifier}\x1a\xea\x03\n" +
 	"\x05Value\x12W\n" +
 	"\x1btransition_depends_on_attrs\x18\x01 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x18transitionDependsOnAttrs\x12W\n" +
 	"\asuccess\x18\x02 \x01(\v2;.bonanza.model.analysis.UserDefinedTransition.Value.SuccessH\x00R\asuccess\x1a\xa4\x02\n" +
@@ -17334,14 +17422,15 @@ const file_bonanza_build_pkg_proto_model_analysis_analysis_proto_rawDesc = "" +
 	"\x05Entry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x9f\x01\n" +
 	"\x1eoutput_configuration_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x1coutputConfigurationReferenceB\b\n" +
-	"\x06result\"\xef\x02\n" +
-	"\rVisibleTarget\x1a\xbe\x02\n" +
+	"\x06result\"\xa7\x03\n" +
+	"\rVisibleTarget\x1a\xf6\x02\n" +
 	"\x03Key\x12!\n" +
 	"\ffrom_package\x18\x01 \x01(\tR\vfromPackage\x12\x19\n" +
 	"\bto_label\x18\x02 \x01(\tR\atoLabel\x121\n" +
 	"\x15permit_alias_no_match\x18\x03 \x01(\bR\x12permitAliasNoMatch\x12\x92\x01\n" +
 	"\x17configuration_reference\x18\x04 \x01(\v2&.bonanza.model.core.DecodableReferenceB1\xea\xd7 -\x1a+bonanza.model.analysis.BuildSettingOverrideR\x16configurationReference\x121\n" +
-	"\x15stop_at_label_setting\x18\x05 \x01(\bR\x12stopAtLabelSetting\x1a\x1d\n" +
+	"\x15stop_at_label_setting\x18\x05 \x01(\bR\x12stopAtLabelSetting:6\xf2\xd7 2\n" +
+	"0Resolving {to_label} as seen from {from_package}\x1a\x1d\n" +
 	"\x05Value\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label*<\n" +
 	"\x0fDirectoryLayout\x12\v\n" +

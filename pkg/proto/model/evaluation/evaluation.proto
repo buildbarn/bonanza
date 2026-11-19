@@ -4,6 +4,7 @@ package bonanza.model.evaluation;
 
 import "bonanza.build/pkg/proto/model/chunking/chunking.proto";
 import "bonanza.build/pkg/proto/model/core/core.proto";
+import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
 import "google/rpc/status.proto";
 
@@ -25,6 +26,28 @@ option go_package = "bonanza.build/pkg/proto/model/evaluation";
 // what needs to be built. Semantics for how a build behaves (e.g.,
 // interpreting BUILD and .bzl files) should be implemented as a layer
 // on top of this.
+
+// MessageDescription can be attached to messages (e.g., ones that are
+// used as evaluation keys), so that tools can display them in a human
+// readable form (e.g., "Analyzing //foo:bar") as opposed to displaying
+// the message's contents.
+message MessageDescription {
+  // Template of the description of the message. Placeholders of the
+  // form "{field}" or "{field.nested_field}" are replaced by the values
+  // of the corresponding fields of the message. The literal characters
+  // "{" and "}" can be emitted by writing "{{" and "}}", respectively.
+  //
+  // Placeholders may only refer to fields of scalar types, or repeated
+  // fields thereof. Values of repeated fields are joined using ", ".
+  // Values of enumeration fields are emitted by name.
+  string template = 1;
+}
+
+extend google.protobuf.MessageOptions {
+  // Human readable description of messages that are used as evaluation
+  // keys.
+  MessageDescription key_description = 66942;
+}
 
 // Keys is a list of evaluation keys. It can, for example, be used to
 // describe the set of dependencies of an evaluation key, or to specify

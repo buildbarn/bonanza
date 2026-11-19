@@ -183,6 +183,7 @@ go_test(
         "configured_target_test.go",
         "file_root_test.go",
         "generating_rule_aspects_test.go",
+        "key_descriptions_test.go",
         "label_attr_aspects_test.go",
         "label_attr_requirements_internal_test.go",
         "macro_expansion_context_test.go",

@@ -25,6 +25,7 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	model_encoding "bonanza.build/pkg/model/encoding"
+	model_evaluation "bonanza.build/pkg/model/evaluation"
 	model_executewithstorage "bonanza.build/pkg/model/executewithstorage"
 	model_filesystem "bonanza.build/pkg/model/filesystem"
 	model_format "bonanza.build/pkg/model/format"
@@ -1075,9 +1076,23 @@ func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core
 				}
 			}
 		}
-		body = messageFormatter.formatSingleLine(
-			messageFormatter.message(model_core.Nested(key.Decay(), key.Message.ProtoReflect())),
-		)
+		if description, ok, err := model_evaluation.DescribeKey(key.Message.ProtoReflect()); messageFormatter.renderer.Pretty && err == nil && ok {
+			// Display a human readable description of the
+			// key, emphasizing values of fields.
+			parts := make([]formatted.Node, 0, len(description.Segments))
+			for _, segment := range description.Segments {
+				if segment.IsField {
+					parts = append(parts, formatted.Bold(formatted.Text(segment.Text)))
+				} else {
+					parts = append(parts, formatted.Text(segment.Text))
+				}
+			}
+			body = formatted.Join(parts...)
+		} else {
+			body = messageFormatter.formatSingleLine(
+				messageFormatter.message(model_core.Nested(key.Decay(), key.Message.ProtoReflect())),
+			)
+		}
 	}
 	return formatted.Join(
 		formatted.Text("  "),
