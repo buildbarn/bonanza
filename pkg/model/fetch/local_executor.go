@@ -9,6 +9,7 @@ import (
 	"hash"
 	"io"
 	"math"
+	"sync/atomic"
 	"time"
 
 	model_core "bonanza.build/pkg/model/core"
@@ -25,6 +26,7 @@ import (
 	object_namespacemapping "bonanza.build/pkg/storage/object/namespacemapping"
 
 	"github.com/buildbarn/bb-remote-execution/pkg/filesystem/pool"
+	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/grpc/codes"
@@ -40,6 +42,7 @@ type localExecutor struct {
 	filePool         pool.FilePool
 
 	binaryEncoderFactory model_encoding.BinaryEncoderFactory
+	clock                clock.Clock
 }
 
 // NewLocalExecutor creates a remote worker protocol executor that is
@@ -53,6 +56,7 @@ func NewLocalExecutor(
 	fetcher Fetcher,
 	filePool pool.FilePool,
 	binaryEncoderFactory model_encoding.BinaryEncoderFactory,
+	clock clock.Clock,
 ) remoteworker.Executor[*model_executewithstorage.NamespacedAction, *model_core.Decodable[object.LocalReference], *model_core.Decodable[object.LocalReference]] {
 	return &localExecutor{
 		objectDownloader: objectDownloader,
@@ -62,6 +66,7 @@ func NewLocalExecutor(
 		filePool:         filePool,
 
 		binaryEncoderFactory: binaryEncoderFactory,
+		clock:                clock,
 	}
 }
 
@@ -70,6 +75,119 @@ func (localExecutor) CheckReadiness(ctx context.Context) error {
 }
 
 var actionObjectFormat = model_format.NewProto[model_fetch_pb.Action]().ToProto()
+
+// uploadMessage stores a message in an object, and uploads it to
+// storage. As objects cannot be empty, no reference is returned if the
+// message is empty.
+func uploadMessage[TMessage any, TMessagePtr interface {
+	*TMessage
+	proto.Message
+}](
+	ctx context.Context,
+	e *localExecutor,
+	namespace object.Namespace,
+	actionEncoder model_encoding.DeterministicBinaryEncoder,
+	message model_core.PatchedMessage[TMessagePtr, dag.ObjectContentsWalker],
+) (*model_core.Decodable[object.LocalReference], error) {
+	if proto.Size(message.Message) == 0 {
+		message.Discard()
+		return nil, nil
+	}
+	createdObject, err := model_core.MarshalAndEncodeDeterministic(
+		message.ToMarshaler(model_format.NewProto[TMessage, TMessagePtr]()),
+		namespace.ReferenceFormat,
+		actionEncoder,
+	)
+	if err != nil {
+		return nil, util.StatusWrap(err, "Failed to marshal and encode message")
+	}
+	localReference := createdObject.Value.GetLocalReference()
+	if err := e.dagUploader.UploadDAG(
+		ctx,
+		namespace.WithLocalReference(localReference),
+		dag.NewSimpleObjectContentsWalker(
+			createdObject.Value.Contents,
+			createdObject.Value.Metadata,
+		),
+	); err != nil {
+		return nil, util.StatusWrap(err, "Failed to upload message")
+	}
+	decodableReference := model_core.CopyDecodable(createdObject, localReference)
+	return &decodableReference, nil
+}
+
+// countingReader is a decorator for io.Reader that keeps track of the
+// number of bytes read.
+type countingReader struct {
+	base      io.Reader
+	bytesRead *atomic.Uint64
+}
+
+func (r countingReader) Read(p []byte) (int, error) {
+	n, err := r.base.Read(p)
+	r.bytesRead.Add(uint64(n))
+	return n, err
+}
+
+// copyWithProgress copies the contents of a file that is being
+// downloaded to a writer. While copying, execution events are
+// periodically emitted to report how many bytes have been downloaded.
+func (e *localExecutor) copyWithProgress(
+	ctx context.Context,
+	w io.Writer,
+	body io.Reader,
+	url string,
+	sizeBytes int64,
+	namespace object.Namespace,
+	actionEncoder model_encoding.DeterministicBinaryEncoder,
+	executionEvents chan<- *model_core.Decodable[object.LocalReference],
+) error {
+	var bytesRead atomic.Uint64
+	reportingCtx, cancelReporting := context.WithCancel(ctx)
+	reportingDone := make(chan struct{})
+	go func() {
+		defer close(reportingDone)
+		for {
+			t, tChan := e.clock.NewTimer(time.Second)
+			select {
+			case <-reportingCtx.Done():
+				t.Stop()
+				return
+			case <-tChan:
+			}
+
+			event := &model_fetch_pb.Event{
+				Url:                 url,
+				DownloadedSizeBytes: bytesRead.Load(),
+			}
+			if sizeBytes > 0 {
+				event.TotalSizeBytes = uint64(sizeBytes)
+			}
+			eventReference, err := uploadMessage(
+				reportingCtx,
+				e,
+				namespace,
+				actionEncoder,
+				model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](event),
+			)
+			if err != nil {
+				// Failing to report progress should not
+				// cause the download to fail.
+				continue
+			}
+			select {
+			case <-reportingCtx.Done():
+				return
+			case executionEvents <- eventReference:
+			}
+		}
+	}()
+
+	_, err := io.Copy(w, countingReader{base: body, bytesRead: &bytesRead})
+	cancelReporting()
+	<-reportingDone
+	return err
+}
 
 func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_executewithstorage.NamespacedAction, executionTimeout time.Duration, executionEvents chan<- *model_core.Decodable[object.LocalReference]) (*model_core.Decodable[object.LocalReference], time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
 	if !proto.Equal(namespacedAction.Format, actionObjectFormat) {
@@ -141,7 +259,7 @@ func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_exe
 				}
 				return &result
 			}
-			body, err := e.fetcher.Fetch(ctx, url, target.Headers)
+			body, sizeBytes, err := e.fetcher.Fetch(ctx, url, target.Headers)
 			if err != nil {
 				downloadedFile.Close()
 				if status.Code(err) != codes.NotFound {
@@ -152,7 +270,16 @@ func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_exe
 				}
 				continue ProcessURLs
 			}
-			_, err = io.Copy(model_filesystem.NewSectionWriter(downloadedFile), body)
+			err = e.copyWithProgress(
+				ctx,
+				model_filesystem.NewSectionWriter(downloadedFile),
+				body,
+				url,
+				sizeBytes,
+				namespace,
+				actionEncoder,
+				executionEvents,
+			)
 			body.Close()
 			if err != nil {
 				downloadedFile.Close()
@@ -236,32 +363,10 @@ func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_exe
 		return &result
 	})
 
-	// Store the result in an object. As objects cannot be empty,
-	// don't return a result reference if the result message is
-	// empty.
-	var resultReference *model_core.Decodable[object.LocalReference]
-	if proto.Size(result.Message) > 0 {
-		createdResult, err := model_core.MarshalAndEncodeDeterministic(
-			result.ToMarshaler(model_format.NewProto[model_fetch_pb.Result]()),
-			referenceFormat,
-			actionEncoder,
-		)
-		if err != nil {
-			return nil, 0, 0, util.StatusWrap(err, "Failed to create marshal and encode result")
-		}
-		localResultReference := createdResult.Value.GetLocalReference()
-		if err := e.dagUploader.UploadDAG(
-			ctx,
-			namespace.WithLocalReference(localResultReference),
-			dag.NewSimpleObjectContentsWalker(
-				createdResult.Value.Contents,
-				createdResult.Value.Metadata,
-			),
-		); err != nil {
-			return nil, 0, 0, util.StatusWrap(err, "Failed to upload result")
-		}
-		decodableResultReference := model_core.CopyDecodable(createdResult, localResultReference)
-		resultReference = &decodableResultReference
+	// Store the result in an object.
+	resultReference, err := uploadMessage(ctx, e, namespace, actionEncoder, result)
+	if err != nil {
+		return nil, 0, 0, util.StatusWrap(err, "Failed to store result")
 	}
 
 	resultCode := remoteworker_pb.CurrentState_Completed_SUCCEEDED

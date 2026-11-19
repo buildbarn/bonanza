@@ -27,14 +27,14 @@ func NewSchemeDemultiplexingFetcher(fetchersByScheme map[string]Fetcher) Fetcher
 	}
 }
 
-func (f *schemeDemultiplexingFetcher) Fetch(ctx context.Context, rawURL string, headers []*model_fetch_pb.Target_Header) (io.ReadCloser, error) {
+func (f *schemeDemultiplexingFetcher) Fetch(ctx context.Context, rawURL string, headers []*model_fetch_pb.Target_Header) (io.ReadCloser, int64, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
-		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid URL")
+		return nil, 0, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid URL")
 	}
 	fetcher, ok := f.fetchersByScheme[parsedURL.Scheme]
 	if !ok {
-		return nil, status.Errorf(codes.InvalidArgument, "Invalid URL scheme %#v", parsedURL.Scheme)
+		return nil, 0, status.Errorf(codes.InvalidArgument, "Invalid URL scheme %#v", parsedURL.Scheme)
 	}
 	return fetcher.Fetch(ctx, rawURL, headers)
 }

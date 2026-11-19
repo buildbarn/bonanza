@@ -144,6 +144,7 @@ func main() {
 							model_fetch.NewSchemeDemultiplexingFetcher(fetchersByScheme),
 							filePool,
 							model_encoding.NewBinaryEncoderFactory(configuration.PermitUnencryptedBinaryEncoders),
+							clock.SystemClock,
 						),
 					),
 				),

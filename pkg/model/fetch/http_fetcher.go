@@ -25,10 +25,10 @@ func NewHTTPFetcher(client *http.Client) Fetcher {
 	}
 }
 
-func (f *httpFetcher) Fetch(ctx context.Context, url string, headers []*model_fetch_pb.Target_Header) (io.ReadCloser, error) {
+func (f *httpFetcher) Fetch(ctx context.Context, url string, headers []*model_fetch_pb.Target_Header) (io.ReadCloser, int64, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to create HTTP request")
+		return nil, 0, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to create HTTP request")
 	}
 	for _, entry := range headers {
 		req.Header.Set(entry.Name, entry.Value)
@@ -36,15 +36,15 @@ func (f *httpFetcher) Fetch(ctx context.Context, url string, headers []*model_fe
 
 	resp, err := f.client.Do(req)
 	if err != nil {
-		return nil, util.StatusWrapfWithCode(err, codes.Internal, "Failed to download file %#v", url)
+		return nil, 0, util.StatusWrapfWithCode(err, codes.Internal, "Failed to download file %#v", url)
 	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		return resp.Body, nil
+		return resp.Body, resp.ContentLength, nil
 	case http.StatusNotFound:
-		return nil, status.Error(codes.NotFound, "File not found")
+		return nil, 0, status.Error(codes.NotFound, "File not found")
 	default:
-		return nil, status.Errorf(codes.Internal, "Received unexpected HTTP response %#v", resp.Status)
+		return nil, 0, status.Errorf(codes.Internal, "Received unexpected HTTP response %#v", resp.Status)
 	}
 }

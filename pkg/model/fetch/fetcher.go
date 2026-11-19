@@ -12,5 +12,7 @@ import (
 // multiple instances in case support for different network protocols is
 // desired.
 type Fetcher interface {
-	Fetch(ctx context.Context, url string, headers []*model_fetch_pb.Target_Header) (io.ReadCloser, error)
+	// Fetch the file at a given URL. If known, the size of the
+	// file is returned. Otherwise, the size is -1.
+	Fetch(ctx context.Context, url string, headers []*model_fetch_pb.Target_Header) (body io.ReadCloser, sizeBytes int64, err error)
 }

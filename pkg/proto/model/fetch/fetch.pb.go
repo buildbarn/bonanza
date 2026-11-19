@@ -236,6 +236,66 @@ func (x *Action) GetTarget() *Target {
 	return nil
 }
 
+type Event struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Url                 string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	DownloadedSizeBytes uint64                 `protobuf:"varint,2,opt,name=downloaded_size_bytes,json=downloadedSizeBytes,proto3" json:"downloaded_size_bytes,omitempty"`
+	TotalSizeBytes      uint64                 `protobuf:"varint,3,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *Event) Reset() {
+	*x = Event{}
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Event) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Event) ProtoMessage() {}
+
+func (x *Event) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Event.ProtoReflect.Descriptor instead.
+func (*Event) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Event) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *Event) GetDownloadedSizeBytes() uint64 {
+	if x != nil {
+		return x.DownloadedSizeBytes
+	}
+	return 0
+}
+
+func (x *Event) GetTotalSizeBytes() uint64 {
+	if x != nil {
+		return x.TotalSizeBytes
+	}
+	return 0
+}
+
 type Result struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Outcome:
@@ -249,7 +309,7 @@ type Result struct {
 
 func (x *Result) Reset() {
 	*x = Result{}
-	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -261,7 +321,7 @@ func (x *Result) String() string {
 func (*Result) ProtoMessage() {}
 
 func (x *Result) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[3]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -274,7 +334,7 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result.ProtoReflect.Descriptor instead.
 func (*Result) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{3}
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Result) GetOutcome() isResult_Outcome {
@@ -328,7 +388,7 @@ type Target_Header struct {
 
 func (x *Target_Header) Reset() {
 	*x = Target_Header{}
-	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -340,7 +400,7 @@ func (x *Target_Header) String() string {
 func (*Target_Header) ProtoMessage() {}
 
 func (x *Target_Header) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[4]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -380,7 +440,7 @@ type Result_Success struct {
 
 func (x *Result_Success) Reset() {
 	*x = Result_Success{}
-	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -392,7 +452,7 @@ func (x *Result_Success) String() string {
 func (*Result_Success) ProtoMessage() {}
 
 func (x *Result_Success) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -405,7 +465,7 @@ func (x *Result_Success) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result_Success.ProtoReflect.Descriptor instead.
 func (*Result_Success) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{3, 0}
+	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{4, 0}
 }
 
 func (x *Result_Success) GetContents() *filesystem.FileContents {
@@ -446,7 +506,11 @@ const file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value\"\xa9\x01\n" +
 	"\x06Action\x12j\n" +
 	"\x18file_creation_parameters\x18\x01 \x01(\v20.bonanza.model.filesystem.FileCreationParametersR\x16fileCreationParameters\x123\n" +
-	"\x06target\x18\x02 \x01(\v2\x1b.bonanza.model.fetch.TargetR\x06target\"\xeb\x01\n" +
+	"\x06target\x18\x02 \x01(\v2\x1b.bonanza.model.fetch.TargetR\x06target\"w\n" +
+	"\x05Event\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x122\n" +
+	"\x15downloaded_size_bytes\x18\x02 \x01(\x04R\x13downloadedSizeBytes\x12(\n" +
+	"\x10total_size_bytes\x18\x03 \x01(\x04R\x0etotalSizeBytes\"\xeb\x01\n" +
 	"\x06Result\x12.\n" +
 	"\afailure\x18\x01 \x01(\v2\x12.google.rpc.StatusH\x00R\afailure\x12?\n" +
 	"\asuccess\x18\x02 \x01(\v2#.bonanza.model.fetch.Result.SuccessH\x00R\asuccess\x1ae\n" +
@@ -468,33 +532,34 @@ func file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP() []byte {
 }
 
 var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_goTypes = []any{
 	(SubresourceIntegrity_HashAlgorithm)(0),   // 0: bonanza.model.fetch.SubresourceIntegrity.HashAlgorithm
 	(*SubresourceIntegrity)(nil),              // 1: bonanza.model.fetch.SubresourceIntegrity
 	(*Target)(nil),                            // 2: bonanza.model.fetch.Target
 	(*Action)(nil),                            // 3: bonanza.model.fetch.Action
-	(*Result)(nil),                            // 4: bonanza.model.fetch.Result
-	(*Target_Header)(nil),                     // 5: bonanza.model.fetch.Target.Header
-	(*Result_Success)(nil),                    // 6: bonanza.model.fetch.Result.Success
-	(*filesystem.FileCreationParameters)(nil), // 7: bonanza.model.filesystem.FileCreationParameters
-	(*status.Status)(nil),                     // 8: google.rpc.Status
-	(*filesystem.FileContents)(nil),           // 9: bonanza.model.filesystem.FileContents
+	(*Event)(nil),                             // 4: bonanza.model.fetch.Event
+	(*Result)(nil),                            // 5: bonanza.model.fetch.Result
+	(*Target_Header)(nil),                     // 6: bonanza.model.fetch.Target.Header
+	(*Result_Success)(nil),                    // 7: bonanza.model.fetch.Result.Success
+	(*filesystem.FileCreationParameters)(nil), // 8: bonanza.model.filesystem.FileCreationParameters
+	(*status.Status)(nil),                     // 9: google.rpc.Status
+	(*filesystem.FileContents)(nil),           // 10: bonanza.model.filesystem.FileContents
 }
 var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_depIdxs = []int32{
-	0, // 0: bonanza.model.fetch.SubresourceIntegrity.hash_algorithm:type_name -> bonanza.model.fetch.SubresourceIntegrity.HashAlgorithm
-	1, // 1: bonanza.model.fetch.Target.integrity:type_name -> bonanza.model.fetch.SubresourceIntegrity
-	5, // 2: bonanza.model.fetch.Target.headers:type_name -> bonanza.model.fetch.Target.Header
-	7, // 3: bonanza.model.fetch.Action.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
-	2, // 4: bonanza.model.fetch.Action.target:type_name -> bonanza.model.fetch.Target
-	8, // 5: bonanza.model.fetch.Result.failure:type_name -> google.rpc.Status
-	6, // 6: bonanza.model.fetch.Result.success:type_name -> bonanza.model.fetch.Result.Success
-	9, // 7: bonanza.model.fetch.Result.Success.contents:type_name -> bonanza.model.filesystem.FileContents
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	0,  // 0: bonanza.model.fetch.SubresourceIntegrity.hash_algorithm:type_name -> bonanza.model.fetch.SubresourceIntegrity.HashAlgorithm
+	1,  // 1: bonanza.model.fetch.Target.integrity:type_name -> bonanza.model.fetch.SubresourceIntegrity
+	6,  // 2: bonanza.model.fetch.Target.headers:type_name -> bonanza.model.fetch.Target.Header
+	8,  // 3: bonanza.model.fetch.Action.file_creation_parameters:type_name -> bonanza.model.filesystem.FileCreationParameters
+	2,  // 4: bonanza.model.fetch.Action.target:type_name -> bonanza.model.fetch.Target
+	9,  // 5: bonanza.model.fetch.Result.failure:type_name -> google.rpc.Status
+	7,  // 6: bonanza.model.fetch.Result.success:type_name -> bonanza.model.fetch.Result.Success
+	10, // 7: bonanza.model.fetch.Result.Success.contents:type_name -> bonanza.model.filesystem.FileContents
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_fetch_fetch_proto_init() }
@@ -502,7 +567,7 @@ func file_bonanza_build_pkg_proto_model_fetch_fetch_proto_init() {
 	if File_bonanza_build_pkg_proto_model_fetch_fetch_proto != nil {
 		return
 	}
-	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[3].OneofWrappers = []any{
+	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[4].OneofWrappers = []any{
 		(*Result_Failure)(nil),
 		(*Result_Success_)(nil),
 	}
@@ -512,7 +577,7 @@ func file_bonanza_build_pkg_proto_model_fetch_fetch_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

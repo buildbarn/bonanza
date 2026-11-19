@@ -63,6 +63,20 @@ message Action {
   Target target = 2;
 }
 
+// Execution event that is periodically emitted by the worker while a
+// file is being downloaded.
+message Event {
+  // The URL of the file that is currently being downloaded.
+  string url = 1;
+
+  // The number of bytes of the file that have been downloaded.
+  uint64 downloaded_size_bytes = 2;
+
+  // The total size of the file in bytes, if known (e.g., by means of
+  // the Content-Length header of an HTTP response). Zero if unknown.
+  uint64 total_size_bytes = 3;
+}
+
 message Result {
   message Success {
     // The contents of the file, if the file was non-empty.

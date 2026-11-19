@@ -24,6 +24,7 @@ go_library(
         "//pkg/storage/object",
         "//pkg/storage/object/namespacemapping",
         "@com_github_buildbarn_bb_remote_execution//pkg/filesystem/pool",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
