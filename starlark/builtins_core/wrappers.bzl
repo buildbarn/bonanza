@@ -112,6 +112,12 @@ def _get_make_variables(attr, is_rule):
 def _add_common_ctx_fields(ctx_fields, ctx, is_rule):
     """Adds fields to ctx that are shared by rules and aspects."""
 
+    # TODO: Implement coverage instrumentation.
+    def ctx_coverage_instrumented(target = None):
+        return False
+
+    ctx_fields["coverage_instrumented"] = ctx_coverage_instrumented
+
     # If the rule or aspect depends on one or more fragments, an
     # attribute with name "__fragments" of type attr.label_list() is
     # injected. The default value of this attribute will refer to
@@ -157,9 +163,6 @@ def _add_common_ctx_fields(ctx_fields, ctx, is_rule):
         ctx_fields["target_platform_has_constraint"] = ctx_target_platform_has_constraint
 
 def _wrap_rule_ctx(ctx):
-    def ctx_coverage_instrumented(target = None):
-        return False
-
     def ctx_expand_location(input, targets = []):
         all_targets = {}
         for target in targets:
@@ -227,7 +230,6 @@ def _wrap_rule_ctx(ctx):
     } | {
         "actions": _wrap_actions(ctx.actions, ctx.bin_dir, ctx.label),
         "build_file_path": ctx.label.package + "/BUILD",
-        "coverage_instrumented": ctx_coverage_instrumented,
         # TODO: Where is this supposed to come from?
         "disabled_features": ["fdo_instrument", "cs_fdo_instrument"],
         "expand_location": ctx_expand_location,
