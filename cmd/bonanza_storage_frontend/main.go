@@ -142,19 +142,11 @@ func main() {
 }
 
 func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[string]*bonanza_storage_frontend.ApplicationConfiguration_Shard, watermarkPollInterval time.Duration, dependenciesGroup program.Group) (object.Store[object.GlobalReference, []byte], tag.Store[object.Namespace, []byte], error) {
-	// Leases of objects need to be checked against the highest
-	// watermark of all shards in the replica. Periodically poll
-	// the watermarks of all shards, and forward the highest one
-	// to all shards.
-	replicaWatermark := &object.Watermark{}
-
-	// Create object & tag stores for each shard.
+	// Create gRPC clients for each shard.
 	shardNames := make([]string, 0, len(shards))
 	weightedShards := make([]object_sharded.WeightedShard, 0, len(shards))
-	objectDownloaders := make([]object.Downloader[object.GlobalReference], 0, len(shards))
-	objectUploaders := make([]object.Uploader[object.GlobalReference, []byte], 0, len(shards))
-	tagResolvers := make([]tag.Resolver[object.Namespace], 0, len(shards))
-	tagUpdaters := make([]tag.Updater[object.Namespace, []byte], 0, len(shards))
+	grpcClients := make([]grpc.ClientConnInterface, 0, len(shards))
+	uploaderClients := make([]object_pb.UploaderClient, 0, len(shards))
 	for key, shard := range shards {
 		grpcClient, err := grpcClientFactory.NewClientFromConfiguration(shard.Client, dependenciesGroup)
 		if err != nil {
@@ -166,22 +158,42 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 			Key:    []byte(key),
 			Weight: shard.Weight,
 		})
+		grpcClients = append(grpcClients, grpcClient)
+		uploaderClients = append(uploaderClients, object_pb.NewUploaderClient(grpcClient))
+	}
+
+	// Leases of objects need to be checked against the highest
+	// watermark of all shards in the replica. Poll the watermarks
+	// of all shards while requests that need them are sent, and
+	// forward the highest one to all shards.
+	replicaWatermark := object_grpc.NewWatermarkPoller(
+		uploaderClients,
+		clock.SystemClock,
+		watermarkPollInterval,
+		util.DefaultErrorLogger,
+	)
+	dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+		replicaWatermark.Run(ctx)
+		return nil
+	})
+
+	// Create object & tag stores for each shard.
+	objectDownloaders := make([]object.Downloader[object.GlobalReference], 0, len(shards))
+	objectUploaders := make([]object.Uploader[object.GlobalReference, []byte], 0, len(shards))
+	tagResolvers := make([]tag.Resolver[object.Namespace], 0, len(shards))
+	tagUpdaters := make([]tag.Updater[object.Namespace, []byte], 0, len(shards))
+	for i, grpcClient := range grpcClients {
 		objectDownloaders = append(objectDownloaders, object_grpc.NewDownloader(
 			object_pb.NewDownloaderClient(grpcClient),
 		))
-		uploaderClient := object_pb.NewUploaderClient(grpcClient)
 		objectUploaders = append(objectUploaders, object_grpc.NewUploader(
-			uploaderClient,
+			uploaderClients[i],
 			replicaWatermark,
 		))
 		tagResolvers = append(tagResolvers, tag_grpc.NewResolver(
 			tag_pb.NewResolverClient(grpcClient),
 			replicaWatermark,
 		))
-		dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-			object_grpc.PollWatermark(ctx, uploaderClient, clock.SystemClock, watermarkPollInterval, replicaWatermark, util.DefaultErrorLogger)
-			return nil
-		})
 		tagUpdaters = append(tagUpdaters, tag_grpc.NewUpdater(
 			tag_pb.NewUpdaterClient(grpcClient),
 		))

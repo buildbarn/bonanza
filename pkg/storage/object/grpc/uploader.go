@@ -14,7 +14,7 @@ import (
 
 type uploader struct {
 	client          object_pb.UploaderClient
-	watermarkSource *object.Watermark
+	watermarkSource object.WatermarkSource
 }
 
 // NewUploader creates an object uploader that forwards requests to
@@ -23,7 +23,7 @@ type uploader struct {
 // If watermarkSource is provided, its value is attached to all
 // requests. This allows the server to check leases of objects against
 // the highest watermark of the cluster it is part of.
-func NewUploader(client object_pb.UploaderClient, watermarkSource *object.Watermark) object.Uploader[object.GlobalReference, []byte] {
+func NewUploader(client object_pb.UploaderClient, watermarkSource object.WatermarkSource) object.Uploader[object.GlobalReference, []byte] {
 	return &uploader{
 		client:          client,
 		watermarkSource: watermarkSource,
@@ -43,7 +43,11 @@ func (u *uploader) UploadObject(ctx context.Context, reference object.GlobalRefe
 		request.Contents = contents.GetFullData()
 	}
 	if u.watermarkSource != nil {
-		request.Watermark = u.watermarkSource.ToProto()
+		watermark, err := u.watermarkSource.GetWatermarkForRequest(ctx)
+		if err != nil {
+			return nil, util.StatusWrap(err, "Failed to obtain watermark")
+		}
+		request.Watermark = watermark
 	}
 
 	response, err := u.client.UploadObject(ctx, request)

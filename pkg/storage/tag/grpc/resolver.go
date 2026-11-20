@@ -16,7 +16,7 @@ import (
 
 type resolver struct {
 	client          tag_pb.ResolverClient
-	watermarkSource *object.Watermark
+	watermarkSource object.WatermarkSource
 }
 
 // NewResolver creates a tag resolver that forwards all requests to
@@ -26,7 +26,7 @@ type resolver struct {
 // requests. This should only be done by storage frontends, as it allows
 // storage shards to check leases of objects against the highest
 // watermark of the cluster they are part of.
-func NewResolver(client tag_pb.ResolverClient, watermarkSource *object.Watermark) tag.Resolver[object.Namespace] {
+func NewResolver(client tag_pb.ResolverClient, watermarkSource object.WatermarkSource) tag.Resolver[object.Namespace] {
 	return &resolver{
 		client:          client,
 		watermarkSource: watermarkSource,
@@ -50,7 +50,12 @@ func (d *resolver) ResolveTag(ctx context.Context, namespace object.Namespace, k
 		MinimumTimestamp: minimumTimestampMessage,
 	}
 	if d.watermarkSource != nil {
-		request.Watermark = d.watermarkSource.ToProto()
+		watermark, err := d.watermarkSource.GetWatermarkForRequest(ctx)
+		if err != nil {
+			var badSignedValue tag.SignedValue
+			return badSignedValue, false, util.StatusWrap(err, "Failed to obtain watermark")
+		}
+		request.Watermark = watermark
 	}
 	response, err := d.client.ResolveTag(ctx, request)
 	if err != nil {

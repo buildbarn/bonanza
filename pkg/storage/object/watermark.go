@@ -1,6 +1,7 @@
 package object
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
@@ -8,6 +9,20 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+// WatermarkSource provides the watermark of a cluster of storage
+// servers that needs to be attached to requests that are sent to these
+// servers.
+type WatermarkSource interface {
+	// GetWatermarkForRequest returns the watermark to attach to an
+	// outgoing request. Nil is returned if no watermark is known.
+	// Implementations may use calls to this method to determine
+	// whether the watermark needs to be refreshed, and may block
+	// until it has been refreshed.
+	GetWatermarkForRequest(ctx context.Context) (*timestamppb.Timestamp, error)
+}
+
+var _ WatermarkSource = (*Watermark)(nil)
 
 // Watermark keeps track of the highest watermark of a cluster of
 // storage servers that has been observed. All objects written to the
@@ -77,4 +92,10 @@ func (w *Watermark) ToProto() *timestamppb.Timestamp {
 		return timestamppb.New(time.Unix(0, n))
 	}
 	return nil
+}
+
+// GetWatermarkForRequest returns the current value of the watermark,
+// so that it can be attached to outgoing requests.
+func (w *Watermark) GetWatermarkForRequest(ctx context.Context) (*timestamppb.Timestamp, error) {
+	return w.ToProto(), nil
 }

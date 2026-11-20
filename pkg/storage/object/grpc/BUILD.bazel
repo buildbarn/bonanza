@@ -18,14 +18,17 @@ go_library(
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//types/known/emptypb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
 )
 
 go_test(
     name = "grpc_test",
     srcs = [
+        "mocks_clock_test.go",
         "mocks_object_pb_test.go",
         "uploader_test.go",
+        "watermark_poller_test.go",
     ],
     embed = [":grpc"],
     deps = [
@@ -37,6 +40,8 @@ go_test(
         "@org_golang_google_grpc//:grpc",  # keep
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/emptypb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
         "@org_uber_go_mock//gomock",
     ],
 )
@@ -46,6 +51,19 @@ gomock(
     out = "mocks_object_pb_test.go",
     interfaces = ["UploaderClient"],
     library = "//pkg/proto/storage/object",
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "grpc_test",
+)
+
+gomock(
+    name = "mocks_clock",
+    out = "mocks_clock_test.go",
+    interfaces = [
+        "Clock",
+        "Timer",
+    ],
+    library = "@com_github_buildbarn_bb_storage//pkg/clock",
     mockgen_model_library = "@org_uber_go_mock//mockgen/model",
     mockgen_tool = "@org_uber_go_mock//mockgen",
     package = "grpc_test",
