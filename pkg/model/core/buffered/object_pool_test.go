@@ -304,6 +304,47 @@ func TestObjectPool(t *testing.T) {
 		h.close()
 	})
 
+	t.Run("RequestObjectChildren", func(t *testing.T) {
+		// The server may request that only some of the
+		// children of an object are assigned reference indices,
+		// without the object's contents being sent.
+		var leaf1Reference, leaf2Reference, parentReference buffered.Reference
+		h := newObjectPoolHarness(t, ctrl, object.Unlimited, 1, func(h *objectPoolHarness) {
+			leaf1Reference = h.capture(leaf1)
+			leaf2Reference = h.capture(leaf2)
+			parentReference = h.capture(parent)
+		})
+
+		h.expectInitiateDAG(parent.LocalReference)
+		h.respond(&dag_pb.UploadDagsResponse{
+			Type: &dag_pb.UploadDagsResponse_RequestObjectChildren_{
+				RequestObjectChildren: &dag_pb.UploadDagsResponse_RequestObjectChildren{
+					LowestReferenceIndex:     0,
+					OutgoingReferenceIndices: []uint32{1},
+				},
+			},
+		})
+		testutil.RequireEqualProto(t, &dag_pb.UploadDagsRequest{
+			Type: &dag_pb.UploadDagsRequest_ProvideObjectChildren_{
+				ProvideObjectChildren: &dag_pb.UploadDagsRequest_ProvideObjectChildren{
+					LowestReferenceIndex: 0,
+				},
+			},
+		}, h.expectRequest())
+
+		// Only the second child is assigned a reference index.
+		secondChild, secondChildReference := leaf2, leaf2Reference
+		if parent.GetOutgoingReference(1) != leaf2.LocalReference {
+			secondChild, secondChildReference = leaf1, leaf1Reference
+		}
+		h.requestAndExpectContents(1, secondChild)
+		h.finalizeObject(1, 0, nil)
+		h.requireWritten(secondChildReference)
+		h.finalizeObject(0, 0, nil)
+		h.requireWritten(parentReference)
+		h.close()
+	})
+
 	t.Run("ParentAlreadyExists", func(t *testing.T) {
 		// If the server reports that the root of a DAG already
 		// exists, its children are also known to exist. Any

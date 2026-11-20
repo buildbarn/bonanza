@@ -52,6 +52,18 @@ service Uploader {
   //     server may send UploadDagsResponse.RequestObjectContents to
   //     indicate that it wants to receive the child objects.
   //     - ...
+  // - Alternatively, if the root object is already present in storage
+  //   but one or more objects underneath it are not, the server may
+  //   send an UploadDagsResponse.RequestObjectChildren to indicate that
+  //   it wants to traverse some of the root object's children, without
+  //   receiving the root object itself.
+  //   - The client acknowledges this via
+  //     UploadDagsRequest.ProvideObjectChildren, assigning reference
+  //     indices to the requested children.
+  //   - For each of these children, the server may send
+  //     UploadDagsResponse.RequestObjectContents or
+  //     UploadDagsResponse.RequestObjectChildren.
+  //     - ...
   //   - For each of the outgoing references of the root object, the
   //     server sends UploadDagsResponse.FinalizeObject to indicate
   //     whether writing the child objects succeeded.
@@ -67,8 +79,9 @@ service Uploader {
   // against previously transmitted messages, UploadDags() uses the
   // concept of reference indices. These indices are sequentially
   // assigned to references in the order in which they occur in
-  // UploadDagsRequest.InitiateDag and
-  // UploadDagsRequest.ProvideObjectContents messages. The reference
+  // UploadDagsRequest.InitiateDag,
+  // UploadDagsRequest.ProvideObjectContents, and
+  // UploadDagsRequest.ProvideObjectChildren messages. The reference
   // that is part of the very first UploadDagsRequest.InitiateDag
   // message will always have reference index zero.
   //
@@ -157,6 +170,26 @@ message UploadDagsRequest {
     bytes object_contents = 2;
   }
 
+  // Unless cancel is set, the outgoing references of the object that
+  // were listed in UploadDagsResponse.RequestObjectChildren are assigned
+  // to consecutively numbered reference indices [n, n+m), where n
+  // corresponds to the next available reference index and m to the
+  // number of outgoing references that were listed. Reference indices
+  // are assigned in the order in which the outgoing references were
+  // listed. The contents of the object are not transmitted.
+  message ProvideObjectChildren {
+    // The index of the reference of the object whose children are
+    // provided.
+    uint64 lowest_reference_index = 1;
+
+    // The client MAY set this field if it wants to cancel uploading
+    // DAGs containing the object. In that case no new reference indices
+    // are assigned to any of the children of the object. The server
+    // SHOULD respond with a FinalizeObject message for this object with
+    // UploadDagsResponse.FinalizeObject.status.code set to CANCELLED.
+    bool cancel = 2;
+  }
+
   oneof type {
     // The first message to be sent by the client.
     Handshake handshake = 1;
@@ -168,6 +201,11 @@ message UploadDagsRequest {
     // sent in response to the server sending a RequestObjectContents
     // message.
     ProvideObjectContents provide_object_contents = 3;
+
+    // Assign reference indices to some of the children of an object.
+    // This message is sent in response to the server sending a
+    // RequestObjectChildren message.
+    ProvideObjectChildren provide_object_children = 4;
   }
 }
 
@@ -193,6 +231,26 @@ message UploadDagsResponse {
     // object, unless some of these indices have been finalized in the
     // meantime (see FinalizeObject.additional_reference_indices).
     uint64 lowest_reference_index = 1;
+  }
+
+  message RequestObjectChildren {
+    // The reference index of the object whose children should be
+    // assigned reference indices. The same rules apply as for
+    // RequestObjectContents.lowest_reference_index.
+    uint64 lowest_reference_index = 1;
+
+    // Indices of the outgoing references of the object that should be
+    // assigned reference indices. These MUST be unique, sorted, and
+    // there MUST be at least one.
+    //
+    // The server MUST only send this message for objects that are
+    // present in storage, and MUST determine which objects these
+    // outgoing references refer to based on the contents of the object
+    // in storage, as opposed to trusting the client. This message can
+    // be used to traverse into parts of the DAG that are incomplete,
+    // without the client needing to transmit objects that are already
+    // present.
+    repeated uint32 outgoing_reference_indices = 2;
   }
 
   message FinalizeObject {
@@ -264,5 +322,9 @@ message UploadDagsResponse {
     // success, the client may release any resources associated with the
     // tag, as it is capable of reading the tag through ResolveTag().
     FinalizeTag finalize_tag = 4;
+
+    // Instruct the client to assign reference indices to some of the
+    // children of an object, without uploading the object itself.
+    RequestObjectChildren request_object_children = 5;
   }
 }

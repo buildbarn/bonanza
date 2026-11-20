@@ -7,10 +7,12 @@ import (
 
 	dag_pb "bonanza.build/pkg/proto/storage/dag"
 	object_pb "bonanza.build/pkg/proto/storage/object"
+	"bonanza.build/pkg/storage/dag"
 	dag_grpc "bonanza.build/pkg/storage/dag/grpc"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
+	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
 	"golang.org/x/sync/semaphore"
@@ -155,5 +157,85 @@ func TestRemoteUploader(t *testing.T) {
 		))
 	})
 
-	// TODO: Provide more testing coverage.
+	t.Run("RequestObjectChildren", func(t *testing.T) {
+		// The server may request that only some of the
+		// children of an object are assigned reference indices,
+		// without the object's contents being sent.
+		rootContents := object.MustNewContents(
+			object_pb.ReferenceFormat_SHA256_V1,
+			[]object.LocalReference{
+				object.MustNewSHA256V1LocalReference("1111111111111111111111111111111111111111111111111111111111111111", 100, 0, 0, 0),
+				object.MustNewSHA256V1LocalReference("2222222222222222222222222222222222222222222222222222222222222222", 200, 0, 0, 0),
+				object.MustNewSHA256V1LocalReference("3333333333333333333333333333333333333333333333333333333333333333", 300, 0, 0, 0),
+			},
+			[]byte("Hello"),
+		)
+		rootReference := util.Must(object.NewInstanceName("hello/world")).WithLocalReference(rootContents.GetLocalReference())
+
+		stream := NewMockUploader_UploadDagsClient(ctrl)
+		client.EXPECT().UploadDags(gomock.Any()).Return(stream, nil)
+		rootObjectContentsWalker := NewMockObjectContentsWalker(ctrl)
+		childWalker0 := NewMockObjectContentsWalker(ctrl)
+		childWalker1 := NewMockObjectContentsWalker(ctrl)
+		childWalker2 := NewMockObjectContentsWalker(ctrl)
+		rootObjectContentsWalker.EXPECT().GetContents(gomock.Any()).
+			Return(rootContents, []dag.ObjectContentsWalker{childWalker0, childWalker1, childWalker2}, nil)
+		childWalker0.EXPECT().Discard()
+		childWalker2.EXPECT().Discard()
+
+		providedChildren := make(chan struct{})
+		gomock.InOrder(
+			stream.EXPECT().Send(gomock.Any()),
+			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_Handshake_{
+					Handshake: &dag_pb.UploadDagsResponse_Handshake{
+						MaximumUnfinalizedDagsCount: 5,
+					},
+				},
+			}, nil),
+			stream.EXPECT().Send(gomock.Any()),
+			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_RequestObjectChildren_{
+					RequestObjectChildren: &dag_pb.UploadDagsResponse_RequestObjectChildren{
+						LowestReferenceIndex:     0,
+						OutgoingReferenceIndices: []uint32{1},
+					},
+				},
+			}, nil),
+		)
+		stream.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsRequest{
+			Type: &dag_pb.UploadDagsRequest_ProvideObjectChildren_{
+				ProvideObjectChildren: &dag_pb.UploadDagsRequest_ProvideObjectChildren{
+					LowestReferenceIndex: 0,
+				},
+			},
+		})).Do(func(*dag_pb.UploadDagsRequest) { close(providedChildren) })
+
+		// The child that was requested is assigned reference
+		// index 1, as only one child was requested.
+		gomock.InOrder(
+			stream.EXPECT().Recv().DoAndReturn(func() (*dag_pb.UploadDagsResponse, error) {
+				<-providedChildren
+				return &dag_pb.UploadDagsResponse{
+					Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+						FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+							LowestReferenceIndex: 1,
+						},
+					},
+				}, nil
+			}),
+			childWalker1.EXPECT().Discard(),
+			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 0,
+					},
+				},
+			}, nil),
+			stream.EXPECT().CloseSend(),
+			stream.EXPECT().Recv().Return(nil, io.EOF).MinTimes(1),
+		)
+
+		require.NoError(t, uploader.UploadDAG(ctx, rootReference, rootObjectContentsWalker))
+	})
 }
