@@ -14,7 +14,6 @@ go_library(
         "//pkg/storage/dag",
         "//pkg/storage/object",
         "//pkg/storage/object/grpc",
-        "//pkg/storage/object/leaserenewing",
         "//pkg/storage/object/local",
         "//pkg/storage/object/mirrored",
         "//pkg/storage/object/readcaching",

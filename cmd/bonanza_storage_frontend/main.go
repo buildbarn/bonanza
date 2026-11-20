@@ -12,7 +12,6 @@ import (
 	"bonanza.build/pkg/storage/dag"
 	"bonanza.build/pkg/storage/object"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
-	object_leaserenewing "bonanza.build/pkg/storage/object/leaserenewing"
 	object_local "bonanza.build/pkg/storage/object/local"
 	object_mirrored "bonanza.build/pkg/storage/object/mirrored"
 	object_readcaching "bonanza.build/pkg/storage/object/readcaching"
@@ -70,16 +69,8 @@ func main() {
 
 		// Combine mirrored replicas together.
 		objectDownloader := object_mirrored.NewDownloader(objectStoreA, objectStoreB)
-		objectUploader := object_leaserenewing.NewUploader(
-			object_mirrored.NewUploader(objectStoreA, objectStoreB),
-			semaphore.NewWeighted(configuration.ObjectStoreConcurrency),
-			maximumUnfinalizedParentsLimit,
-		)
-		dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
-			for objectUploader.ProcessSingleObject(ctx) {
-			}
-			return nil
-		})
+		objectUploader := object_mirrored.NewUploader(objectStoreA, objectStoreB)
+		objectStoreSemaphore := semaphore.NewWeighted(configuration.ObjectStoreConcurrency)
 
 		if configuration.LocalObjectStore != nil {
 			localObjectStore, err := object_local.NewStoreFromConfiguration(
@@ -103,7 +94,14 @@ func main() {
 				tagUpdater,
 			),
 			objectUploader,
+			objectStoreSemaphore,
+			maximumUnfinalizedParentsLimit,
 		)
+		dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+			for tagResolver.ProcessSingleObject(ctx) {
+			}
+			return nil
+		})
 
 		if err := bb_grpc.NewServersFromConfigurationAndServe(
 			configuration.GrpcServers,
@@ -123,7 +121,7 @@ func main() {
 					s,
 					dag.NewUploaderServer(
 						objectUploader,
-						semaphore.NewWeighted(configuration.ObjectStoreConcurrency),
+						objectStoreSemaphore,
 						tagUpdater,
 						configuration.MaximumUnfinalizedDagsCount,
 						maximumUnfinalizedParentsLimit,

@@ -1,8 +1,10 @@
 package dag_test
 
 import (
+	"bytes"
 	"context"
 	"io"
+	"sync"
 	"testing"
 	"time"
 
@@ -656,6 +658,248 @@ func TestUploaderServer(t *testing.T) {
 		require.NoError(t, uploaderServer.UploadDags(server))
 	})
 
+	t.Run("SuccessLeaseRenewal", func(t *testing.T) {
+		// If an object is present in storage, but the leases of
+		// objects underneath it need to be renewed, the server
+		// should traverse into them without involving the
+		// client. The client should only receive FinalizeObject
+		// for the root object.
+		leafReference := object.MustNewSHA256V1LocalReference("0000000000000000000000000000000000000000000000000000000000000001", 100, 0, 0, 0)
+		middleContents := object.MustNewContents(object_pb.ReferenceFormat_SHA256_V1, []object.LocalReference{leafReference}, []byte("Middle"))
+		rootContents := object.MustNewContents(object_pb.ReferenceFormat_SHA256_V1, []object.LocalReference{middleContents.GetLocalReference()}, []byte("Root"))
+		instanceName := util.Must(object.NewInstanceName("hello/world"))
+
+		server := NewMockUploader_UploadDagsServer(ctrl)
+		server.EXPECT().Context().Return(ctx).AnyTimes()
+		wait := make(chan struct{})
+		gomock.InOrder(
+			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
+				Type: &dag_pb.UploadDagsRequest_Handshake_{
+					Handshake: &dag_pb.UploadDagsRequest_Handshake{
+						Namespace: &object_pb.Namespace{
+							InstanceName:    "hello/world",
+							ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
+						},
+					},
+				},
+			}, nil),
+			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
+				Type: &dag_pb.UploadDagsRequest_InitiateDag_{
+					InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+						RootReference: rootContents.GetLocalReference().GetRawReference(),
+					},
+				},
+			}, nil),
+			server.EXPECT().Recv().
+				Do(func() { <-wait }).
+				Return(nil, io.EOF),
+		)
+		gomock.InOrder(
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_Handshake_{
+					Handshake: &dag_pb.UploadDagsResponse_Handshake{
+						MaximumUnfinalizedDagsCount: 5,
+					},
+				},
+			})),
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 0,
+					},
+				},
+			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
+		)
+		gomock.InOrder(
+			objectUploader.EXPECT().
+				UploadObject(gomock.Any(), instanceName.WithLocalReference(rootContents.GetLocalReference()), nil, nil, true).
+				Return(object.UploadObjectIncomplete[any]{
+					Contents:                     rootContents,
+					WantOutgoingReferencesLeases: []int{0},
+				}, nil),
+			objectUploader.EXPECT().
+				UploadObject(gomock.Any(), instanceName.WithLocalReference(middleContents.GetLocalReference()), nil, nil, true).
+				Return(object.UploadObjectIncomplete[any]{
+					Contents:                     middleContents,
+					WantOutgoingReferencesLeases: []int{0},
+				}, nil),
+			objectUploader.EXPECT().
+				UploadObject(gomock.Any(), instanceName.WithLocalReference(leafReference), nil, nil, false).
+				Return(object.UploadObjectComplete[any]{Lease: "Leaf lease"}, nil),
+			objectUploader.EXPECT().
+				UploadObject(gomock.Any(), instanceName.WithLocalReference(middleContents.GetLocalReference()), nil, []any{"Leaf lease"}, false).
+				Return(object.UploadObjectComplete[any]{Lease: "Middle lease"}, nil),
+			objectUploader.EXPECT().
+				UploadObject(gomock.Any(), instanceName.WithLocalReference(rootContents.GetLocalReference()), nil, []any{"Middle lease"}, false).
+				Return(object.UploadObjectComplete[any]{Lease: "Root lease"}, nil),
+		)
+
+		require.NoError(t, uploaderServer.UploadDags(server))
+	})
+
+	t.Run("SuccessRequestObjectChildren", func(t *testing.T) {
+		// If an object is present in storage, but an object
+		// underneath it is absent, the server should request
+		// that the client assigns reference indices to its
+		// children, without requesting the object's contents.
+		presentChildReference := object.MustNewSHA256V1LocalReference("0000000000000000000000000000000000000000000000000000000000000001", 100, 0, 0, 0)
+		absentChildContents := object.MustNewContents(object_pb.ReferenceFormat_SHA256_V1, nil, []byte("Absent"))
+		children := []object.LocalReference{presentChildReference, absentChildContents.GetLocalReference()}
+		presentChildIndex, absentChildIndex := 0, 1
+		if bytes.Compare(children[0].GetRawReference(), children[1].GetRawReference()) > 0 {
+			children[0], children[1] = children[1], children[0]
+			presentChildIndex, absentChildIndex = 1, 0
+		}
+		rootContents := object.MustNewContents(object_pb.ReferenceFormat_SHA256_V1, children, []byte("Root"))
+		instanceName := util.Must(object.NewInstanceName("hello/world"))
+
+		// Children are assigned reference indices 1 and 2.
+		presentChildReferenceIndex := uint64(1 + presentChildIndex)
+		absentChildReferenceIndex := uint64(1 + absentChildIndex)
+
+		server := NewMockUploader_UploadDagsServer(ctrl)
+		server.EXPECT().Context().Return(ctx).AnyTimes()
+		wait1 := make(chan struct{})
+		wait2 := make(chan struct{})
+		wait3 := make(chan struct{})
+		gomock.InOrder(
+			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
+				Type: &dag_pb.UploadDagsRequest_Handshake_{
+					Handshake: &dag_pb.UploadDagsRequest_Handshake{
+						Namespace: &object_pb.Namespace{
+							InstanceName:    "hello/world",
+							ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
+						},
+					},
+				},
+			}, nil),
+			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
+				Type: &dag_pb.UploadDagsRequest_InitiateDag_{
+					InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+						RootReference: rootContents.GetLocalReference().GetRawReference(),
+					},
+				},
+			}, nil),
+			server.EXPECT().Recv().
+				Do(func() { <-wait1 }).
+				Return(&dag_pb.UploadDagsRequest{
+					Type: &dag_pb.UploadDagsRequest_ProvideObjectChildren_{
+						ProvideObjectChildren: &dag_pb.UploadDagsRequest_ProvideObjectChildren{
+							LowestReferenceIndex: 0,
+						},
+					},
+				}, nil),
+			server.EXPECT().Recv().
+				Do(func() { <-wait2 }).
+				Return(&dag_pb.UploadDagsRequest{
+					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{
+						ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+							LowestReferenceIndex: absentChildReferenceIndex,
+							ObjectContents:       []byte("Absent"),
+						},
+					},
+				}, nil),
+			server.EXPECT().Recv().
+				Do(func() { <-wait3 }).
+				Return(nil, io.EOF),
+		)
+
+		// The children are processed independently, meaning
+		// the order in which messages for them are sent is not
+		// deterministic. As the root object only waits for the
+		// child that was traversed into, its FinalizeObject
+		// message may also be sent before the one of the other
+		// child. Like a real client, only close the stream once
+		// all reference indices have been finalized.
+		var remainingFinalizations sync.WaitGroup
+		remainingFinalizations.Add(2)
+		go func() {
+			remainingFinalizations.Wait()
+			close(wait3)
+		}()
+		sendHandshake := server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+			Type: &dag_pb.UploadDagsResponse_Handshake_{
+				Handshake: &dag_pb.UploadDagsResponse_Handshake{
+					MaximumUnfinalizedDagsCount: 5,
+				},
+			},
+		}))
+		sendRequestRootChildren := server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+			Type: &dag_pb.UploadDagsResponse_RequestObjectChildren_{
+				RequestObjectChildren: &dag_pb.UploadDagsResponse_RequestObjectChildren{
+					LowestReferenceIndex: 0,
+				},
+			},
+		})).After(sendHandshake).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) })
+		server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+			Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+				FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+					LowestReferenceIndex: presentChildReferenceIndex,
+				},
+			},
+		})).After(sendRequestRootChildren).Do(func(response *dag_pb.UploadDagsResponse) { remainingFinalizations.Done() })
+		sendRequestAbsentChild := server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+			Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
+				RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+					LowestReferenceIndex: absentChildReferenceIndex,
+				},
+			},
+		})).After(sendRequestRootChildren).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) })
+		sendFinalizeAbsentChild := server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+			Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+				FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+					LowestReferenceIndex: absentChildReferenceIndex,
+				},
+			},
+		})).After(sendRequestAbsentChild)
+		server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+			Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+				FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+					LowestReferenceIndex: 0,
+				},
+			},
+		})).After(sendFinalizeAbsentChild).Do(func(response *dag_pb.UploadDagsResponse) { remainingFinalizations.Done() })
+
+		// The server first traverses into the child whose lease
+		// needs to be renewed, without involving the client.
+		// Only after determining that it is absent, the client
+		// is requested to assign reference indices to the
+		// children of the root object.
+		checkRoot := objectUploader.EXPECT().
+			UploadObject(gomock.Any(), instanceName.WithLocalReference(rootContents.GetLocalReference()), nil, nil, true).
+			Return(object.UploadObjectIncomplete[any]{
+				Contents:                     rootContents,
+				WantOutgoingReferencesLeases: []int{absentChildIndex},
+			}, nil)
+		checkAbsentChild := objectUploader.EXPECT().
+			UploadObject(gomock.Any(), instanceName.WithLocalReference(absentChildContents.GetLocalReference()), nil, nil, false).
+			Return(object.UploadObjectMissing[any]{}, nil).
+			After(checkRoot)
+		objectUploader.EXPECT().
+			UploadObject(gomock.Any(), instanceName.WithLocalReference(presentChildReference), nil, nil, false).
+			Return(object.UploadObjectComplete[any]{Lease: "Present child lease"}, nil).
+			After(checkAbsentChild)
+		putAbsentChild := objectUploader.EXPECT().
+			UploadObject(gomock.Any(), instanceName.WithLocalReference(absentChildContents.GetLocalReference()), gomock.Any(), gomock.Len(0), false).
+			Do(func(ctx context.Context, reference object.GlobalReference, contents *object.Contents, childrenLeases []any, wantContentsIfIncomplete bool) {
+				require.Equal(t, []byte("Absent"), contents.GetPayload())
+			}).
+			Return(object.UploadObjectComplete[any]{Lease: "Absent child lease"}, nil).
+			After(checkAbsentChild)
+
+		// The root object is already present in storage. Only
+		// the lease of the child that was traversed into needs
+		// to be updated.
+		rootLeases := []any{nil, nil}
+		rootLeases[absentChildIndex] = "Absent child lease"
+		objectUploader.EXPECT().
+			UploadObject(gomock.Any(), instanceName.WithLocalReference(rootContents.GetLocalReference()), nil, rootLeases, false).
+			Return(object.UploadObjectComplete[any]{Lease: "Root lease"}, nil).
+			After(putAbsentChild)
+
+		require.NoError(t, uploaderServer.UploadDags(server))
+	})
+
 	t.Run("ClientCancelation", func(t *testing.T) {
 		// If the client wants to cancel the upload of a given
 		// DAG without terminating the request entirely, it can
@@ -1156,10 +1400,10 @@ func TestUploaderServer(t *testing.T) {
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "e82d79bedac841c3659222e8a9e32d1ee30db64c37c7ca7ea244531d334076a5", 120, 2, 3, 40), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "e82d79bedac841c3659222e8a9e32d1ee30db64c37c7ca7ea244531d334076a5", 120, 2, 3, 40), nil, nil, true).
 				Return(object.UploadObjectMissing[any]{}, nil),
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "0a2df7d623cdddd45c7d8a7fbf804e8f9c80f7b10200e3623406d08d3ef80379", 40, 1, 1, 0), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "0a2df7d623cdddd45c7d8a7fbf804e8f9c80f7b10200e3623406d08d3ef80379", 40, 1, 1, 0), nil, nil, true).
 				Return(object.UploadObjectMissing[any]{}, nil),
 			objectUploader.EXPECT().
 				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "bc541a4c77cb127b443ab4a1295c9696c1eabf12b1c03da5af790b7cdb3bf6b3", 3, 0, 0, 0), nil, nil, false).
@@ -1180,7 +1424,7 @@ func TestUploaderServer(t *testing.T) {
 				}).
 				Return(object.UploadObjectComplete[any]{Lease: "Lease 1"}, nil),
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "43c478f5ae1c10fc885c62458847e1abc4f99b5fd66e924f42c14bbeaee2cb08", 40, 1, 1, 0), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "43c478f5ae1c10fc885c62458847e1abc4f99b5fd66e924f42c14bbeaee2cb08", 40, 1, 1, 0), nil, nil, true).
 				Return(object.UploadObjectMissing[any]{}, nil),
 			objectUploader.EXPECT().
 				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "1cbec737f863e4922cee63cc2ebbfaafcd1cff8b790d8cfd2e6a5d550b648afa", 3, 0, 0, 0), nil, nil, false).
@@ -1201,7 +1445,7 @@ func TestUploaderServer(t *testing.T) {
 				}).
 				Return(object.UploadObjectComplete[any]{Lease: "Lease 2"}, nil),
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "cc38aaed6ef7403df8e1c7d73bc8c63c0828491a1bf3526fcfbce685cdc3bc45", 40, 1, 1, 0), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "cc38aaed6ef7403df8e1c7d73bc8c63c0828491a1bf3526fcfbce685cdc3bc45", 40, 1, 1, 0), nil, nil, true).
 				Return(object.UploadObjectMissing[any]{}, nil),
 			objectUploader.EXPECT().
 				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "95d64cacce0f0e5b0d1b843862f0accfadb787a4cabb8a88f7f1694ea232a5fc", 3, 0, 0, 0), nil, nil, false).
@@ -1382,20 +1626,20 @@ func TestUploaderServer(t *testing.T) {
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "e82d79bedac841c3659222e8a9e32d1ee30db64c37c7ca7ea244531d334076a5", 120, 2, 3, 40), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "e82d79bedac841c3659222e8a9e32d1ee30db64c37c7ca7ea244531d334076a5", 120, 2, 3, 40), nil, nil, true).
 				Return(object.UploadObjectMissing[any]{}, nil),
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "0a2df7d623cdddd45c7d8a7fbf804e8f9c80f7b10200e3623406d08d3ef80379", 40, 1, 1, 0), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "0a2df7d623cdddd45c7d8a7fbf804e8f9c80f7b10200e3623406d08d3ef80379", 40, 1, 1, 0), nil, nil, true).
 				Return(object.UploadObjectComplete[any]{
 					Lease: "Lease 1",
 				}, nil),
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "43c478f5ae1c10fc885c62458847e1abc4f99b5fd66e924f42c14bbeaee2cb08", 40, 1, 1, 0), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "43c478f5ae1c10fc885c62458847e1abc4f99b5fd66e924f42c14bbeaee2cb08", 40, 1, 1, 0), nil, nil, true).
 				Return(object.UploadObjectComplete[any]{
 					Lease: "Lease 2",
 				}, nil),
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "cc38aaed6ef7403df8e1c7d73bc8c63c0828491a1bf3526fcfbce685cdc3bc45", 40, 1, 1, 0), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "cc38aaed6ef7403df8e1c7d73bc8c63c0828491a1bf3526fcfbce685cdc3bc45", 40, 1, 1, 0), nil, nil, true).
 				Return(object.UploadObjectComplete[any]{
 					Lease: "Lease 3",
 				}, nil),
@@ -1654,19 +1898,19 @@ func TestUploaderServer(t *testing.T) {
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "e0e47485b1a2648afbc13e80a27847e8af72c8184f196f876dd236e3c9e195dc", 120, 2, 3, 40), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "e0e47485b1a2648afbc13e80a27847e8af72c8184f196f876dd236e3c9e195dc", 120, 2, 3, 40), nil, nil, true).
 				Return(object.UploadObjectMissing[any]{}, nil),
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "8e9760ca1e21d72db357cfc8c7496bd2cb914eb40020f928d27eccd6bdc8fe9c", 40, 1, 1, 0), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "8e9760ca1e21d72db357cfc8c7496bd2cb914eb40020f928d27eccd6bdc8fe9c", 40, 1, 1, 0), nil, nil, true).
 				Return(object.UploadObjectMissing[any]{}, nil),
 			objectUploader.EXPECT().
 				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "ed322edaa790eeedae11619eceaf20981f74e5f2a7071f5365597089d349be14", 5920, 0, 0, 0), nil, nil, false).
 				Return(object.UploadObjectMissing[any]{}, nil),
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "9bab4692a0fd9e9fe89e6e2eeae5a3dd2d8dcfc3180dae50c0086bde9dde0ee3", 40, 1, 1, 0), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "9bab4692a0fd9e9fe89e6e2eeae5a3dd2d8dcfc3180dae50c0086bde9dde0ee3", 40, 1, 1, 0), nil, nil, true).
 				Return(object.UploadObjectMissing[any]{}, nil),
 			objectUploader.EXPECT().
-				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "a119b9811b676d8b70cee097cd03c9dfa3554f7afa8e0fe28506878428b6d480", 40, 1, 1, 0), nil, nil, false).
+				UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "a119b9811b676d8b70cee097cd03c9dfa3554f7afa8e0fe28506878428b6d480", 40, 1, 1, 0), nil, nil, true).
 				Return(object.UploadObjectMissing[any]{}, nil),
 		)
 

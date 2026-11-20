@@ -1,5 +1,9 @@
 package tag
 
+import (
+	"bonanza.build/pkg/storage/object"
+)
+
 // Store for tags, which is both accessible for reading (resolving) and
 // writing (updating).
 type Store[TNamespace any, TLease any] interface {
@@ -18,3 +22,7 @@ func NewStore[TNamespace, TLease any](resolver Resolver[TNamespace], updater Upd
 		Updater:  updater,
 	}
 }
+
+// StoreForTesting is an instantiated version of Store, which may be
+// used for generating mocks to be used by tests.
+type StoreForTesting Store[object.Namespace, any]

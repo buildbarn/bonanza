@@ -39,6 +39,14 @@ type uploaderServer[TLease any] struct {
 // NewUploaderServer creates a gRPC server that is capable of forwarding
 // storage requests of the dag.Uploader API to instances of
 // object.Uploader and tag.Updater.
+//
+// If checking the existence of an object yields that it is present,
+// but that leases of one or more of its children are expired or about
+// to expire, the server traverses into these children to renew their
+// leases. This is done without involving the client, which may not be
+// in possession of these objects. Only if traversal yields that an
+// object underneath is absent, the client is requested to provide the
+// objects along the path to it.
 func NewUploaderServer[TLease any](
 	objectUploader object.Uploader[object.GlobalReference, TLease],
 	objectStoreSemaphore *semaphore.Weighted,
@@ -153,6 +161,32 @@ type objectState[TLease any] struct {
 	// When the object is finalized, the lease that needs to be
 	// provided to PutObject when writing parent objects.
 	lease TLease
+
+	// If set, the object is present in storage, but the leases of
+	// one or more of its children need to be renewed. The server
+	// traverses into these children without involving the client.
+	// If it turns out that one or more objects underneath are
+	// absent, a RequestObjectChildren message is sent to the client
+	// to request reference indices for the object's children.
+	//
+	// This field contains the outgoing references of the object,
+	// as stored in storage. These are used to determine which
+	// objects the children refer to, as opposed to trusting the
+	// client. Only the outgoing references are retained, so that
+	// the contents of the object can be released.
+	storedOutgoingReferences object.OutgoingReferences[object.LocalReference]
+
+	// If set, the object is absent, or one or more objects
+	// underneath it are absent. These objects can only be obtained
+	// by requesting them from the client.
+	//
+	// If the object has been assigned a reference index,
+	// RequestObjectContents or RequestObjectChildren is sent to the
+	// client. Otherwise, the object was reached by traversing into
+	// an object for the purpose of renewing leases, and this state
+	// is propagated to its parents. Once the object is assigned a
+	// reference index, the request is sent.
+	needsClient bool
 }
 
 // unfinalizedObjectState contains all state for a single object that is
@@ -259,17 +293,29 @@ func (r *dagReceiver[TLease]) getOrCreateObjectState(reference object.LocalRefer
 	o, ok := r.objectsByReference[reference]
 	if ok {
 		if o.finalizeObject == nil {
-			// An existing object appeared in another (part
-			// of the) DAG, and we have already sent a
-			// FinalizeObject message back to the client.
-			// Schedule the transmission of another
-			// FinalizeObject message, indicating that we
-			// don't want the client to send the object's
-			// contents again.
 			o.finalizeObject = &dag.UploadDagsResponse_FinalizeObject{
 				LowestReferenceIndex: referenceIndex,
 			}
-			r.queueFinalizeObjectLocked(o, nil)
+			if o.unfinalized == nil {
+				// An existing object appeared in
+				// another (part of the) DAG, and we
+				// have already sent a FinalizeObject
+				// message back to the client. Schedule
+				// the transmission of another
+				// FinalizeObject message, indicating
+				// that we don't want the client to send
+				// the object's contents again.
+				r.queueFinalizeObjectLocked(o, nil)
+			} else if o.needsClient {
+				// The object was reached by traversing
+				// into objects for the purpose of
+				// renewing leases, and was determined
+				// to be absent, or to have absent
+				// objects underneath it. Now that it
+				// has a reference index, it can be
+				// requested from the client.
+				r.queueRequestObjectContentsLocked(o)
+			}
 		} else {
 			// A FinalizeObject message was already
 			// scheduled to be transmitted. Make sure that
@@ -294,6 +340,45 @@ func (r *dagReceiver[TLease]) getOrCreateObjectState(reference object.LocalRefer
 		r.pendingObjectsWakeup.Broadcast()
 	}
 	return o
+}
+
+// getOrCreateTraversedObjectStateLocked looks up the state that is
+// tracked by UploadDags() for a single object that is reached by
+// traversing into an object for the purpose of renewing leases. If no
+// state exists, it is created. As the client may not be in possession
+// of the object, no reference index is assigned to it.
+func (r *dagReceiver[TLease]) getOrCreateTraversedObjectStateLocked(reference object.LocalReference) *objectState[TLease] {
+	o, ok := r.objectsByReference[reference]
+	if !ok {
+		o = &objectState[TLease]{
+			reference:   reference,
+			unfinalized: &unfinalizedObjectState[TLease]{},
+		}
+		r.objectsByReference[reference] = o
+		heap.Push(&r.pendingObjects, o)
+		r.requestableObjectCount++
+		r.pendingObjectsWakeup.Broadcast()
+	}
+	return o
+}
+
+// markNeedsClientLocked is called when an object is determined to be
+// absent, or to have one or more absent objects underneath it. If the
+// object has a reference index, it is requested from the client.
+// Otherwise, its parents are marked as well, so that the client is
+// requested to provide the objects along the path to it.
+func (r *dagReceiver[TLease]) markNeedsClientLocked(o *objectState[TLease]) {
+	if o.unfinalized == nil || o.needsClient {
+		return
+	}
+	o.needsClient = true
+	if o.finalizeObject != nil {
+		r.queueRequestObjectContentsLocked(o)
+	} else {
+		for _, unfinalizedParent := range o.unfinalized.unfinalizedParents {
+			r.markNeedsClientLocked(unfinalizedParent.object)
+		}
+	}
 }
 
 // detachObjectState removes the object state from the map of active
@@ -417,6 +502,12 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 			}
 			delete(r.requestedObjects, provideObjectContents.LowestReferenceIndex)
 
+			if o.storedOutgoingReferences != nil {
+				r.lock.Unlock()
+				return status.Errorf(codes.InvalidArgument, "Client provided object contents for lowest reference index %d, even though its children were requested", provideObjectContents.LowestReferenceIndex)
+			}
+			o.needsClient = false
+
 			if len(provideObjectContents.ObjectContents) == 0 {
 				// Client left ObjectContents unset. This can
 				// be used to clients to cancel the
@@ -485,6 +576,53 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 					r.putObject(o, contents, leases)
 				}
 			}
+		case *dag.UploadDagsRequest_ProvideObjectChildren_:
+			provideObjectChildren := requestType.ProvideObjectChildren
+			r.lock.Lock()
+			o, ok := r.requestedObjects[provideObjectChildren.LowestReferenceIndex]
+			if !ok || o.storedOutgoingReferences == nil {
+				r.lock.Unlock()
+				return status.Errorf(codes.InvalidArgument, "Client provided object children for lowest reference index %d, which was not expected", provideObjectChildren.LowestReferenceIndex)
+			}
+			delete(r.requestedObjects, provideObjectChildren.LowestReferenceIndex)
+			outgoingReferences := o.storedOutgoingReferences
+			o.storedOutgoingReferences = nil
+			o.needsClient = false
+
+			if provideObjectChildren.Cancel {
+				// Client canceled the transmission of
+				// DAGs containing this object.
+				var lease TLease
+				r.finalizeObjectLocked(o, lease, statusClientCanceledUpload)
+				r.lock.Unlock()
+				continue
+			}
+
+			// Assign reference indices to all children.
+			// Determine which objects they refer to based
+			// on the contents of the object in storage.
+			//
+			// The object is only waiting for the children
+			// that were traversed into while renewing
+			// leases, as the leases of the other children
+			// were still valid. The other children are
+			// merely checked for existence, so that
+			// FinalizeObject messages can be sent for them.
+			for i := 0; i < outgoingReferences.GetDegree(); i++ {
+				r.getOrCreateObjectState(outgoingReferences.GetOutgoingReference(i), nextReferenceIndex)
+				nextReferenceIndex++
+			}
+
+			// If the children that were traversed into
+			// have all been finalized in the meantime (e.g.,
+			// because absent objects were provided by the
+			// client as part of another DAG), finalizing the
+			// object was deferred until now.
+			if hasUnfinalizedChildren := o.unfinalized.hasUnfinalizedChildren; hasUnfinalizedChildren != nil && hasUnfinalizedChildren.unfinalizedChildrenCount == 0 {
+				o.unfinalized.hasUnfinalizedChildren = nil
+				r.finalizeParentLocked(o, hasUnfinalizedChildren)
+			}
+			r.lock.Unlock()
 		default:
 			return status.Error(codes.InvalidArgument, "Client sent a message of an unknown type")
 		}
@@ -584,29 +722,31 @@ func (r *dagReceiver[TLease]) processPendingObjects() error {
 				r.namespace.WithLocalReference(o.reference),
 				/* contents = */ nil,
 				/* leases = */ nil,
-				/* wantContentsIfIncomplete = */ false,
+				/* wantContentsIfIncomplete = */ o.reference.GetDegree() > 0,
 			)
 			r.server.objectStoreSemaphore.Release(1)
 
 			r.lock.Lock()
-			defer r.lock.Unlock()
-
 			r.requestableObjectCount--
-			requestContents := false
+			needsContents := false
+			var putLeases []TLease
 			if err == nil {
 				switch resultType := result.(type) {
 				case object.UploadObjectComplete[TLease]:
 					// Object exists. No need to
 					// request its contents.
 					r.finalizeObjectLocked(o, resultType.Lease, nil)
-				case object.UploadObjectIncomplete[TLease], object.UploadObjectMissing[TLease]:
-					// Object does not exist. Or it exists,
-					// but it has one or more expired
-					// leases. Request that the client
-					// uploads it again to reobtain valid
-					// leases.
-					requestContents = true
-					r.queueRequestObjectContentsLocked(o)
+				case object.UploadObjectIncomplete[TLease]:
+					// Object exists, but the leases of
+					// one or more of its children need
+					// to be renewed. Traverse into them
+					// without involving the client.
+					putLeases = r.traverseIntoChildrenLocked(o, resultType.Contents, resultType.WantOutgoingReferencesLeases)
+				case object.UploadObjectMissing[TLease]:
+					// Object does not exist. Request
+					// that the client uploads it.
+					needsContents = true
+					r.markNeedsClientLocked(o)
 				default:
 					panic("unknown upload object result type")
 				}
@@ -621,32 +761,99 @@ func (r *dagReceiver[TLease]) processPendingObjects() error {
 			// ProvideObjectContents message from the
 			// client. This means we're free to request
 			// other objects.
-			if !requestContents {
+			if !needsContents {
 				r.remainingUnfinalizedParentsLimit.ReleaseChildren(o.reference)
 				r.pendingObjectsWakeup.Broadcast()
+			}
+			r.lock.Unlock()
+
+			if putLeases != nil {
+				r.putObject(o, nil, putLeases)
 			}
 			return nil
 		})
 	}
 }
 
+// traverseIntoChildrenLocked is called when an object is present in
+// storage, but the leases of one or more of its children need to be
+// renewed. The children are checked for existence without assigning
+// reference indices to them. Once all of them have been finalized, the
+// leases of the object are updated.
+//
+// If none of the children need to be waited upon, the leases that need
+// to be provided to putObject() are returned.
+func (r *dagReceiver[TLease]) traverseIntoChildrenLocked(o *objectState[TLease], contents *object.Contents, wantOutgoingReferencesLeases []int) []TLease {
+	o.storedOutgoingReferences = contents.DetachOutgoingReferences()
+
+	// Leases of children that are not traversed into are left
+	// at the zero value, meaning the leases that are currently
+	// stored are retained.
+	leases := make([]TLease, o.reference.GetDegree())
+	unfinalizedChildrenCount := 0
+	childNeedsClient := false
+	for _, i := range wantOutgoingReferencesLeases {
+		oChild := r.getOrCreateTraversedObjectStateLocked(o.storedOutgoingReferences.GetOutgoingReference(i))
+		if oChild.unfinalized == nil {
+			// Child has already finished replicating.
+			leases[i] = oChild.lease
+		} else {
+			oChild.unfinalized.unfinalizedParents = append(
+				oChild.unfinalized.unfinalizedParents,
+				unfinalizedParent[TLease]{
+					object: o,
+					lease:  &leases[i],
+				},
+			)
+			unfinalizedChildrenCount++
+			if oChild.needsClient && oChild.finalizeObject == nil {
+				childNeedsClient = true
+			}
+		}
+	}
+
+	if unfinalizedChildrenCount == 0 {
+		o.storedOutgoingReferences = nil
+		return leases
+	}
+	o.unfinalized.hasUnfinalizedChildren = &hasUnfinalizedChildrenState[TLease]{
+		leases:                   leases,
+		unfinalizedChildrenCount: unfinalizedChildrenCount,
+	}
+	if childNeedsClient {
+		r.markNeedsClientLocked(o)
+	}
+	return nil
+}
+
 // finalizeObjectLocked is called when an object has finished
 // replicating, or after an error occurred in the process.
 func (r *dagReceiver[TLease]) finalizeObjectLocked(o *objectState[TLease], lease TLease, status *statuspb.Status) {
-	r.queueFinalizeObjectLocked(o, status)
-
 	unfinalized := o.unfinalized
 	o.unfinalized = nil
+	o.storedOutgoingReferences = nil
+	o.needsClient = false
 
 	// Upon success, don't detach the object state immediately. This
 	// allows us to hold on to the lease a bit longer. That way we
 	// need to do fewer lookups against storage, and may send fewer
 	// FinalizeObject messages back to the client.
+	//
+	// Objects that were reached by traversing into objects for the
+	// purpose of renewing leases don't have a reference index, so
+	// no FinalizeObject message needs to be sent. Detach these
+	// immediately, so that traversing large DAGs doesn't cause
+	// state to accumulate.
 	hasFailure := status.GetCode() != 0
-	if hasFailure {
+	if o.finalizeObject == nil {
 		r.detachObjectState(o)
 	} else {
-		o.lease = lease
+		r.queueFinalizeObjectLocked(o, status)
+		if hasFailure {
+			r.detachObjectState(o)
+		} else {
+			o.lease = lease
+		}
 	}
 
 	for _, unfinalizedParent := range unfinalized.unfinalizedParents {
@@ -655,6 +862,11 @@ func (r *dagReceiver[TLease]) finalizeObjectLocked(o *objectState[TLease], lease
 		// writing.
 		*unfinalizedParent.lease = lease
 		oParent := unfinalizedParent.object
+		if oParent.unfinalized == nil {
+			// Parent was already finalized, due to the
+			// client canceling its upload.
+			continue
+		}
 		hasUnfinalizedChildren := oParent.unfinalized.hasUnfinalizedChildren
 
 		// If an error occurred replicating an object, place any
@@ -672,15 +884,24 @@ func (r *dagReceiver[TLease]) finalizeObjectLocked(o *objectState[TLease], lease
 		// replicated, finalize the parent.
 		hasUnfinalizedChildren.unfinalizedChildrenCount--
 		if hasUnfinalizedChildren.unfinalizedChildrenCount == 0 {
-			oParent.unfinalized.hasUnfinalizedChildren = nil
-			if hasUnfinalizedChildren.hasChildFailures {
-				var lease TLease
-				r.finalizeObjectLocked(oParent, lease, statusChildUploadFailure)
-			} else {
-				r.lock.Unlock()
-				r.putObject(oParent, hasUnfinalizedChildren.contents, hasUnfinalizedChildren.leases)
-				r.lock.Lock()
+			if oParent.needsClient {
+				if oParent.finalizeObject != nil {
+					// RequestObjectChildren has
+					// been sent to the client, or
+					// is queued for transmission.
+					// Finalizing the parent must
+					// be deferred until the client
+					// has responded.
+					continue
+				}
+				// The absent objects underneath the
+				// parent have been provided by the
+				// client as part of another (part of
+				// the) DAG.
+				oParent.needsClient = false
 			}
+			oParent.unfinalized.hasUnfinalizedChildren = nil
+			r.finalizeParentLocked(oParent, hasUnfinalizedChildren)
 		}
 	}
 
@@ -696,6 +917,20 @@ func (r *dagReceiver[TLease]) finalizeObjectLocked(o *objectState[TLease], lease
 
 	r.remainingUnfinalizedParentsLimit.ReleaseParent(o.reference)
 	r.pendingObjectsWakeup.Broadcast()
+}
+
+// finalizeParentLocked is called when an object is no longer waiting
+// for any of its children to be finalized. It either finalizes the
+// object with an error, or writes it to storage.
+func (r *dagReceiver[TLease]) finalizeParentLocked(o *objectState[TLease], hasUnfinalizedChildren *hasUnfinalizedChildrenState[TLease]) {
+	if hasUnfinalizedChildren.hasChildFailures {
+		var lease TLease
+		r.finalizeObjectLocked(o, lease, statusChildUploadFailure)
+	} else {
+		r.lock.Unlock()
+		r.putObject(o, hasUnfinalizedChildren.contents, hasUnfinalizedChildren.leases)
+		r.lock.Lock()
+	}
 }
 
 // updateAndFinalizeTag writes tags into TagStore and sends a
@@ -867,15 +1102,25 @@ func (r *dagReceiver[TLease]) processOutgoingMessages() error {
 
 			lowestReferenceIndex := o.finalizeObject.LowestReferenceIndex
 			r.requestedObjects[lowestReferenceIndex] = o
-			r.lock.Unlock()
-
-			if err := r.stream.Send(&dag.UploadDagsResponse{
+			response := &dag.UploadDagsResponse{
 				Type: &dag.UploadDagsResponse_RequestObjectContents_{
 					RequestObjectContents: &dag.UploadDagsResponse_RequestObjectContents{
 						LowestReferenceIndex: lowestReferenceIndex,
 					},
 				},
-			}); err != nil {
+			}
+			if o.storedOutgoingReferences != nil {
+				response = &dag.UploadDagsResponse{
+					Type: &dag.UploadDagsResponse_RequestObjectChildren_{
+						RequestObjectChildren: &dag.UploadDagsResponse_RequestObjectChildren{
+							LowestReferenceIndex: lowestReferenceIndex,
+						},
+					},
+				}
+			}
+			r.lock.Unlock()
+
+			if err := r.stream.Send(response); err != nil {
 				return err
 			}
 		}

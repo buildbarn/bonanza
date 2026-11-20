@@ -1,4 +1,5 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//extras:gomock.bzl", "gomock")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "leaserenewing",
@@ -6,8 +7,57 @@ go_library(
     importpath = "bonanza.build/pkg/storage/tag/leaserenewing",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/ds",
         "//pkg/storage/object",
         "//pkg/storage/tag",
+        "//pkg/sync",
         "@com_github_buildbarn_bb_storage//pkg/util",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_x_sync//semaphore",
     ],
+)
+
+go_test(
+    name = "leaserenewing_test",
+    srcs = [
+        "mocks_object_test.go",
+        "mocks_tag_test.go",
+        "resolver_test.go",
+    ],
+    embed = [":leaserenewing"],
+    deps = [
+        "//pkg/proto/storage/object",
+        "//pkg/storage/object",
+        "//pkg/storage/tag",
+        "@com_github_buildbarn_bb_storage//pkg/testutil",
+        "@com_github_buildbarn_bb_storage//pkg/util",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_x_sync//semaphore",
+        "@org_uber_go_mock//gomock",
+    ],
+)
+
+gomock(
+    name = "mocks_object",
+    out = "mocks_object_test.go",
+    interfaces = ["UploaderForTesting"],
+    library = "//pkg/storage/object",
+    mock_names = {"UploaderForTesting": "MockObjectUploader"},
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "leaserenewing_test",
+)
+
+gomock(
+    name = "mocks_tag",
+    out = "mocks_tag_test.go",
+    interfaces = ["StoreForTesting"],
+    library = "//pkg/storage/tag",
+    mock_names = {"StoreForTesting": "MockTagStore"},
+    mockgen_model_library = "@org_uber_go_mock//mockgen/model",
+    mockgen_tool = "@org_uber_go_mock//mockgen",
+    package = "leaserenewing_test",
 )
