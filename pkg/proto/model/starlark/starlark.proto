@@ -552,7 +552,7 @@ message Depset {
   // converting the depset to a list, retaining the first occurrence.
   //
   // If the order of the depset is equal to TOPOLOGICAL, elements in
-  // this list are stored in reverse order, for the the reason that the
+  // this list are stored in reverse order, for the reason that the
   // last occurrence must be retained.
   repeated List.Element elements = 1;
 
@@ -1306,7 +1306,7 @@ message Rule {
     // Starlark function that implements this rule.
     Function implementation = 5;
 
-    // Stalark function initializing the attributes of the rule.
+    // Starlark function initializing the attributes of the rule.
     Function initializer = 6;
 
     // List of providers that the implementation function must return,

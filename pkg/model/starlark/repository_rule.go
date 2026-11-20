@@ -298,7 +298,7 @@ type reloadingRepositoryRuleDefinition[TReference object.BasicReference, TMetada
 // NewReloadingRepositoryRuleDefinition creates a repository rule
 // definition that is obtained by resolving the global variable to
 // which the repository rule is assigned. This is used when repository
-// rules are reloaded from storage by reference, e.g. because they were
+// rules are reloaded from storage by reference, e.g., because they were
 // assigned to multiple globals.
 func NewReloadingRepositoryRuleDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](identifier pg_label.CanonicalStarlarkIdentifier) RepositoryRuleDefinition[TReference, TMetadata] {
 	return &reloadingRepositoryRuleDefinition[TReference, TMetadata]{

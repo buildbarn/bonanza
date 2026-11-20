@@ -1447,7 +1447,7 @@ func getFileTypeDescription(fileType model_starlark_pb.File_Owner_Type) string {
 
 func (or *targetOutputRegistrar[TReference, TMetadata]) registerOutput(filename label.TargetName, sibling *model_starlark.File[TReference, TMetadata], fileType model_starlark_pb.File_Owner_Type) (eval.Value, error) {
 	// If a sibling is provided, path resolution needs to start in
-	// the directory containing containing the sibling.
+	// the directory containing the sibling.
 	if sibling != nil {
 		siblingLabelStr := sibling.GetDefinition().Message.Label
 		siblingLabel, err := label.NewCanonicalLabel(siblingLabelStr)
@@ -2427,7 +2427,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 
 	// Tools such as compilers tend to expect that parent
 	// directories of output files already exist. Create a directory
-	// hierachy containing the parent directories of all output
+	// hierarchy containing the parent directories of all output
 	// files. This directory will get merged into the input root.
 	var initialOutputDirectory changeTrackingDirectory[TReference, TMetadata]
 	for _, output := range outputs {

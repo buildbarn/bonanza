@@ -11,7 +11,7 @@ type downloadingObjectReader[TReference any] struct {
 	downloader object.Downloader[TReference]
 }
 
-// NewDownloadingObjectReader creates a ObjectReader that
+// NewDownloadingObjectReader creates an ObjectReader that
 // reads objects by downloading them from storage. Storage can either be
 // local (e.g., backed by a disk) or remote (e.g., via gRPC).
 func NewDownloadingObjectReader[TReference any](downloader object.Downloader[TReference]) ObjectReader[TReference, model_core.Message[[]byte, object.LocalReference]] {

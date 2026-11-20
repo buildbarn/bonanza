@@ -10,7 +10,7 @@ import (
 type tagRecordArrayFactory struct{}
 
 // TagRecordArrayFactory is capable of creating backing stores for Tag
-// Store. These backing stores can either reside in memory or on on
+// Store. These backing stores can either reside in memory or on
 // disk.
 var TagRecordArrayFactory lossymap.RecordArrayFactory[tag.Key, ValueWithLease, struct{}] = tagRecordArrayFactory{}
 

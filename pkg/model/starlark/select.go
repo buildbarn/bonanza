@@ -186,7 +186,7 @@ func (s *Select[TReference, TMetadata]) EncodeGroups(thread *eval.Thread, path [
 	return model_core.NewPatchedMessage(groups, patcher), nil
 }
 
-// EncodeValue encodes a Starlar select() object to a Starlark value
+// EncodeValue encodes a Starlark select() object to a Starlark value
 // Protobuf message. This allows the object to be written to storage and
 // subsequently reloaded.
 func (s *Select[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {

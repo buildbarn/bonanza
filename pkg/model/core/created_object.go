@@ -45,7 +45,7 @@ var (
 // Discard any resources owned by the CreatedObjectTree.
 func (CreatedObjectTree) Discard() {}
 
-// ToObjectContentsWalker returns a ObjectContentsWalker that allows
+// ToObjectContentsWalker returns an ObjectContentsWalker that allows
 // traversing all objects contained in the CreatedObjectTree.
 func (t CreatedObjectTree) ToObjectContentsWalker() dag.ObjectContentsWalker {
 	return &createdObjectTreeWalker{

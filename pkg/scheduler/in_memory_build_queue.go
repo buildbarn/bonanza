@@ -2097,7 +2097,7 @@ func (i *invocation) isPreferred(j *invocation, tieBreaker bool) bool {
 	// to this expression to ensure that the priority is still taken
 	// into account when the number of executing operations is zero.
 	//
-	// The base value for the expontentiation is chosen to be
+	// The base value for the exponentiation is chosen to be
 	// 2^0.01 =~ 1.007. This means that if the difference in
 	// priority between two builds is 100, one build will be allowed
 	// to run twice as many operations as the other.

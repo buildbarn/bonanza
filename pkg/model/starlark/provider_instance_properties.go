@@ -59,7 +59,7 @@ func (pip *ProviderInstanceProperties[TReference, TMetadata]) Encode(thread *eva
 	), nil
 }
 
-// NewProviderInstanceProperties creates an ProviderInstanceProperties
+// NewProviderInstanceProperties creates a ProviderInstanceProperties
 // object. This is either called via the Starlark provider() function,
 // or when a provider or one of its instances is reloaded from storage.
 func NewProviderInstanceProperties[TReference any, TMetadata model_core.ReferenceMetadata](identifier *pg_label.CanonicalStarlarkIdentifier, dictLike bool, computedFields map[string]eval.Function, typeName string) *ProviderInstanceProperties[TReference, TMetadata] {

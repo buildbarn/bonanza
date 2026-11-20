@@ -389,7 +389,7 @@ func (d *Depset[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.
 // Even though we use the same message format as regular lists, there is
 // no guarantee that all leaves are stored at the same depth. The reason
 // for this is that when merging depset, we never attempt to reload any
-// existing lists from torage. If a depset with a non-zero height is
+// existing lists from storage. If a depset with a non-zero height is
 // encountered, we merely copy over its top level elements. Even though
 // this leads to an imbalance, it does lead to faster deduplication in
 // depset.to_list().

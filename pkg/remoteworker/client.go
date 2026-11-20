@@ -485,7 +485,7 @@ func (c *Client) Run(ctx context.Context) (bool, error) {
 			return true, nil
 		case *remoteworker_pb.DesiredState_Executing_:
 			// Scheduler is requesting us to execute the
-			// next action, maybe forcing us to to stop
+			// next action, maybe forcing us to stop
 			// execution of the current build action.
 			if err := c.startExecution(workerState.Executing); err != nil {
 				c.request.CurrentState.WorkerState = &remoteworker_pb.CurrentState_Rejected_{

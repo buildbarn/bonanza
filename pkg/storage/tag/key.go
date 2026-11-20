@@ -20,7 +20,7 @@ import (
 // are 256 bits in size (e.g., SHA-256).
 //
 // In order to prevent collisions between different use cases, keys also
-// contain an signature public key. The value of the tag needs to be
+// contain a signature public key. The value of the tag needs to be
 // signed using the corresponding private key. This permits consumers of
 // tags to verify the tag's value. Even though the protocol does not
 // place restrictions on which algorithm is used, this implementation

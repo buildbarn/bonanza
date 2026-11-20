@@ -17,7 +17,7 @@ var errInvalidResolvedLabel = errors.New("resolved label must match " + validRes
 // canonical label has been attempted. The label is either a canonical
 // label, or it is a label for which resolution to a canonical label
 // failed. In that case the repo name consists of an error message
-// enclosed in square brackets (i.e. @@[error message]//package:target).
+// enclosed in square brackets (i.e., @@[error message]//package:target).
 type ResolvedLabel struct {
 	value string
 }

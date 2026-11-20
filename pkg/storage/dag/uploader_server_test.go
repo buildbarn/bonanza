@@ -83,7 +83,7 @@ func TestUploaderServer(t *testing.T) {
 	})
 
 	t.Run("HandshakeMissingNamespace", func(t *testing.T) {
-		// The handhshake message should contain a namespace.
+		// The handshake message should contain a namespace.
 		// Otherwise we don't know the instance name and
 		// reference format being used.
 		server := NewMockUploader_UploadDagsServer(ctrl)

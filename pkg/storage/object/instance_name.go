@@ -19,7 +19,7 @@ type InstanceName struct {
 
 const validInstanceNameComponentPattern = `[0-9A-Za-z]+`
 
-// Be conservative about what what kinds of instance names we accept.
+// Be conservative about what kinds of instance names we accept.
 // It's often desirable to embed instance names in pathnames and URLs.
 var (
 	validInstanceNameRegexp       = regexp.MustCompile(`^(` + validInstanceNameComponentPattern + `(/` + validInstanceNameComponentPattern + `)*)?$`)
@@ -62,7 +62,7 @@ func (in InstanceName) String() string {
 }
 
 // AsURLSafeComponent escapes the instance name string, so that it can
-// safely be embedded into URLs. All slashes are are converted to %2F.
+// safely be embedded into URLs. All slashes are converted to %2F.
 // If the instance name is empty, special value "-" is returned.
 func (in InstanceName) AsURLSafeComponent() string {
 	if in.value == "" {

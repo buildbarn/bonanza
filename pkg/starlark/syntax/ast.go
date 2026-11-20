@@ -109,7 +109,7 @@ func (x *BranchStmt) Span() (start, end Position) {
 type DefStmt struct {
 	Def  Position
 	Name *Ident
-	// Type parameters, e.g. T in "def f[T](x: T) -> T".
+	// Type parameters, e.g., T in "def f[T](x: T) -> T".
 	TypeParams []*Ident
 	Lparen     Position
 	Params     []*Param
@@ -655,7 +655,7 @@ func (x *TupleExpr) Span() (start, end Position) {
 }
 
 // TypeApplication represents a generic type that is applied to
-// arguments: Type[Args], e.g. list[str] or dict[str, int].
+// arguments: Type[Args], e.g., list[str] or dict[str, int].
 type TypeApplication struct {
 	// *Ident or *DotExpr.
 	Type   Expr

@@ -17,7 +17,7 @@ func (e CommandNotRecognizedError) Error() string {
 
 // CommandDoesNotTakeArgumentsError is returned when the user invokes a
 // command with arguments, even though the command does not take any
-// (e.g. "bazel clean //...").
+// (e.g., "bazel clean //...").
 type CommandDoesNotTakeArgumentsError struct {
 	Command string
 }
@@ -27,7 +27,7 @@ func (e CommandDoesNotTakeArgumentsError) Error() string {
 }
 
 // FlagNotRecognizedError is returned when the user invokes a command
-// with an unknown flag (e.g. "bazel build --remote_executar=foo").
+// with an unknown flag (e.g., "bazel build --remote_executar=foo").
 type FlagNotRecognizedError struct {
 	Flag string
 }

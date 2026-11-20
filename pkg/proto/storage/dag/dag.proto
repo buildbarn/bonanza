@@ -34,7 +34,7 @@ service Uploader {
   // nested request/response messages. The sequence in which clients and
   // servers issue these is as follows:
   //
-  // - The client sends an UploadDagsRequest.Handshake to the client.
+  // - The client sends an UploadDagsRequest.Handshake to the server.
   // - In response, the server sends an UploadDagsResponse.Handshake
   //   back to the client.
   //
@@ -43,7 +43,7 @@ service Uploader {
   //
   // - The client sends an UploadDagsRequest.InitiateDag to inform the
   //   server that it wants to upload a DAG with a given root object,
-  //   and an optional tag to assignafter uploading.
+  //   and an optional tag to assign after uploading.
   // - The server may send an UploadDagsResponse.RequestObjectContents
   //   to indicate that it wants to receive the DAG's root object.
   //   - The client sends the contents of the object via
@@ -129,7 +129,7 @@ message UploadDagsRequest {
 
     // If set, assign a tag to the root of the DAG, so that it can
     // subsequently be resolved using
-    // bonanza.storage.object.tag.Resolver.ResolveTag().
+    // bonanza.storage.tag.Resolver.ResolveTag().
     // This can for example be used to cache the results of a build
     // action, allowing other clients to look them up by action.
     Tag root_tag = 2;
@@ -142,7 +142,7 @@ message UploadDagsRequest {
 
     // The contents of the object that was requested.
     //
-    // When the provides contents contain one or more outgoing
+    // When the provided contents contain one or more outgoing
     // references, they are assigned to consecutively numbered reference
     // indices [n, n+m), where n corresponds to the next available
     // reference index and m to the number of outgoing references of the

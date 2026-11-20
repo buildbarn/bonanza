@@ -1054,7 +1054,7 @@ func (pathPrependingDirectory[TDirectory, TFile]) OpenForFileMerkleTreeCreation(
 // symlinkRecordingComponentWalker is a decorator for
 // path.ComponentWalker that monitors the paths that are being
 // traversed, and copies over any symbolic links that are encountered
-// into another directory hierarcy.
+// into another directory hierarchy.
 //
 // This implementation is used when FileRoot is called against a source
 // file. Any symbolic links that are encountered should be followed, but

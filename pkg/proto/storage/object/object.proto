@@ -38,7 +38,7 @@ service Downloader {
 }
 
 service Uploader {
-  // Upload the contents of a single object from storage and/or attach
+  // Upload the contents of a single object to storage and/or attach
   // leases of outgoing references to it.
   rpc UploadObject(UploadObjectRequest) returns (UploadObjectResponse);
 }

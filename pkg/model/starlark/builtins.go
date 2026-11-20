@@ -1982,7 +1982,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				// targets providing TemplateVariableInfo,
 				// which is used to populate ctx.var.
 				//
-				// To prevent dependency cyles, we shouldn't
+				// To prevent dependency cycles, we shouldn't
 				// add these to rules that opt out.
 				if _, ok := attrs[defaultToolchainsAttrIdentifier]; ok {
 					return nil, fmt.Errorf("attr %#v cannot be declared explicitly", defaultToolchainsAttrIdentifier.String())

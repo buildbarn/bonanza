@@ -184,7 +184,7 @@ func TestStore(t *testing.T) {
 		})
 
 		t.Run("ParentDownloadNotFound", func(t *testing.T) {
-			// For parent objects we we need to download
+			// For parent objects we need to download
 			// them, so that we know what the object's
 			// children are. However, if this returns
 			// NOT_FOUND it is inconsistent with the results
@@ -211,7 +211,7 @@ func TestStore(t *testing.T) {
 		})
 
 		t.Run("ParentDownloadNotFound", func(t *testing.T) {
-			// For parent objects we we need to download
+			// For parent objects we need to download
 			// them, so that we know what the object's
 			// children are. However, if this returns
 			// NOT_FOUND it is inconsistent with the results

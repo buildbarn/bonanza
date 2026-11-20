@@ -71,7 +71,7 @@ func Decompress(compressed []byte, maximumSizeBytes uint32) ([]byte, error) {
 
 	// Mapping of codes to monotonically increasing offsets
 	// within the decompressed data, allowing prefixes to be
-	// obtained. The length of of the prefix can be obtained
+	// obtained. The length of the prefix can be obtained
 	// by considering the next offset.
 	offsets := make([]uint32, 0, highestCode-initialHighestCode)
 

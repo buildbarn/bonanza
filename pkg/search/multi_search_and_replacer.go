@@ -39,7 +39,7 @@ type gotoGraphNode struct {
 	needleIndex  uint32
 	needleLength uint32
 
-	// The failure function, i.e. the state in which to continue if
+	// The failure function, i.e., the state in which to continue if
 	// a mismatch occurs.
 	f uint32
 }

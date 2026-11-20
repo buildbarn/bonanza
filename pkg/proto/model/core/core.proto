@@ -26,7 +26,7 @@ message Reference {
   // One-based index of an outgoing reference of the current object that
   // refers to the child object.
   //
-  // Type type fixed32 is used, as this permits altering indices without
+  // Type fixed32 is used, as this permits altering indices without
   // affecting the encoding of other parts of messages. One-based
   // indexing is used to ensure that the field is always encoded.
   fixed32 index = 1;

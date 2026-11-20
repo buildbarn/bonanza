@@ -31,7 +31,7 @@ enum EncodingMode {
   // possible to store decoding parameters, such as the Tag Store which
   // can only store an object reference.
   //
-  // In the case of Tag Store, the decoding parmaeters should not be
+  // In the case of Tag Store, the decoding parameters should not be
   // derivable from the key under which the object is stored. Doing this
   // ensures that objects referenced by tags cannot immediately be
   // encrypted, even if the encoder's private key is divulged.

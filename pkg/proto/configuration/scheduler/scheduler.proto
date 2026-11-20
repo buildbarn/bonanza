@@ -116,7 +116,7 @@ message InitialSizeClassFeedbackDrivenAnalyzerConfiguration {
 
 message InitialSizeClassPageRankStrategyCalculatorConfiguration {
   // An exponent to determine whether an increase in execution time when
-  // scheduling an action on a smaller size class is considere
+  // scheduling an action on a smaller size class is considered
   // acceptable.
   //
   // For example, consider the case where this exponent is set to 0.7,
@@ -172,7 +172,7 @@ message InitialSizeClassPageRankStrategyCalculatorConfiguration {
   // timeout on smaller size classes.
   //
   // Because this tends to introduce too much flakiness, this option can
-  // be used to set an lower bound on the execution timeout.
+  // be used to set a lower bound on the execution timeout.
   //
   // Recommended value: 10s
   google.protobuf.Duration minimum_execution_timeout = 3;

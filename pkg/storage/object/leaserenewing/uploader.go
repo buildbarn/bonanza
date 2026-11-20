@@ -45,7 +45,7 @@ type Uploader[TReference Reference[TReference], TLease any] struct {
 	pendingObjectsWakeup             pg_sync.ConditionVariable
 }
 
-// NewUploader creates a Uploader that dectorates a provided
+// NewUploader creates an Uploader that decorates a provided
 // object.Uploader.
 func NewUploader[TReference Reference[TReference], TLease any](base object.Uploader[TReference, TLease], objectStoreSemaphore *semaphore.Weighted, maximumUnfinalizedParentsLimit object.Limit) *Uploader[TReference, TLease] {
 	u := &Uploader[TReference, TLease]{

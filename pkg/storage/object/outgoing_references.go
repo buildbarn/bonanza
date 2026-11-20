@@ -10,7 +10,7 @@ type OutgoingReferences[TReference any] interface {
 
 	// If the OutgoingReferences object is part of a larger object
 	// (e.g., part of object.Contents), copy it, so that the
-	// original instance may be garbage ollected.
+	// original instance may be garbage collected.
 	DetachOutgoingReferences() OutgoingReferences[TReference]
 }
 
@@ -26,7 +26,7 @@ func (l OutgoingReferencesList[T]) GetDegree() int {
 }
 
 // GetOutgoingReference returns the reference at a given index in the
-// outgoing refrences list. It is the caller's responsibility to ensure
+// outgoing references list. It is the caller's responsibility to ensure
 // the index is within bounds.
 func (l OutgoingReferencesList[T]) GetOutgoingReference(index int) T {
 	return l[index]

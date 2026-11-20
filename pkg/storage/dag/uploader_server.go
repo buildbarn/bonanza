@@ -178,7 +178,7 @@ type unfinalizedParent[TLease any] struct {
 
 // hasUnfinalizedChildrenState contains all state for a single object
 // that has been sent by the client to the server, but cannot be written
-// to storate yet, due to one or more children not being stored yet.
+// to storage yet, due to one or more children not being stored yet.
 type hasUnfinalizedChildrenState[TLease any] struct {
 	contents                 *object.Contents
 	leases                   []TLease
@@ -639,7 +639,7 @@ func (r *dagReceiver[TLease]) finalizeObjectLocked(o *objectState[TLease], lease
 	o.unfinalized = nil
 
 	// Upon success, don't detach the object state immediately. This
-	// alllows us to hold on to the lease a bit longer. That way we
+	// allows us to hold on to the lease a bit longer. That way we
 	// need to do fewer lookups against storage, and may send fewer
 	// FinalizeObject messages back to the client.
 	hasFailure := status.GetCode() != 0

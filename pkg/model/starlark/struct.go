@@ -86,7 +86,7 @@ func (s *Struct[TReference, TMetadata]) Type() string {
 	return "struct"
 }
 
-// Truth returns whethe a Starlark struct value evaluates to true or
+// Truth returns whether a Starlark struct value evaluates to true or
 // false when implicitly converted to a Boolean value. Structs always
 // evaluate to true, even if they are empty.
 func (Struct[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {

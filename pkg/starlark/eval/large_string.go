@@ -25,7 +25,7 @@ type LargeStringSource interface {
 
 // LargeStringSourceComparer may optionally be implemented by
 // implementations of LargeStringSource that can determine whether two
-// strings are equal without reading them, e.g. because they refer to
+// strings are equal without reading them, e.g., because they refer to
 // the same object in storage.
 type LargeStringSourceComparer interface {
 	LargeStringSource

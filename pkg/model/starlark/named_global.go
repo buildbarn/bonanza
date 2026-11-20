@@ -35,7 +35,7 @@ func (lnv *LateNamedValue) equals(other *LateNamedValue) bool {
 	return lnv == other || (lnv.Identifier != nil && other.Identifier != nil && *lnv.Identifier == *other.Identifier)
 }
 
-// NamedGlobal is satisified by all Starlark objects that need to track
+// NamedGlobal is satisfied by all Starlark objects that need to track
 // their own identifier, such as rules and providers.
 type NamedGlobal interface {
 	eval.Value
