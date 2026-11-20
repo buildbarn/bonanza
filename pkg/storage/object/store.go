@@ -1,5 +1,9 @@
 package object
 
+import (
+	"time"
+)
+
 // Store for objects, which is accessible for reading (downloading) and
 // writing (uploading).
 type Store[TReference any, TLease any] interface {
@@ -25,4 +29,4 @@ type StoreForTesting Store[GlobalReference, any]
 
 // FlatStoreForTesting is an instantiation of Store for generating mocks
 // to be used by tests that use flat references.
-type FlatStoreForTesting Store[FlatReference, struct{}]
+type FlatStoreForTesting Store[FlatReference, time.Time]

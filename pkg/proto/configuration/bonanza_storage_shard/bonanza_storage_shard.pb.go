@@ -27,15 +27,16 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                              protoimpl.MessageState         `protogen:"open.v1"`
-	Global                             *global.Configuration          `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	GrpcServers                        []*grpc.ServerConfiguration    `protobuf:"bytes,2,rep,name=grpc_servers,json=grpcServers,proto3" json:"grpc_servers,omitempty"`
-	LocalObjectStore                   *local.StoreConfiguration      `protobuf:"bytes,3,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
-	TagsMap                            *lossymap.HashMapConfiguration `protobuf:"bytes,4,opt,name=tags_map,json=tagsMap,proto3" json:"tags_map,omitempty"`
-	LeasesMap                          *lossymap.HashMapConfiguration `protobuf:"bytes,5,opt,name=leases_map,json=leasesMap,proto3" json:"leases_map,omitempty"`
-	LeasesMapLeaseCompletenessDuration *durationpb.Duration           `protobuf:"bytes,6,opt,name=leases_map_lease_completeness_duration,json=leasesMapLeaseCompletenessDuration,proto3" json:"leases_map_lease_completeness_duration,omitempty"`
-	unknownFields                      protoimpl.UnknownFields
-	sizeCache                          protoimpl.SizeCache
+	state                protoimpl.MessageState         `protogen:"open.v1"`
+	Global               *global.Configuration          `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
+	GrpcServers          []*grpc.ServerConfiguration    `protobuf:"bytes,2,rep,name=grpc_servers,json=grpcServers,proto3" json:"grpc_servers,omitempty"`
+	LocalObjectStore     *local.StoreConfiguration      `protobuf:"bytes,3,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
+	TagsMap              *lossymap.HashMapConfiguration `protobuf:"bytes,4,opt,name=tags_map,json=tagsMap,proto3" json:"tags_map,omitempty"`
+	LeasesMap            *lossymap.HashMapConfiguration `protobuf:"bytes,5,opt,name=leases_map,json=leasesMap,proto3" json:"leases_map,omitempty"`
+	LeaseRenewalFraction float64                        `protobuf:"fixed64,7,opt,name=lease_renewal_fraction,json=leaseRenewalFraction,proto3" json:"lease_renewal_fraction,omitempty"`
+	WatermarkLookahead   *durationpb.Duration           `protobuf:"bytes,8,opt,name=watermark_lookahead,json=watermarkLookahead,proto3" json:"watermark_lookahead,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -103,9 +104,16 @@ func (x *ApplicationConfiguration) GetLeasesMap() *lossymap.HashMapConfiguration
 	return nil
 }
 
-func (x *ApplicationConfiguration) GetLeasesMapLeaseCompletenessDuration() *durationpb.Duration {
+func (x *ApplicationConfiguration) GetLeaseRenewalFraction() float64 {
 	if x != nil {
-		return x.LeasesMapLeaseCompletenessDuration
+		return x.LeaseRenewalFraction
+	}
+	return 0
+}
+
+func (x *ApplicationConfiguration) GetWatermarkLookahead() *durationpb.Duration {
+	if x != nil {
+		return x.WatermarkLookahead
 	}
 	return nil
 }
@@ -114,15 +122,16 @@ var File_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_sto
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDesc = "" +
 	"\n" +
-	"Wbonanza.build/pkg/proto/configuration/bonanza_storage_shard/bonanza_storage_shard.proto\x12+bonanza.configuration.bonanza_storage_shard\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aOgithub.com/buildbarn/bb-storage/pkg/proto/configuration/lossymap/lossymap.proto\x1a\x1egoogle/protobuf/duration.proto\"\xbe\x04\n" +
+	"Wbonanza.build/pkg/proto/configuration/bonanza_storage_shard/bonanza_storage_shard.proto\x12+bonanza.configuration.bonanza_storage_shard\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aOgithub.com/buildbarn/bb-storage/pkg/proto/configuration/lossymap/lossymap.proto\x1a\x1egoogle/protobuf/duration.proto\"\xd1\x04\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12T\n" +
 	"\fgrpc_servers\x18\x02 \x03(\v21.buildbarn.configuration.grpc.ServerConfigurationR\vgrpcServers\x12l\n" +
 	"\x12local_object_store\x18\x03 \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x12Q\n" +
 	"\btags_map\x18\x04 \x01(\v26.buildbarn.configuration.lossymap.HashMapConfigurationR\atagsMap\x12U\n" +
 	"\n" +
-	"leases_map\x18\x05 \x01(\v26.buildbarn.configuration.lossymap.HashMapConfigurationR\tleasesMap\x12m\n" +
-	"&leases_map_lease_completeness_duration\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\"leasesMapLeaseCompletenessDurationB=Z;bonanza.build/pkg/proto/configuration/bonanza_storage_shardb\x06proto3"
+	"leases_map\x18\x05 \x01(\v26.buildbarn.configuration.lossymap.HashMapConfigurationR\tleasesMap\x124\n" +
+	"\x16lease_renewal_fraction\x18\a \x01(\x01R\x14leaseRenewalFraction\x12J\n" +
+	"\x13watermark_lookahead\x18\b \x01(\v2\x19.google.protobuf.DurationR\x12watermarkLookaheadB=Z;bonanza.build/pkg/proto/configuration/bonanza_storage_shardb\x06proto3"
 
 var (
 	file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDescOnce sync.Once
@@ -151,7 +160,7 @@ var file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_sto
 	3, // 2: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.local_object_store:type_name -> bonanza.configuration.storage.object.local.StoreConfiguration
 	4, // 3: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.tags_map:type_name -> buildbarn.configuration.lossymap.HashMapConfiguration
 	4, // 4: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.leases_map:type_name -> buildbarn.configuration.lossymap.HashMapConfiguration
-	5, // 5: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.leases_map_lease_completeness_duration:type_name -> google.protobuf.Duration
+	5, // 5: bonanza.configuration.bonanza_storage_shard.ApplicationConfiguration.watermark_lookahead:type_name -> google.protobuf.Duration
 	6, // [6:6] is the sub-list for method output_type
 	6, // [6:6] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name

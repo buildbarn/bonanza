@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	pb "bonanza.build/pkg/proto/storage/object/local"
 	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
@@ -36,7 +35,14 @@ type PeriodicSyncer struct {
 // Synchronizing these is a requirements to ensure that the
 // ReferenceLocationMap does not reference objects that are only
 // partially written.
-type DataSyncer func() error
+//
+// isFinalSync is set when the synchronization is performed as part of
+// a clean shutdown. In that case the ReferenceLocationMap needs to be
+// synchronized as well, as the persistent state written afterwards
+// permits leases handed out by this process to remain valid. All
+// objects for which leases were handed out must therefore remain
+// accessible.
+type DataSyncer func(isFinalSync bool) error
 
 // NewPeriodicSyncer creates a new PeriodicSyncer according to the
 // arguments provided.
@@ -76,15 +82,11 @@ func (ps *PeriodicSyncer) logErrorAndSleep(err error) {
 
 func (ps *PeriodicSyncer) writePersistentState() error {
 	ps.sourceLock.RLock()
-	minimumEpochID, minimumLocation, epochs := ps.source.GetPersistentState()
+	persistentState := ps.source.GetPersistentState()
 	ps.sourceLock.RUnlock()
 
-	return ps.store.WritePersistentState(&pb.PersistentState{
-		MinimumEpochId:                         minimumEpochID,
-		MinimumLocation:                        minimumLocation,
-		Epochs:                                 epochs,
-		ReferenceLocationMapHashInitialization: ps.referenceLocationMapHashInitialization,
-	})
+	persistentState.ReferenceLocationMapHashInitialization = ps.referenceLocationMapHashInitialization
+	return ps.store.WritePersistentState(persistentState)
 }
 
 func (ps *PeriodicSyncer) writePersistentStateRetrying() {
@@ -104,7 +106,7 @@ func (ps *PeriodicSyncer) notifyAndSyncDataLocked(isFinalSync bool) {
 		// TODO: Add metrics for the duration of DataSyncer
 		// calls? That could give us insight in the actual load
 		// of the underlying storage medium.
-		err := ps.dataSyncer()
+		err := ps.dataSyncer(isFinalSync)
 		if err == nil {
 			break
 		}

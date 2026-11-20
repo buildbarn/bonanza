@@ -32,4 +32,10 @@ func (s *EpochState) IsValidLocation(location uint64, sizeBytes int) bool {
 type EpochIDResolver interface {
 	GetEpochStateForEpochID(epochID uint32) (EpochState, bool)
 	GetCurrentEpochState() (EpochState, uint32)
+
+	// DiscardLocation is called when a reference-location map
+	// entry pointing to a given location is discarded, because the
+	// reference-location map is full. As the object can no longer
+	// be accessed, leases referring to it need to be invalidated.
+	DiscardLocation(location uint64)
 }

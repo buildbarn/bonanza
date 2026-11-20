@@ -3,6 +3,7 @@ package readcaching_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
@@ -164,7 +165,7 @@ func TestDownloader(t *testing.T) {
 			)
 		fastStore.EXPECT().
 			UploadObject(ctx, object.MustNewSHA256V1FlatReference("16cdd68fd8f9ccc88a1346a7faf8f36cc3935babc8a99d609a9725bf071c6a6f", 85), gomock.Any(), gomock.Len(0), false).
-			DoAndReturn(func(ctx context.Context, reference object.FlatReference, objectContents *object.Contents, leases []struct{}, wantContentsIfIncomplete bool) (object.UploadObjectResult[struct{}], error) {
+			DoAndReturn(func(ctx context.Context, reference object.FlatReference, objectContents *object.Contents, leases []time.Time, wantContentsIfIncomplete bool) (object.UploadObjectResult[time.Time], error) {
 				require.Equal(t, object.MustNewSHA256V1LocalReference("16cdd68fd8f9ccc88a1346a7faf8f36cc3935babc8a99d609a9725bf071c6a6f", 85, 0, 0, 0), objectContents.GetLocalReference())
 				require.Equal(t, []byte{
 					// SHA-256 hash.
@@ -226,7 +227,7 @@ func TestDownloader(t *testing.T) {
 			)
 		fastStore.EXPECT().
 			UploadObject(ctx, object.MustNewSHA256V1FlatReference("e0643f027c868b649cba8f131459b5f1217c9897080a11391f1f9f6e53e7aa68", 45), gomock.Any(), gomock.Len(0), false).
-			DoAndReturn(func(ctx context.Context, reference object.FlatReference, objectContents *object.Contents, leases []struct{}, wantContentsIfIncomplete bool) (object.UploadObjectResult[struct{}], error) {
+			DoAndReturn(func(ctx context.Context, reference object.FlatReference, objectContents *object.Contents, leases []time.Time, wantContentsIfIncomplete bool) (object.UploadObjectResult[time.Time], error) {
 				require.Equal(t, object.MustNewSHA256V1LocalReference("e0643f027c868b649cba8f131459b5f1217c9897080a11391f1f9f6e53e7aa68", 45, 0, 0, 0), objectContents.GetLocalReference())
 				require.Equal(t, []byte{
 					// SHA-256 hash.
@@ -247,7 +248,7 @@ func TestDownloader(t *testing.T) {
 					0x48, 0x65, 0x6c, 0x6c, 0x6f,
 				}, objectContents.GetPayload())
 
-				return object.UploadObjectComplete[struct{}]{}, nil
+				return object.UploadObjectComplete[time.Time]{}, nil
 			})
 
 		objectContents, err := downloader.DownloadObject(ctx, object.MustNewSHA256V1GlobalReference("example", "e0643f027c868b649cba8f131459b5f1217c9897080a11391f1f9f6e53e7aa68", 45, 2, 1, 50))

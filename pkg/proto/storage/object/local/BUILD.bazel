@@ -7,6 +7,7 @@ proto_library(
     srcs = ["local.proto"],
     import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
+    deps = ["@protobuf//:timestamp_proto"],
 )
 
 go_proto_library(

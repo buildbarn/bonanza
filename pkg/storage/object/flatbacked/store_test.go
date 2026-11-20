@@ -22,8 +22,15 @@ func TestStore(t *testing.T) {
 
 	flatStore := NewMockFlatStoreForTesting(ctrl)
 	clock := NewMockClock(ctrl)
+	var watermark time.Time
 	leasesMap := NewMockLeasesMap(ctrl)
-	store := object_flatbacked.NewStore(flatStore, clock, time.Minute, leasesMap)
+	store := object_flatbacked.NewStore(
+		flatStore,
+		clock,
+		func() time.Time { return watermark },
+		/* leaseRenewalFraction = */ 0.5,
+		leasesMap,
+	)
 
 	t.Run("DownloadObject", func(t *testing.T) {
 		t.Run("DownloadFailure", func(t *testing.T) {
@@ -144,7 +151,7 @@ func TestStore(t *testing.T) {
 				/* contents = */ nil,
 				/* childrenLeases = */ nil,
 				/* wantContentsIfIncomplete = */ false,
-			).Return(object.UploadObjectMissing[struct{}]{}, nil)
+			).Return(object.UploadObjectMissing[time.Time]{}, nil)
 
 			result, err := store.UploadObject(
 				ctx,
@@ -168,7 +175,9 @@ func TestStore(t *testing.T) {
 				/* contents = */ nil,
 				/* childrenLeases = */ nil,
 				/* wantContentsIfIncomplete = */ false,
-			).Return(object.UploadObjectComplete[struct{}]{}, nil)
+			).Return(object.UploadObjectComplete[time.Time]{
+				Lease: time.Unix(1750779700, 0),
+			}, nil)
 
 			result, err := store.UploadObject(
 				ctx,
@@ -179,7 +188,7 @@ func TestStore(t *testing.T) {
 			)
 			require.NoError(t, err)
 			require.Equal(t, object.UploadObjectComplete[object_flatbacked.Lease]{
-				Lease: 1750779732000000000,
+				Lease: 1750779700000000000,
 			}, result)
 		})
 
@@ -196,7 +205,7 @@ func TestStore(t *testing.T) {
 				/* contents = */ nil,
 				/* childrenLeases = */ nil,
 				/* wantContentsIfIncomplete = */ false,
-			).Return(object.UploadObjectComplete[struct{}]{}, nil)
+			).Return(object.UploadObjectComplete[time.Time]{Lease: time.Unix(1750784000, 0)}, nil)
 			flatStore.EXPECT().DownloadObject(ctx, object.MustNewSHA256V1FlatReference("48f4ede314091089d0ad0767f593621a5e0296d1c46840a4d29cae3b9b35788e", 600)).
 				Return(nil, status.Error(codes.NotFound, "Object not found"))
 
@@ -223,7 +232,7 @@ func TestStore(t *testing.T) {
 				/* contents = */ nil,
 				/* childrenLeases = */ nil,
 				/* wantContentsIfIncomplete = */ false,
-			).Return(object.UploadObjectComplete[struct{}]{}, nil)
+			).Return(object.UploadObjectComplete[time.Time]{Lease: time.Unix(1750784000, 0)}, nil)
 			flatStore.EXPECT().DownloadObject(ctx, object.MustNewSHA256V1FlatReference("48f4ede314091089d0ad0767f593621a5e0296d1c46840a4d29cae3b9b35788e", 600)).
 				Return(nil, status.Error(codes.NotFound, "Object not found"))
 
@@ -238,7 +247,12 @@ func TestStore(t *testing.T) {
 		})
 
 		t.Run("Complete", func(t *testing.T) {
-			clock.EXPECT().Now().Return(time.Unix(1750784570, 0))
+			// Leases below the watermark are expired. As
+			// leases of the children are provided, leases
+			// that are only close to the watermark are
+			// accepted.
+			watermark = time.Unix(1750784450, 0)
+			clock.EXPECT().Now().Return(time.Unix(1750784570, 0)).Times(2)
 			flatStore.EXPECT().UploadObject(
 				ctx,
 				object.MustNewSHA256V1FlatReference("b4684e6f6b2b7c2685d4732965be683c3cc6c4917b866b9fc6ef641c2bcc0bdc", 85),
@@ -276,7 +290,7 @@ func TestStore(t *testing.T) {
 				}),
 				/* childrenLeases = */ nil,
 				/* wantContentsIfIncomplete = */ false,
-			).Return(object.UploadObjectComplete[struct{}]{}, nil)
+			).Return(object.UploadObjectComplete[time.Time]{Lease: time.Unix(1750784520, 0)}, nil)
 			leasesMap.EXPECT().Put(
 				object.MustNewSHA256V1LocalReference("395a0157d8d31171cb43a4abc1e37bf6d38a46e053037c2c38016d0dd6f4ec67", 85842, 0, 0, 0),
 				/* value = */ object_flatbacked.Lease(1750784560000000000),
@@ -287,7 +301,7 @@ func TestStore(t *testing.T) {
 				/* leaseExpirationCutoff = */ object_flatbacked.Lease(1750784450000000000),
 			).Return(object_flatbacked.Lease(1750784500000000000), nil)
 
-			_, err := store.UploadObject(
+			result, err := store.UploadObject(
 				ctx,
 				object.MustNewSHA256V1LocalReference("b4684e6f6b2b7c2685d4732965be683c3cc6c4917b866b9fc6ef641c2bcc0bdc", 85, 1, 2, 0),
 				object.MustNewContents(
@@ -305,6 +319,12 @@ func TestStore(t *testing.T) {
 				/* wantContentsIfIncomplete = */ true,
 			)
 			require.NoError(t, err)
+
+			// The lease of the parent is the minimum of
+			// its own lease and those of its children.
+			require.Equal(t, object.UploadObjectComplete[object_flatbacked.Lease]{
+				Lease: 1750784500000000000,
+			}, result)
 		})
 
 		// TODO: Make testing coverage more complete.

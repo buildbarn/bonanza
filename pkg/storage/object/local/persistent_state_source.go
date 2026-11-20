@@ -50,5 +50,8 @@ type PersistentStateSource interface {
 	//
 	// This function must be called while holding a read lock on the
 	// EpochList.
-	GetPersistentState() (minimumEpochID uint32, minimumLocation uint64, epochs []*pb.EpochState)
+	//
+	// The ReferenceLocationMapHashInitialization field of the
+	// returned message is left unset.
+	GetPersistentState() *pb.PersistentState
 }

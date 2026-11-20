@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"sync"
+	"time"
 
 	"bonanza.build/pkg/storage/object"
 
@@ -11,9 +12,24 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Store of objects that is backed by locally connected disks. In
+// addition to providing the regular object store operations, it is
+// capable of reporting its watermark: the point in time at or after
+// which all data written to the store is still present.
+//
+// Leases returned by UploadObject() are expressed as points in time.
+// The object is guaranteed to be present as long as the watermark does
+// not exceed the lease.
+type Store interface {
+	object.Store[object.FlatReference, time.Time]
+
+	GetWatermark() time.Time
+}
+
 type store struct {
 	currentRegionSizeBytes uint64
 	newRegionSizeBytes     uint64
+	minimumSafeSince       func() time.Time
 
 	lock                 *sync.RWMutex
 	referenceLocationMap ReferenceLocationMap
@@ -25,6 +41,11 @@ type store struct {
 
 // NewStore creates an object store that uses locally connected disks as
 // its backing store.
+//
+// If minimumSafeSince is provided, objects whose lease is lower than
+// the value it returns are rewritten when UploadObject() is called.
+// This ensures that the leases returned by UploadObject() remain valid
+// for a sufficient amount of time.
 func NewStore(
 	lock *sync.RWMutex,
 	referenceLocationMap ReferenceLocationMap,
@@ -32,7 +53,8 @@ func NewStore(
 	epochList EpochList,
 	currentRegionSizeBytes uint64,
 	newRegionSizeBytes uint64,
-) object.Store[object.FlatReference, struct{}] {
+	minimumSafeSince func() time.Time,
+) Store {
 	return &store{
 		lock:                 lock,
 		referenceLocationMap: referenceLocationMap,
@@ -41,15 +63,20 @@ func NewStore(
 
 		currentRegionSizeBytes: currentRegionSizeBytes,
 		newRegionSizeBytes:     newRegionSizeBytes,
+		minimumSafeSince:       minimumSafeSince,
 	}
 }
 
-func (s *store) getObjectLocation(reference object.FlatReference) (uint64, bool, error) {
+func (s *store) getObjectLocation(reference object.FlatReference) (uint64, bool, time.Time, error) {
 	s.lock.RLock()
 	location, err := s.referenceLocationMap.Get(reference, s.epochList)
+	var safeSince time.Time
+	if err == nil {
+		safeSince = s.epochList.GetSafeSince(location)
+	}
 	s.lock.RUnlock()
 	if err != nil {
-		return 0, false, err
+		return 0, false, time.Time{}, err
 	}
 
 	// Determine whether the object needs to be refreshed based on
@@ -67,7 +94,13 @@ func (s *store) getObjectLocation(reference object.FlatReference) (uint64, bool,
 	// being refreshed earlier than others.
 	threshold := (location ^ binary.LittleEndian.Uint64(reference.GetRawFlatReference())) % s.currentRegionSizeBytes
 	needsRefresh := distanceFromMaximum > int64(s.newRegionSizeBytes+threshold)
-	return location, needsRefresh, nil
+
+	// Also refresh the object if its lease is too low. Without
+	// this, leases of objects could not be renewed.
+	if !needsRefresh && s.minimumSafeSince != nil && safeSince.Before(s.minimumSafeSince()) {
+		needsRefresh = true
+	}
+	return location, needsRefresh, safeSince, nil
 }
 
 func (s *store) readObjectAtLocation(reference object.FlatReference, location uint64) (*object.Contents, error) {
@@ -103,7 +136,7 @@ func (s *store) readObjectAtLocation(reference object.FlatReference, location ui
 // not exist or needs to be refreshed. This filters out redundant object
 // uploads or refreshes, which may occur if multiple clients interact
 // with the same object.
-func (s *store) maybeWriteObject(reference object.FlatReference, contents *object.Contents) error {
+func (s *store) maybeWriteObject(reference object.FlatReference, contents *object.Contents) (time.Time, error) {
 	// Acquire a lock throughout the entire process to ensure that
 	// no data is written redundantly. Let the first byte of the
 	// reference determine which lock to acquire, so that we can
@@ -113,12 +146,12 @@ func (s *store) maybeWriteObject(reference object.FlatReference, contents *objec
 	defer writeLock.Unlock()
 
 	// Check whether the object exists or needs to be refreshed.
-	if _, needsRefresh, err := s.getObjectLocation(reference); err != nil {
+	if _, needsRefresh, safeSince, err := s.getObjectLocation(reference); err != nil {
 		if status.Code(err) != codes.NotFound {
-			return err
+			return time.Time{}, err
 		}
 	} else if !needsRefresh {
-		return nil
+		return safeSince, nil
 	}
 
 	// Object does not exist. Allocate space for storing the object
@@ -126,20 +159,32 @@ func (s *store) maybeWriteObject(reference object.FlatReference, contents *objec
 	data := contents.GetFullData()
 	location, err := s.locationBlobMap.Put(data)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 
 	s.lock.Lock()
+	var safeSince time.Time
 	err = s.epochList.FinalizeWriteUpToLocation(location + uint64(len(data)))
 	if err == nil {
 		err = s.referenceLocationMap.Put(reference, location, s.epochList)
+		if err == nil {
+			safeSince = s.epochList.GetSafeSince(location)
+		} else {
+			// The reference-location map may have
+			// displaced an existing entry before failing,
+			// meaning an object of which we don't know the
+			// location may no longer be accessible. Its
+			// lease may have been handed out, so invalidate
+			// all leases.
+			s.epochList.InvalidateLeases()
+		}
 	}
 	s.lock.Unlock()
-	return err
+	return safeSince, err
 }
 
 func (s *store) DownloadObject(ctx context.Context, reference object.FlatReference) (*object.Contents, error) {
-	location, needsRefresh, err := s.getObjectLocation(reference)
+	location, needsRefresh, _, err := s.getObjectLocation(reference)
 	if err != nil {
 		return nil, err
 	}
@@ -148,23 +193,25 @@ func (s *store) DownloadObject(ctx context.Context, reference object.FlatReferen
 		return nil, err
 	}
 	if needsRefresh {
-		if err := s.maybeWriteObject(reference, contents); err != nil {
+		if _, err := s.maybeWriteObject(reference, contents); err != nil {
 			return nil, err
 		}
 	}
 	return contents, nil
 }
 
-func (s *store) UploadObject(ctx context.Context, reference object.FlatReference, contents *object.Contents, childrenLeases []struct{}, wantContentsIfIncomplete bool) (object.UploadObjectResult[struct{}], error) {
-	if location, needsRefresh, err := s.getObjectLocation(reference); err != nil {
+func (s *store) UploadObject(ctx context.Context, reference object.FlatReference, contents *object.Contents, childrenLeases []time.Time, wantContentsIfIncomplete bool) (object.UploadObjectResult[time.Time], error) {
+	location, needsRefresh, safeSince, err := s.getObjectLocation(reference)
+	if err != nil {
 		if status.Code(err) != codes.NotFound {
 			return nil, err
 		}
 
 		if contents == nil {
-			return object.UploadObjectMissing[struct{}]{}, nil
+			return object.UploadObjectMissing[time.Time]{}, nil
 		}
-		if err := s.maybeWriteObject(reference, contents); err != nil {
+		safeSince, err = s.maybeWriteObject(reference, contents)
+		if err != nil {
 			return nil, err
 		}
 	} else if needsRefresh {
@@ -174,12 +221,21 @@ func (s *store) UploadObject(ctx context.Context, reference object.FlatReference
 				if status.Code(err) != codes.NotFound {
 					return nil, err
 				}
-				return object.UploadObjectMissing[struct{}]{}, nil
+				return object.UploadObjectMissing[time.Time]{}, nil
 			}
 		}
-		if err := s.maybeWriteObject(reference, contents); err != nil {
+		safeSince, err = s.maybeWriteObject(reference, contents)
+		if err != nil {
 			return nil, err
 		}
 	}
-	return object.UploadObjectComplete[struct{}]{}, nil
+	return object.UploadObjectComplete[time.Time]{
+		Lease: safeSince,
+	}, nil
+}
+
+func (s *store) GetWatermark() time.Time {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.epochList.GetWatermark()
 }

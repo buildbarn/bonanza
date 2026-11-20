@@ -16,9 +16,10 @@ import (
 )
 
 type store struct {
-	base                      object.Store[object.FlatReference, struct{}]
-	clock                     clock.Clock
-	leaseCompletenessDuration Lease
+	base                 object.Store[object.FlatReference, time.Time]
+	clock                clock.Clock
+	getWatermark         func() time.Time
+	leaseRenewalFraction float64
 
 	lock      sync.Mutex
 	leasesMap lossymap.Map[object.LocalReference, Lease, Lease]
@@ -34,20 +35,29 @@ type LeasesMap = lossymap.Map[object.LocalReference, Lease, Lease]
 //
 // As flat storage backends do not provide facilities for checking that
 // all transitive children of a node are present, this backend
-// compensates for it by handing out timestamp based leases. This causes
-// objects in the flat storage backend to be checked for existence
-// periodically.
+// compensates for it by handing out timestamp based leases. The base
+// storage backend returns a "safe since" timestamp for each object,
+// meaning that the object is guaranteed to be present as long as the
+// watermark of the cluster does not exceed it. The lease of a parent
+// object is the minimum of its own timestamp and that of its children.
+//
+// The watermark is provided by getWatermark. Leases that are less than
+// leaseRenewalFraction of the cluster's retention (i.e., the time
+// between the watermark and the current time) above the watermark are
+// renewed proactively.
 func NewStore(
-	base object.Store[object.FlatReference, struct{}],
+	base object.Store[object.FlatReference, time.Time],
 	clock clock.Clock,
-	leaseCompletenessDuration time.Duration,
+	getWatermark func() time.Time,
+	leaseRenewalFraction float64,
 	leasesMap LeasesMap,
 ) object.Store[object.LocalReference, Lease] {
 	return &store{
-		base:                      base,
-		clock:                     clock,
-		leaseCompletenessDuration: Lease(leaseCompletenessDuration.Nanoseconds()),
-		leasesMap:                 leasesMap,
+		base:                 base,
+		clock:                clock,
+		getWatermark:         getWatermark,
+		leaseRenewalFraction: leaseRenewalFraction,
+		leasesMap:            leasesMap,
 	}
 }
 
@@ -76,8 +86,9 @@ func (s *store) UploadObject(ctx context.Context, reference object.LocalReferenc
 		return nil, err
 	}
 
-	switch result.(type) {
-	case object.UploadObjectComplete[struct{}]:
+	switch resultType := result.(type) {
+	case object.UploadObjectComplete[time.Time]:
+		lease := NewLeaseFromTime(resultType.Lease)
 		if degree := reference.GetDegree(); degree > 0 {
 			// The object has outgoing references. Make sure
 			// we have access to them if the caller did not
@@ -92,6 +103,11 @@ func (s *store) UploadObject(ctx context.Context, reference object.LocalReferenc
 				}
 			}
 
+			// Leases below the watermark are expired.
+			// Leases close to the watermark are reported
+			// as being incomplete, so that they get renewed
+			// before they expire.
+			//
 			// Lease renewing involves calling UploadObject()
 			// without children leases first, followed by
 			// another one where any expired leases are updated.
@@ -100,8 +116,9 @@ func (s *store) UploadObject(ctx context.Context, reference object.LocalReferenc
 			// and we don't want to tell the caller that one or
 			// more children leases have expired, be less strict
 			// during the second call.
-			leaseIncompleteCutoff := leaseNow - s.leaseCompletenessDuration
-			leaseExpirationCutoff := leaseIncompleteCutoff - s.leaseCompletenessDuration
+			watermark := s.getWatermark()
+			leaseExpirationCutoff := NewLeaseFromTime(watermark)
+			leaseIncompleteCutoff := NewLeaseFromTime(GetLeaseRenewalCutoff(watermark, s.clock.Now(), s.leaseRenewalFraction))
 			if len(childrenLeases) > 0 {
 				leaseIncompleteCutoff = leaseExpirationCutoff
 			}
@@ -138,6 +155,10 @@ func (s *store) UploadObject(ctx context.Context, reference object.LocalReferenc
 				}
 				if childLease < leaseIncompleteCutoff {
 					wantOutgoingReferencesLeases = append(wantOutgoingReferencesLeases, i)
+				} else if lease > childLease {
+					// The parent is only present as
+					// long as all of its children are.
+					lease = childLease
 				}
 			}
 			s.lock.Unlock()
@@ -154,9 +175,9 @@ func (s *store) UploadObject(ctx context.Context, reference object.LocalReferenc
 		}
 
 		return object.UploadObjectComplete[Lease]{
-			Lease: leaseNow,
+			Lease: lease,
 		}, nil
-	case object.UploadObjectMissing[struct{}]:
+	case object.UploadObjectMissing[time.Time]:
 		return object.UploadObjectMissing[Lease]{}, nil
 	default:
 		panic("unknown upload object result type")

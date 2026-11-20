@@ -50,4 +50,5 @@ func (lra *inMemoryReferenceLocationRecordArray) Put(index uint64, record Refere
 }
 
 func (*inMemoryReferenceLocationRecordArray) Drop(record ReferenceLocationRecord, resolver EpochIDResolver) {
+	resolver.DiscardLocation(record.Value)
 }

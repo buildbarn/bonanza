@@ -14,8 +14,9 @@ import (
 )
 
 type store struct {
-	clock                     clock.Clock
-	leaseCompletenessDuration object_flatbacked.Lease
+	clock                clock.Clock
+	getWatermark         func() time.Time
+	leaseRenewalFraction float64
 
 	lock    sync.RWMutex
 	tagsMap lossymap.Map[tag.Key, ValueWithLease, struct{}]
@@ -29,11 +30,19 @@ type ValueWithLease struct {
 }
 
 // NewStore creates a tag store that is backed by local disks.
-func NewStore(tagsMap lossymap.Map[tag.Key, ValueWithLease, struct{}], clock clock.Clock, leaseCompletenessDuration time.Duration) tag.Store[object.Namespace, object_flatbacked.Lease] {
+//
+// Tags are reported as being complete if the lease of the object they
+// reference is sufficiently far above the watermark of the cluster,
+// which is provided by getWatermark. Tags with leases that are less
+// than leaseRenewalFraction of the cluster's retention above the
+// watermark are reported as being incomplete, so that the caller
+// renews them before they expire.
+func NewStore(tagsMap lossymap.Map[tag.Key, ValueWithLease, struct{}], clock clock.Clock, getWatermark func() time.Time, leaseRenewalFraction float64) tag.Store[object.Namespace, object_flatbacked.Lease] {
 	return &store{
-		clock:                     clock,
-		leaseCompletenessDuration: object_flatbacked.Lease(leaseCompletenessDuration.Nanoseconds()),
-		tagsMap:                   tagsMap,
+		clock:                clock,
+		getWatermark:         getWatermark,
+		leaseRenewalFraction: leaseRenewalFraction,
+		tagsMap:              tagsMap,
 	}
 }
 
@@ -45,12 +54,22 @@ func (s *store) ResolveTag(ctx context.Context, namespace object.Namespace, key 
 		var badSignedValue tag.SignedValue
 		return badSignedValue, false, err
 	}
-	leaseNow := object_flatbacked.Lease(s.clock.Now().UnixNano())
-	leaseIncompleteCutoff := leaseNow - s.leaseCompletenessDuration
-	return valueWithLease.SignedValue, valueWithLease.Lease >= leaseIncompleteCutoff, nil
+	leaseIncompleteCutoff := object_flatbacked.NewLeaseFromTime(
+		object_flatbacked.GetLeaseRenewalCutoff(s.getWatermark(), s.clock.Now(), s.leaseRenewalFraction),
+	)
+	return valueWithLease.SignedValue, valueWithLease.Lease != 0 && valueWithLease.Lease >= leaseIncompleteCutoff, nil
 }
 
 func (s *store) UpdateTag(ctx context.Context, namespace object.Namespace, key tag.Key, value tag.SignedValue, lease object_flatbacked.Lease) error {
+	// Leases are computed by the storage shard holding the object
+	// the tag references, based on its own clock. Prevent clock
+	// skew from causing leases to remain valid for longer than
+	// intended by capping them to the current time. Watermarks
+	// received from other shards are capped in the same way.
+	if leaseNow := object_flatbacked.NewLeaseFromTime(s.clock.Now()); lease > leaseNow {
+		lease = leaseNow
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

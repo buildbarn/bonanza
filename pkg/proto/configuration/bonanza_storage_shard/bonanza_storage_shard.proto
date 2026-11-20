@@ -32,29 +32,53 @@ message ApplicationConfiguration {
   // storage frontend to run efficiently.
   buildbarn.configuration.lossymap.HashMapConfiguration leases_map = 5;
 
-  // The maximum age a lease may have for a parent object using the
-  // lease to be considered complete.
+  // Leases of objects are timestamps. An object is guaranteed to be
+  // present as long as the watermark of the cluster does not exceed its
+  // lease. The time between the watermark and the current time is the
+  // retention of the cluster.
   //
-  // If a parent object references one or more children for which the
-  // lease's age exceeds twice this value, the storage frontend is
-  // instructed to renew the leases whose age exceeds this value.
+  // To prevent DAGs from becoming incomplete while they are in use,
+  // leases that are less than this fraction of the retention above the
+  // watermark are renewed proactively. Objects in the local object
+  // store whose leases are below this threshold are rewritten, so that
+  // they get a new lease.
   //
-  // More concretely speaking, consider the case in which this option is
-  // set to the recommended value of 2 minutes. In this case a parent
-  // object is considered to be complete if the leases of all of its
-  // children are less than 4 minutes old. If one or more leases are
-  // more than 4 minutes old (or missing), the storage frontend has to
-  // renew all the leases that are at least 2 minutes old (or
-  // missing) to make the parent object complete again.
+  // Setting this lower than 0.5 means that leases are renewed less
+  // frequently, reducing the amount of traffic caused by traversing
+  // DAGs and rewriting objects. In exchange, DAGs that are in use are
+  // more likely to become incomplete, as only a small part of the
+  // retention remains by the time their leases get renewed. Clients
+  // then need to upload objects that were lost again. Setting it to 0
+  // disables proactive renewal entirely, meaning leases are only
+  // renewed after they have expired.
   //
-  // What this means in practice is that for UploadDag() to work
-  // reliably (i.e., not reporting graphs as being present while in
-  // reality they are not), a storage replica may only be restarted if
-  // the other replica is healthy for at least
-  // 'height*leases_map_lease_completeness_duration' time, where
-  // 'height' refers to the height of the root node of the DAG that is
-  // being uploaded.
+  // Setting this higher than 0.5 means that leases are renewed more
+  // frequently, increasing the amount of traffic and the number of
+  // objects that are rewritten, thereby also reducing the effective
+  // capacity of the local object store, as more of it is occupied by
+  // duplicate copies of objects. In exchange, the retention of DAGs
+  // that are in use is longer, and they are less likely to become
+  // incomplete. Values close to 1 cause objects to be renewed almost
+  // continuously.
   //
-  // Recommended value: 120s
-  google.protobuf.Duration leases_map_lease_completeness_duration = 6;
+  // Recommended value: 0.5
+  double lease_renewal_fraction = 7;
+
+  // The watermark of the local object store is the point in time at
+  // or after which all data written to it is still present. Leases of
+  // objects that are older than the watermark of the cluster are
+  // considered to be invalid.
+  //
+  // To give other storage shards the time to learn about changes to
+  // the watermark, the watermark is computed as if all data that will
+  // be overwritten within the provided amount of time is already gone.
+  // The amount of data that will be written is estimated based on the
+  // amount of data written in the past.
+  //
+  // This option should be set to a value that is larger than the
+  // interval at which storage frontends poll the watermark, plus the
+  // time it takes to process requests.
+  //
+  // Recommended value: '60s'
+  google.protobuf.Duration watermark_lookahead = 8;
 }

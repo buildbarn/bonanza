@@ -76,7 +76,7 @@ func TestPeriodicSyncerProcessLocationsChanged(t *testing.T) {
 			// would increase the number of epochs, which we'd
 			// better not do until we know for sure that storage is
 			// back online.
-			dataSyncer.EXPECT().Call().Return(status.Error(codes.Internal, "Disk on fire")),
+			dataSyncer.EXPECT().Call(false).Return(status.Error(codes.Internal, "Disk on fire")),
 			errorLogger.EXPECT().Log(testutil.EqStatus(t, status.Error(codes.Internal, "Failed to synchronize data: Disk on fire"))),
 			clock.EXPECT().NewTimer(30*time.Second).Return(timer2, timerChan2),
 
@@ -84,13 +84,17 @@ func TestPeriodicSyncerProcessLocationsChanged(t *testing.T) {
 			// cause the PersistentBlockList to be notified, so that
 			// new epochs can be exposed as part of
 			// GetPersistentState().
-			dataSyncer.EXPECT().Call(),
+			dataSyncer.EXPECT().Call(false),
 			source.EXPECT().NotifySyncCompleted(),
 
 			// The persistent state should be updated immediately,
 			// so that the data that has been synchronized remains
 			// available after restarts.
-			source.EXPECT().GetPersistentState().Return(uint32(7), uint64(13), exampleEpochStates),
+			source.EXPECT().GetPersistentState().Return(&pb.PersistentState{
+				MinimumEpochId:  7,
+				MinimumLocation: 13,
+				Epochs:          exampleEpochStates,
+			}),
 			store.EXPECT().WritePersistentState(&pb.PersistentState{
 				MinimumEpochId:                         7,
 				MinimumLocation:                        13,
@@ -110,22 +114,28 @@ func TestPeriodicSyncerProcessLocationsChanged(t *testing.T) {
 
 			// First sync with isFinalSync set to false.
 			source.EXPECT().NotifySyncStarting(false),
-			dataSyncer.EXPECT().Call(),
+			dataSyncer.EXPECT().Call(false),
 			source.EXPECT().NotifySyncCompleted(),
 
 			// Second sync with isFinalSync set to true.
 			// After this point the storage backend permits
 			// no new writes.
 			source.EXPECT().NotifySyncStarting(true),
-			dataSyncer.EXPECT().Call(),
+			dataSyncer.EXPECT().Call(true),
 			source.EXPECT().NotifySyncCompleted(),
 
-			source.EXPECT().GetPersistentState().Return(uint32(13), uint64(20), exampleEpochStates),
+			source.EXPECT().GetPersistentState().Return(&pb.PersistentState{
+				MinimumEpochId:  13,
+				MinimumLocation: 20,
+				Epochs:          exampleEpochStates,
+				LeaseTracking:   &pb.LeaseTrackingState{},
+			}),
 			store.EXPECT().WritePersistentState(&pb.PersistentState{
 				MinimumEpochId:                         13,
 				MinimumLocation:                        20,
 				Epochs:                                 exampleEpochStates,
 				ReferenceLocationMapHashInitialization: 0xdf280dd45b2c39e,
+				LeaseTracking:                          &pb.LeaseTrackingState{},
 			}),
 		)
 

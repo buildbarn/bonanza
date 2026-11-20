@@ -1,5 +1,9 @@
 package local
 
+import (
+	"time"
+)
+
 // EpochList is used by the local object store to manage the creation
 // and lifetime of epochs. Epochs are assigned to reference-location map
 // entries and act as a way of ensuring consistency between the
@@ -18,4 +22,26 @@ type EpochList interface {
 	// invalid. This means that either data corruption has occurred,
 	// or that the object got overwritten while being read.
 	DiscardUpToLocation(location uint64)
+
+	// GetSafeSince returns the lease of an object stored at a given
+	// location. Leases are expressed as a point in time. An object
+	// is guaranteed to be present as long as the watermark of the
+	// store does not exceed its lease.
+	//
+	// The zero time is returned if no lease can be computed for the
+	// object, meaning it needs to be rewritten.
+	GetSafeSince(location uint64) time.Time
+
+	// GetWatermark returns the point in time at or after which all
+	// data written to the store is still present. The watermark
+	// never decreases.
+	GetWatermark() time.Time
+
+	// InvalidateLeases raises the watermark to the current time,
+	// thereby invalidating the leases of all objects stored. This
+	// method is invoked when it cannot be determined which objects
+	// have become inaccessible (e.g., when writing to the
+	// reference-location map failed after displacing an existing
+	// entry).
+	InvalidateLeases()
 }

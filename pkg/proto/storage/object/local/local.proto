@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package bonanza.storage.object.local;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "bonanza.build/pkg/proto/storage/object/local";
 
 message EpochState {
@@ -13,6 +15,27 @@ message EpochState {
   // The total number of bytes by which the offset at which locations to
   // store objects was increased during this epoch.
   uint64 location_increase = 2;
+}
+
+message LocationTimelineEntry {
+  // The location at which data was being written.
+  uint64 location = 1;
+
+  // The point in time at which writing data at this location started.
+  // All data stored at this location or after it was written at or
+  // after this time.
+  google.protobuf.Timestamp time = 2;
+}
+
+message LeaseTrackingState {
+  // Points in time at which data was written to locations covered by
+  // the epochs. These are used to compute leases of objects ("safe
+  // since" timestamps) and the watermark of the store.
+  repeated LocationTimelineEntry location_timeline = 1;
+
+  // The highest watermark that was reported by the store. Watermarks
+  // never decrease, even across restarts.
+  google.protobuf.Timestamp watermark = 2;
 }
 
 message PersistentState {
@@ -45,4 +68,16 @@ message PersistentState {
   //
   //     sum(s.location_increase for s in epochs)
   repeated EpochState epochs = 4;
+
+  // State needed to compute leases of objects and the watermark of the
+  // store. This field is only set if lease tracking is enabled (i.e.,
+  // when the store is used by a storage shard), and the persistent
+  // state was written as part of a clean shutdown. Upon startup, this
+  // field is cleared on disk before any leases are handed out.
+  //
+  // If this field is not set, data written after the persistent state
+  // was written may have been lost, even though leases for it may have
+  // been handed out. The watermark is then raised to the time of the
+  // restart, invalidating all leases of existing objects.
+  LeaseTrackingState lease_tracking = 5;
 }

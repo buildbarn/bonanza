@@ -79,6 +79,7 @@ func main() {
 			localObjectStore, err := object_local.NewStoreFromConfiguration(
 				dependenciesGroup,
 				configuration.LocalObjectStore,
+				/* leaseTracking = */ nil,
 			)
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create local object store")

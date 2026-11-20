@@ -22,12 +22,19 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewStoreFromConfiguration creates a new local object store that uses
 // the block devices and parameters specified in a Protobuf
 // configuration message.
-func NewStoreFromConfiguration(terminationGroup program.Group, configuration *configuration_pb.StoreConfiguration) (object.Store[object.FlatReference, struct{}], error) {
+//
+// If leaseTracking is provided, the store tracks the points in time at
+// which data is written, so that leases of objects and the watermark of
+// the store can be computed. This is only needed when the store is used
+// by storage shards. Otherwise, all leases and the watermark are the
+// zero time.
+func NewStoreFromConfiguration(terminationGroup program.Group, configuration *configuration_pb.StoreConfiguration, leaseTracking *LeaseTrackingConfiguration) (Store, error) {
 	if configuration == nil {
 		return nil, status.Error(codes.InvalidArgument, "No configuration provided")
 	}
@@ -47,6 +54,18 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		if err != nil {
 			return nil, util.StatusWrap(err, "Failed to read persistent state")
 		}
+
+		// State needed to compute leases is only valid if no
+		// data was written after it. Remove it from disk before
+		// handing out any leases, so that it isn't reused if
+		// this process does not shut down cleanly.
+		if initialPersistentState.LeaseTracking != nil {
+			clearedPersistentState := proto.Clone(initialPersistentState).(*pb.PersistentState)
+			clearedPersistentState.LeaseTracking = nil
+			if err := persistentStateStore.WritePersistentState(clearedPersistentState); err != nil {
+				return nil, util.StatusWrap(err, "Failed to clear lease tracking state")
+			}
+		}
 	} else {
 		initialPersistentState = &pb.PersistentState{
 			ReferenceLocationMapHashInitialization: rand.Uint64(),
@@ -54,12 +73,17 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 	}
 
 	// Construct the reference-location map that stores the location
-	// at which object contents are stored.
+	// at which object contents are stored. Capture the block device
+	// backing it, so that it can be synchronized upon clean
+	// shutdown.
 	referenceLocationMapHashInitialization := initialPersistentState.ReferenceLocationMapHashInitialization
+	recordArrayFactory := &blockDeviceCapturingRecordArrayFactory{
+		RecordArrayFactory: LocationRecordArrayFactory,
+	}
 	referenceLocationMap, err := lossymap.NewHashMapFromConfiguration(
 		configuration.ReferenceLocationMap,
 		"ReferenceLocationMap",
-		LocationRecordArrayFactory,
+		recordArrayFactory,
 		/* recordKeyHasher = */
 		func(k *lossymap.RecordKey[object.FlatReference]) uint64 {
 			// Compute a FNV-1a hash of the record key.
@@ -83,7 +107,7 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 
 	// Construct the location-blob map that stores the contents of
 	// the objects.
-	var dataSyncer DataSyncer = func() error { return nil }
+	var dataSyncer DataSyncer = func(isFinalSync bool) error { return nil }
 	var locationBlobMap LocationBlobMap
 	var maximumLocationSpan uint64
 	switch backendConfiguration := configuration.LocationBlobMapBackend.(type) {
@@ -104,7 +128,24 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		for _, epoch := range initialPersistentState.Epochs {
 			initialLocation += epoch.LocationIncrease
 		}
-		dataSyncer = blockDevice.Sync
+		dataSyncer = func(isFinalSync bool) error {
+			if err := blockDevice.Sync(); err != nil {
+				return util.StatusWrap(err, "Failed to synchronize location-blob map")
+			}
+
+			// Writes to the reference-location map are not
+			// synchronized during regular operation, as the
+			// persistent state written afterwards causes
+			// all leases to be invalidated upon restart.
+			// Upon clean shutdown leases remain valid,
+			// meaning all entries must be persisted.
+			if referenceLocationMapBlockDevice := recordArrayFactory.blockDevice; isFinalSync && referenceLocationMapBlockDevice != nil {
+				if err := referenceLocationMapBlockDevice.Sync(); err != nil {
+					return util.StatusWrap(err, "Failed to synchronize reference-location map")
+				}
+			}
+			return nil
+		}
 		locationBlobMap = NewBlockDeviceBackedLocationBlobMap(
 			blockDevice,
 			sectorSizeBytes,
@@ -132,9 +173,8 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		persistentEpochList := NewPersistentEpochList(
 			maximumLocationSpan,
 			random.NewFastSingleThreadedGenerator(),
-			initialPersistentState.MinimumEpochId,
-			initialPersistentState.MinimumLocation,
-			initialPersistentState.Epochs,
+			leaseTracking,
+			initialPersistentState,
 		)
 		epochList = persistentEpochList
 
@@ -166,6 +206,7 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		epochList = NewVolatileEpochList(
 			maximumLocationSpan,
 			random.NewFastSingleThreadedGenerator(),
+			leaseTracking,
 		)
 	}
 
@@ -187,6 +228,10 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 	currentRegionSizeBytes := maximumLocationSpan * uint64(currentRegionSizeRatio) / totalRatio
 	newRegionSizeBytes := maximumLocationSpan * uint64(newRegionSizeRatio) / totalRatio
 
+	var minimumSafeSince func() time.Time
+	if leaseTracking != nil {
+		minimumSafeSince = leaseTracking.MinimumSafeSince
+	}
 	return NewStore(
 		&globalLock,
 		referenceLocationMap,
@@ -194,5 +239,20 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		epochList,
 		currentRegionSizeBytes,
 		newRegionSizeBytes,
+		minimumSafeSince,
 	), nil
+}
+
+// blockDeviceCapturingRecordArrayFactory is a decorator for
+// RecordArrayFactory that captures the block device backing the
+// reference-location map, so that it can be synchronized.
+type blockDeviceCapturingRecordArrayFactory struct {
+	lossymap.RecordArrayFactory[object.FlatReference, uint64, EpochIDResolver]
+
+	blockDevice blockdevice.BlockDevice
+}
+
+func (f *blockDeviceCapturingRecordArrayFactory) NewBlockDeviceBackedRecordArray(blockDevice blockdevice.BlockDevice) ReferenceLocationRecordArray {
+	f.blockDevice = blockDevice
+	return f.RecordArrayFactory.NewBlockDeviceBackedRecordArray(blockDevice)
 }

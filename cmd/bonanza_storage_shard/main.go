@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"os"
+	"time"
 
 	"bonanza.build/pkg/proto/configuration/bonanza_storage_shard"
 	object_pb "bonanza.build/pkg/proto/storage/object"
@@ -43,10 +44,35 @@ func main() {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
 
-		// Construct a flat storage backend for objects.
-		localObjectStore, err := object_local.NewStoreFromConfiguration(
+		// Leases of objects are checked against the watermark
+		// of the cluster. Leases close to the watermark are
+		// renewed proactively.
+		leaseRenewalFraction := configuration.LeaseRenewalFraction
+		if leaseRenewalFraction < 0 || leaseRenewalFraction >= 1 {
+			return status.Error(codes.InvalidArgument, "Lease renewal fraction must be at least 0 and less than 1")
+		}
+		var localObjectStore object_local.Store
+		getWatermark := func() time.Time {
+			return localObjectStore.GetWatermark()
+		}
+
+		// Construct a flat storage backend for objects. Objects
+		// whose leases need to be renewed are rewritten, so
+		// that they get a new lease.
+		watermarkLookahead := configuration.WatermarkLookahead
+		if err := watermarkLookahead.CheckValid(); err != nil {
+			return util.StatusWrap(err, "Invalid watermark lookahead")
+		}
+		localObjectStore, err = object_local.NewStoreFromConfiguration(
 			dependenciesGroup,
 			configuration.LocalObjectStore,
+			&object_local.LeaseTrackingConfiguration{
+				Clock:              clock.SystemClock,
+				WatermarkLookahead: watermarkLookahead.AsDuration(),
+				MinimumSafeSince: func() time.Time {
+					return object_flatbacked.GetLeaseRenewalCutoff(getWatermark(), clock.SystemClock.Now(), leaseRenewalFraction)
+				},
+			},
 		)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create local object store")
@@ -55,11 +81,6 @@ func main() {
 		// Put a store for leases in front of the flat storage
 		// backend, so that UploadDag() can reliably enforce
 		// that clients upload complete DAGs.
-		leaseCompletenessDurationMessage := configuration.LeasesMapLeaseCompletenessDuration
-		if err := leaseCompletenessDurationMessage.CheckValid(); err != nil {
-			return util.StatusWrap(err, "Invalid leases map lease completeness duration")
-		}
-		leaseCompletenessDuration := leaseCompletenessDurationMessage.AsDuration()
 		leasesMap, err := lossymap.NewHashMapFromConfiguration(
 			configuration.LeasesMap,
 			"LeasesMap",
@@ -82,7 +103,8 @@ func main() {
 		flatBackedObjectStore := object_flatbacked.NewStore(
 			localObjectStore,
 			clock.SystemClock,
-			leaseCompletenessDuration,
+			getWatermark,
+			leaseRenewalFraction,
 			leasesMap,
 		)
 
@@ -113,7 +135,8 @@ func main() {
 		tagStore := tag_local.NewStore(
 			tagsMap,
 			clock.SystemClock,
-			leaseCompletenessDuration,
+			getWatermark,
+			leaseRenewalFraction,
 		)
 
 		// Expose all storage backends via gRPC.

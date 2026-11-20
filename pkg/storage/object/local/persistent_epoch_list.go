@@ -2,6 +2,7 @@ package local
 
 import (
 	"math/bits"
+	"time"
 
 	pb "bonanza.build/pkg/proto/storage/object/local"
 
@@ -70,6 +71,8 @@ type PersistentEpochList struct {
 	synchronizingEpochs    int
 	synchronizedEpochs     int
 	locationsChangedWakeup notificationChannel
+
+	leaseTracker *leaseTracker
 }
 
 var (
@@ -80,26 +83,29 @@ var (
 // NewPersistentEpochList creates an instance of PersistentEpochList
 // having state on epochs that have been reloaded from a persistent
 // state file.
+//
+// If leaseTracking is set, the points in time at which data is written
+// are tracked, so that leases of objects and the watermark of the store
+// can be computed.
 func NewPersistentEpochList(
 	maximumLocationSpan uint64,
 	randomNumberGenerator random.SingleThreadedGenerator,
-	minimumEpochID uint32,
-	minimumLocation uint64,
-	epochs []*pb.EpochState,
+	leaseTracking *LeaseTrackingConfiguration,
+	persistentState *pb.PersistentState,
 ) *PersistentEpochList {
 	el := &PersistentEpochList{
 		maximumLocationSpan:   maximumLocationSpan,
 		randomNumberGenerator: randomNumberGenerator,
 
-		minimumEpochID:         minimumEpochID,
-		minimumLocation:        minimumLocation,
+		minimumEpochID:         persistentState.MinimumEpochId,
+		minimumLocation:        persistentState.MinimumLocation,
 		locationsChangedWakeup: newNotificationChannel(),
 	}
 
 	// Reload all epochs, so that epochs written by a previous
 	// incarnation of this process can be read again.
-	maximumLocation := minimumLocation
-	for _, epoch := range epochs {
+	maximumLocation := persistentState.MinimumLocation
+	for _, epoch := range persistentState.Epochs {
 		var carryOut uint64
 		maximumLocation, carryOut = bits.Add64(maximumLocation, epoch.LocationIncrease, 0)
 		if carryOut != 0 {
@@ -112,11 +118,15 @@ func NewPersistentEpochList(
 		el.synchronizingEpochs++
 		el.synchronizedEpochs++
 	}
+
+	el.leaseTracker = newLeaseTracker(leaseTracking, persistentState.LeaseTracking, maximumLocation)
 	el.pruneStaleEpochs()
+	el.leaseTracker.update(el.minimumLocation, maximumLocation)
 	return el
 }
 
 func (el *PersistentEpochList) reinitialize() {
+	el.leaseTracker.reset()
 	el.minimumEpochID = 0
 	el.minimumLocation = 0
 	el.epochs = el.epochs[:0]
@@ -169,7 +179,12 @@ func (el *PersistentEpochList) FinalizeWriteUpToLocation(location uint64) error 
 		// all reference-location map entries are invalidated.
 		if location < maximumLocation {
 			el.reinitialize()
+			maximumLocation = el.minimumLocation
 		}
+
+		// Track the point in time at which data was written,
+		// so that leases can be computed.
+		el.leaseTracker.record(maximumLocation)
 
 		// If this is the first write since the start of the
 		// last synchronization, we should create a new epoch.
@@ -188,6 +203,7 @@ func (el *PersistentEpochList) FinalizeWriteUpToLocation(location uint64) error 
 			el.minimumLocation = location - el.maximumLocationSpan
 		}
 		el.pruneStaleEpochs()
+		el.leaseTracker.update(el.minimumLocation, location)
 		el.locationsChangedWakeup.unblock()
 	}
 	return nil
@@ -199,6 +215,7 @@ func (el *PersistentEpochList) DiscardUpToLocation(location uint64) {
 	if el.minimumLocation < location {
 		el.minimumLocation = location
 		el.pruneStaleEpochs()
+		el.leaseTracker.update(el.minimumLocation, el.getMaximumLocation())
 		el.locationsChangedWakeup.unblock()
 	}
 }
@@ -265,7 +282,7 @@ func (el *PersistentEpochList) NotifySyncCompleted() {
 // GetPersistentState returns information that needs to be persisted to
 // disk to be able to restore the layout of the EpochList after a
 // restart.
-func (el *PersistentEpochList) GetPersistentState() (uint32, uint64, []*pb.EpochState) {
+func (el *PersistentEpochList) GetPersistentState() *pb.PersistentState {
 	epochStates := make([]*pb.EpochState, 0, el.synchronizedEpochs)
 	previousMaximumLocation := el.minimumLocation
 	for _, epoch := range el.epochs[:el.synchronizedEpochs] {
@@ -275,5 +292,56 @@ func (el *PersistentEpochList) GetPersistentState() (uint32, uint64, []*pb.Epoch
 		})
 		previousMaximumLocation = epoch.maximumLocation
 	}
-	return el.minimumEpochID, el.minimumLocation, epochStates
+	return &pb.PersistentState{
+		MinimumEpochId:  el.minimumEpochID,
+		MinimumLocation: el.minimumLocation,
+		Epochs:          epochStates,
+		LeaseTracking: el.leaseTracker.getPersistentState(
+			previousMaximumLocation,
+			/* cleanShutdown = */ el.closedForWriting && el.synchronizedEpochs == len(el.epochs),
+		),
+	}
+}
+
+func (el *PersistentEpochList) getMaximumLocation() uint64 {
+	if len(el.epochs) > 0 {
+		return el.epochs[len(el.epochs)-1].maximumLocation
+	}
+	return el.minimumLocation
+}
+
+// GetSafeSince returns the lease of an object stored at a given
+// location. Leases are expressed as the point in time at or after which
+// all data written to the store needs to be present for the object to
+// be present. If lease tracking is disabled, the zero time is
+// returned.
+func (el *PersistentEpochList) GetSafeSince(location uint64) time.Time {
+	return el.leaseTracker.getSafeSince(location)
+}
+
+// GetWatermark returns the point in time at or after which all data
+// written to the store is still present. If lease tracking is
+// disabled, the zero time is returned.
+func (el *PersistentEpochList) GetWatermark() time.Time {
+	return el.leaseTracker.getWatermark()
+}
+
+// DiscardLocation is called when a reference-location map entry
+// pointing to a given location is discarded. This causes the watermark
+// to be raised, as the object is no longer accessible.
+func (el *PersistentEpochList) DiscardLocation(location uint64) {
+	if el.leaseTracker != nil {
+		el.leaseTracker.discardLocation(location)
+		el.leaseTracker.update(el.minimumLocation, el.getMaximumLocation())
+		el.locationsChangedWakeup.unblock()
+	}
+}
+
+// InvalidateLeases raises the watermark to the current time, thereby
+// invalidating the leases of all objects stored.
+func (el *PersistentEpochList) InvalidateLeases() {
+	if el.leaseTracker != nil {
+		el.leaseTracker.invalidate()
+		el.leaseTracker.update(el.minimumLocation, el.getMaximumLocation())
+	}
 }
