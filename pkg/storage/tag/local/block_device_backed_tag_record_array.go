@@ -115,3 +115,6 @@ func (lra *blockDeviceBackedTagRecordArray) Put(index uint64, record lossymap.Re
 	}
 	return nil
 }
+
+func (*blockDeviceBackedTagRecordArray) Drop(record lossymap.Record[tag.Key, ValueWithLease], unused struct{}) {
+}

@@ -124,3 +124,6 @@ func (lra *blockDeviceBackedLocationRecordArray) Put(index uint64, record Refere
 	}
 	return nil
 }
+
+func (*blockDeviceBackedLocationRecordArray) Drop(record ReferenceLocationRecord, resolver EpochIDResolver) {
+}

@@ -1,7 +1,7 @@
 module(name = "build_bonanza")
 
 bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
-bazel_dep(name = "aspect_rules_js", version = "3.5.1")
+bazel_dep(name = "aspect_rules_js", version = "3.6.1")
 bazel_dep(name = "bazel_remote_apis", version = "0")
 bazel_dep(name = "bazel_skylib", version = "1.9.2")
 bazel_dep(name = "com_github_buildbarn_bb_remote_execution")
@@ -15,25 +15,24 @@ bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "protobuf", version = "36.2")
 bazel_dep(name = "rules_go", version = "0.65.0")
 bazel_dep(name = "rules_jsonnet", version = "0.7.2")
-bazel_dep(name = "rules_shell", version = "0.8.0")
-bazel_dep(name = "toolchains_llvm", version = "1.12.0")
+bazel_dep(name = "rules_shell", version = "0.10.0")
+bazel_dep(name = "toolchains_llvm", version = "1.13.0")
 
 git_override(
     module_name = "bazel_remote_apis",
-    commit = "c2c07e3d718d3d490a4958344d9c3e47de0bfaf3",
-    patches = ["//:patches/bazel_remote_apis/upstream-pr-378.diff"],
+    commit = "e0c0554bfc8a37abf336c3e78070684367738e1d",
     remote = "https://github.com/bazelbuild/remote-apis.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_bb_remote_execution",
-    commit = "1fbffdc417797f6afdb7f67b1f0d5cc27352db43",
+    commit = "e9f6d456803e9ef236e6fc3db3107050b63298b1",
     remote = "https://github.com/buildbarn/bb-remote-execution.git",
 )
 
 git_override(
     module_name = "com_github_buildbarn_bb_storage",
-    commit = "a00415f5b9ce54e98217174d254a3afd56b8e271",
+    commit = "c307abb24d8705c1057eb27d27e79a2d24747b6d",
     remote = "https://github.com/buildbarn/bb-storage.git",
 )
 

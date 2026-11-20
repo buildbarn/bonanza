@@ -87,3 +87,6 @@ func (lra *blockDeviceBackedLeaseRecordArray) Put(index uint64, record lossymap.
 	}
 	return nil
 }
+
+func (*blockDeviceBackedLeaseRecordArray) Drop(record lossymap.Record[object.LocalReference, Lease], minimumLease Lease) {
+}

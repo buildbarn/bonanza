@@ -48,3 +48,6 @@ func (lra *inMemoryReferenceLocationRecordArray) Put(index uint64, record Refere
 	}
 	return nil
 }
+
+func (*inMemoryReferenceLocationRecordArray) Drop(record ReferenceLocationRecord, resolver EpochIDResolver) {
+}
