@@ -45,7 +45,7 @@ local shard = std.extVar('SHARD');
   tagsMap: {
     onBlockDevice: { file: {
       path: dataPath + '/tags',
-      sizeBytes: 1e7,
+      sizeBytes: 1e8,
     } },
     maximumGetAttempts: 16,
     maximumPutAttempts: 64,
