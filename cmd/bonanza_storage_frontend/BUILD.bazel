@@ -24,6 +24,7 @@ go_library(
         "//pkg/storage/tag/leaserenewing",
         "//pkg/storage/tag/mirrored",
         "//pkg/storage/tag/sharded",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/global",
         "@com_github_buildbarn_bb_storage//pkg/grpc",
         "@com_github_buildbarn_bb_storage//pkg/program",

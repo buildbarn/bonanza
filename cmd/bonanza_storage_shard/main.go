@@ -51,9 +51,19 @@ func main() {
 		if leaseRenewalFraction < 0 || leaseRenewalFraction >= 1 {
 			return status.Error(codes.InvalidArgument, "Lease renewal fraction must be at least 0 and less than 1")
 		}
+
+		// Objects may reference objects stored on other shards.
+		// Leases are therefore checked against the highest
+		// watermark of the cluster, which storage frontends
+		// provide as part of their requests.
 		var localObjectStore object_local.Store
+		clusterWatermark := object.NewWatermark(clock.SystemClock)
 		getWatermark := func() time.Time {
-			return localObjectStore.GetWatermark()
+			watermark := clusterWatermark.Get()
+			if localWatermark := localObjectStore.GetWatermark(); watermark.Before(localWatermark) {
+				watermark = localWatermark
+			}
+			return watermark
 		}
 
 		// Construct a flat storage backend for objects. Objects
@@ -161,12 +171,15 @@ func main() {
 							),
 							leaseMarshaler,
 						),
+						clusterWatermark,
+						localObjectStore.GetWatermark,
 					),
 				)
 				tag_pb.RegisterResolverServer(
 					s,
 					tag.NewResolverServer(
 						tagStore,
+						clusterWatermark,
 					),
 				)
 				tag_pb.RegisterUpdaterServer(

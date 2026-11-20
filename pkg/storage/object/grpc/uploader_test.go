@@ -22,7 +22,7 @@ func TestUploader(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
 
 	client := NewMockUploaderClient(ctrl)
-	uploader := grpc.NewUploader(client)
+	uploader := grpc.NewUploader(client, nil)
 
 	t.Run("ServerFailure", func(t *testing.T) {
 		// Errors returned by the server should be propagated to

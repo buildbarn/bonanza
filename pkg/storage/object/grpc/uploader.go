@@ -13,14 +13,20 @@ import (
 )
 
 type uploader struct {
-	client object_pb.UploaderClient
+	client          object_pb.UploaderClient
+	watermarkSource *object.Watermark
 }
 
 // NewUploader creates an object uploader that forwards requests to
 // store objects to a remote server using gRPC.
-func NewUploader(client object_pb.UploaderClient) object.Uploader[object.GlobalReference, []byte] {
+//
+// If watermarkSource is provided, its value is attached to all
+// requests. This allows the server to check leases of objects against
+// the highest watermark of the cluster it is part of.
+func NewUploader(client object_pb.UploaderClient, watermarkSource *object.Watermark) object.Uploader[object.GlobalReference, []byte] {
 	return &uploader{
-		client: client,
+		client:          client,
+		watermarkSource: watermarkSource,
 	}
 }
 
@@ -35,6 +41,9 @@ func (u *uploader) UploadObject(ctx context.Context, reference object.GlobalRefe
 	}
 	if contents != nil {
 		request.Contents = contents.GetFullData()
+	}
+	if u.watermarkSource != nil {
+		request.Watermark = u.watermarkSource.ToProto()
 	}
 
 	response, err := u.client.UploadObject(ctx, request)

@@ -6,15 +6,18 @@ go_library(
     srcs = [
         "downloader.go",
         "uploader.go",
+        "watermark_poller.go",
     ],
     importpath = "bonanza.build/pkg/storage/object/grpc",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/storage/object",
         "//pkg/storage/object",
+        "@com_github_buildbarn_bb_storage//pkg/clock",
         "@com_github_buildbarn_bb_storage//pkg/util",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/emptypb",
     ],
 )
 

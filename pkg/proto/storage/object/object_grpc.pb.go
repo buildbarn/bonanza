@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -120,6 +121,7 @@ var Downloader_ServiceDesc = grpc.ServiceDesc{
 
 const (
 	Uploader_UploadObject_FullMethodName = "/bonanza.storage.object.Uploader/UploadObject"
+	Uploader_GetWatermark_FullMethodName = "/bonanza.storage.object.Uploader/GetWatermark"
 )
 
 // UploaderClient is the client API for Uploader service.
@@ -127,6 +129,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UploaderClient interface {
 	UploadObject(ctx context.Context, in *UploadObjectRequest, opts ...grpc.CallOption) (*UploadObjectResponse, error)
+	GetWatermark(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetWatermarkResponse, error)
 }
 
 type uploaderClient struct {
@@ -147,11 +150,22 @@ func (c *uploaderClient) UploadObject(ctx context.Context, in *UploadObjectReque
 	return out, nil
 }
 
+func (c *uploaderClient) GetWatermark(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetWatermarkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetWatermarkResponse)
+	err := c.cc.Invoke(ctx, Uploader_GetWatermark_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UploaderServer is the server API for Uploader service.
 // All implementations should embed UnimplementedUploaderServer
 // for forward compatibility.
 type UploaderServer interface {
 	UploadObject(context.Context, *UploadObjectRequest) (*UploadObjectResponse, error)
+	GetWatermark(context.Context, *emptypb.Empty) (*GetWatermarkResponse, error)
 }
 
 // UnimplementedUploaderServer should be embedded to have
@@ -163,6 +177,9 @@ type UnimplementedUploaderServer struct{}
 
 func (UnimplementedUploaderServer) UploadObject(context.Context, *UploadObjectRequest) (*UploadObjectResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UploadObject not implemented")
+}
+func (UnimplementedUploaderServer) GetWatermark(context.Context, *emptypb.Empty) (*GetWatermarkResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWatermark not implemented")
 }
 func (UnimplementedUploaderServer) testEmbeddedByValue() {}
 
@@ -202,6 +219,24 @@ func _Uploader_UploadObject_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Uploader_GetWatermark_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UploaderServer).GetWatermark(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Uploader_GetWatermark_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UploaderServer).GetWatermark(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Uploader_ServiceDesc is the grpc.ServiceDesc for Uploader service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -212,6 +247,10 @@ var Uploader_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UploadObject",
 			Handler:    _Uploader_UploadObject_Handler,
+		},
+		{
+			MethodName: "GetWatermark",
+			Handler:    _Uploader_GetWatermark_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

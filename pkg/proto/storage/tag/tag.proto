@@ -109,6 +109,15 @@ message ResolveTagRequest {
   // Setting this option properly prevents additional work on the server
   // if the client is going to ignore the tag's value anyway.
   google.protobuf.Timestamp minimum_timestamp = 3;
+
+  // The highest watermark of all storage servers in the cluster that
+  // is known to the storage frontend, used by storage shards to check
+  // the lease of the object referenced by the tag. See
+  // bonanza.storage.object.UploadObjectRequest.watermark.
+  //
+  // This field is only set by storage frontends. Other clients MUST
+  // leave this field unset.
+  google.protobuf.Timestamp watermark = 4;
 }
 
 message ResolveTagResponse {

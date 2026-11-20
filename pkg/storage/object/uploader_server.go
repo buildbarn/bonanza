@@ -2,6 +2,7 @@ package object
 
 import (
 	"context"
+	"time"
 
 	"bonanza.build/pkg/proto/storage/object"
 
@@ -9,22 +10,37 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type uploaderServer struct {
-	uploader Uploader[GlobalReference, []byte]
+	uploader         Uploader[GlobalReference, []byte]
+	clusterWatermark *Watermark
+	getWatermark     func() time.Time
 }
 
 // NewUploaderServer creates a gRPC server object for exposing an
 // Uploader. This can be used to make objects contained in an object
 // store accessible via the network.
-func NewUploaderServer(uploader Uploader[GlobalReference, []byte]) object.UploaderServer {
+//
+// If clusterWatermark is provided, it is raised to the cluster
+// watermark that clients provide as part of their requests. If
+// getWatermark is provided, it is used to report the watermark of the
+// server to clients.
+func NewUploaderServer(uploader Uploader[GlobalReference, []byte], clusterWatermark *Watermark, getWatermark func() time.Time) object.UploaderServer {
 	return &uploaderServer{
-		uploader: uploader,
+		uploader:         uploader,
+		clusterWatermark: clusterWatermark,
+		getWatermark:     getWatermark,
 	}
 }
 
 func (s *uploaderServer) UploadObject(ctx context.Context, request *object.UploadObjectRequest) (*object.UploadObjectResponse, error) {
+	if s.clusterWatermark != nil {
+		s.clusterWatermark.RaiseFromProto(request.Watermark)
+	}
+
 	namespace, err := NewNamespace(request.Namespace)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid namespace")
@@ -97,4 +113,15 @@ func (s *uploaderServer) UploadObject(ctx context.Context, request *object.Uploa
 	default:
 		panic("unexpected upload object result")
 	}
+}
+
+func (s *uploaderServer) GetWatermark(ctx context.Context, request *emptypb.Empty) (*object.GetWatermarkResponse, error) {
+	if s.getWatermark == nil {
+		return nil, status.Error(codes.Unimplemented, "This server does not report its watermark")
+	}
+	response := &object.GetWatermarkResponse{}
+	if watermark := s.getWatermark(); !watermark.IsZero() {
+		response.Watermark = timestamppb.New(watermark)
+	}
+	return response, nil
 }

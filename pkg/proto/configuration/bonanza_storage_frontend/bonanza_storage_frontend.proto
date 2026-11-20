@@ -6,6 +6,7 @@ import "bonanza.build/pkg/proto/configuration/storage/object/local/local.proto";
 import "bonanza.build/pkg/proto/storage/object/object.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
+import "google/protobuf/duration.proto";
 
 option go_package = "bonanza.build/pkg/proto/configuration/bonanza_storage_frontend";
 
@@ -70,4 +71,14 @@ message ApplicationConfiguration {
   // always forwarded to shards.
   bonanza.configuration.storage.object.local.StoreConfiguration
       local_object_store = 8;
+
+  // The interval at which the watermarks of all shards are polled. The
+  // highest watermark of each replica is provided to shards as part of
+  // requests that check leases of objects.
+  //
+  // This value should be lower than the watermark lookahead that is
+  // configured on the shards.
+  //
+  // Recommended value: 10s
+  google.protobuf.Duration watermark_poll_interval = 9;
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"time"
 
 	"bonanza.build/pkg/proto/configuration/bonanza_storage_frontend"
 	dag_pb "bonanza.build/pkg/proto/storage/dag"
@@ -22,6 +23,7 @@ import (
 	tag_mirrored "bonanza.build/pkg/storage/tag/mirrored"
 	tag_sharded "bonanza.build/pkg/storage/tag/sharded"
 
+	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/global"
 	bb_grpc "github.com/buildbarn/bb-storage/pkg/grpc"
 	"github.com/buildbarn/bb-storage/pkg/program"
@@ -53,11 +55,15 @@ func main() {
 		maximumUnfinalizedParentsLimit := object.NewLimit(configuration.MaximumUnfinalizedParentsLimit)
 
 		// Construct object and tag stores for mirrored replicas.
-		objectStoreA, tagStoreA, err := createShardsForReplica(grpcClientFactory, configuration.ShardsReplicaA, dependenciesGroup)
+		watermarkPollInterval := configuration.WatermarkPollInterval
+		if err := watermarkPollInterval.CheckValid(); err != nil {
+			return util.StatusWrap(err, "Invalid watermark poll interval")
+		}
+		objectStoreA, tagStoreA, err := createShardsForReplica(grpcClientFactory, configuration.ShardsReplicaA, watermarkPollInterval.AsDuration(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create storage shards for replica A")
 		}
-		objectStoreB, tagStoreB, err := createShardsForReplica(grpcClientFactory, configuration.ShardsReplicaB, dependenciesGroup)
+		objectStoreB, tagStoreB, err := createShardsForReplica(grpcClientFactory, configuration.ShardsReplicaB, watermarkPollInterval.AsDuration(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create storage shards for replica B")
 		}
@@ -109,7 +115,7 @@ func main() {
 				)
 				tag_pb.RegisterResolverServer(
 					s,
-					tag.NewResolverServer(tagResolver),
+					tag.NewResolverServer(tagResolver, nil),
 				)
 
 				// Services for uploading DAGs.
@@ -135,7 +141,13 @@ func main() {
 	})
 }
 
-func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[string]*bonanza_storage_frontend.ApplicationConfiguration_Shard, dependenciesGroup program.Group) (object.Store[object.GlobalReference, []byte], tag.Store[object.Namespace, []byte], error) {
+func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[string]*bonanza_storage_frontend.ApplicationConfiguration_Shard, watermarkPollInterval time.Duration, dependenciesGroup program.Group) (object.Store[object.GlobalReference, []byte], tag.Store[object.Namespace, []byte], error) {
+	// Leases of objects need to be checked against the highest
+	// watermark of all shards in the replica. Periodically poll
+	// the watermarks of all shards, and forward the highest one
+	// to all shards.
+	replicaWatermark := &object.Watermark{}
+
 	// Create object & tag stores for each shard.
 	shardNames := make([]string, 0, len(shards))
 	weightedShards := make([]object_sharded.WeightedShard, 0, len(shards))
@@ -157,12 +169,19 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 		objectDownloaders = append(objectDownloaders, object_grpc.NewDownloader(
 			object_pb.NewDownloaderClient(grpcClient),
 		))
+		uploaderClient := object_pb.NewUploaderClient(grpcClient)
 		objectUploaders = append(objectUploaders, object_grpc.NewUploader(
-			object_pb.NewUploaderClient(grpcClient),
+			uploaderClient,
+			replicaWatermark,
 		))
 		tagResolvers = append(tagResolvers, tag_grpc.NewResolver(
 			tag_pb.NewResolverClient(grpcClient),
+			replicaWatermark,
 		))
+		dependenciesGroup.Go(func(ctx context.Context, siblingsGroup, dependenciesGroup program.Group) error {
+			object_grpc.PollWatermark(ctx, uploaderClient, clock.SystemClock, watermarkPollInterval, replicaWatermark, util.DefaultErrorLogger)
+			return nil
+		})
 		tagUpdaters = append(tagUpdaters, tag_grpc.NewUpdater(
 			tag_pb.NewUpdaterClient(grpcClient),
 		))

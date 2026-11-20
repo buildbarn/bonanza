@@ -21,6 +21,7 @@ local statePath = std.extVar('STATE_PATH');
     count: 1000,
     sizeBytes: 16 * 1024 * 1024,
   },
+  watermarkPollInterval: '10s',
 
   shardsReplicaA: {
     [std.toString(shard)]: {

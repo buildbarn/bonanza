@@ -37,6 +37,30 @@ message ApplicationConfiguration {
   // lease. The time between the watermark and the current time is the
   // retention of the cluster.
   //
+  // As objects may reference objects stored on other shards, leases
+  // are checked against the highest watermark of all shards in the
+  // cluster. A consequence is that whenever a single shard loses data
+  // abruptly, leases are invalidated across the entire cluster. This
+  // happens when a shard is not shut down cleanly, as its watermark is
+  // then raised to the time at which it restarts, or when it fails to
+  // write to its reference-location map. From then on, the leases of
+  // all DAGs in use need to be renewed, and all objects contained in
+  // them are rewritten by the shards holding them as they are
+  // accessed. This temporarily causes a significant increase in
+  // traffic, and reduces the effective capacity of the cluster, as
+  // the rewritten objects displace other data. Shards should therefore
+  // be shut down cleanly whenever possible.
+  //
+  // For the same reason, the clocks of all shards in the cluster
+  // should be synchronized. Leases and watermarks received from other
+  // shards are capped to the current time, preventing a shard whose
+  // clock is ahead from invalidating leases beyond the current time,
+  // or for longer than the skew persists. Still, a shard whose clock
+  // is ahead invalidates leases handed out by other shards in
+  // proportion to the skew, while a shard whose clock is behind hands
+  // out leases that appear older than they are, causing them to be
+  // renewed prematurely.
+  //
   // To prevent DAGs from becoming incomplete while they are in use,
   // leases that are less than this fraction of the retention above the
   // watermark are renewed proactively. Objects in the local object

@@ -15,14 +15,21 @@ import (
 )
 
 type resolver struct {
-	client tag_pb.ResolverClient
+	client          tag_pb.ResolverClient
+	watermarkSource *object.Watermark
 }
 
 // NewResolver creates a tag resolver that forwards all requests to
 // resolve tags to a remote server using gRPC.
-func NewResolver(client tag_pb.ResolverClient) tag.Resolver[object.Namespace] {
+//
+// If watermarkSource is provided, its value is attached to all
+// requests. This should only be done by storage frontends, as it allows
+// storage shards to check leases of objects against the highest
+// watermark of the cluster they are part of.
+func NewResolver(client tag_pb.ResolverClient, watermarkSource *object.Watermark) tag.Resolver[object.Namespace] {
 	return &resolver{
-		client: client,
+		client:          client,
+		watermarkSource: watermarkSource,
 	}
 }
 
@@ -37,11 +44,15 @@ func (d *resolver) ResolveTag(ctx context.Context, namespace object.Namespace, k
 		minimumTimestampMessage = timestamppb.New(*minimumTimestamp)
 	}
 
-	response, err := d.client.ResolveTag(ctx, &tag_pb.ResolveTagRequest{
+	request := &tag_pb.ResolveTagRequest{
 		Namespace:        namespace.ToProto(),
 		Key:              keyMessage,
 		MinimumTimestamp: minimumTimestampMessage,
-	})
+	}
+	if d.watermarkSource != nil {
+		request.Watermark = d.watermarkSource.ToProto()
+	}
+	response, err := d.client.ResolveTag(ctx, request)
 	if err != nil {
 		var badSignedValue tag.SignedValue
 		return badSignedValue, false, err

@@ -13,18 +13,27 @@ import (
 )
 
 type resolverServer struct {
-	resolver Resolver[object.Namespace]
+	resolver         Resolver[object.Namespace]
+	clusterWatermark *object.Watermark
 }
 
 // NewResolverServer creates a gRPC server that is capable of resolving
 // tags to an object.
-func NewResolverServer(resolver Resolver[object.Namespace]) tag_pb.ResolverServer {
+//
+// If clusterWatermark is provided, it is raised to the cluster
+// watermark that storage frontends provide as part of their requests.
+func NewResolverServer(resolver Resolver[object.Namespace], clusterWatermark *object.Watermark) tag_pb.ResolverServer {
 	return &resolverServer{
-		resolver: resolver,
+		resolver:         resolver,
+		clusterWatermark: clusterWatermark,
 	}
 }
 
 func (s *resolverServer) ResolveTag(ctx context.Context, request *tag_pb.ResolveTagRequest) (*tag_pb.ResolveTagResponse, error) {
+	if s.clusterWatermark != nil {
+		s.clusterWatermark.RaiseFromProto(request.Watermark)
+	}
+
 	namespace, err := object.NewNamespace(request.Namespace)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid namespace")

@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package bonanza.storage.object;
 
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
 option go_package = "bonanza.build/pkg/proto/storage/object";
 
 // Object Store is a content addressed data store that is capable of
@@ -41,6 +44,16 @@ service Uploader {
   // Upload the contents of a single object to storage and/or attach
   // leases of outgoing references to it.
   rpc UploadObject(UploadObjectRequest) returns (UploadObjectResponse);
+
+  // Obtain the watermark of the storage server. All objects written to
+  // the server at or after the watermark are still present. Leases of
+  // objects are timestamps, and are only valid if they are not below
+  // the watermark.
+  //
+  // Storage frontends call this method periodically against all
+  // storage shards, and provide the highest watermark of each cluster
+  // as part of UploadObjectRequest.watermark.
+  rpc GetWatermark(google.protobuf.Empty) returns (GetWatermarkResponse);
 }
 
 message ReferenceFormat {
@@ -152,6 +165,16 @@ message UploadObjectRequest {
   // Clients MUST NOT set this field if the provided reference has a
   // degree of zero, or if UploadObjectRequest.contents is set.
   bool want_contents_if_incomplete = 5;
+
+  // The highest watermark of all storage servers in the cluster that
+  // is known to the client. As objects may reference objects stored on
+  // other servers, the server needs to check leases against this
+  // watermark, as opposed to just its own.
+  //
+  // The server keeps track of the highest value it has received, meaning
+  // that clients providing an outdated value do not cause leases to be
+  // accepted that are known to be invalid.
+  google.protobuf.Timestamp watermark = 6;
 }
 
 message UploadObjectResponse {
@@ -186,6 +209,12 @@ message UploadObjectResponse {
     // greater than zero.
     Incomplete incomplete = 2;
   }
+}
+
+message GetWatermarkResponse {
+  // The watermark of the storage server. All objects written to the
+  // server at or after this time are still present.
+  google.protobuf.Timestamp watermark = 1;
 }
 
 message Limit {

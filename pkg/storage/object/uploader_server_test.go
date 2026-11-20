@@ -3,15 +3,20 @@ package object_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
 
+	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"go.uber.org/mock/gomock"
 )
@@ -20,7 +25,7 @@ func TestUploaderServer(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
 
 	uploader := NewMockUploaderForTestingBytes(ctrl)
-	server := object.NewUploaderServer(uploader)
+	server := object.NewUploaderServer(uploader, nil, nil)
 
 	t.Run("InvalidNamespace", func(t *testing.T) {
 		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
@@ -394,5 +399,40 @@ func TestUploaderServer(t *testing.T) {
 			},
 		})
 		testutil.RequireEqualStatus(t, status.Error(codes.NotFound, "Object not found"), err)
+	})
+}
+
+func TestUploaderServerWatermark(t *testing.T) {
+	ctrl, ctx := gomock.WithContext(context.Background(), t)
+
+	t.Run("NotReported", func(t *testing.T) {
+		// Servers that don't track a watermark should report
+		// so explicitly.
+		server := object.NewUploaderServer(NewMockUploaderForTestingBytes(ctrl), nil, nil)
+		_, err := server.GetWatermark(ctx, &emptypb.Empty{})
+		testutil.RequireEqualStatus(t, status.Error(codes.Unimplemented, "This server does not report its watermark"), err)
+	})
+
+	t.Run("Reported", func(t *testing.T) {
+		clusterWatermark := object.NewWatermark(clock.SystemClock)
+		server := object.NewUploaderServer(
+			NewMockUploaderForTestingBytes(ctrl),
+			clusterWatermark,
+			func() time.Time { return time.Unix(1700000000, 0) },
+		)
+
+		response, err := server.GetWatermark(ctx, &emptypb.Empty{})
+		require.NoError(t, err)
+		testutil.RequireEqualProto(t, &object_pb.GetWatermarkResponse{
+			Watermark: &timestamppb.Timestamp{Seconds: 1700000000},
+		}, response)
+
+		// The cluster watermark provided by clients should be
+		// tracked, even if the request is invalid otherwise.
+		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			Watermark: &timestamppb.Timestamp{Seconds: 1700000500},
+		})
+		require.Error(t, err)
+		require.Equal(t, time.Unix(1700000500, 0), clusterWatermark.Get())
 	})
 }

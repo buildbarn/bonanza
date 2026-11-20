@@ -171,6 +171,7 @@ func main() {
 						configuration.BufferedObjectsCacheReplacementPolicy,
 						tag_grpc.NewResolver(
 							tag_pb.NewResolverClient(storageGRPCClient),
+							/* watermarkSource = */ nil,
 						),
 						cacheTagSignaturePrivateKey,
 						configuration.UploadConcurrency,

@@ -245,6 +245,7 @@ type ResolveTagRequest struct {
 	Namespace        *object.Namespace      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	Key              *Key                   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	MinimumTimestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=minimum_timestamp,json=minimumTimestamp,proto3" json:"minimum_timestamp,omitempty"`
+	Watermark        *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=watermark,proto3" json:"watermark,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -296,6 +297,13 @@ func (x *ResolveTagRequest) GetKey() *Key {
 func (x *ResolveTagRequest) GetMinimumTimestamp() *timestamppb.Timestamp {
 	if x != nil {
 		return x.MinimumTimestamp
+	}
+	return nil
+}
+
+func (x *ResolveTagRequest) GetWatermark() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Watermark
 	}
 	return nil
 }
@@ -437,11 +445,12 @@ const file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc = "" +
 	"\x11ValueSigningInput\x12X\n" +
 	"\x10reference_format\x18\x01 \x01(\x0e2-.bonanza.storage.object.ReferenceFormat.ValueR\x0freferenceFormat\x12\x19\n" +
 	"\bkey_hash\x18\x02 \x01(\fR\akeyHash\x120\n" +
-	"\x05value\x18\x03 \x01(\v2\x1a.bonanza.storage.tag.ValueR\x05value\"\xc9\x01\n" +
+	"\x05value\x18\x03 \x01(\v2\x1a.bonanza.storage.tag.ValueR\x05value\"\x83\x02\n" +
 	"\x11ResolveTagRequest\x12?\n" +
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12*\n" +
 	"\x03key\x18\x02 \x01(\v2\x18.bonanza.storage.tag.KeyR\x03key\x12G\n" +
-	"\x11minimum_timestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x10minimumTimestamp\"u\n" +
+	"\x11minimum_timestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x10minimumTimestamp\x128\n" +
+	"\twatermark\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\twatermark\"u\n" +
 	"\x12ResolveTagResponse\x12C\n" +
 	"\fsigned_value\x18\x01 \x01(\v2 .bonanza.storage.tag.SignedValueR\vsignedValue\x12\x1a\n" +
 	"\bcomplete\x18\x02 \x01(\bR\bcomplete\"\xda\x01\n" +
@@ -490,19 +499,20 @@ var file_bonanza_build_pkg_proto_storage_tag_tag_proto_depIdxs = []int32{
 	9,  // 4: bonanza.storage.tag.ResolveTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
 	0,  // 5: bonanza.storage.tag.ResolveTagRequest.key:type_name -> bonanza.storage.tag.Key
 	7,  // 6: bonanza.storage.tag.ResolveTagRequest.minimum_timestamp:type_name -> google.protobuf.Timestamp
-	2,  // 7: bonanza.storage.tag.ResolveTagResponse.signed_value:type_name -> bonanza.storage.tag.SignedValue
-	9,  // 8: bonanza.storage.tag.UpdateTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
-	0,  // 9: bonanza.storage.tag.UpdateTagRequest.key:type_name -> bonanza.storage.tag.Key
-	2,  // 10: bonanza.storage.tag.UpdateTagRequest.signed_value:type_name -> bonanza.storage.tag.SignedValue
-	4,  // 11: bonanza.storage.tag.Resolver.ResolveTag:input_type -> bonanza.storage.tag.ResolveTagRequest
-	6,  // 12: bonanza.storage.tag.Updater.UpdateTag:input_type -> bonanza.storage.tag.UpdateTagRequest
-	5,  // 13: bonanza.storage.tag.Resolver.ResolveTag:output_type -> bonanza.storage.tag.ResolveTagResponse
-	10, // 14: bonanza.storage.tag.Updater.UpdateTag:output_type -> google.protobuf.Empty
-	13, // [13:15] is the sub-list for method output_type
-	11, // [11:13] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	7,  // 7: bonanza.storage.tag.ResolveTagRequest.watermark:type_name -> google.protobuf.Timestamp
+	2,  // 8: bonanza.storage.tag.ResolveTagResponse.signed_value:type_name -> bonanza.storage.tag.SignedValue
+	9,  // 9: bonanza.storage.tag.UpdateTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
+	0,  // 10: bonanza.storage.tag.UpdateTagRequest.key:type_name -> bonanza.storage.tag.Key
+	2,  // 11: bonanza.storage.tag.UpdateTagRequest.signed_value:type_name -> bonanza.storage.tag.SignedValue
+	4,  // 12: bonanza.storage.tag.Resolver.ResolveTag:input_type -> bonanza.storage.tag.ResolveTagRequest
+	6,  // 13: bonanza.storage.tag.Updater.UpdateTag:input_type -> bonanza.storage.tag.UpdateTagRequest
+	5,  // 14: bonanza.storage.tag.Resolver.ResolveTag:output_type -> bonanza.storage.tag.ResolveTagResponse
+	10, // 15: bonanza.storage.tag.Updater.UpdateTag:output_type -> google.protobuf.Empty
+	14, // [14:16] is the sub-list for method output_type
+	12, // [12:14] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_storage_tag_tag_proto_init() }

@@ -108,7 +108,7 @@ func main() {
 			previousExecutionStatsStore = model_tag.NewStorageBackedMutableProtoStore(
 				referenceFormat,
 				tag_namespacemapping.NewNamespaceAddingResolver(
-					tag_grpc.NewResolver(tag_pb.NewResolverClient(grpcClient)),
+					tag_grpc.NewResolver(tag_pb.NewResolverClient(grpcClient) /* watermarkSource = */, nil),
 					namespace,
 				),
 				tagSignaturePrivateKey,
