@@ -53,7 +53,7 @@ func (registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMe
 func extractFromPlatformInfoConstraints[TReference object.BasicReference](ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], value model_core.Message[*model_starlark_pb.Value, TReference]) ([]*model_analysis_pb.Constraint, error) {
 	dict, ok := value.Message.Kind.(*model_starlark_pb.Value_Dict)
 	if !ok {
-		return nil, errors.New("constraints field of PlatformInfo")
+		return nil, errors.New("constraints field is not a dict")
 	}
 	var iterErr error
 	constraints := map[string]string{}
@@ -65,16 +65,25 @@ func extractFromPlatformInfoConstraints[TReference object.BasicReference](ctx co
 	) {
 		keyLabel, ok := key.Message.GetKind().(*model_starlark_pb.Value_Label)
 		if !ok {
-			return nil, errors.New("key of constraints field of PlatformInfo is not a label")
+			return nil, errors.New("key of constraints field is not a label")
 		}
-		valueLabel, ok := value.Message.GetKind().(*model_starlark_pb.Value_Label)
-		if !ok {
-			return nil, errors.New("value of constraints field of PlatformInfo is not a label")
+		switch valueKind := value.Message.GetKind().(type) {
+		case *model_starlark_pb.Value_Label:
+			constraints[keyLabel.Label] = valueKind.Label
+		case *model_starlark_pb.Value_None:
+			// ConfigSettingInfo uses None to denote that the
+			// constraint setting must be set to its default
+			// value, meaning it must be absent from the
+			// platform's constraints. This is encoded as an
+			// empty value, which constraintsAreCompatible()
+			// understands.
+			constraints[keyLabel.Label] = ""
+		default:
+			return nil, fmt.Errorf("value of constraint setting %#v in constraints field is not a label or None", keyLabel.Label)
 		}
-		constraints[keyLabel.Label] = valueLabel.Label
 	}
 	if iterErr != nil {
-		return nil, fmt.Errorf("failed to iterate dict of constraints field of PlatformInfo: %w", iterErr)
+		return nil, fmt.Errorf("failed to iterate dict of constraints field: %w", iterErr)
 	}
 	sortedConstraints := make([]*model_analysis_pb.Constraint, 0, len(constraints))
 	for _, setting := range slices.Sorted(maps.Keys(constraints)) {
