@@ -1578,24 +1578,17 @@ def builtins_internal_py_builtins_merge_runfiles_with_generated_inits_empty_file
     return runfiles
 
 exported_rules = {
-    "alias": native.alias,
     "cc_libc_top_alias": cc_libc_top_alias,
     "cc_toolchain_suite": cc_toolchain_suite,
     "config_setting": config_setting,
     "constraint_setting": constraint_setting,
     "constraint_value": constraint_value,
-    "exports_files": native.exports_files,
     "filegroup": filegroup,
     "genrule": genrule,
-    "glob": native.glob,
     "java_plugins_flag_alias": java_plugins_flag_alias,
-    "label_flag": native.label_flag,
-    "label_setting": native.label_setting,
     "licenses": licenses,
-    "package_group": native.package_group,
     "platform": platform,
     "starlark_doc_extract": starlark_doc_extract,
-    "test_suite": native.test_suite,
     "toolchain": toolchain,
     "toolchain_type": toolchain_type,
 }
@@ -1708,7 +1701,14 @@ exported_toplevels["_builtins"] = struct(
         ),
     ),
     toplevel = struct(
-        native = struct(**exported_rules),
+        # In Bazel, _builtins.toplevel.native contains all native
+        # functions and rules prior to injection. Here, that means the
+        # functions provided by Bonanza, combined with the rules
+        # declared above.
+        native = struct(**({
+            name: getattr(native, name)
+            for name in dir(native)
+        } | exported_rules)),
         **exported_toplevels
     ),
 )

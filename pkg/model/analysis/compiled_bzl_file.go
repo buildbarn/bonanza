@@ -178,7 +178,9 @@ var exportsBzlTargetName = util.Must(label.NewTargetName("exports.bzl"))
 
 // forEachBuiltinsModuleExport calls a function for each entry of a dict
 // that is exported by the exports.bzl file of each builtins module. The
-// values of the dicts are decoded on the provided thread.
+// values of the dicts are decoded on the provided thread. Entries whose
+// names are prefixed with "-" are skipped, while a "+" prefix is
+// stripped.
 func forEachBuiltinsModuleExport[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, e CompiledBzlFileValueGetter[TReference], valueReaders *model_starlark.ValueReaders[TReference], builtinsModuleNames []string, globalName string, yield func(name string, value eval.Value)) error {
 	missingDependencies := false
 	for i, builtinsModuleNameStr := range builtinsModuleNames {
@@ -219,6 +221,15 @@ func forEachBuiltinsModuleExport[TReference object.BasicReference, TMetadata mod
 			}
 			if !ok {
 				return fmt.Errorf("%#v contains builtins with non-string names", identifier.String())
+			}
+			// Bazel allows exports to be prefixed with "+"
+			// or "-", which can be toggled using
+			// --experimental_builtins_injection_override.
+			// Keys prefixed with "-" are disabled by
+			// default. As we don't support that flag, only
+			// inject keys that are enabled by default.
+			if strings.HasPrefix(nameStr, "-") {
+				continue
 			}
 			yield(strings.TrimPrefix(nameStr, "+"), value)
 		}
