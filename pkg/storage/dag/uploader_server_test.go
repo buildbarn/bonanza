@@ -1732,6 +1732,18 @@ func TestUploaderServer(t *testing.T) {
 					},
 				},
 			})),
+			// Closing the stream prematurely causes the
+			// existence check to be canceled. The server
+			// may report this to the client before it
+			// notices that the request is being torn down.
+			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 0,
+						Status:               status.New(codes.Canceled, "Request canceled").Proto(),
+					},
+				},
+			})).MaxTimes(1),
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
