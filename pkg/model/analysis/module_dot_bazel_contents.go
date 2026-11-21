@@ -138,7 +138,11 @@ func (h *dependencyQueueingModuleDotBazelHandler) BazelDep(name label.Module, ve
 		return nil
 	}
 	if repoName == nil {
-		return fmt.Errorf("dependency on module %#v has repo_name = None, which is not supported", name.String())
+		// bazel_dep(repo_name = None). Such dependencies only
+		// have an effect if the module is already part of
+		// the dependency graph by other means, in which case
+		// it will be visited through those.
+		return nil
 	}
 
 	var moduleInstance label.ModuleInstance

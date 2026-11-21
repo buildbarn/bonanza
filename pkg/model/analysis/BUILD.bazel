@@ -193,6 +193,8 @@ go_test(
         "mocks_encoding_test.go",
         "mocks_filesystem_pool_test.go",
         "mocks_filesystem_test.go",
+        "module_repo_mapping_internal_test.go",
+        "module_rough_build_list_internal_test.go",
         "package_group_contains_test.go",
         "package_targets_test.go",
         "package_test.go",
@@ -210,6 +212,7 @@ go_test(
     ],
     embed = [":analysis"],
     deps = [
+        "//pkg/dotbazel",
         "//pkg/glob",
         "//pkg/label",
         "//pkg/model/chunking",

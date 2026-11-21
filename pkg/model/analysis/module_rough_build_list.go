@@ -21,21 +21,43 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
+// bazelDep contains the properties of a call to bazel_dep() that are
+// relevant for computing the rough build list.
+type bazelDep struct {
+	module label.Module
+	// Version of the module. Never nil if nodep is set.
+	version *label.ModuleVersion
+	// Whether the dependency was declared with repo_name = None.
+	nodep bool
+}
+
 type bazelDepCapturingModuleDotBazelHandler struct {
 	ignoreDevDependencies bool
 
-	dependencies map[label.Module]*label.ModuleVersion
+	// All dependencies declared by the module. Multiple
+	// dependencies on the same module may be present. Whether
+	// these are valid can only be determined after versions are
+	// selected, which is done as part of computing the repo
+	// mapping.
+	dependencies []bazelDep
 }
 
 func (h *bazelDepCapturingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error {
 	if !devDependency || !h.ignoreDevDependencies {
 		if repoName == nil {
-			return fmt.Errorf("dependency on module %#v has repo_name = None, which is not supported", name.String())
+			// bazel_dep(repo_name = None). The only purpose of such dependencies is to
+			// require a minimum version of a module. If no
+			// version is provided, they have no effect,
+			// which is likely a mistake.
+			if version == nil {
+				return fmt.Errorf("dependency on module %#v has repo_name = None, but does not specify a version number, meaning it has no effect", name.String())
+			}
 		}
-		if _, ok := h.dependencies[name]; ok {
-			return fmt.Errorf("module depends on module %#v multiple times", name.String())
-		}
-		h.dependencies[name] = version
+		h.dependencies = append(h.dependencies, bazelDep{
+			module:  name,
+			version: version,
+			nodep:   repoName == nil,
+		})
 	}
 	return nil
 }
@@ -69,6 +91,75 @@ func (bazelDepCapturingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile label.
 type moduleToCheck struct {
 	name    label.Module
 	version label.ModuleVersion
+}
+
+// moduleDiscoveryQueue keeps track of which modules still need to be
+// processed while computing the rough build list.
+//
+// Dependencies declared using bazel_dep(repo_name = None), also known
+// as "nodep" dependencies, should only be followed if the module is
+// already part of the dependency graph by other means. Such
+// dependencies are held back until a module with the same name gets
+// added to the queue.
+type moduleDiscoveryQueue struct {
+	modulesToCheck  []moduleToCheck
+	modulesSeen     map[moduleToCheck]struct{}
+	moduleNamesSeen map[label.Module]struct{}
+
+	// Nodep dependencies on modules that are not part of the
+	// dependency graph yet. Modules in this map are never
+	// contained in moduleNamesSeen.
+	pendingNodepDependencies map[label.Module][]moduleToCheck
+}
+
+func newModuleDiscoveryQueue() moduleDiscoveryQueue {
+	return moduleDiscoveryQueue{
+		modulesSeen:              map[moduleToCheck]struct{}{},
+		moduleNamesSeen:          map[label.Module]struct{}{},
+		pendingNodepDependencies: map[label.Module][]moduleToCheck{},
+	}
+}
+
+// add a module to the queue, if it has not been added previously.
+func (q *moduleDiscoveryQueue) add(module moduleToCheck) {
+	if _, ok := q.modulesSeen[module]; ok {
+		return
+	}
+	q.modulesSeen[module] = struct{}{}
+	q.modulesToCheck = append(q.modulesToCheck, module)
+
+	if _, ok := q.moduleNamesSeen[module.name]; !ok {
+		// The module is now part of the dependency graph,
+		// meaning that nodep dependencies on it may be
+		// followed.
+		q.moduleNamesSeen[module.name] = struct{}{}
+		pending := q.pendingNodepDependencies[module.name]
+		delete(q.pendingNodepDependencies, module.name)
+		for _, pendingModule := range pending {
+			q.add(pendingModule)
+		}
+	}
+}
+
+// addNodep adds a module to the queue if another version of the same
+// module is part of the dependency graph. If not, the module is added
+// as soon as that is the case.
+func (q *moduleDiscoveryQueue) addNodep(module moduleToCheck) {
+	if _, ok := q.moduleNamesSeen[module.name]; ok {
+		q.add(module)
+	} else {
+		q.pendingNodepDependencies[module.name] = append(q.pendingNodepDependencies[module.name], module)
+	}
+}
+
+// pop the next module to process from the queue.
+func (q *moduleDiscoveryQueue) pop() (moduleToCheck, bool) {
+	if len(q.modulesToCheck) == 0 {
+		return moduleToCheck{}, false
+	}
+	module := q.modulesToCheck[0]
+	q.modulesToCheck = q.modulesToCheck[1:]
+	return module, true
 }
 
 type roughBuildList struct {
@@ -140,6 +231,31 @@ func getModuleDotBazelURL(registryURL string, module label.Module, moduleVersion
 	return url.JoinPath(registryURL, "modules", module.String(), moduleVersion.String(), dotbazel.ModuleFilename)
 }
 
+// resolveModuleToCheck determines which version of a module needs to
+// be processed, given the version that is provided to bazel_dep() and
+// the overrides that are in place.
+func resolveModuleToCheck(modulesWithOverrides map[label.Module]OverrideVersions, moduleName, dependencyName label.Module, dependencyVersion *label.ModuleVersion) (moduleToCheck, error) {
+	dependency := moduleToCheck{name: dependencyName}
+	if versions, ok := modulesWithOverrides[dependencyName]; !ok {
+		// No override exists, meaning we need to check an
+		// exact version.
+		if dependencyVersion == nil {
+			return moduleToCheck{}, fmt.Errorf("module %s depends on module %s without specifying a version number, while no override is in place", moduleName, dependencyName)
+		}
+		dependency.version = *dependencyVersion
+	} else if len(versions) > 0 {
+		// multiple_version_override() is used for the current
+		// module. Round up to the nearest higher version
+		// number.
+		v, err := versions.LookupNearestVersion(dependencyVersion)
+		if err != nil {
+			return moduleToCheck{}, fmt.Errorf("dependency of module %s on module %s: %s", moduleName, dependencyName, err)
+		}
+		dependency.version = v
+	}
+	return dependency, nil
+}
+
 func (baseComputer[TReference, TMetadata]) ComputeModuleRoughBuildListValue(ctx context.Context, key *model_analysis_pb.ModuleRoughBuildList_Key, e ModuleRoughBuildListEnvironment[TReference, TMetadata]) (PatchedModuleRoughBuildListValue[TMetadata], error) {
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	modulesWithOverridesValue := e.GetModulesWithOverridesValue(&model_analysis_pb.ModulesWithOverrides_Key{})
@@ -165,19 +281,21 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleRoughBuildListValue(ctx 
 	}
 
 	ignoreDevDependencies := rootModuleValue.Message.IgnoreRootModuleDevDependencies
-	modulesToCheck := []moduleToCheck{{
+	queue := newModuleDiscoveryQueue()
+	queue.add(moduleToCheck{
 		name:    rootModuleName,
 		version: util.Must(label.NewModuleVersion("0")),
-	}}
-	modulesSeen := map[moduleToCheck]struct{}{}
+	})
 	missingDependencies := false
 	registryURLs := registryURLsValue.Message.RegistryUrls
 	var buildList roughBuildList
 
 ProcessModule:
-	for len(modulesToCheck) > 0 {
-		module := modulesToCheck[0]
-		modulesToCheck = modulesToCheck[1:]
+	for {
+		module, ok := queue.pop()
+		if !ok {
+			break
+		}
 		var moduleFileContents model_core.Message[*model_filesystem_pb.FileContents, TReference]
 		var buildListEntry *model_analysis_pb.BuildListModule
 		if versions, ok := modulesWithOverrides[module.name]; ok {
@@ -254,7 +372,6 @@ ProcessModule:
 
 		handler := bazelDepCapturingModuleDotBazelHandler{
 			ignoreDevDependencies: ignoreDevDependencies,
-			dependencies:          map[label.Module]*label.ModuleVersion{},
 		}
 		ignoreDevDependencies = true
 		if err := dotbazel.ParseModule(
@@ -274,28 +391,15 @@ ProcessModule:
 			buildList.Slice = append(buildList.Slice, buildListEntry)
 		}
 
-		for dependencyName, dependencyVersion := range handler.dependencies {
-			dependency := moduleToCheck{name: dependencyName}
-			if versions, ok := modulesWithOverrides[dependencyName]; !ok {
-				// No override exists, meaning we need
-				// to check an exact version.
-				if dependencyVersion == nil {
-					return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("module %s depends on module %s without specifying a version number, while no override is in place", module.name, dependencyName)
-				}
-				dependency.version = *dependencyVersion
-			} else if len(versions) > 0 {
-				// multiple_version_override() is used
-				// for the current module. Round up to
-				// the nearest higher version number.
-				v, err := versions.LookupNearestVersion(dependencyVersion)
-				if err != nil {
-					return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("dependency of module %s on module %s: %s", module.name, dependencyName, err)
-				}
-				dependency.version = v
+		for _, dep := range handler.dependencies {
+			dependency, err := resolveModuleToCheck(modulesWithOverrides, module.name, dep.module, dep.version)
+			if err != nil {
+				return PatchedModuleRoughBuildListValue[TMetadata]{}, err
 			}
-			if _, ok := modulesSeen[dependency]; !ok {
-				modulesSeen[dependency] = struct{}{}
-				modulesToCheck = append(modulesToCheck, dependency)
+			if dep.nodep {
+				queue.addNodep(dependency)
+			} else {
+				queue.add(dependency)
 			}
 		}
 	}

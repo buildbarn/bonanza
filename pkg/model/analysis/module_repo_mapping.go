@@ -70,6 +70,23 @@ type repoMappingCapturingModuleDotBazelHandler struct {
 	ignoreDevDependencies       bool
 
 	repos map[label.ApparentRepo]repoMapping
+
+	// Repo names of modules on which bazel_dep() has been called,
+	// keyed by the module instance to which they resolve. This is
+	// used to detect that a module depends on the same module
+	// instance multiple times.
+	dependencyRepoNames map[label.ModuleInstance]label.ApparentRepo
+}
+
+func newRepoMappingCapturingModuleDotBazelHandler(moduleInstance label.ModuleInstance, modulesWithMultipleVersions map[label.Module]OverrideVersions, ignoreDevDependencies bool) *repoMappingCapturingModuleDotBazelHandler {
+	return &repoMappingCapturingModuleDotBazelHandler{
+		moduleInstance:              moduleInstance,
+		modulesWithMultipleVersions: modulesWithMultipleVersions,
+		ignoreDevDependencies:       ignoreDevDependencies,
+
+		repos:               map[label.ApparentRepo]repoMapping{},
+		dependencyRepoNames: map[label.ModuleInstance]label.ApparentRepo{},
+	}
 }
 
 func (h *repoMappingCapturingModuleDotBazelHandler) setRepo(from label.ApparentRepo, to repoMapping) error {
@@ -85,19 +102,48 @@ func (h *repoMappingCapturingModuleDotBazelHandler) BazelDep(name label.Module, 
 		return nil
 	}
 	if repoName == nil {
-		return fmt.Errorf("dependency on module %#v has repo_name = None, which is not supported", name.String())
+		// bazel_dep(repo_name = None) does not cause the
+		// module to become visible.
+		return nil
 	}
 	versions := h.modulesWithMultipleVersions[name]
 	var nearestVersion *label.ModuleVersion
 	if len(versions) > 0 {
-		v, err := versions.LookupNearestVersion(nearestVersion)
+		v, err := versions.LookupNearestVersion(version)
 		if err != nil {
-			return err
+			return fmt.Errorf("dependency on module %#v: %w", name.String(), err)
 		}
 		nearestVersion = &v
 	}
+
+	// Depending on the same module instance multiple times is
+	// not permitted, as it would cause the same repo to be
+	// visible under multiple names. Only if
+	// multiple_version_override() is used, it is possible to
+	// depend on the same module multiple times, as long as the
+	// dependencies resolve to different versions.
+	moduleInstance := name.ToModuleInstance(nearestVersion)
+	if otherRepoName, ok := h.dependencyRepoNames[moduleInstance]; ok {
+		if nearestVersion == nil {
+			return fmt.Errorf(
+				"module depends on module %#v at least twice (with repo names %#v and %#v); consider adding a multiple_version_override() if you want to depend on multiple versions of this module simultaneously",
+				name.String(),
+				otherRepoName.String(),
+				repoName.String(),
+			)
+		}
+		return fmt.Errorf(
+			"module depends on version %s of module %#v at least twice (with repo names %#v and %#v)",
+			*nearestVersion,
+			name.String(),
+			otherRepoName.String(),
+			repoName.String(),
+		)
+	}
+	h.dependencyRepoNames[moduleInstance] = *repoName
+
 	return h.setRepo(*repoName, canonicalRepoMapping{
-		canonicalRepo: name.ToModuleInstance(nearestVersion).GetBareCanonicalRepo(),
+		canonicalRepo: moduleInstance.GetBareCanonicalRepo(),
 	})
 }
 
@@ -193,15 +239,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleRepoMappingValue(ctx 
 		return PatchedModuleRepoMappingValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	handler := repoMappingCapturingModuleDotBazelHandler{
-		moduleInstance:              moduleInstance,
-		modulesWithMultipleVersions: modulesWithMultipleVersions,
-		ignoreDevDependencies: rootModuleValue.Message.IgnoreRootModuleDevDependencies ||
+	handler := newRepoMappingCapturingModuleDotBazelHandler(
+		moduleInstance,
+		modulesWithMultipleVersions,
+		rootModuleValue.Message.IgnoreRootModuleDevDependencies ||
 			moduleInstance.GetModule().String() != rootModuleValue.Message.RootModuleName,
-
-		repos: map[label.ApparentRepo]repoMapping{},
-	}
-	if err := c.parseActiveModuleInstanceModuleDotBazel(ctx, moduleInstance, e, dotbazel.NewOverrideIgnoringRootHandler(&handler)); err != nil {
+	)
+	if err := c.parseActiveModuleInstanceModuleDotBazel(ctx, moduleInstance, e, dotbazel.NewOverrideIgnoringRootHandler(handler)); err != nil {
 		return PatchedModuleRepoMappingValue[TMetadata]{}, err
 	}
 
