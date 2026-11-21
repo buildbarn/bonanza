@@ -251,13 +251,13 @@ type intListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] str
 
 // NewIntListAttrType creates a list attribute type, where elements are
 // integers. These are normally constructed by calling
-// config.int_list().
+// attr.int_list().
 func NewIntListAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
 	return intListAttrType[TReference, TMetadata]{}
 }
 
 func (intListAttrType[TReference, TMetadata]) Type() string {
-	return "int"
+	return "int_list"
 }
 
 func (intListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {

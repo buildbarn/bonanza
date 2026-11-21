@@ -515,6 +515,49 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
 				},
 			),
+			"int_list": eval.NewBuiltin(
+				"attr.int_list",
+				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+					currentFilePackage, err := CurrentFilePackage(thread)
+					if err != nil {
+						return nil, err
+					}
+					if len(args.Positional) > 2 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 2", b.Name(), len(args.Positional))
+					}
+
+					mandatory := false
+					allowEmpty := true
+					configurable := true
+					var defaultValue eval.Value = eval.NewList(nil)
+					doc := ""
+					if err := eval.UnpackArgs(
+						thread, b.Name(), args,
+						// Positional arguments.
+						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
+						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
+						// Keyword arguments.
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
+						"default?", &defaultValue,
+						"doc?", unpack.Bind(&doc, unpack.String),
+					); err != nil {
+						return nil, err
+					}
+
+					attrType := NewIntListAttrType[TReference, TMetadata]()
+					if mandatory {
+						defaultValue = nil
+					} else {
+						if err := unpack.Or([]unpack.UnpackerInto[eval.Value]{
+							unpack.Canonicalize(functionUnpackerInto),
+							unpack.Canonicalize(attrType.GetCanonicalizer(currentFilePackage)),
+						}).UnpackInto(thread, defaultValue, &defaultValue); err != nil {
+							return nil, fmt.Errorf("%s: for parameter default: %w", b.Name(), err)
+						}
+					}
+					return NewAttr[TReference, TMetadata](attrType, defaultValue, configurable), nil
+				},
+			),
 			"label": eval.NewBuiltin(
 				"attr.label",
 				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
