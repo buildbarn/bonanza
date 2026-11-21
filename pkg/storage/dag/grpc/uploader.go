@@ -170,15 +170,11 @@ func (u *uploader) uploadDAG(ctx context.Context, rootReference object.GlobalRef
 
 			switch responseType := response.Type.(type) {
 			case *dag_pb.UploadDagsResponse_RequestObjectContents_:
-				if err := u.provideObject(ctx, siblingsGroup, stream, &objectsLock, &sendLock, &nextReferenceIndex, unfinalizedObjectsByLowestIndex, unfinalizedObjectsByReference, responseType.RequestObjectContents.LowestReferenceIndex, nil); err != nil {
+				if err := u.provideObject(ctx, siblingsGroup, stream, &objectsLock, &sendLock, &nextReferenceIndex, unfinalizedObjectsByLowestIndex, unfinalizedObjectsByReference, responseType.RequestObjectContents.LowestReferenceIndex, true); err != nil {
 					return err
 				}
 			case *dag_pb.UploadDagsResponse_RequestObjectChildren_:
-				requestObjectChildren := responseType.RequestObjectChildren
-				if len(requestObjectChildren.OutgoingReferenceIndices) == 0 {
-					return status.Errorf(codes.Internal, "Server requested children of object with lowest reference index %d, without specifying any outgoing references", requestObjectChildren.LowestReferenceIndex)
-				}
-				if err := u.provideObject(ctx, siblingsGroup, stream, &objectsLock, &sendLock, &nextReferenceIndex, unfinalizedObjectsByLowestIndex, unfinalizedObjectsByReference, requestObjectChildren.LowestReferenceIndex, requestObjectChildren.OutgoingReferenceIndices); err != nil {
+				if err := u.provideObject(ctx, siblingsGroup, stream, &objectsLock, &sendLock, &nextReferenceIndex, unfinalizedObjectsByLowestIndex, unfinalizedObjectsByReference, responseType.RequestObjectChildren.LowestReferenceIndex, false); err != nil {
 					return err
 				}
 			case *dag_pb.UploadDagsResponse_FinalizeObject_:
@@ -227,11 +223,8 @@ func (u *uploader) uploadDAG(ctx context.Context, rootReference object.GlobalRef
 
 // provideObject responds to a RequestObjectContents or
 // RequestObjectChildren message sent by the server. Reference indices
-// are assigned to the children of the object. If
-// outgoingReferenceIndices is nil, the contents of the object are sent,
-// and all children are assigned reference indices. Otherwise, only the
-// listed children are assigned reference indices, and the contents of
-// the object are not sent.
+// are assigned to all children of the object. The contents of the
+// object are only sent if sendContents is set.
 func (u *uploader) provideObject(
 	ctx context.Context,
 	siblingsGroup program.Group,
@@ -241,13 +234,17 @@ func (u *uploader) provideObject(
 	unfinalizedObjectsByLowestIndex map[uint64]*unfinalizedObjectState,
 	unfinalizedObjectsByReference map[object.LocalReference]*unfinalizedObjectState,
 	lowestReferenceIndex uint64,
-	outgoingReferenceIndices []uint32,
+	sendContents bool,
 ) error {
 	objectsLock.Lock()
 	o, ok := unfinalizedObjectsByLowestIndex[lowestReferenceIndex]
 	if !ok {
 		objectsLock.Unlock()
 		return status.Errorf(codes.Internal, "Server requested object with lowest reference index %d, which was not expected", lowestReferenceIndex)
+	}
+	if !sendContents && o.reference.GetDegree() == 0 {
+		objectsLock.Unlock()
+		return status.Errorf(codes.Internal, "Server requested children of object with reference %s, even though it has no children", o.reference)
 	}
 	walker := o.walker
 	o.walker = nil
@@ -268,40 +265,15 @@ func (u *uploader) provideObject(
 			return util.StatusWrapf(err, "Failed to get contents of object with reference %s", o.reference)
 		}
 
-		// Determine which children need to be assigned
-		// reference indices. Discard the walkers of all other
-		// children.
-		var walkersToDiscard []dag.ObjectContentsWalker
-		childIndices := make([]int, 0, len(childrenWalkers))
-		if outgoingReferenceIndices == nil {
-			for i := range childrenWalkers {
-				childIndices = append(childIndices, i)
-			}
-		} else {
-			next := 0
-			for _, i := range outgoingReferenceIndices {
-				if int64(i) < int64(next) || int64(i) >= int64(len(childrenWalkers)) {
-					for _, childWalker := range childrenWalkers {
-						childWalker.Discard()
-					}
-					return status.Errorf(codes.Internal, "Server requested invalid outgoing reference index %d of object with reference %s", i, o.reference)
-				}
-				walkersToDiscard = append(walkersToDiscard, childrenWalkers[next:i]...)
-				childIndices = append(childIndices, int(i))
-				next = int(i) + 1
-			}
-			walkersToDiscard = append(walkersToDiscard, childrenWalkers[next:]...)
-		}
-
 		// Assign new reference indices to the children. As this
 		// must be done consistently with the order in which the
 		// server receives ProvideObjectContents and
 		// ProvideObjectChildren messages, we hold a lock across
 		// Send().
+		var walkersToDiscard []dag.ObjectContentsWalker
 		sendLock.Lock()
 		objectsLock.Lock()
-		for _, i := range childIndices {
-			childWalker := childrenWalkers[i]
+		for i, childWalker := range childrenWalkers {
 			childReferenceIndex := *nextReferenceIndex
 			*nextReferenceIndex++
 
@@ -325,7 +297,7 @@ func (u *uploader) provideObject(
 		objectsLock.Unlock()
 
 		var request *dag_pb.UploadDagsRequest
-		if outgoingReferenceIndices == nil {
+		if sendContents {
 			request = &dag_pb.UploadDagsRequest{
 				Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{
 					ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{

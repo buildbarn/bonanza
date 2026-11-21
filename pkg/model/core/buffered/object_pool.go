@@ -141,9 +141,9 @@ type pendingProvide struct {
 	lowestReferenceIndex uint64
 	reference            *referenceState
 
-	// If set, the server sent RequestObjectChildren, and only the
-	// listed children need to be assigned reference indices.
-	outgoingReferenceIndices []uint32
+	// If set, the server sent RequestObjectChildren, meaning the
+	// contents of the object should not be sent.
+	childrenOnly bool
 }
 
 // ObjectPool holds the contents of objects that were created by
@@ -348,8 +348,8 @@ func (op *ObjectPool) initiateDAGLocked(reference object.LocalReference, tr *tag
 // Reference indices are assigned to all children of the object.
 //
 // If the server sent RequestObjectChildren instead, a
-// ProvideObjectChildren message is created, and reference indices are
-// only assigned to the children listed by the server.
+// ProvideObjectChildren message is created, which omits the contents of
+// the object.
 //
 // Objects that are not present in the pool are either ones that we did
 // not create, or ones that were evicted after being written to storage.
@@ -363,20 +363,12 @@ func (op *ObjectPool) provideObjectContentsLocked(p pendingProvide) (*dag_pb.Upl
 	}
 
 	contents := os.contents
-	if p.outgoingReferenceIndices != nil {
-		degree := contents.GetDegree()
-		next := 0
-		for _, i := range p.outgoingReferenceIndices {
-			if int64(i) < int64(next) || int64(i) >= int64(degree) {
-				return nil, status.Errorf(codes.Internal, "Server requested invalid outgoing reference index %d of object with reference %s", i, p.reference.reference)
-			}
-			next = int(i) + 1
-		}
-		for _, i := range p.outgoingReferenceIndices {
-			referenceIndex := op.nextReferenceIndex
-			op.nextReferenceIndex++
-			op.addReferenceIndexLocked(contents.GetOutgoingReference(int(i)), referenceIndex)
-		}
+	for i := range contents.GetDegree() {
+		referenceIndex := op.nextReferenceIndex
+		op.nextReferenceIndex++
+		op.addReferenceIndexLocked(contents.GetOutgoingReference(i), referenceIndex)
+	}
+	if p.childrenOnly {
 		return &dag_pb.UploadDagsRequest{
 			Type: &dag_pb.UploadDagsRequest_ProvideObjectChildren_{
 				ProvideObjectChildren: &dag_pb.UploadDagsRequest_ProvideObjectChildren{
@@ -384,12 +376,6 @@ func (op *ObjectPool) provideObjectContentsLocked(p pendingProvide) (*dag_pb.Upl
 				},
 			},
 		}, nil
-	}
-
-	for i := range contents.GetDegree() {
-		referenceIndex := op.nextReferenceIndex
-		op.nextReferenceIndex++
-		op.addReferenceIndexLocked(contents.GetOutgoingReference(i), referenceIndex)
 	}
 	return &dag_pb.UploadDagsRequest{
 		Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{
@@ -483,19 +469,18 @@ func (op *ObjectPool) processResponseLocked(response *dag_pb.UploadDagsResponse)
 		return nil
 
 	case *dag_pb.UploadDagsResponse_RequestObjectChildren_:
-		requestObjectChildren := responseType.RequestObjectChildren
-		lowestReferenceIndex := requestObjectChildren.LowestReferenceIndex
+		lowestReferenceIndex := responseType.RequestObjectChildren.LowestReferenceIndex
 		rs, ok := op.referencesByLowestIndex[lowestReferenceIndex]
 		if !ok {
 			return status.Errorf(codes.Internal, "Server requested children of object with lowest reference index %d, which was not expected", lowestReferenceIndex)
 		}
-		if len(requestObjectChildren.OutgoingReferenceIndices) == 0 {
-			return status.Errorf(codes.Internal, "Server requested children of object with lowest reference index %d, without specifying any outgoing references", lowestReferenceIndex)
+		if rs.reference.GetDegree() == 0 {
+			return status.Errorf(codes.Internal, "Server requested children of object with reference %s, even though it has no children", rs.reference)
 		}
 		op.pendingProvides = append(op.pendingProvides, pendingProvide{
-			lowestReferenceIndex:     lowestReferenceIndex,
-			reference:                rs,
-			outgoingReferenceIndices: requestObjectChildren.OutgoingReferenceIndices,
+			lowestReferenceIndex: lowestReferenceIndex,
+			reference:            rs,
+			childrenOnly:         true,
 		})
 		op.senderWakeup.Broadcast()
 		return nil

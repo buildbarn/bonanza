@@ -158,9 +158,9 @@ func TestRemoteUploader(t *testing.T) {
 	})
 
 	t.Run("RequestObjectChildren", func(t *testing.T) {
-		// The server may request that only some of the
-		// children of an object are assigned reference indices,
-		// without the object's contents being sent.
+		// The server may request that the children of an
+		// object are assigned reference indices, without the
+		// object's contents being sent.
 		rootContents := object.MustNewContents(
 			object_pb.ReferenceFormat_SHA256_V1,
 			[]object.LocalReference{
@@ -180,8 +180,6 @@ func TestRemoteUploader(t *testing.T) {
 		childWalker2 := NewMockObjectContentsWalker(ctrl)
 		rootObjectContentsWalker.EXPECT().GetContents(gomock.Any()).
 			Return(rootContents, []dag.ObjectContentsWalker{childWalker0, childWalker1, childWalker2}, nil)
-		childWalker0.EXPECT().Discard()
-		childWalker2.EXPECT().Discard()
 
 		providedChildren := make(chan struct{})
 		gomock.InOrder(
@@ -197,8 +195,7 @@ func TestRemoteUploader(t *testing.T) {
 			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
 				Type: &dag_pb.UploadDagsResponse_RequestObjectChildren_{
 					RequestObjectChildren: &dag_pb.UploadDagsResponse_RequestObjectChildren{
-						LowestReferenceIndex:     0,
-						OutgoingReferenceIndices: []uint32{1},
+						LowestReferenceIndex: 0,
 					},
 				},
 			}, nil),
@@ -211,20 +208,36 @@ func TestRemoteUploader(t *testing.T) {
 			},
 		})).Do(func(*dag_pb.UploadDagsRequest) { close(providedChildren) })
 
-		// The child that was requested is assigned reference
-		// index 1, as only one child was requested.
+		// All children are assigned reference indices 1 to 3,
+		// and are finalized individually.
 		gomock.InOrder(
 			stream.EXPECT().Recv().DoAndReturn(func() (*dag_pb.UploadDagsResponse, error) {
 				<-providedChildren
 				return &dag_pb.UploadDagsResponse{
 					Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
 						FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
-							LowestReferenceIndex: 1,
+							LowestReferenceIndex: 2,
 						},
 					},
 				}, nil
 			}),
 			childWalker1.EXPECT().Discard(),
+			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 1,
+					},
+				},
+			}, nil),
+			childWalker0.EXPECT().Discard(),
+			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
+				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
+					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+						LowestReferenceIndex: 3,
+					},
+				},
+			}, nil),
+			childWalker2.EXPECT().Discard(),
 			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
 				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
 					FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{

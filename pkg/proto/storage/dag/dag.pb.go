@@ -626,11 +626,10 @@ func (x *UploadDagsResponse_RequestObjectContents) GetLowestReferenceIndex() uin
 }
 
 type UploadDagsResponse_RequestObjectChildren struct {
-	state                    protoimpl.MessageState `protogen:"open.v1"`
-	LowestReferenceIndex     uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex,proto3" json:"lowest_reference_index,omitempty"`
-	OutgoingReferenceIndices []uint32               `protobuf:"varint,2,rep,packed,name=outgoing_reference_indices,json=outgoingReferenceIndices,proto3" json:"outgoing_reference_indices,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	LowestReferenceIndex uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex,proto3" json:"lowest_reference_index,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *UploadDagsResponse_RequestObjectChildren) Reset() {
@@ -668,13 +667,6 @@ func (x *UploadDagsResponse_RequestObjectChildren) GetLowestReferenceIndex() uin
 		return x.LowestReferenceIndex
 	}
 	return 0
-}
-
-func (x *UploadDagsResponse_RequestObjectChildren) GetOutgoingReferenceIndices() []uint32 {
-	if x != nil {
-		return x.OutgoingReferenceIndices
-	}
-	return nil
 }
 
 type UploadDagsResponse_FinalizeObject struct {
@@ -815,7 +807,7 @@ const file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc = "" +
 	"\x15ProvideObjectChildren\x124\n" +
 	"\x16lowest_reference_index\x18\x01 \x01(\x04R\x14lowestReferenceIndex\x12\x16\n" +
 	"\x06cancel\x18\x02 \x01(\bR\x06cancelB\x06\n" +
-	"\x04type\"\xf1\b\n" +
+	"\x04type\"\xb2\b\n" +
 	"\x12UploadDagsResponse\x12Q\n" +
 	"\thandshake\x18\x01 \x01(\v21.bonanza.storage.dag.UploadDagsResponse.HandshakeH\x00R\thandshake\x12w\n" +
 	"\x17request_object_contents\x18\x02 \x01(\v2=.bonanza.storage.dag.UploadDagsResponse.RequestObjectContentsH\x00R\x15requestObjectContents\x12a\n" +
@@ -825,10 +817,9 @@ const file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc = "" +
 	"\tHandshake\x12C\n" +
 	"\x1emaximum_unfinalized_dags_count\x18\x01 \x01(\rR\x1bmaximumUnfinalizedDagsCount\x1aM\n" +
 	"\x15RequestObjectContents\x124\n" +
-	"\x16lowest_reference_index\x18\x01 \x01(\x04R\x14lowestReferenceIndex\x1a\x8b\x01\n" +
+	"\x16lowest_reference_index\x18\x01 \x01(\x04R\x14lowestReferenceIndex\x1aM\n" +
 	"\x15RequestObjectChildren\x124\n" +
-	"\x16lowest_reference_index\x18\x01 \x01(\x04R\x14lowestReferenceIndex\x12<\n" +
-	"\x1aoutgoing_reference_indices\x18\x02 \x03(\rR\x18outgoingReferenceIndices\x1a\xb4\x01\n" +
+	"\x16lowest_reference_index\x18\x01 \x01(\x04R\x14lowestReferenceIndex\x1a\xb4\x01\n" +
 	"\x0eFinalizeObject\x124\n" +
 	"\x16lowest_reference_index\x18\x01 \x01(\x04R\x14lowestReferenceIndex\x12@\n" +
 	"\x1cadditional_reference_indices\x18\x02 \x01(\rR\x1aadditionalReferenceIndices\x12*\n" +

@@ -305,9 +305,9 @@ func TestObjectPool(t *testing.T) {
 	})
 
 	t.Run("RequestObjectChildren", func(t *testing.T) {
-		// The server may request that only some of the
-		// children of an object are assigned reference indices,
-		// without the object's contents being sent.
+		// The server may request that the children of an
+		// object are assigned reference indices, without the
+		// object's contents being sent.
 		var leaf1Reference, leaf2Reference, parentReference buffered.Reference
 		h := newObjectPoolHarness(t, ctrl, object.Unlimited, 1, func(h *objectPoolHarness) {
 			leaf1Reference = h.capture(leaf1)
@@ -319,8 +319,7 @@ func TestObjectPool(t *testing.T) {
 		h.respond(&dag_pb.UploadDagsResponse{
 			Type: &dag_pb.UploadDagsResponse_RequestObjectChildren_{
 				RequestObjectChildren: &dag_pb.UploadDagsResponse_RequestObjectChildren{
-					LowestReferenceIndex:     0,
-					OutgoingReferenceIndices: []uint32{1},
+					LowestReferenceIndex: 0,
 				},
 			},
 		})
@@ -332,13 +331,18 @@ func TestObjectPool(t *testing.T) {
 			},
 		}, h.expectRequest())
 
-		// Only the second child is assigned a reference index.
+		// Both children are assigned reference indices. Only
+		// the second child is absent.
+		firstChildReference := leaf1Reference
 		secondChild, secondChildReference := leaf2, leaf2Reference
 		if parent.GetOutgoingReference(1) != leaf2.LocalReference {
+			firstChildReference = leaf2Reference
 			secondChild, secondChildReference = leaf1, leaf1Reference
 		}
-		h.requestAndExpectContents(1, secondChild)
 		h.finalizeObject(1, 0, nil)
+		h.requireWritten(firstChildReference)
+		h.requestAndExpectContents(2, secondChild)
+		h.finalizeObject(2, 0, nil)
 		h.requireWritten(secondChildReference)
 		h.finalizeObject(0, 0, nil)
 		h.requireWritten(parentReference)
