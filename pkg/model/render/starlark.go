@@ -271,6 +271,11 @@ func (sr *StarlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_p
 			arguments = append(arguments, starlarkKeywordArgument("cfg", sr.renderTransition(cfg)))
 		}
 	}
+	// Omit allow_empty if empty values are permitted, as that is
+	// the default.
+	if compositeOptions, ok := model_starlark.GetAttrCompositeOptions(attr.Message); ok && !compositeOptions.GetAllowEmpty() {
+		arguments = append(arguments, starlarkKeywordArgument("allow_empty", starlarkBool(false)))
+	}
 	switch attrType := attr.Message.GetType().(type) {
 	case *model_starlark_pb.Attr_Int:
 		if values := attrType.Int.Values; len(values) > 0 {

@@ -225,6 +225,7 @@ func TestRendererStarlarkRule(t *testing.T) {
 				Name: "deps",
 				Attr: &model_starlark_pb.Attr{
 					Type: &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{
+						ListOptions:      &model_starlark_pb.Attr_CompositeOptions{AllowEmpty: true},
 						ListValueOptions: &model_starlark_pb.Attr_LabelOptions{Providers: []*model_starlark_pb.ProviderSet{{ProviderIdentifiers: []string{"@@rules_cc+//cc:defs.bzl%CcInfo"}}}},
 					}},
 					Configurable: true,
@@ -321,6 +322,7 @@ func TestRendererStarlarkAspect(t *testing.T) {
 			"    attrs = {\n"+
 			"        \"_srcs\": attr.label_list(\n"+
 			"            default = [],\n"+
+			"            allow_empty = False,\n"+
 			"            allow_files = True,\n"+
 			"            aspects = [<aspect other_aspect>],\n"+
 			"        ),\n"+

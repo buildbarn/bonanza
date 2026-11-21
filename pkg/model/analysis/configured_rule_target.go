@@ -943,7 +943,39 @@ func (c *baseComputer[TReference, TMetadata]) configureRuleTargetAttrs(
 	); err != nil {
 		return nil, model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference]{}, nil, err
 	}
+	if err := a.checkAttrsNonEmpty(); err != nil {
+		return nil, model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference]{}, nil, err
+	}
 	return a, configuredRule, execGroups, nil
+}
+
+// checkAttrsNonEmpty returns an error if any of the attrs declared
+// with allow_empty = False has an empty value. This check is performed
+// after select() has been resolved, as that is the earliest point at
+// which the value of a configurable attr is known.
+func (a *ruleTargetAnalysis[TReference, TMetadata]) checkAttrsNonEmpty() error {
+	for _, namedAttr := range a.ruleDefinition.Message.Attrs {
+		compositeOptions, ok := model_starlark.GetAttrCompositeOptions(namedAttr.Attr)
+		if !ok || compositeOptions.GetAllowEmpty() {
+			continue
+		}
+		attrValue, ok := a.attrValues[namedAttr.Name].(interface {
+			Len(*eval.Thread) (int, error)
+		})
+		if !ok {
+			// Value was not computed due to missing
+			// dependencies, or it is None.
+			continue
+		}
+		n, err := attrValue.Len(a.thread)
+		if err != nil {
+			return fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+		}
+		if n == 0 {
+			return fmt.Errorf("attr %#v must be non empty", namedAttr.Name)
+		}
+	}
+	return nil
 }
 
 // computeRuleTargetValue analyzes a rule target by invoking the rule's

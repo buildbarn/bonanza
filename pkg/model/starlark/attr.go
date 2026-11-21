@@ -247,22 +247,28 @@ func (intAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type intListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
+type intListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	allowEmpty bool
+}
 
 // NewIntListAttrType creates a list attribute type, where elements are
 // integers. These are normally constructed by calling
 // attr.int_list().
-func NewIntListAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
-	return intListAttrType[TReference, TMetadata]{}
+func NewIntListAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowEmpty bool) AttrType[TReference, TMetadata] {
+	return &intListAttrType[TReference, TMetadata]{
+		allowEmpty: allowEmpty,
+	}
 }
 
 func (intListAttrType[TReference, TMetadata]) Type() string {
 	return "int_list"
 }
 
-func (intListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (at *intListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_IntList{
-		IntList: &model_starlark_pb.Attr_IntListType{},
+		IntList: &model_starlark_pb.Attr_IntListType{
+			ListOptions: newCompositeOptions(at.allowEmpty),
+		},
 	}
 	return nil
 }
@@ -273,6 +279,40 @@ func (intListAttrType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg
 
 func (intListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
+}
+
+// newCompositeOptions creates the options that apply to all attribute
+// types containing dicts or lists.
+func newCompositeOptions(allowEmpty bool) *model_starlark_pb.Attr_CompositeOptions {
+	return &model_starlark_pb.Attr_CompositeOptions{
+		AllowEmpty: allowEmpty,
+	}
+}
+
+// GetAttrCompositeOptions returns the options of an attribute type
+// containing a dict or list. If the attribute type does not contain a
+// dict or list, false is returned.
+func GetAttrCompositeOptions(attr *model_starlark_pb.Attr) (*model_starlark_pb.Attr_CompositeOptions, bool) {
+	switch attrType := attr.GetType().(type) {
+	case *model_starlark_pb.Attr_IntList:
+		return attrType.IntList.GetListOptions(), true
+	case *model_starlark_pb.Attr_LabelKeyedStringDict:
+		return attrType.LabelKeyedStringDict.GetDictOptions(), true
+	case *model_starlark_pb.Attr_LabelList:
+		return attrType.LabelList.GetListOptions(), true
+	case *model_starlark_pb.Attr_OutputList:
+		return attrType.OutputList.GetListOptions(), true
+	case *model_starlark_pb.Attr_StringDict:
+		return attrType.StringDict.GetDictOptions(), true
+	case *model_starlark_pb.Attr_StringKeyedLabelDict:
+		return attrType.StringKeyedLabelDict.GetDictOptions(), true
+	case *model_starlark_pb.Attr_StringList:
+		return attrType.StringList.GetListOptions(), true
+	case *model_starlark_pb.Attr_StringListDict:
+		return attrType.StringListDict.GetDictOptions(), true
+	default:
+		return nil, false
+	}
 }
 
 // LabelOptions contains the options that apply to all attribute types
@@ -397,14 +437,16 @@ func (labelAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 }
 
 type labelKeyedStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	allowEmpty     bool
 	dictKeyOptions LabelOptions[TReference, TMetadata]
 }
 
 // NewLabelKeyedStringDictAttrType creates a dictionary attribute type,
 // where keys are labels and values are strings. These are normally
 // constructed by calling config.string_keyed_label_dict().
-func NewLabelKeyedStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](dictKeyOptions LabelOptions[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+func NewLabelKeyedStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowEmpty bool, dictKeyOptions LabelOptions[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelKeyedStringDictAttrType[TReference, TMetadata]{
+		allowEmpty:     allowEmpty,
 		dictKeyOptions: dictKeyOptions,
 	}
 }
@@ -420,6 +462,7 @@ func (at *labelKeyedStringDictAttrType[TReference, TMetadata]) Encode(thread *ev
 	}
 	out.Message.Type = &model_starlark_pb.Attr_LabelKeyedStringDict{
 		LabelKeyedStringDict: &model_starlark_pb.Attr_LabelKeyedStringDictType{
+			DictOptions:    newCompositeOptions(at.allowEmpty),
 			DictKeyOptions: dictKeyOptions.Merge(out.Patcher),
 		},
 	}
@@ -435,14 +478,16 @@ func (labelKeyedStringDictAttrType[TReference, TMetadata]) IsOutput() (string, b
 }
 
 type labelListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	allowEmpty       bool
 	listValueOptions LabelOptions[TReference, TMetadata]
 }
 
 // NewLabelListAttrType creates a list attribute type, where elements
 // are labels. These are normally constructed by calling
 // config.label_list().
-func NewLabelListAttrType[TReference any, TMetadata model_core.ReferenceMetadata](listValueOptions LabelOptions[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+func NewLabelListAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowEmpty bool, listValueOptions LabelOptions[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &labelListAttrType[TReference, TMetadata]{
+		allowEmpty:       allowEmpty,
 		listValueOptions: listValueOptions,
 	}
 }
@@ -458,6 +503,7 @@ func (at *labelListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, 
 	}
 	out.Message.Type = &model_starlark_pb.Attr_LabelList{
 		LabelList: &model_starlark_pb.Attr_LabelListType{
+			ListOptions:      newCompositeOptions(at.allowEmpty),
 			ListValueOptions: listValueOptions.Merge(out.Patcher),
 		},
 	}
@@ -505,22 +551,28 @@ func (at *outputAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return at.filenameTemplate, true
 }
 
-type outputListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
+type outputListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	allowEmpty bool
+}
 
 // NewOutputListAttrType creates a list attribute type, where elements
 // are output files. These are normally constructed by calling
 // config.output_list().
-func NewOutputListAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
-	return &outputListAttrType[TReference, TMetadata]{}
+func NewOutputListAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowEmpty bool) AttrType[TReference, TMetadata] {
+	return &outputListAttrType[TReference, TMetadata]{
+		allowEmpty: allowEmpty,
+	}
 }
 
 func (outputListAttrType[TReference, TMetadata]) Type() string {
 	return "output_list"
 }
 
-func (outputListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (at *outputListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_OutputList{
-		OutputList: &model_starlark_pb.Attr_OutputListType{},
+		OutputList: &model_starlark_pb.Attr_OutputListType{
+			ListOptions: newCompositeOptions(at.allowEmpty),
+		},
 	}
 	return nil
 }
@@ -564,22 +616,28 @@ func (stringAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type stringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
+type stringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	allowEmpty bool
+}
 
 // NewStringDictAttrType creates a dictionary attribute type, where keys
 // and values are strings. These are normally constructed by calling
 // config.string_dict().
-func NewStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
-	return &stringDictAttrType[TReference, TMetadata]{}
+func NewStringDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowEmpty bool) AttrType[TReference, TMetadata] {
+	return &stringDictAttrType[TReference, TMetadata]{
+		allowEmpty: allowEmpty,
+	}
 }
 
 func (stringDictAttrType[TReference, TMetadata]) Type() string {
 	return "string_dict"
 }
 
-func (stringDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (at *stringDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_StringDict{
-		StringDict: &model_starlark_pb.Attr_StringDictType{},
+		StringDict: &model_starlark_pb.Attr_StringDictType{
+			DictOptions: newCompositeOptions(at.allowEmpty),
+		},
 	}
 	return nil
 }
@@ -592,22 +650,28 @@ func (stringDictAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 	return "", false
 }
 
-type stringListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
+type stringListAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	allowEmpty bool
+}
 
 // NewStringListAttrType creates a list attribute type, where elements
 // are strings. These are normally constructed by calling
 // config.string_list().
-func NewStringListAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
-	return &stringListAttrType[TReference, TMetadata]{}
+func NewStringListAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowEmpty bool) AttrType[TReference, TMetadata] {
+	return &stringListAttrType[TReference, TMetadata]{
+		allowEmpty: allowEmpty,
+	}
 }
 
 func (stringListAttrType[TReference, TMetadata]) Type() string {
 	return "string_list"
 }
 
-func (stringListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (at *stringListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_StringList{
-		StringList: &model_starlark_pb.Attr_StringListType{},
+		StringList: &model_starlark_pb.Attr_StringListType{
+			ListOptions: newCompositeOptions(at.allowEmpty),
+		},
 	}
 	return nil
 }
@@ -621,14 +685,16 @@ func (stringListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 }
 
 type stringKeyedLabelDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	allowEmpty       bool
 	dictValueOptions LabelOptions[TReference, TMetadata]
 }
 
 // NewStringKeyedLabelDictAttrType creates a dictionary attribute type,
 // where keys are labels and values are strings. These are normally
 // constructed by calling config.string_keyed_label_dict().
-func NewStringKeyedLabelDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](dictValueOptions LabelOptions[TReference, TMetadata]) AttrType[TReference, TMetadata] {
+func NewStringKeyedLabelDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowEmpty bool, dictValueOptions LabelOptions[TReference, TMetadata]) AttrType[TReference, TMetadata] {
 	return &stringKeyedLabelDictAttrType[TReference, TMetadata]{
+		allowEmpty:       allowEmpty,
 		dictValueOptions: dictValueOptions,
 	}
 }
@@ -644,6 +710,7 @@ func (at *stringKeyedLabelDictAttrType[TReference, TMetadata]) Encode(thread *ev
 	}
 	out.Message.Type = &model_starlark_pb.Attr_StringKeyedLabelDict{
 		StringKeyedLabelDict: &model_starlark_pb.Attr_StringKeyedLabelDictType{
+			DictOptions:      newCompositeOptions(at.allowEmpty),
 			DictValueOptions: dictValueOptions.Merge(out.Patcher),
 		},
 	}
@@ -658,22 +725,28 @@ func (stringKeyedLabelDictAttrType[TReference, TMetadata]) IsOutput() (string, b
 	return "", false
 }
 
-type stringListDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
+type stringListDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	allowEmpty bool
+}
 
 // NewStringListDictAttrType creates a dictionary attribute type, where
 // keys are strings and values are lists of strings. These are normally
 // constructed by calling config.string_list_dict().
-func NewStringListDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata]() AttrType[TReference, TMetadata] {
-	return &stringListDictAttrType[TReference, TMetadata]{}
+func NewStringListDictAttrType[TReference any, TMetadata model_core.ReferenceMetadata](allowEmpty bool) AttrType[TReference, TMetadata] {
+	return &stringListDictAttrType[TReference, TMetadata]{
+		allowEmpty: allowEmpty,
+	}
 }
 
 func (stringListDictAttrType[TReference, TMetadata]) Type() string {
 	return "string_list_dict"
 }
 
-func (stringListDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (at *stringListDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_StringListDict{
-		StringListDict: &model_starlark_pb.Attr_StringListDictType{},
+		StringListDict: &model_starlark_pb.Attr_StringListDictType{
+			DictOptions: newCompositeOptions(at.allowEmpty),
+		},
 	}
 	return nil
 }

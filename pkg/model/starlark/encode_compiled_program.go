@@ -284,7 +284,7 @@ func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.Refer
 	case *model_starlark_pb.Attr_Int:
 		return NewIntAttrType[TReference, TMetadata](attrTypeInfo.Int.Values), nil
 	case *model_starlark_pb.Attr_IntList:
-		return NewIntListAttrType[TReference, TMetadata](), nil
+		return NewIntListAttrType[TReference, TMetadata](attrTypeInfo.IntList.ListOptions.GetAllowEmpty()), nil
 	case *model_starlark_pb.Attr_Label:
 		valueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.Label.ValueOptions))
 		if err != nil {
@@ -301,31 +301,31 @@ func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.Refer
 		if err != nil {
 			return nil, fmt.Errorf("dict key options: %w", err)
 		}
-		return NewLabelKeyedStringDictAttrType[TReference, TMetadata](dictKeyOptions), nil
+		return NewLabelKeyedStringDictAttrType[TReference, TMetadata](attrTypeInfo.LabelKeyedStringDict.DictOptions.GetAllowEmpty(), dictKeyOptions), nil
 	case *model_starlark_pb.Attr_LabelList:
 		listValueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.LabelList.ListValueOptions))
 		if err != nil {
 			return nil, fmt.Errorf("list value options: %w", err)
 		}
-		return NewLabelListAttrType[TReference, TMetadata](listValueOptions), nil
+		return NewLabelListAttrType[TReference, TMetadata](attrTypeInfo.LabelList.ListOptions.GetAllowEmpty(), listValueOptions), nil
 	case *model_starlark_pb.Attr_Output:
 		return NewOutputAttrType[TReference, TMetadata](attrTypeInfo.Output.FilenameTemplate), nil
 	case *model_starlark_pb.Attr_OutputList:
-		return NewOutputListAttrType[TReference, TMetadata](), nil
+		return NewOutputListAttrType[TReference, TMetadata](attrTypeInfo.OutputList.ListOptions.GetAllowEmpty()), nil
 	case *model_starlark_pb.Attr_String_:
 		return NewStringAttrType[TReference, TMetadata](attrTypeInfo.String_.Values), nil
 	case *model_starlark_pb.Attr_StringDict:
-		return NewStringDictAttrType[TReference, TMetadata](), nil
+		return NewStringDictAttrType[TReference, TMetadata](attrTypeInfo.StringDict.DictOptions.GetAllowEmpty()), nil
 	case *model_starlark_pb.Attr_StringKeyedLabelDict:
 		dictValueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.StringKeyedLabelDict.DictValueOptions))
 		if err != nil {
 			return nil, fmt.Errorf("dict value options: %w", err)
 		}
-		return NewStringKeyedLabelDictAttrType[TReference, TMetadata](dictValueOptions), nil
+		return NewStringKeyedLabelDictAttrType[TReference, TMetadata](attrTypeInfo.StringKeyedLabelDict.DictOptions.GetAllowEmpty(), dictValueOptions), nil
 	case *model_starlark_pb.Attr_StringList:
-		return NewStringListAttrType[TReference, TMetadata](), nil
+		return NewStringListAttrType[TReference, TMetadata](attrTypeInfo.StringList.ListOptions.GetAllowEmpty()), nil
 	case *model_starlark_pb.Attr_StringListDict:
-		return NewStringListDictAttrType[TReference, TMetadata](), nil
+		return NewStringListDictAttrType[TReference, TMetadata](attrTypeInfo.StringListDict.DictOptions.GetAllowEmpty()), nil
 	default:
 		return nil, errors.New("unknown attribute type")
 	}

@@ -303,7 +303,7 @@ func (commonInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread 
 		/* test = */ false,
 	)
 	attrs[featuresAttrIdentifier] = NewAttr(
-		NewStringListAttrType[TReference, TMetadata](),
+		NewStringListAttrType[TReference, TMetadata]( /* allowEmpty = */ true),
 		eval.None,
 		/* configurable = */ true,
 	)

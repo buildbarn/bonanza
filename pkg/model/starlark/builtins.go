@@ -217,7 +217,7 @@ func convertFragmentsToAttr[TReference object.BasicReference, TMetadata model_co
 			)
 		}
 		attrs[fragmentsAttrIdentifier] = NewAttr[TReference, TMetadata](
-			NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
+			NewLabelListAttrType( /* allowEmpty = */ true, LabelOptions[TReference, TMetadata]{
 				Cfg:       cfg,
 				Providers: fragmentInfoProviderSets,
 			}),
@@ -258,7 +258,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 		/* configurable = */ true,
 	)
 	defaultToolchainsAttr := NewAttr[TReference, TMetadata](
-		NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
+		NewLabelListAttrType( /* allowEmpty = */ true, LabelOptions[TReference, TMetadata]{
 			Cfg:       targetTransitionDefinition,
 			Providers: templateVariableInfoProviderSets,
 		}),
@@ -268,7 +268,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 		/* configurable = */ true,
 	)
 	toolchainsAttr := NewAttr[TReference, TMetadata](
-		NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
+		NewLabelListAttrType( /* allowEmpty = */ true, LabelOptions[TReference, TMetadata]{
 			Cfg:       targetTransitionDefinition,
 			Providers: templateVariableInfoProviderSets,
 		}),
@@ -544,7 +544,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					attrType := NewIntListAttrType[TReference, TMetadata]()
+					attrType := NewIntListAttrType[TReference, TMetadata](allowEmpty)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -691,7 +691,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						Cfg:        cfg,
 						Providers:  encodedProviders,
 					}
-					attrType := NewLabelKeyedStringDictAttrType(labelOptions)
+					attrType := NewLabelKeyedStringDictAttrType(allowEmpty, labelOptions)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -761,7 +761,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						Cfg:        cfg,
 						Providers:  encodedProviders,
 					}
-					attrType := NewLabelListAttrType(labelOptions)
+					attrType := NewLabelListAttrType(allowEmpty, labelOptions)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -798,11 +798,11 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 			"output_list": eval.NewBuiltin(
 				"attr.output_list",
 				func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
-					if len(args.Positional) > 0 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
+					if len(args.Positional) > 1 {
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 					}
 
-					allowEmpty := false
+					allowEmpty := true
 					doc := ""
 					mandatory := false
 					if err := eval.UnpackArgs(
@@ -816,7 +816,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					return NewAttr[TReference, TMetadata](NewOutputListAttrType[TReference, TMetadata](), nil, false), nil
+					return NewAttr[TReference, TMetadata](NewOutputListAttrType[TReference, TMetadata](allowEmpty), nil, false), nil
 				},
 			),
 			"string": eval.NewBuiltin(
@@ -868,10 +868,10 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 					if len(args.Positional) > 1 {
-						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 2", b.Name(), len(args.Positional))
+						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 					}
 
-					var allowEmpty bool
+					allowEmpty := true
 					var defaultValue eval.Value = eval.NewDict()
 					configurable := true
 					doc := ""
@@ -889,7 +889,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					attrType := NewStringDictAttrType[TReference, TMetadata]()
+					attrType := NewStringDictAttrType[TReference, TMetadata](allowEmpty)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -954,7 +954,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						Cfg:        cfg,
 						Providers:  encodedProviders,
 					}
-					attrType := NewStringKeyedLabelDictAttrType(labelOptions)
+					attrType := NewStringKeyedLabelDictAttrType(allowEmpty, labelOptions)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -980,24 +980,24 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					}
 
 					mandatory := false
-					var allowEmpty bool
+					allowEmpty := true
 					configurable := true
 					var defaultValue eval.Value = eval.NewList(nil)
 					doc := ""
 					if err := eval.UnpackArgs(
 						thread, b.Name(), args,
 						// Positional arguments.
-						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"mandatory?", unpack.Bind(&mandatory, unpack.Bool),
 						"allow_empty?", unpack.Bind(&allowEmpty, unpack.Bool),
 						// Keyword arguments.
+						"configurable?", unpack.Bind(&configurable, unpack.Bool),
 						"default?", &defaultValue,
 						"doc?", unpack.Bind(&doc, unpack.String),
 					); err != nil {
 						return nil, err
 					}
 
-					attrType := NewStringListAttrType[TReference, TMetadata]()
+					attrType := NewStringListAttrType[TReference, TMetadata](allowEmpty)
 					if mandatory {
 						defaultValue = nil
 					} else {
@@ -1021,7 +1021,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if len(args.Positional) > 1 {
 						return nil, fmt.Errorf("%s: got %d positional arguments, want at most 1", b.Name(), len(args.Positional))
 					}
-					var allowEmpty bool
+					allowEmpty := true
 					configurable := true
 					var defaultValue eval.Value = eval.NewDict()
 					doc := ""
@@ -1039,7 +1039,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					attrType := NewStringListDictAttrType[TReference, TMetadata]()
+					attrType := NewStringListDictAttrType[TReference, TMetadata](allowEmpty)
 					if mandatory {
 						defaultValue = nil
 					} else {

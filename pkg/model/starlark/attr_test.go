@@ -94,6 +94,99 @@ func TestAttrConfigurable(t *testing.T) {
 	})
 }
 
+func TestAttrAllowEmpty(t *testing.T) {
+	execGlobals := func(code string) (map[string]eval.Value, error) {
+		return execBzlFile(
+			newTestThread(t),
+			util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl")),
+			code,
+			nil,
+		)
+	}
+	encode := func(t *testing.T, value eval.Value) *model_starlark_pb.Attr {
+		encodedValue, err := value.(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(newTestThread(t), nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+		require.NoError(t, err)
+		return encodedValue.Message.GetAttr()
+	}
+
+	for _, function := range []string{
+		"int_list",
+		"label_keyed_string_dict",
+		"label_list",
+		"output_list",
+		"string_dict",
+		"string_keyed_label_dict",
+		"string_list",
+		"string_list_dict",
+	} {
+		t.Run(function, func(t *testing.T) {
+			globals, err := execGlobals(fmt.Sprintf(
+				"DEFAULT = attr.%s()\nALLOWED = attr.%s(allow_empty = True)\nDISALLOWED = attr.%s(allow_empty = False)\n",
+				function, function, function,
+			))
+			require.NoError(t, err)
+			repr, err := eval.Repr(newTestThread(t), globals["DEFAULT"])
+			require.NoError(t, err)
+			require.Equal(t, "<attr."+function+">", repr)
+
+			// Empty values should be permitted by default,
+			// like in Bazel.
+			for name, expectedAllowEmpty := range map[string]bool{
+				"DEFAULT":    true,
+				"ALLOWED":    true,
+				"DISALLOWED": false,
+			} {
+				encodedAttr := encode(t, globals[name])
+				compositeOptions, ok := model_starlark.GetAttrCompositeOptions(encodedAttr)
+				require.True(t, ok)
+				require.Equal(t, expectedAllowEmpty, compositeOptions.GetAllowEmpty(), name)
+
+				// The option should be preserved when
+				// decoding and reencoding the attr.
+				thread := newTestThread(t)
+				thread.SetLocal(model_starlark.ValueDecodingOptionsKey, &model_starlark.ValueDecodingOptions[object.LocalReference]{})
+				decodedAttr, err := model_starlark.DecodeValue[object.LocalReference, model_core.CreatedObjectTree](
+					thread,
+					model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
+						Kind: &model_starlark_pb.Value_Attr{Attr: encodedAttr},
+					}),
+					nil,
+				)
+				require.NoError(t, err)
+				testutil.RequireEqualProto(t, encodedAttr, encode(t, decodedAttr))
+			}
+		})
+	}
+
+	t.Run("PositionalArguments", func(t *testing.T) {
+		// Like in Bazel, attr.int_list() and attr.string_list()
+		// accept mandatory and allow_empty as positional
+		// arguments. Other functions only accept allow_empty.
+		globals, err := execGlobals(
+			"INT_LIST = attr.int_list(True, False)\n" +
+				"STRING_LIST = attr.string_list(True, False)\n" +
+				"STRING_DICT = attr.string_dict(False)\n",
+		)
+		require.NoError(t, err)
+		for _, name := range []string{"INT_LIST", "STRING_LIST"} {
+			encodedAttr := encode(t, globals[name])
+			require.Nil(t, encodedAttr.Default, name)
+			compositeOptions, _ := model_starlark.GetAttrCompositeOptions(encodedAttr)
+			require.False(t, compositeOptions.GetAllowEmpty(), name)
+			require.True(t, encodedAttr.Configurable, name)
+		}
+		compositeOptions, _ := model_starlark.GetAttrCompositeOptions(encode(t, globals["STRING_DICT"]))
+		require.False(t, compositeOptions.GetAllowEmpty())
+	})
+
+	t.Run("NonComposite", func(t *testing.T) {
+		_, ok := model_starlark.GetAttrCompositeOptions(&model_starlark_pb.Attr{
+			Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
+		})
+		require.False(t, ok)
+	})
+}
+
 func TestAttrProviders(t *testing.T) {
 	encodeProviders := func(t *testing.T, providers string) []*model_starlark_pb.ProviderSet {
 		globals, err := execBzlFile(

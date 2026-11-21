@@ -102,7 +102,7 @@ func TestMacro(t *testing.T) {
 			/* configurable = */ true,
 		),
 		util.Must(label.NewStarlarkIdentifier("srcs")): model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
-			model_starlark.NewLabelListAttrType(model_starlark.LabelOptions[object.LocalReference, model_core.CreatedObjectTree]{
+			model_starlark.NewLabelListAttrType( /* allowEmpty = */ true, model_starlark.LabelOptions[object.LocalReference, model_core.CreatedObjectTree]{
 				AllowFiles: &model_starlark_pb.Attr_AllowFiles{},
 				Providers:  []*model_starlark_pb.ProviderSet{{}},
 			}),
@@ -344,7 +344,7 @@ func TestMacro(t *testing.T) {
 			"ReservedAttrName": {
 				macro: newMacro(map[label.StarlarkIdentifier]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree]{
 					util.Must(label.NewStarlarkIdentifier("visibility")): model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
-						model_starlark.NewStringListAttrType[object.LocalReference, model_core.CreatedObjectTree](),
+						model_starlark.NewStringListAttrType[object.LocalReference, model_core.CreatedObjectTree]( /* allowEmpty = */ true),
 						eval.NewList(nil),
 						/* configurable = */ true,
 					),
@@ -357,7 +357,7 @@ func TestMacro(t *testing.T) {
 				// cannot be provided using select().
 				macro: newMacro(map[label.StarlarkIdentifier]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree]{
 					util.Must(label.NewStarlarkIdentifier("srcs")): model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
-						model_starlark.NewStringListAttrType[object.LocalReference, model_core.CreatedObjectTree](),
+						model_starlark.NewStringListAttrType[object.LocalReference, model_core.CreatedObjectTree]( /* allowEmpty = */ true),
 						eval.NewList(nil),
 						/* configurable = */ false,
 					),
@@ -996,7 +996,7 @@ func TestMacroInheritAttrs(t *testing.T) {
 		map[string]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree]{
 			// Attr that rule() injects by default.
 			"features": model_starlark.NewAttr(
-				model_starlark.NewStringListAttrType[object.LocalReference, model_core.CreatedObjectTree](),
+				model_starlark.NewStringListAttrType[object.LocalReference, model_core.CreatedObjectTree]( /* allowEmpty = */ true),
 				eval.NewList(nil),
 				true,
 			),

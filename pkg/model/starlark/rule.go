@@ -712,7 +712,7 @@ func (rd *protoRuleDefinition[TReference, TMetadata]) GetTest(thread *eval.Threa
 // are not part of it.
 func newFeaturesAttr[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() *Attr[TReference, TMetadata] {
 	return NewAttr[TReference, TMetadata](
-		NewStringListAttrType[TReference, TMetadata](),
+		NewStringListAttrType[TReference, TMetadata]( /* allowEmpty = */ true),
 		eval.NewList(nil),
 		/* configurable = */ true,
 	)
@@ -732,12 +732,12 @@ func getImplicitRuleAttrs[TReference object.BasicReference, TMetadata model_core
 		return NewAttr(attrType, eval.None, false)
 	}
 	boolType := NewBoolAttrType[TReference, TMetadata]()
-	labelListType := NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
+	labelListType := NewLabelListAttrType( /* allowEmpty = */ true, LabelOptions[TReference, TMetadata]{
 		Cfg:       NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
 		Providers: anyProviderSets,
 	})
 	stringType := NewStringAttrType[TReference, TMetadata](nil)
-	stringListType := NewStringListAttrType[TReference, TMetadata]()
+	stringListType := NewStringListAttrType[TReference, TMetadata]( /* allowEmpty = */ true)
 
 	attrs := map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata]{
 		util.Must(pg_label.NewStarlarkIdentifier("applicable_licenses")):    nonConfigurable(labelListType),

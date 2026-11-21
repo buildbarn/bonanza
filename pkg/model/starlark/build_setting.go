@@ -276,7 +276,7 @@ func (bst labelListBuildSettingType[TReference, TMetadata]) GetCanonicalizer(cur
 }
 
 func (labelListBuildSettingType[TReference, TMetadata]) GetAttrType() AttrType[TReference, TMetadata] {
-	return NewLabelListAttrType(LabelOptions[TReference, TMetadata]{
+	return NewLabelListAttrType( /* allowEmpty = */ true, LabelOptions[TReference, TMetadata]{
 		Cfg:       NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
 		Providers: anyProviderSets,
 	})
@@ -361,7 +361,7 @@ func (bst stringListBuildSettingType[TReference, TMetadata]) GetCanonicalizer(cu
 }
 
 func (stringListBuildSettingType[TReference, TMetadata]) GetAttrType() AttrType[TReference, TMetadata] {
-	return NewStringListAttrType[TReference, TMetadata]()
+	return NewStringListAttrType[TReference, TMetadata]( /* allowEmpty = */ true)
 }
 
 type stringListBuildSettingCanonicalizer struct {
