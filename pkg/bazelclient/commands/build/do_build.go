@@ -59,6 +59,7 @@ import (
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/security/advancedtls"
@@ -112,20 +113,54 @@ type localCapturableDirectory[TDirectory, TFile model_core.ReferenceMetadata] st
 	// directory's descendants, so that matching can be skipped for
 	// the entire subtree.
 	ignoredDirectoriesMatcher *glob.Matcher
+
+	// Number of components in the path of the current directory,
+	// relative to the module's root directory. This is used to
+	// detect symbolic links that escape the module's root
+	// directory.
+	depth uint32
 }
 
 func (d *localCapturableDirectory[TDirectory, TFile]) ReadDir() ([]filesystem.FileInfo, error) {
 	entries, err := d.DirectoryCloser.ReadDir()
-	if err != nil || d.ignoredDirectoriesMatcher == nil {
-		return entries, err
+	if err != nil {
+		return nil, err
 	}
-	return slices.DeleteFunc(entries, func(entry filesystem.FileInfo) bool {
-		if entry.Type() != filesystem.FileTypeDirectory {
-			return false
+	keptEntries := entries[:0]
+	for _, entry := range entries {
+		name := entry.Name()
+		switch entry.Type() {
+		case filesystem.FileTypeDirectory:
+			if ignored, _ := matchIgnoredDirectory(d.ignoredDirectoriesMatcher, name); ignored {
+				continue
+			}
+		case filesystem.FileTypeSymlink:
+			// Ignore convenience symlinks that are created
+			// by Bazel in the workspace's root directory
+			// (e.g., bazel-bin, bazel-out).
+			if d.depth == 0 && strings.HasPrefix(name.String(), "bazel-") {
+				continue
+			}
+
+			// Even though symlink escapement is also
+			// computed as part of creating the directory's
+			// Merkle tree, checking it here allows us to
+			// report the name of the offending symlink.
+			targetParser, err := d.DirectoryCloser.Readlink(name)
+			if err != nil {
+				return nil, util.StatusWrapf(err, "Failed to read target of symbolic link %#v", name.String())
+			}
+			escapementCounter := model_filesystem.NewEscapementCountingScopeWalker()
+			if err := path.Resolve(targetParser, escapementCounter); err != nil {
+				return nil, util.StatusWrapf(err, "Failed to resolve target of symbolic link %#v", name.String())
+			}
+			if l := escapementCounter.GetLevels(); l == nil || l.Value > d.depth {
+				return nil, status.Errorf(codes.InvalidArgument, "Symbolic link %#v has a target that potentially escapes the module's root directory", name.String())
+			}
 		}
-		ignored, _ := matchIgnoredDirectory(d.ignoredDirectoriesMatcher, entry.Name())
-		return ignored
-	}), nil
+		keptEntries = append(keptEntries, entry)
+	}
+	return keptEntries, nil
 }
 
 func (d *localCapturableDirectory[TDirectory, TFile]) EnterCapturableDirectory(name path.Component) (*model_filesystem.CreatedDirectory[TDirectory], model_filesystem.CapturableDirectory[TDirectory, TFile], error) {
@@ -138,6 +173,7 @@ func (d *localCapturableDirectory[TDirectory, TFile]) EnterCapturableDirectory(n
 		DirectoryCloser:           child,
 		options:                   d.options,
 		ignoredDirectoriesMatcher: childMatcher,
+		depth:                     d.depth + 1,
 	}, nil
 }
 
