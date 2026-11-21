@@ -57,7 +57,8 @@
       },
       "CanonicalRepoName": {
          "dependsOn": [
-            "ModuleExtensionRepoNames",
+            "AnalysisEncoders",
+            "ModuleExtensionRepoMapping",
             "ModuleRepoMapping"
          ]
       },
@@ -351,10 +352,19 @@
             "ModuleExtensionRepos"
          ]
       },
-      "ModuleExtensionRepoNames": {
+      "ModuleExtensionRepoMapping": {
          "dependsOn": [
             "AnalysisEncoders",
+            "ModuleExtensionRepoOverrides",
             "ModuleExtensionRepos"
+         ]
+      },
+      "ModuleExtensionRepoOverrides": {
+         "dependsOn": [
+            "FileAccessParameters",
+            "ModuleDotBazelContents",
+            "ModulesWithMultipleVersions",
+            "RootModule"
          ]
       },
       "ModuleExtensionRepos": {
@@ -403,6 +413,7 @@
          "dependsOn": [
             "FileAccessParameters",
             "ModuleDotBazelContents",
+            "ModuleExtensionRepoOverrides",
             "ModulesWithMultipleVersions",
             "RootModule"
          ]

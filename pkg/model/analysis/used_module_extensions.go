@@ -2,7 +2,6 @@ package analysis
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -66,18 +65,18 @@ func (usedModuleExtensionProxy[TReference, TMetadata]) UseRepo(repos map[label.A
 	return nil
 }
 
-func (p *usedModuleExtensionProxy[TReference, TMetadata]) OverrideRepo(repos map[label.ApparentRepo]label.ApparentRepo) error {
-	if !p.handler.isRoot || p.handler.ignoreDevDependencies {
-		return nil
-	}
-	return errors.New("override_repo() is not supported")
+// OverrideRepo is called when override_repo() is invoked. Overrides do
+// not affect how module extensions are invoked. They are applied by
+// ComputeModuleExtensionRepoOverridesValue() instead.
+func (usedModuleExtensionProxy[TReference, TMetadata]) OverrideRepo(repos map[label.ApparentRepo]label.ApparentRepo) error {
+	return nil
 }
 
-func (p *usedModuleExtensionProxy[TReference, TMetadata]) InjectRepo(repos map[label.ApparentRepo]label.ApparentRepo) error {
-	if !p.handler.isRoot || p.handler.ignoreDevDependencies {
-		return nil
-	}
-	return errors.New("inject_repo() is not supported")
+// InjectRepo is called when inject_repo() is invoked. Similar to
+// OverrideRepo(), this has no effect on how module extensions are
+// invoked.
+func (usedModuleExtensionProxy[TReference, TMetadata]) InjectRepo(repos map[label.ApparentRepo]label.ApparentRepo) error {
+	return nil
 }
 
 type usedModuleExtensionExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {

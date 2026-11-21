@@ -1819,19 +1819,13 @@ message ModuleRepoMapping {
   }
 
   message Value {
-    message Mapping {
-      // The name of the apparent repo that is visible from within the
-      // module.
-      string from_apparent_repo = 1;
-
-      // The name of the canonical repo to which the apparent repo
-      // maps.
-      string to_canonical_repo = 2;
-    }
-
     // The list of repos that can be accessed from within this module
     // instance, sorted alphabetically by apparent repo.
-    repeated Mapping mappings = 1;
+    //
+    // If to_canonical_repo is empty, the apparent repo maps to
+    // canonical repo "${from_apparent_repo}+", which is the canonical
+    // repo of the module without a version number.
+    repeated RepoMapping mappings = 1;
   }
 }
 
@@ -1848,19 +1842,85 @@ message ModuleExtensionRepo {
   }
 }
 
-message ModuleExtensionRepoNames {
+message ModuleExtensionRepoMapping {
   message Key {
     option (bonanza.model.evaluation.key_description) = {
-      template: "Listing repos of module extension {module_extension}"
+      template: "Computing repo mapping of module extension {module_extension}"
     };
-    // Name of the module extension for which the names of the repos it
-    // declares should be computed.
+    // Name of the module extension for which the mapping of repos
+    // should be computed.
     string module_extension = 1;
   }
 
   message Value {
-    // Names of repos declared by the module extensions, sorted by name.
-    repeated string repo_names = 1;
+    message Mapping {
+      message Parent {
+        // Reference to an object with a list of Mapping messages.
+        bonanza.model.core.DecodableReference
+            reference = 1 [(bonanza.model.core.object_format) = {
+          proto_list_type_name:
+            "bonanza.model.analysis.ModuleExtensionRepoMapping.Value.Mapping";
+        }];
+
+        // The apparent name of the first repo contained in this
+        // B-tree. This field can be used to efficiently look up
+        // mappings contained in the B-tree.
+        string first_from_apparent_repo = 2;
+      }
+
+      oneof level {
+        // A single mapping of an apparent repo to a canonical repo.
+        RepoMapping leaf = 1;
+
+        // More mappings are stored in another object.
+        Parent parent = 2;
+      }
+    }
+
+    // B-tree of repos that can be accessed by their apparent names
+    // from within repos declared by the module extension, sorted
+    // alphabetically by apparent repo. This includes the repos
+    // declared by the module extension itself, with any overrides
+    // and injected repos provided by the root module using
+    // override_repo() and inject_repo() applied.
+    //
+    // If to_canonical_repo is empty, the apparent repo maps to
+    // canonical repo "${module_extension}+${from_apparent_repo}", which
+    // is the canonical repo of the repo declared by the module
+    // extension.
+    repeated Mapping mappings = 1;
+  }
+}
+
+message ModuleExtensionRepoOverrides {
+  message Key {
+    option (bonanza.model.evaluation.key_description) = {
+      template: "Obtaining repo overrides of module extension {module_extension}"
+    };
+    // Name of the module extension for which the overrides declared by
+    // the root module using override_repo() and inject_repo() should be
+    // obtained.
+    string module_extension = 1;
+  }
+
+  message Value {
+    message Override {
+      // The name of the repo, as seen from within the module extension.
+      string from_apparent_repo = 1;
+
+      // The name of the canonical repo that should be used instead.
+      string to_canonical_repo = 2;
+
+      // If true, the override was declared using override_repo(),
+      // meaning that the module extension must declare a repo with
+      // this name. If false, it was declared using inject_repo(),
+      // meaning the module extension must not declare it.
+      bool must_exist = 3;
+    }
+
+    // Overrides declared by the root module for this module extension,
+    // sorted alphabetically by apparent repo.
+    repeated Override overrides = 1;
   }
 }
 
@@ -2691,6 +2751,21 @@ message Repo {
     //   other repos (e.g., "../other_repo/hello.txt").
     bonanza.model.filesystem.DirectoryReference root_directory_reference = 1;
   }
+}
+
+// A mapping of an apparent repo name to a canonical repo name.
+message RepoMapping {
+  // The name of the apparent repo.
+  string from_apparent_repo = 1;
+
+  // The name of the canonical repo to which the apparent repo maps.
+  //
+  // To reduce the size of repo mappings, this field is left empty if
+  // the canonical repo name is equal to a default value that can be
+  // derived from from_apparent_repo. This default value depends on the
+  // message in which this message is embedded. As canonical repo names
+  // are never empty, this is unambiguous.
+  string to_canonical_repo = 2;
 }
 
 message RepoDefaultAttrs {

@@ -24,19 +24,20 @@ func (baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersValue(ctx cont
 // AnalysisReaders contains ObjectReaders that can be used to follow
 // references to objects that are created by analysis functions.
 type AnalysisReaders[TReference any] struct {
-	Args                          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args]
-	ArgsAdd                       model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args_Leaf_Add]
-	AspectParameters              model_parser.MessageObjectReader[TReference, *model_starlark_pb.Struct_Fields]
-	BuildSettingOverride          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.BuildSettingOverride]
-	ConfiguredTargetAction        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Action]
-	ConfiguredTargetOutput        model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Output]
-	FilesToRunProvider            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.FilesToRunProvider]
-	MacroExpansionContextEntry    model_parser.MessageObjectReader[TReference, []*model_starlark_pb.MacroExpansionContext_Entry]
-	MacroInstanceEntry            model_parser.MessageObjectReader[TReference, []*model_starlark_pb.MacroInstance_Entry]
-	ModuleExtensionReposValueRepo model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ModuleExtensionRepos_Value_Repo]
-	PackageValueTarget            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Package_Value_Target]
-	TargetLabel                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetLabel]
-	TestSuiteTest                 model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
+	Args                                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args]
+	ArgsAdd                                model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args_Leaf_Add]
+	AspectParameters                       model_parser.MessageObjectReader[TReference, *model_starlark_pb.Struct_Fields]
+	BuildSettingOverride                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.BuildSettingOverride]
+	ConfiguredTargetAction                 model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Action]
+	ConfiguredTargetOutput                 model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ConfiguredTarget_Value_Output]
+	FilesToRunProvider                     model_parser.MessageObjectReader[TReference, []*model_analysis_pb.FilesToRunProvider]
+	MacroExpansionContextEntry             model_parser.MessageObjectReader[TReference, []*model_starlark_pb.MacroExpansionContext_Entry]
+	MacroInstanceEntry                     model_parser.MessageObjectReader[TReference, []*model_starlark_pb.MacroInstance_Entry]
+	ModuleExtensionRepoMappingValueMapping model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping]
+	ModuleExtensionReposValueRepo          model_parser.MessageObjectReader[TReference, []*model_analysis_pb.ModuleExtensionRepos_Value_Repo]
+	PackageValueTarget                     model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Package_Value_Target]
+	TargetLabel                            model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetLabel]
+	TestSuiteTest                          model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
 }
 
 // AnalysisEncoders contains the encoder that needs to be used to create
@@ -120,6 +121,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersObject(valu
 				model_parser.NewChainedObjectParser(
 					encodedObjectParser,
 					model_parser.NewProtoListObjectParser[TReference, model_starlark_pb.MacroInstance_Entry](),
+				),
+			),
+			ModuleExtensionRepoMappingValueMapping: model_parser.LookupParsedObjectReader(
+				c.parsedObjectPoolIngester,
+				model_parser.NewChainedObjectParser(
+					encodedObjectParser,
+					model_parser.NewProtoListObjectParser[TReference, model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping](),
 				),
 			),
 			ModuleExtensionReposValueRepo: model_parser.LookupParsedObjectReader(
