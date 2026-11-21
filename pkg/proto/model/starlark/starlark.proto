@@ -799,6 +799,18 @@ message InheritableAttrs {
   // Which targets in other packages are permitted to depend on this
   // target.
   PackageGroup visibility = 4;
+
+  // Features that are enabled and disabled through repo() and
+  // package(), with the features provided to package() merged on top
+  // of the ones provided to repo(). Both lists MUST be sorted and
+  // contain no duplicates, and MUST be disjoint.
+  //
+  // Unlike the other fields, these are not default values that get
+  // replaced by the value of the target's "features" attr. When
+  // computing ctx.features and ctx.disabled_features, the target's
+  // "features" attr is merged on top of these features.
+  repeated string enabled_features = 5;
+  repeated string disabled_features = 6;
 }
 
 message LabelSetting {

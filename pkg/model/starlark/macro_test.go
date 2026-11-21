@@ -994,6 +994,12 @@ func TestMacroInheritAttrs(t *testing.T) {
 	myTest := newRule(
 		"my_test",
 		map[string]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree]{
+			// Attr that rule() injects by default.
+			"features": model_starlark.NewAttr(
+				model_starlark.NewStringListAttrType[object.LocalReference, model_core.CreatedObjectTree](),
+				eval.NewList(nil),
+				true,
+			),
 			"mandatory": stringAttr(nil),
 			"optional":  stringAttr(eval.String("default")),
 			"_private":  stringAttr(eval.String("default")),
@@ -1203,7 +1209,10 @@ outer = macro(implementation = _impl, inherit_attrs = inner)
 			"other_rule": model_starlark.NewRule(&identifier, model_starlark.NewReloadingRuleDefinition[object.LocalReference, model_core.CreatedObjectTree](identifier)),
 		})
 		require.NoError(t, err)
+		// The rule doesn't have a "features" attr, meaning it
+		// shouldn't be inherited.
 		expectedAttrs := maps.Clone(commonAttrs)
+		delete(expectedAttrs, "features")
 		expectedAttrs["srcs"] = "StringList default=None configurable=true"
 		require.Equal(t, expectedAttrs, macros["m"])
 	})
@@ -1230,6 +1239,7 @@ outer = macro(implementation = _impl, inherit_attrs = inner)
 			macros, err := exec(t, newTestThread(t), `m = macro(implementation = _impl, inherit_attrs = my_flag)`, map[string]eval.Value{"my_flag": myFlag})
 			require.NoError(t, err)
 			expectedAttrs := maps.Clone(commonAttrs)
+			delete(expectedAttrs, "features")
 			maps.Copy(expectedAttrs, map[string]string{
 				"build_setting_default": expectedType + " mandatory configurable=false",
 				"extra":                 "String_ default=None configurable=true",

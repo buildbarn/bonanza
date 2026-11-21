@@ -2041,13 +2041,15 @@ func (x *Funcode) GetFunctions() []*Funcode_NestedFunction {
 }
 
 type InheritableAttrs struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Deprecation     string                 `protobuf:"bytes,1,opt,name=deprecation,proto3" json:"deprecation,omitempty"`
-	PackageMetadata []string               `protobuf:"bytes,2,rep,name=package_metadata,json=packageMetadata,proto3" json:"package_metadata,omitempty"`
-	Testonly        bool                   `protobuf:"varint,3,opt,name=testonly,proto3" json:"testonly,omitempty"`
-	Visibility      *PackageGroup          `protobuf:"bytes,4,opt,name=visibility,proto3" json:"visibility,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Deprecation      string                 `protobuf:"bytes,1,opt,name=deprecation,proto3" json:"deprecation,omitempty"`
+	PackageMetadata  []string               `protobuf:"bytes,2,rep,name=package_metadata,json=packageMetadata,proto3" json:"package_metadata,omitempty"`
+	Testonly         bool                   `protobuf:"varint,3,opt,name=testonly,proto3" json:"testonly,omitempty"`
+	Visibility       *PackageGroup          `protobuf:"bytes,4,opt,name=visibility,proto3" json:"visibility,omitempty"`
+	EnabledFeatures  []string               `protobuf:"bytes,5,rep,name=enabled_features,json=enabledFeatures,proto3" json:"enabled_features,omitempty"`
+	DisabledFeatures []string               `protobuf:"bytes,6,rep,name=disabled_features,json=disabledFeatures,proto3" json:"disabled_features,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *InheritableAttrs) Reset() {
@@ -2104,6 +2106,20 @@ func (x *InheritableAttrs) GetTestonly() bool {
 func (x *InheritableAttrs) GetVisibility() *PackageGroup {
 	if x != nil {
 		return x.Visibility
+	}
+	return nil
+}
+
+func (x *InheritableAttrs) GetEnabledFeatures() []string {
+	if x != nil {
+		return x.EnabledFeatures
+	}
+	return nil
+}
+
+func (x *InheritableAttrs) GetDisabledFeatures() []string {
+	if x != nil {
+		return x.DisabledFeatures
 	}
 	return nil
 }
@@ -7799,14 +7815,16 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\x0eNestedFunction\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x129\n" +
 	"\afuncode\x18\x02 \x01(\v2\x1f.bonanza.model.starlark.FuncodeR\afuncode\x12#\n" +
-	"\rrelative_line\x18\x03 \x01(\rR\frelativeLine\"\xc1\x01\n" +
+	"\rrelative_line\x18\x03 \x01(\rR\frelativeLine\"\x99\x02\n" +
 	"\x10InheritableAttrs\x12 \n" +
 	"\vdeprecation\x18\x01 \x01(\tR\vdeprecation\x12)\n" +
 	"\x10package_metadata\x18\x02 \x03(\tR\x0fpackageMetadata\x12\x1a\n" +
 	"\btestonly\x18\x03 \x01(\bR\btestonly\x12D\n" +
 	"\n" +
 	"visibility\x18\x04 \x01(\v2$.bonanza.model.starlark.PackageGroupR\n" +
-	"visibility\"\xc3\x01\n" +
+	"visibility\x12)\n" +
+	"\x10enabled_features\x18\x05 \x03(\tR\x0fenabledFeatures\x12+\n" +
+	"\x11disabled_features\x18\x06 \x03(\tR\x10disabledFeatures\"\xc3\x01\n" +
 	"\fLabelSetting\x122\n" +
 	"\x15build_setting_default\x18\x01 \x01(\tR\x13buildSettingDefault\x12\x12\n" +
 	"\x04flag\x18\x02 \x01(\bR\x04flag\x12%\n" +

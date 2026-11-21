@@ -170,6 +170,7 @@ var (
 
 	defaultMakeVariablesLabel       = util.Must(pg_label.NewCanonicalLabel("@@bazel_tools+//tools/make:default_make_variables"))
 	defaultToolchainsAttrIdentifier = util.Must(pg_label.NewStarlarkIdentifier("__default_toolchains"))
+	featuresAttrIdentifier          = util.Must(pg_label.NewStarlarkIdentifier("features"))
 	toolchainsAttrIdentifier        = util.Must(pg_label.NewStarlarkIdentifier("toolchains"))
 	targetPlatformAttrIdentifier    = util.Must(pg_label.NewStarlarkIdentifier("__target_platform"))
 	commandLineOptionPlatformsLabel = util.Must(pg_label.NewCanonicalLabel("@@bazel_tools+//command_line_option:platforms"))
@@ -274,6 +275,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 		eval.NewList(nil),
 		/* configurable = */ true,
 	)
+	featuresAttr := newFeaturesAttr[TReference, TMetadata]()
 	targetPlatformAttr := NewAttr[TReference, TMetadata](
 		NewLabelAttrType(false, false, false, LabelOptions[TReference, TMetadata]{
 			Cfg:       targetTransitionDefinition,
@@ -1922,6 +1924,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 
 				needsConfiguration := needs == nil
 				needsDefaultExecGroup := needs == nil
+				needsFeatures := needs == nil
 				needsMakeVariables := needs == nil
 				needsTargetPlatform := needs == nil
 				for _, need := range needs {
@@ -1930,6 +1933,8 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						needsConfiguration = true
 					case "default_exec_group":
 						needsDefaultExecGroup = true
+					case "features":
+						needsFeatures = true
 					case "make_variables":
 						needsMakeVariables = true
 					case "targetPlatform":
@@ -1993,6 +1998,18 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				if needsMakeVariables {
 					attrs[defaultToolchainsAttrIdentifier] = defaultToolchainsAttr
 					attrs[toolchainsAttrIdentifier] = toolchainsAttr
+				}
+
+				// Implicitly add the "features" attr, which
+				// is used to compute ctx.features and
+				// ctx.disabled_features. Rules that don't
+				// need it don't accept the "features"
+				// argument.
+				if _, ok := attrs[featuresAttrIdentifier]; ok {
+					return nil, fmt.Errorf("attr %#v cannot be declared explicitly", featuresAttrIdentifier.String())
+				}
+				if needsFeatures {
+					attrs[featuresAttrIdentifier] = featuresAttr
 				}
 
 				// Implicitly add "__target_platforms" for

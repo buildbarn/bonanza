@@ -212,10 +212,12 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *eval.Thread, args ev
 				PublicAttrValues: publicAttrValues,
 				Finalizer:        finalizerKind,
 				InheritableAttrs: &model_starlark_pb.InheritableAttrs{
-					Deprecation:     defaultInheritableAttrs.GetDeprecation(),
-					PackageMetadata: defaultInheritableAttrs.GetPackageMetadata(),
-					Testonly:        defaultInheritableAttrs.GetTestonly(),
-					Visibility:      visibilityPackageGroup.Message,
+					Deprecation:      defaultInheritableAttrs.GetDeprecation(),
+					DisabledFeatures: defaultInheritableAttrs.GetDisabledFeatures(),
+					EnabledFeatures:  defaultInheritableAttrs.GetEnabledFeatures(),
+					PackageMetadata:  defaultInheritableAttrs.GetPackageMetadata(),
+					Testonly:         defaultInheritableAttrs.GetTestonly(),
+					Visibility:       visibilityPackageGroup.Message,
 				},
 			},
 			patcher,
@@ -297,9 +299,15 @@ func (noInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread *eva
 type commonInheritableAttrs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct{}
 
 func (commonInheritableAttrs[TReference, TMetadata]) getInheritableAttrs(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
-	return getImplicitRuleAttrs[TReference, TMetadata](
+	attrs := getImplicitRuleAttrs[TReference, TMetadata](
 		/* test = */ false,
-	), nil
+	)
+	attrs[featuresAttrIdentifier] = NewAttr(
+		NewStringListAttrType[TReference, TMetadata](),
+		eval.None,
+		/* configurable = */ true,
+	)
+	return attrs, nil
 }
 
 type inheritableAttrsSourceUnpackerInto[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct{}

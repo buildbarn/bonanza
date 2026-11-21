@@ -82,12 +82,16 @@ configuration_fragment = rule(
 
 def _cpp_fragment_impl(ctx):
     compilation_mode = ctx.attr._compilation_mode[BuildSettingInfo].value
-    cs_fdo_instrument = ctx.attr._cs_fdo_instrument[BuildSettingInfo].value
+
+    # Bazel returns None if --cs_fdo_instrument and --fdo_instrument
+    # are not set. rules_cc enables the "cs_fdo_instrument" and
+    # "fdo_instrument" features if the values are not None.
+    cs_fdo_instrument = ctx.attr._cs_fdo_instrument[BuildSettingInfo].value or None
     dynamic_mode = ctx.attr._dynamic_mode[BuildSettingInfo].value.upper()
     experimental_cc_implementation_deps = ctx.attr._cc_implementation_deps[BuildSettingInfo].value
     experimental_starlark_compiling = ctx.attr._starlark_compiling[BuildSettingInfo].value
     experimental_starlark_linking = ctx.attr._starlark_linking[BuildSettingInfo].value
-    fdo_instrument = ctx.attr._fdo_instrument[BuildSettingInfo].value
+    fdo_instrument = ctx.attr._fdo_instrument[BuildSettingInfo].value or None
     fission = ctx.attr._fission[BuildSettingInfo].value
     fission_active_for_current_compilation_mode = (
         True if fission == "yes" else False if fission == "no" else compilation_mode in fission.split(",")

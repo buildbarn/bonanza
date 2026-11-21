@@ -110,10 +110,20 @@ func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata mode
 		packageMetadata = applicableLicenses
 	}
 
+	// Features provided to package() are merged on top of the
+	// ones provided to repo().
+	previousFeatures, err := NewFeatureSet(
+		previousInheritableAttrs.Message.EnabledFeatures,
+		previousInheritableAttrs.Message.DisabledFeatures,
+	)
+	if err != nil {
+		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, fmt.Errorf("%s: %w", b.Name(), err)
+	}
+	mergedFeatures := previousFeatures.Merge(ParseFeatures(features))
+
 	var visibilityPackageGroup model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata]
 	if len(visibility) > 0 {
 		// Explicit visibility provided. Construct a new package group.
-		var err error
 		visibilityPackageGroup, err = NewPackageGroupFromVisibility[TMetadata](ctx, visibility, encoder, inlinedTreeOptions, objectCapturer)
 		if err != nil {
 			return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, err
@@ -126,13 +136,14 @@ func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata mode
 		)
 	}
 
-	// TODO: Also store features?
 	return model_core.NewPatchedMessage(
 		&model_starlark_pb.InheritableAttrs{
-			Deprecation:     deprecation,
-			PackageMetadata: packageMetadata,
-			Testonly:        testOnly,
-			Visibility:      visibilityPackageGroup.Message,
+			Deprecation:      deprecation,
+			DisabledFeatures: mergedFeatures.GetDisabled(),
+			EnabledFeatures:  mergedFeatures.GetEnabled(),
+			PackageMetadata:  packageMetadata,
+			Testonly:         testOnly,
+			Visibility:       visibilityPackageGroup.Message,
 		},
 		visibilityPackageGroup.Patcher,
 	), nil

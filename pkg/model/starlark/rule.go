@@ -109,9 +109,9 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eva
 			nameStr := name.String()
 			switch nameStr {
 			case "applicable_licenses", "compatible_with", "deprecation",
-				"exec_compatible_with", "features", "name",
-				"package_metadata", "tags", "target_compatible_with",
-				"testonly", "visibility":
+				"exec_compatible_with", "name", "package_metadata",
+				"tags", "target_compatible_with", "testonly",
+				"visibility":
 				return nil, fmt.Errorf("rule uses attribute with reserved name %#v", nameStr)
 			case "build_setting_default", "help":
 				if buildSetting != nil {
@@ -160,7 +160,6 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eva
 	var compatibleWith []string
 	deprecation := defaultInheritableAttrs.Deprecation
 	var execCompatibleWith []string
-	var features *Select[TReference, TMetadata]
 	packageMetadata := defaultInheritableAttrs.PackageMetadata
 	var tags []string
 	var targetCompatibleWith *Select[TReference, TMetadata]
@@ -174,7 +173,6 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eva
 		"compatible_with?", unpack.Bind(&compatibleWith, unpack.IfNotNone(labelStringListUnpackerInto)),
 		"deprecation?", unpack.Bind(&deprecation, unpack.IfNotNone(unpack.String)),
 		"exec_compatible_with?", unpack.Bind(&execCompatibleWith, unpack.IfNotNone(labelStringListUnpackerInto)),
-		"features?", unpack.Bind(&features, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(unpack.String))))),
 		"package_metadata?", unpack.Bind(&packageMetadata, unpack.IfNotNone(labelStringListUnpackerInto)),
 		"tags?", unpack.Bind(&tags, unpack.IfNotNone(unpack.List(unpack.String))),
 		"target_compatible_with?", unpack.Bind(&targetCompatibleWith, unpack.IfNotNone(NewSelectUnpackerInto[TReference, TMetadata](unpack.Canonicalize(unpack.List(labelUnpackerInto))))),
@@ -463,10 +461,12 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eva
 						Tags:                 slices.Compact(tags),
 						TargetCompatibleWith: targetCompatibleWithGroups.Message,
 						InheritableAttrs: &model_starlark_pb.InheritableAttrs{
-							Deprecation:     deprecation,
-							PackageMetadata: packageMetadata,
-							Testonly:        testOnly,
-							Visibility:      visibilityPackageGroup.Message,
+							Deprecation:      deprecation,
+							DisabledFeatures: defaultInheritableAttrs.DisabledFeatures,
+							EnabledFeatures:  defaultInheritableAttrs.EnabledFeatures,
+							PackageMetadata:  packageMetadata,
+							Testonly:         testOnly,
+							Visibility:       visibilityPackageGroup.Message,
 						},
 						BuildSettingDefault: encodedBuildSettingDefault.Message,
 						Test:                testMessage,
@@ -706,6 +706,18 @@ func (rd *protoRuleDefinition[TReference, TMetadata]) GetTest(thread *eval.Threa
 	return rd.message.Message.Type == model_starlark_pb.Rule_Definition_TEST, nil
 }
 
+// newFeaturesAttr returns the "features" attr that is injected into
+// rules that need it. Its value only contains the features that are
+// set on the target itself. Features set through repo() and package()
+// are not part of it.
+func newFeaturesAttr[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata]() *Attr[TReference, TMetadata] {
+	return NewAttr[TReference, TMetadata](
+		NewStringListAttrType[TReference, TMetadata](),
+		eval.NewList(nil),
+		/* configurable = */ true,
+	)
+}
+
 // getImplicitRuleAttrs returns the attributes that are accepted by
 // rules in addition to the ones provided to rule(attrs = ...), with the
 // exception of "name" and "visibility". These are used by
@@ -732,7 +744,6 @@ func getImplicitRuleAttrs[TReference object.BasicReference, TMetadata model_core
 		util.Must(pg_label.NewStarlarkIdentifier("compatible_with")):        nonConfigurable(labelListType),
 		util.Must(pg_label.NewStarlarkIdentifier("deprecation")):            nonConfigurable(stringType),
 		util.Must(pg_label.NewStarlarkIdentifier("exec_compatible_with")):   nonConfigurable(labelListType),
-		util.Must(pg_label.NewStarlarkIdentifier("features")):               configurable(stringListType),
 		util.Must(pg_label.NewStarlarkIdentifier("package_metadata")):       nonConfigurable(labelListType),
 		util.Must(pg_label.NewStarlarkIdentifier("tags")):                   nonConfigurable(stringListType),
 		util.Must(pg_label.NewStarlarkIdentifier("target_compatible_with")): configurable(labelListType),

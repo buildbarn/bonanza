@@ -424,6 +424,7 @@ genrule = rule(
     },
     needs = [
         "default_exec_group",
+        "features",
         "make_variables",
     ],
 )

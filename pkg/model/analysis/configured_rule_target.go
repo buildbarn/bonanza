@@ -311,6 +311,86 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) configureNonLabelAttrs() err
 	return nil
 }
 
+// stringsToStarlarkList converts a list of Go strings to a Starlark
+// list of strings.
+func stringsToStarlarkList(l []string) eval.Value {
+	values := make([]eval.Value, 0, len(l))
+	for _, s := range l {
+		values = append(values, eval.String(s))
+	}
+	return eval.NewList(values)
+}
+
+var commandLineOptionFeaturesLabel = "@@bazel_tools+//command_line_option:features"
+
+// getFeatures computes the features that are enabled and disabled for
+// the rule target, which are exposed through ctx.features and
+// ctx.disabled_features. This is done by merging the features provided
+// on the command line, through repo() and package(), and through the
+// target's "features" attr. Rules that don't have a "features" attr
+// don't have any features enabled or disabled.
+func (a *ruleTargetAnalysis[TReference, TMetadata]) getFeatures() (model_starlark.FeatureSet, error) {
+	targetFeaturesValue, ok := a.attrValues["features"]
+	if !ok {
+		return model_starlark.FeatureSet{}, nil
+	}
+	var targetFeatures []string
+	if err := unpack.List(unpack.String).UnpackInto(a.thread, targetFeaturesValue.(eval.Value), &targetFeatures); err != nil {
+		return model_starlark.FeatureSet{}, fmt.Errorf("attr \"features\": %w", err)
+	}
+
+	valueReaders := &a.starlarkValueEncoders.Readers
+	commandLineFeaturesValue, err := a.computer.getBuildSettingValue(
+		a.context,
+		a.environment,
+		&a.analysisEncoders.Readers,
+		valueReaders,
+		a.targetLabel.GetCanonicalPackage(),
+		commandLineOptionFeaturesLabel,
+		a.configurationReference,
+	)
+	if err != nil {
+		if errors.Is(err, evaluation.ErrMissingDependency) {
+			a.missingDependencies = true
+			return model_starlark.FeatureSet{}, nil
+		}
+		return model_starlark.FeatureSet{}, fmt.Errorf("build setting %s: %w", commandLineOptionFeaturesLabel, err)
+	}
+	commandLineFeaturesList, ok := commandLineFeaturesValue.Message.Kind.(*model_starlark_pb.Value_List)
+	if !ok {
+		return model_starlark.FeatureSet{}, fmt.Errorf("value of build setting %s is not a list", commandLineOptionFeaturesLabel)
+	}
+	var commandLineFeatures []string
+	var errIter error
+	for element := range model_starlark.AllListLeafElements(
+		a.context,
+		valueReaders.List,
+		model_core.Nested(commandLineFeaturesValue, commandLineFeaturesList.List.Elements),
+		&errIter,
+	) {
+		feature, ok, err := model_starlark.GetString(a.context, valueReaders.FileReader, element, maximumLargeStringSizeBytes)
+		if err != nil {
+			return model_starlark.FeatureSet{}, fmt.Errorf("value of build setting %s: %w", commandLineOptionFeaturesLabel, err)
+		}
+		if !ok {
+			return model_starlark.FeatureSet{}, fmt.Errorf("value of build setting %s contains an element that is not a string", commandLineOptionFeaturesLabel)
+		}
+		commandLineFeatures = append(commandLineFeatures, feature)
+	}
+	if errIter != nil {
+		return model_starlark.FeatureSet{}, fmt.Errorf("value of build setting %s: %w", commandLineOptionFeaturesLabel, errIter)
+	}
+
+	inheritableAttrs := a.ruleTarget.Message.InheritableAttrs
+	inheritedFeatures, err := model_starlark.NewFeatureSet(inheritableAttrs.GetEnabledFeatures(), inheritableAttrs.GetDisabledFeatures())
+	if err != nil {
+		return model_starlark.FeatureSet{}, fmt.Errorf("features provided to repo() and package(): %w", err)
+	}
+	return model_starlark.ParseFeatures(commandLineFeatures).
+		Merge(inheritedFeatures).
+		Merge(model_starlark.ParseFeatures(targetFeatures)), nil
+}
+
 // configureLabelAttrs computes the values of all label attrs. Outgoing
 // edge transitions and the labels in default values are obtained from
 // ConfiguredRuleUsage and ConfiguredRule if possible. Otherwise they
@@ -942,6 +1022,10 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
+	features, err := a.getFeatures()
+	if err != nil {
+		return PatchedConfiguredTargetValue[TMetadata]{}, err
+	}
 	if a.missingDependencies {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -967,6 +1051,7 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 		ruleIdentifier: ruleIdentifier,
 		ruleDefinition: ruleDefinition,
 		ruleTarget:     ruleTarget,
+		features:       features,
 		attr:           model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.attrValues),
 		splitAttr:      model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.splitAttrValues),
 		executable:     model_starlark.NewStructFromDict[TReference, TMetadata](nil, a.files.executableValues),
@@ -1562,6 +1647,7 @@ type ruleContext[TReference object.BasicReference, TMetadata model_core.Referenc
 	ruleIdentifier    label.CanonicalStarlarkIdentifier
 	ruleDefinition    model_core.Message[*model_starlark_pb.Rule_Definition, TReference]
 	ruleTarget        model_core.Message[*model_starlark_pb.RuleTarget, TReference]
+	features          model_starlark.FeatureSet
 	attr              eval.Value
 	splitAttr         eval.Value
 	buildSettingValue eval.Value
@@ -1649,12 +1735,16 @@ func (rc *ruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name str
 			rc.buildSettingValue = value
 		}
 		return rc.buildSettingValue, nil
+	case "disabled_features":
+		return stringsToStarlarkList(rc.features.GetDisabled()), nil
 	case "exec_groups":
 		return &targetContextExecGroups[TReference, TMetadata]{
 			targetContext: rc.targetContext,
 		}, nil
 	case "executable":
 		return rc.executable, nil
+	case "features":
+		return stringsToStarlarkList(rc.features.GetEnabled()), nil
 	case "file":
 		return rc.file, nil
 	case "files":
@@ -1700,8 +1790,10 @@ var ruleContextAttrNames = []string{
 	"actions",
 	"attr",
 	"bin_dir",
+	"disabled_features",
 	"exec_groups",
 	"executable",
+	"features",
 	"file",
 	"files",
 	"info_file",
