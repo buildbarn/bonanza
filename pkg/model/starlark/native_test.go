@@ -105,3 +105,16 @@ func TestNativeSubpackages(t *testing.T) {
 		require.ErrorContains(t, err, "subpackages cannot be expanded within this context")
 	})
 }
+
+func TestBuildFileBuiltinsContainNative(t *testing.T) {
+	// All functions provided by the "native" module should also be
+	// available as globals in BUILD files.
+	bzlFileBuiltins, buildFileBuiltins := model_starlark.GetBuiltins[object.LocalReference, model_core.CreatedObjectTree]()
+	native := bzlFileBuiltins["native"].(*model_starlark.Struct[object.LocalReference, model_core.CreatedObjectTree])
+	for name, value := range native.ToDict() {
+		require.Equal(t, value, buildFileBuiltins[name], name)
+	}
+	for _, name := range []string{"module_name", "module_version", "package_name", "repo_name", "subpackages"} {
+		require.Contains(t, buildFileBuiltins, name)
+	}
+}

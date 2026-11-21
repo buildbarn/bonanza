@@ -2256,5 +2256,11 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 		bzlFileBuiltins[k] = v
 		buildFileBuiltins[k] = v
 	}
+
+	// All functions provided by the "native" module in .bzl files
+	// are also available as globals in BUILD files.
+	for k, v := range bzlFileBuiltins["native"].(*Struct[TReference, TMetadata]).ToDict() {
+		buildFileBuiltins[k] = v.(eval.Value)
+	}
 	return bzlFileBuiltins, buildFileBuiltins
 }
