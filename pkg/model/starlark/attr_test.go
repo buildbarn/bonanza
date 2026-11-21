@@ -187,6 +187,43 @@ func TestAttrAllowEmpty(t *testing.T) {
 	})
 }
 
+func TestAttrValues(t *testing.T) {
+	// The list of allowed values of attr.int() and attr.string()
+	// should be preserved when encoding and decoding attrs.
+	globals, err := execBzlFile(
+		newTestThread(t),
+		util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl")),
+		"INT = attr.int(values = [1, 2])\nSTRING = attr.string(mandatory = True, values = [\"a\", \"b\"])\n",
+		nil,
+	)
+	require.NoError(t, err)
+	for name, expectedType := range map[string]*model_starlark_pb.Attr{
+		"INT": {
+			Type: &model_starlark_pb.Attr_Int{Int: &model_starlark_pb.Attr_IntType{Values: []int32{1, 2}}},
+		},
+		"STRING": {
+			Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{Values: []string{"a", "b"}}},
+		},
+	} {
+		encodedValue, err := globals[name].(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(newTestThread(t), nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+		require.NoError(t, err)
+		encodedAttr := encodedValue.Message.GetAttr()
+		testutil.RequireEqualProto(t, expectedType, &model_starlark_pb.Attr{Type: encodedAttr.Type})
+
+		thread := newTestThread(t)
+		thread.SetLocal(model_starlark.ValueDecodingOptionsKey, &model_starlark.ValueDecodingOptions[object.LocalReference]{})
+		decodedAttr, err := model_starlark.DecodeValue[object.LocalReference, model_core.CreatedObjectTree](
+			thread,
+			model_core.NewSimpleMessage[object.LocalReference](encodedValue.Message),
+			nil,
+		)
+		require.NoError(t, err)
+		reencodedValue, err := decodedAttr.(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(thread, nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
+		require.NoError(t, err)
+		testutil.RequireEqualProto(t, encodedValue.Message, reencodedValue.Message)
+	}
+}
+
 func TestAttrProviders(t *testing.T) {
 	encodeProviders := func(t *testing.T, providers string) []*model_starlark_pb.ProviderSet {
 		globals, err := execBzlFile(

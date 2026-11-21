@@ -601,9 +601,11 @@ func (stringAttrType[TReference, TMetadata]) Type() string {
 	return "string"
 }
 
-func (stringAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
+func (at *stringAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
 	out.Message.Type = &model_starlark_pb.Attr_String_{
-		String_: &model_starlark_pb.Attr_StringType{},
+		String_: &model_starlark_pb.Attr_StringType{
+			Values: at.values,
+		},
 	}
 	return nil
 }
