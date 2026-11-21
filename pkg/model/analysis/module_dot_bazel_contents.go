@@ -124,7 +124,7 @@ type visitModuleDotBazelFilesBreadthFirstEnvironment[TReference object.BasicRefe
 	RootModuleValueGetter[TReference]
 }
 
-type dependencQueueingModuleDotBazelHandler struct {
+type dependencyQueueingModuleDotBazelHandler struct {
 	dotbazel.ChildHandler
 
 	modulesWithMultipleVersions map[label.Module]OverrideVersions
@@ -133,7 +133,7 @@ type dependencQueueingModuleDotBazelHandler struct {
 	ignoreDevDependencies       bool
 }
 
-func (h *dependencQueueingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error {
+func (h *dependencyQueueingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error {
 	if devDependency && h.ignoreDevDependencies {
 		return nil
 	}
@@ -193,7 +193,7 @@ func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFir
 			ctx,
 			moduleInstance,
 			e,
-			dotbazel.NewOverrideIgnoringRootHandler(&dependencQueueingModuleDotBazelHandler{
+			dotbazel.NewOverrideIgnoringRootHandler(&dependencyQueueingModuleDotBazelHandler{
 				ChildHandler:                createHandler(moduleInstance, ignoreDevDependencies),
 				modulesWithMultipleVersions: modulesWithMultipleVersions,
 				moduleInstancesToCheck:      &moduleInstancesToCheck,
