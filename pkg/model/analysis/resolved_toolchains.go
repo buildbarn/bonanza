@@ -8,8 +8,15 @@ import (
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/evaluation"
+	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
+	model_core_pb "bonanza.build/pkg/proto/model/core"
+	"bonanza.build/pkg/storage/object"
+
+	"github.com/buildbarn/bb-storage/pkg/util"
 )
+
+var toolchainTypeInfoProviderIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%ToolchainTypeInfo"))
 
 func constraintsAreCompatible(actual, expected []*model_analysis_pb.Constraint) bool {
 	for len(actual) > 0 && len(expected) > 0 {
@@ -47,6 +54,49 @@ func constraintsAreCompatible(actual, expected []*model_analysis_pb.Constraint) 
 	return true
 }
 
+// getToolchainTypeNoMatchError returns the custom error message that
+// was provided to the no_match_error attribute of toolchain_type(), in
+// a form that can be appended to an error message. If no custom error
+// message was provided, an empty string is returned.
+//
+// This function should only be called when toolchain resolution
+// fails, so that the toolchain_type() target doesn't need to be
+// configured in the common case.
+func getToolchainTypeNoMatchError[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](ctx context.Context, e ResolvedToolchainsEnvironment[TReference, TMetadata], toolchainType string) (string, error) {
+	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
+	fileReader, gotFileReader := getFileReader(e)
+	if !gotValueReaders || !gotFileReader {
+		return "", evaluation.ErrMissingDependency
+	}
+
+	// Similar to toolchain(), toolchain_type() is configured
+	// without a configuration.
+	toolchainTypeInfoProvider, err := getProviderFromConfiguredTarget(
+		e,
+		toolchainType,
+		model_core.NewSimplePatchedMessage[TMetadata]((*model_core_pb.DecodableReference)(nil)),
+		toolchainTypeInfoProviderIdentifier,
+	)
+	if err != nil {
+		return "", fmt.Errorf("toolchain type %#v: %w", toolchainType, err)
+	}
+	noMatchErrorValue, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, toolchainTypeInfoProvider, "no_match_error")
+	if err != nil {
+		return "", fmt.Errorf("failed to obtain no_match_error field of ToolchainTypeInfo provider of toolchain type %#v: %w", toolchainType, err)
+	}
+	noMatchError, ok, err := getStringValue(ctx, fileReader, noMatchErrorValue)
+	if err != nil {
+		return "", fmt.Errorf("no_match_error field of ToolchainTypeInfo provider of toolchain type %#v: %w", toolchainType, err)
+	}
+	if !ok {
+		return "", fmt.Errorf("no_match_error field of ToolchainTypeInfo provider of toolchain type %#v is not a string", toolchainType)
+	}
+	if noMatchError == "" {
+		return "", nil
+	}
+	return ": " + noMatchError, nil
+}
+
 func (baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ResolvedToolchains_Key, TReference], e ResolvedToolchainsEnvironment[TReference, TMetadata]) (PatchedResolvedToolchainsValue[TMetadata], error) {
 	// Obtain all compatible execution platforms and toolchains.
 	missingDependencies := false
@@ -57,6 +107,7 @@ func (baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx co
 		missingDependencies = true
 	}
 	compatibleToolchainsByType := make([][]*model_analysis_pb.RegisteredToolchain, 0, len(key.Message.Toolchains))
+	visibleToolchainTypes := make([]string, 0, len(key.Message.Toolchains))
 	for _, toolchain := range key.Message.Toolchains {
 		toolchainTypeLabel, err := label.NewCanonicalLabel(toolchain.ToolchainType)
 		if err != nil {
@@ -92,9 +143,14 @@ func (baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx co
 
 		compatibleToolchainsForType := compatibleToolchainsForTypeValue.Message.Toolchains
 		if len(compatibleToolchainsForType) == 0 && toolchain.Mandatory {
-			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but no toolchains exist that are compatible with the target", toolchain.ToolchainType)
+			noMatchError, err := getToolchainTypeNoMatchError(ctx, e, visibleToolchainType.Message.Label)
+			if err != nil {
+				return PatchedResolvedToolchainsValue[TMetadata]{}, err
+			}
+			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but no toolchains exist that are compatible with the target%s", toolchain.ToolchainType, noMatchError)
 		}
 		compatibleToolchainsByType = append(compatibleToolchainsByType, compatibleToolchainsForType)
+		visibleToolchainTypes = append(visibleToolchainTypes, visibleToolchainType.Message.Label)
 	}
 	if missingDependencies {
 		return PatchedResolvedToolchainsValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -181,8 +237,16 @@ CheckExecutionPlatform:
 
 	for i, hasMatching := range toolchainTypeHasAtLeastOneMatchingExecutionPlatform {
 		if !hasMatching {
-			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but none of the %d toolchains that are compatible with the target are also compatible with any of the %d execution platforms", key.Message.Toolchains[i].ToolchainType, len(compatibleToolchainsByType[i]), len(executionPlatforms))
+			noMatchError, err := getToolchainTypeNoMatchError(ctx, e, visibleToolchainTypes[i])
+			if err != nil {
+				return PatchedResolvedToolchainsValue[TMetadata]{}, err
+			}
+			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but none of the %d toolchains that are compatible with the target are also compatible with any of the %d execution platforms%s", key.Message.Toolchains[i].ToolchainType, len(compatibleToolchainsByType[i]), len(executionPlatforms), noMatchError)
 		}
 	}
 	return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("even though all mandatory toolchain types have at least one toolchain that is compatible with one of the %d execution platforms, no single execution platform exists for which all mandatory toolchain types have at least one compatible toolchain", len(executionPlatforms))
 }
+
+// ResolvedToolchainsEnvironmentForTesting is used to generate mocks for
+// testing ComputeResolvedToolchainsValue().
+type ResolvedToolchainsEnvironmentForTesting ResolvedToolchainsEnvironment[model_core.CreatedObjectTree, model_core.CreatedObjectTree]

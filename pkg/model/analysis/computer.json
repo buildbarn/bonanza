@@ -664,6 +664,9 @@
          "dependsOn": [
             "CompatibleExecutionPlatforms",
             "CompatibleToolchainsForType",
+            "FileAccessParameters",
+            "StarlarkValueEncoders",
+            "TargetProvider",
             "VisibleTarget"
          ],
          "keyContainsReferences": true

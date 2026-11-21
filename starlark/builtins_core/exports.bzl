@@ -604,11 +604,15 @@ toolchain = rule(
 
 def _toolchain_type_impl(ctx):
     return [ToolchainTypeInfo(
+        no_match_error = ctx.attr.no_match_error,
         type_label = ctx.label,
     )]
 
 toolchain_type = rule(
     implementation = _toolchain_type_impl,
+    attrs = {
+        "no_match_error": attr.string(),
+    },
     needs = [],
     provides = [ToolchainTypeInfo],
 )
