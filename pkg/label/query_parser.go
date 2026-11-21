@@ -71,13 +71,14 @@ func (t queryToken) String() string {
 
 // isQueryWordCharacter returns whether a character may be part of an
 // unquoted word. Words starting with "@@" may also contain "+", as it
-// is used by canonical repo names.
+// is used by canonical repo names, and "%", as it is used by canonical
+// Starlark identifiers.
 func isQueryWordCharacter(c byte, isCanonical bool) bool {
 	return (c >= 'a' && c <= 'z') ||
 		(c >= 'A' && c <= 'Z') ||
 		(c >= '0' && c <= '9') ||
 		strings.IndexByte("*/@.-_:$~[]", c) >= 0 ||
-		(c == '+' && isCanonical)
+		((c == '+' || c == '%') && isCanonical)
 }
 
 // isValidUnquotedQueryWord returns whether a string can be written as
@@ -360,11 +361,29 @@ func (p *queryParser[TTargetPattern]) parseFunctionCall(name queryToken) (QueryE
 		}
 		return &QueryReverseDeps[TTargetPattern]{Universe: expressions[0], Expression: expressions[1], MaximumDepth: maximumDepth}, nil
 	case "rules":
-		expressions, err := p.parseCall(nil, 1)
+		expressions, err := p.parseArguments(nil, 1)
 		if err != nil {
 			return nil, err
 		}
-		return &QueryRules[TTargetPattern]{Expression: expressions[0]}, nil
+		if p.peek().kind != queryTokenComma {
+			if err := p.expect(queryTokenRightParenthesis, "\",\" or \")\""); err != nil {
+				return nil, err
+			}
+			return &QueryRules[TTargetPattern]{Expression: expressions[0]}, nil
+		}
+		p.next()
+		t := p.next()
+		if t.kind != queryTokenWord && t.kind != queryTokenQuotedWord {
+			return nil, unexpectedQueryToken(t, "rule identifier")
+		}
+		ruleIdentifier, err := NewCanonicalStarlarkIdentifier(t.text)
+		if err != nil {
+			return nil, fmt.Errorf("column %d: invalid rule identifier %#v: %w", t.offset+1, t.text, err)
+		}
+		if err := p.expect(queryTokenRightParenthesis, "\")\""); err != nil {
+			return nil, err
+		}
+		return &QueryRules[TTargetPattern]{Expression: expressions[0], RuleIdentifier: &ruleIdentifier}, nil
 	case "same_pkg_direct_rdeps":
 		expressions, err := p.parseCall(nil, 1)
 		if err != nil {

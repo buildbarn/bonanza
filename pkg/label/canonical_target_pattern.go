@@ -197,3 +197,31 @@ func (tp CanonicalTargetPattern) ToQueryExcludingManualTargets() Query[Canonical
 		},
 	}
 }
+
+// ToQueryOfRule returns a query that yields the targets matched by the
+// target pattern, only retaining instances of a given rule if the
+// target pattern contains wildcards. This matches the behavior of
+// target patterns provided to register_toolchains() and
+// register_execution_platforms(). Target patterns that refer to a
+// single target are left unmodified, as such targets should always be
+// included.
+//
+// Target patterns containing wildcards are rewritten to queries of
+// shape "rules(p, identifier)". As aliases are not followed, alias()
+// targets matched by wildcards are not retained.
+func (tp CanonicalTargetPattern) ToQueryOfRule(ruleIdentifier CanonicalStarlarkIdentifier) Query[CanonicalTargetPattern] {
+	if _, ok := tp.AsCanonicalLabel(); ok {
+		return tp.ToQuery()
+	}
+	return Query[CanonicalTargetPattern]{
+		expressions: []QueryExpression[CanonicalTargetPattern]{
+			&QuerySet[CanonicalTargetPattern]{
+				TargetPatterns: []CanonicalTargetPattern{tp},
+			},
+			&QueryRules[CanonicalTargetPattern]{
+				Expression:     0,
+				RuleIdentifier: &ruleIdentifier,
+			},
+		},
+	}
+}

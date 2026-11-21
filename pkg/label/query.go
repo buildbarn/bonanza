@@ -492,6 +492,12 @@ func (e *QueryTests[TTargetPattern]) writeTo(f *queryFormatter[TTargetPattern], 
 // corresponds to the targets that are matched by target patterns like
 // "//foo:all", and is equivalent to "kind(' rule$', x)".
 //
+// If a rule identifier is provided, written as "rules(x, identifier)",
+// only targets that are instances of that exact rule are yielded. This
+// excludes alias(), label_flag(), label_setting() and test_suite()
+// targets. Rule identifiers must be canonical (e.g.,
+// "@@builtins_core+//:exports.bzl%toolchain").
+//
 // This function is specific to Bonanza, and is not supported by Bazel.
 // It allows filtering targets by type without depending on the
 // strings returned by kind(), and without performing regular
@@ -499,10 +505,20 @@ func (e *QueryTests[TTargetPattern]) writeTo(f *queryFormatter[TTargetPattern], 
 type QueryRules[TTargetPattern any] struct {
 	// Index of the operand in the list of expressions.
 	Expression int
+	// If set, only yield instances of this rule.
+	RuleIdentifier *CanonicalStarlarkIdentifier
 }
 
 func (e *QueryRules[TTargetPattern]) writeTo(f *queryFormatter[TTargetPattern], _ queryPrecedence) {
-	f.writeCall("rules", nil, []int{e.Expression}, nil)
+	if e.RuleIdentifier == nil {
+		f.writeCall("rules", nil, []int{e.Expression}, nil)
+		return
+	}
+	f.WriteString("rules(")
+	f.writeExpression(e.Expression, queryPrecedenceSetOperation)
+	f.WriteString(", ")
+	f.WriteString(quoteQueryWord(e.RuleIdentifier.String()))
+	f.WriteByte(')')
 }
 
 // QuerySome is a query expression that yields an arbitrary subset of
@@ -956,7 +972,7 @@ func convertQueryExpressions[TFrom, TTo comparable](b *queryBuilder[TTo], expres
 			if err != nil {
 				return 0, err
 			}
-			newExpression = &QueryRules[TTo]{Expression: expression}
+			newExpression = &QueryRules[TTo]{Expression: expression, RuleIdentifier: e.RuleIdentifier}
 		case *QuerySome[TFrom]:
 			expression, err := visit(e.Expression)
 			if err != nil {

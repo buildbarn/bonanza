@@ -22,6 +22,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 )
 
+var platformRuleIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%platform"))
+
 var platformInfoProviderIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%PlatformInfo"))
 
 type registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -92,12 +94,14 @@ func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, 
 			if err != nil {
 				return err
 			}
+			// Similar to Bazel, only retain targets matched by
+			// wildcards if they are instances of platform().
 			var iterErr error
 			for canonicalPlatformLabel := range h.computer.allQueryLabels(
 				h.context,
 				h.environment,
 				h.analysisReaders,
-				canonicalPlatformTargetPattern.ToQuery(),
+				canonicalPlatformTargetPattern.ToQueryOfRule(platformRuleIdentifier),
 				&iterErr,
 			) {
 				canonicalPlatformLabelStr := canonicalPlatformLabel.String()
@@ -168,7 +172,6 @@ func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, 
 			if iterErr != nil {
 				return fmt.Errorf("failed to expand target pattern %#v: %w", canonicalPlatformTargetPattern.String(), iterErr)
 			}
-			return nil
 		}
 	}
 	return nil

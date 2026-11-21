@@ -829,9 +829,18 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 			return nil, err
 		}
 		results := labelSet{}
-		for i, definition := range definitions {
-			if isQueryRuleTarget(definition.Message) {
-				results[labels[i]] = struct{}{}
+		if expression.RuleIdentifier == nil {
+			for i, definition := range definitions {
+				if isQueryRuleTarget(definition.Message) {
+					results[labels[i]] = struct{}{}
+				}
+			}
+		} else {
+			ruleIdentifier := expression.RuleIdentifier.String()
+			for i, definition := range definitions {
+				if ruleTarget, ok := definition.Message.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget); ok && ruleTarget.RuleTarget.RuleIdentifier == ruleIdentifier {
+					results[labels[i]] = struct{}{}
+				}
 			}
 		}
 		return results, nil
@@ -2391,7 +2400,7 @@ func (c *baseComputer[TReference, TMetadata]) evaluateSinglePackageQuery(ctx con
 			}
 			results[i] = result
 		case *label.QueryRules[label.CanonicalTargetPattern]:
-			if _, ok := expressions[expr.Expression].(*label.QuerySiblings[label.CanonicalTargetPattern]); ok {
+			if _, ok := expressions[expr.Expression].(*label.QuerySiblings[label.CanonicalTargetPattern]); ok && expr.RuleIdentifier == nil {
 				// rules(siblings(//foo:*)), as emitted
 				// by CanonicalPackage.ToTargetsQuery().
 				// Use the definitions of the targets

@@ -24,7 +24,7 @@ import (
 
 var declaredToolchainInfoProviderIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%DeclaredToolchainInfo"))
 
-const toolchainRuleIdentifier = "@@builtins_core+//:exports.bzl%toolchain"
+var toolchainRuleIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%toolchain"))
 
 type registeredToolchainExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	context                    context.Context
@@ -67,12 +67,16 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				}
 				return err
 			}
+			// Similar to Bazel, only retain targets matched by
+			// wildcards if they are instances of toolchain().
+			// Targets referenced explicitly are always retained,
+			// and must resolve to a toolchain.
 			var iterErr error
 			for canonicalToolchainLabel := range h.computer.allQueryLabels(
 				h.context,
 				h.environment,
 				h.analysisReaders,
-				canonicalToolchainTargetPattern.ToQuery(),
+				canonicalToolchainTargetPattern.ToQueryOfRule(toolchainRuleIdentifier),
 				&iterErr,
 			) {
 				visibleTargetValue := h.environment.GetVisibleTargetValue(
@@ -114,9 +118,8 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				if !ok {
 					return fmt.Errorf("toolchain %#v is not a rule target", toolchainLabelStr)
 				}
-				if ruleTarget.RuleTarget.RuleIdentifier != toolchainRuleIdentifier {
-					// Non-toolchain target.
-					continue
+				if ruleTarget.RuleTarget.RuleIdentifier != toolchainRuleIdentifier.String() {
+					return fmt.Errorf("toolchain %#v is not a toolchain() target", toolchainLabelStr)
 				}
 
 				declaredToolchainInfoProvider, err := getProviderFromConfiguredTarget(

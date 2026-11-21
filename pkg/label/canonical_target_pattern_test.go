@@ -233,4 +233,26 @@ func TestCanonicalTargetPattern(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("ToQueryOfRule", func(t *testing.T) {
+		// Target patterns containing wildcards should only
+		// yield instances of the provided rule. Target
+		// patterns that refer to a single target should be
+		// left unmodified. The resulting queries are in
+		// normal form.
+		for input, output := range map[string]string{
+			"@@a+//foo":       "@@a+//foo",
+			"@@a+//foo:bar":   "@@a+//foo:bar",
+			"@@a+//foo:all":   "rules(@@a+//foo:all, @@b+//:c.bzl%toolchain)",
+			"@@a+//foo:*":     "rules(@@a+//foo:*, @@b+//:c.bzl%toolchain)",
+			"@@a+//foo/...":   "rules(@@a+//foo/..., @@b+//:c.bzl%toolchain)",
+			"@@a+//foo:bar b": `"@@a+//foo:bar b"`,
+		} {
+			t.Run(input, func(t *testing.T) {
+				q := util.Must(label.NewCanonicalTargetPattern(input)).ToQueryOfRule(util.Must(label.NewCanonicalStarlarkIdentifier("@@b+//:c.bzl%toolchain")))
+				require.Equal(t, output, label.QueryToString(q))
+				require.Equal(t, util.Must(label.NewQuery(output, label.NewCanonicalTargetPattern)), q)
+			})
+		}
+	})
 }

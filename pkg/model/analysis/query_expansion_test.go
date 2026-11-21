@@ -671,6 +671,40 @@ func TestQueryExpansion(t *testing.T) {
 		require.Equal(t, []string{"@@main+//:a", "@@main+//:b", "@@main+//:c"}, labels)
 	})
 
+	t.Run("RulesOfIdentifier", func(t *testing.T) {
+		// If a rule identifier is provided, only instances of
+		// that exact rule should be matched. Aliases should not
+		// be followed.
+		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
+		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
+		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
+		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
+		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b", "@@main+//:c", "@@main+//:d"))
+		expectTarget := func(l string, definition *model_starlark_pb.Target_Definition) {
+			e.EXPECT().GetTargetValue(
+				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: l}),
+			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+				Definition: definition,
+			}))
+		}
+		expectTarget("@@main+//:a", ruleTarget("a").Definition)
+		expectTarget("@@main+//:b", &model_starlark_pb.Target_Definition{
+			Kind: &model_starlark_pb.Target_Definition_RuleTarget{
+				RuleTarget: &model_starlark_pb.RuleTarget{
+					RuleIdentifier: "@@rules+//:defs.bzl%other_rule",
+				},
+			},
+		})
+		expectTarget("@@main+//:c", &model_starlark_pb.Target_Definition{
+			Kind: &model_starlark_pb.Target_Definition_Alias{Alias: &model_starlark_pb.Alias{}},
+		})
+		expectTarget("@@main+//:d", sourceFileTarget("d").Definition)
+
+		labels, err := computeQueryExpansion(e, "rules(@@main+//:*, @@rules+//:defs.bzl%my_rule)")
+		require.NoError(t, err)
+		require.Equal(t, []string{"@@main+//:a"}, labels)
+	})
+
 	t.Run("NotInNormalForm", func(t *testing.T) {
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
