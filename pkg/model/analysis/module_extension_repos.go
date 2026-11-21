@@ -82,7 +82,11 @@ type useRepoRuleCapturingModuleDotBazelHandler[TReference object.BasicReference,
 	repos map[string]model_core.PatchedMessage[*model_starlark_pb.Repo, TMetadata]
 }
 
-func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
+func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error {
+	return nil
+}
+
+func (useRepoRuleCapturingModuleDotBazelHandler[TReference, TMetadata]) FlagAlias(name string, starlarkFlag label.ApparentLabel) error {
 	return nil
 }
 

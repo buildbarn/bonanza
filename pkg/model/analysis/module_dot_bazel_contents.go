@@ -102,10 +102,11 @@ func parseModuleDotBazel[TReference object.BasicReference](ctx context.Context, 
 		// Every module implicitly depends on "bazel_tools". Add
 		// it here, so that @bazel_tools//... works and
 		// bazel_tools+/MODULE.bazel also gets processed.
+		bazelToolsRepo := bazelToolsModule.ToApparentRepo()
 		if err := handler.BazelDep(
 			bazelToolsModule,
 			/* version = */ nil,
-			bazelToolsModule.ToApparentRepo(),
+			&bazelToolsRepo,
 			/* devDependency = */ false,
 		); err != nil {
 			return err
@@ -132,9 +133,12 @@ type dependencQueueingModuleDotBazelHandler struct {
 	ignoreDevDependencies       bool
 }
 
-func (h *dependencQueueingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
+func (h *dependencQueueingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error {
 	if devDependency && h.ignoreDevDependencies {
 		return nil
+	}
+	if repoName == nil {
+		return fmt.Errorf("dependency on module %#v has repo_name = None, which is not supported", name.String())
 	}
 
 	var moduleInstance label.ModuleInstance

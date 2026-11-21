@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -65,6 +66,20 @@ func (usedModuleExtensionProxy[TReference, TMetadata]) UseRepo(repos map[label.A
 	return nil
 }
 
+func (p *usedModuleExtensionProxy[TReference, TMetadata]) OverrideRepo(repos map[label.ApparentRepo]label.ApparentRepo) error {
+	if !p.handler.isRoot || p.handler.ignoreDevDependencies {
+		return nil
+	}
+	return errors.New("override_repo() is not supported")
+}
+
+func (p *usedModuleExtensionProxy[TReference, TMetadata]) InjectRepo(repos map[label.ApparentRepo]label.ApparentRepo) error {
+	if !p.handler.isRoot || p.handler.ignoreDevDependencies {
+		return nil
+	}
+	return errors.New("inject_repo() is not supported")
+}
+
 type usedModuleExtensionExtractingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	options               *usedModuleExtensionOptions[TReference, TMetadata]
 	moduleInstance        label.ModuleInstance
@@ -74,7 +89,11 @@ type usedModuleExtensionExtractingModuleDotBazelHandler[TReference object.BasicR
 	valueEncodingOptions  *model_starlark.ValueEncodingOptions[TReference, TMetadata]
 }
 
-func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
+func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error {
+	return nil
+}
+
+func (usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadata]) FlagAlias(name string, starlarkFlag label.ApparentLabel) error {
 	return nil
 }
 

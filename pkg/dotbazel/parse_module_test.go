@@ -47,18 +47,37 @@ func TestParseModule(t *testing.T) {
 		)
 
 		version1 := util.Must(label.NewModuleVersion("1.2.3"))
+		moduleRepo := util.Must(label.NewApparentRepo("my_module_name"))
+		customRepo := util.Must(label.NewApparentRepo("my_repo_name"))
 		gomock.InOrder(
 			handler.EXPECT().BazelDep(
 				/* name = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ nil,
-				/* repoName = */ util.Must(label.NewApparentRepo("my_module_name")),
+				/* repoName = */ &moduleRepo,
 				/* devDependency = */ false,
 			).Times(2),
 			handler.EXPECT().BazelDep(
 				/* name = */ util.Must(label.NewModule("my_module_name")),
 				/* version = */ &version1,
-				/* repoName = */ util.Must(label.NewApparentRepo("my_repo_name")),
+				/* repoName = */ &customRepo,
 				/* devDependency = */ true,
+			),
+			handler.EXPECT().BazelDep(
+				/* name = */ util.Must(label.NewModule("my_module_name")),
+				/* version = */ &version1,
+				/* repoName = */ nil,
+				/* devDependency = */ false,
+			),
+		)
+
+		gomock.InOrder(
+			handler.EXPECT().FlagAlias(
+				/* name = */ "foo",
+				/* starlarkFlag = */ util.Must(label.NewApparentLabel("@@my_module_name+//defs:foo")),
+			),
+			handler.EXPECT().FlagAlias(
+				/* name = */ "bar",
+				/* starlarkFlag = */ util.Must(label.NewApparentLabel("@rules_foo//defs:bar")),
 			),
 		)
 
@@ -236,6 +255,17 @@ func TestParseModule(t *testing.T) {
 			}),
 		)
 
+		gomock.InOrder(
+			proxy1.EXPECT().OverrideRepo(map[label.ApparentRepo]label.ApparentRepo{
+				util.Must(label.NewApparentRepo("j")): util.Must(label.NewApparentRepo("j")),
+				util.Must(label.NewApparentRepo("k")): util.Must(label.NewApparentRepo("l")),
+			}),
+			proxy2.EXPECT().InjectRepo(map[label.ApparentRepo]label.ApparentRepo{
+				util.Must(label.NewApparentRepo("m")): util.Must(label.NewApparentRepo("m")),
+				util.Must(label.NewApparentRepo("n")): util.Must(label.NewApparentRepo("o")),
+			}),
+		)
+
 		proxy4 := NewMockRepoRuleProxy(ctrl)
 		gomock.InOrder(
 			handler.EXPECT().UseRepoRule(
@@ -295,6 +325,20 @@ bazel_dep(
     max_compatibility_level = 123,
     repo_name = "my_repo_name",
     dev_dependency = True,
+)
+bazel_dep(
+    name = "my_module_name",
+    version = "1.2.3",
+    repo_name = None,
+)
+
+flag_alias(
+    name = "foo",
+    starlark_flag = "//defs:foo",
+)
+flag_alias(
+    name = "bar",
+    starlark_flag = "@rules_foo//defs:bar",
 )
 
 git_override(
@@ -426,6 +470,17 @@ use_repo(
     h = "i",
 )
 
+override_repo(
+    proxy1,
+    "j",
+    k = "l",
+)
+inject_repo(
+    proxy2,
+    "m",
+    n = "o",
+)
+
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(
     name = "my_repo_name",
@@ -444,6 +499,34 @@ http_archive(
 			path.UNIXFormat,
 			handler,
 		))
+	})
+
+	t.Run("RepoListWithoutProxy", func(t *testing.T) {
+		// use_repo(), override_repo() and inject_repo() require
+		// that the first argument is a module extension proxy.
+		for _, function := range []string{"use_repo", "override_repo", "inject_repo"} {
+			t.Run(function, func(t *testing.T) {
+				handler := NewMockRootHandler(ctrl)
+
+				require.ErrorContains(t, dotbazel.ParseModule(
+					function+`("foo")`,
+					util.Must(label.NewCanonicalLabel("@@my_module_name+//:MODULE.bazel")),
+					path.UNIXFormat,
+					handler,
+				), function+": for parameter 0: got string, want module_extension_proxy")
+			})
+		}
+	})
+
+	t.Run("FlagAliasEmptyName", func(t *testing.T) {
+		handler := NewMockRootHandler(ctrl)
+
+		require.ErrorContains(t, dotbazel.ParseModule(
+			`flag_alias(name = "", starlark_flag = "//defs:foo")`,
+			util.Must(label.NewCanonicalLabel("@@my_module_name+//:MODULE.bazel")),
+			path.UNIXFormat,
+			handler,
+		), "flag_alias: for parameter name: flag name cannot be empty")
 	})
 
 	t.Run("UnknownLocalPathFormat", func(t *testing.T) {

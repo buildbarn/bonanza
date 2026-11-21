@@ -45,7 +45,7 @@ func (h *LocalPathExtractingModuleDotBazelHandler) GetRootModuleName() (label.Mo
 
 // BazelDep can normally be used to capture calls in MODULE.bazel to
 // bazel_dep(). This implementation does not need to do that.
-func (LocalPathExtractingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
+func (LocalPathExtractingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error {
 	return nil
 }
 
@@ -57,6 +57,12 @@ func (h *LocalPathExtractingModuleDotBazelHandler) LocalPathOverride(moduleName 
 		return fmt.Errorf("multiple local_path_override() or module() declarations for module with name %#v", moduleName.String())
 	}
 	h.modulePaths[moduleName] = path
+	return nil
+}
+
+// FlagAlias can normally be used to capture calls in MODULE.bazel to
+// flag_alias(). This implementation does not need to do that.
+func (LocalPathExtractingModuleDotBazelHandler) FlagAlias(name string, starlarkFlag label.ApparentLabel) error {
 	return nil
 }
 

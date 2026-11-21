@@ -36,7 +36,11 @@ type registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference objec
 	executionPlatforms    *[]*model_analysis_pb.ExecutionPlatform
 }
 
-func (registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
+func (registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMetadata]) BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error {
+	return nil
+}
+
+func (registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMetadata]) FlagAlias(name string, starlarkFlag label.ApparentLabel) error {
 	return nil
 }
 

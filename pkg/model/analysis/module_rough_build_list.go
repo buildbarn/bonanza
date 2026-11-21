@@ -27,13 +27,20 @@ type bazelDepCapturingModuleDotBazelHandler struct {
 	dependencies map[label.Module]*label.ModuleVersion
 }
 
-func (h *bazelDepCapturingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
+func (h *bazelDepCapturingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error {
 	if !devDependency || !h.ignoreDevDependencies {
+		if repoName == nil {
+			return fmt.Errorf("dependency on module %#v has repo_name = None, which is not supported", name.String())
+		}
 		if _, ok := h.dependencies[name]; ok {
 			return fmt.Errorf("module depends on module %#v multiple times", name.String())
 		}
 		h.dependencies[name] = version
 	}
+	return nil
+}
+
+func (bazelDepCapturingModuleDotBazelHandler) FlagAlias(name string, starlarkFlag label.ApparentLabel) error {
 	return nil
 }
 

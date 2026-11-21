@@ -80,9 +80,12 @@ func (h *repoMappingCapturingModuleDotBazelHandler) setRepo(from label.ApparentR
 	return nil
 }
 
-func (h *repoMappingCapturingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error {
+func (h *repoMappingCapturingModuleDotBazelHandler) BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error {
 	if devDependency && h.ignoreDevDependencies {
 		return nil
+	}
+	if repoName == nil {
+		return fmt.Errorf("dependency on module %#v has repo_name = None, which is not supported", name.String())
 	}
 	versions := h.modulesWithMultipleVersions[name]
 	var nearestVersion *label.ModuleVersion
@@ -93,9 +96,13 @@ func (h *repoMappingCapturingModuleDotBazelHandler) BazelDep(name label.Module, 
 		}
 		nearestVersion = &v
 	}
-	return h.setRepo(repoName, canonicalRepoMapping{
+	return h.setRepo(*repoName, canonicalRepoMapping{
 		canonicalRepo: name.ToModuleInstance(nearestVersion).GetBareCanonicalRepo(),
 	})
+}
+
+func (repoMappingCapturingModuleDotBazelHandler) FlagAlias(name string, starlarkFlag label.ApparentLabel) error {
+	return nil
 }
 
 func (h *repoMappingCapturingModuleDotBazelHandler) Module(name label.Module, repoName label.ApparentRepo, bazelCompatibility []string) error {
@@ -156,6 +163,21 @@ func (p repoMappingCapturingModuleExtensionProxy) UseRepo(repos map[label.Appare
 			return err
 		}
 	}
+	return nil
+}
+
+// OverrideRepo is called when override_repo() is invoked. Overrides
+// only affect the repo mapping of the module extension, not that of
+// the current module. Failing on the use of override_repo() is left to
+// usedModuleExtensionProxy.
+func (repoMappingCapturingModuleExtensionProxy) OverrideRepo(repos map[label.ApparentRepo]label.ApparentRepo) error {
+	return nil
+}
+
+// InjectRepo is called when inject_repo() is invoked. Similar to
+// OverrideRepo(), this has no effect on the repo mapping of the current
+// module.
+func (repoMappingCapturingModuleExtensionProxy) InjectRepo(repos map[label.ApparentRepo]label.ApparentRepo) error {
 	return nil
 }
 

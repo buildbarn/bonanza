@@ -18,11 +18,38 @@ import (
 )
 
 // ModuleExtensionProxy is called into by ParseModule() whenever
-// module extension tags are declared, or if use_repo() is called
-// against a given module extension.
+// module extension tags are declared, or if use_repo(),
+// override_repo() or inject_repo() is called against a given module
+// extension.
 type ModuleExtensionProxy interface {
 	Tag(thread *eval.Thread, className string, attrs map[string]eval.Value) error
+
+	// UseRepo is called when use_repo() is invoked. Keys of the
+	// map correspond to the names under which the repos are made
+	// visible to the current module. Values correspond to the
+	// names of the repos declared by the module extension.
 	UseRepo(repos map[label.ApparentRepo]label.ApparentRepo) error
+
+	// OverrideRepo is called when override_repo() is invoked. Keys
+	// of the map correspond to the names of repos declared by the
+	// module extension that need to be replaced. Values correspond
+	// to the names of repos visible to the current module that
+	// should be used instead.
+	//
+	// This function only has an effect in the root module.
+	// Implementations are responsible for ignoring these calls for
+	// other modules, or if dev dependencies are ignored.
+	OverrideRepo(repos map[label.ApparentRepo]label.ApparentRepo) error
+
+	// InjectRepo is called when inject_repo() is invoked. Keys of
+	// the map correspond to the names under which repos are made
+	// visible to the module extension. Values correspond to the
+	// names of repos visible to the current module.
+	//
+	// This function only has an effect in the root module.
+	// Implementations are responsible for ignoring these calls for
+	// other modules, or if dev dependencies are ignored.
+	InjectRepo(repos map[label.ApparentRepo]label.ApparentRepo) error
 }
 
 type nullModuleExtensionProxy struct{}
@@ -35,8 +62,17 @@ func (nullModuleExtensionProxy) UseRepo(repos map[label.ApparentRepo]label.Appar
 	return nil
 }
 
+func (nullModuleExtensionProxy) OverrideRepo(repos map[label.ApparentRepo]label.ApparentRepo) error {
+	return nil
+}
+
+func (nullModuleExtensionProxy) InjectRepo(repos map[label.ApparentRepo]label.ApparentRepo) error {
+	return nil
+}
+
 // NullModuleExtensionProxy is an implementation of ModuleExtensionProxy
-// that merely discards any tag declarations and use_repo() calls.
+// that merely discards any tag declarations, and use_repo(),
+// override_repo() and inject_repo() calls.
 var NullModuleExtensionProxy ModuleExtensionProxy = nullModuleExtensionProxy{}
 
 // RepoRuleProxy is called into by ParseModule() whenever a
@@ -68,7 +104,13 @@ type RootHandler interface {
 // MODULE.bazel, omitting any methods that should be ignored in child
 // modules.
 type ChildHandler interface {
-	BazelDep(name label.Module, version *label.ModuleVersion, repoName label.ApparentRepo, devDependency bool) error
+	// BazelDep is called when bazel_dep() is invoked. If repoName
+	// is nil, the call was made with repo_name = None, meaning
+	// that the dependency is a "nodep" dependency. Such
+	// dependencies should only be honored if the module is already
+	// part of the dependency graph by other means.
+	BazelDep(name label.Module, version *label.ModuleVersion, repoName *label.ApparentRepo, devDependency bool) error
+	FlagAlias(name string, starlarkFlag label.ApparentLabel) error
 	Module(name label.Module, repoName label.ApparentRepo, bazelCompatibility []string) error
 	RegisterExecutionPlatforms(platformTargetPatterns []label.ApparentTargetPattern, devDependency bool) error
 	RegisterToolchains(toolchainTargetPatterns []label.ApparentTargetPattern, devDependency bool) error
@@ -183,6 +225,50 @@ func newRepositoryRuleOverrideBuiltin(name string, targetIdentifier label.Canoni
 	})
 }
 
+// newRepoListBuiltin returns the implementation of a function like
+// use_repo(), override_repo() and inject_repo(), which take a module
+// extension proxy, followed by a list of repo names. Repo names
+// provided as positional arguments map to themselves, while keyword
+// arguments can be used to map repos to different names.
+func newRepoListBuiltin(name string, call func(proxy ModuleExtensionProxy, repos map[label.ApparentRepo]label.ApparentRepo) error) *eval.Builtin {
+	return eval.NewBuiltin(name, func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+		if len(args.Positional) < 1 {
+			return nil, fmt.Errorf("%s: got %d positional arguments, want at least 1", b.Name(), len(args.Positional))
+		}
+
+		proxyValue := args.Positional[0]
+		proxyObject, ok := proxyValue.(*moduleExtensionProxyValue)
+		if !ok {
+			return nil, fmt.Errorf("%s: for parameter 0: got %s, want module_extension_proxy", b.Name(), proxyValue.Type())
+		}
+
+		repos := map[label.ApparentRepo]label.ApparentRepo{}
+		for i := 1; i < len(args.Positional); i++ {
+			var repo label.ApparentRepo
+			if err := unpack.ApparentRepo.UnpackInto(thread, args.Positional[i], &repo); err != nil {
+				return nil, fmt.Errorf("%s: for parameter %d: %w", b.Name(), i, err)
+			}
+			repos[repo] = repo
+		}
+
+		for _, arg := range args.Named {
+			var key, value label.ApparentRepo
+			if err := unpack.ApparentRepo.UnpackInto(thread, eval.String(arg.Name), &key); err != nil {
+				return nil, fmt.Errorf("%s: for parameter %s: %w", b.Name(), arg.Name, err)
+			}
+			if err := unpack.ApparentRepo.UnpackInto(thread, arg.Value, &value); err != nil {
+				return nil, fmt.Errorf("%s: for parameter %s: %w", b.Name(), arg.Name, err)
+			}
+			if _, ok := repos[key]; ok {
+				return nil, fmt.Errorf("%s: repository %s declared multiple times", b.Name(), arg.Name)
+			}
+			repos[key] = value
+		}
+
+		return eval.None, call(proxyObject.proxy, repos)
+	})
+}
+
 // ParseModule parses a MODULE.bazel file, and calls into the provided
 // RootHandler for every observed declaration.
 func ParseModule(contents string, filename label.CanonicalLabel, localPathFormat path.Format, handler RootHandler) error {
@@ -192,33 +278,57 @@ func ParseModule(contents string, filename label.CanonicalLabel, localPathFormat
 			var name label.Module
 			var version *label.ModuleVersion
 			maxCompatibilityLevel := -1
-			var repoName *label.ApparentRepo
+			// repo_name = None indicates that this is a
+			// "nodep" dependency, which is reported by
+			// setting repoName to nil. If repo_name is
+			// omitted or empty, the repo name is equal to
+			// the module name.
+			var inferRepoNamePlaceholder label.ApparentRepo
+			repoName := &inferRepoNamePlaceholder
 			devDependency := false
 			if err := eval.UnpackArgs(
 				thread, b.Name(), args,
 				"name", unpack.Bind(&name, unpack.Module),
 				"version?", unpack.Bind(&version, unpack.IfNonEmptyString(unpack.Pointer(unpack.ModuleVersion))),
 				"max_compatibility_level?", unpack.Bind(&maxCompatibilityLevel, unpack.Int[int]()),
-				"repo_name?", unpack.Bind(&repoName, unpack.IfNotNone(unpack.IfNonEmptyString(unpack.Pointer(unpack.ApparentRepo)))),
+				"repo_name?", unpack.Bind(&repoName, unpack.ZeroIfNone(unpack.IfNonEmptyString(unpack.Pointer(unpack.ApparentRepo)))),
 				"dev_dependency?", unpack.Bind(&devDependency, unpack.Bool),
 			); err != nil {
 				return nil, err
 			}
-			if repoName == nil {
-				r := name.ToApparentRepo()
-				repoName = &r
+			if repoName == &inferRepoNamePlaceholder {
+				*repoName = name.ToApparentRepo()
 			}
 			return eval.None, handler.BazelDep(
 				name,
 				version,
-				*repoName,
+				repoName,
 				devDependency,
 			)
+		}),
+		"flag_alias": eval.NewBuiltin("flag_alias", func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
+			if len(args.Positional) > 0 {
+				return nil, fmt.Errorf("%s: got %d positional arguments, want 0", b.Name(), len(args.Positional))
+			}
+			var name string
+			var starlarkFlag label.ApparentLabel
+			if err := eval.UnpackArgs(
+				thread, b.Name(), args,
+				"name", unpack.Bind(&name, unpack.String),
+				"starlark_flag", unpack.Bind(&starlarkFlag, unpack.ApparentLabel),
+			); err != nil {
+				return nil, err
+			}
+			if name == "" {
+				return nil, fmt.Errorf("%s: for parameter name: flag name cannot be empty", b.Name())
+			}
+			return eval.None, handler.FlagAlias(name, starlarkFlag)
 		}),
 		"git_override": newRepositoryRuleOverrideBuiltin("git_override", targetIdentifierGitRepository, handler),
 		"include": eval.NewBuiltin("include", func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 			return nil, errors.New("include() is not permitted, as it prevents modules from being reused")
 		}),
+		"inject_repo": newRepoListBuiltin("inject_repo", ModuleExtensionProxy.InjectRepo),
 		"local_path_override": eval.NewBuiltin("local_path_override", func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 			var moduleName label.Module
 			var path path.Parser
@@ -288,6 +398,7 @@ func ParseModule(contents string, filename label.CanonicalLabel, localPathFormat
 				registry,
 			)
 		}),
+		"override_repo": newRepoListBuiltin("override_repo", ModuleExtensionProxy.OverrideRepo),
 		"register_execution_platforms": eval.NewBuiltin("register_execution_platforms", func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 			var platformTargetPatterns []label.ApparentTargetPattern
 			if err := unpack.List(unpack.ApparentTargetPattern).UnpackInto(thread, eval.NewTuple(args.Positional), &platformTargetPatterns); err != nil {
@@ -376,42 +487,7 @@ func ParseModule(contents string, filename label.CanonicalLabel, localPathFormat
 				proxy: moduleExtensionProxy,
 			}, nil
 		}),
-		"use_repo": eval.NewBuiltin("use_repo", func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
-			if len(args.Positional) < 1 {
-				return nil, fmt.Errorf("%s: got %d positional arguments, want at least 1", b.Name(), len(args.Positional))
-			}
-
-			proxyValue := args.Positional[0]
-			proxyObject, ok := proxyValue.(*moduleExtensionProxyValue)
-			if !ok {
-				return nil, fmt.Errorf("%s: for parameter 0: got %s, want module_extension_proxy", b.Name(), proxyValue.Type())
-			}
-
-			repos := map[label.ApparentRepo]label.ApparentRepo{}
-			for i := 1; i < len(args.Positional); i++ {
-				var repo label.ApparentRepo
-				if err := unpack.ApparentRepo.UnpackInto(thread, args.Positional[i], &repo); err != nil {
-					return nil, fmt.Errorf("%s: for parameter %d: %w", b.Name(), i, err)
-				}
-				repos[repo] = repo
-			}
-
-			for _, arg := range args.Named {
-				var key, value label.ApparentRepo
-				if err := unpack.ApparentRepo.UnpackInto(thread, eval.String(arg.Name), &key); err != nil {
-					return nil, fmt.Errorf("%s: for parameter %s: %w", b.Name(), arg.Name, err)
-				}
-				if err := unpack.ApparentRepo.UnpackInto(thread, arg.Value, &value); err != nil {
-					return nil, fmt.Errorf("%s: for parameter %s: %w", b.Name(), arg.Name, err)
-				}
-				if _, ok := repos[key]; ok {
-					return nil, fmt.Errorf("%s: repository %s declared multiple times", b.Name(), arg.Name)
-				}
-				repos[key] = value
-			}
-
-			return eval.None, proxyObject.proxy.UseRepo(repos)
-		}),
+		"use_repo": newRepoListBuiltin("use_repo", ModuleExtensionProxy.UseRepo),
 		"use_repo_rule": eval.NewBuiltin("use_repo_rule", func(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
 			var repoRuleBzlFile label.ApparentLabel
 			var repoRuleName label.StarlarkIdentifier
