@@ -313,9 +313,19 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 				},
 			)
 		}
+		commonBuildSettingOverrides = append(
+			commonBuildSettingOverrides,
+			&model_analysis_pb.BuildResult_Key_BuildSettingOverride{
+				Label: "@bazel_tools//command_line_option:host_platform",
+				Value: args.BuildFlags.HostPlatform,
+			},
+		)
+
+		// Like Bazel, the target platform defaults to the host
+		// platform if --platforms is not provided.
 		targetPlatforms := strings.FieldsFunc(args.BuildFlags.Platforms, func(r rune) bool { return r == ',' })
 		if len(targetPlatforms) == 0 {
-			targetPlatforms = []string{"@platforms//host"}
+			targetPlatforms = []string{args.BuildFlags.HostPlatform}
 		}
 		configurations := make([]*model_analysis_pb.BuildResult_Key_Configuration, 0, len(targetPlatforms))
 		for _, targetPlatform := range targetPlatforms {

@@ -51,6 +51,33 @@ func TestParseCommandAndArguments(t *testing.T) {
 			require.Equal(t, "a,-b", command.(*arguments.BuildCommand).BuildFlags.BuildTagFilters)
 		})
 
+		t.Run("HostPlatformDefault", func(t *testing.T) {
+			command, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{},
+				"linux",
+				[]string{
+					"build",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, "@platforms//host", command.(*arguments.BuildCommand).BuildFlags.HostPlatform)
+		})
+
+		t.Run("HostPlatform", func(t *testing.T) {
+			command, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{},
+				"linux",
+				[]string{
+					"build",
+					"--host_platform=//platforms:linux_amd64",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, "//platforms:linux_amd64", command.(*arguments.BuildCommand).BuildFlags.HostPlatform)
+		})
+
 		t.Run("KeepGoingLong", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},

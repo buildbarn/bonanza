@@ -246,6 +246,13 @@ var commands = map[string]command{
 				flagType:    stringListFlagType{},
 			},
 			{
+				longName:    "host_platform",
+				description: "The label of a platform rule that describes the host system. If --platforms is not provided, it is also used as the target platform.",
+				flagType: stringFlagType{
+					defaultValue: "@platforms//host",
+				},
+			},
+			{
 				longName:    "incompatible_fail_on_unknown_output_groups",
 				description: "If true, building explicitly requested output groups that are not present on any top-level target or aspect fails the build.",
 				flagType: boolFlagType{

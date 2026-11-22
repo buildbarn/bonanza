@@ -41,7 +41,8 @@ func TestParse(t *testing.T) {
 				RemoteCacheCompression: true,
 			},
 			BuildFlags: arguments.BuildFlags{
-				KeepGoing: true,
+				HostPlatform: "@platforms//host",
+				KeepGoing:    true,
 			},
 			Arguments: []string{"//..."},
 		}, command)
