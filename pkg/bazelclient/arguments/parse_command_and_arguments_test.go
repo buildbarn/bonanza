@@ -14,6 +14,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		// displaying help output.
 		command, err := arguments.ParseCommandAndArguments(
 			arguments.ConfigurationDirectives{},
+			"linux",
 			[]string{},
 		)
 		require.NoError(t, err)
@@ -25,6 +26,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 	t.Run("CommandNotRecognized", func(t *testing.T) {
 		_, err := arguments.ParseCommandAndArguments(
 			arguments.ConfigurationDirectives{},
+			"linux",
 			[]string{
 				"bquery",
 				"--noinclude_aspects",
@@ -37,6 +39,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("BuildTagFilters", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"--build_tag_filters=a,-b",
@@ -50,6 +53,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("KeepGoingLong", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"--keep_going",
@@ -63,6 +67,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("KeepGoingLong0", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"--keep_going=0",
@@ -76,6 +81,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("KeepGoingLong1", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"--keep_going=1",
@@ -89,6 +95,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("KeepGoingLongFalse", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"--keep_going=false",
@@ -102,6 +109,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("KeepGoingLongTrue", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"--keep_going=true",
@@ -115,6 +123,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("KeepGoingLongNo", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"--keep_going=no",
@@ -128,6 +137,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("KeepGoingLongYes", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"--keep_going=yes",
@@ -141,6 +151,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("KeepGoingLongOther", func(t *testing.T) {
 			_, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"--keep_going=maybe",
@@ -153,6 +164,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("KeepGoingShort", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"-k",
@@ -166,6 +178,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("NoKeepGoingLong", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"-k",
@@ -180,6 +193,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("NoKeepGoingShort", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"-k",
@@ -194,6 +208,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("NoKeepGoingUnexpectedValue", func(t *testing.T) {
 			_, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"-k",
@@ -207,6 +222,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("PositiveNegativePatterns", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"build",
 					"--",
@@ -239,6 +255,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 						},
 					},
 				},
+				"linux",
 				[]string{
 					"build",
 					"--keep_going",
@@ -261,6 +278,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("HelpVerbosityNotApplicableViaArguments", func(t *testing.T) {
 			_, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"clean",
 					"--help_verbosity",
@@ -278,6 +296,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 						"short",
 					}},
 				},
+				"linux",
 				[]string{
 					"clean",
 				},
@@ -296,6 +315,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 						"short",
 					}},
 				},
+				"linux",
 				[]string{
 					"clean",
 				},
@@ -313,6 +333,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 						"short",
 					}},
 				},
+				"linux",
 				[]string{
 					"clean",
 				},
@@ -323,6 +344,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("ShortNotApplicable", func(t *testing.T) {
 			_, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"clean",
 					"--short",
@@ -336,6 +358,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("NoFlags", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"help",
 				},
@@ -349,6 +372,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("Short", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"help",
 					"--short",
@@ -363,6 +387,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("ShortUnexpectedValue", func(t *testing.T) {
 			_, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"help",
 					"--short=123",
@@ -374,6 +399,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("DashL", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"help",
 					"-l",
@@ -389,6 +415,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 			t.Run("Equals", func(t *testing.T) {
 				command, err := arguments.ParseCommandAndArguments(
 					arguments.ConfigurationDirectives{},
+					"linux",
 					[]string{
 						"help",
 						"--help_verbosity=short",
@@ -403,6 +430,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 			t.Run("Space", func(t *testing.T) {
 				command, err := arguments.ParseCommandAndArguments(
 					arguments.ConfigurationDirectives{},
+					"linux",
 					[]string{
 						"help",
 						"--help_verbosity",
@@ -418,6 +446,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 			t.Run("MissingValue", func(t *testing.T) {
 				_, err := arguments.ParseCommandAndArguments(
 					arguments.ConfigurationDirectives{},
+					"linux",
 					[]string{
 						"help",
 						"--help_verbosity",
@@ -429,6 +458,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 			t.Run("UnknownValue", func(t *testing.T) {
 				_, err := arguments.ParseCommandAndArguments(
 					arguments.ConfigurationDirectives{},
+					"linux",
 					[]string{
 						"help",
 						"--help_verbosity",
@@ -442,6 +472,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("WithCommandName", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"help",
 					"build",
@@ -472,6 +503,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 						"@bazel_tools//tools:host_platform",
 					}},
 				},
+				"linux",
 				[]string{
 					"run",
 					"//cmd/my_tool",
@@ -498,6 +530,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 						{"--run_under=time"},
 					},
 				},
+				"linux",
 				[]string{
 					"run",
 					"//cmd/my_tool",
@@ -516,6 +549,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("NoFlags", func(t *testing.T) {
 			command, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"version",
 				},
@@ -539,6 +573,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 						{"--gnu_format"},
 					},
 				},
+				"linux",
 				[]string{
 					"version",
 				},
@@ -556,6 +591,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 						{"--gnu_format"},
 					},
 				},
+				"linux",
 				[]string{
 					"version",
 					"--config=foo",
@@ -570,6 +606,7 @@ func TestParseCommandAndArguments(t *testing.T) {
 		t.Run("InvalidConfig", func(t *testing.T) {
 			_, err := arguments.ParseCommandAndArguments(
 				arguments.ConfigurationDirectives{},
+				"linux",
 				[]string{
 					"version",
 					"--config=foo",
@@ -591,12 +628,161 @@ func TestParseCommandAndArguments(t *testing.T) {
 						{"--config=foo"},
 					},
 				},
+				"linux",
 				[]string{
 					"version",
 					"--config=foo",
 				},
 			)
 			require.EqualError(t, err, "config expansion for configuration directive \"version:foo\" contains a cycle")
+		})
+	})
+
+	t.Run("PlatformSpecificConfig", func(t *testing.T) {
+		directives := arguments.ConfigurationDirectives{
+			"build": [][]string{
+				{"--platforms=//platforms:rc"},
+			},
+			"build:linux": [][]string{
+				{"--platforms=//platforms:linux"},
+			},
+			"build:macos": [][]string{
+				{"--platforms=//platforms:macos"},
+			},
+			"build:enable": [][]string{
+				{"--enable_platform_specific_config"},
+			},
+		}
+
+		t.Run("Disabled", func(t *testing.T) {
+			command, err := arguments.ParseCommandAndArguments(
+				directives,
+				"linux",
+				[]string{
+					"build",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, "//platforms:rc", command.(*arguments.BuildCommand).BuildFlags.Platforms)
+		})
+
+		t.Run("EnabledOnCommandLine", func(t *testing.T) {
+			// The platform specific config should be
+			// applied after bazelrc directives, and
+			// positional arguments should not be
+			// duplicated by the second parsing pass.
+			command, err := arguments.ParseCommandAndArguments(
+				directives,
+				"macos",
+				[]string{
+					"build",
+					"//...",
+					"--enable_platform_specific_config",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, "//platforms:macos", command.(*arguments.BuildCommand).BuildFlags.Platforms)
+			require.Equal(t, []string{"//..."}, command.(*arguments.BuildCommand).Arguments)
+		})
+
+		t.Run("EnabledInConfigurationFile", func(t *testing.T) {
+			command, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{
+					"common": [][]string{
+						{"--enable_platform_specific_config"},
+					},
+					"build:linux": [][]string{
+						{"--platforms=//platforms:linux"},
+					},
+				},
+				"linux",
+				[]string{
+					"build",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, "//platforms:linux", command.(*arguments.BuildCommand).BuildFlags.Platforms)
+		})
+
+		t.Run("EnabledThroughConfigFlag", func(t *testing.T) {
+			command, err := arguments.ParseCommandAndArguments(
+				directives,
+				"linux",
+				[]string{
+					"build",
+					"--config=enable",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, "//platforms:linux", command.(*arguments.BuildCommand).BuildFlags.Platforms)
+		})
+
+		t.Run("CommandLineTakesPrecedence", func(t *testing.T) {
+			command, err := arguments.ParseCommandAndArguments(
+				directives,
+				"linux",
+				[]string{
+					"build",
+					"--enable_platform_specific_config",
+					"--platforms=//platforms:command_line",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, "//platforms:command_line", command.(*arguments.BuildCommand).BuildFlags.Platforms)
+		})
+
+		t.Run("NoDirectivesForPlatform", func(t *testing.T) {
+			// Unlike --config=windows, it should not be an
+			// error if no directives for the platform exist.
+			command, err := arguments.ParseCommandAndArguments(
+				directives,
+				"windows",
+				[]string{
+					"build",
+					"--enable_platform_specific_config",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, "//platforms:rc", command.(*arguments.BuildCommand).BuildFlags.Platforms)
+		})
+
+		t.Run("UnknownPlatform", func(t *testing.T) {
+			command, err := arguments.ParseCommandAndArguments(
+				directives,
+				"",
+				[]string{
+					"build",
+					"--enable_platform_specific_config",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, "//platforms:rc", command.(*arguments.BuildCommand).BuildFlags.Platforms)
+		})
+
+		t.Run("CommonFlagNotApplicableToCommand", func(t *testing.T) {
+			// Flags in "common:linux" that don't apply to
+			// the current command should be ignored, just
+			// like for regular --config flags.
+			command, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{
+					"common:linux": [][]string{
+						{"--keep_going"},
+					},
+				},
+				"linux",
+				[]string{
+					"version",
+					"--enable_platform_specific_config",
+				},
+			)
+			require.NoError(t, err)
+			require.True(t, command.(*arguments.VersionCommand).CommonFlags.EnablePlatformSpecificConfig)
 		})
 	})
 }

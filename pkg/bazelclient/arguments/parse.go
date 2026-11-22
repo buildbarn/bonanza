@@ -1,6 +1,8 @@
 package arguments
 
 import (
+	"runtime"
+
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 )
@@ -25,5 +27,20 @@ func Parse(args []string, rootDirectory filesystem.Directory, pathFormat path.Fo
 		return nil, err
 	}
 
-	return ParseCommandAndArguments(configurationDirectives, args)
+	return ParseCommandAndArguments(configurationDirectives, GetHostPlatformName(), args)
+}
+
+// GetHostPlatformName returns the name of the host operating system,
+// using the same identifiers that Bazel uses for the purpose of
+// --enable_platform_specific_config. An empty string is returned if
+// the operating system is not known to Bazel.
+func GetHostPlatformName() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return "macos"
+	case "freebsd", "linux", "openbsd", "windows":
+		return runtime.GOOS
+	default:
+		return ""
+	}
 }
