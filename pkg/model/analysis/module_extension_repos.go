@@ -21,7 +21,6 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
-	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -70,8 +69,6 @@ func (t bazelModuleTag) AttrNames(*eval.Thread) ([]string, error) {
 	}
 	return attrNames, nil
 }
-
-var repoRulesExtensionName = util.Must(label.NewStarlarkIdentifier("_repo_rules"))
 
 type useRepoRuleCapturingModuleDotBazelHandler[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
 	labelResolver         label.Resolver
@@ -196,10 +193,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		return PatchedModuleExtensionReposValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	valueReaders := &starlarkValueEncoders.Readers
-	if moduleExtension.GetExtensionName() == repoRulesExtensionName {
-		// "_repo_rules" is used as a fictive extension name to
-		// hold all repos declared using use_repo_rule() in
-		// MODULE.bazel. Instead of attempting to invoke an
+	if moduleExtension.IsRepoRules() {
+		// A fictive module extension is used to hold all repos
+		// declared using use_repo_rule() in MODULE.bazel. Instead of attempting to invoke an
 		// actual module extension, gather repos from the
 		// MODULE.bazel file.
 		rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})

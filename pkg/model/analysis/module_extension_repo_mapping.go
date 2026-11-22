@@ -31,7 +31,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingV
 	// cannot be overridden.
 	var overrides []*model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override
 	gotOverrides := true
-	if moduleExtension.GetExtensionName() != repoRulesExtensionName {
+	if !moduleExtension.IsRepoRules() {
 		moduleExtensionRepoOverridesValue := e.GetModuleExtensionRepoOverridesValue(&model_analysis_pb.ModuleExtensionRepoOverrides_Key{
 			ModuleExtension: key.ModuleExtension,
 		})

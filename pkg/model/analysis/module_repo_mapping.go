@@ -268,7 +268,7 @@ func (h *repoMappingCapturingModuleDotBazelHandler) UseRepoRule(repoRuleBzlFile 
 		}
 		return h.setRepo(name, canonicalRepoMapping{
 			canonicalRepo: h.moduleInstance.
-				GetModuleExtension(repoRulesExtensionName).
+				GetRepoRulesModuleExtension().
 				GetCanonicalRepoWithModuleExtension(name),
 		})
 	}, nil

@@ -14,14 +14,14 @@ func TestNewQuery(t *testing.T) {
 	t.Run("NormalForm", func(t *testing.T) {
 		for input, expected := range map[string]string{
 			// Target patterns, and words that need quoting.
-			"@@a+//foo:bar":            "@@a+//foo:bar",
-			"  @@a+//foo/...  ":        "@@a+//foo/...",
-			"@@a+//foo:foo":            "@@a+//foo",
-			"@@a+//foo:all-targets":    "@@a+//foo:all-targets",
-			"@@gazelle++go_deps+x//:*": "@@gazelle++go_deps+x//:*",
-			`"@@a+//foo:bar baz"`:      `"@@a+//foo:bar baz"`,
-			`'@@a+//foo:a"b'`:          `'@@a+//foo:a"b'`,
-			`"@@a+//foo:a=b"`:          `"@@a+//foo:a=b"`,
+			"@@a+//foo:bar":                   "@@a+//foo:bar",
+			"  @@a+//foo/...  ":               "@@a+//foo/...",
+			"@@a+//foo:foo":                   "@@a+//foo",
+			"@@a+//foo:all-targets":           "@@a+//foo:all-targets",
+			"@@gazelle++abcdef+go_deps+x//:*": "@@gazelle++abcdef+go_deps+x//:*",
+			`"@@a+//foo:bar baz"`:             `"@@a+//foo:bar baz"`,
+			`'@@a+//foo:a"b'`:                 `'@@a+//foo:a"b'`,
+			`"@@a+//foo:a=b"`:                 `"@@a+//foo:a=b"`,
 
 			// Set operations. All operators have the same
 			// precedence and are left associative.

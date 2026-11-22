@@ -28,7 +28,7 @@ func TestNativeModuleAndRepoNames(t *testing.T) {
 		"@@rules_go+0.50.1//go": {"rules_go+0.50.1", "rules_go", "0.50.1"},
 		// Repos declared by module extensions should report
 		// the module hosting the extension.
-		"@@gazelle+0.40.0+go_deps+org_golang_x_lint//lint": {"gazelle+0.40.0+go_deps+org_golang_x_lint", "gazelle", "0.40.0"},
+		"@@gazelle+0.40.0+abcdef+go_deps+org_golang_x_lint//lint": {"gazelle+0.40.0+abcdef+go_deps+org_golang_x_lint", "gazelle", "0.40.0"},
 	} {
 		t.Run(canonicalPackage, func(t *testing.T) {
 			thread := newTestThread(t)

@@ -56,12 +56,27 @@ func (i CanonicalStarlarkIdentifier) GetStarlarkIdentifier() StarlarkIdentifier 
 	}
 }
 
-// ToModuleExtension converts a Starlark identifier of a module
-// extension declared in a .bzl file and converts it to a string that
-// can be prefixed to repos that are declared by the module extension.
+// ToModuleExtension converts the Starlark identifier of a module
+// extension declared in a .bzl file to a string that can be prefixed
+// to repos that are declared by the module extension.
+//
+// The resulting string contains the module instance and the name of
+// the module extension object, together with a hash of everything in
+// between (e.g., "//foo:extensions.bzl"). This permits a single module
+// to declare multiple module extensions having the same name in
+// different .bzl files, while still yielding names that only depend on
+// the identifier of the module extension.
 func (i CanonicalStarlarkIdentifier) ToModuleExtension() ModuleExtension {
 	v := i.value[2:]
+	identifierIndex := strings.LastIndexByte(v, '%')
 	versionIndex := strings.IndexByte(v, '+') + 1
-	versionEnd := strings.IndexAny(v[versionIndex:], "+/")
-	return ModuleExtension{value: v[:versionIndex+versionEnd] + `+` + v[strings.LastIndexByte(v, '%')+1:]}
+	moduleInstanceEnd := identifierIndex
+	if offset := strings.IndexAny(v[versionIndex:identifierIndex], "+/"); offset >= 0 {
+		moduleInstanceEnd = versionIndex + offset
+	}
+	return newModuleExtension(
+		v[:moduleInstanceEnd],
+		v[moduleInstanceEnd:identifierIndex],
+		v[identifierIndex+1:],
+	)
 }

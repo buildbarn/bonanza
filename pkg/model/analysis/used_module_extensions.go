@@ -126,13 +126,13 @@ func (h *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadat
 
 	ume, ok := h.usedModuleExtensions[moduleExtensionName]
 	if ok {
-		// Safety belt: prevent a single module instance from
-		// declaring multiple module extensions with the same
-		// name. This would cause collisions when both of them
-		// declare repos with the same name.
+		// Safety belt: module extension names contain a hash
+		// of the .bzl file in which they are declared. Prevent
+		// collisions of this hash from causing multiple module
+		// extensions to declare repos with the same name.
 		if moduleExtensionIdentifierStr != ume.message.Identifier {
 			return nil, fmt.Errorf(
-				"module extension declarations %#v and %#v have the same name, meaning they would both declare repos with prefix %#v",
+				"module extension declarations %#v and %#v have colliding names, meaning they would both declare repos with prefix %#v",
 				moduleExtensionIdentifierStr,
 				ume.message.Identifier,
 				moduleExtensionName.String(),

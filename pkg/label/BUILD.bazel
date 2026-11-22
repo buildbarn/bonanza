@@ -38,6 +38,7 @@ go_test(
         "canonical_repo_test.go",
         "canonical_starlark_identifier_test.go",
         "canonical_target_pattern_test.go",
+        "module_extension_test.go",
         "module_version_test.go",
         "query_test.go",
         "resolved_label_test.go",

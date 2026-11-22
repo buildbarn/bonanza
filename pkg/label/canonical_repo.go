@@ -9,13 +9,14 @@ import (
 // CanonicalRepo corresponds to the canonical name of a repo, without
 // the leading "@@". Canonical repo names can refer to a module instance
 // (e.g., "rules_go+") or a repo declared by a module extension or repo
-// rule (e.g., "gazelle++go_deps+org_golang_x_lint").
+// rule (e.g., "gazelle++abcdef+go_deps+org_golang_x_lint" or
+// "rules_foo+++my_repo").
 type CanonicalRepo struct {
 	value string
 }
 
 const validCanonicalRepoPattern = validModuleInstancePattern +
-	`(\+` + validStarlarkIdentifierPattern + `\+` + validApparentRepoPattern + `)?`
+	`(\+(` + validModuleExtensionHashPattern + `\+` + validStarlarkIdentifierPattern + `)?\+` + validApparentRepoPattern + `)?`
 
 var validCanonicalRepoRegexp = regexp.MustCompile("^" + validCanonicalRepoPattern + "$")
 

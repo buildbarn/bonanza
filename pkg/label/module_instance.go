@@ -59,9 +59,9 @@ func (mi ModuleInstance) GetBareCanonicalRepo() CanonicalRepo {
 	return CanonicalRepo{value: mi.value}
 }
 
-// GetModuleExtension appends a Starlark identifier to the name of a
-// module instance. This can be used to uniquely identify a module
-// extension.
-func (mi ModuleInstance) GetModuleExtension(extensionName StarlarkIdentifier) ModuleExtension {
-	return ModuleExtension{value: mi.value + `+` + extensionName.value}
+// GetRepoRulesModuleExtension returns the name of the fictive module
+// extension that holds all repos declared using use_repo_rule() in the
+// MODULE.bazel file of this module instance.
+func (mi ModuleInstance) GetRepoRulesModuleExtension() ModuleExtension {
+	return ModuleExtension{value: mi.value + "+"}
 }
