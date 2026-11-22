@@ -120,6 +120,7 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 			),
 		),
 	)
+	defer treeBuilder.Discard()
 
 	currentHoleSizeBytes := uint64(0)
 	for {
