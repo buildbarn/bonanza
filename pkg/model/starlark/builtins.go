@@ -800,7 +800,13 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					return NewAttr[TReference, TMetadata](NewOutputAttrType[TReference, TMetadata](""), nil, false), nil
+					// Unless the attribute is mandatory, it
+					// defaults to None.
+					var defaultValue eval.Value
+					if !mandatory {
+						defaultValue = eval.None
+					}
+					return NewAttr[TReference, TMetadata](NewOutputAttrType[TReference, TMetadata](""), defaultValue, false), nil
 				},
 			),
 			"output_list": eval.NewBuiltin(
@@ -824,7 +830,13 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						return nil, err
 					}
 
-					return NewAttr[TReference, TMetadata](NewOutputListAttrType[TReference, TMetadata](allowEmpty), nil, false), nil
+					// Unless the attribute is mandatory, it
+					// defaults to the empty list.
+					var defaultValue eval.Value
+					if !mandatory {
+						defaultValue = eval.NewList(nil)
+					}
+					return NewAttr[TReference, TMetadata](NewOutputListAttrType[TReference, TMetadata](allowEmpty), defaultValue, false), nil
 				},
 			),
 			"string": eval.NewBuiltin(
