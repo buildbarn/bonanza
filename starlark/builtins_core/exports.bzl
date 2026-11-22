@@ -725,22 +725,30 @@ def _get_feature_configuration(
             all_requirements_met(selectable)
         )
 
-    def check_activatable(selectable):
-        if selectable not in enabled or is_satisfied(selectable):
-            return
-        enabled.remove(selectable)
-
-        for implies_current in implied_by.get(selectable, []):
-            check_activatable(implies_current)
-        for requires_current in required_by.get(selectable, []):
-            check_activatable(requires_current)
-        for implied in implies.get(selectable, []):
-            check_activatable(implied)
-
     def disable_unsupported_activatables():
-        check = set(enabled)
-        for i in check:
-            check_activatable(i)
+        # Bazel's implementation of checkActivatable() uses recursion,
+        # which Starlark does not permit. As is_satisfied() is monotonic
+        # with respect to the set of enabled selectables, disabling
+        # selectables can be done in any order. Use a work queue instead.
+        #
+        # The queue never contains more than len(selectables_by_name)
+        # elements, and is only extended when a selectable gets
+        # disabled. The number of iterations is thus bounded by
+        # (len(selectables_by_name) + 1) * len(selectables_by_name).
+        queue = set(enabled)
+        for dummy1 in range(len(selectables_by_name) + 1):
+            for dummy2 in selectables_by_name:
+                if not queue:
+                    return
+                selectable = queue.pop()
+                if selectable not in enabled or is_satisfied(selectable):
+                    continue
+                enabled.remove(selectable)
+
+                queue.update(implied_by.get(selectable, []))
+                queue.update(required_by.get(selectable, []))
+                queue.update(implies.get(selectable, []))
+        fail("disable_unsupported_activatables failed to process all selectables")
 
     def is_feature(activatable):
         return {
