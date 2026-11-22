@@ -13,7 +13,7 @@ require (
 	github.com/bazelbuild/buildtools v0.0.0-20260904073137-eaa4d125b423
 	github.com/bluekeyes/go-gitdiff v0.9.0
 	github.com/buildbarn/bb-remote-execution v0.0.0-20261120202529-e9f6d456803e
-	github.com/buildbarn/bb-storage v0.0.0-20261120194511-c307abb24d87
+	github.com/buildbarn/bb-storage v0.0.0-20261122143634-523f89e0623c
 	github.com/buildbarn/go-cdc v0.0.10
 	github.com/ericlagergren/siv v0.0.0-20220507050439-0b757b3aa5f1
 	github.com/google/uuid v1.6.0
