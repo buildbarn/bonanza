@@ -1405,7 +1405,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						"name", unpack.Bind(&name, unpack.Stringer(unpack.TargetName)),
 						"actual", unpack.Bind(&actual, NewSelectUnpackerInto[TReference, TMetadata](unpack.IfNotNone(labelOrStringUnpackerInto))),
 						"deprecation?", unpack.Bind(&deprecation, unpack.String),
-						"tags?", unpack.Bind(&tags, unpack.List(unpack.String)),
+						"tags?", unpack.Bind(&tags, unpack.IfNotNone(unpack.List(unpack.String))),
 						"visibility?", unpack.Bind(&visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 					); err != nil {
 						return nil, err
@@ -1795,7 +1795,7 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					if err := eval.UnpackArgs(
 						thread, b.Name(), args,
 						"name", unpack.Bind(&name, unpack.Stringer(unpack.TargetName)),
-						"tags?", unpack.Bind(&tags, unpack.List(unpack.String)),
+						"tags?", unpack.Bind(&tags, unpack.IfNotNone(unpack.List(unpack.String))),
 						"tests?", unpack.Bind(&tests, unpack.List(labelOrStringUnpackerInto)),
 						"visibility?", unpack.Bind(&visibility, targetRegistrar.newVisibilityUnpackerInto(currentPackage)),
 					); err != nil {
