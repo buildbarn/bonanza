@@ -1038,6 +1038,10 @@ def builtins_internal_cc_common_get_memory_inefficient_command_line(
     return command_line
 
 def _tool_get_tool_path_string(tool, cc_toolchain_path):
+    if tool.tool:
+        # Tool refers to a built artifact. Its path is relative to
+        # the execution root.
+        return tool.tool.path
     p = tool.path
     if cc_toolchain_path and not p.startswith("/"):
         p = cc_toolchain_path + "/" + p
