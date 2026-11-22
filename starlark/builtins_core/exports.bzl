@@ -511,6 +511,12 @@ platform = rule(
             form, without the PEM header/footer.
             """,
         ),
+        "exec_properties": attr.string_dict(
+            doc = """
+            A map of strings that affect the way actions are executed
+            remotely. These are not used by this implementation.
+            """,
+        ),
         "parents": attr.label_list(
             doc = """
             The label of a platform target that this platform should
