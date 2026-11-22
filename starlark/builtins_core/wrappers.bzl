@@ -242,7 +242,9 @@ def _wrap_rule_ctx(ctx):
             if type(output) == type([]):
                 for o in output:
                     all_targets[o.label] = ([o], None)
-            else:
+            elif output != None:
+                # Optional attr.output() attributes that are not set
+                # are None.
                 all_targets[output.label] = ([output], None)
 
         def expand_directive(directive):
