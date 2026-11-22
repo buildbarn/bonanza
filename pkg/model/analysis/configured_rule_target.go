@@ -2827,6 +2827,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doSymlink(thread *eval.T
 	var targetPath path.Parser
 	isExecutable := false
 	progressMessage := ""
+	targetType := ""
 	useExecRootForSource := false
 	rc := rca.targetContext
 	if err := eval.UnpackArgs(
@@ -2836,6 +2837,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doSymlink(thread *eval.T
 		"target_path?", unpack.Bind(&targetPath, unpack.PathParser(path.UNIXFormat)),
 		"is_executable?", unpack.Bind(&isExecutable, unpack.Bool),
 		"progress_message?", unpack.Bind(&progressMessage, unpack.IfNotNone(unpack.String)),
+		"target_type?", unpack.Bind(&targetType, unpack.IfNotNone(unpack.String)),
 		"use_exec_root_for_source?", unpack.Bind(&useExecRootForSource, unpack.Bool),
 	); err != nil {
 		return nil, err
