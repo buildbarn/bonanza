@@ -2499,6 +2499,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 	if err != nil {
 		return nil, err
 	}
+	defer argsList.Discard()
 
 	envList, envParentNodeComputer, err := convertDictToEnvironmentVariableList(
 		rc.context,
@@ -2510,6 +2511,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 	if err != nil {
 		return nil, err
 	}
+	defer envList.Discard()
 
 	execGroups := rc.namedExecGroups.Message
 	execGroupIndex, ok := sort.Find(
@@ -2548,6 +2550,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 	if err != nil {
 		return nil, err
 	}
+	defer outputPathPatternChildren.Discard()
 
 	// Tools such as compilers tend to expect that parent
 	// directories of output files already exist. Create a directory
@@ -2569,6 +2572,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 		}
 	}
 	var createdInitialOutputDirectory model_filesystem.CreatedDirectory[TMetadata]
+	defer createdInitialOutputDirectory.Message.Discard()
 	group, groupCtx := errgroup.WithContext(rc.context)
 	group.Go(func() error {
 		return model_filesystem.CreateDirectoryMerkleTree(
@@ -2635,11 +2639,13 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 	if err != nil {
 		return nil, err
 	}
+	defer encodedInputs.Discard()
 
 	toolsList, err := toolsBuilder.FinalizeList()
 	if err != nil {
 		return nil, err
 	}
+	defer toolsList.Discard()
 
 	actionDefinition, err := inlinedtree.Build(
 		inlinedtree.CandidateList[*model_analysis_pb.TargetActionDefinition, TMetadata]{
