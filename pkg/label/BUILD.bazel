@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "label",
     srcs = [
+        "absolute_label.go",
         "apparent_label.go",
         "apparent_repo.go",
         "apparent_target_pattern.go",
@@ -30,6 +31,7 @@ go_library(
 go_test(
     name = "label_test",
     srcs = [
+        "absolute_label_test.go",
         "apparent_label_test.go",
         "canonical_label_test.go",
         "canonical_package_test.go",

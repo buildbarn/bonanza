@@ -111,7 +111,7 @@ func (buildSettingFlagType) emitLongNameParser(flagSetName, longName string) {
 	fmt.Printf("  }\n")
 	fmt.Printf("  if shouldApply {\n")
 	fmt.Printf("    cmd.appendBuildSettingOverride(BuildSettingOverride{\n")
-	fmt.Printf("      Label: %#v,\n", "@bazel_tools//command_line_option:"+longName)
+	fmt.Printf("      Label: label.MustNewAbsoluteLabel(%#v),\n", "@bazel_tools//command_line_option:"+longName)
 	fmt.Printf("      Value: optionValue,\n")
 	fmt.Printf("    })\n")
 	fmt.Printf("  }\n")

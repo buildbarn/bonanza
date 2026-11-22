@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"bonanza.build/pkg/bazelclient/arguments"
+	"bonanza.build/pkg/label"
 
 	"github.com/stretchr/testify/require"
 )
@@ -783,6 +784,128 @@ func TestParseCommandAndArguments(t *testing.T) {
 			)
 			require.NoError(t, err)
 			require.True(t, command.(*arguments.VersionCommand).CommonFlags.EnablePlatformSpecificConfig)
+		})
+	})
+
+	t.Run("UserDefinedBuildSettings", func(t *testing.T) {
+		t.Run("Success", func(t *testing.T) {
+			command, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{
+					"build": [][]string{
+						{"--@rules_go//go/config:race"},
+					},
+					"common": [][]string{
+						{"--//my/settings:from_rc=hello"},
+					},
+				},
+				"linux",
+				[]string{
+					"build",
+					"--@rules_go//go/config:pure=true",
+					"--//my/settings:list=a,b",
+					"--no@rules_python//python/config_settings:bootstrap_impl_enabled",
+					"--no//my/settings:negated",
+					"--@@canonical+//:setting=42",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, []arguments.BuildSettingOverride{
+				{Label: label.MustNewAbsoluteLabel("//my/settings:from_rc"), Value: "hello"},
+				{Label: label.MustNewAbsoluteLabel("@rules_go//go/config:race"), Value: "true"},
+				{Label: label.MustNewAbsoluteLabel("@rules_go//go/config:pure"), Value: "true"},
+				{Label: label.MustNewAbsoluteLabel("//my/settings:list"), Value: "a,b"},
+				{Label: label.MustNewAbsoluteLabel("@rules_python//python/config_settings:bootstrap_impl_enabled"), Value: "false"},
+				{Label: label.MustNewAbsoluteLabel("//my/settings:negated"), Value: "false"},
+				{Label: label.MustNewAbsoluteLabel("@@canonical+//:setting"), Value: "42"},
+			}, command.(*arguments.BuildCommand).BuildSettingOverrides)
+			require.Equal(t, []string{"//..."}, command.(*arguments.BuildCommand).Arguments)
+		})
+
+		t.Run("ValueNotConsumedFromNextArgument", func(t *testing.T) {
+			// Like Bazel, the value must be provided using
+			// "=". Otherwise the next argument is treated
+			// as a target pattern.
+			command, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{},
+				"linux",
+				[]string{
+					"build",
+					"--//my/settings:flag",
+					"//...",
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, []arguments.BuildSettingOverride{
+				{Label: label.MustNewAbsoluteLabel("//my/settings:flag"), Value: "true"},
+			}, command.(*arguments.BuildCommand).BuildSettingOverrides)
+			require.Equal(t, []string{"//..."}, command.(*arguments.BuildCommand).Arguments)
+		})
+
+		t.Run("NegatedWithValue", func(t *testing.T) {
+			_, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{},
+				"linux",
+				[]string{
+					"build",
+					"--no//my/settings:flag=true",
+				},
+			)
+			require.EqualError(t, err, "flag --no//my/settings:flag does not take a value")
+		})
+
+		t.Run("NotApplicable", func(t *testing.T) {
+			_, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{},
+				"linux",
+				[]string{
+					"version",
+					"--@rules_go//go/config:pure",
+				},
+			)
+			require.EqualError(t, err, "flag --@rules_go//go/config:pure does not apply to this command")
+		})
+
+		t.Run("IgnoredInCommonDirective", func(t *testing.T) {
+			command, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{
+					"common": [][]string{
+						{"--@rules_go//go/config:pure"},
+					},
+				},
+				"linux",
+				[]string{
+					"version",
+				},
+			)
+			require.NoError(t, err)
+			require.Empty(t, command.(*arguments.VersionCommand).BuildSettingOverrides)
+		})
+
+		t.Run("InvalidLabel", func(t *testing.T) {
+			// Flags that look like labels, but aren't valid
+			// absolute labels, are not recognized.
+			_, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{},
+				"linux",
+				[]string{
+					"build",
+					"--//foo/...=1",
+				},
+			)
+			require.EqualError(t, err, "flag --//foo/... not recognized")
+		})
+
+		t.Run("NotALabel", func(t *testing.T) {
+			_, err := arguments.ParseCommandAndArguments(
+				arguments.ConfigurationDirectives{},
+				"linux",
+				[]string{
+					"build",
+					"--nonexistent_flag",
+				},
+			)
+			require.EqualError(t, err, "flag --nonexistent_flag not recognized")
 		})
 	})
 }

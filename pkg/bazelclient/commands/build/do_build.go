@@ -303,15 +303,12 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		// single list of platforms. However, there is no way to pick
 		// different build setting overrides depending on the platform.
 		commonBuildSettingOverrides := make([]*model_analysis_pb.BuildResult_Key_BuildSettingOverride, 0, len(args.BuildSettingOverrides))
+		rootRepo := currentPackage.GetCanonicalRepo()
 		for _, override := range args.BuildSettingOverrides {
-			apparentLabel, err := currentPackage.AppendTargetPattern(override.Label)
-			if err != nil {
-				logger.Fatal(formatted.Textf("Invalid build setting override --%s=%#v: %s", override.Label, override.Value, err))
-			}
 			commonBuildSettingOverrides = append(
 				commonBuildSettingOverrides,
 				&model_analysis_pb.BuildResult_Key_BuildSettingOverride{
-					Label: apparentLabel.String(),
+					Label: rootRepo.AppendLabel(override.Label).String(),
 					Value: override.Value,
 				},
 			)

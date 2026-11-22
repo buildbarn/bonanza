@@ -22,6 +22,7 @@ go_library(
     importpath = "bonanza.build/pkg/bazelclient/arguments",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/label",
         "@com_github_buildbarn_bb_storage//pkg/filesystem",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
         "@com_github_buildbarn_bb_storage//pkg/util",
@@ -43,6 +44,7 @@ go_test(
     ],
     embed = [":arguments"],
     deps = [
+        "//pkg/label",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",

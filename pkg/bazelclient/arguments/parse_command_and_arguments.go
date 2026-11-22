@@ -1,10 +1,16 @@
 package arguments
 
+import (
+	"strings"
+
+	"bonanza.build/pkg/label"
+)
+
 // BuildSettingOverride contains the label of a user-defined build
 // setting for which an override was provided on the command line or in
 // a bazelrc file, and the value that is assigned to it.
 type BuildSettingOverride struct {
-	Label string
+	Label label.AbsoluteLabel
 	Value string
 }
 
@@ -121,4 +127,55 @@ func parseBool(hasValue bool, value string, out *bool, flagName string) error {
 		*out = v
 	}
 	return nil
+}
+
+// parseUserDefinedBuildSetting parses flags of the form
+// --//foo:bar=value and --@repo//foo:bar=value, which can be used to
+// override the value of user-defined build settings. Like Bazel, a
+// value of true is assumed if no value is provided, while flags of the
+// form --no//foo:bar and --no@repo//foo:bar set them to false.
+//
+// As the type of the build setting is not known at this point, the
+// value is passed on as a string. Validation of the value is performed
+// during analysis.
+func parseUserDefinedBuildSetting(cmd assignableCommand, mustApply bool, longOptionName string, hasValue bool, optionValue string) (bool, error) {
+	// Flags whose names are absolute labels refer to user-defined
+	// build settings. Labels relative to a package are not
+	// permitted, as those would be indistinguishable from names of
+	// regular flags (e.g., "keep_going").
+	name := strings.TrimPrefix(longOptionName, "--")
+	buildSettingLabel, err := label.NewAbsoluteLabel(name)
+	if err == nil {
+		if !hasValue {
+			optionValue = "true"
+		}
+	} else {
+		negatedName, ok := strings.CutPrefix(name, "no")
+		if !ok {
+			return false, nil
+		}
+		buildSettingLabel, err = label.NewAbsoluteLabel(negatedName)
+		if err != nil {
+			return false, nil
+		}
+		if hasValue {
+			return true, FlagUnexpectedValueError{Flag: longOptionName}
+		}
+		optionValue = "false"
+	}
+
+	// Only commands that perform analysis accept build settings.
+	// Similar to regular flags, silently ignore them when provided
+	// through "common" directives.
+	if cmd.getBuildFlags() == nil {
+		if mustApply {
+			return true, FlagNotApplicableError{Flag: longOptionName}
+		}
+		return true, nil
+	}
+	cmd.appendBuildSettingOverride(BuildSettingOverride{
+		Label: buildSettingLabel,
+		Value: optionValue,
+	})
+	return true, nil
 }

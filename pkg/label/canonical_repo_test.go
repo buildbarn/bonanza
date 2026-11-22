@@ -11,6 +11,25 @@ import (
 )
 
 func TestCanonicalRepo(t *testing.T) {
+	t.Run("AppendLabel", func(t *testing.T) {
+		base := util.Must(label.NewCanonicalRepo("example+"))
+		for input, output := range map[string]string{
+			"//baz":               "@@example+//baz",
+			"//baz:wiz":           "@@example+//baz:wiz",
+			"//:foo":              "@@example+//:foo",
+			"//baz:baz":           "@@example+//baz",
+			"//:example+":         "@@example+",
+			"@@other1+":           "@@other1+",
+			"@@other1+//:other1+": "@@other1+",
+			"@@other1+//:foo":     "@@other1+//:foo",
+			"@other2":             "@other2",
+			"@other2//:other2":    "@other2",
+			"@other2//:foo":       "@other2//:foo",
+		} {
+			assert.Equal(t, output, base.AppendLabel(util.Must(label.NewAbsoluteLabel(input))).String())
+		}
+	})
+
 	t.Run("GetModule", func(t *testing.T) {
 		for input, output := range map[string]string{
 			"com_github_buildbarn_bb_storage+":                    "com_github_buildbarn_bb_storage",

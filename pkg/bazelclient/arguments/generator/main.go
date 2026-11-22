@@ -39,6 +39,8 @@ func main() {
 	fmt.Println("package arguments")
 	fmt.Println("import (")
 	fmt.Println("\"strings\"")
+	fmt.Println("")
+	fmt.Println("\"bonanza.build/pkg/label\"")
 	fmt.Println(")")
 
 	for _, enumTypeName := range slices.Sorted(maps.Keys(enumTypes)) {
@@ -260,7 +262,11 @@ func main() {
 	fmt.Printf("        case \"--\":\n")
 	fmt.Printf("          allowFlags = false\n")
 	fmt.Printf("        default:\n")
-	fmt.Printf("          return FlagNotRecognizedError{Flag: longOptionName}\n")
+	fmt.Printf("          if isUserDefined, err := parseUserDefinedBuildSetting(cmd, mustApply, longOptionName, assignmentIndex >= 0, optionValue); err != nil {\n")
+	fmt.Printf("            return err\n")
+	fmt.Printf("          } else if !isUserDefined {\n")
+	fmt.Printf("            return FlagNotRecognizedError{Flag: longOptionName}\n")
+	fmt.Printf("          }\n")
 	fmt.Printf("        }\n")
 	fmt.Printf("      } else if allowFlags && len(firstArg) > 0 && firstArg[0] == '-' {\n")
 	fmt.Printf("        shortOptionName := firstArg\n")

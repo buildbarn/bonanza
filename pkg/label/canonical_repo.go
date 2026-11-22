@@ -75,3 +75,23 @@ func (r CanonicalRepo) applyToLabelOrTargetPattern(value string) string {
 	// Translate "@from" to "@@to//:from".
 	return "@@" + r.value + "//:" + strings.TrimLeft(value, "@")
 }
+
+// AppendLabel appends a provided absolute label to a canonical repo
+// name. Labels that start with two slashes are interpreted as referring
+// to targets within this repo. The resulting label is apparent, because
+// the provided label value may be prefixed with an apparent repo. It is
+// the caller's responsibility to resolve the apparent repo to a
+// canonical one.
+func (r CanonicalRepo) AppendLabel(l AbsoluteLabel) ApparentLabel {
+	if l.value[0] == '@' {
+		return ApparentLabel{value: l.value}
+	}
+	// Absolute labels are already stored in canonical form. The
+	// only case in which the target name becomes redundant is when
+	// it is in the root package and matches the name of the repo
+	// (e.g., "//:foo" relative to "@@foo").
+	if targetName, ok := strings.CutPrefix(l.value, "//:"); ok && targetName == r.value {
+		return ApparentLabel{value: "@@" + r.value}
+	}
+	return ApparentLabel{value: "@@" + r.value + l.value}
+}
