@@ -321,6 +321,22 @@ func newExistingRule[TReference object.BasicReference, TMetadata model_core.Refe
 		if err := b.set("build_setting_default", buildSettingDefault); err != nil {
 			return nil, err
 		}
+		if l := labelSetting.OnLeaveScope; l != "" {
+			onLeaveScopes, err := b.labelStringsToTuple([]string{l})
+			if err != nil {
+				return nil, err
+			}
+			if err := b.set("on_leave_scope", onLeaveScopes[0]); err != nil {
+				return nil, err
+			}
+		}
+		scope, err := FormatBuildSettingScope(labelSetting.Scope)
+		if err != nil {
+			return nil, err
+		}
+		if err := b.set("scope", eval.String(scope)); err != nil {
+			return nil, err
+		}
 	case *model_starlark_pb.Target_Definition_RuleTarget:
 		if err := b.addRuleTargetAttrs(model_core.Nested(definition, kind.RuleTarget)); err != nil {
 			return nil, err
@@ -445,12 +461,30 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addRuleTargetAttrs(ruleTarg
 		return err
 	}
 
-	if buildSettingDefault := ruleTarget.Message.BuildSettingDefault; buildSettingDefault != nil {
+	if buildSettingDefault := ruleTarget.Message.BuildSetting.GetDefault(); buildSettingDefault != nil {
 		value, err := DecodeValue[TReference, TMetadata](b.thread, model_core.Nested(ruleTarget, buildSettingDefault), nil)
 		if err != nil {
 			return fmt.Errorf("attr \"build_setting_default\": %w", err)
 		}
 		if err := b.setValue("build_setting_default", value); err != nil {
+			return err
+		}
+	}
+	if onLeaveScope := ruleTarget.Message.BuildSetting.GetOnLeaveScope(); onLeaveScope != nil {
+		value, err := DecodeValue[TReference, TMetadata](b.thread, model_core.Nested(ruleTarget, onLeaveScope), nil)
+		if err != nil {
+			return fmt.Errorf("attr \"on_leave_scope\": %w", err)
+		}
+		if err := b.setValue("on_leave_scope", value); err != nil {
+			return err
+		}
+	}
+	if buildSetting := ruleTarget.Message.BuildSetting; buildSetting != nil {
+		scopeStr, err := FormatBuildSettingScope(buildSetting.Scope)
+		if err != nil {
+			return fmt.Errorf("attr \"scope\": %w", err)
+		}
+		if err := b.set("scope", eval.String(scopeStr)); err != nil {
 			return err
 		}
 	}

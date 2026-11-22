@@ -118,7 +118,7 @@ func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata mod
 		}, nil
 	case *model_starlark_pb.Target_Definition_RuleTarget:
 		// Build setting is written in Starlark.
-		if targetKind.RuleTarget.BuildSettingDefault == nil {
+		if targetKind.RuleTarget.BuildSetting == nil {
 			return expectedTransitionOutput[TReference]{}, fmt.Errorf("rule %#v used by label setting %#v does not have \"build_setting\" set", targetKind.RuleTarget.RuleIdentifier, visibleBuildSettingLabel)
 		}
 		ruleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
@@ -146,7 +146,7 @@ func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata mod
 		return expectedTransitionOutput[TReference]{
 			label:         visibleBuildSettingLabel,
 			canonicalizer: buildSettingType.GetCanonicalizer(transitionPackage),
-			defaultValue:  model_core.Nested(targetValue, targetKind.RuleTarget.BuildSettingDefault),
+			defaultValue:  model_core.Nested(targetValue, targetKind.RuleTarget.BuildSetting.Default),
 			isFlag:        buildSetting.Flag,
 		}, nil
 	default:
@@ -452,9 +452,9 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 		}
 		return model_core.NewSimpleMessage[TReference](buildSettingDefault), nil
 	case *model_starlark_pb.Target_Definition_RuleTarget:
-		if d := targetKind.RuleTarget.BuildSettingDefault; d != nil {
+		if bs := targetKind.RuleTarget.BuildSetting; bs != nil {
 			// Build setting that is written in Starlark.
-			return model_core.Nested(targetValue, d), nil
+			return model_core.Nested(targetValue, bs.Default), nil
 		}
 
 		// Not a build setting, but the target may provide

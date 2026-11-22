@@ -84,6 +84,7 @@ go_test(
         "aspect_test.go",
         "attr_test.go",
         "attr_value_builder_test.go",
+        "build_setting_test.go",
         "dict_test.go",
         "encode_compiled_program_test.go",
         "exec_bzl_file_test.go",

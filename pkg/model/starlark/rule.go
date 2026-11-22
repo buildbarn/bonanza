@@ -113,7 +113,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eva
 				"tags", "target_compatible_with", "testonly",
 				"visibility":
 				return nil, fmt.Errorf("rule uses attribute with reserved name %#v", nameStr)
-			case "build_setting_default", "help":
+			case "build_setting_default", "help", "on_leave_scope", "scope":
 				if buildSetting != nil {
 					return nil, fmt.Errorf("rule uses attribute with name %#v, which is reserved for build settings", nameStr)
 				}
@@ -181,6 +181,9 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eva
 	)
 
 	var buildSettingDefault eval.Value
+	var buildSettingOnLeaveScope eval.Value
+	buildSettingScope := defaultBuildSettingScope
+
 	if buildSetting != nil {
 		var help string
 		mandatoryUnpackers = append(
@@ -191,7 +194,16 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eva
 				unpack.Canonicalize(buildSetting.buildSettingType.GetCanonicalizer(currentPackage)),
 			),
 		)
-		optionalUnpackers = append(optionalUnpackers, "help?", unpack.Bind(&help, unpack.IfNotNone(unpack.String)))
+		optionalUnpackers = append(
+			optionalUnpackers,
+			"help?", unpack.Bind(&help, unpack.IfNotNone(unpack.String)),
+			"on_leave_scope?",
+			unpack.Bind(
+				&buildSettingOnLeaveScope,
+				unpack.IfNotNone(unpack.Canonicalize(buildSetting.buildSettingType.GetCanonicalizer(currentPackage))),
+			),
+			"scope?", unpack.Bind(&buildSettingScope, unpack.IfNotNone(NewBuildSettingScopeUnpackerInto[TReference, TMetadata](currentPackage))),
+		)
 	}
 
 	// Attributes that are specific to tests.
@@ -355,9 +367,26 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eva
 		}
 	}
 
-	var encodedBuildSettingDefault model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]
+	var buildSettingMessage *model_starlark_pb.RuleTarget_BuildSetting
 	if buildSetting != nil {
-		encodedBuildSettingDefault, err = EncodeValue[TReference, TMetadata](
+		buildSettingMessage = &model_starlark_pb.RuleTarget_BuildSetting{
+			Scope: buildSettingScope,
+		}
+		if buildSettingOnLeaveScope != nil {
+			encodedBuildSettingOnLeaveScope, err := EncodeValue[TReference, TMetadata](
+				thread,
+				buildSettingOnLeaveScope,
+				/* path = */ nil,
+				/* identifier = */ nil,
+				valueEncodingOptions,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("failed to encode \"on_leave_scope\": %w", err)
+			}
+			buildSettingMessage.OnLeaveScope = encodedBuildSettingOnLeaveScope.Message
+			patcher.Merge(encodedBuildSettingOnLeaveScope.Patcher)
+		}
+		encodedBuildSettingDefault, err := EncodeValue[TReference, TMetadata](
 			thread,
 			buildSettingDefault,
 			/* path = */ nil,
@@ -367,6 +396,7 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eva
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode \"build_setting_default\": %w", err)
 		}
+		buildSettingMessage.Default = encodedBuildSettingDefault.Message
 		patcher.Merge(encodedBuildSettingDefault.Patcher)
 	}
 
@@ -468,8 +498,8 @@ func (r *rule[TReference, TMetadata]) CallInternal(thread *eval.Thread, args eva
 							Testonly:         testOnly,
 							Visibility:       visibilityPackageGroup.Message,
 						},
-						BuildSettingDefault: encodedBuildSettingDefault.Message,
-						Test:                testMessage,
+						BuildSetting: buildSettingMessage,
+						Test:         testMessage,
 					},
 				},
 			},
@@ -790,6 +820,17 @@ func (r *rule[TReference, TMetadata]) getInheritableAttrs(thread *eval.Thread) (
 			eval.None,
 			/* configurable = */ false,
 		)
+		attrs[onLeaveScopeAttrIdentifier] = NewAttr(
+			buildSetting.buildSettingType.GetAttrType(),
+			eval.None,
+			/* configurable = */ false,
+		)
+		attrs[scopeAttrIdentifier] = NewAttr(
+			NewStringAttrType[TReference, TMetadata](nil),
+			eval.String("target"),
+			/* configurable = */ false,
+		)
+
 	}
 	for name, attr := range ruleAttrs {
 		// Predeclared outputs declared using rule(outputs = ...)

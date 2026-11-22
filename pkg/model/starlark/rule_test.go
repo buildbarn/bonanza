@@ -21,6 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"go.uber.org/mock/gomock"
+
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func TestRuleCallTest(t *testing.T) {
@@ -252,4 +254,119 @@ func TestRuleCallOutputAttr(t *testing.T) {
 		[]model_starlark.SelectGroup{model_starlark.NewSelectGroup(nil, outLabel, "")},
 		0,
 	)), "invalid argument \"out\": attribute is not configurable, meaning select() cannot be used")
+}
+
+func TestRuleCallBuildSetting(t *testing.T) {
+	ctrl, ctx := gomock.WithContext(t.Context(), t)
+	referenceFormat := util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1))
+	encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
+
+	// callRule invokes a bool build setting rule having the
+	// provided attrs from within a BUILD file, returning the build
+	// setting properties of the rule target that is registered.
+	callRule := func(t *testing.T, attrs map[label.StarlarkIdentifier]*model_starlark.Attr[object.LocalReference, model_core.CreatedObjectTree], kwargs ...eval.NamedArg) (*model_starlark_pb.RuleTarget_BuildSetting, error) {
+		objectManager := NewMockObjectManagerForTesting(ctrl)
+		targetRegistrar := model_starlark.NewTargetRegistrar[object.LocalReference, model_core.CreatedObjectTree](
+			ctx,
+			encoder,
+			inlinedtree.Options{
+				ReferenceFormat:  referenceFormat,
+				MaximumSizeBytes: 32 * 1024,
+			},
+			objectManager,
+			model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.InheritableAttrs{}),
+		)
+		defer targetRegistrar.Discard()
+
+		thread := newTestThread(t)
+		thread.SetLocal(model_starlark.TargetRegistrarKey, targetRegistrar)
+		thread.SetLocal(model_starlark.CanonicalPackageKey, util.Must(label.NewCanonicalPackage("@@main+//foo")))
+		thread.SetLocal(model_starlark.LabelResolverKey, NewMockLabelResolver(ctrl))
+		thread.SetLocal(model_starlark.ValueEncodingOptionsKey, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{
+			Context:               ctx,
+			ObjectEncoder:         encoder,
+			ObjectReferenceFormat: referenceFormat,
+			ObjectCapturer:        objectManager,
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				MinimumSizeBytes: 32 * 1024,
+				HorizonSizeBytes: 8 * 32 * 1024,
+			}, referenceFormat)),
+		})
+
+		identifier := util.Must(label.NewCanonicalStarlarkIdentifier("@@rules+//:defs.bzl%my_flag"))
+		rule := model_starlark.NewRule(
+			&identifier,
+			model_starlark.NewStarlarkRuleDefinition[object.LocalReference, model_core.CreatedObjectTree](
+				attrs,
+				model_starlark.NewBuildSetting(model_starlark.NewBoolBuildSettingType[object.LocalReference, model_core.CreatedObjectTree](), true),
+				/* cfg = */ nil,
+				/* execGroups = */ nil,
+				/* implementation = */ nil,
+				/* initializer = */ nil,
+				/* provides = */ nil,
+				model_starlark_pb.Rule_Definition_NON_EXECUTABLE,
+				/* subrules = */ nil,
+			),
+		)
+		if _, err := eval.Call(thread, rule, eval.Args{Named: append(
+			[]eval.NamedArg{
+				{Name: "name", Value: eval.String("t")},
+				{Name: "build_setting_default", Value: eval.True},
+			},
+			kwargs...,
+		)}); err != nil {
+			return nil, err
+		}
+		return targetRegistrar.GetAndRemoveTarget("t").Message.GetRuleTarget().BuildSetting, nil
+	}
+	targetScope := &model_starlark_pb.BuildSettingScope{
+		Kind: &model_starlark_pb.BuildSettingScope_Target{Target: &emptypb.Empty{}},
+	}
+
+	t.Run("Defaults", func(t *testing.T) {
+		buildSetting, err := callRule(t, nil)
+		require.NoError(t, err)
+		testutil.RequireEqualProto(t, targetScope, buildSetting.Scope)
+		require.Nil(t, buildSetting.OnLeaveScope)
+	})
+
+	t.Run("Explicit", func(t *testing.T) {
+		buildSetting, err := callRule(
+			t,
+			nil,
+			eval.NamedArg{Name: "scope", Value: eval.String("exec:--:host_flag")},
+			eval.NamedArg{Name: "on_leave_scope", Value: eval.False},
+		)
+		require.NoError(t, err)
+		testutil.RequireEqualProto(t, &model_starlark_pb.BuildSettingScope{
+			Kind: &model_starlark_pb.BuildSettingScope_Exec{Exec: "@@main+//foo:host_flag"},
+		}, buildSetting.Scope)
+		testutil.RequireEqualProto(t, &model_starlark_pb.Value{
+			Kind: &model_starlark_pb.Value_Bool{Bool: false},
+		}, buildSetting.OnLeaveScope)
+	})
+
+	t.Run("InvalidScope", func(t *testing.T) {
+		_, err := callRule(t, nil, eval.NamedArg{Name: "scope", Value: eval.String("everywhere")})
+		require.ErrorContains(t, err, "invalid build setting scope \"everywhere\"")
+	})
+
+	t.Run("InvalidOnLeaveScope", func(t *testing.T) {
+		// on_leave_scope must match the type of the build
+		// setting.
+		_, err := callRule(t, nil, eval.NamedArg{Name: "on_leave_scope", Value: eval.String("false")})
+		require.Error(t, err)
+	})
+
+	t.Run("SelectScope", func(t *testing.T) {
+		// The scope needs to be known prior to configuration,
+		// so it cannot be configurable.
+		_, err := callRule(t, nil, eval.NamedArg{Name: "scope", Value: model_starlark.NewSelect[object.LocalReference, model_core.CreatedObjectTree](
+			[]model_starlark.SelectGroup{
+				model_starlark.NewSelectGroup(nil, eval.String("universal"), ""),
+			},
+			/* concatenationOperator = */ 0,
+		)})
+		require.Error(t, err)
+	})
 }

@@ -829,6 +829,41 @@ message LabelSetting {
   // The visibility of the label setting, which may differ from the
   // visibility of the target to which the label setting.
   PackageGroup visibility = 4;
+
+  // The scope of the label setting, corresponding to the "scope"
+  // attribute. If the attribute is not set, it is equal to "target".
+  BuildSettingScope scope = 5;
+
+  // The label value to use when the label setting leaves its scope,
+  // corresponding to the "on_leave_scope" attribute. When empty, the
+  // attribute was not set.
+  string on_leave_scope = 6;
+}
+
+// The scope of a build setting, corresponding to the "scope" attribute
+// of build settings. It determines how the value of a build setting is
+// propagated when transitioning to other configurations.
+message BuildSettingScope {
+  oneof kind {
+    // "target": the value is only propagated to targets in the target
+    // configuration. This is the default. When transitioning to an exec
+    // configuration, the build setting is reset to its default value, or the
+    // value of "on_leave_scope".
+    google.protobuf.Empty target = 1;
+
+    // "project": the value is only propagated to targets that are part
+    // of the project, as declared in PROJECT.scl.
+    google.protobuf.Empty project = 2;
+
+    // "universal": the value is propagated to all targets, including
+    // ones in exec configurations.
+    google.protobuf.Empty universal = 3;
+
+    // "exec:--<label>": when transitioning to an exec configuration,
+    // the build setting inherits the target configuration's value of
+    // the build setting with the provided resolved label.
+    string exec = 4;
+  }
 }
 
 message List {
@@ -1391,10 +1426,32 @@ message RuleTarget {
   // in REPO.bazel and package() in BUILD.bazel.
   InheritableAttrs inheritable_attrs = 6;
 
+  message BuildSetting {
+    // The default value of the build setting, corresponding to the
+    // "build_setting_default" attribute. This value is used if the
+    // build setting is not set explicitly.
+    Value default = 1;
+
+    // The scope of the build setting, corresponding to the "scope"
+    // attribute. If the attribute is not set, it is equal to "target".
+    //
+    // In Bazel, build settings written in Starlark need to declare
+    // this attribute explicitly. Bonanza gives all build settings this
+    // attribute implicitly, suppressing any declaration provided by
+    // the rule.
+    BuildSettingScope scope = 2;
+
+    // The value to use when the build setting leaves its scope,
+    // corresponding to the "on_leave_scope" attribute. When not set,
+    // the attribute was not set or set to None. Just like "scope",
+    // this attribute is implicitly provided to all build settings.
+    Value on_leave_scope = 3;
+  }
+
   // If set, the rule used by this target is a build setting, and the
-  // default value if the build setting is not set explicitly is
+  // values of attributes that are specific to build settings are
   // provided.
-  Value build_setting_default = 7;
+  BuildSetting build_setting = 7;
 
   message Test {
     // The size of the test, corresponding to the "size" attribute.

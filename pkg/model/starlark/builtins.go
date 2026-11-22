@@ -118,6 +118,8 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 	var name string
 	var buildSettingDefault string
 	var help string
+	var onLeaveScope string
+	scope := defaultBuildSettingScope
 	singletonList := false
 	visibility := targetRegistrar.getOmittedVisibility()
 	labelOrStringUnpackerInto := NewLabelOrStringUnpackerInto[TReference, TMetadata](currentPackage)
@@ -129,6 +131,8 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 		// to anything by default.
 		"build_setting_default", unpack.Bind(&buildSettingDefault, unpack.IfNotNone(unpack.Stringer(labelOrStringUnpackerInto))),
 		"help?", unpack.Bind(&help, unpack.String),
+		"on_leave_scope?", unpack.Bind(&onLeaveScope, unpack.IfNotNone(unpack.Stringer(labelOrStringUnpackerInto))),
+		"scope?", unpack.Bind(&scope, unpack.IfNotNone(NewBuildSettingScopeUnpackerInto[TReference, TMetadata](currentPackage))),
 		// Extension: --platforms is a list at the command line
 		// level, but it can only be set to a single value at a
 		// time during analysis. As part of transitions it still
@@ -152,6 +156,8 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 					LabelSetting: &model_starlark_pb.LabelSetting{
 						BuildSettingDefault: buildSettingDefault,
 						Flag:                flag,
+						OnLeaveScope:        onLeaveScope,
+						Scope:               scope,
 						SingletonList:       singletonList,
 						Visibility:          visibilityPackageGroup.Message,
 					},
@@ -171,6 +177,8 @@ var (
 	defaultMakeVariablesLabel       = util.Must(pg_label.NewCanonicalLabel("@@bazel_tools+//tools/make:default_make_variables"))
 	defaultToolchainsAttrIdentifier = util.Must(pg_label.NewStarlarkIdentifier("__default_toolchains"))
 	featuresAttrIdentifier          = util.Must(pg_label.NewStarlarkIdentifier("features"))
+	onLeaveScopeAttrIdentifier      = util.Must(pg_label.NewStarlarkIdentifier("on_leave_scope"))
+	scopeAttrIdentifier             = util.Must(pg_label.NewStarlarkIdentifier("scope"))
 	toolchainsAttrIdentifier        = util.Must(pg_label.NewStarlarkIdentifier("toolchains"))
 	targetPlatformAttrIdentifier    = util.Must(pg_label.NewStarlarkIdentifier("__target_platform"))
 	commandLineOptionPlatformsLabel = util.Must(pg_label.NewCanonicalLabel("@@bazel_tools+//command_line_option:platforms"))
@@ -1963,6 +1971,19 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 				}
 				if err := checkAttrsConfigurable(attrs); err != nil {
 					return nil, fmt.Errorf("%s: %w", b.Name(), err)
+				}
+
+				// In Bazel, build settings written in
+				// Starlark need to declare "scope" and
+				// "on_leave_scope" attributes explicitly,
+				// and their values are extracted prior to
+				// configuration. We instead give all build
+				// settings implicit attributes with these
+				// names, meaning any declarations provided
+				// by the rule are suppressed.
+				if buildSetting != nil {
+					delete(attrs, onLeaveScopeAttrIdentifier)
+					delete(attrs, scopeAttrIdentifier)
 				}
 
 				needsConfiguration := needs == nil

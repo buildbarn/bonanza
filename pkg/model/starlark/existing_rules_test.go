@@ -5,6 +5,8 @@ import (
 	"slices"
 	"testing"
 
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	"bonanza.build/pkg/label"
 	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
@@ -176,6 +178,10 @@ func TestExistingRules(t *testing.T) {
 				LabelSetting: &model_starlark_pb.LabelSetting{
 					BuildSettingDefault: "@@main+//bar:default",
 					Flag:                true,
+					OnLeaveScope:        "@@main+//bar:host",
+					Scope: &model_starlark_pb.BuildSettingScope{
+						Kind: &model_starlark_pb.BuildSettingScope_Exec{Exec: "@@main+//bar:host_flag"},
+					},
 				},
 			},
 		},
@@ -234,7 +240,13 @@ func TestExistingRules(t *testing.T) {
 						{ValueParts: valueParts(noMatch(value(nil)))},
 					},
 					TargetCompatibleWith: valueParts(noMatch(value([]*model_starlark_pb.Value{value(newLabel("@@main+//:linux"))}))),
-					BuildSettingDefault:  value("setting"),
+					BuildSetting: &model_starlark_pb.RuleTarget_BuildSetting{
+						Default: value("setting"),
+						Scope: &model_starlark_pb.BuildSettingScope{
+							Kind: &model_starlark_pb.BuildSettingScope_Universal{Universal: &emptypb.Empty{}},
+						},
+					},
+
 					Test: &model_starlark_pb.RuleTarget_Test{
 						Size:       model_starlark_pb.TestSize_LARGE,
 						Timeout:    model_starlark_pb.TestTimeout_LONG,
@@ -247,7 +259,11 @@ func TestExistingRules(t *testing.T) {
 		},
 		"setting": {
 			Kind: &model_starlark_pb.Target_Definition_LabelSetting{
-				LabelSetting: &model_starlark_pb.LabelSetting{},
+				LabelSetting: &model_starlark_pb.LabelSetting{
+					Scope: &model_starlark_pb.BuildSettingScope{
+						Kind: &model_starlark_pb.BuildSettingScope_Target{Target: &emptypb.Empty{}},
+					},
+				},
 			},
 		},
 		"source.txt": {
@@ -274,10 +290,10 @@ func TestExistingRules(t *testing.T) {
 		thread := newThread(t, resolver)
 		for name, expected := range map[string]string{
 			"alias":      `{"name": "alias", "kind": "alias", "actual": ":actual"}`,
-			"flag":       `{"name": "flag", "kind": "label_flag", "build_setting_default": "//bar:default"}`,
+			"flag":       `{"name": "flag", "kind": "label_flag", "build_setting_default": "//bar:default", "on_leave_scope": "//bar:host", "scope": "exec:--@@main+//bar:host_flag"}`,
 			"rule":       `{"name": "rule", "kind": "my_rule", "defaulted": "default", "env": {"FILES": (":f",)}, "opts": <select>, "srcs": (":a.c", "//bar:b.c", "@@other+//baz:c.c"), "deprecation": "Don't use this", "exec_compatible_with": (":exec",), "tags": ("manual",), "target_compatible_with": (), "testonly": True}`,
-			"rule_test":  `{"name": "rule_test", "kind": "my_rule", "computed": "explicit", "defaulted": "explicit", "env": None, "opts": None, "srcs": None, "deprecation": None, "exec_compatible_with": (), "tags": (), "target_compatible_with": ("//:linux",), "testonly": False, "build_setting_default": "setting", "args": ("--verbose",), "flaky": True, "local": False, "shard_count": 3, "size": "large", "timeout": "long"}`,
-			"setting":    `{"name": "setting", "kind": "label_setting", "build_setting_default": None}`,
+			"rule_test":  `{"name": "rule_test", "kind": "my_rule", "computed": "explicit", "defaulted": "explicit", "env": None, "opts": None, "srcs": None, "deprecation": None, "exec_compatible_with": (), "tags": (), "target_compatible_with": ("//:linux",), "testonly": False, "build_setting_default": "setting", "scope": "universal", "args": ("--verbose",), "flaky": True, "local": False, "shard_count": 3, "size": "large", "timeout": "long"}`,
+			"setting":    `{"name": "setting", "kind": "label_setting", "build_setting_default": None, "scope": "target"}`,
 			"source.txt": `None`,
 			"suite":      `{"name": "suite", "kind": "test_suite", "tags": ("fast", "-flaky", "small", "manual"), "tests": (":test",)}`,
 			"missing":    `None`,

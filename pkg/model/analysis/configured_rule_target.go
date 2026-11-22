@@ -1724,8 +1724,8 @@ func (rc *ruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name str
 		}), nil
 	case "build_setting_value":
 		if rc.buildSettingValue == nil {
-			buildSettingDefault := rc.ruleTarget.Message.BuildSettingDefault
-			if buildSettingDefault == nil {
+			buildSetting := rc.ruleTarget.Message.BuildSetting
+			if buildSetting == nil {
 				return nil, eval.NoSuchAttrError{Value: rc, Name: name}
 			}
 
@@ -1757,7 +1757,7 @@ func (rc *ruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name str
 				}
 				encodedValue = model_core.Nested(override, overrideLeaf.Leaf.Value)
 			} else {
-				encodedValue = model_core.Nested(rc.ruleTarget, rc.ruleTarget.Message.BuildSettingDefault)
+				encodedValue = model_core.Nested(rc.ruleTarget, buildSetting.Default)
 			}
 
 			value, err := model_starlark.DecodeValue[TReference, TMetadata](thread, encodedValue, nil)
@@ -1837,7 +1837,7 @@ var ruleContextAttrNames = []string{
 
 func (rc *ruleContext[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
 	attrNames := append([]string(nil), ruleContextAttrNames...)
-	if rc.ruleTarget.Message.BuildSettingDefault != nil {
+	if rc.ruleTarget.Message.BuildSetting != nil {
 		attrNames = append(attrNames, "build_setting_value")
 	}
 	return attrNames, nil

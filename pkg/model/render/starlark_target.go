@@ -140,10 +140,22 @@ func (sr *StarlarkRenderer) renderRuleTargetArguments(ruleTarget model_core.Mess
 			value: sr.renderSelectGroups(model_core.Nested(ruleTarget, l)),
 		})
 	}
-	if v := ruleTarget.Message.BuildSettingDefault; v != nil {
+	if v := ruleTarget.Message.BuildSetting.GetDefault(); v != nil {
 		arguments = append(arguments, starlarkTargetArgument{
 			name:  "build_setting_default",
 			value: sr.renderValue(model_core.Nested(ruleTarget, v)),
+		})
+	}
+	if v := ruleTarget.Message.BuildSetting.GetOnLeaveScope(); v != nil {
+		arguments = append(arguments, starlarkTargetArgument{
+			name:  "on_leave_scope",
+			value: sr.renderValue(model_core.Nested(ruleTarget, v)),
+		})
+	}
+	if v := ruleTarget.Message.BuildSetting; v != nil && !isDefaultBuildSettingScope(v.Scope) {
+		arguments = append(arguments, starlarkTargetArgument{
+			name:  "scope",
+			value: renderBuildSettingScope(v.Scope),
 		})
 	}
 
@@ -223,6 +235,18 @@ func (sr *StarlarkRenderer) Target(targetLabel label.CanonicalLabel, definition 
 				value: starlarkString(l),
 			})
 		}
+		if l := kind.LabelSetting.OnLeaveScope; l != "" {
+			arguments = append(arguments, starlarkTargetArgument{
+				name:  "on_leave_scope",
+				value: starlarkString(l),
+			})
+		}
+		if v := kind.LabelSetting.Scope; !isDefaultBuildSettingScope(v) {
+			arguments = append(arguments, starlarkTargetArgument{
+				name:  "scope",
+				value: renderBuildSettingScope(v),
+			})
+		}
 		return starlarkTargetCall(starlarkCallee(callee, ""), name, arguments)
 	case *model_starlark_pb.Target_Definition_PackageGroup:
 		var arguments []starlarkTargetArgument
@@ -262,4 +286,22 @@ func (sr *StarlarkRenderer) Target(targetLabel label.CanonicalLabel, definition 
 	default:
 		return starlarkErrorf("Unknown target kind")
 	}
+}
+
+// renderBuildSettingScope renders the value of the "scope" attribute
+// of a build setting.
+func renderBuildSettingScope(scope *model_starlark_pb.BuildSettingScope) Doc {
+	scopeStr, err := model_starlark.FormatBuildSettingScope(scope)
+	if err != nil {
+		return starlarkErrorf("%s", err)
+	}
+	return starlarkString(scopeStr)
+}
+
+// isDefaultBuildSettingScope returns true if the scope of a build
+// setting is equal to the default value of the "scope" attribute, and
+// can therefore be omitted.
+func isDefaultBuildSettingScope(scope *model_starlark_pb.BuildSettingScope) bool {
+	_, ok := scope.GetKind().(*model_starlark_pb.BuildSettingScope_Target)
+	return ok
 }

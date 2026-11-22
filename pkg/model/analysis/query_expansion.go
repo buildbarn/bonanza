@@ -237,12 +237,34 @@ func getQueryRuleTarget[TReference any](
 		targetCompatibleWith.appendSelectGroup(model_core.Nested(ruleTarget, selectGroup))
 	}
 	t.attrs = append(t.attrs, targetCompatibleWith)
-	if buildSettingDefault := ruleTarget.Message.BuildSettingDefault; buildSettingDefault != nil {
+	if buildSettingDefault := ruleTarget.Message.BuildSetting.GetDefault(); buildSettingDefault != nil {
 		t.attrs = append(t.attrs, queryAttr[TReference]{
 			name:       "build_setting_default",
 			isExplicit: true,
 			parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
 				model_core.Nested(ruleTarget, buildSettingDefault),
+			}},
+		})
+	}
+	if onLeaveScope := ruleTarget.Message.BuildSetting.GetOnLeaveScope(); onLeaveScope != nil {
+		t.attrs = append(t.attrs, queryAttr[TReference]{
+			name:       "on_leave_scope",
+			isExplicit: true,
+			parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
+				model_core.Nested(ruleTarget, onLeaveScope),
+			}},
+		})
+	}
+	if buildSetting := ruleTarget.Message.BuildSetting; buildSetting != nil {
+		scopeStr, err := model_starlark.FormatBuildSettingScope(buildSetting.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("attr \"scope\": %w", err)
+		}
+		t.attrs = append(t.attrs, queryAttr[TReference]{
+			name:       "scope",
+			isExplicit: true,
+			parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
+				model_core.NewSimpleMessage[TReference](newQueryStringValue(scopeStr)),
 			}},
 		})
 	}

@@ -10,6 +10,7 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 
@@ -383,4 +384,97 @@ func (bsc stringListBuildSettingCanonicalizer) CanonicalizeStringList(values []s
 		elements = append(elements, eval.String(value))
 	}
 	return eval.NewList(elements), nil
+}
+
+type buildSettingScopeUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct {
+	currentPackage pg_label.CanonicalPackage
+}
+
+// NewBuildSettingScopeUnpackerInto creates a Starlark function argument
+// unpacker for the "scope" attribute of build settings, converting it
+// to its Protobuf message representation. For scopes of the form
+// "exec:--<label>", the label is resolved relative to the provided
+// package, so that it can be interpreted independently of the package
+// in which the build setting is declared. Resolution errors are
+// preserved in the resolved label, so that they are only reported when
+// used.
+func NewBuildSettingScopeUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata](currentPackage pg_label.CanonicalPackage) unpack.UnpackerInto[*model_starlark_pb.BuildSettingScope] {
+	return &buildSettingScopeUnpackerInto[TReference, TMetadata]{
+		currentPackage: currentPackage,
+	}
+}
+
+func (ui *buildSettingScopeUnpackerInto[TReference, TMetadata]) UnpackInto(thread *eval.Thread, v eval.Value, dst **model_starlark_pb.BuildSettingScope) error {
+	var scope string
+	if err := unpack.String.UnpackInto(thread, v, &scope); err != nil {
+		return err
+	}
+	switch scope {
+	case "target":
+		*dst = &model_starlark_pb.BuildSettingScope{
+			Kind: &model_starlark_pb.BuildSettingScope_Target{Target: &emptypb.Empty{}},
+		}
+		return nil
+	case "project":
+		*dst = &model_starlark_pb.BuildSettingScope{
+			Kind: &model_starlark_pb.BuildSettingScope_Project{Project: &emptypb.Empty{}},
+		}
+		return nil
+	case "universal":
+		*dst = &model_starlark_pb.BuildSettingScope{
+			Kind: &model_starlark_pb.BuildSettingScope_Universal{Universal: &emptypb.Empty{}},
+		}
+		return nil
+	}
+	if flag, ok := strings.CutPrefix(scope, "exec:--"); ok {
+		var resolvedFlag pg_label.ResolvedLabel
+		if err := NewLabelOrStringUnpackerInto[TReference, TMetadata](ui.currentPackage).UnpackInto(thread, eval.String(flag), &resolvedFlag); err != nil {
+			return fmt.Errorf("invalid build setting scope %#v: %w", scope, err)
+		}
+		*dst = &model_starlark_pb.BuildSettingScope{
+			Kind: &model_starlark_pb.BuildSettingScope_Exec{Exec: resolvedFlag.String()},
+		}
+		return nil
+	}
+	return fmt.Errorf("invalid build setting scope %#v", scope)
+}
+
+func (ui *buildSettingScopeUnpackerInto[TReference, TMetadata]) Canonicalize(thread *eval.Thread, v eval.Value) (eval.Value, error) {
+	var scope *model_starlark_pb.BuildSettingScope
+	if err := ui.UnpackInto(thread, v, &scope); err != nil {
+		return nil, err
+	}
+	scopeStr, err := FormatBuildSettingScope(scope)
+	if err != nil {
+		return nil, err
+	}
+	return eval.String(scopeStr), nil
+}
+
+func (buildSettingScopeUnpackerInto[TReference, TMetadata]) GetConcatenationOperator() syntax.Token {
+	return 0
+}
+
+// defaultBuildSettingScope is the scope of build settings whose "scope"
+// attribute is not set.
+var defaultBuildSettingScope = &model_starlark_pb.BuildSettingScope{
+	Kind: &model_starlark_pb.BuildSettingScope_Target{Target: &emptypb.Empty{}},
+}
+
+// FormatBuildSettingScope converts the Protobuf message representation
+// of a build setting scope back to the value of the "scope" attribute
+// of a build setting (e.g., "universal" or "exec:--@@foo+//:bar").
+func FormatBuildSettingScope(scope *model_starlark_pb.BuildSettingScope) (string, error) {
+	switch kind := scope.GetKind().(type) {
+	case *model_starlark_pb.BuildSettingScope_Target:
+		return "target", nil
+	case *model_starlark_pb.BuildSettingScope_Project:
+		return "project", nil
+	case *model_starlark_pb.BuildSettingScope_Universal:
+		return "universal", nil
+	case *model_starlark_pb.BuildSettingScope_Exec:
+		return "exec:--" + kind.Exec, nil
+	default:
+		return "", errors.New("invalid build setting scope")
+	}
 }

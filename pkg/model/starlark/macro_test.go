@@ -1220,7 +1220,8 @@ outer = macro(implementation = _impl, inherit_attrs = inner)
 	t.Run("BuildSetting", func(t *testing.T) {
 		// Build settings additionally accept a mandatory
 		// "build_setting_default" attribute whose type matches
-		// that of the build setting, and "help".
+		// that of the build setting, "help", "on_leave_scope" and
+		// "scope".
 		for buildSettingType, expectedType := range map[model_starlark.BuildSettingType[object.LocalReference, model_core.CreatedObjectTree]]string{
 			model_starlark.NewBoolBuildSettingType[object.LocalReference, model_core.CreatedObjectTree]():           "Bool",
 			model_starlark.NewIntBuildSettingType[object.LocalReference, model_core.CreatedObjectTree]():            "Int",
@@ -1244,9 +1245,35 @@ outer = macro(implementation = _impl, inherit_attrs = inner)
 				"build_setting_default": expectedType + " mandatory configurable=false",
 				"extra":                 "String_ default=None configurable=true",
 				"help":                  "String_ default=None configurable=false",
+				"on_leave_scope":        expectedType + " default=None configurable=false",
+				"scope":                 "String_ default=None configurable=false",
 			})
 			require.Equal(t, expectedAttrs, macros["m"], buildSettingType.Type())
 		}
+	})
+
+	t.Run("BuildSettingSuppressesDeclaredScope", func(t *testing.T) {
+		// Any "scope" and "on_leave_scope" attributes declared
+		// by build settings are suppressed in favor of the
+		// implicit ones.
+		macros, err := exec(t, newTestThread(t), `
+def _flag_impl(ctx):
+    pass
+
+my_flag = rule(
+    implementation = _flag_impl,
+    build_setting = config.bool(flag = True),
+    attrs = {
+        "on_leave_scope": attr.string(),
+        "scope": attr.string(default = "universal"),
+    },
+)
+
+m = macro(implementation = _impl, inherit_attrs = my_flag)
+`, nil)
+		require.NoError(t, err)
+		require.Equal(t, "Bool default=None configurable=false", macros["m"]["on_leave_scope"])
+		require.Equal(t, "String_ default=None configurable=false", macros["m"]["scope"])
 	})
 
 	t.Run("Invalid", func(t *testing.T) {
