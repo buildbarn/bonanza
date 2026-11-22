@@ -1,6 +1,7 @@
 load("@bazel_tools//fragments:fragment_info.bzl", "FragmentInfo")
 load(
     "//:exports.bzl",
+    "DefaultInfo",
     "PlatformInfo",
     "SymlinkEntry",
     "TemplateVariableInfo",
@@ -162,56 +163,131 @@ def _add_common_ctx_fields(ctx_fields, ctx, is_rule):
 
         ctx_fields["target_platform_has_constraint"] = ctx_target_platform_has_constraint
 
+def _file_execpath(f):
+    return f.path
+
+def _file_rootpath(f):
+    return f.short_path
+
+def _file_rlocationpath(f):
+    # Files in external repositories have a short path of the form
+    # "../repo/path", while files in the main repository have a short
+    # path relative to the root of the main repository.
+    short_path = f.short_path
+    if short_path.startswith("../"):
+        return short_path[3:]
+    return "_main/" + short_path
+
+# Location functions supported by $(...) directives, mapping to a
+# function that computes the path of a file, and whether the directive
+# may expand to multiple files. ctx.expand_location() and
+# ctx.resolve_command() expand $(location) to exec paths.
+_LOCATION_FUNCTIONS = {
+    "execpath": (_file_execpath, False),
+    "execpaths": (_file_execpath, True),
+    "location": (_file_execpath, False),
+    "locations": (_file_execpath, True),
+    "rlocationpath": (_file_rlocationpath, False),
+    "rlocationpaths": (_file_rlocationpath, True),
+    "rootpath": (_file_rootpath, False),
+    "rootpaths": (_file_rootpath, True),
+}
+
+def _expand_location_directives(input, expand_directive):
+    """Replaces $(...) directives in a string.
+
+    expand_directive is called with the contents of each $(...)
+    directive. It returns the replacement string, or None if the
+    directive needs to be left alone (e.g., because it is a make
+    variable). Escaped dollar signs ("$$") are preserved, so that they
+    can be processed by make variable expansion later on.
+    """
+    parts = []
+    pos = 0
+    for _ in range(len(input)):
+        start = input.find("$", pos)
+        if start < 0:
+            break
+        if input[start + 1:start + 2] == "(":
+            end = input.find(")", start + 2)
+            if end < 0:
+                break
+            replacement = expand_directive(input[start + 2:end])
+            parts.append(input[pos:start] if replacement != None else input[pos:end + 1])
+            if replacement != None:
+                parts.append(replacement)
+            pos = end + 1
+        else:
+            parts.append(input[pos:start + 2])
+            pos = start + 2
+    parts.append(input[pos:])
+    return "".join(parts)
+
 def _wrap_rule_ctx(ctx):
-    def ctx_expand_location(input, targets = []):
-        all_targets = {}
+    def _expand_location(input, targets = [], label_dict = {}):
+        # Map labels to the files they expand to, and the executable to
+        # use if the label expands to multiple files in a context
+        # where only a single file is permitted.
+        all_targets = {
+            label: (files, None)
+            for label, files in label_dict.items()
+        }
         for target in targets:
-            executable = target.files_to_run.executable
-            files = target.files.to_list()
-            all_targets[target.original_label] = [executable] if executable and len(files) != 1 else files
+            all_targets[target.original_label] = (
+                target.files.to_list(),
+                target.files_to_run.executable,
+            )
         for output_name in dir(ctx.outputs):
             output = getattr(ctx.outputs, output_name)
             if type(output) == type([]):
                 for o in output:
-                    all_targets[o.label] = [o]
+                    all_targets[o.label] = ([o], None)
             else:
-                all_targets[output.label] = [output]
+                all_targets[output.label] = ([output], None)
 
-        result = ""
-        result_until_start_of_directive = ""
-        state = 0
-        directive = ""
-        for c in input.elems():
-            if c == "$":
-                result_until_start_of_directive = result
-                result += c
-                state = 1
-            elif c == "(" and state == 1:
-                directive = ""
-                result += c
-                state = 2
-            elif c == ")" and state == 2:
-                if directive.startswith("execpath ") or directive.startswith("location "):
-                    l = ctx.label.relative(directive[9:])
-                    targets = all_targets[l]
-                    if len(targets) != 1:
-                        fail(directive, "expands to multiple files")
-                    result = result_until_start_of_directive + targets[0].path
-                else:
-                    result += c
-                state = 0
-            else:
-                directive += c
-                result += c
+        def expand_directive(directive):
+            function_name, separator, label_str = directive.partition(" ")
+            if not separator or function_name not in _LOCATION_FUNCTIONS:
+                return None
+            get_path, multiple = _LOCATION_FUNCTIONS[function_name]
 
-        return result
+            label = ctx.label.relative(label_str.strip())
+            if label not in all_targets:
+                fail("label %s in $(%s) is not declared as a prerequisite of this rule" % (label, directive))
+            files, executable = all_targets[label]
+
+            if multiple:
+                if not files and executable:
+                    files = [executable]
+                if not files:
+                    fail("label %s in $(%s) expression expands to no files" % (label, directive))
+                return " ".join(sorted([get_path(f) for f in files]))
+
+            if executable and len(files) != 1:
+                files = [executable]
+            if len(files) != 1:
+                fail("label %s in $(%s) expression expands to %d files, please use $(%ss %s) instead" % (label, directive, len(files), function_name, label_str))
+            return get_path(files[0])
+
+        return _expand_location_directives(input, expand_directive)
+
+    def ctx_expand_location(input, targets = []):
+        return _expand_location(input, targets)
 
     def ctx_resolve_command(command = "", attribute = None, expand_locations = False, make_variables = None, tools = [], label_dict = {}, execution_requirements = {}):
-        return [], [
-            "/bin/bash",
-            "-c",
-            _expand_make_variables(command, lambda variable_name: make_variables[variable_name]),
-        ], []
+        if expand_locations:
+            command = _expand_location(command, tools, label_dict)
+        if make_variables != None:
+            command = _expand_make_variables(command, lambda variable_name: make_variables[variable_name])
+
+        # Tools need to be provided to the action as inputs, including
+        # their runfiles.
+        resolved_inputs = depset(transitive = [
+            f
+            for tool in tools
+            for f in [tool.files, tool[DefaultInfo].default_runfiles.files]
+        ]).to_list()
+        return resolved_inputs, ["/bin/bash", "-c", command], []
 
     def ctx_runfiles(files = [], transitive_files = None, collect_data = False, collect_default = False, symlinks = {}, root_symlinks = {}):
         direct = runfiles(
