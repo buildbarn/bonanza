@@ -25,6 +25,7 @@ go_test(
     data = glob(["testdata/**"]),
     deps = [
         ":compile",
+        "//pkg/dotbazel",
         "//pkg/starlark/resolve",
         "//pkg/starlark/syntax",
         "@com_github_stretchr_testify//require",

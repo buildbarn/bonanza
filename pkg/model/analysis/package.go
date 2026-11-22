@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/glob"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
@@ -23,14 +24,7 @@ import (
 	"bonanza.build/pkg/starlark/resolve"
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
-
-	"github.com/buildbarn/bb-storage/pkg/util"
 )
-
-var buildDotBazelTargetNames = []label.TargetName{
-	util.Must(label.NewTargetName("BUILD.bazel")),
-	util.Must(label.NewTargetName("BUILD")),
-}
 
 func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Context, key *model_analysis_pb.Package_Key, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
@@ -86,7 +80,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 		return PatchedPackageValue[TMetadata]{}, err
 	}
 
-	for _, buildFileName := range buildDotBazelTargetNames {
+	for _, buildFileName := range dotbazel.BuildTargetNames {
 		buildFileProperties := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
 			CanonicalRepo: canonicalRepo.String(),
 			Path:          canonicalPackage.AppendTargetName(buildFileName).GetRepoRelativePath(),

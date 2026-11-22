@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/starlark/compile"
 	"bonanza.build/pkg/starlark/resolve"
 	"bonanza.build/pkg/starlark/syntax"
@@ -81,11 +82,11 @@ func checkFuncode(t *testing.T, path string, fn *compile.Funcode) {
 
 func dialectForFilename(name string) *resolve.Dialect {
 	switch name {
-	case "BUILD", "BUILD.bazel":
+	case dotbazel.BuildFilename, dotbazel.LegacyBuildFilename:
 		return &resolve.BuildDialect
-	case "MODULE.bazel":
+	case dotbazel.ModuleFilename:
 		return &resolve.ModuleDotBazelDialect
-	case "REPO.bazel":
+	case dotbazel.RepoFilename:
 		return &resolve.RepoDotBazelDialect
 	default:
 		return &resolve.BzlDialect
@@ -128,7 +129,7 @@ func walkFollowingSymlinks(t *testing.T, root string, seen map[string]struct{}, 
 
 func isStarlarkFile(name string) bool {
 	switch name {
-	case "BUILD", "BUILD.bazel", "MODULE.bazel", "REPO.bazel":
+	case dotbazel.BuildFilename, dotbazel.LegacyBuildFilename, dotbazel.ModuleFilename, dotbazel.RepoFilename:
 		return true
 	}
 	return strings.HasSuffix(name, ".bzl")

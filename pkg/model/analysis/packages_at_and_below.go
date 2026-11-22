@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"bonanza.build/pkg/dotbazel"
 	"bonanza.build/pkg/glob"
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
@@ -178,8 +179,8 @@ MatchDirectories:
 // if it contains a BUILD.bazel or BUILD file.
 func directoryIsPackage[TReference any](ctx context.Context, entriesReader model_parser.MessageObjectReader[TReference, []*model_filesystem_pb.DirectoryEntry], d model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]) (bool, error) {
 	// TODO: Should we also consider symlinks having such names?
-	for _, filename := range buildDotBazelTargetNames {
-		node, _, err := model_filesystem.DirectoryLookupNode(ctx, entriesReader, d, path.MustNewComponent(filename.String()))
+	for _, filename := range dotbazel.BuildComponents {
+		node, _, err := model_filesystem.DirectoryLookupNode(ctx, entriesReader, d, filename)
 		if err != nil {
 			return false, err
 		}
