@@ -49,6 +49,7 @@ var (
 	_ eval.Comparable                                                     = (*Struct[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ eval.HasAttrs                                                       = (*Struct[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ eval.Hashable                                                       = (*Struct[object.LocalReference, model_core.ReferenceMetadata])(nil)
+	_ eval.PartiallyHashable                                              = (*Struct[object.LocalReference, model_core.ReferenceMetadata])(nil)
 	_ eval.Mapping                                                        = (*Struct[object.LocalReference, model_core.ReferenceMetadata])(nil)
 )
 
@@ -125,29 +126,11 @@ func (s *Struct[TReference, TMetadata]) Repr(thread *eval.Thread, p *eval.Printe
 // added to a set.
 func (s *Struct[TReference, TMetadata]) Hash(thread *eval.Thread) (uint32, error) {
 	if s.hash == 0 {
-		// The same math as performed by starlarkstruct.
-		var h, m uint32 = 8731, 9839
-		for i, key := range s.keys {
-			keyHash, err := eval.Hash(thread, eval.String(key))
-			if err != nil {
-				return 0, fmt.Errorf("key of field %#v: %w", key, err)
-			}
-
-			value, err := s.fieldAtIndex(thread, i)
-			if err != nil {
-				return 0, fmt.Errorf("value of field %#v: %w", key, err)
-			}
-			valueHash, err := eval.Hash(thread, value)
-			if err != nil {
-				return 0, fmt.Errorf("value of field %#v: %w", key, err)
-			}
-
-			h ^= 3 * keyHash
-			h ^= m * valueHash
-			m += 7349
-		}
-		if h == 0 {
-			h = 1
+		h, err := s.hashFields(thread, func(v eval.Value) (uint32, error) {
+			return eval.Hash(thread, v)
+		})
+		if err != nil {
+			return 0, err
 		}
 
 		// Values that are hashable are immutable, meaning it is
@@ -155,6 +138,48 @@ func (s *Struct[TReference, TMetadata]) Hash(thread *eval.Thread) (uint32, error
 		s.hash = h
 	}
 	return s.hash, nil
+}
+
+// PartialHash computes a hash of a Starlark struct value whose fields
+// may not all be hashable, so that it can be deduplicated in depsets.
+func (s *Struct[TReference, TMetadata]) PartialHash(thread *eval.Thread, depth int) (uint32, error) {
+	if s.hash != 0 {
+		// The struct was hashed successfully before. As the
+		// formulas are identical, there is no need to
+		// recompute it.
+		return s.hash, nil
+	}
+	return s.hashFields(thread, func(v eval.Value) (uint32, error) {
+		return eval.PartialHashDepth(thread, v, depth)
+	})
+}
+
+func (s *Struct[TReference, TMetadata]) hashFields(thread *eval.Thread, hashValue func(eval.Value) (uint32, error)) (uint32, error) {
+	// The same math as performed by starlarkstruct.
+	var h, m uint32 = 8731, 9839
+	for i, key := range s.keys {
+		keyHash, err := eval.Hash(thread, eval.String(key))
+		if err != nil {
+			return 0, fmt.Errorf("key of field %#v: %w", key, err)
+		}
+
+		value, err := s.fieldAtIndex(thread, i)
+		if err != nil {
+			return 0, fmt.Errorf("value of field %#v: %w", key, err)
+		}
+		valueHash, err := hashValue(value)
+		if err != nil {
+			return 0, fmt.Errorf("value of field %#v: %w", key, err)
+		}
+
+		h ^= 3 * keyHash
+		h ^= m * valueHash
+		m += 7349
+	}
+	if h == 0 {
+		h = 1
+	}
+	return h, nil
 }
 
 func (s *Struct[TReference, TMetadata]) fieldAtIndex(thread *eval.Thread, index int) (eval.Value, error) {

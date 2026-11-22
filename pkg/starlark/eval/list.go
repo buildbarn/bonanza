@@ -206,7 +206,10 @@ func (l *memList) CompareSameType(t *Thread, op syntax.Token, y Value, depth int
 // memTuple is an in-memory tuple.
 type memTuple []Value
 
-var _ Tuple = memTuple(nil)
+var (
+	_ Tuple             = memTuple(nil)
+	_ PartiallyHashable = memTuple(nil)
+)
 
 // NewTuple creates a tuple containing the provided elements. The tuple
 // takes ownership of the slice.
@@ -265,9 +268,24 @@ func (tu memTuple) Iterate(*Thread, *error) iter.Seq[Value] {
 // Hash returns a hash of the tuple, which is computed from the hashes
 // of its elements.
 func (tu memTuple) Hash(t *Thread) (uint32, error) {
+	return tu.hashElements(func(v Value) (uint32, error) {
+		return hashValue(t, v)
+	})
+}
+
+// PartialHash returns a hash of the tuple, which is computed from the
+// partial hashes of its elements. For tuples that are hashable, the
+// result is identical to that of Hash().
+func (tu memTuple) PartialHash(t *Thread, depth int) (uint32, error) {
+	return tu.hashElements(func(v Value) (uint32, error) {
+		return PartialHashDepth(t, v, depth)
+	})
+}
+
+func (tu memTuple) hashElements(hashElement func(Value) (uint32, error)) (uint32, error) {
 	h := uint32(0x345678)
 	for _, element := range tu {
-		eh, err := hashValue(t, element)
+		eh, err := hashElement(element)
 		if err != nil {
 			return 0, err
 		}

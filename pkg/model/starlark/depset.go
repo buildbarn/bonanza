@@ -520,7 +520,19 @@ func (vs *valueSet) testAndAdd(thread *eval.Thread, v eval.Value) (bool, error) 
 	// entry is not used.
 	hash, err := eval.Hash(thread, v)
 	if err != nil {
-		return false, err
+		// Bazel only requires that depset elements are
+		// immutable, not that they are hashable. Providers
+		// placed in depsets may contain frozen dicts or lists
+		// (e.g., rules_cc's FeatureInfo). Fall back to hashing
+		// the parts of the value that are hashable, and let
+		// eval.Equal() below perform the deep comparison.
+		if !errors.As(err, &eval.UnhashableTypeError{}) {
+			return false, err
+		}
+		hash, err = eval.PartialHash(thread, v)
+		if err != nil {
+			return false, err
+		}
 	}
 	if hash == 0 {
 		hash = 1

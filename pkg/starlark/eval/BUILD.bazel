@@ -39,6 +39,7 @@ go_test(
         "export_test.go",
         "jump_test.go",
         "large_string_test.go",
+        "ops_test.go",
     ],
     data = glob(["testdata/**"]),
     embed = [":eval"],

@@ -32,6 +32,16 @@ func (e NoSuchAttrError) Error() string {
 	return msg
 }
 
+// UnhashableTypeError is returned by Hash() if a value, or one of the
+// values contained within, is not hashable.
+type UnhashableTypeError struct {
+	Type string
+}
+
+func (e UnhashableTypeError) Error() string {
+	return "unhashable type: " + e.Type
+}
+
 // Hash returns the hash of a value, as used by dicts and sets. It fails
 // if the value is not hashable.
 func Hash(t *Thread, v Value) (uint32, error) {
@@ -41,9 +51,101 @@ func Hash(t *Thread, v Value) (uint32, error) {
 func hashValue(t *Thread, v Value) (uint32, error) {
 	h, ok := v.(Hashable)
 	if !ok {
-		return 0, fmt.Errorf("unhashable type: %s", v.Type())
+		return 0, UnhashableTypeError{Type: v.Type()}
 	}
 	return h.Hash(t)
+}
+
+// PartiallyHashable is implemented by values that contain other values,
+// and that may not be hashable themselves, because one or more of the
+// values contained within are unhashable. It allows PartialHash() to
+// compute a hash of the values contained within that can be hashed.
+type PartiallyHashable interface {
+	Value
+	// PartialHash computes a hash of the value. It is called with
+	// a recursion depth, which should be passed on to
+	// PartialHashDepth() when computing hashes of the values
+	// contained within.
+	PartialHash(t *Thread, depth int) (uint32, error)
+}
+
+// PartialHash returns a hash of a value that is consistent with
+// Equal(). Unlike Hash(), it does not fail if the value or any of the
+// values contained within are unhashable. It hashes as much of the
+// value as possible. Unhashable values that cannot be inspected
+// further contribute a hash of their type.
+//
+// This function can be used to deduplicate values that are not
+// hashable, but are immutable, such as elements of a depset.
+func PartialHash(t *Thread, v Value) (uint32, error) {
+	return PartialHashDepth(t, v, maximumCompareDepth)
+}
+
+// PartialHashDepth is identical to PartialHash(), except that it limits
+// the recursion depth. It is used by implementations of
+// PartiallyHashable to compute hashes of the values contained within,
+// so that hashing cyclic values terminates. depth is the value that was
+// provided to PartialHash(), minus one.
+func PartialHashDepth(t *Thread, v Value, depth int) (uint32, error) {
+	if depth < 1 {
+		// Equal() fails at this depth as well, meaning there is
+		// no need to discriminate any further.
+		return 0, nil
+	}
+	switch tv := v.(type) {
+	case PartiallyHashable:
+		return tv.PartialHash(t, depth-1)
+	case List:
+		h := uint32(0x9e3779b9)
+		var errIter error
+		for element := range tv.Iterate(t, &errIter) {
+			eh, err := PartialHashDepth(t, element, depth-1)
+			if err != nil {
+				return 0, err
+			}
+			h = (h ^ eh) * 1000003
+		}
+		return h, errIter
+	case Dict:
+		// Dicts are equal regardless of the order of their
+		// entries. Combine the hashes of the entries using a
+		// commutative operation.
+		h := uint32(0x27d4eb2f)
+		var errIter error
+		for key, value := range tv.Items(t, &errIter) {
+			kh, err := hashValue(t, key)
+			if err != nil {
+				return 0, err
+			}
+			vh, err := PartialHashDepth(t, value, depth-1)
+			if err != nil {
+				return 0, err
+			}
+			h += (kh*31 ^ vh) * 1000003
+		}
+		return h, errIter
+	case Set:
+		// Sets are equal regardless of the order of their
+		// elements, and their elements are always hashable.
+		h := uint32(0x165667b1)
+		var errIter error
+		for element := range tv.Iterate(t, &errIter) {
+			eh, err := hashValue(t, element)
+			if err != nil {
+				return 0, err
+			}
+			h += eh * 1000003
+		}
+		return h, errIter
+	case Hashable:
+		h, err := tv.Hash(t)
+		if !errors.As(err, &UnhashableTypeError{}) {
+			return h, err
+		}
+	}
+
+	// Values can only be equal if they have the same type.
+	return hashValue(t, String(v.Type()))
 }
 
 // Equal returns whether two values are equal.
