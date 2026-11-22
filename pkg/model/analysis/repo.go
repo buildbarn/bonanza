@@ -2832,6 +2832,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 		}
 
 		d := r.stack.Peek()
+		if err := d.maybeLoadContents(r.loadOptions); err != nil {
+			return false, err
+		}
 		if _, ok := d.directories[*r.TerminalName]; ok {
 			return true, nil
 		}
