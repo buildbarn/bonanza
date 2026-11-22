@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"maps"
 	"math"
 	"net/url"
@@ -18,6 +19,7 @@ import (
 
 	"bonanza.build/pkg/bazelclient/arguments"
 	"bonanza.build/pkg/bazelclient/commands"
+	"bonanza.build/pkg/bazelclient/embeddedmodules"
 	"bonanza.build/pkg/bazelclient/formatted"
 	"bonanza.build/pkg/bazelclient/logging"
 	"bonanza.build/pkg/crypto"
@@ -391,6 +393,27 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 	}
 }
 
+// builtinsModuleNames contains the names of modules containing
+// Starlark code that should be loaded implicitly. builtins_core
+// provides DefaultInfo, filegroup(), platform(), etc. Bazel implements
+// these as native types written in Java, while Bonanza implements them
+// in plain Starlark. builtins_bzl provides cc_binary(), etc.
+var builtinsModuleNames = []string{
+	"builtins_core",
+	"builtins_bzl",
+}
+
+// Starlark functions to invoke to wrap the execution of aspect, rule
+// and subrule implementation functions. These are used to decorate ctx
+// to contain fields that are either deprecated, or trivially
+// implementable in pure Starlark (e.g., ctx.expand_make_variables(),
+// ctx.genfiles_dir, ctx.workspace_name).
+const (
+	aspectImplementationWrapperIdentifier  = "@@builtins_core+//:wrappers.bzl%invoke_aspect"
+	ruleImplementationWrapperIdentifier    = "@@builtins_core+//:wrappers.bzl%invoke_rule"
+	subruleImplementationWrapperIdentifier = "@@builtins_core+//:wrappers.bzl%invoke_subrule"
+)
+
 // Evaluate the value of a key remotely, using the modules contained in
 // the current workspace. This function provides the logic that is
 // shared by commands like "bazel build" and "bazel query". If
@@ -452,7 +475,29 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		modulePaths[moduleName] = path.LocalFormat.NewParser(fields[1])
 	}
 
-	moduleNames := slices.Collect(maps.Keys(modulePaths))
+	// Modules that are embedded into bonanza_bazel, such as
+	// bazel_tools and builtins_core, are uploaded as well. Allow
+	// these to be replaced with copies stored on the local system,
+	// which is useful when making changes to them.
+	embeddedModuleEntries, err := fs.ReadDir(embeddedmodules.Modules, ".")
+	if err != nil {
+		logger.Fatal(formatted.Textf("Failed to list embedded modules: %s", err))
+	}
+	embeddedModulePaths := map[label.Module]*path.Trace{}
+	for _, entry := range embeddedModuleEntries {
+		moduleName, err := label.NewModule(entry.Name())
+		if err != nil {
+			logger.Fatal(formatted.Textf("Invalid embedded module name %#v: %s", entry.Name(), err))
+		}
+		if _, ok := modulePaths[moduleName]; !ok {
+			embeddedModulePaths[moduleName] = (*path.Trace)(nil).Append(path.MustNewComponent(entry.Name()))
+		}
+	}
+
+	moduleNames := slices.AppendSeq(
+		slices.Collect(maps.Keys(modulePaths)),
+		maps.Keys(embeddedModulePaths),
+	)
 	slices.SortFunc(moduleNames, func(a, b label.Module) int {
 		return strings.Compare(a.String(), b.String())
 	})
@@ -529,6 +574,31 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	createMerkleTreesConcurrency := semaphore.NewWeighted(int64(runtime.NumCPU()))
 	group.Go(func() error {
 		for i, moduleName := range moduleNames {
+			fileOptions := &localCapturableDirectoryOptions[model_core.NoopReferenceMetadata]{
+				fileParameters: fileParameters,
+				capturer:       model_filesystem.NewSimpleFileMerkleTreeCapturer(model_core.DiscardingCreatedObjectCapturer),
+			}
+			if embeddedModulePath, ok := embeddedModulePaths[moduleName]; ok {
+				moduleRootDirectory := &embeddedDirectory[model_core.CreatedObjectTree, model_core.NoopReferenceMetadata]{
+					fsys:    embeddedmodules.Modules,
+					path:    embeddedModulePath,
+					options: fileOptions,
+				}
+				moduleRootDirectories = append(moduleRootDirectories, moduleRootDirectory)
+				if err := model_filesystem.CreateDirectoryMerkleTree(
+					groupCtx,
+					createMerkleTreesConcurrency,
+					group,
+					directoryParameters,
+					moduleRootDirectory,
+					model_filesystem.FileDiscardingDirectoryMerkleTreeCapturer,
+					&createdModuleRootDirectories[i],
+				); err != nil {
+					return util.StatusWrapf(err, "Failed to create directory Merkle tree for embedded module %#v", moduleName.String())
+				}
+				continue
+			}
+
 			modulePath := modulePaths[moduleName]
 			moduleRootDirectory, err := filesystem.NewLocalDirectory(modulePath)
 			if err != nil {
@@ -549,11 +619,8 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 				group,
 				directoryParameters,
 				&localCapturableDirectory[model_core.CreatedObjectTree, model_core.NoopReferenceMetadata]{
-					DirectoryCloser: moduleRootDirectory,
-					options: &localCapturableDirectoryOptions[model_core.NoopReferenceMetadata]{
-						fileParameters: fileParameters,
-						capturer:       model_filesystem.NewSimpleFileMerkleTreeCapturer(model_core.DiscardingCreatedObjectCapturer),
-					},
+					DirectoryCloser:           moduleRootDirectory,
+					options:                   fileOptions,
 					ignoredDirectoriesMatcher: &ignoredDirectoriesMatcher,
 				},
 				model_filesystem.FileDiscardingDirectoryMerkleTreeCapturer,
@@ -585,15 +652,15 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		DirectoryCreationParameters:            directoryParametersMessage,
 		FileCreationParameters:                 fileParametersMessage,
 		IgnoreRootModuleDevDependencies:        commonFlags.IgnoreDevDependency,
-		BuiltinsModuleNames:                    commonFlags.BuiltinsModule,
+		BuiltinsModuleNames:                    builtinsModuleNames,
 		RepoPlatformLabel:                      commonFlags.RepoPlatform,
 		FetchPlatformPkixPublicKey:             fetcherPKIXPublicKey,
 		ActionEncoders:                         defaultEncoders,
 		AnalysisEncoders:                       defaultEncoders,
 		StarlarkValueEncoders:                  defaultEncoders,
-		AspectImplementationWrapperIdentifier:  commonFlags.AspectImplementationWrapperIdentifier,
-		RuleImplementationWrapperIdentifier:    commonFlags.RuleImplementationWrapperIdentifier,
-		SubruleImplementationWrapperIdentifier: commonFlags.SubruleImplementationWrapperIdentifier,
+		AspectImplementationWrapperIdentifier:  aspectImplementationWrapperIdentifier,
+		RuleImplementationWrapperIdentifier:    ruleImplementationWrapperIdentifier,
+		SubruleImplementationWrapperIdentifier: subruleImplementationWrapperIdentifier,
 	}
 	switch commonFlags.LockfileMode {
 	case arguments.LockfileMode_Off:

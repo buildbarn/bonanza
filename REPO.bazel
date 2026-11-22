@@ -1,4 +1,1 @@
-ignore_directories([
-    ".git",
-    "starlark",
-])
+ignore_directories([".git"])

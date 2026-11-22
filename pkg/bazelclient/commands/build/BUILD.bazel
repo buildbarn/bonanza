@@ -4,6 +4,7 @@ go_library(
     name = "build",
     srcs = [
         "do_build.go",
+        "embedded_directory.go",
         "evaluation.go",
         "ignored_directories.go",
         "local_path_extracting_module_dot_bazel_handler.go",
@@ -14,6 +15,7 @@ go_library(
     deps = [
         "//pkg/bazelclient/arguments",
         "//pkg/bazelclient/commands",
+        "//pkg/bazelclient/embeddedmodules",
         "//pkg/bazelclient/formatted",
         "//pkg/bazelclient/logging",
         "//pkg/crypto",
@@ -72,16 +74,22 @@ go_library(
 go_test(
     name = "build_test",
     srcs = [
+        "embedded_directory_test.go",
         "ignored_directories_test.go",
         "output_groups_internal_test.go",
         "render_test.go",
     ],
     embed = [":build"],
     deps = [
+        "//pkg/bazelclient/embeddedmodules",
         "//pkg/bazelclient/formatted",
+        "//pkg/dotbazel",
         "//pkg/glob",
+        "//pkg/model/core",
+        "//pkg/model/filesystem",
         "//pkg/model/render",
         "//pkg/proto/model/analysis",
+        "@com_github_buildbarn_bb_storage//pkg/filesystem",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",

@@ -80,11 +80,6 @@ var startupFlags = []flag{
 
 var commonFlags = []flag{
 	{
-		longName:    "aspect_implementation_wrapper_identifier",
-		description: "Name of the Starlark function to invoke to wrap the execution of aspect implementation functions. This can be used to decorate ctx to contain fields that are either deprecated, or trivially implementable in pure Starlark.",
-		flagType:    stringFlagType{},
-	},
-	{
 		longName:    "browser_url",
 		description: "URL at which the Bonanza Browser service is hosted. This causes command line output to contain clickable links to the Bonanza Browser service.",
 		flagType:    stringFlagType{},
@@ -93,11 +88,6 @@ var commonFlags = []flag{
 		longName:    "build_request_id",
 		description: "Unique identifier, in UUID format, for the build being run.",
 		flagType:    stringFlagType{},
-	},
-	{
-		longName:    "builtins_module",
-		description: "Names of modules containing Starlark code that should be loaded implicitly.",
-		flagType:    stringListFlagType{},
 	},
 	{
 		longName:    "color",
@@ -202,16 +192,6 @@ var commonFlags = []flag{
 	{
 		longName:    "repo_platform",
 		description: "A label of a platform() target that is used to determine the platform that is used to execute repository rules and module extensions. If this argument is not provided, repository rules and module extensions cannot be evaluated.",
-		flagType:    stringFlagType{},
-	},
-	{
-		longName:    "rule_implementation_wrapper_identifier",
-		description: "Name of the Starlark function to invoke to wrap the execution of rule implementation functions. This can be used to decorate ctx to contain fields that are either deprecated, or trivially implementable in pure Starlark.",
-		flagType:    stringFlagType{},
-	},
-	{
-		longName:    "subrule_implementation_wrapper_identifier",
-		description: "Name of the Starlark function to invoke to wrap the execution of subrule implementation functions. This can be used to decorate ctx to contain fields that are either deprecated, or trivially implementable in pure Starlark.",
 		flagType:    stringFlagType{},
 	},
 	{

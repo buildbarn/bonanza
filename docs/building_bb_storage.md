@@ -83,30 +83,13 @@ common:bonanza --remote_executor_fetcher_pkix_public_key=MCowBQYDK2VuAyEA4TFZl07
 common:bonanza --remote_executor_client_private_key=/Users/ed/projects/bonanza/deployments/demo/bonanza_bazel.key.pem
 common:bonanza --remote_executor_client_certificate_chain=/Users/ed/projects/bonanza/deployments/demo/bonanza_bazel.cert.pem
 
-# Modules containing Starlark code that need to be uploaded in addition
-# to the code belonging to the root module.
-common:bonanza --override_module=bazel_tools=/Users/ed/projects/bonanza/starlark/bazel_tools
-common:bonanza --override_module=builtins_bzl=/Users/ed/projects/bonanza/starlark/builtins_bzl
-common:bonanza --override_module=builtins_core=/Users/ed/projects/bonanza/starlark/builtins_core
-
-# Make DefaultInfo, filegroup(), platform(), etc. work without requiring
-# any explicit load() directives. Bazel implements these as native types
-# written in Java. In Bonanza even these are written in plain Starlark.
-common:bonanza --builtins_module=builtins_core
-
-# Make cc_binary(), etc. work without requiring any explicit load()
-# directives.
-common:bonanza --builtins_module=builtins_bzl
-
-# The ctx object that is provided to rule implementations contains
-# various legacy features, such as ctx.expand_make_variables(),
-# ctx.genfiles_dir, and ctx.workspace_name. Bonanza doesn't provide
-# these by default. Instead, it offers a hook for wrapping the execution
-# of rule, subrule and aspect implementation functions. We use these to
-# augment the ctx arguments.
-common:bonanza --aspect_implementation_wrapper_identifier=@@builtins_core+//:wrappers.bzl%invoke_aspect
-common:bonanza --rule_implementation_wrapper_identifier=@@builtins_core+//:wrappers.bzl%invoke_rule
-common:bonanza --subrule_implementation_wrapper_identifier=@@builtins_core+//:wrappers.bzl%invoke_subrule
+# The bazel_tools, builtins_bzl and builtins_core modules contain
+# Starlark code that Bonanza uses to provide functionality that Bazel
+# implements natively (e.g., DefaultInfo, filegroup(), cc_binary()).
+# These modules are embedded into bonanza_bazel. When making changes to
+# them, they can be replaced with copies stored on the local system:
+#
+#     common:bonanza --override_module=builtins_core=/Users/ed/projects/bonanza/pkg/bazelclient/embeddedmodules/builtins_core
 
 # bonanza_builder does not launch any subprocesses, meaning that it is
 # incapable of running any repository rules itself. It uses remote
