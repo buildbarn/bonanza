@@ -1487,7 +1487,8 @@ def builtins_internal_cc_internal_get_link_args(
         action_name,
         build_variables,
         feature_configuration,
-        parameter_file_type):
+        parameter_file_type,
+        param_file_name = None):
     command_line = builtins_internal_cc_common_get_memory_inefficient_command_line(
         feature_configuration,
         action_name,
