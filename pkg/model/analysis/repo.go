@@ -2979,9 +2979,70 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) newHostCommandExecu
 	})
 }
 
-func (moduleOrRepositoryContext[TReference, TMetadata]) IsDir(p *model_starlark.BarePath) (bool, error) {
-	// TODO: Implement.
-	return false, fmt.Errorf("path.is_dir(%#v) has not been implemented yet", p.GetUNIXString())
+func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) IsDir(p *model_starlark.BarePath) (bool, error) {
+	mrc.maybeGetDirectoryReaders()
+	if err := mrc.maybeGetStableInputRootPath(); err != nil {
+		return false, err
+	}
+	if mrc.directoryLoadOptions == nil {
+		return false, evaluation.ErrMissingDependency
+	}
+
+	r := &changeTrackingDirectoryExistingFileResolver[TReference, TMetadata]{
+		loadOptions: mrc.directoryLoadOptions,
+		stack:       util.NewNonEmptyStack(mrc.inputRootDirectory),
+	}
+	if err := path.Resolve(p, mrc.virtualRootScopeWalkerFactory.New(r)); err != nil {
+		if errors.Is(err, errDirectoryDoesNotExist) {
+			return false, nil
+		}
+		return false, fmt.Errorf("cannot resolve %#v: %w", p.GetUNIXString(), err)
+	}
+	if r.gotScope {
+		if r.TerminalName == nil {
+			// No trailing filename, meaning the path corresponds to
+			// the directory that we're in right now.
+			return true, nil
+		}
+
+		d := r.stack.Peek()
+		if err := d.maybeLoadContents(r.loadOptions); err != nil {
+			return false, err
+		}
+		if _, ok := d.directories[*r.TerminalName]; ok {
+			return true, nil
+		}
+		if _, ok := d.symlinks[*r.TerminalName]; ok {
+			// TODO: Add support for following symbolic links
+			// contained in the input root.
+			return false, fmt.Errorf("path.is_dir(%#v) for symbolic links in the input root has not been implemented yet", p.GetUNIXString())
+		}
+		return false, nil
+	}
+
+	// Path resolves to a location that is not part of the input
+	// root (e.g., a directory provided by the operating system or
+	// stored in the home directory). Invoke "test -d" to check
+	// whether it is a directory.
+	executeRequest, err := mrc.newHostCommandExecuteRequest(
+		[]string{"sh", "-c", shellquote.Join("test", "-d", p.GetUNIXString())},
+		"/",
+	)
+	if err != nil {
+		return false, err
+	}
+	actionResult := mrc.environment.GetActionResultValue(
+		model_core.NewPatchedMessage(
+			&model_analysis_pb.ActionResult_Key{
+				ExecuteRequest: executeRequest.Message,
+			},
+			executeRequest.Patcher,
+		),
+	)
+	if !actionResult.IsSet() {
+		return false, evaluation.ErrMissingDependency
+	}
+	return actionResult.Message.ExitCode == 0, nil
 }
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_starlark.BarePath) ([]path.Component, error) {
