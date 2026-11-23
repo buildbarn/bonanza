@@ -55,7 +55,7 @@ func newBinaryEncoderFromProto[T any](
 	configurations []*model_encoding_pb.BinaryEncoder,
 	maximumDecodedSizeBytes uint32,
 	encodingMode model_encoding_pb.EncodingMode,
-	newLZWCompressingBinaryEncoder func(maximumDecodedSizeBytes uint32) T,
+	newZstdCompressingBinaryEncoder func(maximumDecodedSizeBytes uint32) T,
 	newEncryptingBinaryEncoder func(key, additionalData []byte) (T, error),
 	newChainedBinaryEncoder func([]T) T,
 ) (T, error) {
@@ -63,10 +63,10 @@ func newBinaryEncoderFromProto[T any](
 	isEncrypting := false
 	for i, configuration := range configurations {
 		switch encoderConfiguration := configuration.Encoder.(type) {
-		case *model_encoding_pb.BinaryEncoder_LzwCompressing:
+		case *model_encoding_pb.BinaryEncoder_ZstdCompressing:
 			encoders = append(
 				encoders,
-				newLZWCompressingBinaryEncoder(maximumDecodedSizeBytes),
+				newZstdCompressingBinaryEncoder(maximumDecodedSizeBytes),
 			)
 		case *model_encoding_pb.BinaryEncoder_Encrypting:
 			// Compute a hash of the configuration of the
@@ -134,7 +134,7 @@ func (f BinaryEncoderFactory) NewDeterministicBinaryEncoderFromProto(configurati
 		configurations,
 		maximumDecodedSizeBytes,
 		model_encoding_pb.EncodingMode_DETERMINISTIC,
-		NewLZWCompressingDeterministicBinaryEncoder,
+		NewZstdCompressingDeterministicBinaryEncoder,
 		NewEncryptingDeterministicBinaryEncoder,
 		NewChainedDeterministicBinaryEncoder,
 	)
@@ -170,7 +170,7 @@ func (f BinaryEncoderFactory) NewKeyedBinaryEncoderFromProto(configurations []*m
 		configurations,
 		maximumDecodedSizeBytes,
 		model_encoding_pb.EncodingMode_KEYED,
-		NewLZWCompressingKeyedBinaryEncoder,
+		NewZstdCompressingKeyedBinaryEncoder,
 		NewEncryptingKeyedBinaryEncoder,
 		NewChainedKeyedBinaryEncoder,
 	)

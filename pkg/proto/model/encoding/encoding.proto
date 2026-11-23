@@ -53,11 +53,10 @@ message EncryptingBinaryEncoderAdditionalDataInput {
 
 message BinaryEncoder {
   oneof encoder {
-    // Compress data using the "simple LZW" algorithm. This algorithm is
-    // identical to regular LZW, except that there is no limit on the
-    // maximum number of codes. There is also no mechanism for resetting
-    // the dictionary.
-    google.protobuf.Empty lzw_compressing = 1;
+    // Compress data using canonical Zstandard, as specified in
+    // pkg/compress/canonicalzstd/README.md. The output is a single
+    // Zstandard frame. Empty input is encoded as empty output.
+    google.protobuf.Empty zstd_compressing = 1;
 
     // Encrypt data using AES-GCM-SIV, using the following parameters:
     //

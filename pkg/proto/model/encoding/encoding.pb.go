@@ -168,7 +168,7 @@ type BinaryEncoder struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Encoder:
 	//
-	//	*BinaryEncoder_LzwCompressing
+	//	*BinaryEncoder_ZstdCompressing
 	//	*BinaryEncoder_Encrypting
 	Encoder       isBinaryEncoder_Encoder `protobuf_oneof:"encoder"`
 	unknownFields protoimpl.UnknownFields
@@ -212,10 +212,10 @@ func (x *BinaryEncoder) GetEncoder() isBinaryEncoder_Encoder {
 	return nil
 }
 
-func (x *BinaryEncoder) GetLzwCompressing() *emptypb.Empty {
+func (x *BinaryEncoder) GetZstdCompressing() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Encoder.(*BinaryEncoder_LzwCompressing); ok {
-			return x.LzwCompressing
+		if x, ok := x.Encoder.(*BinaryEncoder_ZstdCompressing); ok {
+			return x.ZstdCompressing
 		}
 	}
 	return nil
@@ -234,15 +234,15 @@ type isBinaryEncoder_Encoder interface {
 	isBinaryEncoder_Encoder()
 }
 
-type BinaryEncoder_LzwCompressing struct {
-	LzwCompressing *emptypb.Empty `protobuf:"bytes,1,opt,name=lzw_compressing,json=lzwCompressing,proto3,oneof"`
+type BinaryEncoder_ZstdCompressing struct {
+	ZstdCompressing *emptypb.Empty `protobuf:"bytes,1,opt,name=zstd_compressing,json=zstdCompressing,proto3,oneof"`
 }
 
 type BinaryEncoder_Encrypting struct {
 	Encrypting *EncryptingBinaryEncoder `protobuf:"bytes,2,opt,name=encrypting,proto3,oneof"`
 }
 
-func (*BinaryEncoder_LzwCompressing) isBinaryEncoder_Encoder() {}
+func (*BinaryEncoder_ZstdCompressing) isBinaryEncoder_Encoder() {}
 
 func (*BinaryEncoder_Encrypting) isBinaryEncoder_Encoder() {}
 
@@ -255,9 +255,9 @@ const file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDesc = "" +
 	"\x0eencryption_key\x18\x01 \x01(\fR\rencryptionKey\"\xcf\x01\n" +
 	"*EncryptingBinaryEncoderAdditionalDataInput\x12I\n" +
 	"\rencoding_mode\x18\x01 \x01(\x0e2$.bonanza.model.encoding.EncodingModeR\fencodingMode\x12V\n" +
-	"\x13additional_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x12additionalEncoders\"\xb0\x01\n" +
-	"\rBinaryEncoder\x12A\n" +
-	"\x0flzw_compressing\x18\x01 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x0elzwCompressing\x12Q\n" +
+	"\x13additional_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x12additionalEncoders\"\xb2\x01\n" +
+	"\rBinaryEncoder\x12C\n" +
+	"\x10zstd_compressing\x18\x01 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x0fzstdCompressing\x12Q\n" +
 	"\n" +
 	"encrypting\x18\x02 \x01(\v2/.bonanza.model.encoding.EncryptingBinaryEncoderH\x00R\n" +
 	"encryptingB\t\n" +
@@ -290,7 +290,7 @@ var file_bonanza_build_pkg_proto_model_encoding_encoding_proto_goTypes = []any{
 var file_bonanza_build_pkg_proto_model_encoding_encoding_proto_depIdxs = []int32{
 	0, // 0: bonanza.model.encoding.EncryptingBinaryEncoderAdditionalDataInput.encoding_mode:type_name -> bonanza.model.encoding.EncodingMode
 	3, // 1: bonanza.model.encoding.EncryptingBinaryEncoderAdditionalDataInput.additional_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	4, // 2: bonanza.model.encoding.BinaryEncoder.lzw_compressing:type_name -> google.protobuf.Empty
+	4, // 2: bonanza.model.encoding.BinaryEncoder.zstd_compressing:type_name -> google.protobuf.Empty
 	1, // 3: bonanza.model.encoding.BinaryEncoder.encrypting:type_name -> bonanza.model.encoding.EncryptingBinaryEncoder
 	4, // [4:4] is the sub-list for method output_type
 	4, // [4:4] is the sub-list for method input_type
@@ -305,7 +305,7 @@ func file_bonanza_build_pkg_proto_model_encoding_encoding_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_model_encoding_encoding_proto_msgTypes[2].OneofWrappers = []any{
-		(*BinaryEncoder_LzwCompressing)(nil),
+		(*BinaryEncoder_ZstdCompressing)(nil),
 		(*BinaryEncoder_Encrypting)(nil),
 	}
 	type x struct{}

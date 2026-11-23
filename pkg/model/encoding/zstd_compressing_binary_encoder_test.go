@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLZWCompressingDeterministicBinaryEncoder(t *testing.T) {
-	binaryEncoder := model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1 << 20)
+func TestZstdCompressingDeterministicBinaryEncoder(t *testing.T) {
+	binaryEncoder := model_encoding.NewZstdCompressingDeterministicBinaryEncoder(1 << 20)
 
 	t.Run("EncodeBinary", func(t *testing.T) {
 		t.Run("Empty", func(t *testing.T) {
@@ -53,9 +53,9 @@ func TestLZWCompressingDeterministicBinaryEncoder(t *testing.T) {
 		t.Run("Equal", func(t *testing.T) {
 			require.Equal(
 				t,
-				model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1<<20).
+				model_encoding.NewZstdCompressingDeterministicBinaryEncoder(1<<20).
 					AppendUniqueDecodingKeys(nil),
-				model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1<<20).
+				model_encoding.NewZstdCompressingDeterministicBinaryEncoder(1<<20).
 					AppendUniqueDecodingKeys(nil),
 			)
 		})
@@ -63,22 +63,22 @@ func TestLZWCompressingDeterministicBinaryEncoder(t *testing.T) {
 		t.Run("NotEqual", func(t *testing.T) {
 			require.NotEqual(
 				t,
-				model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1<<19).
+				model_encoding.NewZstdCompressingDeterministicBinaryEncoder(1<<19).
 					AppendUniqueDecodingKeys(nil),
-				model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1<<20).
+				model_encoding.NewZstdCompressingDeterministicBinaryEncoder(1<<20).
 					AppendUniqueDecodingKeys(nil),
 			)
 		})
 
 		t.Run("DeterministicAndKeyed", func(t *testing.T) {
-			// With respect to LZW compression, there is no
+			// With respect to Zstandard compression, there is no
 			// difference between deterministic and keyed
 			// encoding.
 			require.Equal(
 				t,
-				model_encoding.NewLZWCompressingDeterministicBinaryEncoder(1<<20).
+				model_encoding.NewZstdCompressingDeterministicBinaryEncoder(1<<20).
 					AppendUniqueDecodingKeys(nil),
-				model_encoding.NewLZWCompressingKeyedBinaryEncoder(1<<20).
+				model_encoding.NewZstdCompressingKeyedBinaryEncoder(1<<20).
 					AppendUniqueDecodingKeys(nil),
 			)
 		})

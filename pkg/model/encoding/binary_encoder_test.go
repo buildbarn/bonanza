@@ -16,9 +16,9 @@ import (
 )
 
 func TestBinaryEncoderFactory(t *testing.T) {
-	lzwCompressing := &model_encoding_pb.BinaryEncoder{
-		Encoder: &model_encoding_pb.BinaryEncoder_LzwCompressing{
-			LzwCompressing: &emptypb.Empty{},
+	zstdCompressing := &model_encoding_pb.BinaryEncoder{
+		Encoder: &model_encoding_pb.BinaryEncoder_ZstdCompressing{
+			ZstdCompressing: &emptypb.Empty{},
 		},
 	}
 	encrypting := &model_encoding_pb.BinaryEncoder{
@@ -36,13 +36,13 @@ func TestBinaryEncoderFactory(t *testing.T) {
 		isEncrypting   bool
 	}{
 		{name: "Empty", configurations: nil, isEncrypting: false},
-		{name: "LZWCompressing", configurations: []*model_encoding_pb.BinaryEncoder{lzwCompressing}, isEncrypting: false},
+		{name: "ZstdCompressing", configurations: []*model_encoding_pb.BinaryEncoder{zstdCompressing}, isEncrypting: false},
 		{name: "Encrypting", configurations: []*model_encoding_pb.BinaryEncoder{encrypting}, isEncrypting: true},
 		// Compressing prior to encrypting is the typical setup.
-		{name: "LZWCompressingAndEncrypting", configurations: []*model_encoding_pb.BinaryEncoder{lzwCompressing, encrypting}, isEncrypting: true},
+		{name: "ZstdCompressingAndEncrypting", configurations: []*model_encoding_pb.BinaryEncoder{zstdCompressing, encrypting}, isEncrypting: true},
 		// Steps applied after encrypting only see ciphertext,
 		// meaning the data that is stored remains encrypted.
-		{name: "EncryptingAndLZWCompressing", configurations: []*model_encoding_pb.BinaryEncoder{encrypting, lzwCompressing}, isEncrypting: true},
+		{name: "EncryptingAndZstdCompressing", configurations: []*model_encoding_pb.BinaryEncoder{encrypting, zstdCompressing}, isEncrypting: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("Strict", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestBinaryEncoderFactory(t *testing.T) {
 		// Passing false to NewBinaryEncoderFactory() should be
 		// equivalent to using the zero value.
 		_, err := model_encoding.NewBinaryEncoderFactory(false).NewDeterministicBinaryEncoderFromProto(
-			[]*model_encoding_pb.BinaryEncoder{lzwCompressing},
+			[]*model_encoding_pb.BinaryEncoder{zstdCompressing},
 			1<<20,
 		)
 		testutil.RequireEqualStatus(t, errUnencrypted, err)

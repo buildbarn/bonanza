@@ -516,7 +516,7 @@ func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObserv
 					h.Rows("10"),
 					h.Placeholder(`[
   {
-    "lzwCompressing": {}
+    "zstdCompressing": {}
   },
   {
     "encrypting": {

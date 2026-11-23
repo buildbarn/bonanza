@@ -149,7 +149,7 @@ var commonFlags = []flag{
 	},
 	{
 		longName:    "remote_cache_compression",
-		description: "If enabled, compress the contents of files using the \"simple LZW\" algorithm prior to uploading them to storage.",
+		description: "If enabled, compress the contents of files using canonical Zstandard prior to uploading them to storage.",
 		flagType: boolFlagType{
 			defaultValue: true,
 		},

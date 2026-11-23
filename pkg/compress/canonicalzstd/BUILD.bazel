@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "canonicalzstd",
+    srcs = [
+        "bit_writer.go",
+        "compress.go",
+        "decompress.go",
+        "fse.go",
+        "literals.go",
+        "match_finder.go",
+        "sequences.go",
+    ],
+    importpath = "bonanza.build/pkg/compress/canonicalzstd",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_klauspost_compress//zstd",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+    ],
+)
+
+go_test(
+    name = "canonicalzstd_test",
+    srcs = ["compress_test.go"],
+    deps = [
+        ":canonicalzstd",
+        "@com_github_stretchr_testify//require",
+    ],
+)

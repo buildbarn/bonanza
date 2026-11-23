@@ -521,8 +521,8 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	var chunkEncoders []*model_encoding_pb.BinaryEncoder
 	if commonFlags.RemoteCacheCompression {
 		chunkEncoders = append(chunkEncoders, &model_encoding_pb.BinaryEncoder{
-			Encoder: &model_encoding_pb.BinaryEncoder_LzwCompressing{
-				LzwCompressing: &emptypb.Empty{},
+			Encoder: &model_encoding_pb.BinaryEncoder_ZstdCompressing{
+				ZstdCompressing: &emptypb.Empty{},
 			},
 		})
 	}

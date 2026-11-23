@@ -18,6 +18,7 @@ require (
 	github.com/ericlagergren/siv v0.0.0-20220507050439-0b757b3aa5f1
 	github.com/google/uuid v1.6.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
+	github.com/klauspost/compress v1.20.5
 	github.com/prometheus/client_golang v1.25.0
 	github.com/stretchr/testify v1.12.1
 	github.com/ulikunitz/xz v0.5.17
@@ -61,7 +62,6 @@ require (
 	github.com/hanwen/go-fuse/v2 v2.12.1 // indirect
 	github.com/jhump/protoreflect/v2 v2.0.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/klauspost/compress v1.20.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pandatix/go-abnf v0.5.5 // indirect
