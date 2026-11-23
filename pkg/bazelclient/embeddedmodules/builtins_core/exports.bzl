@@ -1444,10 +1444,6 @@ def builtins_internal_cc_internal_for_static_library(name, is_whole_archive):
     )
 
 def builtins_internal_cc_internal_freeze(value):
-    if type(value) == "list":
-        return tuple(value)
-    if type(value) == "dict":
-        return tuple(value.items())
     return value
 
 # Artifact name patterns that are registered by default.
