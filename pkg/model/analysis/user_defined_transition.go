@@ -229,7 +229,7 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 	ctx context.Context,
 	thread *eval.Thread,
 	e model_core.ObjectCapturer[TReference, TMetadata],
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
 	buildSettingValuesToApply []buildSettingValueToApply[TReference],
 	valueEncodingOptions *model_starlark.ValueEncodingOptions[TReference, TMetadata],
@@ -375,7 +375,7 @@ type getBuildSettingValueEnvironment[TReference any, TMetadata model_core.Refere
 
 var featureFlagInfoProviderIdentifier = util.Must(label.NewCanonicalStarlarkIdentifier("@@builtins_core+//:exports.bzl%FeatureFlagInfo"))
 
-func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Context, e getBuildSettingValueEnvironment[TReference, TMetadata], analysisReaders *AnalysisReaders[TReference], valueReaders *model_starlark.ValueReaders[TReference], fromPackage label.CanonicalPackage, buildSettingLabel string, configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference]) (model_core.Message[*model_starlark_pb.Value, TReference], error) {
+func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Context, e getBuildSettingValueEnvironment[TReference, TMetadata], analysisReaders *Readers[TReference], valueReaders *model_starlark.ValueReaders[TReference], fromPackage label.CanonicalPackage, buildSettingLabel string, configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference]) (model_core.Message[*model_starlark_pb.Value, TReference], error) {
 	patchedConfigurationReference := model_core.Patch(e, configurationReference)
 	visibleTargetValue := e.GetVisibleTargetValue(
 		model_core.NewPatchedMessage(
@@ -502,7 +502,7 @@ type performUserDefinedTransitionEnvironment[TReference object.BasicReference, T
 func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 	ctx context.Context,
 	e performUserDefinedTransitionEnvironment[TReference, TMetadata],
-	analysisReaders *AnalysisReaders[TReference],
+	analysisReaders *Readers[TReference],
 	valueReaders *model_starlark.ValueReaders[TReference],
 	thread *eval.Thread,
 	transition model_core.Message[*model_starlark_pb.Transition_UserDefined, TReference],
@@ -709,7 +709,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 
 type performAndApplyUserDefinedTransitionResult[TMetadata model_core.ReferenceMetadata] = model_core.PatchedMessage[*model_analysis_pb.UserDefinedTransition_Value_Success, TMetadata]
 
-func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransition(ctx context.Context, e performUserDefinedTransitionEnvironment[TReference, TMetadata], analysisEncoders *AnalysisEncoders[TReference], starlarkValueEncoders *StarlarkValueEncoders[TReference], transition model_core.Message[*model_starlark_pb.Transition_UserDefined, TReference], configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference], attrParameter eval.Value) (performAndApplyUserDefinedTransitionResult[TMetadata], error) {
+func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransition(ctx context.Context, e performUserDefinedTransitionEnvironment[TReference, TMetadata], analysisEncoders *Encoders[TReference], starlarkValueEncoders *StarlarkValueEncoders[TReference], transition model_core.Message[*model_starlark_pb.Transition_UserDefined, TReference], configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference], attrParameter eval.Value) (performAndApplyUserDefinedTransitionResult[TMetadata], error) {
 	analysisReaders := &analysisEncoders.Readers
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
@@ -772,7 +772,7 @@ type performUserDefinedTransitionCachedEnvironment[TReference object.BasicRefere
 func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached(
 	ctx context.Context,
 	e performUserDefinedTransitionCachedEnvironment[TReference, TMetadata],
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	transition model_core.Message[*model_starlark_pb.Transition_UserDefined, TReference],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
@@ -836,7 +836,7 @@ type performTransitionEnvironment[TReference object.BasicReference, TMetadata mo
 func (c *baseComputer[TReference, TMetadata]) performTransition(
 	ctx context.Context,
 	e performTransitionEnvironment[TReference, TMetadata],
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	transition model_core.Message[*model_starlark_pb.Transition, TReference],
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],

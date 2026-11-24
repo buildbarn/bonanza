@@ -20,7 +20,7 @@ import (
 // allTestSuiteTests returns the labels of the tests and test suites
 // that are listed in the "tests" attribute of a test suite. As this
 // list may be large, it is stored as a B-tree.
-func allTestSuiteTests[TReference object.BasicReference](ctx context.Context, analysisReaders *AnalysisReaders[TReference], tests model_core.Message[[]*model_starlark_pb.TestSuite_Test, TReference], errOut *error) iter.Seq[string] {
+func allTestSuiteTests[TReference object.BasicReference](ctx context.Context, analysisReaders *Readers[TReference], tests model_core.Message[[]*model_starlark_pb.TestSuite_Test, TReference], errOut *error) iter.Seq[string] {
 	return func(yield func(string) bool) {
 		for entry := range btree.AllLeaves(
 			ctx,

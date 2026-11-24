@@ -45,6 +45,8 @@ package utf8stat
 //	         mid-rune can't end with a newline, so these never overlap.
 type Stat uint64
 
+// Invalid is the Stat of a chunk that cannot be part of a valid UTF-8
+// stream without NUL bytes. It is absorbing under Combine.
 const Invalid Stat = 0
 
 // Classes of continuation bytes. Only the byte directly following a lead

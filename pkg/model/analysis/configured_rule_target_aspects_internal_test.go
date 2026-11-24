@@ -29,7 +29,7 @@ func TestRuleTargetAnalysisGetAspectParameters(t *testing.T) {
 			referenceFormat: referenceFormat,
 		},
 		thread:           eval.NewThread(t.Context(), nil),
-		analysisEncoders: &AnalysisEncoders[object.LocalReference]{Encoder: encoder},
+		analysisEncoders: &Encoders[object.LocalReference]{Encoder: encoder},
 		ruleIdentifier:   util.Must(label.NewCanonicalStarlarkIdentifier("@@rules+//:defs.bzl%my_rule")),
 		attrValues: map[string]any{
 			"flag": eval.Bool(true),

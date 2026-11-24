@@ -177,7 +177,7 @@ type configureRuleLabelAttrEnvironment[TReference object.BasicReference, TMetada
 func (c *baseComputer[TReference, TMetadata]) configureRuleLabelAttr(
 	ctx context.Context,
 	e configureRuleLabelAttrEnvironment[TReference, TMetadata],
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	ruleIdentifier label.CanonicalStarlarkIdentifier,
 	ruleDefinition model_core.Message[*model_starlark_pb.Rule_Definition, TReference],

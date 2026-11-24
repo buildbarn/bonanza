@@ -22,7 +22,7 @@
          ],
          "isLookup": true,
          "objectType": {
-            "type": "*AnalysisEncoders[TReference]"
+            "type": "*Encoders[TReference]"
          }
       },
       "AspectChain": {

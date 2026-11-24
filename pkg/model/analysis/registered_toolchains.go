@@ -31,7 +31,7 @@ type registeredToolchainExtractingModuleDotBazelHandler[TReference object.BasicR
 	computer                   *baseComputer[TReference, TMetadata]
 	environment                RegisteredToolchainsEnvironment[TReference, TMetadata]
 	valueReaders               *model_starlark.ValueReaders[TReference]
-	analysisReaders            *AnalysisReaders[TReference]
+	analysisReaders            *Readers[TReference]
 	labelResolver              label.Resolver
 	moduleInstance             label.ModuleInstance
 	ignoreDevDependencies      bool

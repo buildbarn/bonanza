@@ -21,9 +21,9 @@ func (baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersValue(ctx cont
 	}), nil
 }
 
-// AnalysisReaders contains ObjectReaders that can be used to follow
+// Readers contains ObjectReaders that can be used to follow
 // references to objects that are created by analysis functions.
-type AnalysisReaders[TReference any] struct {
+type Readers[TReference any] struct {
 	Args                                   model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args]
 	ArgsAdd                                model_parser.MessageObjectReader[TReference, []*model_analysis_pb.Args_Leaf_Add]
 	AspectParameters                       model_parser.MessageObjectReader[TReference, *model_starlark_pb.Struct_Fields]
@@ -40,15 +40,15 @@ type AnalysisReaders[TReference any] struct {
 	TestSuiteTest                          model_parser.MessageObjectReader[TReference, []*model_starlark_pb.TestSuite_Test]
 }
 
-// AnalysisEncoders contains the encoder that needs to be used to create
+// Encoders contains the encoder that needs to be used to create
 // objects that are created by analysis functions, and readers for
 // accessing such objects.
-type AnalysisEncoders[TReference any] struct {
+type Encoders[TReference any] struct {
 	Encoder model_encoding.DeterministicBinaryEncoder
-	Readers AnalysisReaders[TReference]
+	Readers Readers[TReference]
 }
 
-func (c *baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersObject(value model_core.Message[*model_analysis_pb.AnalysisEncoders_Value, TReference]) (*AnalysisEncoders[TReference], error) {
+func (c *baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersObject(value model_core.Message[*model_analysis_pb.AnalysisEncoders_Value, TReference]) (*Encoders[TReference], error) {
 	encoder, err := c.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
 		value.Message.AnalysisEncoders,
 		uint32(c.referenceFormat.GetMaximumObjectSizeBytes()),
@@ -57,9 +57,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersObject(valu
 		return nil, err
 	}
 	encodedObjectParser := model_parser.NewEncodedObjectParser[TReference](encoder)
-	return &AnalysisEncoders[TReference]{
+	return &Encoders[TReference]{
 		Encoder: encoder,
-		Readers: AnalysisReaders[TReference]{
+		Readers: Readers[TReference]{
 			Args: model_parser.LookupParsedObjectReader(
 				c.parsedObjectPoolIngester,
 				model_parser.NewChainedObjectParser(
@@ -166,14 +166,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersObject(valu
 // create objects that are created by analysis functions, and readers
 // for accessing such objects. If they are not available yet, ok is set
 // to false.
-func getAnalysisEncoders[TReference any](e AnalysisEncodersObjectGetter[TReference]) (*AnalysisEncoders[TReference], bool) {
+func getAnalysisEncoders[TReference any](e AnalysisEncodersObjectGetter[TReference]) (*Encoders[TReference], bool) {
 	return e.GetAnalysisEncodersObject(&model_analysis_pb.AnalysisEncoders_Key{})
 }
 
 // getAnalysisReaders returns readers that can be used to follow
 // references to objects that are created by analysis functions. If they
 // are not available yet, ok is set to false.
-func getAnalysisReaders[TReference any](e AnalysisEncodersObjectGetter[TReference]) (*AnalysisReaders[TReference], bool) {
+func getAnalysisReaders[TReference any](e AnalysisEncodersObjectGetter[TReference]) (*Readers[TReference], bool) {
 	encoders, ok := getAnalysisEncoders(e)
 	if !ok {
 		return nil, false

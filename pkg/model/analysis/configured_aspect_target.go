@@ -471,7 +471,7 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 // the Starlark value readers.
 func getAspectParameters[TReference object.BasicReference](
 	ctx context.Context,
-	analysisReaders *AnalysisReaders[TReference],
+	analysisReaders *Readers[TReference],
 	valueReaders *model_starlark.ValueReaders[TReference],
 	parameters model_core.Message[*model_core_pb.DecodableReference, TReference],
 ) (map[string]model_core.Message[*model_starlark_pb.Value, TReference], error) {
@@ -509,7 +509,7 @@ func getAspectParameters[TReference object.BasicReference](
 func getAspectIDs[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](
 	ctx context.Context,
 	thread *eval.Thread,
-	analysisReaders *AnalysisReaders[TReference],
+	analysisReaders *Readers[TReference],
 	valueReaders *model_starlark.ValueReaders[TReference],
 	aspects model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference],
 ) (eval.Value, error) {
@@ -557,7 +557,7 @@ func configureAspectAttrs[TReference object.BasicReference, TMetadata model_core
 	ctx context.Context,
 	e configuredTargetReferenceCreatorEnvironment[TReference, TMetadata],
 	thread *eval.Thread,
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	aspectDefinition model_core.Message[*model_starlark_pb.Aspect_Definition, TReference],
 	parameters model_core.Message[*model_core_pb.DecodableReference, TReference],

@@ -16,7 +16,7 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 )
 
-func (*baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList(ctx context.Context, analysisReaders *AnalysisReaders[TReference], targetList model_core.Message[[]*model_analysis_pb.Package_Value_Target, TReference], targetName label.TargetName) (model_core.Message[*model_starlark_pb.Target_Definition, TReference], error) {
+func (*baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList(ctx context.Context, analysisReaders *Readers[TReference], targetList model_core.Message[[]*model_analysis_pb.Package_Value_Target, TReference], targetName label.TargetName) (model_core.Message[*model_starlark_pb.Target_Definition, TReference], error) {
 	targetNameStr := targetName.String()
 	target, err := btree.Find(
 		ctx,

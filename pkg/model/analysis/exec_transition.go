@@ -37,7 +37,7 @@ type initialConfigurationBuildSetting[TReference any] struct {
 func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 	ctx context.Context,
 	e createInitialConfigurationEnvironment[TReference, TMetadata],
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	thread *eval.Thread,
 	rootPackage label.CanonicalPackage,

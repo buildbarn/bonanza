@@ -181,7 +181,7 @@ func (bct *baseComputerTester) newFileReader() *model_filesystem.FileReader[mode
 // newAnalysisEncoders creates the object that analysis functions
 // obtain from AnalysisEncoders, which tests can return when the
 // analysis function requests it.
-func (bct *baseComputerTester) newAnalysisEncoders() *model_analysis.AnalysisEncoders[model_core.CreatedObjectTree] {
+func (bct *baseComputerTester) newAnalysisEncoders() *model_analysis.Encoders[model_core.CreatedObjectTree] {
 	return util.Must(bct.computer.ComputeAnalysisEncodersObject(
 		model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.AnalysisEncoders_Value{}),
 	))

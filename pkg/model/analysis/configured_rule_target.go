@@ -51,7 +51,7 @@ type ruleTargetAnalysis[TReference object.BasicReference, TMetadata model_core.R
 	environment            ConfiguredTargetEnvironment[TReference, TMetadata]
 	thread                 *eval.Thread
 	starlarkValueEncoders  *StarlarkValueEncoders[TReference]
-	analysisEncoders       *AnalysisEncoders[TReference]
+	analysisEncoders       *Encoders[TReference]
 	targetLabel            label.CanonicalLabel
 	ruleIdentifier         label.CanonicalStarlarkIdentifier
 	ruleDefinition         model_core.Message[*model_starlark_pb.Rule_Definition, TReference]
@@ -839,7 +839,7 @@ func (c *baseComputer[TReference, TMetadata]) configureRuleTargetAttrs(
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
 	thread *eval.Thread,
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	targetLabel label.CanonicalLabel,
 	ruleIdentifier label.CanonicalStarlarkIdentifier,
 	ruleDefinition model_core.Message[*model_starlark_pb.Rule_Definition, TReference],
@@ -986,7 +986,7 @@ func (c *baseComputer[TReference, TMetadata]) computeRuleTargetValue(
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
 	targetLabel label.CanonicalLabel,
 	ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference],
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	valueEncodingOptionsFactory *valueEncodingOptionsFactory[TReference, TMetadata],
 	emptyDefaultInfo model_core.Message[*model_starlark_pb.Struct, TReference],
@@ -1131,7 +1131,7 @@ func checkProvides(providersSeen map[string]struct{}, provides []string) error {
 func (c *baseComputer[TReference, TMetadata]) encodeTargetOutputsAndActions(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	outputRegistrar *targetOutputRegistrar[TReference, TMetadata],
 	tc *targetContext[TReference, TMetadata],
 	patcher *model_core.ReferenceMessagePatcher[TMetadata],
@@ -1265,7 +1265,7 @@ func (c *baseComputer[TReference, TMetadata]) encodeRuleTargetValue(
 	ctx context.Context,
 	e ConfiguredTargetEnvironment[TReference, TMetadata],
 	thread *eval.Thread,
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	valueEncodingOptionsFactory *valueEncodingOptionsFactory[TReference, TMetadata],
 	emptyDefaultInfo model_core.Message[*model_starlark_pb.Struct, TReference],
 	providerInstances []*model_starlark.Struct[TReference, TMetadata],
@@ -1658,7 +1658,7 @@ type targetContext[TReference object.BasicReference, TMetadata model_core.Refere
 	environment                 ConfiguredTargetEnvironment[TReference, TMetadata]
 	valueEncodingOptionsFactory *valueEncodingOptionsFactory[TReference, TMetadata]
 	starlarkValueEncoders       *StarlarkValueEncoders[TReference]
-	analysisEncoders            *AnalysisEncoders[TReference]
+	analysisEncoders            *Encoders[TReference]
 	targetLabel                 label.CanonicalLabel
 	configurationReference      model_core.Message[*model_core_pb.DecodableReference, TReference]
 	namedExecGroups             model_core.Message[[]*model_starlark_pb.NamedExecGroup, TReference]

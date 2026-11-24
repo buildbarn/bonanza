@@ -22,7 +22,7 @@ func (c *baseComputer[TReference, TMetadata]) getTopLevelAspects(
 	ctx context.Context,
 	e BuildResultEnvironment[TReference, TMetadata],
 	thread *eval.Thread,
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	starlarkValueEncoders *StarlarkValueEncoders[TReference],
 	rootRepo label.CanonicalRepo,
 	key *model_analysis_pb.BuildResult_Key,

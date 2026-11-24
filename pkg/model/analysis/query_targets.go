@@ -75,7 +75,7 @@ func pruneQueryTargetDefinition(definition *model_starlark_pb.Target_Definition)
 // newQueryTargetTreeBuilder creates a B-tree builder for storing lists
 // of QueryTarget messages, as used by the values of QueryResult and
 // QueryTargets.
-func (c *baseComputer[TReference, TMetadata]) newQueryTargetTreeBuilder(ctx context.Context, analysisEncoders *AnalysisEncoders[TReference], capturer model_core.CreatedObjectCapturer[TMetadata]) btree.Builder[*model_analysis_pb.QueryTarget, TMetadata] {
+func (c *baseComputer[TReference, TMetadata]) newQueryTargetTreeBuilder(ctx context.Context, analysisEncoders *Encoders[TReference], capturer model_core.CreatedObjectCapturer[TMetadata]) btree.Builder[*model_analysis_pb.QueryTarget, TMetadata] {
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
 			c.chunkingParameters,
@@ -201,7 +201,7 @@ type buildQueryTargetsEnvironment[TReference any, TMetadata model_core.Reference
 func (c *baseComputer[TReference, TMetadata]) buildQueryTargets(
 	ctx context.Context,
 	e buildQueryTargetsEnvironment[TReference, TMetadata],
-	analysisEncoders *AnalysisEncoders[TReference],
+	analysisEncoders *Encoders[TReference],
 	targetLabels model_core.Message[[]*model_analysis_pb.TargetLabel, TReference],
 	definitionDetail model_analysis_pb.QueryTarget_DefinitionDetail,
 ) (model_core.PatchedMessage[[]*model_analysis_pb.QueryTarget, TMetadata], error) {
