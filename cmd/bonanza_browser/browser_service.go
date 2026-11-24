@@ -128,22 +128,31 @@ func importLinkedEncoders(w http.ResponseWriter, r *http.Request) bool {
 // This prevents the browser from asking to resubmit the form when the
 // page is reloaded.
 //
-// Invalid configurations are not processed, so that the page can
-// display an error and retain the configuration that was entered.
+// Invalid configurations are rejected by displaying an error page.
 //
-// This function returns true if the request contained a valid
+// This function returns true if the request contained a
 // configuration, meaning a response has already been written.
 func importEncoderConfiguration(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method != http.MethodPost {
 		return false
 	}
-	recentlyObservedEncoders, _, err := getEncoderFromForm(r)
-	if err != nil || len(recentlyObservedEncoders) == 0 {
+	value := r.PostFormValue("encoder_configuration")
+	if value == "" {
 		return false
+	}
+	var configuration protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder]
+	if err := json.Unmarshal([]byte(value), &configuration); err != nil {
+		http.Error(w, "failed to unmarshal encoder configuration: "+err.Error(), http.StatusBadRequest)
+		return true
 	}
 	cookie := getCookie(r)
 	cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
-		append(recentlyObservedEncoders, cookie.RecentlyObservedEncoders...),
+		append(
+			[]*browser_pb.RecentlyObservedEncoder{{
+				Configuration: configuration,
+			}},
+			cookie.RecentlyObservedEncoders...,
+		),
 	)
 	setCookie(w, cookie)
 	http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
@@ -348,37 +357,15 @@ func setCookie(w http.ResponseWriter, cookieMessage *browser_pb.Cookie) {
 	}
 }
 
-func getEncoderFromForm(r *http.Request) ([]*browser_pb.RecentlyObservedEncoder, string, error) {
-	if err := r.ParseForm(); err != nil {
-		return nil, "", fmt.Errorf("failed to parse form: %w", err)
-	}
-	provided := r.FormValue("encoder_configuration")
-	if provided == "" {
-		return nil, "", nil
-	}
-	var unmarshaled protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder]
-	if err := json.Unmarshal([]byte(provided), &unmarshaled); err != nil {
-		return nil, provided, fmt.Errorf("failed to unmarshal encoder configuration: %w", err)
-	}
-	return []*browser_pb.RecentlyObservedEncoder{{
-		Configuration: unmarshaled,
-	}}, "", nil
-}
-
-func getEncodersFromRequest(r *http.Request) (*browser_pb.Cookie, string, error) {
-	recentlyObservedEncoders, currentEncoderConfigurationStr, err := getEncoderFromForm(r)
-
-	// Restore any recently observed encoders from the cookie.
+// getEncodersFromRequest returns the cookie containing the list of
+// recently observed encoders. An empty encoder is always appended to
+// the list, guaranteeing that it is non-empty.
+func getEncodersFromRequest(r *http.Request) *browser_pb.Cookie {
 	cookie := getCookie(r)
-	recentlyObservedEncoders = append(recentlyObservedEncoders, cookie.RecentlyObservedEncoders...)
-
-	// Always provide an empty encoder. This guarantees that the
-	// resulting list of encoders is non-empty.
-	recentlyObservedEncoders = append(recentlyObservedEncoders, &browser_pb.RecentlyObservedEncoder{})
-
-	recentlyObservedEncoders = trimRecentlyObservedEncoders(recentlyObservedEncoders)
-	cookie.RecentlyObservedEncoders = recentlyObservedEncoders
-	return cookie, currentEncoderConfigurationStr, err
+	cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
+		append(cookie.RecentlyObservedEncoders, &browser_pb.RecentlyObservedEncoder{}),
+	)
+	return cookie
 }
 
 // renderTabsLiftWithNeutralContent renders a set of tabs with the
@@ -535,7 +522,7 @@ func renderReferenceCard(title string, decodableReference model_core.Decodable[o
 // prefilled with the configuration that is currently in use, as that
 // would reveal secrets (e.g., encryption keys). It only contains text
 // if the configuration that was previously submitted was invalid.
-func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalReference], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder, encoderUsed bool, newEncoderConfiguration string) []g.Node {
+func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalReference], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder, encoderUsed bool) []g.Node {
 	recentlyObservedEncodersNodes := []g.Node{
 		h.Class("card bg-base-200 w-full p-4 shadow"),
 		h.H1(
@@ -660,7 +647,6 @@ func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalRefer
     }
   }
 ]`),
-					g.Text(newEncoderConfiguration),
 				),
 				h.Div(
 					h.Class("card-actions justify-end mt-4"),
@@ -684,7 +670,6 @@ func renderEvaluationPage(
 	keyNodes []g.Node,
 	valueNodes []g.Node,
 	dependenciesNodes []g.Node,
-	newEncoderConfiguration string,
 	encoderUsed bool,
 	cookie *browser_pb.Cookie,
 ) g.Node {
@@ -731,7 +716,7 @@ func renderEvaluationPage(
 					h.Class("flex flex-col w-1/3 space-y-4"),
 					renderReferenceCard("Evaluations list reference", evaluationsListReference),
 				},
-				renderEncoderSelector(evaluationsListReference, cookie.RecentlyObservedEncoders, encoderUsed, newEncoderConfiguration)...,
+				renderEncoderSelector(evaluationsListReference, cookie.RecentlyObservedEncoders, encoderUsed)...,
 			)...),
 
 			h.Div(evaluationCard...),
@@ -826,22 +811,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	// Whether the first encoder in the cookie was used to decode
 	// objects displayed on the page.
 	encoderUsed := false
-	cookie, currentEncoderConfigurationStr, err := getEncodersFromRequest(r)
-	if err != nil {
-		errNodes := renderErrorAlert(fmt.Errorf("failed to obtain encoder configuration: %w", err))
-		return renderEvaluationPage(
-			w,
-			evaluationsListReference,
-			formatTabs,
-			currentFormatIndex,
-			keyNodes,
-			errNodes,
-			errNodes,
-			currentEncoderConfigurationStr,
-			encoderUsed,
-			cookie,
-		), nil
-	}
+	cookie := getEncodersFromRequest(r)
 
 	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester(
 		s.parsedObjectPool,
@@ -916,7 +886,6 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			keyNodes,
 			errNodes,
 			errNodes,
-			currentEncoderConfigurationStr,
 			encoderUsed,
 			cookie,
 		), nil
@@ -961,7 +930,6 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				keyNodes,
 				errNodes,
 				errNodes,
-				currentEncoderConfigurationStr,
 				encoderUsed,
 				cookie,
 			), nil
@@ -977,7 +945,6 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				keyNodes,
 				errNodes,
 				errNodes,
-				currentEncoderConfigurationStr,
 				encoderUsed,
 				cookie,
 			), nil
@@ -993,7 +960,6 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				keyNodes,
 				errNodes,
 				errNodes,
-				currentEncoderConfigurationStr,
 				encoderUsed,
 				cookie,
 			), nil
@@ -1026,7 +992,6 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			keyNodes,
 			errNodes,
 			errNodes,
-			currentEncoderConfigurationStr,
 			encoderUsed,
 			cookie,
 		), nil
@@ -1046,7 +1011,6 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				keyNodes,
 				errNodes,
 				errNodes,
-				currentEncoderConfigurationStr,
 				encoderUsed,
 				cookie,
 			), nil
@@ -1064,7 +1028,6 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				keyNodes,
 				errNodes,
 				errNodes,
-				currentEncoderConfigurationStr,
 				encoderUsed,
 				cookie,
 			), nil
@@ -1172,7 +1135,6 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		keyNodes,
 		valueNodes,
 		dependenciesNodes,
-		currentEncoderConfigurationStr,
 		encoderUsed,
 		cookie,
 	), nil
@@ -1185,7 +1147,6 @@ func renderObjectPage(
 	decodableReference model_core.Decodable[object.GlobalReference],
 	payloadRenderers []payloadRenderer,
 	currentPayloadRendererIndex int,
-	newEncoderConfiguration string,
 	encoderUsed bool,
 	cookie *browser_pb.Cookie,
 	titlePrefix string,
@@ -1211,7 +1172,7 @@ func renderObjectPage(
 					h.Class("flex flex-col w-1/3 space-y-4"),
 					renderReferenceCard("Object reference", decodableReference),
 				},
-				renderEncoderSelector(decodableReference, cookie.RecentlyObservedEncoders, encoderUsed, newEncoderConfiguration)...,
+				renderEncoderSelector(decodableReference, cookie.RecentlyObservedEncoders, encoderUsed)...,
 			)...),
 
 			h.Div(
@@ -1275,20 +1236,7 @@ func (s *BrowserService) doObject(
 	// Whether the first encoder in the cookie was used to decode
 	// objects displayed on the page.
 	encoderUsed := false
-	cookie, currentEncoderConfigurationStr, err := getEncodersFromRequest(r)
-	if err != nil {
-		return renderObjectPage(
-			w,
-			objectReference,
-			payloadRenderers,
-			currentPayloadRendererIndex,
-			currentEncoderConfigurationStr,
-			encoderUsed,
-			cookie,
-			titlePrefix,
-			renderErrorAlert(fmt.Errorf("failed to obtain encoder configuration: %w", err)),
-		), nil
-	}
+	cookie := getEncodersFromRequest(r)
 
 	// Fetch and render the object.
 	o, err := s.objectDownloader.DownloadObject(r.Context(), objectReference.Value)
@@ -1298,7 +1246,6 @@ func (s *BrowserService) doObject(
 			objectReference,
 			payloadRenderers,
 			currentPayloadRendererIndex,
-			currentEncoderConfigurationStr,
 			encoderUsed,
 			cookie,
 			titlePrefix,
@@ -1337,7 +1284,6 @@ func (s *BrowserService) doObject(
 		objectReference,
 		payloadRenderers,
 		currentPayloadRendererIndex,
-		currentEncoderConfigurationStr,
 		encoderUsed,
 		cookie,
 		titlePrefix,
