@@ -78,6 +78,18 @@ func NewBrowserService(buildQueueStateClient buildqueuestate_pb.BuildQueueStateC
 	}
 }
 
+// validateEncoderConfiguration returns an error if an encoder
+// configuration cannot be used to decode objects (e.g., because it
+// contains an encryption key of an unsupported size). This prevents
+// such configurations from being stored in the cookie.
+func validateEncoderConfiguration(configuration []*model_encoding_pb.BinaryEncoder) error {
+	// The maximum decoded size only limits the size of data that
+	// is decoded. It does not affect whether the configuration is
+	// valid.
+	_, err := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(configuration, 1)
+	return err
+}
+
 // importLinkedEncoders processes encoders that were embedded in the
 // fragment of a link to the current page. These are submitted by the
 // script contained in each page (see linkedEncodersScript). The
@@ -107,7 +119,11 @@ func importLinkedEncoders(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	now := timestamppb.Now()
-	for _, encoder := range linkedEncoders.Encoders {
+	for i, encoder := range linkedEncoders.Encoders {
+		if err := validateEncoderConfiguration(encoder.Configuration); err != nil {
+			http.Error(w, fmt.Sprintf("invalid linked encoder at index %d: %s", i, err), http.StatusBadRequest)
+			return true
+		}
 		if o := encoder.LastObservation; o != nil {
 			o.Time = now
 		}
@@ -143,6 +159,10 @@ func importEncoderConfiguration(w http.ResponseWriter, r *http.Request) bool {
 	var configuration protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder]
 	if err := json.Unmarshal([]byte(value), &configuration); err != nil {
 		http.Error(w, "failed to unmarshal encoder configuration: "+err.Error(), http.StatusBadRequest)
+		return true
+	}
+	if err := validateEncoderConfiguration(configuration); err != nil {
+		http.Error(w, "invalid encoder configuration: "+err.Error(), http.StatusBadRequest)
 		return true
 	}
 	cookie := getCookie(r)
@@ -2262,7 +2282,10 @@ func decodeObject(o model_core.Decodable[*object.Contents], recentlyObservedEnco
 			uint32(objectReference.GetReferenceFormat().GetMaximumObjectSizeBytes()),
 		)
 		if err != nil {
-			return nil, -1, fmt.Errorf("failed to create encoder: %w", err)
+			// The cookie may contain invalid encoders
+			// that were stored before encoders were
+			// validated. Ignore these.
+			continue
 		}
 		if !mayTryEncoder(i, binaryEncoder) {
 			continue

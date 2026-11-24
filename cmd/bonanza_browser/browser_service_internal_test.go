@@ -75,6 +75,28 @@ func TestDecodeObject(t *testing.T) {
 		require.Equal(t, 2, usedEncoderIndex)
 	})
 
+	t.Run("SkipInvalidEncoders", func(t *testing.T) {
+		// Encoders that cannot be constructed (e.g., because
+		// the encryption key has an unsupported size) should
+		// not prevent other encoders from being tried.
+		invalidConfiguration := []*model_encoding_pb.BinaryEncoder{{
+			Encoder: &model_encoding_pb.BinaryEncoder_Encrypting{
+				Encrypting: &model_encoding_pb.EncryptingBinaryEncoder{
+					EncryptionKey: []byte("short"),
+				},
+			},
+		}}
+		require.Error(t, validateEncoderConfiguration(invalidConfiguration))
+
+		decodedPayload, usedEncoderIndex, err := decodeObject(encryptedObject, newRecentlyObservedEncoders(
+			invalidConfiguration,
+			newEncryptingConfiguration(1),
+		))
+		require.NoError(t, err)
+		require.Equal(t, []byte("Hello"), decodedPayload)
+		require.Equal(t, 1, usedEncoderIndex)
+	})
+
 	t.Run("NoFallbackToOtherEncoders", func(t *testing.T) {
 		// Encoders that are not auto-detecting should not be
 		// tried, unless they are the first encoder. The empty
