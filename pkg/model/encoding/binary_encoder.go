@@ -26,6 +26,13 @@ type BinaryDecoder interface {
 	DecodeBinary(in, parameters []byte) ([]byte, error)
 	AppendUniqueDecodingKeys(keys []unique.Handle[any]) []unique.Handle[any]
 	GetDecodingParametersSizeBytes() int
+
+	// IsAutoDetecting returns true if DecodeBinary() reliably
+	// fails when provided data that was not encoded using the same
+	// configuration (e.g., because the data is authenticated). If
+	// so, it is safe to attempt to decode data using multiple
+	// decoders, and use the first one that succeeds.
+	IsAutoDetecting() bool
 }
 
 // BinaryEncoderFactory creates binary encoders according to

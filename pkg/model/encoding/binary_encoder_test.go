@@ -69,11 +69,16 @@ func TestBinaryEncoderFactory(t *testing.T) {
 			t.Run("Permissive", func(t *testing.T) {
 				binaryEncoderFactory := model_encoding.NewBinaryEncoderFactory(true)
 
-				_, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(tc.configurations, 1<<20)
+				// Encryption authenticates the data,
+				// meaning decoding fails if the
+				// configuration is incorrect.
+				deterministicBinaryEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(tc.configurations, 1<<20)
 				require.NoError(t, err)
+				require.Equal(t, tc.isEncrypting, deterministicBinaryEncoder.IsAutoDetecting())
 
-				_, err = binaryEncoderFactory.NewKeyedBinaryEncoderFromProto(tc.configurations, 1<<20)
+				keyedBinaryEncoder, err := binaryEncoderFactory.NewKeyedBinaryEncoderFromProto(tc.configurations, 1<<20)
 				require.NoError(t, err)
+				require.Equal(t, tc.isEncrypting, keyedBinaryEncoder.IsAutoDetecting())
 			})
 		})
 	}

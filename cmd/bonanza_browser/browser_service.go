@@ -491,11 +491,19 @@ func renderReferenceCard(title string, decodableReference model_core.Decodable[o
 // If encoderUsed is set, the first encoder was used to decode objects
 // displayed on the page, and is highlighted.
 //
+// Encoders are tried in order when decoding objects. A button for
+// moving an encoder to the front of the list is only displayed if
+// doing so may affect how the object referenced by the page is
+// decoded. This is not the case for encoders that expect a different
+// amount of decoding parameters, or ones that reliably fail to decode
+// data encoded using another configuration (e.g., because encryption
+// is used).
+//
 // The form is only used to add new configurations. It is not
 // prefilled with the configuration that is currently in use, as that
 // would reveal secrets (e.g., encryption keys). It only contains text
 // if the configuration that was previously submitted was invalid.
-func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder, encoderUsed bool, newEncoderConfiguration string) []g.Node {
+func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalReference], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder, encoderUsed bool, newEncoderConfiguration string) []g.Node {
 	recentlyObservedEncodersNodes := []g.Node{
 		h.Class("card bg-base-200 w-full p-4 shadow"),
 		h.H1(
@@ -529,7 +537,12 @@ func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObserv
 		var titleAction g.Node
 		if isUsed {
 			titleAction = h.Span(h.Class("badge badge-primary"), g.Text("In use"))
-		} else {
+		} else if binaryEncoder, err := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
+			recentlyObservedEncoder.Configuration,
+			uint32(pageReference.Value.GetReferenceFormat().GetMaximumObjectSizeBytes()),
+		); err == nil &&
+			binaryEncoder.GetDecodingParametersSizeBytes() == len(pageReference.GetDecodingParameters()) &&
+			!binaryEncoder.IsAutoDetecting() {
 			titleAction = h.Button(h.Class("btn btn-primary btn-sm"), g.Text("Use"))
 		}
 		cardBody = append(
@@ -675,7 +688,7 @@ func renderEvaluationPage(
 					h.Class("flex flex-col w-1/3 space-y-4"),
 					renderReferenceCard("Evaluations list reference", evaluationsListReference),
 				},
-				renderEncoderSelector(cookie.RecentlyObservedEncoders, encoderUsed, newEncoderConfiguration)...,
+				renderEncoderSelector(evaluationsListReference, cookie.RecentlyObservedEncoders, encoderUsed, newEncoderConfiguration)...,
 			)...),
 
 			h.Div(evaluationCard...),
@@ -1152,7 +1165,7 @@ func renderObjectPage(
 					h.Class("flex flex-col w-1/3 space-y-4"),
 					renderReferenceCard("Object reference", decodableReference),
 				},
-				renderEncoderSelector(cookie.RecentlyObservedEncoders, encoderUsed, newEncoderConfiguration)...,
+				renderEncoderSelector(decodableReference, cookie.RecentlyObservedEncoders, encoderUsed, newEncoderConfiguration)...,
 			)...),
 
 			h.Div(

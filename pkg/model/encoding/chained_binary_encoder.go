@@ -34,6 +34,16 @@ func (be *chainedBinaryEncoder[TBinaryEncoder]) AppendUniqueDecodingKeys(keys []
 	return keys
 }
 
+func (be *chainedBinaryEncoder[TBinaryEncoder]) IsAutoDetecting() bool {
+	// Decoding fails if any of the decoding steps fails.
+	for _, encoder := range be.encoders {
+		if encoder.IsAutoDetecting() {
+			return true
+		}
+	}
+	return false
+}
+
 func (be *chainedBinaryEncoder[TBinaryEncoder]) GetDecodingParametersSizeBytes() int {
 	if len(be.encoders) == 0 {
 		return 0

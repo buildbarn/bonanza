@@ -147,6 +147,13 @@ func (be *encryptingDeterministicBinaryEncoder) AppendUniqueDecodingKeys(keys []
 	return append(keys, be.uniqueDecodingKey)
 }
 
+// IsAutoDetecting returns true, as AES-GCM-SIV authenticates the
+// ciphertext. As the additional data covers the configurations of all
+// other encoders, decoding also fails if any of those differ.
+func (encryptingDeterministicBinaryEncoder) IsAutoDetecting() bool {
+	return true
+}
+
 func (be *encryptingDeterministicBinaryEncoder) GetDecodingParametersSizeBytes() int {
 	return be.tagSizeBytes
 }

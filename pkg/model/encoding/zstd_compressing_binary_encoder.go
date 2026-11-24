@@ -30,6 +30,14 @@ func (be *zstdCompressingBinaryEncoder) AppendUniqueDecodingKeys(keys []unique.H
 	}))
 }
 
+// IsAutoDetecting returns false. Even though decompressing data that
+// was not compressed is likely to fail, canonical Zstandard frames
+// contain no checksum. Data that happens to be a valid frame is
+// decompressed successfully.
+func (zstdCompressingBinaryEncoder) IsAutoDetecting() bool {
+	return false
+}
+
 func (zstdCompressingBinaryEncoder) GetDecodingParametersSizeBytes() int {
 	return 0
 }
