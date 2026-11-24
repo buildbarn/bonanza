@@ -121,9 +121,38 @@ func importLinkedEncoders(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
+// importEncoderConfiguration processes an encoder configuration that
+// was submitted through a form, either by entering a new configuration
+// or by selecting a recently observed one. The configuration is stored
+// in the cookie, after which the client is redirected to the same page.
+// This prevents the browser from asking to resubmit the form when the
+// page is reloaded.
+//
+// Invalid configurations are not processed, so that the page can
+// display an error and retain the configuration that was entered.
+//
+// This function returns true if the request contained a valid
+// configuration, meaning a response has already been written.
+func importEncoderConfiguration(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != http.MethodPost {
+		return false
+	}
+	recentlyObservedEncoders, _, err := getEncoderFromForm(r)
+	if err != nil || len(recentlyObservedEncoders) == 0 {
+		return false
+	}
+	cookie := getCookie(r)
+	cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
+		append(recentlyObservedEncoders, cookie.RecentlyObservedEncoders...),
+	)
+	setCookie(w, cookie)
+	http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
+	return true
+}
+
 func wrapHandler(handler func(http.ResponseWriter, *http.Request) (g.Node, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if importLinkedEncoders(w, r) {
+		if importLinkedEncoders(w, r) || importEncoderConfiguration(w, r) {
 			return
 		}
 		node, err := handler(w, r)
