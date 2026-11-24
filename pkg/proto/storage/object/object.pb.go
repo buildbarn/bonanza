@@ -260,7 +260,7 @@ type UploadObjectRequest struct {
 	Contents                 []byte                 `protobuf:"bytes,3,opt,name=contents,proto3" json:"contents,omitempty"`
 	OutgoingReferencesLeases [][]byte               `protobuf:"bytes,4,rep,name=outgoing_references_leases,json=outgoingReferencesLeases,proto3" json:"outgoing_references_leases,omitempty"`
 	WantContentsIfIncomplete bool                   `protobuf:"varint,5,opt,name=want_contents_if_incomplete,json=wantContentsIfIncomplete,proto3" json:"want_contents_if_incomplete,omitempty"`
-	Watermark                *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=watermark,proto3" json:"watermark,omitempty"`
+	Watermark                *Watermark             `protobuf:"bytes,6,opt,name=watermark,proto3" json:"watermark,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -330,7 +330,7 @@ func (x *UploadObjectRequest) GetWantContentsIfIncomplete() bool {
 	return false
 }
 
-func (x *UploadObjectRequest) GetWatermark() *timestamppb.Timestamp {
+func (x *UploadObjectRequest) GetWatermark() *Watermark {
 	if x != nil {
 		return x.Watermark
 	}
@@ -421,7 +421,7 @@ func (*UploadObjectResponse_Incomplete_) isUploadObjectResponse_Type() {}
 
 type GetWatermarkResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Watermark     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=watermark,proto3" json:"watermark,omitempty"`
+	Watermark     *Watermark             `protobuf:"bytes,1,opt,name=watermark,proto3" json:"watermark,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -456,9 +456,61 @@ func (*GetWatermarkResponse) Descriptor() ([]byte, []int) {
 	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *GetWatermarkResponse) GetWatermark() *timestamppb.Timestamp {
+func (x *GetWatermarkResponse) GetWatermark() *Watermark {
 	if x != nil {
 		return x.Watermark
+	}
+	return nil
+}
+
+type Watermark struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Watermark     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=watermark,proto3" json:"watermark,omitempty"`
+	ObtainedAt    *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=obtained_at,json=obtainedAt,proto3" json:"obtained_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Watermark) Reset() {
+	*x = Watermark{}
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Watermark) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Watermark) ProtoMessage() {}
+
+func (x *Watermark) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Watermark.ProtoReflect.Descriptor instead.
+func (*Watermark) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Watermark) GetWatermark() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Watermark
+	}
+	return nil
+}
+
+func (x *Watermark) GetObtainedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObtainedAt
 	}
 	return nil
 }
@@ -473,7 +525,7 @@ type Limit struct {
 
 func (x *Limit) Reset() {
 	*x = Limit{}
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -485,7 +537,7 @@ func (x *Limit) String() string {
 func (*Limit) ProtoMessage() {}
 
 func (x *Limit) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[7]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -498,7 +550,7 @@ func (x *Limit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Limit.ProtoReflect.Descriptor instead.
 func (*Limit) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{7}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Limit) GetCount() uint32 {
@@ -524,7 +576,7 @@ type UploadObjectResponse_Complete struct {
 
 func (x *UploadObjectResponse_Complete) Reset() {
 	*x = UploadObjectResponse_Complete{}
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -536,7 +588,7 @@ func (x *UploadObjectResponse_Complete) String() string {
 func (*UploadObjectResponse_Complete) ProtoMessage() {}
 
 func (x *UploadObjectResponse_Complete) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -569,7 +621,7 @@ type UploadObjectResponse_Incomplete struct {
 
 func (x *UploadObjectResponse_Incomplete) Reset() {
 	*x = UploadObjectResponse_Incomplete{}
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -581,7 +633,7 @@ func (x *UploadObjectResponse_Incomplete) String() string {
 func (*UploadObjectResponse_Incomplete) ProtoMessage() {}
 
 func (x *UploadObjectResponse_Incomplete) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -627,14 +679,14 @@ const file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc = "" +
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12\x1c\n" +
 	"\treference\x18\x02 \x01(\fR\treference\"4\n" +
 	"\x16DownloadObjectResponse\x12\x1a\n" +
-	"\bcontents\x18\x01 \x01(\fR\bcontents\"\xc7\x02\n" +
+	"\bcontents\x18\x01 \x01(\fR\bcontents\"\xce\x02\n" +
 	"\x13UploadObjectRequest\x12?\n" +
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12\x1c\n" +
 	"\treference\x18\x02 \x01(\fR\treference\x12\x1a\n" +
 	"\bcontents\x18\x03 \x01(\fR\bcontents\x12<\n" +
 	"\x1aoutgoing_references_leases\x18\x04 \x03(\fR\x18outgoingReferencesLeases\x12=\n" +
-	"\x1bwant_contents_if_incomplete\x18\x05 \x01(\bR\x18wantContentsIfIncomplete\x128\n" +
-	"\twatermark\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\twatermark\"\xe1\x02\n" +
+	"\x1bwant_contents_if_incomplete\x18\x05 \x01(\bR\x18wantContentsIfIncomplete\x12?\n" +
+	"\twatermark\x18\x06 \x01(\v2!.bonanza.storage.object.WatermarkR\twatermark\"\xe1\x02\n" +
 	"\x14UploadObjectResponse\x12S\n" +
 	"\bcomplete\x18\x01 \x01(\v25.bonanza.storage.object.UploadObjectResponse.CompleteH\x00R\bcomplete\x12Y\n" +
 	"\n" +
@@ -646,9 +698,13 @@ const file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc = "" +
 	"Incomplete\x12\x1a\n" +
 	"\bcontents\x18\x01 \x01(\fR\bcontents\x12E\n" +
 	"\x1fwant_outgoing_references_leases\x18\x02 \x03(\rR\x1cwantOutgoingReferencesLeasesB\x06\n" +
-	"\x04type\"P\n" +
-	"\x14GetWatermarkResponse\x128\n" +
-	"\twatermark\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\twatermark\"<\n" +
+	"\x04type\"W\n" +
+	"\x14GetWatermarkResponse\x12?\n" +
+	"\twatermark\x18\x01 \x01(\v2!.bonanza.storage.object.WatermarkR\twatermark\"\x82\x01\n" +
+	"\tWatermark\x128\n" +
+	"\twatermark\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\twatermark\x12;\n" +
+	"\vobtained_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"obtainedAt\"<\n" +
 	"\x05Limit\x12\x14\n" +
 	"\x05count\x18\x01 \x01(\rR\x05count\x12\x1d\n" +
 	"\n" +
@@ -673,7 +729,7 @@ func file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP() []by
 }
 
 var file_bonanza_build_pkg_proto_storage_object_object_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_bonanza_build_pkg_proto_storage_object_object_proto_goTypes = []any{
 	(ReferenceFormat_Value)(0),              // 0: bonanza.storage.object.ReferenceFormat.Value
 	(*ReferenceFormat)(nil),                 // 1: bonanza.storage.object.ReferenceFormat
@@ -683,31 +739,34 @@ var file_bonanza_build_pkg_proto_storage_object_object_proto_goTypes = []any{
 	(*UploadObjectRequest)(nil),             // 5: bonanza.storage.object.UploadObjectRequest
 	(*UploadObjectResponse)(nil),            // 6: bonanza.storage.object.UploadObjectResponse
 	(*GetWatermarkResponse)(nil),            // 7: bonanza.storage.object.GetWatermarkResponse
-	(*Limit)(nil),                           // 8: bonanza.storage.object.Limit
-	(*UploadObjectResponse_Complete)(nil),   // 9: bonanza.storage.object.UploadObjectResponse.Complete
-	(*UploadObjectResponse_Incomplete)(nil), // 10: bonanza.storage.object.UploadObjectResponse.Incomplete
-	(*timestamppb.Timestamp)(nil),           // 11: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                   // 12: google.protobuf.Empty
+	(*Watermark)(nil),                       // 8: bonanza.storage.object.Watermark
+	(*Limit)(nil),                           // 9: bonanza.storage.object.Limit
+	(*UploadObjectResponse_Complete)(nil),   // 10: bonanza.storage.object.UploadObjectResponse.Complete
+	(*UploadObjectResponse_Incomplete)(nil), // 11: bonanza.storage.object.UploadObjectResponse.Incomplete
+	(*timestamppb.Timestamp)(nil),           // 12: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                   // 13: google.protobuf.Empty
 }
 var file_bonanza_build_pkg_proto_storage_object_object_proto_depIdxs = []int32{
 	0,  // 0: bonanza.storage.object.Namespace.reference_format:type_name -> bonanza.storage.object.ReferenceFormat.Value
 	2,  // 1: bonanza.storage.object.DownloadObjectRequest.namespace:type_name -> bonanza.storage.object.Namespace
 	2,  // 2: bonanza.storage.object.UploadObjectRequest.namespace:type_name -> bonanza.storage.object.Namespace
-	11, // 3: bonanza.storage.object.UploadObjectRequest.watermark:type_name -> google.protobuf.Timestamp
-	9,  // 4: bonanza.storage.object.UploadObjectResponse.complete:type_name -> bonanza.storage.object.UploadObjectResponse.Complete
-	10, // 5: bonanza.storage.object.UploadObjectResponse.incomplete:type_name -> bonanza.storage.object.UploadObjectResponse.Incomplete
-	11, // 6: bonanza.storage.object.GetWatermarkResponse.watermark:type_name -> google.protobuf.Timestamp
-	3,  // 7: bonanza.storage.object.Downloader.DownloadObject:input_type -> bonanza.storage.object.DownloadObjectRequest
-	5,  // 8: bonanza.storage.object.Uploader.UploadObject:input_type -> bonanza.storage.object.UploadObjectRequest
-	12, // 9: bonanza.storage.object.Uploader.GetWatermark:input_type -> google.protobuf.Empty
-	4,  // 10: bonanza.storage.object.Downloader.DownloadObject:output_type -> bonanza.storage.object.DownloadObjectResponse
-	6,  // 11: bonanza.storage.object.Uploader.UploadObject:output_type -> bonanza.storage.object.UploadObjectResponse
-	7,  // 12: bonanza.storage.object.Uploader.GetWatermark:output_type -> bonanza.storage.object.GetWatermarkResponse
-	10, // [10:13] is the sub-list for method output_type
-	7,  // [7:10] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	8,  // 3: bonanza.storage.object.UploadObjectRequest.watermark:type_name -> bonanza.storage.object.Watermark
+	10, // 4: bonanza.storage.object.UploadObjectResponse.complete:type_name -> bonanza.storage.object.UploadObjectResponse.Complete
+	11, // 5: bonanza.storage.object.UploadObjectResponse.incomplete:type_name -> bonanza.storage.object.UploadObjectResponse.Incomplete
+	8,  // 6: bonanza.storage.object.GetWatermarkResponse.watermark:type_name -> bonanza.storage.object.Watermark
+	12, // 7: bonanza.storage.object.Watermark.watermark:type_name -> google.protobuf.Timestamp
+	12, // 8: bonanza.storage.object.Watermark.obtained_at:type_name -> google.protobuf.Timestamp
+	3,  // 9: bonanza.storage.object.Downloader.DownloadObject:input_type -> bonanza.storage.object.DownloadObjectRequest
+	5,  // 10: bonanza.storage.object.Uploader.UploadObject:input_type -> bonanza.storage.object.UploadObjectRequest
+	13, // 11: bonanza.storage.object.Uploader.GetWatermark:input_type -> google.protobuf.Empty
+	4,  // 12: bonanza.storage.object.Downloader.DownloadObject:output_type -> bonanza.storage.object.DownloadObjectResponse
+	6,  // 13: bonanza.storage.object.Uploader.UploadObject:output_type -> bonanza.storage.object.UploadObjectResponse
+	7,  // 14: bonanza.storage.object.Uploader.GetWatermark:output_type -> bonanza.storage.object.GetWatermarkResponse
+	12, // [12:15] is the sub-list for method output_type
+	9,  // [9:12] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_storage_object_object_proto_init() }
@@ -725,7 +784,7 @@ func file_bonanza_build_pkg_proto_storage_object_object_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

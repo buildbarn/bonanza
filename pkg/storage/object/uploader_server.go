@@ -17,7 +17,7 @@ import (
 type uploaderServer struct {
 	uploader         Uploader[GlobalReference, []byte]
 	clusterWatermark *Watermark
-	getWatermark     func() time.Time
+	getWatermark     func() (time.Time, time.Time)
 }
 
 // NewUploaderServer creates a gRPC server object for exposing an
@@ -27,8 +27,8 @@ type uploaderServer struct {
 // If clusterWatermark is provided, it is raised to the cluster
 // watermark that clients provide as part of their requests. If
 // getWatermark is provided, it is used to report the watermark of the
-// server to clients.
-func NewUploaderServer(uploader Uploader[GlobalReference, []byte], clusterWatermark *Watermark, getWatermark func() time.Time) object.UploaderServer {
+// server to clients, together with the current time.
+func NewUploaderServer(uploader Uploader[GlobalReference, []byte], clusterWatermark *Watermark, getWatermark func() (watermark, now time.Time)) object.UploaderServer {
 	return &uploaderServer{
 		uploader:         uploader,
 		clusterWatermark: clusterWatermark,
@@ -38,7 +38,9 @@ func NewUploaderServer(uploader Uploader[GlobalReference, []byte], clusterWaterm
 
 func (s *uploaderServer) UploadObject(ctx context.Context, request *object.UploadObjectRequest) (*object.UploadObjectResponse, error) {
 	if s.clusterWatermark != nil {
-		s.clusterWatermark.RaiseFromProto(request.Watermark)
+		if err := s.clusterWatermark.RaiseFromProto(request.Watermark); err != nil {
+			return nil, util.StatusWrap(err, "Invalid cluster watermark")
+		}
 	}
 
 	namespace, err := NewNamespace(request.Namespace)
@@ -119,9 +121,12 @@ func (s *uploaderServer) GetWatermark(ctx context.Context, request *emptypb.Empt
 	if s.getWatermark == nil {
 		return nil, status.Error(codes.Unimplemented, "This server does not report its watermark")
 	}
-	response := &object.GetWatermarkResponse{}
-	if watermark := s.getWatermark(); !watermark.IsZero() {
+	watermark, obtainedAt := s.getWatermark()
+	response := &object.Watermark{
+		ObtainedAt: timestamppb.New(obtainedAt),
+	}
+	if !watermark.IsZero() {
 		response.Watermark = timestamppb.New(watermark)
 	}
-	return response, nil
+	return &object.GetWatermarkResponse{Watermark: response}, nil
 }

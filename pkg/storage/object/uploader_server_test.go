@@ -8,7 +8,6 @@ import (
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	"bonanza.build/pkg/storage/object"
 
-	"github.com/buildbarn/bb-storage/pkg/clock"
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
@@ -414,25 +413,44 @@ func TestUploaderServerWatermark(t *testing.T) {
 	})
 
 	t.Run("Reported", func(t *testing.T) {
-		clusterWatermark := object.NewWatermark(clock.SystemClock)
+		clock := NewMockClock(ctrl)
+		clock.EXPECT().Now().Return(time.Unix(1700001000, 0)).AnyTimes()
+		clusterWatermark := object.NewWatermark(clock, time.Minute)
 		server := object.NewUploaderServer(
 			NewMockUploaderForTestingBytes(ctrl),
 			clusterWatermark,
-			func() time.Time { return time.Unix(1700000000, 0) },
+			func() (time.Time, time.Time) { return time.Unix(1700000000, 0), time.Unix(1700001000, 0) },
 		)
 
 		response, err := server.GetWatermark(ctx, &emptypb.Empty{})
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &object_pb.GetWatermarkResponse{
-			Watermark: &timestamppb.Timestamp{Seconds: 1700000000},
+			Watermark: &object_pb.Watermark{
+				Watermark:  &timestamppb.Timestamp{Seconds: 1700000000},
+				ObtainedAt: &timestamppb.Timestamp{Seconds: 1700001000},
+			},
 		}, response)
 
 		// The cluster watermark provided by clients should be
 		// tracked, even if the request is invalid otherwise.
 		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{
-			Watermark: &timestamppb.Timestamp{Seconds: 1700000500},
+			Watermark: &object_pb.Watermark{
+				Watermark:  &timestamppb.Timestamp{Seconds: 1700000500},
+				ObtainedAt: &timestamppb.Timestamp{Seconds: 1700000990},
+			},
 		})
 		require.Error(t, err)
+		require.Equal(t, time.Unix(1700000500, 0), clusterWatermark.Get())
+
+		// Cluster watermarks that are too old should cause
+		// requests to be rejected.
+		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			Watermark: &object_pb.Watermark{
+				Watermark:  &timestamppb.Timestamp{Seconds: 1700000900},
+				ObtainedAt: &timestamppb.Timestamp{Seconds: 1700000939},
+			},
+		})
+		testutil.RequireEqualStatus(t, status.Error(codes.Unavailable, "Invalid cluster watermark: Watermark of the cluster was obtained 1m1s ago, which exceeds the maximum permitted age of 1m0s, meaning data may have been lost in the meantime"), err)
 		require.Equal(t, time.Unix(1700000500, 0), clusterWatermark.Get())
 	})
 }

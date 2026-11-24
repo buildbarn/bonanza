@@ -117,7 +117,7 @@ message ResolveTagRequest {
   //
   // This field is only set by storage frontends. Other clients MUST
   // leave this field unset.
-  google.protobuf.Timestamp watermark = 4;
+  bonanza.storage.object.Watermark watermark = 4;
 }
 
 message ResolveTagResponse {

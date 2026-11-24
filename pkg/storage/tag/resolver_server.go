@@ -31,7 +31,9 @@ func NewResolverServer(resolver Resolver[object.Namespace], clusterWatermark *ob
 
 func (s *resolverServer) ResolveTag(ctx context.Context, request *tag_pb.ResolveTagRequest) (*tag_pb.ResolveTagResponse, error) {
 	if s.clusterWatermark != nil {
-		s.clusterWatermark.RaiseFromProto(request.Watermark)
+		if err := s.clusterWatermark.RaiseFromProto(request.Watermark); err != nil {
+			return nil, util.StatusWrap(err, "Invalid cluster watermark")
+		}
 	}
 
 	namespace, err := object.NewNamespace(request.Namespace)

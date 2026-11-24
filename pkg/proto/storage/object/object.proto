@@ -51,7 +51,7 @@ service Uploader {
   // the watermark.
   //
   // Storage frontends call this method periodically against all
-  // storage shards, and provide the highest watermark of each cluster
+  // storage shards, and provide the resulting watermark of each cluster
   // as part of UploadObjectRequest.watermark.
   rpc GetWatermark(google.protobuf.Empty) returns (GetWatermarkResponse);
 }
@@ -172,9 +172,11 @@ message UploadObjectRequest {
   // watermark, as opposed to just its own.
   //
   // The server keeps track of the highest value it has received, meaning
-  // that clients providing an outdated value do not cause leases to be
-  // accepted that are known to be invalid.
-  google.protobuf.Timestamp watermark = 6;
+  // that clients providing a lower value do not cause leases to be
+  // accepted that are known to be invalid. Requests providing a
+  // watermark that is too old are rejected with UNAVAILABLE, as the
+  // server cannot rule out that data was lost in the meantime.
+  Watermark watermark = 6;
 }
 
 message UploadObjectResponse {
@@ -212,9 +214,42 @@ message UploadObjectResponse {
 }
 
 message GetWatermarkResponse {
-  // The watermark of the storage server. All objects written to the
-  // server at or after this time are still present.
+  // The watermark of the storage server.
+  Watermark watermark = 1;
+}
+
+// The watermark of one or more storage servers. All objects written to
+// these storage servers at or after the watermark are still present.
+//
+// Storage servers report their own watermark through GetWatermark().
+// Storage frontends combine the watermarks of all storage servers in a
+// cluster into a single watermark by taking the highest value of
+// field 'watermark' and the lowest value of field 'obtained_at', and
+// provide it to storage servers as part of their requests.
+//
+// A cluster consists of all storage servers across which the key
+// space is partitioned. As objects may reference objects stored on
+// other storage servers in the cluster, leases need to be checked
+// against the watermark of the cluster as a whole.
+message Watermark {
+  // The watermark. Just like leases, the watermark is computed using
+  // the clocks of storage servers. If not set, none of the storage
+  // servers have lost any data yet.
   google.protobuf.Timestamp watermark = 1;
+
+  // The time at which the watermark was obtained, according to the
+  // clocks of storage servers.
+  //
+  // Storage servers reject requests if the time elapsed since then
+  // exceeds the amount of time they account for when computing their
+  // own watermark, as data may have been lost in the meantime. This
+  // happens if a storage frontend is unable to obtain the watermark of
+  // one of the storage servers for an extended period of time.
+  //
+  // As all timestamps in this message are computed by storage servers,
+  // only the clocks of storage servers need to be synchronized. The
+  // clocks of storage frontends are not used.
+  google.protobuf.Timestamp obtained_at = 2;
 }
 
 message Limit {

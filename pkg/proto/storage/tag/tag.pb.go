@@ -245,7 +245,7 @@ type ResolveTagRequest struct {
 	Namespace        *object.Namespace      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	Key              *Key                   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	MinimumTimestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=minimum_timestamp,json=minimumTimestamp,proto3" json:"minimum_timestamp,omitempty"`
-	Watermark        *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=watermark,proto3" json:"watermark,omitempty"`
+	Watermark        *object.Watermark      `protobuf:"bytes,4,opt,name=watermark,proto3" json:"watermark,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -301,7 +301,7 @@ func (x *ResolveTagRequest) GetMinimumTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *ResolveTagRequest) GetWatermark() *timestamppb.Timestamp {
+func (x *ResolveTagRequest) GetWatermark() *object.Watermark {
 	if x != nil {
 		return x.Watermark
 	}
@@ -445,12 +445,12 @@ const file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc = "" +
 	"\x11ValueSigningInput\x12X\n" +
 	"\x10reference_format\x18\x01 \x01(\x0e2-.bonanza.storage.object.ReferenceFormat.ValueR\x0freferenceFormat\x12\x19\n" +
 	"\bkey_hash\x18\x02 \x01(\fR\akeyHash\x120\n" +
-	"\x05value\x18\x03 \x01(\v2\x1a.bonanza.storage.tag.ValueR\x05value\"\x83\x02\n" +
+	"\x05value\x18\x03 \x01(\v2\x1a.bonanza.storage.tag.ValueR\x05value\"\x8a\x02\n" +
 	"\x11ResolveTagRequest\x12?\n" +
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12*\n" +
 	"\x03key\x18\x02 \x01(\v2\x18.bonanza.storage.tag.KeyR\x03key\x12G\n" +
-	"\x11minimum_timestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x10minimumTimestamp\x128\n" +
-	"\twatermark\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\twatermark\"u\n" +
+	"\x11minimum_timestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x10minimumTimestamp\x12?\n" +
+	"\twatermark\x18\x04 \x01(\v2!.bonanza.storage.object.WatermarkR\twatermark\"u\n" +
 	"\x12ResolveTagResponse\x12C\n" +
 	"\fsigned_value\x18\x01 \x01(\v2 .bonanza.storage.tag.SignedValueR\vsignedValue\x12\x1a\n" +
 	"\bcomplete\x18\x02 \x01(\bR\bcomplete\"\xda\x01\n" +
@@ -489,7 +489,8 @@ var file_bonanza_build_pkg_proto_storage_tag_tag_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),     // 7: google.protobuf.Timestamp
 	(object.ReferenceFormat_Value)(0), // 8: bonanza.storage.object.ReferenceFormat.Value
 	(*object.Namespace)(nil),          // 9: bonanza.storage.object.Namespace
-	(*emptypb.Empty)(nil),             // 10: google.protobuf.Empty
+	(*object.Watermark)(nil),          // 10: bonanza.storage.object.Watermark
+	(*emptypb.Empty)(nil),             // 11: google.protobuf.Empty
 }
 var file_bonanza_build_pkg_proto_storage_tag_tag_proto_depIdxs = []int32{
 	7,  // 0: bonanza.storage.tag.Value.timestamp:type_name -> google.protobuf.Timestamp
@@ -499,7 +500,7 @@ var file_bonanza_build_pkg_proto_storage_tag_tag_proto_depIdxs = []int32{
 	9,  // 4: bonanza.storage.tag.ResolveTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
 	0,  // 5: bonanza.storage.tag.ResolveTagRequest.key:type_name -> bonanza.storage.tag.Key
 	7,  // 6: bonanza.storage.tag.ResolveTagRequest.minimum_timestamp:type_name -> google.protobuf.Timestamp
-	7,  // 7: bonanza.storage.tag.ResolveTagRequest.watermark:type_name -> google.protobuf.Timestamp
+	10, // 7: bonanza.storage.tag.ResolveTagRequest.watermark:type_name -> bonanza.storage.object.Watermark
 	2,  // 8: bonanza.storage.tag.ResolveTagResponse.signed_value:type_name -> bonanza.storage.tag.SignedValue
 	9,  // 9: bonanza.storage.tag.UpdateTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
 	0,  // 10: bonanza.storage.tag.UpdateTagRequest.key:type_name -> bonanza.storage.tag.Key
@@ -507,7 +508,7 @@ var file_bonanza_build_pkg_proto_storage_tag_tag_proto_depIdxs = []int32{
 	4,  // 12: bonanza.storage.tag.Resolver.ResolveTag:input_type -> bonanza.storage.tag.ResolveTagRequest
 	6,  // 13: bonanza.storage.tag.Updater.UpdateTag:input_type -> bonanza.storage.tag.UpdateTagRequest
 	5,  // 14: bonanza.storage.tag.Resolver.ResolveTag:output_type -> bonanza.storage.tag.ResolveTagResponse
-	10, // 15: bonanza.storage.tag.Updater.UpdateTag:output_type -> google.protobuf.Empty
+	11, // 15: bonanza.storage.tag.Updater.UpdateTag:output_type -> google.protobuf.Empty
 	14, // [14:16] is the sub-list for method output_type
 	12, // [12:14] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name

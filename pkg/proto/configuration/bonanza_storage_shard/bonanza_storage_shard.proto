@@ -99,6 +99,13 @@ message ApplicationConfiguration {
   // The amount of data that will be written is estimated based on the
   // amount of data written in the past.
   //
+  // For the same reason, requests are rejected with UNAVAILABLE if the
+  // watermark of the cluster provided by storage frontends was obtained
+  // longer ago than this amount of time, as other shards may have lost
+  // data in the meantime. This happens if a storage frontend is unable
+  // to obtain the watermark of one of the shards for an extended period
+  // of time (e.g., because the shard is unreachable).
+  //
   // This option should be set to a value that is larger than the
   // interval at which storage frontends poll the watermark, plus the
   // time it takes to process requests.

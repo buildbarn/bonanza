@@ -56,8 +56,18 @@ func main() {
 		// Leases are therefore checked against the highest
 		// watermark of the cluster, which storage frontends
 		// provide as part of their requests.
+		//
+		// The watermark of the local object store accounts for
+		// data that is overwritten within the lookahead.
+		// Watermarks provided by storage frontends that are
+		// older than that are rejected, as other shards may
+		// have lost data in the meantime.
+		watermarkLookahead := configuration.WatermarkLookahead
+		if err := watermarkLookahead.CheckValid(); err != nil {
+			return util.StatusWrap(err, "Invalid watermark lookahead")
+		}
 		var localObjectStore object_local.Store
-		clusterWatermark := object.NewWatermark(clock.SystemClock)
+		clusterWatermark := object.NewWatermark(clock.SystemClock, watermarkLookahead.AsDuration())
 		getWatermark := func() time.Time {
 			watermark := clusterWatermark.Get()
 			if localWatermark := localObjectStore.GetWatermark(); watermark.Before(localWatermark) {
@@ -69,10 +79,6 @@ func main() {
 		// Construct a flat storage backend for objects. Objects
 		// whose leases need to be renewed are rewritten, so
 		// that they get a new lease.
-		watermarkLookahead := configuration.WatermarkLookahead
-		if err := watermarkLookahead.CheckValid(); err != nil {
-			return util.StatusWrap(err, "Invalid watermark lookahead")
-		}
 		localObjectStore, err = object_local.NewStoreFromConfiguration(
 			dependenciesGroup,
 			configuration.LocalObjectStore,
@@ -172,7 +178,9 @@ func main() {
 							leaseMarshaler,
 						),
 						clusterWatermark,
-						localObjectStore.GetWatermark,
+						/* getWatermark = */ func() (time.Time, time.Time) {
+							return localObjectStore.GetWatermark(), clock.SystemClock.Now()
+						},
 					),
 				)
 				tag_pb.RegisterResolverServer(
