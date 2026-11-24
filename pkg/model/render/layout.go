@@ -11,6 +11,9 @@ type Segment struct {
 	Role  Role
 	Link  *LinkTarget
 	Title string
+	// If set, the text is sensitive and should be concealed until
+	// the user explicitly requests to see it.
+	Secret bool
 }
 
 // TableBlock is a table that has been laid out. The contents of each
@@ -48,9 +51,10 @@ type LayoutOptions struct {
 }
 
 type attributes struct {
-	role  Role
-	link  *LinkTarget
-	title string
+	role   Role
+	link   *LinkTarget
+	title  string
+	secret bool
 }
 
 type layoutItem struct {
@@ -78,17 +82,18 @@ func (ls *layoutState) emitText(s string, a attributes) {
 	segments := ls.current.Segments
 	if n := len(segments); n > 0 {
 		last := &segments[n-1]
-		if last.Role == a.role && last.Link == a.link && last.Title == a.title {
+		if last.Role == a.role && last.Link == a.link && last.Title == a.title && last.Secret == a.secret {
 			last.Text += s
 			ls.column += utf8.RuneCountInString(s)
 			return
 		}
 	}
 	ls.current.Segments = append(segments, Segment{
-		Text:  s,
-		Role:  a.role,
-		Link:  a.link,
-		Title: a.title,
+		Text:   s,
+		Role:   a.role,
+		Link:   a.link,
+		Title:  a.title,
+		Secret: a.secret,
 	})
 	ls.column += utf8.RuneCountInString(s)
 }
@@ -221,6 +226,9 @@ func (ls *layoutState) layout(doc Doc, indent int) {
 			}
 			if d.title != "" {
 				a.title = d.title
+			}
+			if d.secret {
+				a.secret = true
 			}
 			stack = append(stack, layoutItem{
 				indent:     item.indent,

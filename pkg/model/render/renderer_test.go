@@ -7,6 +7,7 @@ import (
 	model_format "bonanza.build/pkg/model/format"
 	"bonanza.build/pkg/model/render"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
+	model_encoding_pb "bonanza.build/pkg/proto/model/encoding"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/compile"
@@ -813,4 +814,32 @@ func TestRendererFunctionEntryLeaf(t *testing.T) {
 			`"lineTable"`,
 		)
 	})
+}
+
+func TestRendererSecret(t *testing.T) {
+	// Fields annotated with [debug_redact = true] should have
+	// their values marked as secret, while the field name itself
+	// should remain visible.
+	r := render.Renderer{}
+	blocks := render.Layout(
+		r.Message(model_core.NewSimpleMessage[object.LocalReference](
+			(&model_encoding_pb.BinaryEncoder{
+				Encoder: &model_encoding_pb.BinaryEncoder_Encrypting{
+					Encrypting: &model_encoding_pb.EncryptingBinaryEncoder{
+						EncryptionKey: []byte("key"),
+					},
+				},
+			}).ProtoReflect(),
+		)),
+		render.LayoutOptions{SingleLine: true},
+	)
+	require.Equal(t, `{"encrypting": {"encryptionKey": "a2V5"}}`, render.PlainText(blocks, ""))
+
+	var secrets []string
+	for _, segment := range blocks[0].Segments {
+		if segment.Secret {
+			secrets = append(secrets, segment.Text)
+		}
+	}
+	require.Equal(t, []string{`"a2V5"`}, secrets)
 }

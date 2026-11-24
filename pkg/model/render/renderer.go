@@ -301,11 +301,22 @@ func (r *Renderer) renderMessageCommon(m model_core.Message[protoreflect.Message
 		} else {
 			valueDoc = r.renderField(fieldDescriptor, model_core.Nested(m, value))
 		}
+		if isSecretField(fieldDescriptor) {
+			valueDoc = Secret(valueDoc)
+		}
 		fields[fieldDescriptor.JSONName()] = valueDoc
 		return true
 	})
 
 	return renderFields(fields)
+}
+
+// isSecretField returns true if a field is annotated with
+// [debug_redact = true], meaning its value is sensitive (e.g., an
+// encryption key).
+func isSecretField(fieldDescriptor protoreflect.FieldDescriptor) bool {
+	fieldOptions, ok := fieldDescriptor.Options().(*descriptorpb.FieldOptions)
+	return ok && fieldOptions.GetDebugRedact()
 }
 
 // renderFields joins the rendered values of fields of a message

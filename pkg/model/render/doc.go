@@ -88,9 +88,10 @@ type ifBrokenDoc struct {
 }
 
 type annotateDoc struct {
-	link  *LinkTarget
-	title string
-	child Doc
+	link   *LinkTarget
+	title  string
+	secret bool
+	child  Doc
 }
 
 type tableDoc struct {
@@ -166,6 +167,14 @@ func Link(target LinkTarget, child Doc) Doc {
 // Backends that support it may display it when hovering the text.
 func Title(title string, child Doc) Doc {
 	return annotateDoc{title: title, child: child}
+}
+
+// Secret marks the text contained in a document as being sensitive
+// (e.g., an encryption key). Backends that support it should conceal
+// the text until the user explicitly requests to see it, while still
+// permitting it to be copied.
+func Secret(child Doc) Doc {
+	return annotateDoc{secret: true, child: child}
 }
 
 // TableColumn describes a column of a table.
