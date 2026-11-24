@@ -28,7 +28,7 @@ type Evaluation struct {
 	browserURL               string
 	referenceFormat          object.ReferenceFormat
 	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[object.LocalReference]
-	actionEncoder            model_encoding.DeterministicBinaryEncoder
+	evaluationEncoder        model_encoding.DeterministicBinaryEncoder
 	analysisEncoder          model_encoding.DeterministicBinaryEncoder
 	starlarkValueEncoder     model_encoding.DeterministicBinaryEncoder
 	requestedKey             model_core.TopLevelMessage[*anypb.Any, object.LocalReference]
@@ -97,7 +97,7 @@ func (e *Evaluation) GetRequestedValue(ctx context.Context) (model_core.Message[
 	evaluationsReader := model_parser.LookupParsedObjectReader(
 		e.parsedObjectPoolIngester,
 		model_parser.NewChainedObjectParser(
-			model_parser.NewEncodedObjectParser[object.LocalReference](e.actionEncoder),
+			model_parser.NewEncodedObjectParser[object.LocalReference](e.evaluationEncoder),
 			model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Evaluations](),
 		),
 	)
@@ -136,7 +136,7 @@ func (e *Evaluation) GetRequestedValue(ctx context.Context) (model_core.Message[
 		model_parser.LookupParsedObjectReader(
 			e.parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
-				model_parser.NewEncodedObjectParser[object.LocalReference](e.actionEncoder),
+				model_parser.NewEncodedObjectParser[object.LocalReference](e.evaluationEncoder),
 				model_parser.NewProtoObjectParser[object.LocalReference, model_evaluation_pb.Evaluation](),
 			),
 		),

@@ -6,7 +6,7 @@ Bonanza is designed to be useful even in situations where not all users trust al
 
 The storage layer itself is oblivious of encryption - users can add encryption on top through a configurable stack of encoders. Before objects get written to storage, they go through these encoders. A typical setup would first compress, then encrypt. Only the payload of the objects get encrypted. The header that contains the 40-byte references that point to other objects are unencrypted. These references contain SHA256 content hashes of the encoded objects they point to. This allows the storage layer to do things like garbage collection, or quickly being able to answer questions like "is object X and everything it recursively points to still in storage".
 
-The encryption key is stored in the binary encoders configuration message. The initialization vector (IV) is stored in the parent object's encrypted payload for enhanced security. 
+The encryption key is stored in the binary encoders configuration message. bonanza_bazel uses a separate key for each kind of object (directories, chunks of files, lists of file contents, actions processed by workers, evaluation requests and results exchanged with the builder, analysis results and Starlark values). These keys are derived from the value of `--remote_encryption_seed` using HKDF-SHA256, so that only the seed needs to be provided. This means that a key for one kind of object can be handed out (e.g., to inspect the contents of files) without granting access to other kinds of objects. The initialization vector (IV) is stored in the parent object's encrypted payload for enhanced security. 
 
 ## Execution Layer
 

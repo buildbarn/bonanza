@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "do_build.go",
         "embedded_directory.go",
+        "encryption_keys.go",
         "evaluation.go",
         "ignored_directories.go",
         "local_path_extracting_module_dot_bazel_handler.go",
@@ -75,6 +76,7 @@ go_test(
     name = "build_test",
     srcs = [
         "embedded_directory_test.go",
+        "encryption_keys_internal_test.go",
         "ignored_directories_test.go",
         "output_groups_internal_test.go",
         "render_test.go",

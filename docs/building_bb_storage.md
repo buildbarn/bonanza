@@ -34,12 +34,17 @@ Make sure to adjust any paths as needed (or change your username to
 common:bonanza --remote_cache=unix:///Users/ed/bonanza_demo/bonanza_storage_frontend.sock
 common:bonanza --remote_executor=unix:///Users/ed/bonanza_demo/bonanza_scheduler_clients.sock
 
-# Bonanza supports encrypting CAS objects using AES. This key can be
-# generated client side and is passed along to the cluster when a build
-# is kicked off. If you change this key, you are effectively busting the
-# entire cache. You can set this key to any 16-byte, 24-byte or 32-byte
-# value you want: head -c ${size} /dev/urandom | base64
-common:bonanza --remote_encryption_key=U3YDUwfejfiRDeD4aqoR7A==
+# Bonanza supports encrypting CAS objects using AES. The keys are
+# derived from a seed that is generated client side. A separate key is
+# derived for each kind of object (files, directories, analysis
+# results, etc.), and these keys are passed along to the cluster when a
+# build is kicked off. If you change this seed, you are effectively
+# busting the entire cache.
+#
+# The seed must be base64 encoded and at least 16 bytes in size, but
+# using 32 random bytes is recommended. Generate your own, as opposed to
+# using the one below: head -c 32 /dev/urandom | base64
+common:bonanza --remote_encryption_seed=3njt9k7EEh+PgsV5Y14XNtJfSTQrWcdiYBdEvJCuN1s=
 
 # Analysis and orchestration of the build takes place on a process named
 # bonanza_builder. Even though it does not run any build actions, it is
