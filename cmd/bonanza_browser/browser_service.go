@@ -446,16 +446,24 @@ func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObserv
 			cardClass += " border-2 border-primary"
 		}
 		cardBody := []g.Node{h.Class(cardClass)}
-		title := []g.Node{h.Class("text-xl")}
+		titleText := "User provided"
 		if o := recentlyObservedEncoder.LastObservation; o != nil {
-			title = append(title, g.Text(o.MessageType+"."+o.FieldName))
-		} else {
-			title = append(title, g.Text("User provided"))
+			titleText = o.MessageType + "." + o.FieldName
 		}
+		var titleAction g.Node
 		if isUsed {
-			title = append(title, h.Span(h.Class("badge badge-primary float-right"), g.Text("In use")))
+			titleAction = h.Span(h.Class("badge badge-primary"), g.Text("In use"))
+		} else {
+			titleAction = h.Button(h.Class("btn btn-primary btn-sm"), g.Text("Use"))
 		}
-		cardBody = append(cardBody, h.H2(title...))
+		cardBody = append(
+			cardBody,
+			h.Div(
+				h.Class("flex justify-between items-start gap-2"),
+				h.H2(h.Class("text-xl break-all"), g.Text(titleText)),
+				titleAction,
+			),
+		)
 		if o := recentlyObservedEncoder.LastObservation; o != nil {
 			cardBody = append(
 				cardBody,
@@ -479,18 +487,6 @@ func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObserv
 				)...,
 			),
 		)
-		if !isUsed {
-			cardBody = append(
-				cardBody,
-				h.Div(
-					h.Class("card-actions justify-end"),
-					h.Button(
-						h.Class("btn btn-primary"),
-						g.Text("Use"),
-					),
-				),
-			)
-		}
 
 		recentlyObservedEncodersNodes = append(
 			recentlyObservedEncodersNodes,
