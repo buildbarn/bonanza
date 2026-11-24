@@ -520,16 +520,16 @@ func renderReferenceCard(title string, decodableReference model_core.Decodable[o
 // If encoderUsed is set, the first encoder was used to decode objects
 // displayed on the page, and is highlighted.
 //
-// Encoders are tried in order when decoding objects. A button for
-// moving an encoder to the front of the list is only displayed if
-// doing so may affect how the object referenced by the page is
-// decoded. This is not the case for encoders that expect a different
-// amount of decoding parameters. It is also not the case for encoders
-// that reliably fail to decode data encoded using another
-// configuration (e.g., because encryption is used), unless an encoder
-// preceding it in the list does not. Such an encoder may successfully
-// decode the object, even if it was encoded using a different
-// configuration, meaning later encoders are never tried.
+// When decoding objects, the first encoder is tried, followed by any
+// auto-detecting encoders (see mayTryEncoder()). A button for moving an
+// encoder to the front of the list is only displayed if doing so may
+// affect how the object referenced by the page is decoded. This is not
+// the case for the first encoder, or for encoders that expect a
+// different amount of decoding parameters. It is also not the case for
+// auto-detecting encoders (e.g., ones that perform encryption), unless
+// the first encoder is not auto-detecting. That encoder may
+// successfully decode the object, even if it was encoded using a
+// different configuration, meaning other encoders are never tried.
 //
 // The form is only used to add new configurations. It is not
 // prefilled with the configuration that is currently in use, as that
@@ -543,8 +543,8 @@ func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalRefer
 			g.Text("Recently observed encoders"),
 		),
 	}
-	// Whether an encoder that is not auto-detecting precedes the
-	// current one, meaning the current one may never be tried.
+	// Whether the first encoder is not auto-detecting, meaning
+	// other encoders may never be tried.
 	shadowed := false
 	for i, recentlyObservedEncoder := range recentlyObservedEncoders {
 		applicable, autoDetecting := false, false
@@ -555,8 +555,8 @@ func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalRefer
 			applicable = binaryEncoder.GetDecodingParametersSizeBytes() == len(pageReference.GetDecodingParameters())
 			autoDetecting = binaryEncoder.IsAutoDetecting()
 		}
-		offerUse := applicable && (!autoDetecting || shadowed)
-		if applicable && !autoDetecting {
+		offerUse := i > 0 && applicable && (!autoDetecting || shadowed)
+		if i == 0 && applicable && !autoDetecting {
 			shadowed = true
 		}
 
@@ -866,6 +866,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		)
 		if encoderErr != nil {
 			err = fmt.Errorf("failed to create encoder: %w", encoderErr)
+			continue
+		}
+		if !mayTryEncoder(i, binaryEncoder) {
 			continue
 		}
 		candidateEvaluationsReader := model_parser.LookupParsedObjectReader(
@@ -2295,6 +2298,16 @@ func (rawPayloadRenderer) render(r *http.Request, o model_core.Decodable[*object
 // enforce the use of encryption.
 var browserBinaryEncoderFactory = model_encoding.NewBinaryEncoderFactory(true)
 
+// mayTryEncoder returns whether an encoder at a given index in the
+// list of recently observed encoders may be used to decode an object.
+// The first encoder is always tried. Other encoders are only tried if
+// they are auto-detecting, as encoders that are not may successfully
+// decode objects that were encoded using a different configuration,
+// yielding bogus results. Such encoders need to be selected explicitly.
+func mayTryEncoder(index int, binaryEncoder model_encoding.BinaryDecoder) bool {
+	return index == 0 || binaryEncoder.IsAutoDetecting()
+}
+
 func decodeObject(o model_core.Decodable[*object.Contents], recentlyObservedEncoders []*browser_pb.RecentlyObservedEncoder) ([]byte, int, error) {
 	for i, recentlyObservedEncoder := range recentlyObservedEncoders {
 		objectReference := o.Value.GetLocalReference()
@@ -2305,11 +2318,14 @@ func decodeObject(o model_core.Decodable[*object.Contents], recentlyObservedEnco
 		if err != nil {
 			return nil, -1, fmt.Errorf("failed to create encoder: %w", err)
 		}
+		if !mayTryEncoder(i, binaryEncoder) {
+			continue
+		}
 		if decodedObject, err := binaryEncoder.DecodeBinary(o.Value.GetPayload(), o.GetDecodingParameters()); err == nil {
 			return decodedObject, i, nil
 		}
 	}
-	return nil, -1, errors.New("object can't be decoded using any of the recently observed encoders")
+	return nil, -1, errors.New("object can't be decoded using the selected encoder or any of the recently observed auto-detecting encoders")
 }
 
 // decodedPayloadRenderer renders the decoded payload of an object. The
