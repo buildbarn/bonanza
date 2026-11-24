@@ -250,9 +250,9 @@ var File_bonanza_build_pkg_proto_model_encoding_encoding_proto protoreflect.File
 
 const file_bonanza_build_pkg_proto_model_encoding_encoding_proto_rawDesc = "" +
 	"\n" +
-	"5bonanza.build/pkg/proto/model/encoding/encoding.proto\x12\x16bonanza.model.encoding\x1a\x1bgoogle/protobuf/empty.proto\"@\n" +
-	"\x17EncryptingBinaryEncoder\x12%\n" +
-	"\x0eencryption_key\x18\x01 \x01(\fR\rencryptionKey\"\xcf\x01\n" +
+	"5bonanza.build/pkg/proto/model/encoding/encoding.proto\x12\x16bonanza.model.encoding\x1a\x1bgoogle/protobuf/empty.proto\"E\n" +
+	"\x17EncryptingBinaryEncoder\x12*\n" +
+	"\x0eencryption_key\x18\x01 \x01(\fB\x03\x80\x01\x01R\rencryptionKey\"\xcf\x01\n" +
 	"*EncryptingBinaryEncoderAdditionalDataInput\x12I\n" +
 	"\rencoding_mode\x18\x01 \x01(\x0e2$.bonanza.model.encoding.EncodingModeR\fencodingMode\x12V\n" +
 	"\x13additional_encoders\x18\x02 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x12additionalEncoders\"\xb2\x01\n" +

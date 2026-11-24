@@ -164,15 +164,15 @@ var File_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_p
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc = "" +
 	"\n" +
-	"Kbonanza.build/pkg/proto/configuration/bonanza_fetcher/bonanza_fetcher.proto\x12%bonanza.configuration.bonanza_fetcher\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aPgithub.com/buildbarn/bb-storage/pkg/proto/configuration/http/client/client.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\x84\t\n" +
+	"Kbonanza.build/pkg/proto/configuration/bonanza_fetcher/bonanza_fetcher.proto\x12%bonanza.configuration.bonanza_fetcher\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aPgithub.com/buildbarn/bb-storage/pkg/proto/configuration/http/client/client.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\"\x89\t\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x02 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12S\n" +
 	"\vhttp_client\x18\x03 \x01(\v22.buildbarn.configuration.http.client.ConfigurationR\n" +
 	"httpClient\x12V\n" +
 	"\tfile_pool\x18\x04 \x01(\v29.buildbarn.configuration.filesystem.FilePoolConfigurationR\bfilePool\x12l\n" +
-	"\x19remote_worker_grpc_client\x18\x06 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x16remoteWorkerGrpcClient\x122\n" +
-	"\x15platform_private_keys\x18\a \x03(\tR\x13platformPrivateKeys\x12\x84\x01\n" +
+	"\x19remote_worker_grpc_client\x18\x06 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x16remoteWorkerGrpcClient\x127\n" +
+	"\x15platform_private_keys\x18\a \x03(\tB\x03\x80\x01\x01R\x13platformPrivateKeys\x12\x84\x01\n" +
 	"\x1bclient_certificate_verifier\x18\b \x01(\v2D.buildbarn.configuration.x509.ClientCertificateVerifierConfigurationR\x19clientCertificateVerifier\x12j\n" +
 	"\tworker_id\x18\t \x03(\v2M.bonanza.configuration.bonanza_fetcher.ApplicationConfiguration.WorkerIdEntryR\bworkerId\x12 \n" +
 	"\vconcurrency\x18\n" +

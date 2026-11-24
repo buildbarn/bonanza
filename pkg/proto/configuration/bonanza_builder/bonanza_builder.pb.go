@@ -238,17 +238,17 @@ var File_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_p
 
 const file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDesc = "" +
 	"\n" +
-	"Kbonanza.build/pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aOgithub.com/buildbarn/bb-storage/pkg/proto/configuration/eviction/eviction.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\x1a\x1egoogle/protobuf/duration.proto\"\x99\x0f\n" +
+	"Kbonanza.build/pkg/proto/configuration/bonanza_builder/bonanza_builder.proto\x12%bonanza.configuration.bonanza_builder\x1a?bonanza.build/pkg/proto/configuration/model/parser/parser.proto\x1aFbonanza.build/pkg/proto/configuration/storage/object/local/local.proto\x1a3bonanza.build/pkg/proto/storage/object/object.proto\x1a\\github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesystem/filesystem.proto\x1aOgithub.com/buildbarn/bb-storage/pkg/proto/configuration/eviction/eviction.proto\x1aKgithub.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto\x1aGgithub.com/buildbarn/bb-storage/pkg/proto/configuration/x509/x509.proto\x1a\x1egoogle/protobuf/duration.proto\"\xa8\x0f\n" +
 	"\x18ApplicationConfiguration\x12E\n" +
 	"\x06global\x18\x01 \x01(\v2-.buildbarn.configuration.global.ConfigurationR\x06global\x12a\n" +
 	"\x13storage_grpc_client\x18\x03 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12V\n" +
 	"\tfile_pool\x18\x05 \x01(\v29.buildbarn.configuration.filesystem.FilePoolConfigurationR\bfilePool\x12e\n" +
-	"\x15execution_grpc_client\x18\a \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x13executionGrpcClient\x12?\n" +
-	"\x1cexecution_client_private_key\x18\b \x01(\tR\x19executionClientPrivateKey\x12K\n" +
+	"\x15execution_grpc_client\x18\a \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x13executionGrpcClient\x12D\n" +
+	"\x1cexecution_client_private_key\x18\b \x01(\tB\x03\x80\x01\x01R\x19executionClientPrivateKey\x12K\n" +
 	"\"execution_client_certificate_chain\x18\t \x01(\tR\x1fexecutionClientCertificateChain\x12l\n" +
 	"\x19remote_worker_grpc_client\x18\n" +
-	" \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x16remoteWorkerGrpcClient\x122\n" +
-	"\x15platform_private_keys\x18\v \x03(\tR\x13platformPrivateKeys\x12\x84\x01\n" +
+	" \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x16remoteWorkerGrpcClient\x127\n" +
+	"\x15platform_private_keys\x18\v \x03(\tB\x03\x80\x01\x01R\x13platformPrivateKeys\x12\x84\x01\n" +
 	"\x1bclient_certificate_verifier\x18\f \x01(\v2D.buildbarn.configuration.x509.ClientCertificateVerifierConfigurationR\x19clientCertificateVerifier\x12j\n" +
 	"\tworker_id\x18\r \x03(\v2M.bonanza.configuration.bonanza_builder.ApplicationConfiguration.WorkerIdEntryR\bworkerId\x12l\n" +
 	"\x12local_object_store\x18\x11 \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x12b\n" +
@@ -256,8 +256,8 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder
 	"\x1clocal_evaluation_concurrency\x18\x0f \x01(\rR\x1alocalEvaluationConcurrency\x12B\n" +
 	"\x1dremote_evaluation_concurrency\x18\x10 \x01(\rR\x1bremoteEvaluationConcurrency\x12-\n" +
 	"\x12upload_concurrency\x18\x14 \x01(\rR\x11uploadConcurrency\x128\n" +
-	"\x18object_store_concurrency\x18\x12 \x01(\x03R\x16objectStoreConcurrency\x12D\n" +
-	"\x1fcache_tag_signature_private_key\x18\x13 \x01(\tR\x1bcacheTagSignaturePrivateKey\x12S\n" +
+	"\x18object_store_concurrency\x18\x12 \x01(\x03R\x16objectStoreConcurrency\x12I\n" +
+	"\x1fcache_tag_signature_private_key\x18\x13 \x01(\tB\x03\x80\x01\x01R\x1bcacheTagSignaturePrivateKey\x12S\n" +
 	"\x16buffered_objects_limit\x18\x15 \x01(\v2\x1d.bonanza.storage.object.LimitR\x14bufferedObjectsLimit\x12\x92\x01\n" +
 	")buffered_objects_cache_replacement_policy\x18\x16 \x01(\x0e28.buildbarn.configuration.eviction.CacheReplacementPolicyR%bufferedObjectsCacheReplacementPolicy\x12v\n" +
 	"+cache_lookup_result_indirection_maximum_age\x18\x17 \x01(\v2\x19.google.protobuf.DurationR&cacheLookupResultIndirectionMaximumAge\x12K\n" +

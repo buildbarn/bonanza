@@ -38,5 +38,5 @@ message Cookie {
   // PCKS #8 encoded, ECDH, ECDSA or Ed25519 private keys that can be
   // used to decrypt and display actions that are being processed by the
   // scheduler.
-  repeated bytes ecdh_private_keys = 2;
+  repeated bytes ecdh_private_keys = 2 [debug_redact = true];
 }

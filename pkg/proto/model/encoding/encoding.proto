@@ -40,7 +40,7 @@ enum EncodingMode {
 
 message EncryptingBinaryEncoder {
   // 128 or 256-bit key that is used to encrypt the data.
-  bytes encryption_key = 1;
+  bytes encryption_key = 1 [debug_redact = true];
 }
 
 message EncryptingBinaryEncoderAdditionalDataInput {

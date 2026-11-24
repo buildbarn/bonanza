@@ -370,12 +370,12 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_p
 	"\"permit_unencrypted_binary_encoders\x18\t \x01(\bR\x1fpermitUnencryptedBinaryEncoders\"\xc8\x01\n" +
 	"\x1bBuildDirectoryConfiguration\x12S\n" +
 	"\arunners\x18\x01 \x03(\v29.bonanza.configuration.bonanza_worker.RunnerConfigurationR\arunners\x12T\n" +
-	"\x05mount\x18\x02 \x01(\v2>.buildbarn.configuration.filesystem.virtual.MountConfigurationR\x05mount\"\xd7\n" +
+	"\x05mount\x18\x02 \x01(\v2>.buildbarn.configuration.filesystem.virtual.MountConfigurationR\x05mount\"\xdc\n" +
 	"\n" +
 	"\x13RunnerConfiguration\x12M\n" +
 	"\bendpoint\x18\x01 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\bendpoint\x12 \n" +
-	"\vconcurrency\x18\x02 \x01(\x04R\vconcurrency\x122\n" +
-	"\x15platform_private_keys\x18\x03 \x03(\tR\x13platformPrivateKeys\x12\x84\x01\n" +
+	"\vconcurrency\x18\x02 \x01(\x04R\vconcurrency\x127\n" +
+	"\x15platform_private_keys\x18\x03 \x03(\tB\x03\x80\x01\x01R\x13platformPrivateKeys\x12\x84\x01\n" +
 	"\x1bclient_certificate_verifier\x18\x04 \x01(\v2D.buildbarn.configuration.x509.ClientCertificateVerifierConfigurationR\x19clientCertificateVerifier\x12\x1d\n" +
 	"\n" +
 	"size_class\x18\x05 \x01(\rR\tsizeClass\x121\n" +

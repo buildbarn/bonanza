@@ -75,7 +75,7 @@ message RunnerConfiguration {
   //
   // Keys must be in PKCS #8, ASN.1 DER form, stored in a PEM block of
   // type "PRIVATE KEY".
-  repeated string platform_private_keys = 3;
+  repeated string platform_private_keys = 3 [debug_redact = true];
 
   // Strategy for verifying X.509 client certificates that are provided
   // as part of the build request submitted by clients. This effectively

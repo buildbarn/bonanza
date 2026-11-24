@@ -199,10 +199,10 @@ const file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc = "" +
 	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12!\n" +
 	"\fmessage_type\x18\x02 \x01(\tR\vmessageType\x12\x1d\n" +
 	"\n" +
-	"field_name\x18\x03 \x01(\tR\tfieldName\"\x9c\x01\n" +
+	"field_name\x18\x03 \x01(\tR\tfieldName\"\xa1\x01\n" +
 	"\x06Cookie\x12f\n" +
-	"\x1arecently_observed_encoders\x18\x01 \x03(\v2(.bonanza.browser.RecentlyObservedEncoderR\x18recentlyObservedEncoders\x12*\n" +
-	"\x11ecdh_private_keys\x18\x02 \x03(\fR\x0fecdhPrivateKeysB!Z\x1fbonanza.build/pkg/proto/browserb\x06proto3"
+	"\x1arecently_observed_encoders\x18\x01 \x03(\v2(.bonanza.browser.RecentlyObservedEncoderR\x18recentlyObservedEncoders\x12/\n" +
+	"\x11ecdh_private_keys\x18\x02 \x03(\fB\x03\x80\x01\x01R\x0fecdhPrivateKeysB!Z\x1fbonanza.build/pkg/proto/browserb\x06proto3"
 
 var (
 	file_bonanza_build_pkg_proto_browser_browser_proto_rawDescOnce sync.Once

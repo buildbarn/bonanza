@@ -290,12 +290,12 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_sched
 	"\fsize_classes\x18\x02 \x03(\rR\vsizeClasses\x12h\n" +
 	"#worker_invocation_stickiness_limits\x18\x03 \x03(\v2\x19.google.protobuf.DurationR workerInvocationStickinessLimits\x12`\n" +
 	"-maximum_queued_background_learning_operations\x18\x04 \x01(\x05R)maximumQueuedBackgroundLearningOperations\x12S\n" +
-	"&background_learning_operation_priority\x18\x05 \x01(\x05R#backgroundLearningOperationPriority\"\xca\x02\n" +
+	"&background_learning_operation_priority\x18\x05 \x01(\x05R#backgroundLearningOperationPriority\"\xcf\x02\n" +
 	"(PreviousExecutionStatsStoreConfiguration\x12R\n" +
 	"\vgrpc_client\x18\x01 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\n" +
 	"grpcClient\x12?\n" +
-	"\tnamespace\x18\x02 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x129\n" +
-	"\x19tag_signature_private_key\x18\x03 \x01(\tR\x16tagSignaturePrivateKey\x12N\n" +
+	"\tnamespace\x18\x02 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12>\n" +
+	"\x19tag_signature_private_key\x18\x03 \x01(\tB\x03\x80\x01\x01R\x16tagSignaturePrivateKey\x12N\n" +
 	"\x0fobject_encoders\x18\x04 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eobjectEncodersB9Z7bonanza.build/pkg/proto/configuration/bonanza_schedulerb\x06proto3"
 
 var (
