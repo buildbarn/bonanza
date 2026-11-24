@@ -704,12 +704,68 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		), nil
 	}
 
-	binaryEncoder, err := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
-		cookie.RecentlyObservedEncoders[0].Configuration,
-		uint32(referenceFormat.GetMaximumObjectSizeBytes()),
+	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester(
+		s.parsedObjectPool,
+		model_parser.NewDownloadingObjectReader(
+			object_namespacemapping.NewNamespaceAddingDownloader(s.objectDownloader, evaluationsListReference.Value.InstanceName),
+		),
 	)
-	if err != nil {
-		errNodes := renderErrorAlert(fmt.Errorf("failed to create encoder: %w", err))
+
+	// Attempt to decode the evaluations list using each of the
+	// recently observed encoders. Use the first encoder that
+	// succeeds for decoding all other objects as well.
+	ctx := r.Context()
+	var evaluationReader model_parser.DecodingObjectReader[object.LocalReference, model_core.Message[*model_evaluation_pb.Evaluation, object.LocalReference]]
+	var evaluationsReader model_parser.DecodingObjectReader[object.LocalReference, model_core.Message[[]*model_evaluation_pb.Evaluations, object.LocalReference]]
+	var keysReader model_parser.DecodingObjectReader[object.LocalReference, model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]]
+	var evaluationsList model_core.Message[[]*model_evaluation_pb.Evaluations, object.LocalReference]
+	usedEncoderIndex := -1
+	for i, recentlyObservedEncoder := range cookie.RecentlyObservedEncoders {
+		binaryEncoder, encoderErr := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
+			recentlyObservedEncoder.Configuration,
+			uint32(referenceFormat.GetMaximumObjectSizeBytes()),
+		)
+		if encoderErr != nil {
+			err = fmt.Errorf("failed to create encoder: %w", encoderErr)
+			continue
+		}
+		candidateEvaluationsReader := model_parser.LookupParsedObjectReader(
+			parsedObjectPoolIngester,
+			model_parser.NewChainedObjectParser(
+				model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
+				model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Evaluations](),
+			),
+		)
+		candidateEvaluationsList, readErr := candidateEvaluationsReader.ReadObject(
+			ctx,
+			model_core.CopyDecodable(evaluationsListReference, evaluationsListReference.Value.LocalReference),
+		)
+		if readErr != nil {
+			err = fmt.Errorf("failed to download and decode evaluations list object: %w", readErr)
+			continue
+		}
+
+		evaluationReader = model_parser.LookupParsedObjectReader(
+			parsedObjectPoolIngester,
+			model_parser.NewChainedObjectParser(
+				model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
+				model_parser.NewProtoObjectParser[object.LocalReference, model_evaluation_pb.Evaluation](),
+			),
+		)
+		evaluationsReader = candidateEvaluationsReader
+		keysReader = model_parser.LookupParsedObjectReader(
+			parsedObjectPoolIngester,
+			model_parser.NewChainedObjectParser(
+				model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
+				model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Keys](),
+			),
+		)
+		evaluationsList = candidateEvaluationsList
+		usedEncoderIndex = i
+		break
+	}
+	if usedEncoderIndex < 0 {
+		errNodes := renderErrorAlert(err)
 		return renderEvaluationPage(
 			w,
 			evaluationsListReference,
@@ -723,52 +779,15 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		), nil
 	}
 
-	parsedObjectPoolIngester := model_parser.NewParsedObjectPoolIngester(
-		s.parsedObjectPool,
-		model_parser.NewDownloadingObjectReader(
-			object_namespacemapping.NewNamespaceAddingDownloader(s.objectDownloader, evaluationsListReference.Value.InstanceName),
+	// For future page views, put the encoder that was used to
+	// decode the evaluations list first.
+	cookie.RecentlyObservedEncoders = append(
+		append(
+			[]*browser_pb.RecentlyObservedEncoder{cookie.RecentlyObservedEncoders[usedEncoderIndex]},
+			cookie.RecentlyObservedEncoders[:usedEncoderIndex]...,
 		),
+		cookie.RecentlyObservedEncoders[usedEncoderIndex+1:]...,
 	)
-	evaluationReader := model_parser.LookupParsedObjectReader(
-		parsedObjectPoolIngester,
-		model_parser.NewChainedObjectParser(
-			model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
-			model_parser.NewProtoObjectParser[object.LocalReference, model_evaluation_pb.Evaluation](),
-		),
-	)
-	evaluationsReader := model_parser.LookupParsedObjectReader(
-		parsedObjectPoolIngester,
-		model_parser.NewChainedObjectParser(
-			model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
-			model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Evaluations](),
-		),
-	)
-	keysReader := model_parser.LookupParsedObjectReader(
-		parsedObjectPoolIngester,
-		model_parser.NewChainedObjectParser(
-			model_parser.NewEncodedObjectParser[object.LocalReference](binaryEncoder),
-			model_parser.NewProtoListObjectParser[object.LocalReference, model_evaluation_pb.Keys](),
-		),
-	)
-	ctx := r.Context()
-	evaluationsList, err := evaluationsReader.ReadObject(
-		ctx,
-		model_core.CopyDecodable(evaluationsListReference, evaluationsListReference.Value.LocalReference),
-	)
-	if err != nil {
-		errNodes := renderErrorAlert(fmt.Errorf("failed to download and decode evaluations list object: %w", err))
-		return renderEvaluationPage(
-			w,
-			evaluationsListReference,
-			formatTabs,
-			currentFormatIndex,
-			keyNodes,
-			errNodes,
-			errNodes,
-			currentEncoderConfigurationStr,
-			cookie,
-		), nil
-	}
 
 	// If the key to display is contained within a graphlet, we must
 	// first look up the graphlet.
