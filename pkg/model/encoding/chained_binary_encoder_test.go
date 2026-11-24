@@ -35,6 +35,15 @@ func TestChainedDeterministicBinaryEncoder(t *testing.T) {
 		t.Run("AppendUniqueDecodingKeys", func(t *testing.T) {
 			require.Empty(t, binaryEncoder.AppendUniqueDecodingKeys(nil))
 		})
+
+		t.Run("GetDecodingParametersSizeBytes", func(t *testing.T) {
+			require.Equal(t, 0, binaryEncoder.GetDecodingParametersSizeBytes())
+		})
+
+		t.Run("IsAutoDetecting", func(t *testing.T) {
+			// The identity function never fails.
+			require.False(t, binaryEncoder.IsAutoDetecting())
+		})
 	})
 
 	t.Run("One", func(t *testing.T) {
@@ -137,6 +146,27 @@ func TestChainedDeterministicBinaryEncoder(t *testing.T) {
 				},
 				binaryEncoder.AppendUniqueDecodingKeys(nil),
 			)
+		})
+
+		t.Run("GetDecodingParametersSizeBytes", func(t *testing.T) {
+			// Only the last encoder may yield decoding
+			// parameters (e.g., the tag yielded by
+			// encryption). Its size should be reported,
+			// even if earlier encoders yield none.
+			binaryEncoder2.EXPECT().GetDecodingParametersSizeBytes().Return(16)
+
+			require.Equal(t, 16, binaryEncoder.GetDecodingParametersSizeBytes())
+		})
+
+		t.Run("IsAutoDetecting", func(t *testing.T) {
+			// Decoding fails if any of the steps fails. It
+			// is therefore sufficient if any of the steps
+			// is auto-detecting, regardless of its position
+			// (e.g., encrypting prior to compressing).
+			binaryEncoder1.EXPECT().IsAutoDetecting().Return(true).AnyTimes()
+			binaryEncoder2.EXPECT().IsAutoDetecting().Return(false).AnyTimes()
+
+			require.True(t, binaryEncoder.IsAutoDetecting())
 		})
 	})
 }

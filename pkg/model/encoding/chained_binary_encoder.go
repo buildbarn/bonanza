@@ -45,10 +45,13 @@ func (be *chainedBinaryEncoder[TBinaryEncoder]) IsAutoDetecting() bool {
 }
 
 func (be *chainedBinaryEncoder[TBinaryEncoder]) GetDecodingParametersSizeBytes() int {
+	// Only the last encoding step may yield decoding parameters.
+	// This is also the step to which they are provided when
+	// decoding.
 	if len(be.encoders) == 0 {
 		return 0
 	}
-	return be.encoders[0].GetDecodingParametersSizeBytes()
+	return be.encoders[len(be.encoders)-1].GetDecodingParametersSizeBytes()
 }
 
 type chainedDeterministicBinaryEncoder struct {
