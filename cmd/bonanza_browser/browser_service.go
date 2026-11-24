@@ -524,9 +524,12 @@ func renderReferenceCard(title string, decodableReference model_core.Decodable[o
 // moving an encoder to the front of the list is only displayed if
 // doing so may affect how the object referenced by the page is
 // decoded. This is not the case for encoders that expect a different
-// amount of decoding parameters, or ones that reliably fail to decode
-// data encoded using another configuration (e.g., because encryption
-// is used).
+// amount of decoding parameters. It is also not the case for encoders
+// that reliably fail to decode data encoded using another
+// configuration (e.g., because encryption is used), unless an encoder
+// preceding it in the list does not. Such an encoder may successfully
+// decode the object, even if it was encoded using a different
+// configuration, meaning later encoders are never tried.
 //
 // The form is only used to add new configurations. It is not
 // prefilled with the configuration that is currently in use, as that
@@ -540,7 +543,23 @@ func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalRefer
 			g.Text("Recently observed encoders"),
 		),
 	}
+	// Whether an encoder that is not auto-detecting precedes the
+	// current one, meaning the current one may never be tried.
+	shadowed := false
 	for i, recentlyObservedEncoder := range recentlyObservedEncoders {
+		applicable, autoDetecting := false, false
+		if binaryEncoder, err := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
+			recentlyObservedEncoder.Configuration,
+			uint32(pageReference.Value.GetReferenceFormat().GetMaximumObjectSizeBytes()),
+		); err == nil {
+			applicable = binaryEncoder.GetDecodingParametersSizeBytes() == len(pageReference.GetDecodingParameters())
+			autoDetecting = binaryEncoder.IsAutoDetecting()
+		}
+		offerUse := applicable && (!autoDetecting || shadowed)
+		if applicable && !autoDetecting {
+			shadowed = true
+		}
+
 		l := protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder](recentlyObservedEncoder.Configuration)
 		compact, err := json.Marshal(l)
 		if err != nil {
@@ -566,12 +585,7 @@ func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalRefer
 		var titleAction g.Node
 		if isUsed {
 			titleAction = h.Span(h.Class("badge badge-primary"), g.Text("In use"))
-		} else if binaryEncoder, err := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
-			recentlyObservedEncoder.Configuration,
-			uint32(pageReference.Value.GetReferenceFormat().GetMaximumObjectSizeBytes()),
-		); err == nil &&
-			binaryEncoder.GetDecodingParametersSizeBytes() == len(pageReference.GetDecodingParameters()) &&
-			!binaryEncoder.IsAutoDetecting() {
+		} else if offerUse {
 			titleAction = h.Button(h.Class("btn btn-primary btn-sm"), g.Text("Use"))
 		}
 		cardBody = append(
