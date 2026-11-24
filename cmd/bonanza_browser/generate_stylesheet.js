@@ -51,6 +51,21 @@ async function main() {
       width: 100%;
     }
 
+    /*
+     * Conceal secrets by not drawing their glyphs at all, as opposed
+     * to blurring them (which can be reversed). The text remains part
+     * of the document, so that it can still be selected and copied.
+     */
+    .secret:not(:hover) {
+      background-color: var(--color-gray-500);
+      border-radius: 0.25rem;
+      color: transparent;
+    }
+
+    .secret:not(:hover)::selection {
+      color: transparent;
+    }
+
     .text-lines {
       flex-grow: 1;
       min-width: max-content;
@@ -127,6 +142,7 @@ async function main() {
     'overflow-x-hidden',
     'p-4',
     'rounded-box',
+    'secret',
     'select-none',
     'shadow-sm',
     'shadow',

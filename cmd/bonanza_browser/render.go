@@ -3,6 +3,7 @@ package main
 import (
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	model_core "bonanza.build/pkg/model/core"
@@ -203,6 +204,12 @@ func (mr *messageRenderer) renderSegments(segments []render.Segment) []g.Node {
 		if segment.Title != "" {
 			attributes = append(attributes, h.Title(segment.Title))
 		}
+		// Conceal secrets until hovered. The text remains part
+		// of the document, so that it can still be copied.
+		secretClass := ""
+		if segment.Secret {
+			secretClass = " secret"
+		}
 
 		if link := segment.Link; link != nil && mr.basePath != "" {
 			if pathSegments, ok := model_format.ToPath(link.ObjectFormat); ok {
@@ -220,7 +227,7 @@ func (mr *messageRenderer) renderSegments(segments []render.Segment) []g.Node {
 				nodes = append(nodes, h.A(
 					append(
 						attributes,
-						h.Class("link link-accent"),
+						h.Class("link link-accent"+secretClass),
 						h.Href(href),
 						g.Text(segment.Text),
 					)...,
@@ -229,8 +236,8 @@ func (mr *messageRenderer) renderSegments(segments []render.Segment) []g.Node {
 			}
 		}
 
-		if class, ok := roleClasses[segment.Role]; ok {
-			attributes = append(attributes, h.Class(class))
+		if class := roleClasses[segment.Role] + secretClass; class != "" {
+			attributes = append(attributes, h.Class(strings.TrimPrefix(class, " ")))
 		}
 		if len(attributes) == 0 {
 			nodes = append(nodes, g.Text(segment.Text))
