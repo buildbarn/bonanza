@@ -439,10 +439,12 @@ func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObserv
 		if err != nil {
 			continue
 		}
-		indented, err := json.MarshalIndent(l, "", "  ")
-		if err != nil {
-			continue
+		configuration := make([]protoreflect.Message, 0, len(recentlyObservedEncoder.Configuration))
+		for _, encoder := range recentlyObservedEncoder.Configuration {
+			configuration = append(configuration, encoder.ProtoReflect())
 		}
+		configurationRenderer := newMessageRenderer("", nil, false)
+		configurationRenderer.width = sidebarMessageRenderWidth
 
 		cardBody := []g.Node{
 			h.Class("card bg-base-100 shadow-sm w-full mt-4 p-4 text-left overflow-x-hidden"),
@@ -473,9 +475,15 @@ func renderEncoderSelector(recentlyObservedEncoders []*browser_pb.RecentlyObserv
 		}
 		cardBody = append(
 			cardBody,
-			h.Pre(
-				h.Class("text-sm"),
-				g.Text(string(indented)),
+			h.Div(
+				append(
+					[]g.Node{
+						h.Class("block card my-2 p-4 bg-neutral message-contents text-neutral-content font-mono text-sm h-auto! overflow-x-auto"),
+					},
+					configurationRenderer.renderMessageList(
+						model_core.NewSimpleMessage[object.LocalReference](configuration),
+					)...,
+				)...,
 			),
 			h.Div(
 				h.Class("card-actions justify-end"),

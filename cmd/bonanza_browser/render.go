@@ -25,6 +25,11 @@ import (
 // that are longer are spread out across multiple lines.
 const messageRenderWidth = 100
 
+// sidebarMessageRenderWidth is the maximum number of characters that
+// lines of messages rendered in the sidebar may contain. The sidebar
+// is significantly narrower than the main column.
+const sidebarMessageRenderWidth = 40
+
 var binaryEncoderDescriptor = (&model_encoding_pb.BinaryEncoder{}).ProtoReflect().Descriptor()
 
 // messageRenderer renders Protobuf messages as HTML, either as JSON or
@@ -37,6 +42,8 @@ type messageRenderer struct {
 	basePath string
 	// Format of the payload to request when following links.
 	linkFormat string
+	// Maximum number of characters that lines may contain.
+	width int
 
 	now              time.Time
 	observedEncoders []*browser_pb.RecentlyObservedEncoder
@@ -50,6 +57,7 @@ func newMessageRenderer(basePath string, referenceFormat *object.ReferenceFormat
 		},
 		basePath:   basePath,
 		linkFormat: "json",
+		width:      messageRenderWidth,
 		now:        time.Now(),
 	}
 	if pretty {
@@ -106,7 +114,7 @@ func (mr *messageRenderer) renderMessageList(list model_core.Message[[]protorefl
 // show the level of indentation.
 func (mr *messageRenderer) renderDoc(doc render.Doc) []g.Node {
 	blocks := render.Layout(doc, render.LayoutOptions{
-		Width:       messageRenderWidth,
+		Width:       mr.width,
 		IndentWidth: 4,
 	})
 	var nodes []g.Node
