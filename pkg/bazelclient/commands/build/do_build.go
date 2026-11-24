@@ -34,6 +34,7 @@ import (
 	model_format "bonanza.build/pkg/model/format"
 	model_parser "bonanza.build/pkg/model/parser"
 	"bonanza.build/pkg/model/render"
+	browser_pb "bonanza.build/pkg/proto/browser"
 	encryptedaction_pb "bonanza.build/pkg/proto/encryptedaction"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_chunking_pb "bonanza.build/pkg/proto/model/chunking"
@@ -965,24 +966,41 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	decodableActionReference := model_core.CopyDecodable(createdAction, actionReference)
 	actionReferenceStr := model_core.DecodableLocalReferenceToString(decodableActionReference)
 	actionLink := formatted.Text(actionReferenceStr)
-	browserURL := commonFlags.BrowserUrl
+	// Embed all encoders that are used by the build into links to
+	// the Bonanza Browser, so that it can display any of the objects
+	// created by the build.
+	browser, err := newBrowserLinker(
+		commonFlags.BrowserUrl,
+		&browser_pb.LinkedEncoders{
+			Encoders: []*browser_pb.RecentlyObservedEncoder{
+				newLinkedEncoder("DirectoryAccessParameters", "encoders", directoryParametersMessage.Access.Encoders),
+				newLinkedEncoder("FileAccessParameters", "chunk_encoders", fileParametersMessage.Access.ChunkEncoders),
+				newLinkedEncoder("FileAccessParameters", "file_contents_list_encoders", fileParametersMessage.Access.FileContentsListEncoders),
+				newLinkedEncoder("executewithstorage.Action", "action_encoders", evaluationEncoders),
+				newLinkedEncoder("BuildSpecification", "action_encoders", buildSpecification.ActionEncoders),
+				newLinkedEncoder("BuildSpecification", "analysis_encoders", buildSpecification.AnalysisEncoders),
+				newLinkedEncoder("BuildSpecification", "starlark_value_encoders", buildSpecification.StarlarkValueEncoders),
+			},
+		},
+	)
+	if err != nil {
+		logger.Fatal(formatted.Textf("Failed to create links to the Bonanza Browser: %s", err))
+	}
+	objectPathPrefix := []string{
+		"object",
+		instanceName.AsURLSafeComponent(),
+		referenceFormat.ToProto().String(),
+	}
 	evaluationActionObjectFormat := model_format.NewProto[model_evaluation_pb.Action]().ToProto()
 	evaluationActionPathComponents, _ := model_format.ToPath(evaluationActionObjectFormat)
-	if browserURL != "" {
-		if actionURL, err := url.JoinPath(
-			browserURL,
-			append(
-				[]string{
-					"object",
-					instanceName.AsURLSafeComponent(),
-					referenceFormat.ToProto().String(),
-					actionReferenceStr,
-				},
-				evaluationActionPathComponents...,
-			)...,
-		); err == nil {
-			actionLink = formatted.Link(actionURL, actionLink)
-		}
+	if actionURL, ok := browser.getURL(
+		slices.Concat(
+			objectPathPrefix,
+			[]string{actionReferenceStr},
+			evaluationActionPathComponents,
+		)...,
+	); ok {
+		actionLink = formatted.Link(actionURL, actionLink)
 	}
 
 	parsedObjectPool := model_parser.NewParsedObjectPool(
@@ -1005,16 +1023,8 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			Pretty:          commonFlags.MessageFormat == arguments.MessageFormat_Pretty,
 			ReferenceFormat: &referenceFormat,
 		},
-	}
-	if browserURL != "" {
-		if baseURL, err := url.JoinPath(
-			browserURL,
-			"object",
-			instanceName.AsURLSafeComponent(),
-			referenceFormat.ToProto().String(),
-		); err == nil {
-			messageFormatter.objectBaseURL = baseURL
-		}
+		browser:          browser,
+		objectPathPrefix: objectPathPrefix,
 	}
 
 	logger.Info(formatted.Join(formatted.Text("Performing "+commandName+" "), actionLink))
@@ -1119,7 +1129,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 							namespace,
 							model_core.Nested(progress, evaluatingKey.Key),
 							&messageFormatter,
-							browserURL,
+							browser,
 							/* outcomesReference = */ nil,
 							longestType,
 						),
@@ -1172,13 +1182,13 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	}
 
 	if f := result.Message.Failure; f != nil {
-		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, &messageFormatter, browserURL, outcomesReference)
+		printStackTrace(namespace, model_core.Nested(result, f.StackTraceKeys), logger, &messageFormatter, browser, outcomesReference)
 		logger.Fatal(formatted.Textf("Failed to perform %s: %s", commandName, status.FromProto(f.Status)))
 	}
 
 	return &Evaluation{
 		namespace:                namespace,
-		browserURL:               browserURL,
+		browser:                  browser,
 		referenceFormat:          referenceFormat,
 		parsedObjectPoolIngester: parsedObjectPoolIngester,
 		evaluationEncoder:        evaluationEncoder,
@@ -1255,7 +1265,7 @@ func plainTextWidth(n formatted.Node) int {
 
 // formatKey formats an evaluation key on a single line, prefixed with
 // its abbreviated type.
-func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core_pb.Any, object.LocalReference], messageFormatter *messageFormatter, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference], longestType int) formatted.Node {
+func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core_pb.Any, object.LocalReference], messageFormatter *messageFormatter, browser *browserLinker, outcomesReference *model_core.Decodable[object.LocalReference], longestType int) formatted.Node {
 	abbreviatedType := getAbbreviatedTypeURL(keyAny.Message.GetValue().GetTypeUrl())
 	abbreviatedTypeNode := formatted.Text(abbreviatedType)
 	var body formatted.Node
@@ -1264,16 +1274,15 @@ func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core
 	} else if key, err := model_core.UnmarshalTopLevelAnyNew[object.LocalReference](flattenedKey); err != nil {
 		body = formatted.Bold(formatted.Text(fmt.Sprintf("Failed to unmarshal key: %s", err)))
 	} else {
-		if browserURL != "" && outcomesReference != nil {
+		if outcomesReference != nil {
 			if marshaledKey, err := model_core.MarshalTopLevelMessage(flattenedKey); err == nil {
-				if evaluationURL, err := url.JoinPath(
-					browserURL,
+				if evaluationURL, ok := browser.getURL(
 					"evaluation",
 					namespace.InstanceName.AsURLSafeComponent(),
 					namespace.ReferenceFormat.ToProto().String(),
 					model_core.DecodableLocalReferenceToString(*outcomesReference),
 					base64.RawURLEncoding.EncodeToString(marshaledKey),
-				); err == nil {
+				); ok {
 					abbreviatedTypeNode = formatted.Link(evaluationURL, abbreviatedTypeNode)
 				}
 			}
@@ -1295,7 +1304,7 @@ func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core
 	)
 }
 
-func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Message[[]*model_core_pb.Any, object.LocalReference], logger logging.Logger, messageFormatter *messageFormatter, browserURL string, outcomesReference *model_core.Decodable[object.LocalReference]) {
+func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Message[[]*model_core_pb.Any, object.LocalReference], logger logging.Logger, messageFormatter *messageFormatter, browser *browserLinker, outcomesReference *model_core.Decodable[object.LocalReference]) {
 	if len(stackTraceKeys.Message) > 0 {
 		logger.Error(formatted.Text("Traceback (most recent key last):"))
 
@@ -1312,7 +1321,7 @@ func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Messa
 					namespace,
 					model_core.Nested(stackTraceKeys, keyAny),
 					messageFormatter,
-					browserURL,
+					browser,
 					outcomesReference,
 					longestType,
 				),

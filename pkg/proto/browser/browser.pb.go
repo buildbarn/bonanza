@@ -127,6 +127,50 @@ func (x *Cookie) GetEcdhPrivateKeys() [][]byte {
 	return nil
 }
 
+type LinkedEncoders struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Encoders      []*RecentlyObservedEncoder `protobuf:"bytes,1,rep,name=encoders,proto3" json:"encoders,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LinkedEncoders) Reset() {
+	*x = LinkedEncoders{}
+	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LinkedEncoders) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LinkedEncoders) ProtoMessage() {}
+
+func (x *LinkedEncoders) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LinkedEncoders.ProtoReflect.Descriptor instead.
+func (*LinkedEncoders) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *LinkedEncoders) GetEncoders() []*RecentlyObservedEncoder {
+	if x != nil {
+		return x.Encoders
+	}
+	return nil
+}
+
 type RecentlyObservedEncoder_LastObservation struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Time          *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
@@ -138,7 +182,7 @@ type RecentlyObservedEncoder_LastObservation struct {
 
 func (x *RecentlyObservedEncoder_LastObservation) Reset() {
 	*x = RecentlyObservedEncoder_LastObservation{}
-	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -150,7 +194,7 @@ func (x *RecentlyObservedEncoder_LastObservation) String() string {
 func (*RecentlyObservedEncoder_LastObservation) ProtoMessage() {}
 
 func (x *RecentlyObservedEncoder_LastObservation) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[2]
+	mi := &file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -202,7 +246,9 @@ const file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc = "" +
 	"field_name\x18\x03 \x01(\tR\tfieldName\"\xa1\x01\n" +
 	"\x06Cookie\x12f\n" +
 	"\x1arecently_observed_encoders\x18\x01 \x03(\v2(.bonanza.browser.RecentlyObservedEncoderR\x18recentlyObservedEncoders\x12/\n" +
-	"\x11ecdh_private_keys\x18\x02 \x03(\fB\x03\x80\x01\x01R\x0fecdhPrivateKeysB!Z\x1fbonanza.build/pkg/proto/browserb\x06proto3"
+	"\x11ecdh_private_keys\x18\x02 \x03(\fB\x03\x80\x01\x01R\x0fecdhPrivateKeys\"V\n" +
+	"\x0eLinkedEncoders\x12D\n" +
+	"\bencoders\x18\x01 \x03(\v2(.bonanza.browser.RecentlyObservedEncoderR\bencodersB!Z\x1fbonanza.build/pkg/proto/browserb\x06proto3"
 
 var (
 	file_bonanza_build_pkg_proto_browser_browser_proto_rawDescOnce sync.Once
@@ -216,24 +262,26 @@ func file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP() []byte {
 	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescData
 }
 
-var file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_bonanza_build_pkg_proto_browser_browser_proto_goTypes = []any{
 	(*RecentlyObservedEncoder)(nil),                 // 0: bonanza.browser.RecentlyObservedEncoder
 	(*Cookie)(nil),                                  // 1: bonanza.browser.Cookie
-	(*RecentlyObservedEncoder_LastObservation)(nil), // 2: bonanza.browser.RecentlyObservedEncoder.LastObservation
-	(*encoding.BinaryEncoder)(nil),                  // 3: bonanza.model.encoding.BinaryEncoder
-	(*timestamppb.Timestamp)(nil),                   // 4: google.protobuf.Timestamp
+	(*LinkedEncoders)(nil),                          // 2: bonanza.browser.LinkedEncoders
+	(*RecentlyObservedEncoder_LastObservation)(nil), // 3: bonanza.browser.RecentlyObservedEncoder.LastObservation
+	(*encoding.BinaryEncoder)(nil),                  // 4: bonanza.model.encoding.BinaryEncoder
+	(*timestamppb.Timestamp)(nil),                   // 5: google.protobuf.Timestamp
 }
 var file_bonanza_build_pkg_proto_browser_browser_proto_depIdxs = []int32{
-	3, // 0: bonanza.browser.RecentlyObservedEncoder.configuration:type_name -> bonanza.model.encoding.BinaryEncoder
-	2, // 1: bonanza.browser.RecentlyObservedEncoder.last_observation:type_name -> bonanza.browser.RecentlyObservedEncoder.LastObservation
+	4, // 0: bonanza.browser.RecentlyObservedEncoder.configuration:type_name -> bonanza.model.encoding.BinaryEncoder
+	3, // 1: bonanza.browser.RecentlyObservedEncoder.last_observation:type_name -> bonanza.browser.RecentlyObservedEncoder.LastObservation
 	0, // 2: bonanza.browser.Cookie.recently_observed_encoders:type_name -> bonanza.browser.RecentlyObservedEncoder
-	4, // 3: bonanza.browser.RecentlyObservedEncoder.LastObservation.time:type_name -> google.protobuf.Timestamp
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0, // 3: bonanza.browser.LinkedEncoders.encoders:type_name -> bonanza.browser.RecentlyObservedEncoder
+	5, // 4: bonanza.browser.RecentlyObservedEncoder.LastObservation.time:type_name -> google.protobuf.Timestamp
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_browser_browser_proto_init() }
@@ -247,7 +295,7 @@ func file_bonanza_build_pkg_proto_browser_browser_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc), len(file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

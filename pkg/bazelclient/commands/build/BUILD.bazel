@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "build",
     srcs = [
+        "browser_linker.go",
         "do_build.go",
         "embedded_directory.go",
         "encryption_keys.go",
@@ -32,6 +33,7 @@ go_library(
         "//pkg/model/format",
         "//pkg/model/parser",
         "//pkg/model/render",
+        "//pkg/proto/browser",
         "//pkg/proto/encryptedaction",
         "//pkg/proto/model/analysis",
         "//pkg/proto/model/chunking",
@@ -75,6 +77,7 @@ go_library(
 go_test(
     name = "build_test",
     srcs = [
+        "browser_linker_internal_test.go",
         "embedded_directory_test.go",
         "encryption_keys_internal_test.go",
         "ignored_directories_test.go",
@@ -90,10 +93,13 @@ go_test(
         "//pkg/model/core",
         "//pkg/model/filesystem",
         "//pkg/model/render",
+        "//pkg/proto/browser",
         "//pkg/proto/model/analysis",
+        "//pkg/proto/model/encoding",
         "@com_github_buildbarn_bb_storage//pkg/filesystem",
         "@com_github_buildbarn_bb_storage//pkg/filesystem/path",
         "@com_github_buildbarn_bb_storage//pkg/testutil",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//proto",
     ],
 )

@@ -1,7 +1,7 @@
 package build
 
 import (
-	"net/url"
+	"slices"
 	"strings"
 
 	"bonanza.build/pkg/bazelclient/formatted"
@@ -17,9 +17,12 @@ import (
 // can be written to the terminal, either as JSON or pretty printed.
 type messageFormatter struct {
 	renderer render.Renderer
-	// URL of the object page of the Bonanza Browser. If set,
-	// references to objects are emitted as clickable links.
-	objectBaseURL string
+	// If set, references to objects are emitted as clickable links
+	// to the object page of the Bonanza Browser.
+	browser *browserLinker
+	// Path components of the object page that precede the
+	// reference of the object.
+	objectPathPrefix []string
 }
 
 func (mf *messageFormatter) message(m model_core.Message[protoreflect.Message, object.LocalReference]) render.Doc {
@@ -113,15 +116,15 @@ func (mf *messageFormatter) formatSegments(segments []render.Segment) formatted.
 			node = formatted.Text(segment.Text)
 		}
 
-		if link := segment.Link; link != nil && mf.objectBaseURL != "" {
+		if link := segment.Link; link != nil {
 			if pathSegments, ok := model_format.ToPath(link.ObjectFormat); ok {
-				if linkURL, err := url.JoinPath(
-					mf.objectBaseURL,
-					append(
+				if linkURL, ok := mf.browser.getURL(
+					slices.Concat(
+						mf.objectPathPrefix,
 						[]string{model_core.DecodableLocalReferenceToString(link.Reference)},
-						pathSegments...,
+						pathSegments,
 					)...,
-				); err == nil {
+				); ok {
 					node = formatted.Link(linkURL, node)
 				}
 			}

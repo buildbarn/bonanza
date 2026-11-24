@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"net/url"
 
 	"bonanza.build/pkg/bazelclient/formatted"
 	model_core "bonanza.build/pkg/model/core"
@@ -25,7 +24,7 @@ import (
 // key, as performed by Evaluate().
 type Evaluation struct {
 	namespace                object.Namespace
-	browserURL               string
+	browser                  *browserLinker
 	referenceFormat          object.ReferenceFormat
 	parsedObjectPoolIngester *model_parser.ParsedObjectPoolIngester[object.LocalReference]
 	evaluationEncoder        model_encoding.DeterministicBinaryEncoder
@@ -46,17 +45,14 @@ func (e *Evaluation) GetOutcomesLink() (formatted.Node, bool) {
 	}
 	outcomesReferenceStr := model_core.DecodableLocalReferenceToString(*e.outcomesReference)
 	node := formatted.Text(outcomesReferenceStr)
-	if e.browserURL != "" {
-		if evaluationURL, err := url.JoinPath(
-			e.browserURL,
-			"evaluation",
-			e.namespace.InstanceName.AsURLSafeComponent(),
-			e.namespace.ReferenceFormat.ToProto().String(),
-			outcomesReferenceStr,
-			base64.RawURLEncoding.EncodeToString(e.marshaledRequestedKey),
-		); err == nil {
-			node = formatted.Link(evaluationURL, node)
-		}
+	if evaluationURL, ok := e.browser.getURL(
+		"evaluation",
+		e.namespace.InstanceName.AsURLSafeComponent(),
+		e.namespace.ReferenceFormat.ToProto().String(),
+		outcomesReferenceStr,
+		base64.RawURLEncoding.EncodeToString(e.marshaledRequestedKey),
+	); ok {
+		node = formatted.Link(evaluationURL, node)
 	}
 	return node, true
 }

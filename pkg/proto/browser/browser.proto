@@ -40,3 +40,21 @@ message Cookie {
   // scheduler.
   repeated bytes ecdh_private_keys = 2 [debug_redact = true];
 }
+
+// Encoders that are embedded in links to pages of the browser, so that
+// these pages can be displayed without the user having to provide
+// encoder configurations manually.
+//
+// Links contain these encoders in their fragment, which has the form
+// "#encoders=" followed by the marshaled message, base64url encoded
+// without padding. As fragments are not sent to the server as part of
+// HTTP requests, the encoders do not end up in access logs. Pages
+// contain a script that removes the fragment and submits its contents
+// using a form field named "linked_encoders".
+message LinkedEncoders {
+  // Encoders that may be used to decode the objects displayed on the
+  // page, and objects referenced by them. The time of last observation
+  // is ignored, as the browser sets it to the time at which the link
+  // was followed.
+  repeated RecentlyObservedEncoder encoders = 1;
+}

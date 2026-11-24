@@ -78,8 +78,54 @@ func NewBrowserService(buildQueueStateClient buildqueuestate_pb.BuildQueueStateC
 	}
 }
 
+// importLinkedEncoders processes encoders that were embedded in the
+// fragment of a link to the current page. These are submitted by the
+// script contained in each page (see linkedEncodersScript). The
+// encoders are stored in the cookie, after which the client is
+// redirected to the same page, which can then be displayed using
+// these encoders.
+//
+// This function returns true if the request contained linked encoders,
+// meaning a response has already been written.
+func importLinkedEncoders(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != http.MethodPost {
+		return false
+	}
+	value := r.PostFormValue("linked_encoders")
+	if value == "" {
+		return false
+	}
+	data, err := base64.RawURLEncoding.DecodeString(value)
+	if err != nil {
+		http.Error(w, "failed to decode linked encoders: "+err.Error(), http.StatusBadRequest)
+		return true
+	}
+	var linkedEncoders browser_pb.LinkedEncoders
+	if err := proto.Unmarshal(data, &linkedEncoders); err != nil {
+		http.Error(w, "failed to unmarshal linked encoders: "+err.Error(), http.StatusBadRequest)
+		return true
+	}
+
+	now := timestamppb.Now()
+	for _, encoder := range linkedEncoders.Encoders {
+		if o := encoder.LastObservation; o != nil {
+			o.Time = now
+		}
+	}
+	cookie := getCookie(r)
+	cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
+		append(linkedEncoders.Encoders, cookie.RecentlyObservedEncoders...),
+	)
+	setCookie(w, cookie)
+	http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
+	return true
+}
+
 func wrapHandler(handler func(http.ResponseWriter, *http.Request) (g.Node, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if importLinkedEncoders(w, r) {
+			return
+		}
 		node, err := handler(w, r)
 		if err != nil {
 			st := status.Convert(err)
@@ -125,11 +171,41 @@ func (s *BrowserService) RegisterHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/workers/{filter}", wrapHandler(s.doWorkers))
 }
 
+// linkedEncodersScript is embedded into each page. If the page was
+// opened through a link containing encoders in its fragment (see
+// browser_pb.LinkedEncoders), it removes the fragment from the
+// location and the browser's history, and submits the encoders to the
+// server. Fragments are used, as they are not sent to the server as
+// part of HTTP requests. This prevents secrets contained in the
+// encoders from ending up in access logs.
+const linkedEncodersScript = `(() => {
+  const prefix = "#encoders=";
+  if (!location.hash.startsWith(prefix)) {
+    return;
+  }
+  const linkedEncoders = location.hash.slice(prefix.length);
+  const target = location.pathname + location.search;
+  history.replaceState(null, "", target);
+  const form = document.createElement("form");
+  form.method = "post";
+  form.action = target;
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "linked_encoders";
+  input.value = linkedEncoders;
+  form.append(input);
+  document.documentElement.append(form);
+  form.submit();
+})();`
+
 func renderPage(title string, body []g.Node) g.Node {
 	return c.HTML5(c.HTML5Props{
 		Title:    title,
 		Language: "en",
-		Head:     []g.Node{h.StyleEl(g.Raw(stylesheet))},
+		Head: []g.Node{
+			h.StyleEl(g.Raw(stylesheet)),
+			h.Script(g.Raw(linkedEncodersScript)),
+		},
 		Body: append(
 			[]g.Node{
 				h.Div(
