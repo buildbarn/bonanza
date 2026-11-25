@@ -146,3 +146,42 @@ func TestPersistentEpochListLeaseTracking(t *testing.T) {
 		require.Equal(t, []byte("newHash"), leaseTracking.LastIncarnationsHash)
 	})
 }
+
+func TestPersistentEpochListOutOfOrderWrites(t *testing.T) {
+	// Writes to the location-blob map may complete out of order.
+	// Object A is allocated at [0, 100) and object B at [100, 200),
+	// but B completes first. A synchronization starts and completes
+	// before A completes.
+	el := local.NewPersistentEpochList(10000, random.NewFastSingleThreadedGenerator(), nil, &pb.PersistentState{})
+	require.NoError(t, el.FinalizeWriteUpToLocation(200))
+	_, epochIDB := el.GetCurrentEpochState()
+	el.NotifySyncStarting(false)
+	el.NotifySyncCompleted()
+
+	// A's data is not guaranteed to be covered by the
+	// synchronization. It should therefore be placed in a new
+	// epoch, which is only persisted after the next
+	// synchronization. This used to cause GetCurrentEpochState()
+	// to panic.
+	require.NoError(t, el.FinalizeWriteUpToLocation(100))
+	epochStateA, epochIDA := el.GetCurrentEpochState()
+	require.Equal(t, epochIDB+1, epochIDA)
+	require.True(t, epochStateA.IsValidLocation(0, 100))
+	require.Len(t, el.GetPersistentState().Epochs, 1)
+
+	el.NotifySyncStarting(false)
+	el.NotifySyncCompleted()
+	epochs := el.GetPersistentState().Epochs
+	require.Len(t, epochs, 2)
+	require.Equal(t, uint64(200), epochs[0].LocationIncrease)
+	require.Equal(t, uint64(0), epochs[1].LocationIncrease)
+
+	// Reloading the persistent state should allow entries
+	// belonging to either epoch to be interpreted.
+	el = local.NewPersistentEpochList(10000, random.NewFastSingleThreadedGenerator(), nil, el.GetPersistentState())
+	_, ok := el.GetEpochStateForEpochID(epochIDB)
+	require.True(t, ok)
+	epochStateA, ok = el.GetEpochStateForEpochID(epochIDA)
+	require.True(t, ok)
+	require.True(t, epochStateA.IsValidLocation(0, 100))
+}

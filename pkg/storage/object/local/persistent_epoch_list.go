@@ -205,6 +205,19 @@ func (el *PersistentEpochList) FinalizeWriteUpToLocation(location uint64) error 
 		el.pruneStaleEpochs()
 		el.leaseTracker.update(el.minimumLocation, location)
 		el.locationsChangedWakeup.unblock()
+	} else if len(el.epochs) == el.synchronizingEpochs {
+		// Writes to the location-blob map may complete out of
+		// order. If the write of an object at a lower location
+		// completes after a synchronization was started, its
+		// data is not guaranteed to be covered by that
+		// synchronization. Create a new epoch for it, so that
+		// reference-location map entries pointing to it only
+		// become valid after the next synchronization.
+		el.epochs = append(el.epochs, persistentEpochInfo{
+			hashSeed:        el.randomNumberGenerator.Uint64(),
+			maximumLocation: maximumLocation,
+		})
+		el.locationsChangedWakeup.unblock()
 	}
 	return nil
 }
