@@ -44,17 +44,6 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 	var persistentStateStore PersistentStateStore
 	var initialPersistentState *pb.PersistentState
 	if pcfg := configuration.Persistent; pcfg != nil {
-		// Data stored in memory is lost across restarts.
-		// Reloading the persistent state would cause the store
-		// to report the existing incarnation and leases as
-		// valid, even though the data is gone.
-		if configuration.GetReferenceLocationMap().GetOnBlockDevice() == nil {
-			return nil, status.Error(codes.InvalidArgument, "Persistency can only be enabled if the reference-location map is stored on a block device")
-		}
-		if configuration.GetLocationBlobMapOnBlockDevice() == nil {
-			return nil, status.Error(codes.InvalidArgument, "Persistency can only be enabled if the location-blob map is stored on a block device")
-		}
-
 		stateDirectory, err := filesystem.NewLocalDirectory(path.LocalFormat.NewParser(pcfg.StateDirectoryPath))
 		if err != nil {
 			return nil, util.StatusWrap(err, "Failed to open persistent state directory")
@@ -84,17 +73,12 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 	}
 
 	// Construct the reference-location map that stores the location
-	// at which object contents are stored. Capture the block device
-	// backing it, so that it can be synchronized upon clean
-	// shutdown.
+	// at which object contents are stored.
 	referenceLocationMapHashInitialization := initialPersistentState.ReferenceLocationMapHashInitialization
-	recordArrayFactory := &blockDeviceCapturingRecordArrayFactory{
-		RecordArrayFactory: LocationRecordArrayFactory,
-	}
-	referenceLocationMap, err := lossymap.NewHashMapFromConfiguration(
+	referenceLocationMap, syncReferenceLocationMap, err := lossymap.NewHashMapFromConfiguration(
 		configuration.ReferenceLocationMap,
 		"ReferenceLocationMap",
-		recordArrayFactory,
+		LocationRecordArrayFactory,
 		/* recordKeyHasher = */
 		func(k *lossymap.RecordKey[object.FlatReference]) uint64 {
 			// Compute a FNV-1a hash of the record key.
@@ -116,6 +100,13 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		return nil, util.StatusWrap(err, "Failed to create reference-location map")
 	}
 
+	// Data stored in memory is lost across restarts. Using the
+	// persistent state would cause the store to report the existing
+	// incarnation and leases as valid, even though the data is gone.
+	if configuration.Persistent != nil && syncReferenceLocationMap == nil {
+		return nil, status.Error(codes.InvalidArgument, "Persistency can only be enabled if the reference-location map is stored on a block device")
+	}
+
 	// Construct the location-blob map that stores the contents of
 	// the objects.
 	var dataSyncer DataSyncer = func(isFinalSync bool) error { return nil }
@@ -123,6 +114,9 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 	var maximumLocationSpan uint64
 	switch backendConfiguration := configuration.LocationBlobMapBackend.(type) {
 	case *configuration_pb.StoreConfiguration_LocationBlobMapInMemory_:
+		if configuration.Persistent != nil {
+			return nil, status.Error(codes.InvalidArgument, "Persistency can only be enabled if the location-blob map is stored on a block device")
+		}
 		sizeBytes := backendConfiguration.LocationBlobMapInMemory.SizeBytes
 		locationBlobMap = NewInMemoryLocationBlobMap(int(sizeBytes))
 		maximumLocationSpan = sizeBytes
@@ -149,10 +143,17 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 			// persistent state written afterwards causes
 			// all leases to be invalidated upon restart.
 			// Upon clean shutdown leases remain valid,
-			// meaning all entries must be persisted.
-			if referenceLocationMapBlockDevice := recordArrayFactory.blockDevice; isFinalSync && referenceLocationMapBlockDevice != nil {
-				if err := referenceLocationMapBlockDevice.Sync(); err != nil {
+			// meaning all entries must be persisted. The
+			// same holds for any other data structures
+			// containing leases.
+			if isFinalSync {
+				if err := syncReferenceLocationMap(); err != nil {
 					return util.StatusWrap(err, "Failed to synchronize reference-location map")
+				}
+				if leaseTracking != nil && leaseTracking.SyncOnCleanShutdown != nil {
+					if err := leaseTracking.SyncOnCleanShutdown(); err != nil {
+						return err
+					}
 				}
 			}
 			return nil
@@ -252,18 +253,4 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		newRegionSizeBytes,
 		minimumSafeSince,
 	), nil
-}
-
-// blockDeviceCapturingRecordArrayFactory is a decorator for
-// RecordArrayFactory that captures the block device backing the
-// reference-location map, so that it can be synchronized.
-type blockDeviceCapturingRecordArrayFactory struct {
-	lossymap.RecordArrayFactory[object.FlatReference, uint64, EpochIDResolver]
-
-	blockDevice blockdevice.BlockDevice
-}
-
-func (f *blockDeviceCapturingRecordArrayFactory) NewBlockDeviceBackedRecordArray(blockDevice blockdevice.BlockDevice) ReferenceLocationRecordArray {
-	f.blockDevice = blockDevice
-	return f.RecordArrayFactory.NewBlockDeviceBackedRecordArray(blockDevice)
 }

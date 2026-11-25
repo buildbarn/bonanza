@@ -1,6 +1,7 @@
 package local_test
 
 import (
+	"path/filepath"
 	"testing"
 
 	configuration_pb "bonanza.build/pkg/proto/configuration/storage/object/local"
@@ -20,15 +21,15 @@ func TestNewStoreFromConfigurationPersistentInMemory(t *testing.T) {
 	// persistency would cause the store to reuse its incarnation
 	// and report existing leases as valid, even though the data is
 	// gone. Such configurations must therefore be rejected. This
-	// should happen before any files are opened or goroutines are
-	// launched, so the paths below don't need to exist.
+	// should happen before any goroutines are launched.
+	directory := t.TempDir()
 	onBlockDevice := &configuration_pb.StoreConfiguration{
 		ReferenceLocationMap: &lossymap_pb.HashMapConfiguration{
 			Backend: &lossymap_pb.HashMapConfiguration_OnBlockDevice{
 				OnBlockDevice: &blockdevice_pb.Configuration{
 					Source: &blockdevice_pb.Configuration_File{
 						File: &blockdevice_pb.FileConfiguration{
-							Path:      "/nonexistent/reference_location_map",
+							Path:      filepath.Join(directory, "reference_location_map"),
 							SizeBytes: 1 << 20,
 						},
 					},
@@ -41,7 +42,7 @@ func TestNewStoreFromConfigurationPersistentInMemory(t *testing.T) {
 			LocationBlobMapOnBlockDevice: &blockdevice_pb.Configuration{
 				Source: &blockdevice_pb.Configuration_File{
 					File: &blockdevice_pb.FileConfiguration{
-						Path:      "/nonexistent/location_blob_map",
+						Path:      filepath.Join(directory, "location_blob_map"),
 						SizeBytes: 1 << 20,
 					},
 				},
@@ -51,7 +52,7 @@ func TestNewStoreFromConfigurationPersistentInMemory(t *testing.T) {
 		CurrentRegionSizeRatio: 1,
 		NewRegionSizeRatio:     3,
 		Persistent: &configuration_pb.StoreConfiguration_Persistent{
-			StateDirectoryPath: "/nonexistent/persistent_state",
+			StateDirectoryPath: directory,
 		},
 	}
 

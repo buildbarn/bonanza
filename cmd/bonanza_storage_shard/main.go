@@ -76,6 +76,54 @@ func main() {
 			return watermark
 		}
 
+		// Create a map for leases of objects, so that
+		// UploadDag() can reliably enforce that clients upload
+		// complete DAGs.
+		leasesMap, syncLeasesMap, err := lossymap.NewHashMapFromConfiguration(
+			configuration.LeasesMap,
+			"LeasesMap",
+			object_flatbacked.LeaseRecordArrayFactory,
+			/* recordKeyHasher = */ func(k *lossymap.RecordKey[object.LocalReference]) uint64 {
+				h := uint64(14695981039346656037)
+				for _, c := range k.Key.GetRawReference() {
+					h = (h ^ uint64(c)) * 1099511628211
+				}
+				return (h ^ uint64(k.Attempt)) * 1099511628211
+			},
+			/* valueComparator = */ func(a, b *object_flatbacked.Lease) int {
+				return cmp.Compare(*a, *b)
+			},
+			/* persistent = */ true,
+		)
+		if err != nil {
+			return util.StatusWrap(err, "Failed to create leases map")
+		}
+
+		// Create storage for tags. Tags can be used to assign
+		// arbitrary identifiers to objects.
+		tagsMap, syncTagsMap, err := lossymap.NewHashMapFromConfiguration(
+			configuration.TagsMap,
+			"TagsMap",
+			tag_local.TagRecordArrayFactory,
+			/* recordKeyHasher = */ func(k *lossymap.RecordKey[tag.Key]) uint64 {
+				h := uint64(14695981039346656037)
+				for _, c := range k.Key.SignaturePublicKey {
+					h = (h ^ uint64(c)) * 1099511628211
+				}
+				for _, c := range k.Key.Hash {
+					h = (h ^ uint64(c)) * 1099511628211
+				}
+				return (h ^ uint64(k.Attempt)) * 1099511628211
+			},
+			/* valueComparator = */ func(a, b *tag_local.ValueWithLease) int {
+				return a.SignedValue.Value.Timestamp.Compare(b.SignedValue.Value.Timestamp)
+			},
+			/* persistent = */ true,
+		)
+		if err != nil {
+			return util.StatusWrap(err, "Failed to create tags map")
+		}
+
 		// Construct a flat storage backend for objects. Objects
 		// whose leases need to be renewed are rewritten, so
 		// that they get a new lease.
@@ -90,6 +138,24 @@ func main() {
 				},
 				GetLastIncarnationsHash: func() []byte {
 					return clusterWatermark.GetLastIncarnationsHash()
+				},
+				// The leases map and tags map contain
+				// leases, which are trusted after a
+				// clean restart. Ensure they are
+				// persisted before the lease tracking
+				// state is written.
+				SyncOnCleanShutdown: func() error {
+					if syncLeasesMap != nil {
+						if err := syncLeasesMap(); err != nil {
+							return util.StatusWrap(err, "Failed to synchronize leases map")
+						}
+					}
+					if syncTagsMap != nil {
+						if err := syncTagsMap(); err != nil {
+							return util.StatusWrap(err, "Failed to synchronize tags map")
+						}
+					}
+					return nil
 				},
 			},
 		)
@@ -113,28 +179,6 @@ func main() {
 			localObjectStore.InvalidateLeases,
 		)
 
-		// Put a store for leases in front of the flat storage
-		// backend, so that UploadDag() can reliably enforce
-		// that clients upload complete DAGs.
-		leasesMap, err := lossymap.NewHashMapFromConfiguration(
-			configuration.LeasesMap,
-			"LeasesMap",
-			object_flatbacked.LeaseRecordArrayFactory,
-			/* recordKeyHasher = */ func(k *lossymap.RecordKey[object.LocalReference]) uint64 {
-				h := uint64(14695981039346656037)
-				for _, c := range k.Key.GetRawReference() {
-					h = (h ^ uint64(c)) * 1099511628211
-				}
-				return (h ^ uint64(k.Attempt)) * 1099511628211
-			},
-			/* valueComparator = */ func(a, b *object_flatbacked.Lease) int {
-				return cmp.Compare(*a, *b)
-			},
-			/* persistent = */ true,
-		)
-		if err != nil {
-			return util.StatusWrap(err, "Failed to create leases map")
-		}
 		flatBackedObjectStore := object_flatbacked.NewStore(
 			localObjectStore,
 			clock.SystemClock,
@@ -143,30 +187,6 @@ func main() {
 			leasesMap,
 		)
 
-		// Create storage for tags. Tags can be used to assign
-		// arbitrary identifiers to objects.
-		tagsMap, err := lossymap.NewHashMapFromConfiguration(
-			configuration.TagsMap,
-			"TagsMap",
-			tag_local.TagRecordArrayFactory,
-			/* recordKeyHasher = */ func(k *lossymap.RecordKey[tag.Key]) uint64 {
-				h := uint64(14695981039346656037)
-				for _, c := range k.Key.SignaturePublicKey {
-					h = (h ^ uint64(c)) * 1099511628211
-				}
-				for _, c := range k.Key.Hash {
-					h = (h ^ uint64(c)) * 1099511628211
-				}
-				return (h ^ uint64(k.Attempt)) * 1099511628211
-			},
-			/* valueComparator = */ func(a, b *tag_local.ValueWithLease) int {
-				return a.SignedValue.Value.Timestamp.Compare(b.SignedValue.Value.Timestamp)
-			},
-			/* persistent = */ true,
-		)
-		if err != nil {
-			return util.StatusWrap(err, "Failed to create tags map")
-		}
 		tagStore := tag_local.NewStore(
 			tagsMap,
 			clock.SystemClock,

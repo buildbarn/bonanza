@@ -30,6 +30,14 @@ type LeaseTrackingConfiguration struct {
 	// preserve the last LeaseValidationContext.incarnations_hash
 	// they received across restarts.
 	GetLastIncarnationsHash func() []byte
+
+	// If set, this function is called as part of a clean shutdown,
+	// before the lease tracking state is persisted. Leases stored
+	// in other data structures (e.g., maps of leases or tags) are
+	// only valid after a restart if the lease tracking state is
+	// present. This function can be used to ensure that such data
+	// structures are written to persistent storage first.
+	SyncOnCleanShutdown func() error
 }
 
 // incarnationSizeBytes is the size of incarnations that are generated
