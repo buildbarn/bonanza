@@ -44,6 +44,17 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 	var persistentStateStore PersistentStateStore
 	var initialPersistentState *pb.PersistentState
 	if pcfg := configuration.Persistent; pcfg != nil {
+		// Data stored in memory is lost across restarts.
+		// Reloading the persistent state would cause the store
+		// to report the existing incarnation and leases as
+		// valid, even though the data is gone.
+		if configuration.GetReferenceLocationMap().GetOnBlockDevice() == nil {
+			return nil, status.Error(codes.InvalidArgument, "Persistency can only be enabled if the reference-location map is stored on a block device")
+		}
+		if configuration.GetLocationBlobMapOnBlockDevice() == nil {
+			return nil, status.Error(codes.InvalidArgument, "Persistency can only be enabled if the location-blob map is stored on a block device")
+		}
+
 		stateDirectory, err := filesystem.NewLocalDirectory(path.LocalFormat.NewParser(pcfg.StateDirectoryPath))
 		if err != nil {
 			return nil, util.StatusWrap(err, "Failed to open persistent state directory")

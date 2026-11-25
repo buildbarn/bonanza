@@ -131,7 +131,10 @@ message StoreConfiguration {
 
   // When set, persist data across restarts. This feature is only
   // available when both the reference-location map and location-blob
-  // map are stored on a block device.
+  // map are stored on a block device. Configurations that enable this
+  // feature while storing either of them in memory are rejected, as
+  // the data would be lost across restarts while the persistent state
+  // would claim otherwise.
   //
   // When not set, data is not persisted. The data store will be empty
   // every time the application is restarted. Existing entries in the
