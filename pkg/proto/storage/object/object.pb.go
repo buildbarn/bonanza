@@ -254,13 +254,13 @@ func (x *DownloadObjectResponse) GetContents() []byte {
 }
 
 type UploadObjectRequest struct {
-	state                    protoimpl.MessageState `protogen:"open.v1"`
-	Namespace                *Namespace             `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Reference                []byte                 `protobuf:"bytes,2,opt,name=reference,proto3" json:"reference,omitempty"`
-	Contents                 []byte                 `protobuf:"bytes,3,opt,name=contents,proto3" json:"contents,omitempty"`
-	OutgoingReferencesLeases [][]byte               `protobuf:"bytes,4,rep,name=outgoing_references_leases,json=outgoingReferencesLeases,proto3" json:"outgoing_references_leases,omitempty"`
-	WantContentsIfIncomplete bool                   `protobuf:"varint,5,opt,name=want_contents_if_incomplete,json=wantContentsIfIncomplete,proto3" json:"want_contents_if_incomplete,omitempty"`
-	Watermark                *Watermark             `protobuf:"bytes,6,opt,name=watermark,proto3" json:"watermark,omitempty"`
+	state                    protoimpl.MessageState  `protogen:"open.v1"`
+	Namespace                *Namespace              `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Reference                []byte                  `protobuf:"bytes,2,opt,name=reference,proto3" json:"reference,omitempty"`
+	Contents                 []byte                  `protobuf:"bytes,3,opt,name=contents,proto3" json:"contents,omitempty"`
+	OutgoingReferencesLeases [][]byte                `protobuf:"bytes,4,rep,name=outgoing_references_leases,json=outgoingReferencesLeases,proto3" json:"outgoing_references_leases,omitempty"`
+	WantContentsIfIncomplete bool                    `protobuf:"varint,5,opt,name=want_contents_if_incomplete,json=wantContentsIfIncomplete,proto3" json:"want_contents_if_incomplete,omitempty"`
+	LeaseValidationContext   *LeaseValidationContext `protobuf:"bytes,6,opt,name=lease_validation_context,json=leaseValidationContext,proto3" json:"lease_validation_context,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -330,9 +330,9 @@ func (x *UploadObjectRequest) GetWantContentsIfIncomplete() bool {
 	return false
 }
 
-func (x *UploadObjectRequest) GetWatermark() *Watermark {
+func (x *UploadObjectRequest) GetLeaseValidationContext() *LeaseValidationContext {
 	if x != nil {
-		return x.Watermark
+		return x.LeaseValidationContext
 	}
 	return nil
 }
@@ -422,6 +422,7 @@ func (*UploadObjectResponse_Incomplete_) isUploadObjectResponse_Type() {}
 type GetWatermarkResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Watermark     *Watermark             `protobuf:"bytes,1,opt,name=watermark,proto3" json:"watermark,omitempty"`
+	Incarnation   []byte                 `protobuf:"bytes,2,opt,name=incarnation,proto3" json:"incarnation,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -459,6 +460,13 @@ func (*GetWatermarkResponse) Descriptor() ([]byte, []int) {
 func (x *GetWatermarkResponse) GetWatermark() *Watermark {
 	if x != nil {
 		return x.Watermark
+	}
+	return nil
+}
+
+func (x *GetWatermarkResponse) GetIncarnation() []byte {
+	if x != nil {
+		return x.Incarnation
 	}
 	return nil
 }
@@ -515,6 +523,110 @@ func (x *Watermark) GetObtainedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+type LeaseValidationContext struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Watermark           *Watermark             `protobuf:"bytes,1,opt,name=watermark,proto3" json:"watermark,omitempty"`
+	IncarnationsHash    []byte                 `protobuf:"bytes,2,opt,name=incarnations_hash,json=incarnationsHash,proto3" json:"incarnations_hash,omitempty"`
+	ExpectedIncarnation []byte                 `protobuf:"bytes,3,opt,name=expected_incarnation,json=expectedIncarnation,proto3" json:"expected_incarnation,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *LeaseValidationContext) Reset() {
+	*x = LeaseValidationContext{}
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeaseValidationContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaseValidationContext) ProtoMessage() {}
+
+func (x *LeaseValidationContext) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaseValidationContext.ProtoReflect.Descriptor instead.
+func (*LeaseValidationContext) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *LeaseValidationContext) GetWatermark() *Watermark {
+	if x != nil {
+		return x.Watermark
+	}
+	return nil
+}
+
+func (x *LeaseValidationContext) GetIncarnationsHash() []byte {
+	if x != nil {
+		return x.IncarnationsHash
+	}
+	return nil
+}
+
+func (x *LeaseValidationContext) GetExpectedIncarnation() []byte {
+	if x != nil {
+		return x.ExpectedIncarnation
+	}
+	return nil
+}
+
+type IncarnationsHashInput struct {
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	Shards        []*IncarnationsHashInput_Shard `protobuf:"bytes,1,rep,name=shards,proto3" json:"shards,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IncarnationsHashInput) Reset() {
+	*x = IncarnationsHashInput{}
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IncarnationsHashInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncarnationsHashInput) ProtoMessage() {}
+
+func (x *IncarnationsHashInput) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncarnationsHashInput.ProtoReflect.Descriptor instead.
+func (*IncarnationsHashInput) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *IncarnationsHashInput) GetShards() []*IncarnationsHashInput_Shard {
+	if x != nil {
+		return x.Shards
+	}
+	return nil
+}
+
 type Limit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Count         uint32                 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
@@ -525,7 +637,7 @@ type Limit struct {
 
 func (x *Limit) Reset() {
 	*x = Limit{}
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -537,7 +649,7 @@ func (x *Limit) String() string {
 func (*Limit) ProtoMessage() {}
 
 func (x *Limit) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[8]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -550,7 +662,7 @@ func (x *Limit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Limit.ProtoReflect.Descriptor instead.
 func (*Limit) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{8}
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Limit) GetCount() uint32 {
@@ -576,7 +688,7 @@ type UploadObjectResponse_Complete struct {
 
 func (x *UploadObjectResponse_Complete) Reset() {
 	*x = UploadObjectResponse_Complete{}
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -588,7 +700,7 @@ func (x *UploadObjectResponse_Complete) String() string {
 func (*UploadObjectResponse_Complete) ProtoMessage() {}
 
 func (x *UploadObjectResponse_Complete) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[9]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -621,7 +733,7 @@ type UploadObjectResponse_Incomplete struct {
 
 func (x *UploadObjectResponse_Incomplete) Reset() {
 	*x = UploadObjectResponse_Incomplete{}
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -633,7 +745,7 @@ func (x *UploadObjectResponse_Incomplete) String() string {
 func (*UploadObjectResponse_Incomplete) ProtoMessage() {}
 
 func (x *UploadObjectResponse_Incomplete) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[10]
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -663,6 +775,66 @@ func (x *UploadObjectResponse_Incomplete) GetWantOutgoingReferencesLeases() []ui
 	return nil
 }
 
+type IncarnationsHashInput_Shard struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Weight        uint32                 `protobuf:"varint,2,opt,name=weight,proto3" json:"weight,omitempty"`
+	Incarnation   []byte                 `protobuf:"bytes,3,opt,name=incarnation,proto3" json:"incarnation,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IncarnationsHashInput_Shard) Reset() {
+	*x = IncarnationsHashInput_Shard{}
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IncarnationsHashInput_Shard) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncarnationsHashInput_Shard) ProtoMessage() {}
+
+func (x *IncarnationsHashInput_Shard) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncarnationsHashInput_Shard.ProtoReflect.Descriptor instead.
+func (*IncarnationsHashInput_Shard) Descriptor() ([]byte, []int) {
+	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{9, 0}
+}
+
+func (x *IncarnationsHashInput_Shard) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *IncarnationsHashInput_Shard) GetWeight() uint32 {
+	if x != nil {
+		return x.Weight
+	}
+	return 0
+}
+
+func (x *IncarnationsHashInput_Shard) GetIncarnation() []byte {
+	if x != nil {
+		return x.Incarnation
+	}
+	return nil
+}
+
 var File_bonanza_build_pkg_proto_storage_object_object_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc = "" +
@@ -679,14 +851,14 @@ const file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc = "" +
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12\x1c\n" +
 	"\treference\x18\x02 \x01(\fR\treference\"4\n" +
 	"\x16DownloadObjectResponse\x12\x1a\n" +
-	"\bcontents\x18\x01 \x01(\fR\bcontents\"\xce\x02\n" +
+	"\bcontents\x18\x01 \x01(\fR\bcontents\"\xf7\x02\n" +
 	"\x13UploadObjectRequest\x12?\n" +
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12\x1c\n" +
 	"\treference\x18\x02 \x01(\fR\treference\x12\x1a\n" +
 	"\bcontents\x18\x03 \x01(\fR\bcontents\x12<\n" +
 	"\x1aoutgoing_references_leases\x18\x04 \x03(\fR\x18outgoingReferencesLeases\x12=\n" +
-	"\x1bwant_contents_if_incomplete\x18\x05 \x01(\bR\x18wantContentsIfIncomplete\x12?\n" +
-	"\twatermark\x18\x06 \x01(\v2!.bonanza.storage.object.WatermarkR\twatermark\"\xe1\x02\n" +
+	"\x1bwant_contents_if_incomplete\x18\x05 \x01(\bR\x18wantContentsIfIncomplete\x12h\n" +
+	"\x18lease_validation_context\x18\x06 \x01(\v2..bonanza.storage.object.LeaseValidationContextR\x16leaseValidationContext\"\xe1\x02\n" +
 	"\x14UploadObjectResponse\x12S\n" +
 	"\bcomplete\x18\x01 \x01(\v25.bonanza.storage.object.UploadObjectResponse.CompleteH\x00R\bcomplete\x12Y\n" +
 	"\n" +
@@ -698,13 +870,24 @@ const file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc = "" +
 	"Incomplete\x12\x1a\n" +
 	"\bcontents\x18\x01 \x01(\fR\bcontents\x12E\n" +
 	"\x1fwant_outgoing_references_leases\x18\x02 \x03(\rR\x1cwantOutgoingReferencesLeasesB\x06\n" +
-	"\x04type\"W\n" +
+	"\x04type\"y\n" +
 	"\x14GetWatermarkResponse\x12?\n" +
-	"\twatermark\x18\x01 \x01(\v2!.bonanza.storage.object.WatermarkR\twatermark\"\x82\x01\n" +
+	"\twatermark\x18\x01 \x01(\v2!.bonanza.storage.object.WatermarkR\twatermark\x12 \n" +
+	"\vincarnation\x18\x02 \x01(\fR\vincarnation\"\x82\x01\n" +
 	"\tWatermark\x128\n" +
 	"\twatermark\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\twatermark\x12;\n" +
 	"\vobtained_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"obtainedAt\"<\n" +
+	"obtainedAt\"\xb9\x01\n" +
+	"\x16LeaseValidationContext\x12?\n" +
+	"\twatermark\x18\x01 \x01(\v2!.bonanza.storage.object.WatermarkR\twatermark\x12+\n" +
+	"\x11incarnations_hash\x18\x02 \x01(\fR\x10incarnationsHash\x121\n" +
+	"\x14expected_incarnation\x18\x03 \x01(\fR\x13expectedIncarnation\"\xbb\x01\n" +
+	"\x15IncarnationsHashInput\x12K\n" +
+	"\x06shards\x18\x01 \x03(\v23.bonanza.storage.object.IncarnationsHashInput.ShardR\x06shards\x1aU\n" +
+	"\x05Shard\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
+	"\x06weight\x18\x02 \x01(\rR\x06weight\x12 \n" +
+	"\vincarnation\x18\x03 \x01(\fR\vincarnation\"<\n" +
 	"\x05Limit\x12\x14\n" +
 	"\x05count\x18\x01 \x01(\rR\x05count\x12\x1d\n" +
 	"\n" +
@@ -729,7 +912,7 @@ func file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP() []by
 }
 
 var file_bonanza_build_pkg_proto_storage_object_object_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_bonanza_build_pkg_proto_storage_object_object_proto_goTypes = []any{
 	(ReferenceFormat_Value)(0),              // 0: bonanza.storage.object.ReferenceFormat.Value
 	(*ReferenceFormat)(nil),                 // 1: bonanza.storage.object.ReferenceFormat
@@ -740,33 +923,38 @@ var file_bonanza_build_pkg_proto_storage_object_object_proto_goTypes = []any{
 	(*UploadObjectResponse)(nil),            // 6: bonanza.storage.object.UploadObjectResponse
 	(*GetWatermarkResponse)(nil),            // 7: bonanza.storage.object.GetWatermarkResponse
 	(*Watermark)(nil),                       // 8: bonanza.storage.object.Watermark
-	(*Limit)(nil),                           // 9: bonanza.storage.object.Limit
-	(*UploadObjectResponse_Complete)(nil),   // 10: bonanza.storage.object.UploadObjectResponse.Complete
-	(*UploadObjectResponse_Incomplete)(nil), // 11: bonanza.storage.object.UploadObjectResponse.Incomplete
-	(*timestamppb.Timestamp)(nil),           // 12: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                   // 13: google.protobuf.Empty
+	(*LeaseValidationContext)(nil),          // 9: bonanza.storage.object.LeaseValidationContext
+	(*IncarnationsHashInput)(nil),           // 10: bonanza.storage.object.IncarnationsHashInput
+	(*Limit)(nil),                           // 11: bonanza.storage.object.Limit
+	(*UploadObjectResponse_Complete)(nil),   // 12: bonanza.storage.object.UploadObjectResponse.Complete
+	(*UploadObjectResponse_Incomplete)(nil), // 13: bonanza.storage.object.UploadObjectResponse.Incomplete
+	(*IncarnationsHashInput_Shard)(nil),     // 14: bonanza.storage.object.IncarnationsHashInput.Shard
+	(*timestamppb.Timestamp)(nil),           // 15: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                   // 16: google.protobuf.Empty
 }
 var file_bonanza_build_pkg_proto_storage_object_object_proto_depIdxs = []int32{
 	0,  // 0: bonanza.storage.object.Namespace.reference_format:type_name -> bonanza.storage.object.ReferenceFormat.Value
 	2,  // 1: bonanza.storage.object.DownloadObjectRequest.namespace:type_name -> bonanza.storage.object.Namespace
 	2,  // 2: bonanza.storage.object.UploadObjectRequest.namespace:type_name -> bonanza.storage.object.Namespace
-	8,  // 3: bonanza.storage.object.UploadObjectRequest.watermark:type_name -> bonanza.storage.object.Watermark
-	10, // 4: bonanza.storage.object.UploadObjectResponse.complete:type_name -> bonanza.storage.object.UploadObjectResponse.Complete
-	11, // 5: bonanza.storage.object.UploadObjectResponse.incomplete:type_name -> bonanza.storage.object.UploadObjectResponse.Incomplete
+	9,  // 3: bonanza.storage.object.UploadObjectRequest.lease_validation_context:type_name -> bonanza.storage.object.LeaseValidationContext
+	12, // 4: bonanza.storage.object.UploadObjectResponse.complete:type_name -> bonanza.storage.object.UploadObjectResponse.Complete
+	13, // 5: bonanza.storage.object.UploadObjectResponse.incomplete:type_name -> bonanza.storage.object.UploadObjectResponse.Incomplete
 	8,  // 6: bonanza.storage.object.GetWatermarkResponse.watermark:type_name -> bonanza.storage.object.Watermark
-	12, // 7: bonanza.storage.object.Watermark.watermark:type_name -> google.protobuf.Timestamp
-	12, // 8: bonanza.storage.object.Watermark.obtained_at:type_name -> google.protobuf.Timestamp
-	3,  // 9: bonanza.storage.object.Downloader.DownloadObject:input_type -> bonanza.storage.object.DownloadObjectRequest
-	5,  // 10: bonanza.storage.object.Uploader.UploadObject:input_type -> bonanza.storage.object.UploadObjectRequest
-	13, // 11: bonanza.storage.object.Uploader.GetWatermark:input_type -> google.protobuf.Empty
-	4,  // 12: bonanza.storage.object.Downloader.DownloadObject:output_type -> bonanza.storage.object.DownloadObjectResponse
-	6,  // 13: bonanza.storage.object.Uploader.UploadObject:output_type -> bonanza.storage.object.UploadObjectResponse
-	7,  // 14: bonanza.storage.object.Uploader.GetWatermark:output_type -> bonanza.storage.object.GetWatermarkResponse
-	12, // [12:15] is the sub-list for method output_type
-	9,  // [9:12] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	15, // 7: bonanza.storage.object.Watermark.watermark:type_name -> google.protobuf.Timestamp
+	15, // 8: bonanza.storage.object.Watermark.obtained_at:type_name -> google.protobuf.Timestamp
+	8,  // 9: bonanza.storage.object.LeaseValidationContext.watermark:type_name -> bonanza.storage.object.Watermark
+	14, // 10: bonanza.storage.object.IncarnationsHashInput.shards:type_name -> bonanza.storage.object.IncarnationsHashInput.Shard
+	3,  // 11: bonanza.storage.object.Downloader.DownloadObject:input_type -> bonanza.storage.object.DownloadObjectRequest
+	5,  // 12: bonanza.storage.object.Uploader.UploadObject:input_type -> bonanza.storage.object.UploadObjectRequest
+	16, // 13: bonanza.storage.object.Uploader.GetWatermark:input_type -> google.protobuf.Empty
+	4,  // 14: bonanza.storage.object.Downloader.DownloadObject:output_type -> bonanza.storage.object.DownloadObjectResponse
+	6,  // 15: bonanza.storage.object.Uploader.UploadObject:output_type -> bonanza.storage.object.UploadObjectResponse
+	7,  // 16: bonanza.storage.object.Uploader.GetWatermark:output_type -> bonanza.storage.object.GetWatermarkResponse
+	14, // [14:17] is the sub-list for method output_type
+	11, // [11:14] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_storage_object_object_proto_init() }
@@ -784,7 +972,7 @@ func file_bonanza_build_pkg_proto_storage_object_object_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   11,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

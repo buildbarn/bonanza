@@ -24,6 +24,19 @@ type Store interface {
 	object.Store[object.FlatReference, time.Time]
 
 	GetWatermark() time.Time
+
+	// GetIncarnation returns the incarnation of the store, and the
+	// last incarnations hash that was persisted alongside it. See
+	// EpochList.GetIncarnation().
+	GetIncarnation() (incarnation, lastIncarnationsHash []byte)
+
+	// InvalidateLeases raises the watermark to the current time,
+	// thereby invalidating the leases of all objects stored. This is
+	// used by storage shards when the incarnations hash provided by
+	// storage frontends changes, as objects referenced by existing
+	// leases may then no longer be present on the storage shards to
+	// which they are assigned.
+	InvalidateLeases()
 }
 
 type store struct {
@@ -232,6 +245,18 @@ func (s *store) UploadObject(ctx context.Context, reference object.FlatReference
 	return object.UploadObjectComplete[time.Time]{
 		Lease: safeSince,
 	}, nil
+}
+
+func (s *store) GetIncarnation() ([]byte, []byte) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.epochList.GetIncarnation()
+}
+
+func (s *store) InvalidateLeases() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.epochList.InvalidateLeases()
 }
 
 func (s *store) GetWatermark() time.Time {

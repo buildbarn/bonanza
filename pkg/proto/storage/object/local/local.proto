@@ -36,6 +36,20 @@ message LeaseTrackingState {
   // The highest watermark that was reported by the store. Watermarks
   // never decrease, even across restarts.
   google.protobuf.Timestamp watermark = 2;
+
+  // The incarnation of the storage server, as reported through
+  // bonanza.storage.object.GetWatermarkResponse.incarnation. It is
+  // preserved across clean restarts. A new incarnation is generated if
+  // this message is absent.
+  bytes incarnation = 3;
+
+  // The last value of
+  // bonanza.storage.object.LeaseValidationContext.incarnations_hash
+  // that was received by the storage server. If the first request
+  // received after a restart contains a different value, the
+  // incarnation of another storage server in the cluster changed while
+  // this storage server was offline.
+  bytes last_incarnations_hash = 4;
 }
 
 message PersistentState {

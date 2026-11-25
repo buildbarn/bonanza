@@ -12,18 +12,28 @@ import (
 )
 
 type updaterServer struct {
-	updater Updater[object.Namespace, []byte]
+	updater          Updater[object.Namespace, []byte]
+	clusterWatermark *object.Watermark
 }
 
 // NewUpdaterServer creates a gRPC server that is capable of creating or
-// updating existing tags contained in the tag store.
-func NewUpdaterServer(updater Updater[object.Namespace, []byte]) tag.UpdaterServer {
+// updating existing tags contained in the tag store. This is used by
+// storage shards to accept updates from storage frontends.
+//
+// Requests are required to contain a lease validation context, which
+// is processed by clusterWatermark.
+func NewUpdaterServer(updater Updater[object.Namespace, []byte], clusterWatermark *object.Watermark) tag.UpdaterServer {
 	return &updaterServer{
-		updater: updater,
+		updater:          updater,
+		clusterWatermark: clusterWatermark,
 	}
 }
 
 func (s *updaterServer) UpdateTag(ctx context.Context, request *tag.UpdateTagRequest) (*emptypb.Empty, error) {
+	if err := s.clusterWatermark.ProcessLeaseValidationContext(request.LeaseValidationContext); err != nil {
+		return nil, util.StatusWrap(err, "Invalid lease validation context")
+	}
+
 	namespace, err := object.NewNamespace(request.Namespace)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid namespace")

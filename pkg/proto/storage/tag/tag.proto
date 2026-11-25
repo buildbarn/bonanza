@@ -110,14 +110,15 @@ message ResolveTagRequest {
   // if the client is going to ignore the tag's value anyway.
   google.protobuf.Timestamp minimum_timestamp = 3;
 
-  // The highest watermark of all storage servers in the cluster that
-  // is known to the storage frontend, used by storage shards to check
-  // the lease of the object referenced by the tag. See
-  // bonanza.storage.object.UploadObjectRequest.watermark.
+  // Information needed by storage shards to check the lease of the
+  // object referenced by the tag.
   //
-  // This field is only set by storage frontends. Other clients MUST
-  // leave this field unset.
-  bonanza.storage.object.Watermark watermark = 4;
+  // The Resolver service is exposed both by storage frontends and
+  // storage shards. Storage frontends MUST set this field when calling
+  // into storage shards. All other clients MUST leave it unset.
+  // Storage shards reject requests that leave it unset, while storage
+  // frontends reject requests that set it.
+  bonanza.storage.object.LeaseValidationContext lease_validation_context = 4;
 }
 
 message ResolveTagResponse {
@@ -144,4 +145,11 @@ message UpdateTagRequest {
 
   // The lease of the object referenced by the tag.
   bytes lease = 4;
+
+  // Information needed by storage shards to detect that the lease is
+  // invalid.
+  //
+  // This field is mandatory. The Updater service is only exposed by
+  // storage shards, and only called by storage frontends.
+  bonanza.storage.object.LeaseValidationContext lease_validation_context = 5;
 }

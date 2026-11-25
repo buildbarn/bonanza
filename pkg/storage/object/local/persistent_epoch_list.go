@@ -326,6 +326,12 @@ func (el *PersistentEpochList) GetWatermark() time.Time {
 	return el.leaseTracker.getWatermark()
 }
 
+// GetIncarnation returns the incarnation of the store, and the last
+// incarnations hash that was persisted alongside it.
+func (el *PersistentEpochList) GetIncarnation() ([]byte, []byte) {
+	return el.leaseTracker.getIncarnation()
+}
+
 // DiscardLocation is called when a reference-location map entry
 // pointing to a given location is discarded. This causes the watermark
 // to be raised, as the object is no longer accessible.

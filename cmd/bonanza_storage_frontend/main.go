@@ -145,6 +145,7 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 	weightedShards := make([]object_sharded.WeightedShard, 0, len(shards))
 	grpcClients := make([]grpc.ClientConnInterface, 0, len(shards))
 	uploaderClients := make([]object_pb.UploaderClient, 0, len(shards))
+	pollerShards := make([]object_grpc.WatermarkPollerShard, 0, len(shards))
 	for key, shard := range shards {
 		grpcClient, err := grpcClientFactory.NewClientFromConfiguration(shard.Client, dependenciesGroup)
 		if err != nil {
@@ -157,15 +158,21 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 			Weight: shard.Weight,
 		})
 		grpcClients = append(grpcClients, grpcClient)
-		uploaderClients = append(uploaderClients, object_pb.NewUploaderClient(grpcClient))
+		uploaderClient := object_pb.NewUploaderClient(grpcClient)
+		uploaderClients = append(uploaderClients, uploaderClient)
+		pollerShards = append(pollerShards, object_grpc.WatermarkPollerShard{
+			Name:   key,
+			Weight: shard.Weight,
+			Client: uploaderClient,
+		})
 	}
 
 	// Leases of objects need to be checked against the highest
 	// watermark of all shards in the replica. Poll the watermarks
-	// of all shards while requests that need them are sent, and
-	// forward the highest one to all shards.
+	// and incarnations of all shards while requests that need them
+	// are sent, and forward them to all shards.
 	replicaWatermark := object_grpc.NewWatermarkPoller(
-		uploaderClients,
+		pollerShards,
 		clock.SystemClock,
 		watermarkPollInterval,
 		util.DefaultErrorLogger,
@@ -186,14 +193,15 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 		))
 		objectUploaders = append(objectUploaders, object_grpc.NewUploader(
 			uploaderClients[i],
-			replicaWatermark,
+			replicaWatermark.GetLeaseValidationContextSource(i),
 		))
 		tagResolvers = append(tagResolvers, tag_grpc.NewResolver(
 			tag_pb.NewResolverClient(grpcClient),
-			replicaWatermark,
+			replicaWatermark.GetLeaseValidationContextSource(i),
 		))
 		tagUpdaters = append(tagUpdaters, tag_grpc.NewUpdater(
 			tag_pb.NewUpdaterClient(grpcClient),
+			replicaWatermark.GetLeaseValidationContextSource(i),
 		))
 	}
 

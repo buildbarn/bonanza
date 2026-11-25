@@ -51,6 +51,10 @@ func NewVolatileEpochList(maximumLocationSpan uint64, randomNumberGenerator rand
 	return el
 }
 
+func (el *volatileEpochList) GetIncarnation() ([]byte, []byte) {
+	return el.leaseTracker.getIncarnation()
+}
+
 func (el *volatileEpochList) updateWatermark() {
 	el.leaseTracker.update(el.epochState.MinimumLocation, el.epochState.MaximumLocation)
 }

@@ -23,11 +23,25 @@ import (
 func TestUploaderServer(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
 
+	clock := NewMockClock(ctrl)
+	clock.EXPECT().Now().Return(time.Unix(1700001000, 0)).AnyTimes()
 	uploader := NewMockUploaderForTestingBytes(ctrl)
-	server := object.NewUploaderServer(uploader, nil, nil)
+	server := object.NewUploaderServer(
+		uploader,
+		object.NewWatermark(clock, time.Minute, []byte("incarnation"), []byte("hash"), func() {}),
+		func() (time.Time, time.Time) { return time.Unix(1700000000, 0), time.Unix(1700001000, 0) },
+	)
+	leaseValidationContext := &object_pb.LeaseValidationContext{
+		Watermark: &object_pb.Watermark{
+			ObtainedAt: &timestamppb.Timestamp{Seconds: 1700001000},
+		},
+		IncarnationsHash:    []byte("hash"),
+		ExpectedIncarnation: []byte("incarnation"),
+	}
 
 	t.Run("InvalidNamespace", func(t *testing.T) {
 		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: leaseValidationContext,
 			Reference: []byte{
 				// SHA-256 hash.
 				0xf7, 0x42, 0x5b, 0x6c, 0x3d, 0xe5, 0x64, 0x77,
@@ -49,6 +63,7 @@ func TestUploaderServer(t *testing.T) {
 
 	t.Run("InvalidReference", func(t *testing.T) {
 		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: leaseValidationContext,
 			Namespace: &object_pb.Namespace{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -74,6 +89,7 @@ func TestUploaderServer(t *testing.T) {
 
 	t.Run("InvalidContents", func(t *testing.T) {
 		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: leaseValidationContext,
 			Namespace: &object_pb.Namespace{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -100,6 +116,7 @@ func TestUploaderServer(t *testing.T) {
 
 	t.Run("InvalidLeasesCount", func(t *testing.T) {
 		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: leaseValidationContext,
 			Namespace: &object_pb.Namespace{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -133,6 +150,7 @@ func TestUploaderServer(t *testing.T) {
 		// the same time ask for a copy of the contents when the
 		// object is incomplete. This only wastes bandwidth.
 		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: leaseValidationContext,
 			Namespace: &object_pb.Namespace{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -181,6 +199,7 @@ func TestUploaderServer(t *testing.T) {
 		// any leases. This means that setting
 		// want_contents_if_incomplete is meaningless.
 		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: leaseValidationContext,
 			Namespace: &object_pb.Namespace{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -220,6 +239,7 @@ func TestUploaderServer(t *testing.T) {
 		}, nil)
 
 		response, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: leaseValidationContext,
 			Namespace: &object_pb.Namespace{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -266,6 +286,7 @@ func TestUploaderServer(t *testing.T) {
 		}, nil)
 
 		response, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: leaseValidationContext,
 			Namespace: &object_pb.Namespace{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -315,6 +336,7 @@ func TestUploaderServer(t *testing.T) {
 		}, nil)
 
 		response, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: leaseValidationContext,
 			Namespace: &object_pb.Namespace{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -377,6 +399,7 @@ func TestUploaderServer(t *testing.T) {
 		).Return(object.UploadObjectMissing[[]byte]{}, nil)
 
 		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: leaseValidationContext,
 			Namespace: &object_pb.Namespace{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -404,18 +427,10 @@ func TestUploaderServer(t *testing.T) {
 func TestUploaderServerWatermark(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
 
-	t.Run("NotReported", func(t *testing.T) {
-		// Servers that don't track a watermark should report
-		// so explicitly.
-		server := object.NewUploaderServer(NewMockUploaderForTestingBytes(ctrl), nil, nil)
-		_, err := server.GetWatermark(ctx, &emptypb.Empty{})
-		testutil.RequireEqualStatus(t, status.Error(codes.Unimplemented, "This server does not report its watermark"), err)
-	})
-
 	t.Run("Reported", func(t *testing.T) {
 		clock := NewMockClock(ctrl)
 		clock.EXPECT().Now().Return(time.Unix(1700001000, 0)).AnyTimes()
-		clusterWatermark := object.NewWatermark(clock, time.Minute)
+		clusterWatermark := object.NewWatermark(clock, time.Minute, []byte("incarnation"), []byte("hash"), func() {})
 		server := object.NewUploaderServer(
 			NewMockUploaderForTestingBytes(ctrl),
 			clusterWatermark,
@@ -429,14 +444,34 @@ func TestUploaderServerWatermark(t *testing.T) {
 				Watermark:  &timestamppb.Timestamp{Seconds: 1700000000},
 				ObtainedAt: &timestamppb.Timestamp{Seconds: 1700001000},
 			},
+			Incarnation: []byte("incarnation"),
 		}, response)
+
+		// Requests without a lease validation context, or
+		// intended for another incarnation, should be rejected.
+		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{})
+		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Invalid lease validation context: No lease validation context provided"), err)
+		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+			LeaseValidationContext: &object_pb.LeaseValidationContext{
+				Watermark: &object_pb.Watermark{
+					ObtainedAt: &timestamppb.Timestamp{Seconds: 1700000990},
+				},
+				IncarnationsHash:    []byte("hash"),
+				ExpectedIncarnation: []byte("other"),
+			},
+		})
+		require.Equal(t, codes.FailedPrecondition, status.Code(err))
 
 		// The cluster watermark provided by clients should be
 		// tracked, even if the request is invalid otherwise.
 		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{
-			Watermark: &object_pb.Watermark{
-				Watermark:  &timestamppb.Timestamp{Seconds: 1700000500},
-				ObtainedAt: &timestamppb.Timestamp{Seconds: 1700000990},
+			LeaseValidationContext: &object_pb.LeaseValidationContext{
+				Watermark: &object_pb.Watermark{
+					Watermark:  &timestamppb.Timestamp{Seconds: 1700000500},
+					ObtainedAt: &timestamppb.Timestamp{Seconds: 1700000990},
+				},
+				IncarnationsHash:    []byte("hash"),
+				ExpectedIncarnation: []byte("incarnation"),
 			},
 		})
 		require.Error(t, err)
@@ -445,12 +480,16 @@ func TestUploaderServerWatermark(t *testing.T) {
 		// Cluster watermarks that are too old should cause
 		// requests to be rejected.
 		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{
-			Watermark: &object_pb.Watermark{
-				Watermark:  &timestamppb.Timestamp{Seconds: 1700000900},
-				ObtainedAt: &timestamppb.Timestamp{Seconds: 1700000939},
+			LeaseValidationContext: &object_pb.LeaseValidationContext{
+				Watermark: &object_pb.Watermark{
+					Watermark:  &timestamppb.Timestamp{Seconds: 1700000900},
+					ObtainedAt: &timestamppb.Timestamp{Seconds: 1700000939},
+				},
+				IncarnationsHash:    []byte("hash"),
+				ExpectedIncarnation: []byte("incarnation"),
 			},
 		})
-		testutil.RequireEqualStatus(t, status.Error(codes.Unavailable, "Invalid cluster watermark: Watermark of the cluster was obtained 1m1s ago, which exceeds the maximum permitted age of 1m0s, meaning data may have been lost in the meantime"), err)
+		testutil.RequireEqualStatus(t, status.Error(codes.Unavailable, "Invalid lease validation context: Watermark of the cluster was obtained 1m1s ago, which exceeds the maximum permitted age of 1m0s, meaning data may have been lost in the meantime"), err)
 		require.Equal(t, time.Unix(1700000500, 0), clusterWatermark.Get())
 	})
 }

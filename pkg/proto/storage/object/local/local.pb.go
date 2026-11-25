@@ -127,11 +127,13 @@ func (x *LocationTimelineEntry) GetTime() *timestamppb.Timestamp {
 }
 
 type LeaseTrackingState struct {
-	state            protoimpl.MessageState   `protogen:"open.v1"`
-	LocationTimeline []*LocationTimelineEntry `protobuf:"bytes,1,rep,name=location_timeline,json=locationTimeline,proto3" json:"location_timeline,omitempty"`
-	Watermark        *timestamppb.Timestamp   `protobuf:"bytes,2,opt,name=watermark,proto3" json:"watermark,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                protoimpl.MessageState   `protogen:"open.v1"`
+	LocationTimeline     []*LocationTimelineEntry `protobuf:"bytes,1,rep,name=location_timeline,json=locationTimeline,proto3" json:"location_timeline,omitempty"`
+	Watermark            *timestamppb.Timestamp   `protobuf:"bytes,2,opt,name=watermark,proto3" json:"watermark,omitempty"`
+	Incarnation          []byte                   `protobuf:"bytes,3,opt,name=incarnation,proto3" json:"incarnation,omitempty"`
+	LastIncarnationsHash []byte                   `protobuf:"bytes,4,opt,name=last_incarnations_hash,json=lastIncarnationsHash,proto3" json:"last_incarnations_hash,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *LeaseTrackingState) Reset() {
@@ -174,6 +176,20 @@ func (x *LeaseTrackingState) GetLocationTimeline() []*LocationTimelineEntry {
 func (x *LeaseTrackingState) GetWatermark() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Watermark
+	}
+	return nil
+}
+
+func (x *LeaseTrackingState) GetIncarnation() []byte {
+	if x != nil {
+		return x.Incarnation
+	}
+	return nil
+}
+
+func (x *LeaseTrackingState) GetLastIncarnationsHash() []byte {
+	if x != nil {
+		return x.LastIncarnationsHash
 	}
 	return nil
 }
@@ -265,10 +281,12 @@ const file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDesc = ""
 	"\x11location_increase\x18\x02 \x01(\x04R\x10locationIncrease\"c\n" +
 	"\x15LocationTimelineEntry\x12\x1a\n" +
 	"\blocation\x18\x01 \x01(\x04R\blocation\x12.\n" +
-	"\x04time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\"\xb0\x01\n" +
+	"\x04time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\"\x88\x02\n" +
 	"\x12LeaseTrackingState\x12`\n" +
 	"\x11location_timeline\x18\x01 \x03(\v23.bonanza.storage.object.local.LocationTimelineEntryR\x10locationTimeline\x128\n" +
-	"\twatermark\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\twatermark\"\xdd\x02\n" +
+	"\twatermark\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\twatermark\x12 \n" +
+	"\vincarnation\x18\x03 \x01(\fR\vincarnation\x124\n" +
+	"\x16last_incarnations_hash\x18\x04 \x01(\fR\x14lastIncarnationsHash\"\xdd\x02\n" +
 	"\x0fPersistentState\x12(\n" +
 	"\x10minimum_epoch_id\x18\x01 \x01(\rR\x0eminimumEpochId\x12)\n" +
 	"\x10minimum_location\x18\x02 \x01(\x04R\x0fminimumLocation\x12Z\n" +

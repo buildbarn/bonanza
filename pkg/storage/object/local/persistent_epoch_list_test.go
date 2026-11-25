@@ -36,7 +36,9 @@ func TestPersistentEpochListLeaseTracking(t *testing.T) {
 					{Location: 0, Time: timestamppb.New(t0)},
 					{Location: 500, Time: timestamppb.New(t0.Add(10 * time.Second))},
 				},
-				Watermark: timestamppb.New(t0.Add(5 * time.Second)),
+				Watermark:            timestamppb.New(t0.Add(5 * time.Second)),
+				Incarnation:          []byte("incarnation"),
+				LastIncarnationsHash: []byte("hash"),
 			}
 		}
 		return persistentState
@@ -44,7 +46,12 @@ func TestPersistentEpochListLeaseTracking(t *testing.T) {
 	newLeaseTracking := func(ctrl *gomock.Controller, now time.Time) *local.LeaseTrackingConfiguration {
 		clock := NewMockClock(ctrl)
 		clock.EXPECT().Now().Return(now).AnyTimes()
-		return &local.LeaseTrackingConfiguration{Clock: clock}
+		return &local.LeaseTrackingConfiguration{
+			Clock: clock,
+			GetLastIncarnationsHash: func() []byte {
+				return []byte("newHash")
+			},
+		}
 	}
 
 	t.Run("Disabled", func(t *testing.T) {
@@ -59,16 +66,23 @@ func TestPersistentEpochListLeaseTracking(t *testing.T) {
 		require.Equal(t, time.Time{}, el.GetSafeSince(600))
 		require.Equal(t, time.Time{}, el.GetWatermark())
 		require.Nil(t, el.GetPersistentState().LeaseTracking)
+		incarnation, lastIncarnationsHash := el.GetIncarnation()
+		require.Nil(t, incarnation)
+		require.Nil(t, lastIncarnationsHash)
 	})
 
 	t.Run("CleanShutdown", func(t *testing.T) {
 		// After a clean shutdown, leases handed out by the
-		// previous incarnation remain valid.
+		// previous incarnation remain valid. The incarnation
+		// and the last incarnations hash should be preserved.
 		ctrl := gomock.NewController(t)
 		el := local.NewPersistentEpochList(10000, random.NewFastSingleThreadedGenerator(), newLeaseTracking(ctrl, t1), newPersistentState(true))
 
 		require.Equal(t, t0.Add(10*time.Second), el.GetSafeSince(600))
 		require.Equal(t, t0.Add(5*time.Second), el.GetWatermark())
+		incarnation, lastIncarnationsHash := el.GetIncarnation()
+		require.Equal(t, []byte("incarnation"), incarnation)
+		require.Equal(t, []byte("hash"), lastIncarnationsHash)
 	})
 
 	t.Run("UncleanShutdown", func(t *testing.T) {
@@ -84,6 +98,13 @@ func TestPersistentEpochListLeaseTracking(t *testing.T) {
 
 		require.Equal(t, time.Time{}, el.GetSafeSince(600))
 		require.Equal(t, t1, el.GetWatermark())
+
+		// A new incarnation should be generated, so that other
+		// storage servers can detect that this storage server
+		// may have lost data.
+		incarnation, lastIncarnationsHash := el.GetIncarnation()
+		require.Len(t, incarnation, 16)
+		require.Nil(t, lastIncarnationsHash)
 
 		// Data written from now on gets a lease.
 		require.NoError(t, el.FinalizeWriteUpToLocation(1100))
@@ -121,5 +142,7 @@ func TestPersistentEpochListLeaseTracking(t *testing.T) {
 		leaseTracking := el.GetPersistentState().LeaseTracking
 		require.NotNil(t, leaseTracking)
 		require.Equal(t, timestamppb.New(t0.Add(5*time.Second)), leaseTracking.Watermark)
+		require.Equal(t, []byte("incarnation"), leaseTracking.Incarnation)
+		require.Equal(t, []byte("newHash"), leaseTracking.LastIncarnationsHash)
 	})
 }

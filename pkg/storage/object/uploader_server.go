@@ -21,13 +21,13 @@ type uploaderServer struct {
 }
 
 // NewUploaderServer creates a gRPC server object for exposing an
-// Uploader. This can be used to make objects contained in an object
-// store accessible via the network.
+// Uploader. This is used by storage shards to make objects contained
+// in their object store accessible to storage frontends.
 //
-// If clusterWatermark is provided, it is raised to the cluster
-// watermark that clients provide as part of their requests. If
-// getWatermark is provided, it is used to report the watermark of the
-// server to clients, together with the current time.
+// Requests are required to contain a lease validation context, which
+// is processed by clusterWatermark. getWatermark is used to report the
+// watermark of the storage shard to storage frontends, together with
+// the current time.
 func NewUploaderServer(uploader Uploader[GlobalReference, []byte], clusterWatermark *Watermark, getWatermark func() (watermark, now time.Time)) object.UploaderServer {
 	return &uploaderServer{
 		uploader:         uploader,
@@ -37,10 +37,8 @@ func NewUploaderServer(uploader Uploader[GlobalReference, []byte], clusterWaterm
 }
 
 func (s *uploaderServer) UploadObject(ctx context.Context, request *object.UploadObjectRequest) (*object.UploadObjectResponse, error) {
-	if s.clusterWatermark != nil {
-		if err := s.clusterWatermark.RaiseFromProto(request.Watermark); err != nil {
-			return nil, util.StatusWrap(err, "Invalid cluster watermark")
-		}
+	if err := s.clusterWatermark.ProcessLeaseValidationContext(request.LeaseValidationContext); err != nil {
+		return nil, util.StatusWrap(err, "Invalid lease validation context")
 	}
 
 	namespace, err := NewNamespace(request.Namespace)
@@ -118,9 +116,6 @@ func (s *uploaderServer) UploadObject(ctx context.Context, request *object.Uploa
 }
 
 func (s *uploaderServer) GetWatermark(ctx context.Context, request *emptypb.Empty) (*object.GetWatermarkResponse, error) {
-	if s.getWatermark == nil {
-		return nil, status.Error(codes.Unimplemented, "This server does not report its watermark")
-	}
 	watermark, obtainedAt := s.getWatermark()
 	response := &object.Watermark{
 		ObtainedAt: timestamppb.New(obtainedAt),
@@ -128,5 +123,8 @@ func (s *uploaderServer) GetWatermark(ctx context.Context, request *emptypb.Empt
 	if !watermark.IsZero() {
 		response.Watermark = timestamppb.New(watermark)
 	}
-	return &object.GetWatermarkResponse{Watermark: response}, nil
+	return &object.GetWatermarkResponse{
+		Watermark:   response,
+		Incarnation: s.clusterWatermark.GetIncarnation(),
+	}, nil
 }

@@ -52,7 +52,7 @@ service Uploader {
   //
   // Storage frontends call this method periodically against all
   // storage shards, and provide the resulting watermark of each cluster
-  // as part of UploadObjectRequest.watermark.
+  // as part of LeaseValidationContext.
   rpc GetWatermark(google.protobuf.Empty) returns (GetWatermarkResponse);
 }
 
@@ -166,17 +166,11 @@ message UploadObjectRequest {
   // degree of zero, or if UploadObjectRequest.contents is set.
   bool want_contents_if_incomplete = 5;
 
-  // The highest watermark of all storage servers in the cluster that
-  // is known to the client. As objects may reference objects stored on
-  // other servers, the server needs to check leases against this
-  // watermark, as opposed to just its own.
+  // Information needed by the storage shard to validate leases.
   //
-  // The server keeps track of the highest value it has received, meaning
-  // that clients providing a lower value do not cause leases to be
-  // accepted that are known to be invalid. Requests providing a
-  // watermark that is too old are rejected with UNAVAILABLE, as the
-  // server cannot rule out that data was lost in the meantime.
-  Watermark watermark = 6;
+  // This field is mandatory. The Uploader service is only exposed by
+  // storage shards, and only called by storage frontends.
+  LeaseValidationContext lease_validation_context = 6;
 }
 
 message UploadObjectResponse {
@@ -216,16 +210,32 @@ message UploadObjectResponse {
 message GetWatermarkResponse {
   // The watermark of the storage server.
   Watermark watermark = 1;
+
+  // An opaque value that identifies the instance of the storage server.
+  // A new incarnation is generated every time the storage server starts
+  // without having access to the state needed to hand out leases of
+  // existing objects (e.g., after an unclean shutdown, or when starting
+  // with empty storage). The incarnation remains unchanged across
+  // clean restarts.
+  //
+  // Multiple instances of the same storage server may be online at the
+  // same time (e.g., briefly during a rolling upgrade on Kubernetes).
+  // Objects uploaded to one of these instances may not be present on
+  // the other, and will be lost once the former goes offline. As leases
+  // of these objects may be newer than the watermark of the latter,
+  // watermarks alone cannot be used to detect that these leases are
+  // invalid. Incarnations allow this to be detected.
+  bytes incarnation = 2;
 }
 
 // The watermark of one or more storage servers. All objects written to
 // these storage servers at or after the watermark are still present.
 //
 // Storage servers report their own watermark through GetWatermark().
-// Storage frontends combine the watermarks of all storage servers in a
-// cluster into a single watermark by taking the highest value of
-// field 'watermark' and the lowest value of field 'obtained_at', and
-// provide it to storage servers as part of their requests.
+// Storage frontends combine the
+// watermarks of all storage servers in a cluster into a single watermark by
+// taking the highest value of field 'watermark' and the lowest value of field
+// 'obtained_at', and provide it to storage servers as part of their requests.
 //
 // A cluster consists of all storage servers across which the key
 // space is partitioned. As objects may reference objects stored on
@@ -250,6 +260,98 @@ message Watermark {
   // only the clocks of storage servers need to be synchronized. The
   // clocks of storage frontends are not used.
   google.protobuf.Timestamp obtained_at = 2;
+}
+
+// Information that storage frontends provide as part of requests that
+// cause storage servers to hand out, store or check leases.
+message LeaseValidationContext {
+  // The watermark of the cluster that is known to the storage
+  // frontend. As objects may reference objects stored on other storage
+  // servers, storage servers need to check leases against this
+  // watermark, as opposed to just their own.
+  //
+  // Storage servers keep track of the highest value they have
+  // received, meaning that storage frontends providing a lower value
+  // do not cause leases to be accepted that are known to be invalid.
+  // Requests providing a watermark that is too old are rejected with
+  // UNAVAILABLE, as storage servers cannot rule out that data was lost
+  // in the meantime.
+  Watermark watermark = 1;
+
+  // A hash of the layout of the cluster's key space and the
+  // incarnations of all storage servers in the cluster, computed by
+  // taking the SHA-256 hash of an IncarnationsHashInput message.
+  //
+  // Storage servers keep track of the last value they received. If a
+  // request contains a different value, either the layout of the key
+  // space or the incarnation of at least one storage server in the
+  // cluster has changed, meaning objects referenced by existing leases
+  // may no longer be present on the storage servers to which they are
+  // assigned. Storage servers then raise their own watermark to the
+  // current time, invalidating all existing leases. This is done
+  // before any leases are checked as part of the request.
+  //
+  // Storage servers observe changes at slightly different points in
+  // time. As leases renewed right after such a raise are close to the
+  // watermark, storage servers that raised the watermark to different
+  // values may disagree on whether they are valid. Raising their own
+  // watermark, as opposed to that of the cluster, causes the raise to
+  // be reported through GetWatermark(), so that storage frontends
+  // propagate the highest value to all storage servers.
+  //
+  // While multiple instances of a storage server are online, storage
+  // frontends may observe different instances, causing storage servers
+  // to receive alternating values. This causes all leases to be
+  // invalidated repeatedly until only a single instance remains.
+  //
+  // A hash is used, as opposed to a list of incarnations, to ensure
+  // that the size of requests is independent of the number of storage
+  // servers in the cluster.
+  bytes incarnations_hash = 2;
+
+  // The incarnation of the storage server, as reported through
+  // GetWatermarkResponse.incarnation, that the storage frontend expects
+  // to process the request. If it does not match the incarnation of
+  // the storage server, the request is rejected with
+  // FAILED_PRECONDITION. The storage frontend is then expected to call
+  // GetWatermark() to obtain the current incarnation of the storage
+  // server, and retry the request.
+  //
+  // This ensures that leases are only handed out, stored and checked by
+  // storage servers whose incarnation is accounted for by
+  // incarnations_hash. Without it, a storage frontend that observed one
+  // instance of a storage server could upload objects to another
+  // instance that is running concurrently (e.g., during a rolling
+  // upgrade), without incarnations_hash reflecting it.
+  bytes expected_incarnation = 3;
+}
+
+// The input of the hash function that is used to compute
+// LeaseValidationContext.incarnations_hash. The hash is computed over
+// this message in serialized form, using deterministic serialization.
+message IncarnationsHashInput {
+  message Shard {
+    // The name of the storage server, as used by storage frontends to
+    // assign objects to storage servers.
+    string name = 1;
+
+    // The weight of the storage server, as used by storage frontends to
+    // assign objects to storage servers.
+    uint32 weight = 2;
+
+    // The incarnation of the storage server, as reported through
+    // GetWatermarkResponse.incarnation.
+    bytes incarnation = 3;
+  }
+
+  // The storage servers in the cluster, sorted by name.
+  //
+  // As the names and weights of the storage servers determine how the
+  // key space is partitioned, changing them causes objects to be
+  // assigned to different storage servers. By including them, any
+  // change to the layout of the key space causes all existing leases
+  // to be invalidated.
+  repeated Shard shards = 1;
 }
 
 message Limit {

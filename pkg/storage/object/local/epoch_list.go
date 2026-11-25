@@ -37,6 +37,14 @@ type EpochList interface {
 	// never decreases.
 	GetWatermark() time.Time
 
+	// GetIncarnation returns the incarnation of the store, which
+	// changes whenever the store starts without access to the state
+	// needed to compute leases of existing objects. It also returns
+	// the value of LeaseTrackingConfiguration.GetLastIncarnationsHash
+	// that was persisted alongside the incarnation, if any. Both
+	// values are nil if lease tracking is disabled.
+	GetIncarnation() (incarnation, lastIncarnationsHash []byte)
+
 	// InvalidateLeases raises the watermark to the current time,
 	// thereby invalidating the leases of all objects stored. This
 	// method is invoked when it cannot be determined which objects

@@ -67,7 +67,7 @@ func main() {
 			return util.StatusWrap(err, "Invalid watermark lookahead")
 		}
 		var localObjectStore object_local.Store
-		clusterWatermark := object.NewWatermark(clock.SystemClock, watermarkLookahead.AsDuration())
+		var clusterWatermark *object.Watermark
 		getWatermark := func() time.Time {
 			watermark := clusterWatermark.Get()
 			if localWatermark := localObjectStore.GetWatermark(); watermark.Before(localWatermark) {
@@ -88,11 +88,30 @@ func main() {
 				MinimumSafeSince: func() time.Time {
 					return object_flatbacked.GetLeaseRenewalCutoff(getWatermark(), clock.SystemClock.Now(), leaseRenewalFraction)
 				},
+				GetLastIncarnationsHash: func() []byte {
+					return clusterWatermark.GetLastIncarnationsHash()
+				},
 			},
 		)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create local object store")
 		}
+
+		// Storage frontends provide the incarnations of all
+		// shards in the cluster as part of their requests. If
+		// these change, leases are invalidated by raising the
+		// watermark of the local object store. This causes the
+		// raise to be reported to storage frontends, which
+		// propagate it to all other shards. Preserve the last
+		// value received across clean restarts.
+		incarnation, lastIncarnationsHash := localObjectStore.GetIncarnation()
+		clusterWatermark = object.NewWatermark(
+			clock.SystemClock,
+			watermarkLookahead.AsDuration(),
+			incarnation,
+			lastIncarnationsHash,
+			localObjectStore.InvalidateLeases,
+		)
 
 		// Put a store for leases in front of the flat storage
 		// backend, so that UploadDag() can reliably enforce
@@ -197,6 +216,7 @@ func main() {
 							tagStore,
 							leaseMarshaler,
 						),
+						clusterWatermark,
 					),
 				)
 			},

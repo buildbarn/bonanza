@@ -10,6 +10,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type resolverServer struct {
@@ -20,8 +21,13 @@ type resolverServer struct {
 // NewResolverServer creates a gRPC server that is capable of resolving
 // tags to an object.
 //
-// If clusterWatermark is provided, it is raised to the cluster
-// watermark that storage frontends provide as part of their requests.
+// Storage shards provide a clusterWatermark, in which case requests are
+// required to contain a lease validation context, which is processed by
+// it. Storage frontends leave clusterWatermark unset, in which case
+// requests containing a lease validation context are rejected. Such
+// requests indicate that the storage frontend is misconfigured to
+// forward requests to another storage frontend, instead of storage
+// shards.
 func NewResolverServer(resolver Resolver[object.Namespace], clusterWatermark *object.Watermark) tag_pb.ResolverServer {
 	return &resolverServer{
 		resolver:         resolver,
@@ -31,9 +37,11 @@ func NewResolverServer(resolver Resolver[object.Namespace], clusterWatermark *ob
 
 func (s *resolverServer) ResolveTag(ctx context.Context, request *tag_pb.ResolveTagRequest) (*tag_pb.ResolveTagResponse, error) {
 	if s.clusterWatermark != nil {
-		if err := s.clusterWatermark.RaiseFromProto(request.Watermark); err != nil {
-			return nil, util.StatusWrap(err, "Invalid cluster watermark")
+		if err := s.clusterWatermark.ProcessLeaseValidationContext(request.LeaseValidationContext); err != nil {
+			return nil, util.StatusWrap(err, "Invalid lease validation context")
 		}
+	} else if request.LeaseValidationContext != nil {
+		return nil, status.Error(codes.InvalidArgument, "This server is not a storage shard, and does not accept lease validation contexts")
 	}
 
 	namespace, err := object.NewNamespace(request.Namespace)

@@ -27,7 +27,7 @@ func TestUpdater(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
 
 	client := NewMockUpdaterClient(ctrl)
-	updater := grpc.NewUpdater(client)
+	updater := grpc.NewUpdater(client, nil)
 
 	t.Run("BackendFailure", func(t *testing.T) {
 		// Errors reported by the backend should be propagated.

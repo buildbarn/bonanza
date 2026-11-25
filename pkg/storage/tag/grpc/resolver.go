@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	object_pb "bonanza.build/pkg/proto/storage/object"
 	tag_pb "bonanza.build/pkg/proto/storage/tag"
 	"bonanza.build/pkg/storage/object"
 	"bonanza.build/pkg/storage/tag"
@@ -15,21 +16,21 @@ import (
 )
 
 type resolver struct {
-	client          tag_pb.ResolverClient
-	watermarkSource object.WatermarkSource
+	client                       tag_pb.ResolverClient
+	leaseValidationContextSource object.LeaseValidationContextSource
 }
 
 // NewResolver creates a tag resolver that forwards all requests to
 // resolve tags to a remote server using gRPC.
 //
-// If watermarkSource is provided, its value is attached to all
-// requests. This should only be done by storage frontends, as it allows
-// storage shards to check leases of objects against the highest
+// If leaseValidationContextSource is provided, its value is attached to
+// all requests. This should only be done by storage frontends, as it
+// allows storage shards to validate leases of objects against the
 // watermark of the cluster they are part of.
-func NewResolver(client tag_pb.ResolverClient, watermarkSource object.WatermarkSource) tag.Resolver[object.Namespace] {
+func NewResolver(client tag_pb.ResolverClient, leaseValidationContextSource object.LeaseValidationContextSource) tag.Resolver[object.Namespace] {
 	return &resolver{
-		client:          client,
-		watermarkSource: watermarkSource,
+		client:                       client,
+		leaseValidationContextSource: leaseValidationContextSource,
 	}
 }
 
@@ -49,15 +50,14 @@ func (d *resolver) ResolveTag(ctx context.Context, namespace object.Namespace, k
 		Key:              keyMessage,
 		MinimumTimestamp: minimumTimestampMessage,
 	}
-	if d.watermarkSource != nil {
-		watermark, err := d.watermarkSource.GetWatermarkForRequest(ctx)
-		if err != nil {
-			var badSignedValue tag.SignedValue
-			return badSignedValue, false, util.StatusWrap(err, "Failed to obtain watermark")
-		}
-		request.Watermark = watermark
-	}
-	response, err := d.client.ResolveTag(ctx, request)
+	response, err := object.CallWithLeaseValidationContext(
+		ctx,
+		d.leaseValidationContextSource,
+		func(leaseValidationContext *object_pb.LeaseValidationContext) (*tag_pb.ResolveTagResponse, error) {
+			request.LeaseValidationContext = leaseValidationContext
+			return d.client.ResolveTag(ctx, request)
+		},
+	)
 	if err != nil {
 		var badSignedValue tag.SignedValue
 		return badSignedValue, false, err

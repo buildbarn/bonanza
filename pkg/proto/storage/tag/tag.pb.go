@@ -241,13 +241,13 @@ func (x *ValueSigningInput) GetValue() *Value {
 }
 
 type ResolveTagRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Namespace        *object.Namespace      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Key              *Key                   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	MinimumTimestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=minimum_timestamp,json=minimumTimestamp,proto3" json:"minimum_timestamp,omitempty"`
-	Watermark        *object.Watermark      `protobuf:"bytes,4,opt,name=watermark,proto3" json:"watermark,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                  protoimpl.MessageState         `protogen:"open.v1"`
+	Namespace              *object.Namespace              `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Key                    *Key                           `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	MinimumTimestamp       *timestamppb.Timestamp         `protobuf:"bytes,3,opt,name=minimum_timestamp,json=minimumTimestamp,proto3" json:"minimum_timestamp,omitempty"`
+	LeaseValidationContext *object.LeaseValidationContext `protobuf:"bytes,4,opt,name=lease_validation_context,json=leaseValidationContext,proto3" json:"lease_validation_context,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ResolveTagRequest) Reset() {
@@ -301,9 +301,9 @@ func (x *ResolveTagRequest) GetMinimumTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *ResolveTagRequest) GetWatermark() *object.Watermark {
+func (x *ResolveTagRequest) GetLeaseValidationContext() *object.LeaseValidationContext {
 	if x != nil {
-		return x.Watermark
+		return x.LeaseValidationContext
 	}
 	return nil
 }
@@ -361,13 +361,14 @@ func (x *ResolveTagResponse) GetComplete() bool {
 }
 
 type UpdateTagRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Namespace     *object.Namespace      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Key           *Key                   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	SignedValue   *SignedValue           `protobuf:"bytes,3,opt,name=signed_value,json=signedValue,proto3" json:"signed_value,omitempty"`
-	Lease         []byte                 `protobuf:"bytes,4,opt,name=lease,proto3" json:"lease,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState         `protogen:"open.v1"`
+	Namespace              *object.Namespace              `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Key                    *Key                           `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	SignedValue            *SignedValue                   `protobuf:"bytes,3,opt,name=signed_value,json=signedValue,proto3" json:"signed_value,omitempty"`
+	Lease                  []byte                         `protobuf:"bytes,4,opt,name=lease,proto3" json:"lease,omitempty"`
+	LeaseValidationContext *object.LeaseValidationContext `protobuf:"bytes,5,opt,name=lease_validation_context,json=leaseValidationContext,proto3" json:"lease_validation_context,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateTagRequest) Reset() {
@@ -428,6 +429,13 @@ func (x *UpdateTagRequest) GetLease() []byte {
 	return nil
 }
 
+func (x *UpdateTagRequest) GetLeaseValidationContext() *object.LeaseValidationContext {
+	if x != nil {
+		return x.LeaseValidationContext
+	}
+	return nil
+}
+
 var File_bonanza_build_pkg_proto_storage_tag_tag_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc = "" +
@@ -445,20 +453,21 @@ const file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc = "" +
 	"\x11ValueSigningInput\x12X\n" +
 	"\x10reference_format\x18\x01 \x01(\x0e2-.bonanza.storage.object.ReferenceFormat.ValueR\x0freferenceFormat\x12\x19\n" +
 	"\bkey_hash\x18\x02 \x01(\fR\akeyHash\x120\n" +
-	"\x05value\x18\x03 \x01(\v2\x1a.bonanza.storage.tag.ValueR\x05value\"\x8a\x02\n" +
+	"\x05value\x18\x03 \x01(\v2\x1a.bonanza.storage.tag.ValueR\x05value\"\xb3\x02\n" +
 	"\x11ResolveTagRequest\x12?\n" +
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12*\n" +
 	"\x03key\x18\x02 \x01(\v2\x18.bonanza.storage.tag.KeyR\x03key\x12G\n" +
-	"\x11minimum_timestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x10minimumTimestamp\x12?\n" +
-	"\twatermark\x18\x04 \x01(\v2!.bonanza.storage.object.WatermarkR\twatermark\"u\n" +
+	"\x11minimum_timestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x10minimumTimestamp\x12h\n" +
+	"\x18lease_validation_context\x18\x04 \x01(\v2..bonanza.storage.object.LeaseValidationContextR\x16leaseValidationContext\"u\n" +
 	"\x12ResolveTagResponse\x12C\n" +
 	"\fsigned_value\x18\x01 \x01(\v2 .bonanza.storage.tag.SignedValueR\vsignedValue\x12\x1a\n" +
-	"\bcomplete\x18\x02 \x01(\bR\bcomplete\"\xda\x01\n" +
+	"\bcomplete\x18\x02 \x01(\bR\bcomplete\"\xc4\x02\n" +
 	"\x10UpdateTagRequest\x12?\n" +
 	"\tnamespace\x18\x01 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12*\n" +
 	"\x03key\x18\x02 \x01(\v2\x18.bonanza.storage.tag.KeyR\x03key\x12C\n" +
 	"\fsigned_value\x18\x03 \x01(\v2 .bonanza.storage.tag.SignedValueR\vsignedValue\x12\x14\n" +
-	"\x05lease\x18\x04 \x01(\fR\x05lease2i\n" +
+	"\x05lease\x18\x04 \x01(\fR\x05lease\x12h\n" +
+	"\x18lease_validation_context\x18\x05 \x01(\v2..bonanza.storage.object.LeaseValidationContextR\x16leaseValidationContext2i\n" +
 	"\bResolver\x12]\n" +
 	"\n" +
 	"ResolveTag\x12&.bonanza.storage.tag.ResolveTagRequest\x1a'.bonanza.storage.tag.ResolveTagResponse2U\n" +
@@ -479,18 +488,18 @@ func file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP() []byte {
 
 var file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_bonanza_build_pkg_proto_storage_tag_tag_proto_goTypes = []any{
-	(*Key)(nil),                       // 0: bonanza.storage.tag.Key
-	(*Value)(nil),                     // 1: bonanza.storage.tag.Value
-	(*SignedValue)(nil),               // 2: bonanza.storage.tag.SignedValue
-	(*ValueSigningInput)(nil),         // 3: bonanza.storage.tag.ValueSigningInput
-	(*ResolveTagRequest)(nil),         // 4: bonanza.storage.tag.ResolveTagRequest
-	(*ResolveTagResponse)(nil),        // 5: bonanza.storage.tag.ResolveTagResponse
-	(*UpdateTagRequest)(nil),          // 6: bonanza.storage.tag.UpdateTagRequest
-	(*timestamppb.Timestamp)(nil),     // 7: google.protobuf.Timestamp
-	(object.ReferenceFormat_Value)(0), // 8: bonanza.storage.object.ReferenceFormat.Value
-	(*object.Namespace)(nil),          // 9: bonanza.storage.object.Namespace
-	(*object.Watermark)(nil),          // 10: bonanza.storage.object.Watermark
-	(*emptypb.Empty)(nil),             // 11: google.protobuf.Empty
+	(*Key)(nil),                           // 0: bonanza.storage.tag.Key
+	(*Value)(nil),                         // 1: bonanza.storage.tag.Value
+	(*SignedValue)(nil),                   // 2: bonanza.storage.tag.SignedValue
+	(*ValueSigningInput)(nil),             // 3: bonanza.storage.tag.ValueSigningInput
+	(*ResolveTagRequest)(nil),             // 4: bonanza.storage.tag.ResolveTagRequest
+	(*ResolveTagResponse)(nil),            // 5: bonanza.storage.tag.ResolveTagResponse
+	(*UpdateTagRequest)(nil),              // 6: bonanza.storage.tag.UpdateTagRequest
+	(*timestamppb.Timestamp)(nil),         // 7: google.protobuf.Timestamp
+	(object.ReferenceFormat_Value)(0),     // 8: bonanza.storage.object.ReferenceFormat.Value
+	(*object.Namespace)(nil),              // 9: bonanza.storage.object.Namespace
+	(*object.LeaseValidationContext)(nil), // 10: bonanza.storage.object.LeaseValidationContext
+	(*emptypb.Empty)(nil),                 // 11: google.protobuf.Empty
 }
 var file_bonanza_build_pkg_proto_storage_tag_tag_proto_depIdxs = []int32{
 	7,  // 0: bonanza.storage.tag.Value.timestamp:type_name -> google.protobuf.Timestamp
@@ -500,20 +509,21 @@ var file_bonanza_build_pkg_proto_storage_tag_tag_proto_depIdxs = []int32{
 	9,  // 4: bonanza.storage.tag.ResolveTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
 	0,  // 5: bonanza.storage.tag.ResolveTagRequest.key:type_name -> bonanza.storage.tag.Key
 	7,  // 6: bonanza.storage.tag.ResolveTagRequest.minimum_timestamp:type_name -> google.protobuf.Timestamp
-	10, // 7: bonanza.storage.tag.ResolveTagRequest.watermark:type_name -> bonanza.storage.object.Watermark
+	10, // 7: bonanza.storage.tag.ResolveTagRequest.lease_validation_context:type_name -> bonanza.storage.object.LeaseValidationContext
 	2,  // 8: bonanza.storage.tag.ResolveTagResponse.signed_value:type_name -> bonanza.storage.tag.SignedValue
 	9,  // 9: bonanza.storage.tag.UpdateTagRequest.namespace:type_name -> bonanza.storage.object.Namespace
 	0,  // 10: bonanza.storage.tag.UpdateTagRequest.key:type_name -> bonanza.storage.tag.Key
 	2,  // 11: bonanza.storage.tag.UpdateTagRequest.signed_value:type_name -> bonanza.storage.tag.SignedValue
-	4,  // 12: bonanza.storage.tag.Resolver.ResolveTag:input_type -> bonanza.storage.tag.ResolveTagRequest
-	6,  // 13: bonanza.storage.tag.Updater.UpdateTag:input_type -> bonanza.storage.tag.UpdateTagRequest
-	5,  // 14: bonanza.storage.tag.Resolver.ResolveTag:output_type -> bonanza.storage.tag.ResolveTagResponse
-	11, // 15: bonanza.storage.tag.Updater.UpdateTag:output_type -> google.protobuf.Empty
-	14, // [14:16] is the sub-list for method output_type
-	12, // [12:14] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	10, // 12: bonanza.storage.tag.UpdateTagRequest.lease_validation_context:type_name -> bonanza.storage.object.LeaseValidationContext
+	4,  // 13: bonanza.storage.tag.Resolver.ResolveTag:input_type -> bonanza.storage.tag.ResolveTagRequest
+	6,  // 14: bonanza.storage.tag.Updater.UpdateTag:input_type -> bonanza.storage.tag.UpdateTagRequest
+	5,  // 15: bonanza.storage.tag.Resolver.ResolveTag:output_type -> bonanza.storage.tag.ResolveTagResponse
+	11, // 16: bonanza.storage.tag.Updater.UpdateTag:output_type -> google.protobuf.Empty
+	15, // [15:17] is the sub-list for method output_type
+	13, // [13:15] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_storage_tag_tag_proto_init() }

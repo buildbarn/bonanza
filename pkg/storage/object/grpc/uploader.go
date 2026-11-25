@@ -13,20 +13,22 @@ import (
 )
 
 type uploader struct {
-	client          object_pb.UploaderClient
-	watermarkSource object.WatermarkSource
+	client                       object_pb.UploaderClient
+	leaseValidationContextSource object.LeaseValidationContextSource
 }
 
 // NewUploader creates an object uploader that forwards requests to
-// store objects to a remote server using gRPC.
+// store objects to a storage shard using gRPC. This is used by storage
+// frontends.
 //
-// If watermarkSource is provided, its value is attached to all
-// requests. This allows the server to check leases of objects against
-// the highest watermark of the cluster it is part of.
-func NewUploader(client object_pb.UploaderClient, watermarkSource object.WatermarkSource) object.Uploader[object.GlobalReference, []byte] {
+// Lease validation contexts obtained from leaseValidationContextSource
+// are attached to all requests. These allow storage shards to validate
+// leases of objects against the watermark of the cluster they are part
+// of.
+func NewUploader(client object_pb.UploaderClient, leaseValidationContextSource object.LeaseValidationContextSource) object.Uploader[object.GlobalReference, []byte] {
 	return &uploader{
-		client:          client,
-		watermarkSource: watermarkSource,
+		client:                       client,
+		leaseValidationContextSource: leaseValidationContextSource,
 	}
 }
 
@@ -42,15 +44,15 @@ func (u *uploader) UploadObject(ctx context.Context, reference object.GlobalRefe
 	if contents != nil {
 		request.Contents = contents.GetFullData()
 	}
-	if u.watermarkSource != nil {
-		watermark, err := u.watermarkSource.GetWatermarkForRequest(ctx)
-		if err != nil {
-			return nil, util.StatusWrap(err, "Failed to obtain watermark")
-		}
-		request.Watermark = watermark
-	}
 
-	response, err := u.client.UploadObject(ctx, request)
+	response, err := object.CallWithLeaseValidationContext(
+		ctx,
+		u.leaseValidationContextSource,
+		func(leaseValidationContext *object_pb.LeaseValidationContext) (*object_pb.UploadObjectResponse, error) {
+			request.LeaseValidationContext = leaseValidationContext
+			return u.client.UploadObject(ctx, request)
+		},
+	)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			if contents != nil {
