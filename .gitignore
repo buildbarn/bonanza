@@ -1,5 +1,5 @@
-.*.swp
-.swp
+.*.sw[a-p]
+.sw[a-p]
 /bazel-*
 /target
 .idea
