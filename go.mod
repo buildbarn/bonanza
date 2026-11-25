@@ -14,7 +14,7 @@ require (
 	github.com/bluekeyes/go-gitdiff v0.9.0
 	github.com/buildbarn/bb-remote-execution v0.0.0-20261120202529-e9f6d456803e
 	github.com/buildbarn/bb-storage v0.0.0-20261125122402-126210a1fb41
-	github.com/buildbarn/go-cdc v0.0.10
+	github.com/buildbarn/go-cdc v0.0.11
 	github.com/ericlagergren/siv v0.0.0-20220507050439-0b757b3aa5f1
 	github.com/google/uuid v1.6.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51

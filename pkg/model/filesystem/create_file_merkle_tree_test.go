@@ -1,7 +1,6 @@
 package filesystem_test
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"io"
@@ -20,6 +19,7 @@ import (
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
+	"github.com/buildbarn/go-cdc"
 	"github.com/stretchr/testify/require"
 
 	"go.uber.org/mock/gomock"
@@ -104,7 +104,9 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		// Callers may reuse a single buffered reader for
 		// multiple files by calling Reset(). This should yield
 		// the same results as using a new reader for every
-		// file, regardless of the sizes of the files.
+		// file, regardless of the sizes of the files. The same
+		// holds for files that are already stored in memory,
+		// which can be provided through a BytesPeeker.
 		rng := rand.NewChaCha8([32]byte{})
 		var files [][]byte
 		for _, sizeBytes := range []int{3 << 20, 5, 0, 1 << 20, 100} {
@@ -113,7 +115,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 			files = append(files, data)
 		}
 
-		createFileMerkleTree := func(f *bufio.Reader) (*model_filesystem_pb.FileContents, object.OutgoingReferencesList[object.LocalReference]) {
+		createFileMerkleTree := func(f cdc.Peeker) (*model_filesystem_pb.FileContents, object.OutgoingReferencesList[object.LocalReference]) {
 			fileContents, err := model_filesystem.CreateFileMerkleTree(
 				ctx,
 				fileCreationParameters,
@@ -130,6 +132,10 @@ func TestCreateFileMerkleTree(t *testing.T) {
 			expectedMessage, expectedReferences := createFileMerkleTree(fileCreationParameters.NewChunkingReader(bytes.NewReader(data)))
 			reusedReader.Reset(bytes.NewReader(data))
 			actualMessage, actualReferences := createFileMerkleTree(reusedReader)
+			testutil.RequireEqualProto(t, expectedMessage, actualMessage)
+			require.Equal(t, expectedReferences, actualReferences)
+
+			actualMessage, actualReferences = createFileMerkleTree(cdc.NewBytesPeeker(data))
 			testutil.RequireEqualProto(t, expectedMessage, actualMessage)
 			require.Equal(t, expectedReferences, actualReferences)
 		}

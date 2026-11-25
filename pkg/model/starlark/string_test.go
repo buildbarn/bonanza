@@ -23,6 +23,7 @@ import (
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
+	"github.com/buildbarn/go-cdc"
 	"github.com/stretchr/testify/require"
 
 	"golang.org/x/sync/semaphore"
@@ -245,7 +246,7 @@ func TestStringStorage(t *testing.T) {
 		expected, err := model_filesystem.CreateFileMerkleTree(
 			ctx,
 			fileCreationParameters,
-			fileCreationParameters.NewChunkingReader(strings.NewReader(data)),
+			cdc.NewBytesPeeker([]byte(data)),
 			model_filesystem.NewSimpleFileMerkleTreeCapturer[model_core.NoopReferenceMetadata](store),
 		)
 		require.NoError(t, err)

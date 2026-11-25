@@ -21,6 +21,7 @@ import (
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
+	"github.com/buildbarn/go-cdc"
 	"github.com/stretchr/testify/require"
 	"github.com/ulikunitz/xz"
 
@@ -113,7 +114,7 @@ func (bct *baseComputerTester) computeHTTPArchiveContents(ctx context.Context, t
 	archiveContents, err := model_filesystem.CreateFileMerkleTree(
 		ctx,
 		fileCreationParameters,
-		fileCreationParameters.NewChunkingReader(bytes.NewReader(archive)),
+		cdc.NewBytesPeeker(archive),
 		model_filesystem.NewSimpleFileMerkleTreeCapturer[model_core.CreatedObjectTree](capturer),
 	)
 	require.NoError(t, err)

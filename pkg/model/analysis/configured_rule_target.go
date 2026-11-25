@@ -34,6 +34,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
+	"github.com/buildbarn/go-cdc"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/protobuf/proto"
@@ -3008,7 +3009,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doWrite(thread *eval.Thr
 		fileContents, err := model_filesystem.CreateFileMerkleTree(
 			rc.context,
 			rc.fileCreationParameters,
-			rc.fileCreationParameters.NewChunkingReader(bytes.NewReader(typedContent)),
+			cdc.NewBytesPeeker(typedContent),
 			model_filesystem.NewSimpleFileMerkleTreeCapturer(rc.environment),
 		)
 		if err != nil {

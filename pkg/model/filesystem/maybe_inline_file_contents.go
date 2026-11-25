@@ -1,12 +1,13 @@
 package filesystem
 
 import (
-	"bytes"
 	"context"
 
 	model_core "bonanza.build/pkg/model/core"
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/object"
+
+	"github.com/buildbarn/go-cdc"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -39,7 +40,7 @@ func CreateMaybeInlineFileContents[T model_core.ReferenceMetadata](
 		}), nil
 	}
 
-	fileContents, err := CreateFileMerkleTree(ctx, parameters, parameters.NewChunkingReader(bytes.NewReader(data)), capturer)
+	fileContents, err := CreateFileMerkleTree(ctx, parameters, cdc.NewBytesPeeker(data), capturer)
 	if err != nil {
 		return model_core.PatchedMessage[*model_filesystem_pb.MaybeInlineFileContents, T]{}, err
 	}

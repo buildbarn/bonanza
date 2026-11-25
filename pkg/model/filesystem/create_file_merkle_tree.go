@@ -1,7 +1,6 @@
 package filesystem
 
 import (
-	"bufio"
 	"context"
 	"io"
 	"math"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem"
 	"github.com/buildbarn/bb-storage/pkg/util"
+	"github.com/buildbarn/go-cdc"
 
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -60,15 +60,17 @@ func maybeWriteHole[T model_core.ReferenceMetadata](treeBuilder btree.Builder[*m
 // resulting B-tree is a Prolly tree. This ensures that minor changes to
 // a file also result in minor changes to the resulting Merkle tree.
 //
-// The file's contents are read through a buffered reader, which should
-// be created by calling FileCreationParameters.NewChunkingReader().
-// Callers that create Merkle trees of many files sequentially (e.g.,
-// when extracting archives) should reuse a single buffered reader by
-// calling Reset() on it, as its buffer is large.
+// The file's contents are read through a Peeker. For files that are
+// already stored in memory, cdc.NewBytesPeeker() should be used.
+// Otherwise, a buffered reader should be created by calling
+// FileCreationParameters.NewChunkingReader(). Callers that create
+// Merkle trees of many files sequentially (e.g., when extracting
+// archives) should reuse a single buffered reader by calling Reset() on
+// it, as its buffer is large.
 //
 // TODO: Change this function to support more efficient creation of
 // Merkle trees for sparse files.
-func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, parameters *FileCreationParameters, f *bufio.Reader, capturer FileMerkleTreeCapturer[T]) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, T], error) {
+func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, parameters *FileCreationParameters, f cdc.Peeker, capturer FileMerkleTreeCapturer[T]) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, T], error) {
 	chunkReader := parameters.contentDefinedChunker.NewChunkReader(f)
 	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[T](
