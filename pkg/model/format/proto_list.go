@@ -105,7 +105,20 @@ type protoListBinaryMarshaler[T proto.Message] struct {
 }
 
 func (mlm protoListBinaryMarshaler[T]) MarshalBinary() ([]byte, error) {
-	var data []byte
+	// MarshalAppend() only grows the buffer by the amount of space
+	// needed by the message being marshaled. Appending messages to
+	// an empty buffer would thus cause all data written so far to
+	// be copied for every message. Compute the total size up front,
+	// so that a single buffer of the right size can be allocated.
+	// This also causes the sizes of all messages to be cached, so
+	// that computing them again below is cheap.
+	sizeBytes := 0
+	for _, message := range mlm.messages {
+		messageSizeBytes := marshalOptions.Size(message)
+		sizeBytes += varint.SizeBytes(messageSizeBytes) + messageSizeBytes
+	}
+
+	data := make([]byte, 0, sizeBytes)
 	for _, message := range mlm.messages {
 		data = varint.AppendForward(data, marshalOptions.Size(message))
 		var err error

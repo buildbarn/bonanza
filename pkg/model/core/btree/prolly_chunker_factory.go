@@ -98,6 +98,10 @@ type prollyChunker[TNode proto.Message, TMetadata model_core.ReferenceMetadata] 
 	// compute a hash anymore, either because the hash has already
 	// been computed, or because no cut can be placed after them.
 	hashesComputed int
+
+	// Buffer for marshaling nodes when computing their hashes,
+	// which is reused to prevent allocating memory for every node.
+	marshaledNode []byte
 }
 
 // isLargeEnough returns true if the nodes in range [start, end) may be
@@ -164,11 +168,12 @@ func (c *prollyChunker[TNode, TMetadata]) PushSingle(node model_core.PatchedMess
 			for _, reference := range references {
 				hasher.Write(reference.GetRawReference())
 			}
-			m, err := marshalOptions.Marshal(node.Message)
+			var err error
+			c.marshaledNode, err = marshalOptions.MarshalAppend(c.marshaledNode[:0], node.Message)
 			if err != nil {
 				return err
 			}
-			hasher.Write(m)
+			hasher.Write(c.marshaledNode)
 			c.hashes[c.hashesComputed] = hasher.Sum64()
 		}
 	}

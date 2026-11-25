@@ -1,6 +1,7 @@
 package format_test
 
 import (
+	"strings"
 	"testing"
 
 	model_format "bonanza.build/pkg/model/format"
@@ -116,6 +117,31 @@ func TestProtoList(t *testing.T) {
 		testutil.RequireEqualProto(t, &wrapperspb.StringValue{Value: "bc"}, elements[1])
 	})
 
+	t.Run("SingleAllocation", func(t *testing.T) {
+		// Marshaling should allocate a single buffer of the
+		// right size, as opposed to growing it for every
+		// message. Include a message whose size prefix spans
+		// multiple bytes.
+		elements := make([]*wrapperspb.StringValue, 0, 100)
+		for i := range 100 {
+			elements = append(elements, &wrapperspb.StringValue{Value: strings.Repeat("x", 2*i)})
+		}
+		marshaler := f.NewMarshaler(elements)
+		data, err := marshaler.MarshalBinary()
+		require.NoError(t, err)
+		require.Equal(t, len(data), cap(data))
+		require.Equal(t, 1.0, testing.AllocsPerRun(10, func() {
+			marshaler.MarshalBinary()
+		}))
+
+		unmarshaled, err := f.Unmarshal(data)
+		require.NoError(t, err)
+		require.Len(t, unmarshaled, 100)
+		for i, element := range unmarshaled {
+			testutil.RequireEqualProto(t, elements[i], element)
+		}
+	})
+
 	t.Run("ArbitraryMessages", func(t *testing.T) {
 		// ProtoListMarshaler can be instantiated with
 		// proto.Message, permitting heterogeneous lists to be
@@ -217,4 +243,18 @@ func TestEraseUnmarshaler(t *testing.T) {
 		// Erased unmarshalers should remain usable as keys.
 		require.True(t, u == model_format.EraseUnmarshaler(model_format.NewProto[wrapperspb.StringValue]()))
 	})
+}
+
+func BenchmarkProtoListMarshalBinary(b *testing.B) {
+	elements := make([]*wrapperspb.StringValue, 0, 1000)
+	for i := range 1000 {
+		elements = append(elements, &wrapperspb.StringValue{Value: strings.Repeat("x", i%200)})
+	}
+	marshaler := model_format.NewProtoList[wrapperspb.StringValue]().NewMarshaler(elements)
+	b.ReportAllocs()
+	for b.Loop() {
+		if _, err := marshaler.MarshalBinary(); err != nil {
+			b.Fatal(err)
+		}
+	}
 }
