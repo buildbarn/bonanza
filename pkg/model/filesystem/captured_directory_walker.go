@@ -341,7 +341,7 @@ func (w *recomputingConcatenatedFileWalker) GetContents(ctx context.Context) (*o
 	fileContents, err := CreateFileMerkleTree(
 		ctx,
 		w.options.fileParameters,
-		io.NewSectionReader(r, 0, math.MaxInt64),
+		w.options.fileParameters.NewChunkingReader(io.NewSectionReader(r, 0, math.MaxInt64)),
 		ChunkDiscardingFileMerkleTreeCapturer,
 	)
 	if err != nil {

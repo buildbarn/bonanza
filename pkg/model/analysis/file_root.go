@@ -718,7 +718,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				outputFileContents, err = model_filesystem.CreateFileMerkleTree(
 					groupCtx,
 					fileCreationParameters,
-					pipeReader,
+					fileCreationParameters.NewChunkingReader(pipeReader),
 					model_filesystem.NewSimpleFileMerkleTreeCapturer(e),
 				)
 				pipeReader.CloseWithError(err)

@@ -542,7 +542,7 @@ func (fc patchedFileContents[TReference, TMetadata]) createFileMerkleTree(ctx co
 	return model_filesystem.CreateFileMerkleTree(
 		ctx,
 		options.fileCreationParameters,
-		io.NewSectionReader(options.patchedFiles, fc.offsetBytes, fc.sizeBytes),
+		options.fileCreationParameters.NewChunkingReader(io.NewSectionReader(options.patchedFiles, fc.offsetBytes, fc.sizeBytes)),
 		options.fileMerkleTreeCapturer,
 	)
 }

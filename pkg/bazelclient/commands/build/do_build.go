@@ -215,7 +215,7 @@ func (f *localCapturableFile[TFile]) CreateFileMerkleTree(ctx context.Context) (
 	return model_filesystem.CreateFileMerkleTree(
 		ctx,
 		f.options.fileParameters,
-		io.NewSectionReader(f.file, 0, math.MaxInt64),
+		f.options.fileParameters.NewChunkingReader(io.NewSectionReader(f.file, 0, math.MaxInt64)),
 		f.options.capturer,
 	)
 }

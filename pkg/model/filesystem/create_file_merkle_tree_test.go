@@ -1,6 +1,7 @@
 package filesystem_test
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
@@ -53,7 +54,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		rootFileContents, err := model_filesystem.CreateFileMerkleTree(
 			ctx,
 			fileCreationParameters,
-			bytes.NewBuffer(nil),
+			fileCreationParameters.NewChunkingReader(bytes.NewBuffer(nil)),
 			capturer,
 		)
 		require.NoError(t, err)
@@ -76,7 +77,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		rootFileContents, err := model_filesystem.CreateFileMerkleTree(
 			ctx,
 			fileCreationParameters,
-			bytes.NewBufferString("Hello"),
+			fileCreationParameters.NewChunkingReader(bytes.NewBufferString("Hello")),
 			capturer,
 		)
 		require.NoError(t, err)
@@ -99,6 +100,41 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		require.Equal(t, []model_core.ReferenceMetadata{metadata1}, metadata)
 	})
 
+	t.Run("ReusedReader", func(t *testing.T) {
+		// Callers may reuse a single buffered reader for
+		// multiple files by calling Reset(). This should yield
+		// the same results as using a new reader for every
+		// file, regardless of the sizes of the files.
+		rng := rand.NewChaCha8([32]byte{})
+		var files [][]byte
+		for _, sizeBytes := range []int{3 << 20, 5, 0, 1 << 20, 100} {
+			data := make([]byte, sizeBytes)
+			rng.Read(data)
+			files = append(files, data)
+		}
+
+		createFileMerkleTree := func(f *bufio.Reader) (*model_filesystem_pb.FileContents, object.OutgoingReferencesList[object.LocalReference]) {
+			fileContents, err := model_filesystem.CreateFileMerkleTree(
+				ctx,
+				fileCreationParameters,
+				f,
+				model_filesystem.NewSimpleFileMerkleTreeCapturer(model_core.DiscardingCreatedObjectCapturer),
+			)
+			require.NoError(t, err)
+			references, _ := fileContents.Patcher.SortAndSetReferences()
+			return fileContents.Message, references
+		}
+
+		reusedReader := fileCreationParameters.NewChunkingReader(nil)
+		for _, data := range files {
+			expectedMessage, expectedReferences := createFileMerkleTree(fileCreationParameters.NewChunkingReader(bytes.NewReader(data)))
+			reusedReader.Reset(bytes.NewReader(data))
+			actualMessage, actualReferences := createFileMerkleTree(reusedReader)
+			testutil.RequireEqualProto(t, expectedMessage, actualMessage)
+			require.Equal(t, expectedReferences, actualReferences)
+		}
+	})
+
 	t.Run("ChaCha8_1GB", func(t *testing.T) {
 		// Create a Merkle tree for a 1 GB file consisting of
 		// the first 1 GB of data returned by a ChaCha8 random
@@ -108,7 +144,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		rootFileContents, err := model_filesystem.CreateFileMerkleTree(
 			ctx,
 			fileCreationParameters,
-			io.LimitReader(rng, 1<<30),
+			fileCreationParameters.NewChunkingReader(io.LimitReader(rng, 1<<30)),
 			model_filesystem.NewSimpleFileMerkleTreeCapturer(model_core.DiscardingCreatedObjectCapturer),
 		)
 		require.NoError(t, err)
@@ -151,7 +187,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		rootFileContents, err := model_filesystem.CreateFileMerkleTree(
 			ctx,
 			fileCreationParameters,
-			&text,
+			fileCreationParameters.NewChunkingReader(&text),
 			model_filesystem.NewSimpleFileMerkleTreeCapturer(model_core.DiscardingCreatedObjectCapturer),
 		)
 		require.NoError(t, err)

@@ -39,7 +39,7 @@ func CreateMaybeInlineFileContents[T model_core.ReferenceMetadata](
 		}), nil
 	}
 
-	fileContents, err := CreateFileMerkleTree(ctx, parameters, bytes.NewReader(data), capturer)
+	fileContents, err := CreateFileMerkleTree(ctx, parameters, parameters.NewChunkingReader(bytes.NewReader(data)), capturer)
 	if err != nil {
 		return model_core.PatchedMessage[*model_filesystem_pb.MaybeInlineFileContents, T]{}, err
 	}

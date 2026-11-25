@@ -3008,7 +3008,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doWrite(thread *eval.Thr
 		fileContents, err := model_filesystem.CreateFileMerkleTree(
 			rc.context,
 			rc.fileCreationParameters,
-			bytes.NewReader(typedContent),
+			rc.fileCreationParameters.NewChunkingReader(bytes.NewReader(typedContent)),
 			model_filesystem.NewSimpleFileMerkleTreeCapturer(rc.environment),
 		)
 		if err != nil {

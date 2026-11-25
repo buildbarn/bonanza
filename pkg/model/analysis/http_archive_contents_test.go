@@ -109,10 +109,11 @@ type httpArchiveContentsResult struct {
 // letting HttpFileContents return the provided archive.
 func (bct *baseComputerTester) computeHTTPArchiveContents(ctx context.Context, t *testing.T, ctrl *gomock.Controller, format model_analysis_pb.HttpArchiveContents_Key_Format, archive []byte) httpArchiveContentsResult {
 	capturer := createdObjectTreeCapturer{}
+	fileCreationParameters := bct.newFileCreationParameters()
 	archiveContents, err := model_filesystem.CreateFileMerkleTree(
 		ctx,
-		bct.newFileCreationParameters(),
-		bytes.NewReader(archive),
+		fileCreationParameters,
+		fileCreationParameters.NewChunkingReader(bytes.NewReader(archive)),
 		model_filesystem.NewSimpleFileMerkleTreeCapturer[model_core.CreatedObjectTree](capturer),
 	)
 	require.NoError(t, err)

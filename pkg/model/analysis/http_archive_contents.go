@@ -310,9 +310,15 @@ func (*baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx 
 	// them to storage. Convert the resulting messages to ones
 	// containing references, so that no metadata needs to be
 	// tracked until the directory hierarchy is complete.
+	//
+	// Files are extracted sequentially, so a single buffered reader
+	// can be used for all of them. This prevents allocating a large
+	// buffer for every file.
 	fileMerkleTreeCapturer := model_filesystem.NewSimpleFileMerkleTreeCapturer(e)
+	fileBufferedReader := fileCreationParameters.NewChunkingReader(nil)
 	createFileMerkleTree := func(r io.Reader) (model_core.Message[*model_filesystem_pb.FileContents, TReference], error) {
-		fileContents, err := model_filesystem.CreateFileMerkleTree(ctx, fileCreationParameters, r, fileMerkleTreeCapturer)
+		fileBufferedReader.Reset(r)
+		fileContents, err := model_filesystem.CreateFileMerkleTree(ctx, fileCreationParameters, fileBufferedReader, fileMerkleTreeCapturer)
 		if err != nil {
 			return model_core.Message[*model_filesystem_pb.FileContents, TReference]{}, err
 		}

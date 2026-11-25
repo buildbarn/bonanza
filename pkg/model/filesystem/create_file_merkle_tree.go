@@ -60,18 +60,16 @@ func maybeWriteHole[T model_core.ReferenceMetadata](treeBuilder btree.Builder[*m
 // resulting B-tree is a Prolly tree. This ensures that minor changes to
 // a file also result in minor changes to the resulting Merkle tree.
 //
+// The file's contents are read through a buffered reader, which should
+// be created by calling FileCreationParameters.NewChunkingReader().
+// Callers that create Merkle trees of many files sequentially (e.g.,
+// when extracting archives) should reuse a single buffered reader by
+// calling Reset() on it, as its buffer is large.
+//
 // TODO: Change this function to support more efficient creation of
 // Merkle trees for sparse files.
-func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, parameters *FileCreationParameters, f io.Reader, capturer FileMerkleTreeCapturer[T]) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, T], error) {
-	chunkReader := parameters.contentDefinedChunker.NewChunkReader(
-		bufio.NewReaderSize(
-			f,
-			max(
-				parameters.referenceFormat.GetMaximumObjectSizeBytes(),
-				parameters.contentDefinedChunker.GetMaximumPeekSizeBytes(),
-			),
-		),
-	)
+func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, parameters *FileCreationParameters, f *bufio.Reader, capturer FileMerkleTreeCapturer[T]) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, T], error) {
+	chunkReader := parameters.contentDefinedChunker.NewChunkReader(f)
 	treeBuilder := btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[T](
 			parameters.fileContentsListParameters,
@@ -195,7 +193,7 @@ func CreateChunkDiscardingFileMerkleTree(ctx context.Context, parameters *FileCr
 	fileContents, err := CreateFileMerkleTree(
 		ctx,
 		parameters,
-		io.NewSectionReader(f, 0, math.MaxInt64),
+		parameters.NewChunkingReader(io.NewSectionReader(f, 0, math.MaxInt64)),
 		ChunkDiscardingFileMerkleTreeCapturer,
 	)
 	if err != nil {

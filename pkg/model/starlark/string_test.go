@@ -245,7 +245,7 @@ func TestStringStorage(t *testing.T) {
 		expected, err := model_filesystem.CreateFileMerkleTree(
 			ctx,
 			fileCreationParameters,
-			strings.NewReader(data),
+			fileCreationParameters.NewChunkingReader(strings.NewReader(data)),
 			model_filesystem.NewSimpleFileMerkleTreeCapturer[model_core.NoopReferenceMetadata](store),
 		)
 		require.NoError(t, err)

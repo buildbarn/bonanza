@@ -1,7 +1,9 @@
 package filesystem
 
 import (
+	"bufio"
 	"bytes"
+	"io"
 
 	"bonanza.build/pkg/model/chunking"
 	model_core "bonanza.build/pkg/model/core"
@@ -58,6 +60,21 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 		),
 		fileContentsListParameters: fileContentsListParameters,
 	}, nil
+}
+
+// NewChunkingReader creates a buffered reader that can be provided to
+// CreateFileMerkleTree(). Its buffer is large enough to perform
+// chunking. As this buffer may be large, callers that create Merkle
+// trees of many files sequentially should reuse the buffered reader by
+// calling Reset() on it.
+func (p *FileCreationParameters) NewChunkingReader(r io.Reader) *bufio.Reader {
+	return bufio.NewReaderSize(
+		r,
+		max(
+			p.referenceFormat.GetMaximumObjectSizeBytes(),
+			p.contentDefinedChunker.GetMaximumPeekSizeBytes(),
+		),
+	)
 }
 
 // EncodeChunk encodes the data of a small file, or a region of a large
