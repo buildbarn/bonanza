@@ -45,7 +45,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		/* historySize = */ 5,
 	)
 
-	exampleAction := &encryptedaction_pb.Action{
+	exampleAction := encryptedaction_pb.Action_builder{
 		PlatformPkixPublicKey: []byte{
 			0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65,
 			0x6e, 0x03, 0x21, 0x00, 0x34, 0x83, 0xce, 0xa0,
@@ -54,7 +54,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 			0x6a, 0x7e, 0x1c, 0x75, 0xc0, 0x59, 0x86, 0x6f,
 			0x29, 0xa8, 0x10, 0x0c,
 		},
-		AdditionalData: &encryptedaction_pb.Action_AdditionalData{
+		AdditionalData: encryptedaction_pb.Action_AdditionalData_builder{
 			StableFingerprint: []byte{
 				0x46, 0xb8, 0x81, 0xe9, 0x98, 0x4a, 0x99, 0xc8,
 				0xc1, 0xca, 0x3e, 0xcc, 0xac, 0x4b, 0xef, 0xfe,
@@ -62,8 +62,8 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 				0x8f, 0x6a, 0x3c, 0x49, 0x38, 0x51, 0xe5, 0x98,
 			},
 			ExecutionTimeout: &durationpb.Duration{Seconds: 30 * 60},
-		},
-	}
+		}.Build(),
+	}.Build()
 	exampleTagKeyHash, err := model_core.NewDecodable(
 		/* tagKeyHash = */ [...]byte{
 			0x17, 0x1a, 0x21, 0xb7, 0xfc, 0xa9, 0x93, 0x83,
@@ -98,8 +98,8 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		// Return an empty stats message. The strategy
 		// calculator will most likely just return a uniform
 		// distribution. Let's pick the smallest size class.
-		var stats model_initialsizeclass_pb.PreviousExecutionStats
-		handle.EXPECT().GetMutableProto().Return(&stats).AnyTimes()
+		stats := &model_initialsizeclass_pb.PreviousExecutionStats{}
+		handle.EXPECT().GetMutableProto().Return(stats).AnyTimes()
 		strategyCalculator.EXPECT().GetStrategies(gomock.Not(gomock.Nil()), []uint32{1, 2, 4, 8}, 30*time.Minute).
 			Return([]initialsizeclass.Strategy{
 				{
@@ -128,7 +128,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		learner.Abandoned()
 		testutil.RequireEqualProto(t, &model_initialsizeclass_pb.PreviousExecutionStats{
 			SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{},
-		}, &stats)
+		}, stats)
 	})
 
 	t.Run("InitialSuccess", func(t *testing.T) {
@@ -140,8 +140,8 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 
 		// Same as before: empty stats message. Now pick the
 		// second smallest size class.
-		var stats model_initialsizeclass_pb.PreviousExecutionStats
-		handle.EXPECT().GetMutableProto().Return(&stats).AnyTimes()
+		stats := &model_initialsizeclass_pb.PreviousExecutionStats{}
+		handle.EXPECT().GetMutableProto().Return(stats).AnyTimes()
 		strategyCalculator.EXPECT().GetStrategies(gomock.Not(gomock.Nil()), []uint32{1, 2, 4, 8}, 30*time.Minute).
 			Return([]initialsizeclass.Strategy{
 				{
@@ -178,7 +178,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 					},
 				},
 			},
-		}, &stats)
+		}, stats)
 	})
 
 	t.Run("SuccessAfterFailure", func(t *testing.T) {
@@ -189,7 +189,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		require.NoError(t, err)
 
 		// Let the action run on size class 1.
-		stats := model_initialsizeclass_pb.PreviousExecutionStats{
+		stats := &model_initialsizeclass_pb.PreviousExecutionStats{
 			SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
 				8: {
 					PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
@@ -198,7 +198,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 				},
 			},
 		}
-		handle.EXPECT().GetMutableProto().Return(&stats).AnyTimes()
+		handle.EXPECT().GetMutableProto().Return(stats).AnyTimes()
 		strategyCalculator.EXPECT().GetStrategies(gomock.Not(gomock.Nil()), []uint32{1, 2, 4, 8}, 30*time.Minute).
 			Return([]initialsizeclass.Strategy{
 				{
@@ -249,7 +249,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 					},
 				},
 			},
-		}, &stats)
+		}, stats)
 	})
 
 	t.Run("SkipSmallerAfterFailure", func(t *testing.T) {
@@ -263,7 +263,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		// recently. We should always schedule these on the
 		// largest size class, so that we don't introduce
 		// unnecessary delays.
-		stats := model_initialsizeclass_pb.PreviousExecutionStats{
+		stats := &model_initialsizeclass_pb.PreviousExecutionStats{
 			SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
 				8: {
 					PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
@@ -273,7 +273,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 			},
 			LastSeenFailure: &timestamppb.Timestamp{Seconds: 1620218381},
 		}
-		handle.EXPECT().GetMutableProto().Return(&stats).AnyTimes()
+		handle.EXPECT().GetMutableProto().Return(stats).AnyTimes()
 		clock.EXPECT().Now().Return(time.Unix(1620242374, 0))
 
 		sizeClassIndex, expectedDuration, timeout, learner := selector.Select([]uint32{1, 2, 4, 8})
@@ -294,7 +294,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 				},
 			},
 			LastSeenFailure: &timestamppb.Timestamp{Seconds: 1620218381},
-		}, &stats)
+		}, stats)
 	})
 
 	t.Run("BackgroundRun", func(t *testing.T) {
@@ -310,8 +310,8 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		// the smallest size class. If both succeed, we have
 		// more freedom when scheduling this action the next
 		// time.
-		var stats model_initialsizeclass_pb.PreviousExecutionStats
-		handle.EXPECT().GetMutableProto().Return(&stats).AnyTimes()
+		stats := &model_initialsizeclass_pb.PreviousExecutionStats{}
+		handle.EXPECT().GetMutableProto().Return(stats).AnyTimes()
 		strategyCalculator.EXPECT().GetStrategies(gomock.Not(gomock.Nil()), []uint32{1, 2, 4, 8}, 30*time.Minute).
 			Return([]initialsizeclass.Strategy{
 				{
@@ -344,7 +344,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 							},
 						},
 					},
-				}, &stats)
+				}, stats)
 				return 80 * time.Second
 			},
 		)
@@ -374,7 +374,7 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 					},
 				},
 			},
-		}, &stats)
+		}, stats)
 	})
 
 	// TODO: Are there more test cases we want to cover?

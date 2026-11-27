@@ -23,7 +23,7 @@ type EventEncoder struct {
 // encoding or decoding events belonging to a given action.
 func NewEventEncoder(action *encryptedaction_pb.Action, sharedSecret []byte) *EventEncoder {
 	return &EventEncoder{
-		additionalData: sha256.Sum256(action.Ciphertext),
+		additionalData: sha256.Sum256(action.GetCiphertext()),
 		sharedSecret:   sharedSecret,
 	}
 }
@@ -51,10 +51,10 @@ func (ee *EventEncoder) EncodeEvent(plaintext []byte, isCompletionEvent bool, ra
 	if _, err := io.ReadFull(randomNumberGenerator, nonce); err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.Internal, "Failed to generate nonce")
 	}
-	return &encryptedaction_pb.Event{
+	return encryptedaction_pb.Event_builder{
 		Nonce:      nonce,
 		Ciphertext: aead.Seal(nil, nonce, plaintext, ee.additionalData[:]),
-	}, nil
+	}.Build(), nil
 }
 
 // DecodeEvent converts an Event message that was sent by a worker to a
@@ -66,8 +66,8 @@ func (ee *EventEncoder) DecodeEvent(executionEvent *encryptedaction_pb.Event, is
 	}
 	return aead.Open(
 		/* dst = */ nil,
-		executionEvent.Nonce,
-		executionEvent.Ciphertext,
+		executionEvent.GetNonce(),
+		executionEvent.GetCiphertext(),
 		ee.additionalData[:],
 	)
 }

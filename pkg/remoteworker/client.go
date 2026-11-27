@@ -141,22 +141,25 @@ func NewClient(
 func (c *Client) startExecution(desiredState *remoteworker_pb.DesiredState_Executing) error {
 	c.stopExecution()
 
-	action := desiredState.Action
+	action := desiredState.GetAction()
 	if action == nil {
 		return status.Error(codes.InvalidArgument, "No action provided")
 	}
 
 	// Determine which worker key is used.
-	workerKeyIndex, ok := sort.Find(len(c.request.PublicKeys), func(i int) int {
-		return bytes.Compare(action.PlatformPkixPublicKey, c.request.PublicKeys[i].PkixPublicKey)
+	platformPKIXPublicKey := action.GetPlatformPkixPublicKey()
+	publicKeys := c.request.GetPublicKeys()
+	workerKeyIndex, ok := sort.Find(len(publicKeys), func(i int) int {
+		return bytes.Compare(platformPKIXPublicKey, publicKeys[i].GetPkixPublicKey())
 	})
 	if !ok {
-		return status.Errorf(codes.InvalidArgument, "Worker received action for platform with PKIX public key %s, even though it does not announce this key", base64.StdEncoding.EncodeToString(action.PlatformPkixPublicKey))
+		return status.Errorf(codes.InvalidArgument, "Worker received action for platform with PKIX public key %s, even though it does not announce this key", base64.StdEncoding.EncodeToString(platformPKIXPublicKey))
 	}
 
 	// Validate the provided client certificate.
-	clientCertificateChain := make([]*x509.Certificate, 0, len(action.ClientCertificateChain))
-	for i, rawCertificate := range action.ClientCertificateChain {
+	actionClientCertificateChain := action.GetClientCertificateChain()
+	clientCertificateChain := make([]*x509.Certificate, 0, len(actionClientCertificateChain))
+	for i, rawCertificate := range actionClientCertificateChain {
 		certificate, err := x509.ParseCertificate(rawCertificate)
 		if err != nil {
 			return util.StatusWrapfWithCode(err, codes.InvalidArgument, "Invalid certificate at index %d of client certificate chain", i)
@@ -186,20 +189,21 @@ func (c *Client) startExecution(desiredState *remoteworker_pb.DesiredState_Execu
 	}
 
 	// Validate that the execution timeout provided by the scheduler.
-	originalExecutionTimeoutMessage := action.AdditionalData.ExecutionTimeout
+	originalExecutionTimeoutMessage := action.GetAdditionalData().GetExecutionTimeout()
 	if err := originalExecutionTimeoutMessage.CheckValid(); err != nil {
 		return util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid original execution timeout")
 	}
 	originalExecutionTimeout := originalExecutionTimeoutMessage.AsDuration()
-	if err := desiredState.EffectiveExecutionTimeout.CheckValid(); err != nil {
+	effectiveExecutionTimeout := desiredState.GetEffectiveExecutionTimeout()
+	if err := effectiveExecutionTimeout.CheckValid(); err != nil {
 		return util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid effective execution timeout")
 	}
-	effectiveExecutionTimeout := desiredState.EffectiveExecutionTimeout.AsDuration()
-	if effectiveExecutionTimeout < 0 || effectiveExecutionTimeout > originalExecutionTimeout {
+	effectiveExecutionTimeoutDuration := effectiveExecutionTimeout.AsDuration()
+	if effectiveExecutionTimeoutDuration < 0 || effectiveExecutionTimeoutDuration > originalExecutionTimeout {
 		return status.Errorf(
 			codes.InvalidArgument,
 			"Execution timeout of %s is outside permitted range [0s, %s]",
-			effectiveExecutionTimeout,
+			effectiveExecutionTimeoutDuration,
 			originalExecutionTimeout,
 		)
 	}
@@ -222,12 +226,12 @@ func (c *Client) startExecution(desiredState *remoteworker_pb.DesiredState_Execu
 				context.Background(),
 				authenticationMetadata,
 			),
-			desiredState.W3CTraceContext,
+			desiredState.GetW3CTraceContext(),
 		),
 	)
 	executionCompleted := make(chan struct{})
 	go func() {
-		event, virtualExecutionDuration, result, err := c.executor.Execute(ctx, plaintextAction, effectiveExecutionTimeout, executionEvents)
+		event, virtualExecutionDuration, result, err := c.executor.Execute(ctx, plaintextAction, effectiveExecutionTimeoutDuration, executionEvents)
 
 		// Wait for the goroutine above to terminate, so that we
 		// can guarantee that c.latestExecutionEvent is no
@@ -249,7 +253,7 @@ func (c *Client) startExecution(desiredState *remoteworker_pb.DesiredState_Execu
 			case remoteworker_pb.CurrentState_Completed_SUCCEEDED:
 				c.completionEvent = &event
 			case remoteworker_pb.CurrentState_Completed_TIMED_OUT:
-				if c.isLargestSizeClass && effectiveExecutionTimeout >= originalExecutionTimeout {
+				if c.isLargestSizeClass && effectiveExecutionTimeoutDuration >= originalExecutionTimeout {
 					c.completionEvent = &event
 				}
 			case remoteworker_pb.CurrentState_Completed_FAILED:
@@ -273,9 +277,9 @@ func (c *Client) startExecution(desiredState *remoteworker_pb.DesiredState_Execu
 	c.eventEncoder = encryptedaction.NewEventEncoder(action, sharedSecret)
 
 	// Change state to indicate the build has started.
-	c.request.CurrentState.WorkerState = &remoteworker_pb.CurrentState_Executing_{
+	c.request.GetCurrentState().WorkerState = &remoteworker_pb.CurrentState_Executing_{
 		Executing: &remoteworker_pb.CurrentState_Executing{
-			TaskUuid: desiredState.TaskUuid,
+			TaskUuid: desiredState.GetTaskUuid(),
 		},
 	}
 	return nil

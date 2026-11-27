@@ -38,11 +38,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 	// Obtain the public key of the target platform, which is used
 	// to route the request to the right worker and to encrypt the
 	// action.
-	executeRequest := model_core.Nested(key, key.Message.ExecuteRequest)
+	executeRequest := model_core.Nested(key, key.Message.GetExecuteRequest())
 	if executeRequest.Message == nil {
 		return PatchedRawActionResultValue[TMetadata]{}, errors.New("no execute request specified")
 	}
-	platformECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(executeRequest.Message.PlatformPkixPublicKey)
+	platformECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(executeRequest.Message.GetPlatformPkixPublicKey())
 	if err != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, fmt.Errorf("invalid platform PKIX public key: %w", err)
 	}
@@ -51,7 +51,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 	// fingerprint of the action, which the scheduler can use to
 	// keep track of performance characteristics. Compute a hash to
 	// masquerade the actual Command reference.
-	actionReference, err := model_core.FlattenDecodableReference(model_core.Nested(executeRequest, executeRequest.Message.ActionReference))
+	actionReference, err := model_core.FlattenDecodableReference(model_core.Nested(executeRequest, executeRequest.Message.GetActionReference()))
 	if err != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, fmt.Errorf("invalid action reference: %w", err)
 	}
@@ -59,7 +59,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 	if err != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, fmt.Errorf("failed to read action: %w", err)
 	}
-	commandReference, err := model_core.FlattenDecodableReference(model_core.Nested(action, action.Message.CommandReference))
+	commandReference, err := model_core.FlattenDecodableReference(model_core.Nested(action, action.Message.GetCommandReference()))
 	if err != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, fmt.Errorf("invalid command reference: %w", err)
 	}
@@ -72,13 +72,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 		platformECDHPublicKey,
 		&model_executewithstorage.Action[TReference]{
 			Reference: &actionReference,
-			Encoders:  actionEncodersValue.Message.ActionEncoders,
+			Encoders:  actionEncodersValue.Message.GetActionEncoders(),
 			Format:    commandActionObjectFormat,
 		},
-		&encryptedaction_pb.Action_AdditionalData{
+		encryptedaction_pb.Action_AdditionalData_builder{
 			StableFingerprint: commandReferenceSHA256[:],
-			ExecutionTimeout:  executeRequest.Message.ExecutionTimeout,
-		},
+			ExecutionTimeout:  executeRequest.Message.GetExecutionTimeout(),
+		}.Build(),
 		&resultReference,
 		&errExecution,
 	) {

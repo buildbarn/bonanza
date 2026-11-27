@@ -64,7 +64,7 @@ func (a *feedbackDrivenAnalyzer) Analyze(ctx context.Context, action *encrypteda
 	// Actions that don't have a stable fingerprint cannot be
 	// processed by this analyzer. Call into the fallback analyzer
 	// when such actions are observed.
-	stableFingerprint := action.AdditionalData.GetStableFingerprint()
+	stableFingerprint := action.GetAdditionalData().GetStableFingerprint()
 	if len(stableFingerprint) == 0 {
 		return a.fallback.Analyze(ctx, action)
 	}
@@ -79,7 +79,7 @@ func (a *feedbackDrivenAnalyzer) Analyze(ctx context.Context, action *encrypteda
 			CommonKeyDataReference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
 				LocalReference: a.commonKeyDataReference,
 			}),
-			PlatformPkixPublicKey: action.PlatformPkixPublicKey,
+			PlatformPkixPublicKey: action.GetPlatformPkixPublicKey(),
 			StableFingerprint:     stableFingerprint,
 		}
 	}).SortAndSetReferences()

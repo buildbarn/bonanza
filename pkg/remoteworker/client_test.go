@@ -139,23 +139,21 @@ func newDesiredStateExecuting(t *testing.T, identity clientIdentity, workerPriva
 	sharedSecret, err := identity.privateKey.ECDH(workerPrivateKey.PublicKey())
 	require.NoError(t, err)
 
-	action := &encryptedaction_pb.Action{
+	action := encryptedaction_pb.Action_builder{
 		PlatformPkixPublicKey:  platformPKIXPublicKey,
 		ClientCertificateChain: [][]byte{identity.certificate.Raw},
-		AdditionalData: &encryptedaction_pb.Action_AdditionalData{
+		AdditionalData: encryptedaction_pb.Action_AdditionalData_builder{
 			StableFingerprint: []byte(taskUUID),
 			ExecutionTimeout:  &durationpb.Duration{Seconds: 60},
-		},
-	}
+		}.Build(),
+	}.Build()
 	require.NoError(t, encryptedaction.ActionSetCiphertext(action, sharedSecret, []byte(plaintext)))
 	return &remoteworker_pb.DesiredState{
-		WorkerState: &remoteworker_pb.DesiredState_Executing_{
-			Executing: &remoteworker_pb.DesiredState_Executing{
-				TaskUuid:                  taskUUID,
-				Action:                    action,
-				EffectiveExecutionTimeout: &durationpb.Duration{Seconds: 60},
-			},
-		},
+		WorkerState: &remoteworker_pb.DesiredState_Executing_{Executing: &remoteworker_pb.DesiredState_Executing{
+			TaskUuid:                  taskUUID,
+			Action:                    action,
+			EffectiveExecutionTimeout: &durationpb.Duration{Seconds: 60},
+		}},
 	}
 }
 

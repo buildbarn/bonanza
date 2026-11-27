@@ -383,7 +383,7 @@ func (bq *InMemoryBuildQueue) RegisterPredeclaredPlatformQueue(pkixPublicKeys []
 // blocks until the action is completed.
 func (bq *InMemoryBuildQueue) Execute(in *remoteexecution_pb.ExecuteRequest, out remoteexecution_pb.Execution_ExecuteServer) error {
 	ctx := out.Context()
-	action := in.Action
+	action := in.GetAction()
 	if action == nil {
 		return status.Error(codes.InvalidArgument, "No action provided")
 	}
@@ -430,7 +430,7 @@ func (bq *InMemoryBuildQueue) Execute(in *remoteexecution_pb.ExecuteRequest, out
 		}
 
 		// Create an additional operation for this task.
-		o := t.newOperation(bq, in.Priority, i, false)
+		o := t.newOperation(bq, in.GetPriority(), i, false)
 		if w := t.currentWorker; w != nil {
 			// The request has been deduplicated against a
 			// task that is already in the executing stage.
@@ -446,7 +446,7 @@ func (bq *InMemoryBuildQueue) Execute(in *remoteexecution_pb.ExecuteRequest, out
 
 	// We need to create a new task. For that we first need to
 	// obtain the size class queue in which we're going to place it.
-	platformPkixPublicKey := action.PlatformPkixPublicKey
+	platformPkixPublicKey := action.GetPlatformPkixPublicKey()
 	pq, ok := bq.platformQueues[string(platformPkixPublicKey)]
 	if !ok {
 		code := codes.FailedPrecondition
@@ -491,7 +491,7 @@ func (bq *InMemoryBuildQueue) Execute(in *remoteexecution_pb.ExecuteRequest, out
 	bq.inFlightDeduplicationMap[deduplicationKey] = t
 	scq.inFlightDeduplicationsNew.Inc()
 	i := scq.getOrCreateInvocation(bq, invocationKeys)
-	o := t.newOperation(bq, in.Priority, i, false)
+	o := t.newOperation(bq, in.GetPriority(), i, false)
 	t.schedule(bq)
 	return o.waitExecution(bq, out)
 }

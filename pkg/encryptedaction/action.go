@@ -19,11 +19,11 @@ func ActionGetPlaintext(action *encryptedaction_pb.Action, sharedSecret []byte) 
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to create AEAD")
 	}
-	nonce := action.Nonce
+	nonce := action.GetNonce()
 	if actualNonceSize, expectedNonceSize := len(nonce), actionAEAD.NonceSize(); actualNonceSize != expectedNonceSize {
 		return nil, status.Errorf(codes.InvalidArgument, "Nonce was %d bytes in size, while %d bytes were expected", actualNonceSize, expectedNonceSize)
 	}
-	additionalData := action.AdditionalData
+	additionalData := action.GetAdditionalData()
 	if additionalData == nil {
 		return nil, status.Error(codes.InvalidArgument, "Action does not contain additional data")
 	}
@@ -31,7 +31,7 @@ func ActionGetPlaintext(action *encryptedaction_pb.Action, sharedSecret []byte) 
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to marshal additional data")
 	}
-	return actionAEAD.Open(nil, nonce, action.Ciphertext, marshaledAdditionalData)
+	return actionAEAD.Open(nil, nonce, action.GetCiphertext(), marshaledAdditionalData)
 }
 
 // ActionSetCiphertext sets the ciphertext and nonce fields that are
@@ -41,7 +41,7 @@ func ActionSetCiphertext(action *encryptedaction_pb.Action, sharedSecret, plaint
 	if err != nil {
 		return util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to create AEAD")
 	}
-	marshaledActionAdditionalData, err := marshalOptions.Marshal(action.AdditionalData)
+	marshaledActionAdditionalData, err := marshalOptions.Marshal(action.GetAdditionalData())
 	if err != nil {
 		return util.StatusWrapWithCode(err, codes.Internal, "Failed to marshal action additional data")
 	}
@@ -50,7 +50,7 @@ func ActionSetCiphertext(action *encryptedaction_pb.Action, sharedSecret, plaint
 	// don't want in-flight deduplication.
 	actionNonce := make([]byte, actionAEAD.NonceSize())
 
-	action.Ciphertext = actionAEAD.Seal(nil, actionNonce, plaintext, marshaledActionAdditionalData)
-	action.Nonce = actionNonce
+	action.SetCiphertext(actionAEAD.Seal(nil, actionNonce, plaintext, marshaledActionAdditionalData))
+	action.SetNonce(actionNonce)
 	return nil
 }

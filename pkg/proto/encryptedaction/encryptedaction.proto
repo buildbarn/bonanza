@@ -1,9 +1,10 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.encryptedaction;
 
 import "google/protobuf/duration.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/encryptedaction";
 
 message Action {

@@ -55,11 +55,11 @@ func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecd
 	}
 
 	// Encrypt the action.
-	action := &encryptedaction_pb.Action{
+	action := encryptedaction_pb.Action_builder{
 		PlatformPkixPublicKey:  marshaledPlatformECDHPublicKey,
 		ClientCertificateChain: c.clientCertificateChain,
 		AdditionalData:         actionAdditionalData,
-	}
+	}.Build()
 	if err := encryptedaction.ActionSetCiphertext(action, sharedSecret, actionPlaintext); err != nil {
 		*errOut = err
 		return func(func(ExecutionUpdate[[]byte]) bool) {}
@@ -93,7 +93,7 @@ func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecd
 				return
 			}
 
-			switch stage := response.Stage.(type) {
+			switch response.GetStage().(type) {
 			case *remoteexecution_pb.ExecuteResponse_Queued_:
 				if !yield(ExecutionUpdate[[]byte]{Stage: ExecutionStageQueued}) {
 					*errOut = status.Error(codes.Canceled, "Caller canceled iteration of execution updates")
@@ -104,7 +104,7 @@ func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecd
 				// event, unmarshal it and yield it to the
 				// caller.
 				update := ExecutionUpdate[[]byte]{Stage: ExecutionStageExecuting}
-				if lastEventMessage := stage.Executing.LastEvent; lastEventMessage != nil {
+				if lastEventMessage := response.GetExecuting().GetLastEvent(); lastEventMessage != nil {
 					lastEvent, err := eventEncoder.DecodeEvent(lastEventMessage, false)
 					if err != nil {
 						*errOut = util.StatusWrapWithCode(err, codes.Internal, "Failed to decrypt last event")
@@ -120,7 +120,7 @@ func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecd
 			case *remoteexecution_pb.ExecuteResponse_Completed_:
 				// Action has completed. Unmarshal and
 				// return the completion event.
-				completionEventMessage := stage.Completed.CompletionEvent
+				completionEventMessage := response.GetCompleted().GetCompletionEvent()
 				if completionEventMessage == nil {
 					*errOut = status.Error(codes.Internal, "Action completed, but no completion event was returned")
 					return

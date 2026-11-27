@@ -19,11 +19,11 @@ func TestFallbackAnalyzer(t *testing.T) {
 		initialsizeclass.NewActionTimeoutExtractor(time.Hour),
 	)
 
-	exampleAction := &encryptedaction_pb.Action{
-		AdditionalData: &encryptedaction_pb.Action_AdditionalData{
+	exampleAction := encryptedaction_pb.Action_builder{
+		AdditionalData: encryptedaction_pb.Action_AdditionalData_builder{
 			ExecutionTimeout: &durationpb.Duration{Seconds: 300},
-		},
-	}
+		}.Build(),
+	}.Build()
 
 	t.Run("SelectorAbandoned", func(t *testing.T) {
 		// Action that is analyzed, but that is immediately

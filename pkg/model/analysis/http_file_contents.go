@@ -39,17 +39,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 		return PatchedHTTPFileContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	fetchPlatformECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(registeredFetchPlatformValue.Message.FetchPlatformPkixPublicKey)
+	fetchPlatformECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(registeredFetchPlatformValue.Message.GetFetchPlatformPkixPublicKey())
 	if err != nil {
 		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("invalid fetch platform PKIX public key: %w", err)
 	}
 
-	fetchOptions := key.FetchOptions
+	fetchOptions := key.GetFetchOptions()
 	if fetchOptions == nil {
 		return PatchedHTTPFileContentsValue[TMetadata]{}, errors.New("no fetch options provided")
 	}
 
-	target := fetchOptions.Target
+	target := fetchOptions.GetTarget()
 	if target == nil {
 		return PatchedHTTPFileContentsValue[TMetadata]{}, errors.New("no target provided")
 	}
@@ -58,7 +58,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 	createdAction, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewSimplePatchedMessage[TMetadata](
 			model_format.NewProto[model_fetch_pb.Action]().NewMarshaler(&model_fetch_pb.Action{
-				FileCreationParameters: fileCreationParametersValue.Message.FileCreationParameters,
+				FileCreationParameters: fileCreationParametersValue.Message.GetFileCreationParameters(),
 				Target:                 target,
 			}),
 		),
@@ -76,8 +76,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 	var stableTarget anypb.Any
 	marshalOptions := proto.MarshalOptions{Deterministic: true}
 	if err := anypb.MarshalFrom(
-		&stableTarget,
-		&model_fetch_pb.Target{Urls: target.Urls},
+		&stableTarget, &model_fetch_pb.Target{
+			Urls: target.GetUrls(),
+		},
 		marshalOptions,
 	); err != nil {
 		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to marshal stable target: %w", err)
@@ -99,13 +100,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 		fetchPlatformECDHPublicKey,
 		&model_executewithstorage.Action[TReference]{
 			Reference: &actionReference,
-			Encoders:  actionEncodersValue.Message.ActionEncoders,
+			Encoders:  actionEncodersValue.Message.GetActionEncoders(),
 			Format:    fetchActionObjectFormat,
 		},
-		&encryptedaction_pb.Action_AdditionalData{
+		encryptedaction_pb.Action_AdditionalData_builder{
 			StableFingerprint: stableFingerprint[:],
 			ExecutionTimeout:  &durationpb.Duration{Seconds: 3600},
-		},
+		}.Build(),
 		&resultReference,
 		&errExecution,
 	) {
@@ -125,8 +126,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 		}
 		e.ReportHTTPFileContentsProgress(&model_analysis_pb.HttpFileContents_Progress{
 			Downloaded: &model_evaluation_pb.ProgressCounter{
-				Current: event.DownloadedSizeBytes,
-				Total:   event.TotalSizeBytes,
+				Current: event.GetDownloadedSizeBytes(),
+				Total:   event.GetTotalSizeBytes(),
 				Unit:    model_evaluation_pb.ProgressCounter_BYTES,
 			},
 		})
@@ -143,9 +144,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to read completion event: %w", err)
 	}
 
-	switch outcome := result.Message.Outcome.(type) {
+	switch result.Message.GetOutcome().(type) {
 	case *model_fetch_pb.Result_Success_:
-		success := model_core.Patch(e, model_core.Nested(result, outcome.Success))
+		success := model_core.Patch(e, model_core.Nested(result, result.Message.GetSuccess()))
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.HttpFileContents_Value{
 				Exists: success.Message,
@@ -153,8 +154,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 			success.Patcher,
 		), nil
 	case *model_fetch_pb.Result_Failure:
-		err := status.ErrorProto(outcome.Failure)
-		if fetchOptions.AllowFail || status.Code(err) == codes.NotFound {
+		err := status.ErrorProto(result.Message.GetFailure())
+		if fetchOptions.GetAllowFail() || status.Code(err) == codes.NotFound {
 			return model_core.NewSimplePatchedMessage[TMetadata](
 				&model_analysis_pb.HttpFileContents_Value{},
 			), nil

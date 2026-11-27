@@ -28,38 +28,38 @@ func TestActionTimeoutExtractor(t *testing.T) {
 	})
 
 	t.Run("InvalidTimeout", func(t *testing.T) {
-		_, err := actionTimeoutExtractor.ExtractTimeout(&encryptedaction_pb.Action{
-			AdditionalData: &encryptedaction_pb.Action_AdditionalData{
+		_, err := actionTimeoutExtractor.ExtractTimeout(encryptedaction_pb.Action_builder{
+			AdditionalData: encryptedaction_pb.Action_AdditionalData_builder{
 				ExecutionTimeout: &durationpb.Duration{Nanos: 1000000000},
-			},
-		})
+			}.Build(),
+		}.Build())
 		testutil.RequirePrefixedStatus(t, status.Error(codes.InvalidArgument, "Invalid execution timeout: "), err)
 	})
 
 	t.Run("TimeoutTooLow", func(t *testing.T) {
-		_, err := actionTimeoutExtractor.ExtractTimeout(&encryptedaction_pb.Action{
-			AdditionalData: &encryptedaction_pb.Action_AdditionalData{
+		_, err := actionTimeoutExtractor.ExtractTimeout(encryptedaction_pb.Action_builder{
+			AdditionalData: encryptedaction_pb.Action_AdditionalData_builder{
 				ExecutionTimeout: &durationpb.Duration{Seconds: -1},
-			},
-		})
+			}.Build(),
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Execution timeout of -1s is outside permitted range [0s, 2h0m0s]"), err)
 	})
 
 	t.Run("TimeoutTooHigh", func(t *testing.T) {
-		_, err := actionTimeoutExtractor.ExtractTimeout(&encryptedaction_pb.Action{
-			AdditionalData: &encryptedaction_pb.Action_AdditionalData{
+		_, err := actionTimeoutExtractor.ExtractTimeout(encryptedaction_pb.Action_builder{
+			AdditionalData: encryptedaction_pb.Action_AdditionalData_builder{
 				ExecutionTimeout: &durationpb.Duration{Seconds: 7201},
-			},
-		})
+			}.Build(),
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Execution timeout of 2h0m1s is outside permitted range [0s, 2h0m0s]"), err)
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		timeout, err := actionTimeoutExtractor.ExtractTimeout(&encryptedaction_pb.Action{
-			AdditionalData: &encryptedaction_pb.Action_AdditionalData{
+		timeout, err := actionTimeoutExtractor.ExtractTimeout(encryptedaction_pb.Action_builder{
+			AdditionalData: encryptedaction_pb.Action_AdditionalData_builder{
 				ExecutionTimeout: &durationpb.Duration{Seconds: 900},
-			},
-		})
+			}.Build(),
+		}.Build())
 		require.NoError(t, err)
 		require.Equal(t, 15*time.Minute, timeout)
 	})

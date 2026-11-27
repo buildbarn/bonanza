@@ -1035,9 +1035,9 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			Encoders:  evaluationEncoders,
 			Format:    evaluationActionObjectFormat,
 		},
-		&encryptedaction_pb.Action_AdditionalData{
+		encryptedaction_pb.Action_AdditionalData_builder{
 			ExecutionTimeout: &durationpb.Duration{Seconds: 24 * 60 * 60},
-		},
+		}.Build(),
 		&resultReference,
 		&errBuild,
 	) {

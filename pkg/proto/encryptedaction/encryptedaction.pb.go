@@ -11,7 +11,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -23,14 +22,14 @@ const (
 )
 
 type Action struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	PlatformPkixPublicKey  []byte                 `protobuf:"bytes,1,opt,name=platform_pkix_public_key,json=platformPkixPublicKey,proto3" json:"platform_pkix_public_key,omitempty"`
-	ClientCertificateChain [][]byte               `protobuf:"bytes,2,rep,name=client_certificate_chain,json=clientCertificateChain,proto3" json:"client_certificate_chain,omitempty"`
-	Nonce                  []byte                 `protobuf:"bytes,3,opt,name=nonce,proto3" json:"nonce,omitempty"`
-	AdditionalData         *Action_AdditionalData `protobuf:"bytes,4,opt,name=additional_data,json=additionalData,proto3" json:"additional_data,omitempty"`
-	Ciphertext             []byte                 `protobuf:"bytes,5,opt,name=ciphertext,proto3" json:"ciphertext,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlatformPkixPublicKey  []byte                 `protobuf:"bytes,1,opt,name=platform_pkix_public_key,json=platformPkixPublicKey"`
+	xxx_hidden_ClientCertificateChain [][]byte               `protobuf:"bytes,2,rep,name=client_certificate_chain,json=clientCertificateChain"`
+	xxx_hidden_Nonce                  []byte                 `protobuf:"bytes,3,opt,name=nonce"`
+	xxx_hidden_AdditionalData         *Action_AdditionalData `protobuf:"bytes,4,opt,name=additional_data,json=additionalData"`
+	xxx_hidden_Ciphertext             []byte                 `protobuf:"bytes,5,opt,name=ciphertext"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *Action) Reset() {
@@ -58,52 +57,109 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Action.ProtoReflect.Descriptor instead.
-func (*Action) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *Action) GetPlatformPkixPublicKey() []byte {
 	if x != nil {
-		return x.PlatformPkixPublicKey
+		return x.xxx_hidden_PlatformPkixPublicKey
 	}
 	return nil
 }
 
 func (x *Action) GetClientCertificateChain() [][]byte {
 	if x != nil {
-		return x.ClientCertificateChain
+		return x.xxx_hidden_ClientCertificateChain
 	}
 	return nil
 }
 
 func (x *Action) GetNonce() []byte {
 	if x != nil {
-		return x.Nonce
+		return x.xxx_hidden_Nonce
 	}
 	return nil
 }
 
 func (x *Action) GetAdditionalData() *Action_AdditionalData {
 	if x != nil {
-		return x.AdditionalData
+		return x.xxx_hidden_AdditionalData
 	}
 	return nil
 }
 
 func (x *Action) GetCiphertext() []byte {
 	if x != nil {
-		return x.Ciphertext
+		return x.xxx_hidden_Ciphertext
 	}
 	return nil
 }
 
+func (x *Action) SetPlatformPkixPublicKey(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_PlatformPkixPublicKey = v
+}
+
+func (x *Action) SetClientCertificateChain(v [][]byte) {
+	x.xxx_hidden_ClientCertificateChain = v
+}
+
+func (x *Action) SetNonce(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Nonce = v
+}
+
+func (x *Action) SetAdditionalData(v *Action_AdditionalData) {
+	x.xxx_hidden_AdditionalData = v
+}
+
+func (x *Action) SetCiphertext(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Ciphertext = v
+}
+
+func (x *Action) HasAdditionalData() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_AdditionalData != nil
+}
+
+func (x *Action) ClearAdditionalData() {
+	x.xxx_hidden_AdditionalData = nil
+}
+
+type Action_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	PlatformPkixPublicKey  []byte
+	ClientCertificateChain [][]byte
+	Nonce                  []byte
+	AdditionalData         *Action_AdditionalData
+	Ciphertext             []byte
+}
+
+func (b0 Action_builder) Build() *Action {
+	m0 := &Action{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_PlatformPkixPublicKey = b.PlatformPkixPublicKey
+	x.xxx_hidden_ClientCertificateChain = b.ClientCertificateChain
+	x.xxx_hidden_Nonce = b.Nonce
+	x.xxx_hidden_AdditionalData = b.AdditionalData
+	x.xxx_hidden_Ciphertext = b.Ciphertext
+	return m0
+}
+
 type Event struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Nonce         []byte                 `protobuf:"bytes,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
-	Ciphertext    []byte                 `protobuf:"bytes,2,opt,name=ciphertext,proto3" json:"ciphertext,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Nonce      []byte                 `protobuf:"bytes,1,opt,name=nonce"`
+	xxx_hidden_Ciphertext []byte                 `protobuf:"bytes,2,opt,name=ciphertext"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Event) Reset() {
@@ -131,31 +187,56 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Event.ProtoReflect.Descriptor instead.
-func (*Event) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *Event) GetNonce() []byte {
 	if x != nil {
-		return x.Nonce
+		return x.xxx_hidden_Nonce
 	}
 	return nil
 }
 
 func (x *Event) GetCiphertext() []byte {
 	if x != nil {
-		return x.Ciphertext
+		return x.xxx_hidden_Ciphertext
 	}
 	return nil
 }
 
+func (x *Event) SetNonce(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Nonce = v
+}
+
+func (x *Event) SetCiphertext(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Ciphertext = v
+}
+
+type Event_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Nonce      []byte
+	Ciphertext []byte
+}
+
+func (b0 Event_builder) Build() *Event {
+	m0 := &Event{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Nonce = b.Nonce
+	x.xxx_hidden_Ciphertext = b.Ciphertext
+	return m0
+}
+
 type Action_AdditionalData struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	StableFingerprint []byte                 `protobuf:"bytes,1,opt,name=stable_fingerprint,json=stableFingerprint,proto3" json:"stable_fingerprint,omitempty"`
-	ExecutionTimeout  *durationpb.Duration   `protobuf:"bytes,2,opt,name=execution_timeout,json=executionTimeout,proto3" json:"execution_timeout,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                        protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_StableFingerprint []byte                 `protobuf:"bytes,1,opt,name=stable_fingerprint,json=stableFingerprint"`
+	xxx_hidden_ExecutionTimeout  *durationpb.Duration   `protobuf:"bytes,2,opt,name=execution_timeout,json=executionTimeout"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *Action_AdditionalData) Reset() {
@@ -183,23 +264,56 @@ func (x *Action_AdditionalData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Action_AdditionalData.ProtoReflect.Descriptor instead.
-func (*Action_AdditionalData) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP(), []int{0, 0}
-}
-
 func (x *Action_AdditionalData) GetStableFingerprint() []byte {
 	if x != nil {
-		return x.StableFingerprint
+		return x.xxx_hidden_StableFingerprint
 	}
 	return nil
 }
 
 func (x *Action_AdditionalData) GetExecutionTimeout() *durationpb.Duration {
 	if x != nil {
-		return x.ExecutionTimeout
+		return x.xxx_hidden_ExecutionTimeout
 	}
 	return nil
+}
+
+func (x *Action_AdditionalData) SetStableFingerprint(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_StableFingerprint = v
+}
+
+func (x *Action_AdditionalData) SetExecutionTimeout(v *durationpb.Duration) {
+	x.xxx_hidden_ExecutionTimeout = v
+}
+
+func (x *Action_AdditionalData) HasExecutionTimeout() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ExecutionTimeout != nil
+}
+
+func (x *Action_AdditionalData) ClearExecutionTimeout() {
+	x.xxx_hidden_ExecutionTimeout = nil
+}
+
+type Action_AdditionalData_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	StableFingerprint []byte
+	ExecutionTimeout  *durationpb.Duration
+}
+
+func (b0 Action_AdditionalData_builder) Build() *Action_AdditionalData {
+	m0 := &Action_AdditionalData{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_StableFingerprint = b.StableFingerprint
+	x.xxx_hidden_ExecutionTimeout = b.ExecutionTimeout
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto protoreflect.FileDescriptor
@@ -222,19 +336,7 @@ const file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc
 	"\x05nonce\x18\x01 \x01(\fR\x05nonce\x12\x1e\n" +
 	"\n" +
 	"ciphertext\x18\x02 \x01(\fR\n" +
-	"ciphertextB)Z'bonanza.build/pkg/proto/encryptedactionb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc), len(file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_rawDescData
-}
+	"ciphertextB.Z'bonanza.build/pkg/proto/encryptedaction\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_bonanza_build_pkg_proto_encryptedaction_encryptedaction_proto_goTypes = []any{

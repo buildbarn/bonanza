@@ -30,7 +30,7 @@ func NewActionTimeoutExtractor(maximumExecutionTimeout time.Duration) *ActionTim
 // converting it to a time.Duration. It returns errors in case the
 // provided execution timeout is invalid or out of bounds.
 func (e ActionTimeoutExtractor) ExtractTimeout(action *encryptedaction_pb.Action) (time.Duration, error) {
-	executionTimeoutMessage := action.AdditionalData.GetExecutionTimeout()
+	executionTimeoutMessage := action.GetAdditionalData().GetExecutionTimeout()
 	if executionTimeoutMessage == nil {
 		return 0, status.Error(codes.InvalidArgument, "No execution timeout provided")
 	}
