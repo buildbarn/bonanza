@@ -126,9 +126,9 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		handle.EXPECT().Release(false)
 
 		learner.Abandoned()
-		testutil.RequireEqualProto(t, &model_initialsizeclass_pb.PreviousExecutionStats{
+		testutil.RequireEqualProto(t, model_initialsizeclass_pb.PreviousExecutionStats_builder{
 			SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{},
-		}, stats)
+		}.Build(), stats)
 	})
 
 	t.Run("InitialSuccess", func(t *testing.T) {
@@ -170,15 +170,15 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 
 		_, _, _, learner2 := learner1.Succeeded(time.Minute, []uint32{1, 2, 4, 8})
 		require.Nil(t, learner2)
-		testutil.RequireEqualProto(t, &model_initialsizeclass_pb.PreviousExecutionStats{
+		testutil.RequireEqualProto(t, model_initialsizeclass_pb.PreviousExecutionStats_builder{
 			SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-				2: {
+				2: model_initialsizeclass_pb.PerSizeClassStats_builder{
 					PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-						{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 60}}},
+						model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 60}}.Build(),
 					},
-				},
+				}.Build(),
 			},
-		}, stats)
+		}.Build(), stats)
 	})
 
 	t.Run("SuccessAfterFailure", func(t *testing.T) {
@@ -189,15 +189,15 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		require.NoError(t, err)
 
 		// Let the action run on size class 1.
-		stats := &model_initialsizeclass_pb.PreviousExecutionStats{
+		stats := model_initialsizeclass_pb.PreviousExecutionStats_builder{
 			SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-				8: {
+				8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 					PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-						{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 10}}},
+						model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 10}}.Build(),
 					},
-				},
+				}.Build(),
 			},
-		}
+		}.Build()
 		handle.EXPECT().GetMutableProto().Return(stats).AnyTimes()
 		strategyCalculator.EXPECT().GetStrategies(gomock.Not(gomock.Nil()), []uint32{1, 2, 4, 8}, 30*time.Minute).
 			Return([]initialsizeclass.Strategy{
@@ -235,21 +235,21 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 
 		_, _, _, learner3 := learner2.Succeeded(12*time.Second, []uint32{1, 2, 4, 8})
 		require.Nil(t, learner3)
-		testutil.RequireEqualProto(t, &model_initialsizeclass_pb.PreviousExecutionStats{
+		testutil.RequireEqualProto(t, model_initialsizeclass_pb.PreviousExecutionStats_builder{
 			SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-				1: {
+				1: model_initialsizeclass_pb.PerSizeClassStats_builder{
 					PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-						{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
+						model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
 					},
-				},
-				8: {
+				}.Build(),
+				8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 					PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-						{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 10}}},
-						{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 12}}},
+						model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 10}}.Build(),
+						model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 12}}.Build(),
 					},
-				},
+				}.Build(),
 			},
-		}, stats)
+		}.Build(), stats)
 	})
 
 	t.Run("SkipSmallerAfterFailure", func(t *testing.T) {
@@ -263,16 +263,16 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		// recently. We should always schedule these on the
 		// largest size class, so that we don't introduce
 		// unnecessary delays.
-		stats := &model_initialsizeclass_pb.PreviousExecutionStats{
+		stats := model_initialsizeclass_pb.PreviousExecutionStats_builder{
 			SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-				8: {
+				8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 					PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-						{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 10}}},
+						model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 10}}.Build(),
 					},
-				},
+				}.Build(),
 			},
 			LastSeenFailure: &timestamppb.Timestamp{Seconds: 1620218381},
-		}
+		}.Build()
 		handle.EXPECT().GetMutableProto().Return(stats).AnyTimes()
 		clock.EXPECT().Now().Return(time.Unix(1620242374, 0))
 
@@ -285,16 +285,16 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		handle.EXPECT().Release(false)
 
 		learner.Abandoned()
-		testutil.RequireEqualProto(t, &model_initialsizeclass_pb.PreviousExecutionStats{
+		testutil.RequireEqualProto(t, model_initialsizeclass_pb.PreviousExecutionStats_builder{
 			SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-				8: {
+				8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 					PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-						{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 10}}},
+						model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 10}}.Build(),
 					},
-				},
+				}.Build(),
 			},
 			LastSeenFailure: &timestamppb.Timestamp{Seconds: 1620218381},
-		}, stats)
+		}.Build(), stats)
 	})
 
 	t.Run("BackgroundRun", func(t *testing.T) {
@@ -336,15 +336,15 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 		// execution timeout.
 		strategyCalculator.EXPECT().GetBackgroundExecutionTimeout(gomock.Not(gomock.Nil()), []uint32{1, 2, 4, 8}, 0, 30*time.Minute).DoAndReturn(
 			func(perSizeClassStatsMap map[uint32]*model_initialsizeclass_pb.PerSizeClassStats, sizeClasses []uint32, sizeClassIndex int, originalTimeout time.Duration) time.Duration {
-				testutil.RequireEqualProto(t, &model_initialsizeclass_pb.PreviousExecutionStats{
+				testutil.RequireEqualProto(t, model_initialsizeclass_pb.PreviousExecutionStats_builder{
 					SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-						8: {
+						8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 							PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-								{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 42}}},
+								model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 42}}.Build(),
 							},
-						},
+						}.Build(),
 					},
-				}, stats)
+				}.Build(), stats)
 				return 80 * time.Second
 			},
 		)
@@ -361,20 +361,20 @@ func TestFeedbackDrivenAnalyzer(t *testing.T) {
 
 		_, _, _, learner3 := learner2.Succeeded(72*time.Second, []uint32{1, 2, 4, 8})
 		require.Nil(t, learner3)
-		testutil.RequireEqualProto(t, &model_initialsizeclass_pb.PreviousExecutionStats{
+		testutil.RequireEqualProto(t, model_initialsizeclass_pb.PreviousExecutionStats_builder{
 			SizeClasses: map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-				1: {
+				1: model_initialsizeclass_pb.PerSizeClassStats_builder{
 					PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-						{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 72}}},
+						model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 72}}.Build(),
 					},
-				},
-				8: {
+				}.Build(),
+				8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 					PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-						{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 42}}},
+						model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 42}}.Build(),
 					},
-				},
+				}.Build(),
 			},
-		}, stats)
+		}.Build(), stats)
 	})
 
 	// TODO: Are there more test cases we want to cover?

@@ -270,10 +270,10 @@ func TestStorageBackedMutableProtoStore(t *testing.T) {
 				object.MustNewSHA256V1LocalReference("80f8626ce2a9cc67c144e593bb9ee7a1976a1907e221f1becbfe69d67fe3df92", 100, 0, 0, 0),
 				[]byte{0x3e, 0x35, 0x08, 0x78, 0x24, 0x44, 0x6c, 0x1a, 0x57, 0xe3, 0xd9, 0x06},
 			)),
-		).Return(model_core.NewSimpleMessage[object.LocalReference](&model_initialsizeclass_pb.PreviousExecutionStats{
+		).Return(model_core.NewSimpleMessage[object.LocalReference](model_initialsizeclass_pb.PreviousExecutionStats_builder{
 			SizeClasses:     map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{},
 			LastSeenFailure: &timestamppb.Timestamp{Seconds: 1620818827},
-		}), nil)
+		}.Build()), nil)
 
 		handle1, err := store.Get(
 			ctx,
@@ -293,10 +293,10 @@ func TestStorageBackedMutableProtoStore(t *testing.T) {
 			),
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_initialsizeclass_pb.PreviousExecutionStats{
+		testutil.RequireEqualProto(t, model_initialsizeclass_pb.PreviousExecutionStats_builder{
 			SizeClasses:     map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{},
 			LastSeenFailure: &timestamppb.Timestamp{Seconds: 1620818827},
-		}, handle1.GetMutableProto())
+		}.Build(), handle1.GetMutableProto())
 
 		// Because the first handle hasn't been released, we can
 		// create other handles without causing the first handle
@@ -344,7 +344,7 @@ func TestStorageBackedMutableProtoStore(t *testing.T) {
 
 		// Modify and release the original handle. This should
 		// normally cause the next call to Get() to write it...
-		handle1.GetMutableProto().LastSeenFailure = &timestamppb.Timestamp{Seconds: 1620819007}
+		handle1.GetMutableProto().SetLastSeenFailure(&timestamppb.Timestamp{Seconds: 1620819007})
 		handle1.Release(true)
 
 		// ... except if the next call to Get() requests the
@@ -367,10 +367,10 @@ func TestStorageBackedMutableProtoStore(t *testing.T) {
 			),
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_initialsizeclass_pb.PreviousExecutionStats{
+		testutil.RequireEqualProto(t, model_initialsizeclass_pb.PreviousExecutionStats_builder{
 			SizeClasses:     map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{},
 			LastSeenFailure: &timestamppb.Timestamp{Seconds: 1620819007},
-		}, handle3.GetMutableProto())
+		}.Build(), handle3.GetMutableProto())
 
 		// Release it once again. Even though we did not make
 		// any changes to it, it's still dirty. This means the

@@ -14,7 +14,6 @@ import (
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -26,15 +25,10 @@ const (
 )
 
 type PreviousExecution struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Outcome:
-	//
-	//	*PreviousExecution_Failed
-	//	*PreviousExecution_TimedOut
-	//	*PreviousExecution_Succeeded
-	Outcome       isPreviousExecution_Outcome `protobuf_oneof:"outcome"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState      `protogen:"opaque.v1"`
+	xxx_hidden_Outcome isPreviousExecution_Outcome `protobuf_oneof:"outcome"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *PreviousExecution) Reset() {
@@ -62,21 +56,9 @@ func (x *PreviousExecution) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PreviousExecution.ProtoReflect.Descriptor instead.
-func (*PreviousExecution) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *PreviousExecution) GetOutcome() isPreviousExecution_Outcome {
-	if x != nil {
-		return x.Outcome
-	}
-	return nil
-}
-
 func (x *PreviousExecution) GetFailed() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Outcome.(*PreviousExecution_Failed); ok {
+		if x, ok := x.xxx_hidden_Outcome.(*previousExecution_Failed); ok {
 			return x.Failed
 		}
 	}
@@ -85,7 +67,7 @@ func (x *PreviousExecution) GetFailed() *emptypb.Empty {
 
 func (x *PreviousExecution) GetTimedOut() *durationpb.Duration {
 	if x != nil {
-		if x, ok := x.Outcome.(*PreviousExecution_TimedOut); ok {
+		if x, ok := x.xxx_hidden_Outcome.(*previousExecution_TimedOut); ok {
 			return x.TimedOut
 		}
 	}
@@ -94,41 +76,175 @@ func (x *PreviousExecution) GetTimedOut() *durationpb.Duration {
 
 func (x *PreviousExecution) GetSucceeded() *durationpb.Duration {
 	if x != nil {
-		if x, ok := x.Outcome.(*PreviousExecution_Succeeded); ok {
+		if x, ok := x.xxx_hidden_Outcome.(*previousExecution_Succeeded); ok {
 			return x.Succeeded
 		}
 	}
 	return nil
 }
 
+func (x *PreviousExecution) SetFailed(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Outcome = nil
+		return
+	}
+	x.xxx_hidden_Outcome = &previousExecution_Failed{v}
+}
+
+func (x *PreviousExecution) SetTimedOut(v *durationpb.Duration) {
+	if v == nil {
+		x.xxx_hidden_Outcome = nil
+		return
+	}
+	x.xxx_hidden_Outcome = &previousExecution_TimedOut{v}
+}
+
+func (x *PreviousExecution) SetSucceeded(v *durationpb.Duration) {
+	if v == nil {
+		x.xxx_hidden_Outcome = nil
+		return
+	}
+	x.xxx_hidden_Outcome = &previousExecution_Succeeded{v}
+}
+
+func (x *PreviousExecution) HasOutcome() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Outcome != nil
+}
+
+func (x *PreviousExecution) HasFailed() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Outcome.(*previousExecution_Failed)
+	return ok
+}
+
+func (x *PreviousExecution) HasTimedOut() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Outcome.(*previousExecution_TimedOut)
+	return ok
+}
+
+func (x *PreviousExecution) HasSucceeded() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Outcome.(*previousExecution_Succeeded)
+	return ok
+}
+
+func (x *PreviousExecution) ClearOutcome() {
+	x.xxx_hidden_Outcome = nil
+}
+
+func (x *PreviousExecution) ClearFailed() {
+	if _, ok := x.xxx_hidden_Outcome.(*previousExecution_Failed); ok {
+		x.xxx_hidden_Outcome = nil
+	}
+}
+
+func (x *PreviousExecution) ClearTimedOut() {
+	if _, ok := x.xxx_hidden_Outcome.(*previousExecution_TimedOut); ok {
+		x.xxx_hidden_Outcome = nil
+	}
+}
+
+func (x *PreviousExecution) ClearSucceeded() {
+	if _, ok := x.xxx_hidden_Outcome.(*previousExecution_Succeeded); ok {
+		x.xxx_hidden_Outcome = nil
+	}
+}
+
+const PreviousExecution_Outcome_not_set_case case_PreviousExecution_Outcome = 0
+const PreviousExecution_Failed_case case_PreviousExecution_Outcome = 1
+const PreviousExecution_TimedOut_case case_PreviousExecution_Outcome = 2
+const PreviousExecution_Succeeded_case case_PreviousExecution_Outcome = 3
+
+func (x *PreviousExecution) WhichOutcome() case_PreviousExecution_Outcome {
+	if x == nil {
+		return PreviousExecution_Outcome_not_set_case
+	}
+	switch x.xxx_hidden_Outcome.(type) {
+	case *previousExecution_Failed:
+		return PreviousExecution_Failed_case
+	case *previousExecution_TimedOut:
+		return PreviousExecution_TimedOut_case
+	case *previousExecution_Succeeded:
+		return PreviousExecution_Succeeded_case
+	default:
+		return PreviousExecution_Outcome_not_set_case
+	}
+}
+
+type PreviousExecution_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Outcome:
+	Failed    *emptypb.Empty
+	TimedOut  *durationpb.Duration
+	Succeeded *durationpb.Duration
+	// -- end of xxx_hidden_Outcome
+}
+
+func (b0 PreviousExecution_builder) Build() *PreviousExecution {
+	m0 := &PreviousExecution{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Failed != nil {
+		x.xxx_hidden_Outcome = &previousExecution_Failed{b.Failed}
+	}
+	if b.TimedOut != nil {
+		x.xxx_hidden_Outcome = &previousExecution_TimedOut{b.TimedOut}
+	}
+	if b.Succeeded != nil {
+		x.xxx_hidden_Outcome = &previousExecution_Succeeded{b.Succeeded}
+	}
+	return m0
+}
+
+type case_PreviousExecution_Outcome protoreflect.FieldNumber
+
+func (x case_PreviousExecution_Outcome) String() string {
+	md := file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_msgTypes[0].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isPreviousExecution_Outcome interface {
 	isPreviousExecution_Outcome()
 }
 
-type PreviousExecution_Failed struct {
-	Failed *emptypb.Empty `protobuf:"bytes,1,opt,name=failed,proto3,oneof"`
+type previousExecution_Failed struct {
+	Failed *emptypb.Empty `protobuf:"bytes,1,opt,name=failed,oneof"`
 }
 
-type PreviousExecution_TimedOut struct {
-	TimedOut *durationpb.Duration `protobuf:"bytes,2,opt,name=timed_out,json=timedOut,proto3,oneof"`
+type previousExecution_TimedOut struct {
+	TimedOut *durationpb.Duration `protobuf:"bytes,2,opt,name=timed_out,json=timedOut,oneof"`
 }
 
-type PreviousExecution_Succeeded struct {
-	Succeeded *durationpb.Duration `protobuf:"bytes,3,opt,name=succeeded,proto3,oneof"`
+type previousExecution_Succeeded struct {
+	Succeeded *durationpb.Duration `protobuf:"bytes,3,opt,name=succeeded,oneof"`
 }
 
-func (*PreviousExecution_Failed) isPreviousExecution_Outcome() {}
+func (*previousExecution_Failed) isPreviousExecution_Outcome() {}
 
-func (*PreviousExecution_TimedOut) isPreviousExecution_Outcome() {}
+func (*previousExecution_TimedOut) isPreviousExecution_Outcome() {}
 
-func (*PreviousExecution_Succeeded) isPreviousExecution_Outcome() {}
+func (*previousExecution_Succeeded) isPreviousExecution_Outcome() {}
 
 type PerSizeClassStats struct {
-	state                      protoimpl.MessageState `protogen:"open.v1"`
-	PreviousExecutions         []*PreviousExecution   `protobuf:"bytes,1,rep,name=previous_executions,json=previousExecutions,proto3" json:"previous_executions,omitempty"`
-	InitialPageRankProbability float64                `protobuf:"fixed64,2,opt,name=initial_page_rank_probability,json=initialPageRankProbability,proto3" json:"initial_page_rank_probability,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	state                                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PreviousExecutions         *[]*PreviousExecution  `protobuf:"bytes,1,rep,name=previous_executions,json=previousExecutions"`
+	xxx_hidden_InitialPageRankProbability float64                `protobuf:"fixed64,2,opt,name=initial_page_rank_probability,json=initialPageRankProbability"`
+	unknownFields                         protoimpl.UnknownFields
+	sizeCache                             protoimpl.SizeCache
 }
 
 func (x *PerSizeClassStats) Reset() {
@@ -156,31 +272,52 @@ func (x *PerSizeClassStats) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PerSizeClassStats.ProtoReflect.Descriptor instead.
-func (*PerSizeClassStats) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *PerSizeClassStats) GetPreviousExecutions() []*PreviousExecution {
 	if x != nil {
-		return x.PreviousExecutions
+		if x.xxx_hidden_PreviousExecutions != nil {
+			return *x.xxx_hidden_PreviousExecutions
+		}
 	}
 	return nil
 }
 
 func (x *PerSizeClassStats) GetInitialPageRankProbability() float64 {
 	if x != nil {
-		return x.InitialPageRankProbability
+		return x.xxx_hidden_InitialPageRankProbability
 	}
 	return 0
 }
 
+func (x *PerSizeClassStats) SetPreviousExecutions(v []*PreviousExecution) {
+	x.xxx_hidden_PreviousExecutions = &v
+}
+
+func (x *PerSizeClassStats) SetInitialPageRankProbability(v float64) {
+	x.xxx_hidden_InitialPageRankProbability = v
+}
+
+type PerSizeClassStats_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	PreviousExecutions         []*PreviousExecution
+	InitialPageRankProbability float64
+}
+
+func (b0 PerSizeClassStats_builder) Build() *PerSizeClassStats {
+	m0 := &PerSizeClassStats{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_PreviousExecutions = &b.PreviousExecutions
+	x.xxx_hidden_InitialPageRankProbability = b.InitialPageRankProbability
+	return m0
+}
+
 type PreviousExecutionStats struct {
-	state           protoimpl.MessageState        `protogen:"open.v1"`
-	SizeClasses     map[uint32]*PerSizeClassStats `protobuf:"bytes,1,rep,name=size_classes,json=sizeClasses,proto3" json:"size_classes,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	LastSeenFailure *timestamppb.Timestamp        `protobuf:"bytes,2,opt,name=last_seen_failure,json=lastSeenFailure,proto3" json:"last_seen_failure,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState        `protogen:"opaque.v1"`
+	xxx_hidden_SizeClasses     map[uint32]*PerSizeClassStats `protobuf:"bytes,1,rep,name=size_classes,json=sizeClasses" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_LastSeenFailure *timestamppb.Timestamp        `protobuf:"bytes,2,opt,name=last_seen_failure,json=lastSeenFailure"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *PreviousExecutionStats) Reset() {
@@ -208,32 +345,62 @@ func (x *PreviousExecutionStats) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PreviousExecutionStats.ProtoReflect.Descriptor instead.
-func (*PreviousExecutionStats) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *PreviousExecutionStats) GetSizeClasses() map[uint32]*PerSizeClassStats {
 	if x != nil {
-		return x.SizeClasses
+		return x.xxx_hidden_SizeClasses
 	}
 	return nil
 }
 
 func (x *PreviousExecutionStats) GetLastSeenFailure() *timestamppb.Timestamp {
 	if x != nil {
-		return x.LastSeenFailure
+		return x.xxx_hidden_LastSeenFailure
 	}
 	return nil
 }
 
+func (x *PreviousExecutionStats) SetSizeClasses(v map[uint32]*PerSizeClassStats) {
+	x.xxx_hidden_SizeClasses = v
+}
+
+func (x *PreviousExecutionStats) SetLastSeenFailure(v *timestamppb.Timestamp) {
+	x.xxx_hidden_LastSeenFailure = v
+}
+
+func (x *PreviousExecutionStats) HasLastSeenFailure() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LastSeenFailure != nil
+}
+
+func (x *PreviousExecutionStats) ClearLastSeenFailure() {
+	x.xxx_hidden_LastSeenFailure = nil
+}
+
+type PreviousExecutionStats_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SizeClasses     map[uint32]*PerSizeClassStats
+	LastSeenFailure *timestamppb.Timestamp
+}
+
+func (b0 PreviousExecutionStats_builder) Build() *PreviousExecutionStats {
+	m0 := &PreviousExecutionStats{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_SizeClasses = b.SizeClasses
+	x.xxx_hidden_LastSeenFailure = b.LastSeenFailure
+	return m0
+}
+
 type TagKeyData struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	CommonKeyDataReference *core.Reference        `protobuf:"bytes,1,opt,name=common_key_data_reference,json=commonKeyDataReference,proto3" json:"common_key_data_reference,omitempty"`
-	PlatformPkixPublicKey  []byte                 `protobuf:"bytes,2,opt,name=platform_pkix_public_key,json=platformPkixPublicKey,proto3" json:"platform_pkix_public_key,omitempty"`
-	StableFingerprint      []byte                 `protobuf:"bytes,3,opt,name=stable_fingerprint,json=stableFingerprint,proto3" json:"stable_fingerprint,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_CommonKeyDataReference *core.Reference        `protobuf:"bytes,1,opt,name=common_key_data_reference,json=commonKeyDataReference"`
+	xxx_hidden_PlatformPkixPublicKey  []byte                 `protobuf:"bytes,2,opt,name=platform_pkix_public_key,json=platformPkixPublicKey"`
+	xxx_hidden_StableFingerprint      []byte                 `protobuf:"bytes,3,opt,name=stable_fingerprint,json=stableFingerprint"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *TagKeyData) Reset() {
@@ -261,30 +428,72 @@ func (x *TagKeyData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TagKeyData.ProtoReflect.Descriptor instead.
-func (*TagKeyData) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *TagKeyData) GetCommonKeyDataReference() *core.Reference {
 	if x != nil {
-		return x.CommonKeyDataReference
+		return x.xxx_hidden_CommonKeyDataReference
 	}
 	return nil
 }
 
 func (x *TagKeyData) GetPlatformPkixPublicKey() []byte {
 	if x != nil {
-		return x.PlatformPkixPublicKey
+		return x.xxx_hidden_PlatformPkixPublicKey
 	}
 	return nil
 }
 
 func (x *TagKeyData) GetStableFingerprint() []byte {
 	if x != nil {
-		return x.StableFingerprint
+		return x.xxx_hidden_StableFingerprint
 	}
 	return nil
+}
+
+func (x *TagKeyData) SetCommonKeyDataReference(v *core.Reference) {
+	x.xxx_hidden_CommonKeyDataReference = v
+}
+
+func (x *TagKeyData) SetPlatformPkixPublicKey(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_PlatformPkixPublicKey = v
+}
+
+func (x *TagKeyData) SetStableFingerprint(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_StableFingerprint = v
+}
+
+func (x *TagKeyData) HasCommonKeyDataReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CommonKeyDataReference != nil
+}
+
+func (x *TagKeyData) ClearCommonKeyDataReference() {
+	x.xxx_hidden_CommonKeyDataReference = nil
+}
+
+type TagKeyData_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	CommonKeyDataReference *core.Reference
+	PlatformPkixPublicKey  []byte
+	StableFingerprint      []byte
+}
+
+func (b0 TagKeyData_builder) Build() *TagKeyData {
+	m0 := &TagKeyData{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_CommonKeyDataReference = b.CommonKeyDataReference
+	x.xxx_hidden_PlatformPkixPublicKey = b.PlatformPkixPublicKey
+	x.xxx_hidden_StableFingerprint = b.StableFingerprint
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto protoreflect.FileDescriptor
@@ -310,19 +519,7 @@ const file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto
 	"TagKeyData\x12X\n" +
 	"\x19common_key_data_reference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\x16commonKeyDataReference\x127\n" +
 	"\x18platform_pkix_public_key\x18\x02 \x01(\fR\x15platformPkixPublicKey\x12-\n" +
-	"\x12stable_fingerprint\x18\x03 \x01(\fR\x11stableFingerprintB0Z.bonanza.build/pkg/proto/model/initialsizeclassb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_rawDescData
-}
+	"\x12stable_fingerprint\x18\x03 \x01(\fR\x11stableFingerprintB5Z.bonanza.build/pkg/proto/model/initialsizeclass\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_goTypes = []any{
@@ -358,9 +555,9 @@ func file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_
 		return
 	}
 	file_bonanza_build_pkg_proto_model_initialsizeclass_initialsizeclass_proto_msgTypes[0].OneofWrappers = []any{
-		(*PreviousExecution_Failed)(nil),
-		(*PreviousExecution_TimedOut)(nil),
-		(*PreviousExecution_Succeeded)(nil),
+		(*previousExecution_Failed)(nil),
+		(*previousExecution_TimedOut)(nil),
+		(*previousExecution_Succeeded)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

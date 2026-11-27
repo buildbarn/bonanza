@@ -57,8 +57,8 @@ func NewPageRankStrategyCalculator(minimumExecutionTimeout time.Duration, accept
 func getOutcomesFromPreviousExecutions(previousExecutionsOnLargest []*model_initialsizeclass_pb.PreviousExecution) Outcomes {
 	executionTimesOnLargest := make([]time.Duration, 0, len(previousExecutionsOnLargest))
 	for _, previousExecution := range previousExecutionsOnLargest {
-		if outcome, ok := previousExecution.Outcome.(*model_initialsizeclass_pb.PreviousExecution_Succeeded); ok {
-			executionTimesOnLargest = append(executionTimesOnLargest, outcome.Succeeded.AsDuration())
+		if outcome := previousExecution.GetSucceeded(); outcome != nil {
+			executionTimesOnLargest = append(executionTimesOnLargest, outcome.AsDuration())
 		}
 	}
 	return NewOutcomes(executionTimesOnLargest, 0)
@@ -119,7 +119,7 @@ func (sc *pageRankStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uin
 	// determining what the execution timeout should be on smaller
 	// size classes.
 	n := len(sizeClasses)
-	outcomesOnLargest := getOutcomesFromPreviousExecutions(perSizeClassStatsList[n-1].PreviousExecutions)
+	outcomesOnLargest := getOutcomesFromPreviousExecutions(perSizeClassStatsList[n-1].GetPreviousExecutions())
 	medianExecutionTimeOnLargest := outcomesOnLargest.GetMedianExecutionTime()
 	if medianExecutionTimeOnLargest == nil {
 		// This action never succeeded on the largest size
@@ -147,19 +147,19 @@ func (sc *pageRankStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uin
 		// acceptable as failures, so that the probability of
 		// picking this size class is reduced.
 		p := sc.getSmallerSizeClassExecutionParameters(sizeClass, largestSizeClass, *medianExecutionTimeOnLargest, originalTimeout)
-		previousExecutionsOnSmaller := perSizeClassStatsList[i].PreviousExecutions
+		previousExecutionsOnSmaller := perSizeClassStatsList[i].GetPreviousExecutions()
 		normalizedExecutionTimes := make(durationsList, 0, len(previousExecutionsOnSmaller))
 		failuresOrTimeouts := 0
 		for _, previousExecution := range previousExecutionsOnSmaller {
-			switch outcome := previousExecution.Outcome.(type) {
-			case *model_initialsizeclass_pb.PreviousExecution_Failed:
+			switch previousExecution.WhichOutcome() {
+			case model_initialsizeclass_pb.PreviousExecution_Failed_case:
 				failuresOrTimeouts++
-			case *model_initialsizeclass_pb.PreviousExecution_TimedOut:
-				if duration := outcome.TimedOut.AsDuration(); duration >= p.maximumAcceptableExecutionTime {
+			case model_initialsizeclass_pb.PreviousExecution_TimedOut_case:
+				if duration := previousExecution.GetTimedOut().AsDuration(); duration >= p.maximumAcceptableExecutionTime {
 					failuresOrTimeouts++
 				}
-			case *model_initialsizeclass_pb.PreviousExecution_Succeeded:
-				if duration := outcome.Succeeded.AsDuration(); duration < p.maximumAcceptableExecutionTime {
+			case model_initialsizeclass_pb.PreviousExecution_Succeeded_case:
+				if duration := previousExecution.GetSucceeded().AsDuration(); duration < p.maximumAcceptableExecutionTime {
 					normalizedExecutionTimes = append(normalizedExecutionTimes, time.Duration(float64(duration)/p.acceptableExecutionTimeIncreaseFactor))
 				} else {
 					failuresOrTimeouts++
@@ -248,7 +248,7 @@ func (sc *pageRankStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uin
 	var probabilitiesSum float64
 	for i := 1; i < n; i++ {
 		probability := 0.5
-		if restoredProbability := perSizeClassStatsList[i].InitialPageRankProbability; restoredProbability > 0 && restoredProbability < 1 {
+		if restoredProbability := perSizeClassStatsList[i].GetInitialPageRankProbability(); restoredProbability > 0 && restoredProbability < 1 {
 			probability = restoredProbability
 		}
 		strategies[i].Probability = probability
@@ -285,10 +285,10 @@ func (sc *pageRankStrategyCalculator) GetStrategies(perSizeClassStatsMap map[uin
 
 	// Save the probabilities that have been computed.
 	for _, perSizeClassStats := range perSizeClassStatsMap {
-		perSizeClassStats.InitialPageRankProbability = 0
+		perSizeClassStats.SetInitialPageRankProbability(0)
 	}
 	for i, perSizeClassStats := range perSizeClassStatsList {
-		perSizeClassStats.InitialPageRankProbability = strategies[i].Probability
+		perSizeClassStats.SetInitialPageRankProbability(strategies[i].Probability)
 	}
 	return strategies[:n-1]
 }
@@ -303,7 +303,7 @@ func (sc *pageRankStrategyCalculator) GetBackgroundExecutionTimeout(perSizeClass
 		sizeClasses[sizeClassIndex],
 		largestSizeClass,
 		*getOutcomesFromPreviousExecutions(
-			perSizeClassStatsMap[largestSizeClass].PreviousExecutions,
+			perSizeClassStatsMap[largestSizeClass].GetPreviousExecutions(),
 		).GetMedianExecutionTime(),
 		originalTimeout,
 	).executionTimeout

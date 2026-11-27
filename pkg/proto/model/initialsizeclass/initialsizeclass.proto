@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.model.initialsizeclass;
 
@@ -7,6 +7,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/initialsizeclass";
 
 // The outcome of a single action at some point in the past.

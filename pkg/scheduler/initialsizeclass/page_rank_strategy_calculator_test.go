@@ -65,18 +65,18 @@ func TestPageRankStrategyCalculatorEmpty(t *testing.T) {
 func TestPageRankStrategyCalculatorSingleRunSuccess(t *testing.T) {
 	strategyCalculator := initialsizeclass.NewPageRankStrategyCalculator(5*time.Second, 0.5, 1.5, 0.001)
 	strategies := strategyCalculator.GetStrategies(map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-		1: {
+		1: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 1}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 1}}.Build(),
 			},
-		},
+		}.Build(),
 		2: {},
 		4: {},
-		8: {
+		8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 1}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 1}}.Build(),
 			},
-		},
+		}.Build(),
 	}, []uint32{1, 2, 4, 8}, 15*time.Minute)
 	requireEqualStrategies(
 		t,
@@ -105,18 +105,18 @@ func TestPageRankStrategyCalculatorSingleRunSuccess(t *testing.T) {
 func TestPageRankStrategyCalculatorSingleRunFailure(t *testing.T) {
 	strategyCalculator := initialsizeclass.NewPageRankStrategyCalculator(5*time.Second, 0.5, 1.5, 0.001)
 	strategies := strategyCalculator.GetStrategies(map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-		1: {
+		1: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
 			},
-		},
+		}.Build(),
 		2: {},
 		4: {},
-		8: {
+		8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 1}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 1}}.Build(),
 			},
-		},
+		}.Build(),
 	}, []uint32{1, 2, 4, 8}, 15*time.Minute)
 	requireEqualStrategies(
 		t,
@@ -143,64 +143,64 @@ func TestPageRankStrategyCalculatorSingleRunFailure(t *testing.T) {
 func TestPageRankStrategyCalculatorCloseToTimeout(t *testing.T) {
 	strategyCalculator := initialsizeclass.NewPageRankStrategyCalculator(5*time.Second, 0.5, 1.5, 0.001)
 	strategies := strategyCalculator.GetStrategies(map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-		1: {
+		1: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 7, Nanos: 500000000}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 7, Nanos: 500000000}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
 			},
-		},
-		2: {
+		}.Build(),
+		2: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
 			},
-		},
-		4: {
+		}.Build(),
+		4: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 744, Nanos: 745171748}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 736, Nanos: 585305066}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 786, Nanos: 526637558}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_TimedOut{TimedOut: &durationpb.Duration{Seconds: 900}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 773, Nanos: 860202581}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 744, Nanos: 745171748}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 736, Nanos: 585305066}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 786, Nanos: 526637558}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{TimedOut: &durationpb.Duration{Seconds: 900}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 773, Nanos: 860202581}}.Build(),
 			},
-		},
-		8: {
+		}.Build(),
+		8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 652, Nanos: 236376306}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 624, Nanos: 11911117}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 630, Nanos: 320095712}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 627, Nanos: 102638899}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 651, Nanos: 795797310}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 655, Nanos: 97161482}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 649, Nanos: 54963830}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 653, Nanos: 183883239}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 648, Nanos: 783209241}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 666, Nanos: 485370182}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 640, Nanos: 917318827}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 636, Nanos: 910996040}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 669, Nanos: 358977129}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 638, Nanos: 876466482}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 667, Nanos: 615625730}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 639, Nanos: 109428595}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 645, Nanos: 421212352}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 659, Nanos: 724568628}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 645, Nanos: 199012224}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 623, Nanos: 819328226}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 642, Nanos: 84340620}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 633, Nanos: 645871363}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 692, Nanos: 204251786}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 652, Nanos: 236376306}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 624, Nanos: 11911117}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 630, Nanos: 320095712}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 627, Nanos: 102638899}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 651, Nanos: 795797310}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 655, Nanos: 97161482}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 649, Nanos: 54963830}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 653, Nanos: 183883239}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 648, Nanos: 783209241}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 666, Nanos: 485370182}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 640, Nanos: 917318827}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 636, Nanos: 910996040}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 669, Nanos: 358977129}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 638, Nanos: 876466482}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 667, Nanos: 615625730}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 639, Nanos: 109428595}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 645, Nanos: 421212352}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 659, Nanos: 724568628}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 645, Nanos: 199012224}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 623, Nanos: 819328226}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 642, Nanos: 84340620}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 633, Nanos: 645871363}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 692, Nanos: 204251786}}.Build(),
 			},
-		},
+		}.Build(),
 	}, []uint32{1, 2, 4, 8}, 15*time.Minute)
 	requireEqualStrategies(
 		t,
@@ -228,50 +228,50 @@ func TestPageRankStrategyCalculatorCloseToTimeout(t *testing.T) {
 func TestPageRankStrategyCalculatorUntestedSizeClass(t *testing.T) {
 	strategyCalculator := initialsizeclass.NewPageRankStrategyCalculator(5*time.Second, 0.5, 1.5, 0.001)
 	strategies := strategyCalculator.GetStrategies(map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-		1: {
+		1: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 19941089}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 20017118}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 21509286}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 31062553}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 32028792}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 56637488}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 20011641}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 32338320}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 21190311}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 19520433}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 19496810}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 34248944}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 39543182}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 21466694}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 20287814}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 20572146}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 20582404}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 21701414}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 21688507}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 20296545}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 19621454}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 41513823}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 22492816}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 20089137}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 36233309}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 21063001}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 37055862}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 18909835}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 19941089}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 20017118}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 21509286}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 31062553}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 32028792}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 56637488}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 20011641}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 32338320}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 21190311}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 19520433}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 19496810}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 34248944}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 39543182}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 21466694}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 20287814}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 20572146}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 20582404}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 21701414}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 21688507}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 20296545}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 19621454}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 41513823}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 22492816}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 20089137}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 36233309}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 21063001}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 37055862}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 18909835}}.Build(),
 			},
-		},
+		}.Build(),
 		2: {},
-		4: {
+		4: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 19648577}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 26058621}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 19648577}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 26058621}}.Build(),
 			},
-		},
-		8: {
+		}.Build(),
+		8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Nanos: 21127338}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Nanos: 21127338}}.Build(),
 			},
-		},
+		}.Build(),
 	}, []uint32{1, 2, 4, 8}, 15*time.Minute)
 	requireEqualStrategies(
 		t,
@@ -298,82 +298,82 @@ func TestPageRankStrategyCalculatorUntestedSizeClass(t *testing.T) {
 // be very low.
 func TestPageRankStrategyCalculatorExtremelyHighProbability(t *testing.T) {
 	strategyCalculator := initialsizeclass.NewPageRankStrategyCalculator(5*time.Second, 1.0, 1.5, 0.001)
-	thirtyFailures := model_initialsizeclass_pb.PerSizeClassStats{
+	thirtyFailures := model_initialsizeclass_pb.PerSizeClassStats_builder{
 		PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
 
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
 
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
-			{Outcome: &model_initialsizeclass_pb.PreviousExecution_Failed{Failed: &emptypb.Empty{}}},
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
+			model_initialsizeclass_pb.PreviousExecution_builder{Failed: &emptypb.Empty{}}.Build(),
 		},
-	}
+	}.Build()
 	strategies := strategyCalculator.GetStrategies(map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-		1: &thirtyFailures,
-		2: &thirtyFailures,
-		4: &thirtyFailures,
-		8: {
+		1: thirtyFailures,
+		2: thirtyFailures,
+		4: thirtyFailures,
+		8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 14}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 14}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 14}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 14}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 14}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 14}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 14}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 14}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 14}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 14}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 14}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 14}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 14}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 14}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 14}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 14}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 14}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 14}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 14}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 14}}.Build(),
 
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 15}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 15}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 15}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 15}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 15}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 15}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 15}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 15}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 15}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 15}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 15}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 15}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 15}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 15}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 15}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 15}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 15}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 15}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 15}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 15}}.Build(),
 
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 16}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 16}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 16}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 16}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 16}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 16}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 16}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 16}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 16}}},
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 16}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 16}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 16}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 16}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 16}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 16}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 16}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 16}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 16}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 16}}.Build(),
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 16}}.Build(),
 			},
-		},
+		}.Build(),
 	}, []uint32{1, 2, 4, 8}, 15*time.Minute)
 	requireEqualStrategies(
 		t,
@@ -403,11 +403,11 @@ func TestPageRankStrategyCalculatorExtremelyHighProbability(t *testing.T) {
 func TestPageRankStrategyCalculatorExecutionTimesLargerThanTimeout(t *testing.T) {
 	strategyCalculator := initialsizeclass.NewPageRankStrategyCalculator(5*time.Second, 1.0, 1.5, 0.001)
 	stats := map[uint32]*model_initialsizeclass_pb.PerSizeClassStats{
-		8: {
+		8: model_initialsizeclass_pb.PerSizeClassStats_builder{
 			PreviousExecutions: []*model_initialsizeclass_pb.PreviousExecution{
-				{Outcome: &model_initialsizeclass_pb.PreviousExecution_Succeeded{Succeeded: &durationpb.Duration{Seconds: 151}}},
+				model_initialsizeclass_pb.PreviousExecution_builder{Succeeded: &durationpb.Duration{Seconds: 151}}.Build(),
 			},
-		},
+		}.Build(),
 	}
 
 	requireEqualStrategies(
