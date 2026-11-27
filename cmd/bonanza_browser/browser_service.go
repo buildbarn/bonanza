@@ -1395,20 +1395,22 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return nil, fmt.Errorf("failed to list platform queues: %w", err)
 	}
-	tableRows := make([]g.Node, 0, len(response.PlatformQueues))
-	for _, pq := range response.PlatformQueues {
-		for i, scq := range pq.SizeClassQueues {
+	platformQueues := response.GetPlatformQueues()
+	tableRows := make([]g.Node, 0, len(platformQueues))
+	for _, pq := range platformQueues {
+		for i, scq := range pq.GetSizeClassQueues() {
 			// For each platform queue, add a multi-row
 			// column on the left hand side containing the
 			// PKIX public keys.
 			var cells []g.Node
 			if i == 0 {
+				encodedPkixPublicKeys := pq.GetPkixPublicKeys()
 				pkixPublicKeys := append(
-					make([]g.Node, 0, 2+2*len(pq.PkixPublicKeys)),
+					make([]g.Node, 0, 2+2*len(encodedPkixPublicKeys)),
 					h.Class("break-all font-mono"),
-					h.RowSpan(strconv.FormatInt(int64(len(pq.SizeClassQueues)), 10)),
+					h.RowSpan(strconv.FormatInt(int64(len(pq.GetSizeClassQueues())), 10)),
 				)
-				for _, pkixPublicKey := range pq.PkixPublicKeys {
+				for _, pkixPublicKey := range encodedPkixPublicKeys {
 					pkixPublicKeys = append(
 						pkixPublicKeys,
 						g.Text(base64.StdEncoding.EncodeToString(pkixPublicKey)),
@@ -1418,42 +1420,36 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 				cells = append(cells, h.Td(pkixPublicKeys...))
 			}
 
-			sizeClassQueueName := &buildqueuestate_pb.SizeClassQueueName{
-				PlatformPkixPublicKey: pq.PkixPublicKeys[0],
-				SizeClass:             scq.SizeClass,
-			}
+			sizeClassQueueName := buildqueuestate_pb.SizeClassQueueName_builder{
+				PlatformPkixPublicKey: pq.GetPkixPublicKeys()[0],
+				SizeClass:             scq.GetSizeClass(),
+			}.Build()
 			sizeClassQueueNameStr, err := marshalAndURLEncode(sizeClassQueueName)
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal and encode size class queue name: %w", err)
 			}
-			invocationName := &buildqueuestate_pb.InvocationName{
+			invocationName := buildqueuestate_pb.InvocationName_builder{
 				SizeClassQueueName: sizeClassQueueName,
-			}
+			}.Build()
 			invocationNameStr, err := marshalAndURLEncode(invocationName)
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal and encode invocation name: %w", err)
 			}
-			listWorkersFilterExecutingStr, err := marshalAndURLEncode(&buildqueuestate_pb.ListWorkersRequest_Filter{
-				Type: &buildqueuestate_pb.ListWorkersRequest_Filter_Executing{
-					Executing: invocationName,
-				},
-			})
+			listWorkersFilterExecutingStr, err := marshalAndURLEncode(buildqueuestate_pb.ListWorkersRequest_Filter_builder{
+				Executing: proto.ValueOrDefault(invocationName),
+			}.Build())
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal and encode executing workers filter: %w", err)
 			}
-			listWorkersFilterIdleSynchronizingStr, err := marshalAndURLEncode(&buildqueuestate_pb.ListWorkersRequest_Filter{
-				Type: &buildqueuestate_pb.ListWorkersRequest_Filter_IdleSynchronizing{
-					IdleSynchronizing: invocationName,
-				},
-			})
+			listWorkersFilterIdleSynchronizingStr, err := marshalAndURLEncode(buildqueuestate_pb.ListWorkersRequest_Filter_builder{
+				IdleSynchronizing: proto.ValueOrDefault(invocationName),
+			}.Build())
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal and encode idle synchronizing workers filter: %w", err)
 			}
-			listWorkersFilterAllStr, err := marshalAndURLEncode(&buildqueuestate_pb.ListWorkersRequest_Filter{
-				Type: &buildqueuestate_pb.ListWorkersRequest_Filter_All{
-					All: sizeClassQueueName,
-				},
-			})
+			listWorkersFilterAllStr, err := marshalAndURLEncode(buildqueuestate_pb.ListWorkersRequest_Filter_builder{
+				All: proto.ValueOrDefault(sizeClassQueueName),
+			}.Build())
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal and encode all workers filter: %w", err)
 			}
@@ -1464,14 +1460,14 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 				h.Tr(
 					append(
 						cells,
-						h.Td(h.Class("text-right"), g.Textf("%d", scq.SizeClass)),
-						h.Td(h.Class("text-right"), g.Text(timeoutToText(scq.Timeout, now))),
+						h.Td(h.Class("text-right"), g.Textf("%d", scq.GetSizeClass())),
+						h.Td(h.Class("text-right"), g.Text(timeoutToText(scq.GetTimeout(), now))),
 						h.Td(
 							h.Class("text-right"),
 							h.A(
 								h.Class("link link-primary"),
 								h.Href("queued_operations/"+invocationNameStr),
-								g.Textf("%d", scq.RootInvocation.QueuedOperationsCount),
+								g.Textf("%d", scq.GetRootInvocation().GetQueuedOperationsCount()),
 							),
 						),
 						h.Td(
@@ -1479,7 +1475,7 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 							h.A(
 								h.Class("link link-primary"),
 								h.Href("invocation_children/"+invocationNameStr+"/QUEUED"),
-								g.Textf("%d", scq.RootInvocation.QueuedChildrenCount),
+								g.Textf("%d", scq.GetRootInvocation().GetQueuedChildrenCount()),
 							),
 						),
 						h.Td(
@@ -1487,7 +1483,7 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 							h.A(
 								h.Class("link link-primary"),
 								h.Href("invocation_children/"+invocationNameStr+"/ACTIVE"),
-								g.Textf("%d", scq.RootInvocation.ActiveChildrenCount),
+								g.Textf("%d", scq.GetRootInvocation().GetActiveChildrenCount()),
 							),
 						),
 						h.Td(
@@ -1495,7 +1491,7 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 							h.A(
 								h.Class("link link-primary"),
 								h.Href("invocation_children/"+invocationNameStr+"/ALL"),
-								g.Textf("%d", scq.RootInvocation.ChildrenCount),
+								g.Textf("%d", scq.GetRootInvocation().GetChildrenCount()),
 							),
 						),
 						h.Td(
@@ -1503,19 +1499,19 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 							h.A(
 								h.Class("link link-primary"),
 								h.Href("workers/"+listWorkersFilterExecutingStr),
-								g.Textf("%d", scq.RootInvocation.ExecutingWorkersCount),
+								g.Textf("%d", scq.GetRootInvocation().GetExecutingWorkersCount()),
 							),
 						),
 						h.Td(
 							h.Class("text-right"),
-							g.Textf("%d", scq.RootInvocation.IdleWorkersCount),
+							g.Textf("%d", scq.GetRootInvocation().GetIdleWorkersCount()),
 						),
 						h.Td(
 							h.Class("text-right"),
 							h.A(
 								h.Class("link link-primary"),
 								h.Href("workers/"+listWorkersFilterIdleSynchronizingStr),
-								g.Textf("%d", scq.RootInvocation.IdleSynchronizingWorkersCount),
+								g.Textf("%d", scq.GetRootInvocation().GetIdleSynchronizingWorkersCount()),
 							),
 						),
 						h.Td(
@@ -1523,7 +1519,7 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 							h.A(
 								h.Class("link link-primary"),
 								h.Href("workers/"+listWorkersFilterAllStr),
-								g.Textf("%d", scq.WorkersCount),
+								g.Textf("%d", scq.GetWorkersCount()),
 							),
 						),
 						h.Td(
@@ -1531,7 +1527,7 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 							h.A(
 								h.Class("link link-primary"),
 								h.Href("drains/"+sizeClassQueueNameStr),
-								g.Textf("%d", scq.DrainsCount),
+								g.Textf("%d", scq.GetDrainsCount()),
 							),
 						),
 					)...,
@@ -1562,7 +1558,7 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 							h.A(
 								h.Class("link link-primary"),
 								h.Href("operations/ALL"),
-								g.Textf("%d", operationsCount.PaginationInfo.GetTotalEntries()),
+								g.Textf("%d", operationsCount.GetPaginationInfo().GetTotalEntries()),
 							),
 						),
 					),
@@ -1637,9 +1633,9 @@ func (s *BrowserService) doPlatformQueues(w http.ResponseWriter, r *http.Request
 
 func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.Node, error) {
 	operationName := r.PathValue("operation_name")
-	response, err := s.buildQueueStateClient.GetOperation(r.Context(), &buildqueuestate_pb.GetOperationRequest{
+	response, err := s.buildQueueStateClient.GetOperation(r.Context(), buildqueuestate_pb.GetOperationRequest_builder{
 		OperationName: operationName,
-	})
+	}.Build())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get operation: %w", err)
 	}
@@ -1944,12 +1940,12 @@ func (s *BrowserService) doOperations(w http.ResponseWriter, r *http.Request) (g
 	}
 
 	ctx := r.Context()
-	response, err := s.buildQueueStateClient.ListOperations(ctx, &buildqueuestate_pb.ListOperationsRequest{
+	response, err := s.buildQueueStateClient.ListOperations(ctx, buildqueuestate_pb.ListOperationsRequest_builder{
 		FilterInvocationId: filterInvocationID,
 		FilterStage:        filterStage,
 		PageSize:           pageSize,
 		StartAfter:         startAfter,
-	})
+	}.Build())
 	if err != nil {
 		return nil, fmt.Errorf("failed to list operations: %w", err)
 	}
@@ -1986,7 +1982,8 @@ func (s *BrowserService) doOperations(w http.ResponseWriter, r *http.Request) (g
 	paginationNodes := []g.Node{
 		h.Class("join"),
 	}
-	paginationInfo := response.PaginationInfo
+	operations := response.GetOperations()
+	paginationInfo := response.GetPaginationInfo()
 	startIndex := paginationInfo.GetStartIndex()
 	if startIndex > 0 {
 		paginationNodes = append(paginationNodes, h.A(
@@ -2005,9 +2002,9 @@ func (s *BrowserService) doOperations(w http.ResponseWriter, r *http.Request) (g
 	paginationNodes = append(paginationNodes, h.Span(
 		h.Role("button"),
 		h.Class("join-item btn btn-active btn-primary"),
-		g.Textf("Showing operations [%d, %d) of %d in total", startIndex, startIndex+uint32(len(response.Operations)), paginationInfo.GetTotalEntries()),
+		g.Textf("Showing operations [%d, %d) of %d in total", startIndex, startIndex+uint32(len(operations)), paginationInfo.GetTotalEntries()),
 	))
-	if l := len(response.Operations); l > 0 {
+	if l := len(operations); l > 0 {
 		paginationNodes = append(paginationNodes, h.A(
 			h.Role("button"),
 			h.Class("join-item btn"),
@@ -2022,9 +2019,9 @@ func (s *BrowserService) doOperations(w http.ResponseWriter, r *http.Request) (g
 		))
 	}
 
-	tableRows := make([]g.Node, 0, len(response.Operations))
+	tableRows := make([]g.Node, 0, len(operations))
 	now := time.Now()
-	for _, operation := range response.Operations {
+	for _, operation := range operations {
 		tableRows = append(
 			tableRows,
 			h.Tr(
@@ -2032,11 +2029,11 @@ func (s *BrowserService) doOperations(w http.ResponseWriter, r *http.Request) (g
 					h.Class("font-mono"),
 					h.A(
 						h.Class("link link-primary"),
-						h.Href("../../operation/"+operation.Name),
-						g.Text(operation.Name),
+						h.Href("../../operation/"+operation.GetName()),
+						g.Text(operation.GetName()),
 					),
 				),
-				h.Td(h.Class("text-right"), g.Text(timeoutToText(operation.Timeout, now))),
+				h.Td(h.Class("text-right"), g.Text(timeoutToText(operation.GetTimeout(), now))),
 			),
 		)
 	}
@@ -2084,48 +2081,50 @@ func (s *BrowserService) doWorkers(w http.ResponseWriter, r *http.Request) (g.No
 	}
 
 	now := time.Now()
-	response, err := s.buildQueueStateClient.ListWorkers(r.Context(), &buildqueuestate_pb.ListWorkersRequest{
+	response, err := s.buildQueueStateClient.ListWorkers(r.Context(), buildqueuestate_pb.ListWorkersRequest_builder{
 		Filter:   &filter,
 		PageSize: pageSize,
 		// StartAfter: startAfter,
-	})
+	}.Build())
 	if err != nil {
 		return nil, fmt.Errorf("failed to list workers: %w", err)
 	}
 
-	tableRows := make([]g.Node, 0, len(response.Workers))
-	for _, worker := range response.Workers {
-		workerID := make([]g.Node, 0, 2*len(worker.Id))
-		for _, key := range slices.Sorted(maps.Keys(worker.Id)) {
+	workers := response.GetWorkers()
+	tableRows := make([]g.Node, 0, len(workers))
+	for _, worker := range workers {
+		id := worker.GetId()
+		workerID := make([]g.Node, 0, 2*len(id))
+		for _, key := range slices.Sorted(maps.Keys(id)) {
 			workerID = append(
 				workerID,
 				h.Span(
 					h.Class("badge badge-primary text-nowrap"),
-					g.Textf("%s=%#v", key, worker.Id[key]),
+					g.Textf("%s=%#v", key, id[key]),
 				),
 				g.Text(" "),
 			)
 		}
 		cells := []g.Node{
 			h.Td(workerID...),
-			h.Td(h.Class("text-right"), g.Text(timeoutToText(worker.Timeout, now))),
+			h.Td(h.Class("text-right"), g.Text(timeoutToText(worker.GetTimeout(), now))),
 		}
-		if operation := worker.CurrentOperation; operation != nil {
+		if operation := worker.GetCurrentOperation(); operation != nil {
 			cells = append(
 				cells,
 				h.Td(
 					h.Class("font-mono"),
 					h.A(
 						h.Class("link link-primary"),
-						h.Href("../operation/"+operation.Name),
-						g.Text(operation.Name),
+						h.Href("../operation/"+operation.GetName()),
+						g.Text(operation.GetName()),
 					),
 				),
-				h.Td(h.Class("text-right"), g.Text(timeoutToText(operation.Timeout, now))),
+				h.Td(h.Class("text-right"), g.Text(timeoutToText(operation.GetTimeout(), now))),
 			)
 		} else {
 			cellText := "idle"
-			if worker.Drained {
+			if worker.GetDrained() {
 				cellText = "drained"
 			}
 			cells = append(cells, h.Td(

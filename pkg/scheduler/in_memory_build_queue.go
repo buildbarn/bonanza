@@ -907,22 +907,22 @@ func (bq *InMemoryBuildQueue) ListPlatformQueues(ctx context.Context, request *e
 		}
 		sizeClassQueues := make([]*buildqueuestate_pb.SizeClassQueueState, 0, len(pq.sizeClassQueues))
 		for i, scq := range pq.sizeClassQueues {
-			sizeClassQueues = append(sizeClassQueues, &buildqueuestate_pb.SizeClassQueueState{
+			sizeClassQueues = append(sizeClassQueues, buildqueuestate_pb.SizeClassQueueState_builder{
 				SizeClass:      pq.sizeClasses[i],
 				Timeout:        bq.cleanupQueue.getTimestamp(scq.cleanupKey),
 				RootInvocation: scq.rootInvocation.getInvocationState(bq),
 				WorkersCount:   uint32(len(scq.workers)),
 				DrainsCount:    uint32(len(scq.drains)),
-			})
+			}.Build())
 		}
-		platformQueues = append(platformQueues, &buildqueuestate_pb.PlatformQueueState{
+		platformQueues = append(platformQueues, buildqueuestate_pb.PlatformQueueState_builder{
 			PkixPublicKeys:  pkixPublicKeys,
 			SizeClassQueues: sizeClassQueues,
-		})
+		}.Build())
 	}
-	return &buildqueuestate_pb.ListPlatformQueuesResponse{
+	return buildqueuestate_pb.ListPlatformQueuesResponse_builder{
 		PlatformQueues: platformQueues,
-	}, nil
+	}.Build(), nil
 }
 
 // GetOperation returns detailed information about a single operation
@@ -931,15 +931,15 @@ func (bq *InMemoryBuildQueue) GetOperation(ctx context.Context, request *buildqu
 	bq.enter(bq.clock.Now())
 	defer bq.leave()
 
-	o, ok := bq.operationsNameMap[request.OperationName]
+	o, ok := bq.operationsNameMap[request.GetOperationName()]
 	if !ok {
-		return nil, status.Errorf(codes.NotFound, "Operation %#v not found", request.OperationName)
+		return nil, status.Errorf(codes.NotFound, "Operation %#v not found", request.GetOperationName())
 	}
 	s := o.getOperationState(bq)
-	s.Name = ""
-	return &buildqueuestate_pb.GetOperationResponse{
+	s.SetName("")
+	return buildqueuestate_pb.GetOperationResponse_builder{
 		Operation: s,
-	}, nil
+	}.Build(), nil
 }
 
 // getPaginationInfo uses binary searching to determine which
@@ -951,10 +951,10 @@ func getPaginationInfo(n int, pageSize uint32, f func(int) bool) (*buildqueuesta
 	if endIndex-startIndex > pageSize {
 		endIndex = startIndex + pageSize
 	}
-	return &buildqueuestate_pb.PaginationInfo{
+	return buildqueuestate_pb.PaginationInfo_builder{
 		StartIndex:   startIndex,
 		TotalEntries: uint32(n),
-	}, int(endIndex)
+	}.Build(), int(endIndex)
 }
 
 // KillOperations requests that one or more operations that are
@@ -963,27 +963,27 @@ func getPaginationInfo(n int, pageSize uint32, f func(int) bool) (*buildqueuesta
 // contacts the scheduler, it is requested to stop executing the
 // operation.
 func (bq *InMemoryBuildQueue) KillOperations(ctx context.Context, request *buildqueuestate_pb.KillOperationsRequest) (*emptypb.Empty, error) {
-	failureErr := status.ErrorProto(request.Status)
+	failureErr := status.ErrorProto(request.GetStatus())
 	if failureErr == nil {
 		return nil, status.Error(codes.InvalidArgument, "Provided status is not an error")
 	}
 
-	switch filter := request.Filter.GetType().(type) {
-	case *buildqueuestate_pb.KillOperationsRequest_Filter_OperationName:
+	switch request.GetFilter().WhichType() {
+	case buildqueuestate_pb.KillOperationsRequest_Filter_OperationName_case:
 		bq.enter(bq.clock.Now())
-		o, ok := bq.operationsNameMap[filter.OperationName]
+		o, ok := bq.operationsNameMap[request.GetFilter().GetOperationName()]
 		if !ok {
 			bq.leave()
-			return nil, status.Errorf(codes.NotFound, "Operation %#v not found", filter.OperationName)
+			return nil, status.Errorf(codes.NotFound, "Operation %#v not found", request.GetFilter().GetOperationName())
 		}
 		o.task.fail(bq, "KilledOperationName", failureErr, false)
 		bq.leave()
 		return &emptypb.Empty{}, nil
-	case *buildqueuestate_pb.KillOperationsRequest_Filter_SizeClassQueueWithoutWorkers:
+	case buildqueuestate_pb.KillOperationsRequest_Filter_SizeClassQueueWithoutWorkers_case:
 		bq.enter(bq.clock.Now())
 		defer bq.leave()
 
-		scq, err := bq.getSizeClassQueueByName(filter.SizeClassQueueWithoutWorkers)
+		scq, err := bq.getSizeClassQueueByName(request.GetFilter().GetSizeClassQueueWithoutWorkers())
 		if err != nil {
 			return nil, err
 		}
@@ -1001,8 +1001,8 @@ func (bq *InMemoryBuildQueue) KillOperations(ctx context.Context, request *build
 // operations tracked by the InMemoryBuildQueue.
 func (bq *InMemoryBuildQueue) ListOperations(ctx context.Context, request *buildqueuestate_pb.ListOperationsRequest) (*buildqueuestate_pb.ListOperationsResponse, error) {
 	var invocationKey *scheduler_invocation.Key
-	if request.FilterInvocationId != nil {
-		key, err := scheduler_invocation.NewKey(request.FilterInvocationId)
+	if filterInvocationId := request.GetFilterInvocationId(); filterInvocationId != nil {
+		key, err := scheduler_invocation.NewKey(filterInvocationId)
 		if err != nil {
 			return nil, util.StatusWrap(err, "Invalid invocation key")
 		}
@@ -1016,37 +1016,38 @@ func (bq *InMemoryBuildQueue) ListOperations(ctx context.Context, request *build
 	nameList := make([]string, 0, len(bq.operationsNameMap))
 	for name, o := range bq.operationsNameMap {
 		if (invocationKey == nil || o.invocation.hasInvocationKey(*invocationKey)) &&
-			(request.FilterStage == buildqueuestate_pb.ListOperationsRequest_ALL || request.FilterStage == o.task.getStage()) {
+			(request.GetFilterStage() == buildqueuestate_pb.ListOperationsRequest_ALL || request.GetFilterStage() == o.task.getStage()) {
 			nameList = append(nameList, name)
 		}
 	}
 	sort.Strings(nameList)
-	paginationInfo, endIndex := getPaginationInfo(len(nameList), request.PageSize, func(i int) bool {
-		return request.StartAfter == nil || nameList[i] > request.StartAfter.OperationName
+	startAfter := request.GetStartAfter()
+	paginationInfo, endIndex := getPaginationInfo(len(nameList), request.GetPageSize(), func(i int) bool {
+		return startAfter == nil || nameList[i] > startAfter.GetOperationName()
 	})
 
 	// Extract status.
-	nameListRegion := nameList[paginationInfo.StartIndex:endIndex]
+	nameListRegion := nameList[paginationInfo.GetStartIndex():endIndex]
 	operations := make([]*buildqueuestate_pb.OperationState, 0, len(nameListRegion))
 	for _, name := range nameListRegion {
 		o := bq.operationsNameMap[name]
 		operations = append(operations, o.getOperationState(bq))
 	}
-	return &buildqueuestate_pb.ListOperationsResponse{
+	return buildqueuestate_pb.ListOperationsResponse_builder{
 		Operations:     operations,
 		PaginationInfo: paginationInfo,
-	}, nil
+	}.Build(), nil
 }
 
 func (bq *InMemoryBuildQueue) getSizeClassQueueByName(name *buildqueuestate_pb.SizeClassQueueName) (*sizeClassQueue, error) {
-	pq, ok := bq.platformQueues[string(name.PlatformPkixPublicKey)]
+	pq, ok := bq.platformQueues[string(name.GetPlatformPkixPublicKey())]
 	if !ok {
 		return nil, status.Error(codes.NotFound, "Platform queue not found")
 	}
 	if index := sort.Search(
 		len(pq.sizeClasses),
-		func(i int) bool { return pq.sizeClasses[i] >= name.SizeClass },
-	); index < len(pq.sizeClassQueues) && pq.sizeClasses[index] == name.SizeClass {
+		func(i int) bool { return pq.sizeClasses[i] >= name.GetSizeClass() },
+	); index < len(pq.sizeClassQueues) && pq.sizeClasses[index] == name.GetSizeClass() {
 		return pq.sizeClassQueues[index], nil
 	}
 	return nil, status.Error(codes.NotFound, "Size class queue not found")
@@ -1056,12 +1057,12 @@ func (bq *InMemoryBuildQueue) getInvocationByName(name *buildqueuestate_pb.Invoc
 	if name == nil {
 		return nil, nil, status.Error(codes.InvalidArgument, "No invocation name provided")
 	}
-	scq, err := bq.getSizeClassQueueByName(name.SizeClassQueueName)
+	scq, err := bq.getSizeClassQueueByName(name.GetSizeClassQueueName())
 	if err != nil {
 		return nil, nil, err
 	}
 	i := &scq.rootInvocation
-	for idx, id := range name.Ids {
+	for idx, id := range name.GetIds() {
 		key, err := scheduler_invocation.NewKey(id)
 		if err != nil {
 			return nil, nil, util.StatusWrapf(err, "Invalid invocation key at index %d", idx)
@@ -1090,17 +1091,17 @@ func (bq *InMemoryBuildQueue) ListInvocationChildren(ctx context.Context, reques
 	bq.enter(bq.clock.Now())
 	defer bq.leave()
 
-	i, _, err := bq.getInvocationByName(request.InvocationName)
+	i, _, err := bq.getInvocationByName(request.GetInvocationName())
 	if err != nil {
 		return nil, err
 	}
 
-	switch request.Filter {
+	switch request.GetFilter() {
 	case buildqueuestate_pb.ListInvocationChildrenRequest_ALL, buildqueuestate_pb.ListInvocationChildrenRequest_ACTIVE:
 		// Return all or active invocations in alphabetic order.
 		keyList := make([]string, 0, len(i.children))
 		for invocationKey, i := range i.children {
-			if request.Filter == buildqueuestate_pb.ListInvocationChildrenRequest_ALL || i.isActive() {
+			if request.GetFilter() == buildqueuestate_pb.ListInvocationChildrenRequest_ALL || i.isActive() {
 				keyList = append(keyList, string(invocationKey))
 			}
 		}
@@ -1110,28 +1111,28 @@ func (bq *InMemoryBuildQueue) ListInvocationChildren(ctx context.Context, reques
 		for _, key := range keyList {
 			invocationKey := scheduler_invocation.Key(key)
 			i := i.children[invocationKey]
-			children = append(children, &buildqueuestate_pb.InvocationChildState{
+			children = append(children, buildqueuestate_pb.InvocationChildState_builder{
 				Id:    invocationKey.GetID(),
 				State: i.getInvocationState(bq),
-			})
+			}.Build())
 		}
-		return &buildqueuestate_pb.ListInvocationChildrenResponse{
+		return buildqueuestate_pb.ListInvocationChildrenResponse_builder{
 			Children: children,
-		}, nil
+		}.Build(), nil
 	case buildqueuestate_pb.ListInvocationChildrenRequest_QUEUED:
 		// Return invocations with one or more queued
 		// operations, sorted by scheduling order.
 		children := make([]*buildqueuestate_pb.InvocationChildState, 0, i.queuedChildren.Len())
 		sort.Sort(&i.queuedChildren)
 		for _, i := range i.queuedChildren {
-			children = append(children, &buildqueuestate_pb.InvocationChildState{
+			children = append(children, buildqueuestate_pb.InvocationChildState_builder{
 				Id:    i.invocationKeys[len(i.invocationKeys)-1].GetID(),
 				State: i.getInvocationState(bq),
-			})
+			}.Build())
 		}
-		return &buildqueuestate_pb.ListInvocationChildrenResponse{
+		return buildqueuestate_pb.ListInvocationChildrenResponse_builder{
 			Children: children,
-		}, nil
+		}.Build(), nil
 	default:
 		return nil, status.Error(codes.InvalidArgument, "Unknown filter provided")
 	}
@@ -1143,35 +1144,35 @@ func (bq *InMemoryBuildQueue) ListQueuedOperations(ctx context.Context, request 
 	bq.enter(bq.clock.Now())
 	defer bq.leave()
 
-	i, _, err := bq.getInvocationByName(request.InvocationName)
+	i, _, err := bq.getInvocationByName(request.GetInvocationName())
 	if err != nil {
 		return nil, err
 	}
 
-	startAfter := request.StartAfter
+	startAfter := request.GetStartAfter()
 	var startAfterExpectedDuration time.Duration
 	var startAfterQueuedTimestamp time.Time
 	if startAfter != nil {
-		if err := startAfter.ExpectedDuration.CheckValid(); err != nil {
+		if err := startAfter.GetExpectedDuration().CheckValid(); err != nil {
 			return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid expected duration")
 		}
-		startAfterExpectedDuration = startAfter.ExpectedDuration.AsDuration()
+		startAfterExpectedDuration = startAfter.GetExpectedDuration().AsDuration()
 
-		if err := startAfter.QueuedTimestamp.CheckValid(); err != nil {
+		if err := startAfter.GetQueuedTimestamp().CheckValid(); err != nil {
 			return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid queued timestamp")
 		}
-		startAfterQueuedTimestamp = startAfter.QueuedTimestamp.AsTime()
+		startAfterQueuedTimestamp = startAfter.GetQueuedTimestamp().AsTime()
 	}
 
 	// As every sorted list is also a valid binary heap, simply sort
 	// the queued operations list prior to emitting it.
 	sort.Sort(i.queuedOperations)
-	paginationInfo, endIndex := getPaginationInfo(i.queuedOperations.Len(), request.PageSize, func(idx int) bool {
+	paginationInfo, endIndex := getPaginationInfo(i.queuedOperations.Len(), request.GetPageSize(), func(idx int) bool {
 		o := i.queuedOperations[idx]
-		if startAfter == nil || o.priority > startAfter.Priority {
+		if startAfter == nil || o.priority > startAfter.GetPriority() {
 			return true
 		}
-		if o.priority < startAfter.Priority {
+		if o.priority < startAfter.GetPriority() {
 			return false
 		}
 		t := o.task
@@ -1181,28 +1182,28 @@ func (bq *InMemoryBuildQueue) ListQueuedOperations(ctx context.Context, request 
 		if t.expectedDuration > startAfterExpectedDuration {
 			return false
 		}
-		return t.desiredState.QueuedTimestamp.AsTime().After(startAfterQueuedTimestamp)
+		return t.desiredState.GetQueuedTimestamp().AsTime().After(startAfterQueuedTimestamp)
 	})
 
-	queuedOperationsRegion := i.queuedOperations[paginationInfo.StartIndex:endIndex]
+	queuedOperationsRegion := i.queuedOperations[paginationInfo.GetStartIndex():endIndex]
 	queuedOperations := make([]*buildqueuestate_pb.OperationState, 0, queuedOperationsRegion.Len())
 	for _, o := range queuedOperationsRegion {
 		s := o.getOperationState(bq)
-		s.InvocationName = nil
+		s.ClearInvocationName()
 		queuedOperations = append(queuedOperations, s)
 	}
-	return &buildqueuestate_pb.ListQueuedOperationsResponse{
+	return buildqueuestate_pb.ListQueuedOperationsResponse_builder{
 		QueuedOperations: queuedOperations,
 		PaginationInfo:   paginationInfo,
-	}, nil
+	}.Build(), nil
 }
 
 // ListWorkers returns basic properties of all workers for a given
 // platform queue.
 func (bq *InMemoryBuildQueue) ListWorkers(ctx context.Context, request *buildqueuestate_pb.ListWorkersRequest) (*buildqueuestate_pb.ListWorkersResponse, error) {
 	var startAfterWorkerKey *string
-	if startAfter := request.StartAfter; startAfter != nil {
-		workerKey := string(newWorkerKey(startAfter.WorkerId))
+	if startAfter := request.GetStartAfter(); startAfter != nil {
+		workerKey := string(newWorkerKey(startAfter.GetWorkerId()))
 		startAfterWorkerKey = &workerKey
 	}
 
@@ -1212,30 +1213,30 @@ func (bq *InMemoryBuildQueue) ListWorkers(ctx context.Context, request *buildque
 	// Obtain IDs of all workers in sorted order.
 	var scq *sizeClassQueue
 	var keyList []string
-	switch filter := request.Filter.GetType().(type) {
-	case *buildqueuestate_pb.ListWorkersRequest_Filter_All:
+	switch request.GetFilter().WhichType() {
+	case buildqueuestate_pb.ListWorkersRequest_Filter_All_case:
 		var err error
-		scq, err = bq.getSizeClassQueueByName(filter.All)
+		scq, err = bq.getSizeClassQueueByName(request.GetFilter().GetAll())
 		if err != nil {
 			return nil, err
 		}
 		for workerKey := range scq.workers {
 			keyList = append(keyList, string(workerKey))
 		}
-	case *buildqueuestate_pb.ListWorkersRequest_Filter_Executing:
+	case buildqueuestate_pb.ListWorkersRequest_Filter_Executing_case:
 		var i *invocation
 		var err error
-		i, scq, err = bq.getInvocationByName(filter.Executing)
+		i, scq, err = bq.getInvocationByName(request.GetFilter().GetExecuting())
 		if err != nil {
 			return nil, err
 		}
 		for w := range i.executingWorkers {
 			keyList = append(keyList, string(w.workerKey))
 		}
-	case *buildqueuestate_pb.ListWorkersRequest_Filter_IdleSynchronizing:
+	case buildqueuestate_pb.ListWorkersRequest_Filter_IdleSynchronizing_case:
 		var i *invocation
 		var err error
-		i, scq, err = bq.getInvocationByName(filter.IdleSynchronizing)
+		i, scq, err = bq.getInvocationByName(request.GetFilter().GetIdleSynchronizing())
 		if err != nil {
 			return nil, err
 		}
@@ -1246,12 +1247,12 @@ func (bq *InMemoryBuildQueue) ListWorkers(ctx context.Context, request *buildque
 		return nil, status.Error(codes.InvalidArgument, "Unknown filter provided")
 	}
 	sort.Strings(keyList)
-	paginationInfo, endIndex := getPaginationInfo(len(keyList), request.PageSize, func(i int) bool {
+	paginationInfo, endIndex := getPaginationInfo(len(keyList), request.GetPageSize(), func(i int) bool {
 		return startAfterWorkerKey == nil || keyList[i] > *startAfterWorkerKey
 	})
 
 	// Extract status.
-	keyListRegion := keyList[paginationInfo.StartIndex:endIndex]
+	keyListRegion := keyList[paginationInfo.GetStartIndex():endIndex]
 	workers := make([]*buildqueuestate_pb.WorkerState, 0, len(keyListRegion))
 	for _, key := range keyListRegion {
 		workerKey := workerKey(key)
@@ -1275,21 +1276,21 @@ func (bq *InMemoryBuildQueue) ListWorkers(ctx context.Context, request *buildque
 				}
 			}
 			currentOperation = o.getOperationState(bq)
-			currentOperation.InvocationName = nil
-			currentOperation.Stage = nil
+			currentOperation.ClearInvocationName()
+			currentOperation.ClearStage()
 		}
 		workerID := workerKey.getWorkerID()
-		workers = append(workers, &buildqueuestate_pb.WorkerState{
+		workers = append(workers, buildqueuestate_pb.WorkerState_builder{
 			Id:               workerID,
 			Timeout:          bq.cleanupQueue.getTimestamp(w.cleanupKey),
 			CurrentOperation: currentOperation,
 			Drained:          w.isDrained(scq, workerID),
-		})
+		}.Build())
 	}
-	return &buildqueuestate_pb.ListWorkersResponse{
+	return buildqueuestate_pb.ListWorkersResponse_builder{
 		Workers:        workers,
 		PaginationInfo: paginationInfo,
-	}, nil
+	}.Build(), nil
 }
 
 // ListDrains returns a list of all the drains that are present within a
@@ -1298,7 +1299,7 @@ func (bq *InMemoryBuildQueue) ListDrains(ctx context.Context, request *buildqueu
 	bq.enter(bq.clock.Now())
 	defer bq.leave()
 
-	scq, err := bq.getSizeClassQueueByName(request.SizeClassQueueName)
+	scq, err := bq.getSizeClassQueueByName(request.GetSizeClassQueueName())
 	if err != nil {
 		return nil, err
 	}
@@ -1315,13 +1316,13 @@ func (bq *InMemoryBuildQueue) ListDrains(ctx context.Context, request *buildqueu
 	for _, key := range keyList {
 		drains = append(drains, scq.drains[key])
 	}
-	return &buildqueuestate_pb.ListDrainsResponse{
+	return buildqueuestate_pb.ListDrainsResponse_builder{
 		Drains: drains,
-	}, nil
+	}.Build(), nil
 }
 
 func (bq *InMemoryBuildQueue) modifyDrain(ctx context.Context, request *buildqueuestate_pb.AddOrRemoveDrainRequest, modifyFunc func(scq *sizeClassQueue, drainKey string)) (*emptypb.Empty, error) {
-	drainKey, err := json.Marshal(request.WorkerIdPattern)
+	drainKey, err := json.Marshal(request.GetWorkerIdPattern())
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to marshal worker ID pattern")
 	}
@@ -1329,7 +1330,7 @@ func (bq *InMemoryBuildQueue) modifyDrain(ctx context.Context, request *buildque
 	bq.enter(bq.clock.Now())
 	defer bq.leave()
 
-	scq, err := bq.getSizeClassQueueByName(request.SizeClassQueueName)
+	scq, err := bq.getSizeClassQueueByName(request.GetSizeClassQueueName())
 	if err != nil {
 		return nil, err
 	}
@@ -1341,16 +1342,16 @@ func (bq *InMemoryBuildQueue) modifyDrain(ctx context.Context, request *buildque
 // tracked by the platform queue.
 func (bq *InMemoryBuildQueue) AddDrain(ctx context.Context, request *buildqueuestate_pb.AddOrRemoveDrainRequest) (*emptypb.Empty, error) {
 	return bq.modifyDrain(ctx, request, func(scq *sizeClassQueue, drainKey string) {
-		scq.drains[drainKey] = &buildqueuestate_pb.DrainState{
-			WorkerIdPattern:  request.WorkerIdPattern,
+		scq.drains[drainKey] = buildqueuestate_pb.DrainState_builder{
+			WorkerIdPattern:  request.GetWorkerIdPattern(),
 			CreatedTimestamp: bq.getCurrentTime(),
-		}
+		}.Build()
 
 		// Wake up all synchronizing workers that are queued,
 		// but are supposed to be drained. This ensures that
 		// they will stop picking up work immediately.
 		for workerKey, w := range scq.workers {
-			if w.wakeup != nil && workerMatchesPattern(workerKey.getWorkerID(), request.WorkerIdPattern) {
+			if w.wakeup != nil && workerMatchesPattern(workerKey.getWorkerID(), request.GetWorkerIdPattern()) {
 				w.wakeUp(scq)
 			}
 		}
@@ -1384,7 +1385,7 @@ func (bq *InMemoryBuildQueue) TerminateWorkers(ctx context.Context, request *bui
 	for pq := range platformQueues {
 		for _, scq := range pq.sizeClassQueues {
 			for workerKey, w := range scq.workers {
-				if workerMatchesPattern(workerKey.getWorkerID(), request.WorkerIdPattern) {
+				if workerMatchesPattern(workerKey.getWorkerID(), request.GetWorkerIdPattern()) {
 					scq.markWorkerTerminating(w)
 					if t := w.currentTask; t != nil {
 						// The task will be at the
@@ -1993,7 +1994,7 @@ func (i *invocation) getInvocationState(bq *InMemoryBuildQueue) *buildqueuestate
 			activeInvocationsCount++
 		}
 	}
-	return &buildqueuestate_pb.InvocationState{
+	return buildqueuestate_pb.InvocationState_builder{
 		QueuedOperationsCount:         uint32(i.queuedOperations.Len()),
 		ChildrenCount:                 uint32(len(i.children)),
 		QueuedChildrenCount:           uint32(i.queuedChildren.Len()),
@@ -2001,7 +2002,7 @@ func (i *invocation) getInvocationState(bq *InMemoryBuildQueue) *buildqueuestate
 		ExecutingWorkersCount:         uint32(len(i.executingWorkers)),
 		IdleWorkersCount:              i.idleWorkersCount,
 		IdleSynchronizingWorkersCount: uint32(len(i.idleSynchronizingWorkers)),
-	}
+	}.Build()
 }
 
 // decrementExecutingWorkersCount decrements the number of operations in
@@ -2401,33 +2402,27 @@ func (o *operation) getOperationState(bq *InMemoryBuildQueue) *buildqueuestate_p
 	for _, invocationKey := range i.invocationKeys {
 		invocationIDs = append(invocationIDs, invocationKey.GetID())
 	}
-	s := &buildqueuestate_pb.OperationState{
+	s := buildqueuestate_pb.OperationState_builder{
 		Name: o.name,
-		InvocationName: &buildqueuestate_pb.InvocationName{
-			SizeClassQueueName: &buildqueuestate_pb.SizeClassQueueName{
+		InvocationName: buildqueuestate_pb.InvocationName_builder{
+			SizeClassQueueName: buildqueuestate_pb.SizeClassQueueName_builder{
 				PlatformPkixPublicKey: scq.platformQueue.publicKeys[0].pkixPublicKey,
 				SizeClass:             scq.sizeClass,
-			},
+			}.Build(),
 			Ids: invocationIDs,
-		},
+		}.Build(),
 		ExpectedDuration: durationpb.New(t.expectedDuration),
-		QueuedTimestamp:  t.desiredState.QueuedTimestamp,
-		Action:           t.desiredState.Action,
+		QueuedTimestamp:  t.desiredState.GetQueuedTimestamp(),
+		Action:           t.desiredState.GetAction(),
 		Timeout:          bq.cleanupQueue.getTimestamp(o.cleanupKey),
 		Priority:         o.priority,
-	}
+	}.Build()
 	if t.initialSizeClassLearner == nil {
-		s.Stage = &buildqueuestate_pb.OperationState_Completed{
-			Completed: &emptypb.Empty{},
-		}
+		s.SetCompleted(&emptypb.Empty{})
 	} else if t.currentWorker != nil {
-		s.Stage = &buildqueuestate_pb.OperationState_Executing{
-			Executing: &emptypb.Empty{},
-		}
+		s.SetExecuting(&emptypb.Empty{})
 	} else {
-		s.Stage = &buildqueuestate_pb.OperationState_Queued{
-			Queued: &emptypb.Empty{},
-		}
+		s.SetQueued(&emptypb.Empty{})
 	}
 	return s
 }
@@ -2845,7 +2840,7 @@ func (w *worker) isDrained(scq *sizeClassQueue, workerID map[string]string) bool
 		return true
 	}
 	for _, drain := range scq.drains {
-		if workerMatchesPattern(workerID, drain.WorkerIdPattern) {
+		if workerMatchesPattern(workerID, drain.GetWorkerIdPattern()) {
 			return true
 		}
 	}

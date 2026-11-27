@@ -16,7 +16,6 @@ import (
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -74,11 +73,6 @@ func (x ListOperationsRequest_ExecutionStage) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ListOperationsRequest_ExecutionStage.Descriptor instead.
-func (ListOperationsRequest_ExecutionStage) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{12, 0}
-}
-
 type ListInvocationChildrenRequest_Filter int32
 
 const (
@@ -123,17 +117,12 @@ func (x ListInvocationChildrenRequest_Filter) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ListInvocationChildrenRequest_Filter.Descriptor instead.
-func (ListInvocationChildrenRequest_Filter) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{16, 0}
-}
-
 type PaginationInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StartIndex    uint32                 `protobuf:"varint,1,opt,name=start_index,json=startIndex,proto3" json:"start_index,omitempty"`
-	TotalEntries  uint32                 `protobuf:"varint,2,opt,name=total_entries,json=totalEntries,proto3" json:"total_entries,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_StartIndex   uint32                 `protobuf:"varint,1,opt,name=start_index,json=startIndex"`
+	xxx_hidden_TotalEntries uint32                 `protobuf:"varint,2,opt,name=total_entries,json=totalEntries"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *PaginationInfo) Reset() {
@@ -161,31 +150,50 @@ func (x *PaginationInfo) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PaginationInfo.ProtoReflect.Descriptor instead.
-func (*PaginationInfo) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *PaginationInfo) GetStartIndex() uint32 {
 	if x != nil {
-		return x.StartIndex
+		return x.xxx_hidden_StartIndex
 	}
 	return 0
 }
 
 func (x *PaginationInfo) GetTotalEntries() uint32 {
 	if x != nil {
-		return x.TotalEntries
+		return x.xxx_hidden_TotalEntries
 	}
 	return 0
 }
 
+func (x *PaginationInfo) SetStartIndex(v uint32) {
+	x.xxx_hidden_StartIndex = v
+}
+
+func (x *PaginationInfo) SetTotalEntries(v uint32) {
+	x.xxx_hidden_TotalEntries = v
+}
+
+type PaginationInfo_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	StartIndex   uint32
+	TotalEntries uint32
+}
+
+func (b0 PaginationInfo_builder) Build() *PaginationInfo {
+	m0 := &PaginationInfo{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_StartIndex = b.StartIndex
+	x.xxx_hidden_TotalEntries = b.TotalEntries
+	return m0
+}
+
 type SizeClassQueueName struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	PlatformPkixPublicKey []byte                 `protobuf:"bytes,1,opt,name=platform_pkix_public_key,json=platformPkixPublicKey,proto3" json:"platform_pkix_public_key,omitempty"`
-	SizeClass             uint32                 `protobuf:"varint,2,opt,name=size_class,json=sizeClass,proto3" json:"size_class,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlatformPkixPublicKey []byte                 `protobuf:"bytes,1,opt,name=platform_pkix_public_key,json=platformPkixPublicKey"`
+	xxx_hidden_SizeClass             uint32                 `protobuf:"varint,2,opt,name=size_class,json=sizeClass"`
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *SizeClassQueueName) Reset() {
@@ -213,31 +221,53 @@ func (x *SizeClassQueueName) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SizeClassQueueName.ProtoReflect.Descriptor instead.
-func (*SizeClassQueueName) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *SizeClassQueueName) GetPlatformPkixPublicKey() []byte {
 	if x != nil {
-		return x.PlatformPkixPublicKey
+		return x.xxx_hidden_PlatformPkixPublicKey
 	}
 	return nil
 }
 
 func (x *SizeClassQueueName) GetSizeClass() uint32 {
 	if x != nil {
-		return x.SizeClass
+		return x.xxx_hidden_SizeClass
 	}
 	return 0
 }
 
+func (x *SizeClassQueueName) SetPlatformPkixPublicKey(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_PlatformPkixPublicKey = v
+}
+
+func (x *SizeClassQueueName) SetSizeClass(v uint32) {
+	x.xxx_hidden_SizeClass = v
+}
+
+type SizeClassQueueName_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	PlatformPkixPublicKey []byte
+	SizeClass             uint32
+}
+
+func (b0 SizeClassQueueName_builder) Build() *SizeClassQueueName {
+	m0 := &SizeClassQueueName{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_PlatformPkixPublicKey = b.PlatformPkixPublicKey
+	x.xxx_hidden_SizeClass = b.SizeClass
+	return m0
+}
+
 type InvocationName struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	SizeClassQueueName *SizeClassQueueName    `protobuf:"bytes,1,opt,name=size_class_queue_name,json=sizeClassQueueName,proto3" json:"size_class_queue_name,omitempty"`
-	Ids                []*anypb.Any           `protobuf:"bytes,2,rep,name=ids,proto3" json:"ids,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SizeClassQueueName *SizeClassQueueName    `protobuf:"bytes,1,opt,name=size_class_queue_name,json=sizeClassQueueName"`
+	xxx_hidden_Ids                *[]*anypb.Any          `protobuf:"bytes,2,rep,name=ids"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *InvocationName) Reset() {
@@ -265,42 +295,69 @@ func (x *InvocationName) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InvocationName.ProtoReflect.Descriptor instead.
-func (*InvocationName) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *InvocationName) GetSizeClassQueueName() *SizeClassQueueName {
 	if x != nil {
-		return x.SizeClassQueueName
+		return x.xxx_hidden_SizeClassQueueName
 	}
 	return nil
 }
 
 func (x *InvocationName) GetIds() []*anypb.Any {
 	if x != nil {
-		return x.Ids
+		if x.xxx_hidden_Ids != nil {
+			return *x.xxx_hidden_Ids
+		}
 	}
 	return nil
 }
 
+func (x *InvocationName) SetSizeClassQueueName(v *SizeClassQueueName) {
+	x.xxx_hidden_SizeClassQueueName = v
+}
+
+func (x *InvocationName) SetIds(v []*anypb.Any) {
+	x.xxx_hidden_Ids = &v
+}
+
+func (x *InvocationName) HasSizeClassQueueName() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_SizeClassQueueName != nil
+}
+
+func (x *InvocationName) ClearSizeClassQueueName() {
+	x.xxx_hidden_SizeClassQueueName = nil
+}
+
+type InvocationName_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SizeClassQueueName *SizeClassQueueName
+	Ids                []*anypb.Any
+}
+
+func (b0 InvocationName_builder) Build() *InvocationName {
+	m0 := &InvocationName{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_SizeClassQueueName = b.SizeClassQueueName
+	x.xxx_hidden_Ids = &b.Ids
+	return m0
+}
+
 type OperationState struct {
-	state            protoimpl.MessageState  `protogen:"open.v1"`
-	Name             string                  `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	InvocationName   *InvocationName         `protobuf:"bytes,2,opt,name=invocation_name,json=invocationName,proto3" json:"invocation_name,omitempty"`
-	ExpectedDuration *durationpb.Duration    `protobuf:"bytes,3,opt,name=expected_duration,json=expectedDuration,proto3" json:"expected_duration,omitempty"`
-	QueuedTimestamp  *timestamppb.Timestamp  `protobuf:"bytes,4,opt,name=queued_timestamp,json=queuedTimestamp,proto3" json:"queued_timestamp,omitempty"`
-	Action           *encryptedaction.Action `protobuf:"bytes,5,opt,name=action,proto3" json:"action,omitempty"`
-	Timeout          *timestamppb.Timestamp  `protobuf:"bytes,6,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	// Types that are valid to be assigned to Stage:
-	//
-	//	*OperationState_Queued
-	//	*OperationState_Executing
-	//	*OperationState_Completed
-	Stage         isOperationState_Stage `protobuf_oneof:"stage"`
-	Priority      int32                  `protobuf:"varint,10,opt,name=priority,proto3" json:"priority,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                       protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Name             string                  `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_InvocationName   *InvocationName         `protobuf:"bytes,2,opt,name=invocation_name,json=invocationName"`
+	xxx_hidden_ExpectedDuration *durationpb.Duration    `protobuf:"bytes,3,opt,name=expected_duration,json=expectedDuration"`
+	xxx_hidden_QueuedTimestamp  *timestamppb.Timestamp  `protobuf:"bytes,4,opt,name=queued_timestamp,json=queuedTimestamp"`
+	xxx_hidden_Action           *encryptedaction.Action `protobuf:"bytes,5,opt,name=action"`
+	xxx_hidden_Timeout          *timestamppb.Timestamp  `protobuf:"bytes,6,opt,name=timeout"`
+	xxx_hidden_Stage            isOperationState_Stage  `protobuf_oneof:"stage"`
+	xxx_hidden_Priority         int32                   `protobuf:"varint,10,opt,name=priority"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *OperationState) Reset() {
@@ -328,63 +385,51 @@ func (x *OperationState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use OperationState.ProtoReflect.Descriptor instead.
-func (*OperationState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *OperationState) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *OperationState) GetInvocationName() *InvocationName {
 	if x != nil {
-		return x.InvocationName
+		return x.xxx_hidden_InvocationName
 	}
 	return nil
 }
 
 func (x *OperationState) GetExpectedDuration() *durationpb.Duration {
 	if x != nil {
-		return x.ExpectedDuration
+		return x.xxx_hidden_ExpectedDuration
 	}
 	return nil
 }
 
 func (x *OperationState) GetQueuedTimestamp() *timestamppb.Timestamp {
 	if x != nil {
-		return x.QueuedTimestamp
+		return x.xxx_hidden_QueuedTimestamp
 	}
 	return nil
 }
 
 func (x *OperationState) GetAction() *encryptedaction.Action {
 	if x != nil {
-		return x.Action
+		return x.xxx_hidden_Action
 	}
 	return nil
 }
 
 func (x *OperationState) GetTimeout() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Timeout
-	}
-	return nil
-}
-
-func (x *OperationState) GetStage() isOperationState_Stage {
-	if x != nil {
-		return x.Stage
+		return x.xxx_hidden_Timeout
 	}
 	return nil
 }
 
 func (x *OperationState) GetQueued() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Stage.(*OperationState_Queued); ok {
+		if x, ok := x.xxx_hidden_Stage.(*operationState_Queued); ok {
 			return x.Queued
 		}
 	}
@@ -393,7 +438,7 @@ func (x *OperationState) GetQueued() *emptypb.Empty {
 
 func (x *OperationState) GetExecuting() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Stage.(*OperationState_Executing); ok {
+		if x, ok := x.xxx_hidden_Stage.(*operationState_Executing); ok {
 			return x.Executing
 		}
 	}
@@ -402,7 +447,7 @@ func (x *OperationState) GetExecuting() *emptypb.Empty {
 
 func (x *OperationState) GetCompleted() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Stage.(*OperationState_Completed); ok {
+		if x, ok := x.xxx_hidden_Stage.(*operationState_Completed); ok {
 			return x.Completed
 		}
 	}
@@ -411,42 +456,273 @@ func (x *OperationState) GetCompleted() *emptypb.Empty {
 
 func (x *OperationState) GetPriority() int32 {
 	if x != nil {
-		return x.Priority
+		return x.xxx_hidden_Priority
 	}
 	return 0
+}
+
+func (x *OperationState) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *OperationState) SetInvocationName(v *InvocationName) {
+	x.xxx_hidden_InvocationName = v
+}
+
+func (x *OperationState) SetExpectedDuration(v *durationpb.Duration) {
+	x.xxx_hidden_ExpectedDuration = v
+}
+
+func (x *OperationState) SetQueuedTimestamp(v *timestamppb.Timestamp) {
+	x.xxx_hidden_QueuedTimestamp = v
+}
+
+func (x *OperationState) SetAction(v *encryptedaction.Action) {
+	x.xxx_hidden_Action = v
+}
+
+func (x *OperationState) SetTimeout(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Timeout = v
+}
+
+func (x *OperationState) SetQueued(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Stage = nil
+		return
+	}
+	x.xxx_hidden_Stage = &operationState_Queued{v}
+}
+
+func (x *OperationState) SetExecuting(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Stage = nil
+		return
+	}
+	x.xxx_hidden_Stage = &operationState_Executing{v}
+}
+
+func (x *OperationState) SetCompleted(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Stage = nil
+		return
+	}
+	x.xxx_hidden_Stage = &operationState_Completed{v}
+}
+
+func (x *OperationState) SetPriority(v int32) {
+	x.xxx_hidden_Priority = v
+}
+
+func (x *OperationState) HasInvocationName() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_InvocationName != nil
+}
+
+func (x *OperationState) HasExpectedDuration() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ExpectedDuration != nil
+}
+
+func (x *OperationState) HasQueuedTimestamp() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_QueuedTimestamp != nil
+}
+
+func (x *OperationState) HasAction() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Action != nil
+}
+
+func (x *OperationState) HasTimeout() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Timeout != nil
+}
+
+func (x *OperationState) HasStage() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Stage != nil
+}
+
+func (x *OperationState) HasQueued() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Stage.(*operationState_Queued)
+	return ok
+}
+
+func (x *OperationState) HasExecuting() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Stage.(*operationState_Executing)
+	return ok
+}
+
+func (x *OperationState) HasCompleted() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Stage.(*operationState_Completed)
+	return ok
+}
+
+func (x *OperationState) ClearInvocationName() {
+	x.xxx_hidden_InvocationName = nil
+}
+
+func (x *OperationState) ClearExpectedDuration() {
+	x.xxx_hidden_ExpectedDuration = nil
+}
+
+func (x *OperationState) ClearQueuedTimestamp() {
+	x.xxx_hidden_QueuedTimestamp = nil
+}
+
+func (x *OperationState) ClearAction() {
+	x.xxx_hidden_Action = nil
+}
+
+func (x *OperationState) ClearTimeout() {
+	x.xxx_hidden_Timeout = nil
+}
+
+func (x *OperationState) ClearStage() {
+	x.xxx_hidden_Stage = nil
+}
+
+func (x *OperationState) ClearQueued() {
+	if _, ok := x.xxx_hidden_Stage.(*operationState_Queued); ok {
+		x.xxx_hidden_Stage = nil
+	}
+}
+
+func (x *OperationState) ClearExecuting() {
+	if _, ok := x.xxx_hidden_Stage.(*operationState_Executing); ok {
+		x.xxx_hidden_Stage = nil
+	}
+}
+
+func (x *OperationState) ClearCompleted() {
+	if _, ok := x.xxx_hidden_Stage.(*operationState_Completed); ok {
+		x.xxx_hidden_Stage = nil
+	}
+}
+
+const OperationState_Stage_not_set_case case_OperationState_Stage = 0
+const OperationState_Queued_case case_OperationState_Stage = 7
+const OperationState_Executing_case case_OperationState_Stage = 8
+const OperationState_Completed_case case_OperationState_Stage = 9
+
+func (x *OperationState) WhichStage() case_OperationState_Stage {
+	if x == nil {
+		return OperationState_Stage_not_set_case
+	}
+	switch x.xxx_hidden_Stage.(type) {
+	case *operationState_Queued:
+		return OperationState_Queued_case
+	case *operationState_Executing:
+		return OperationState_Executing_case
+	case *operationState_Completed:
+		return OperationState_Completed_case
+	default:
+		return OperationState_Stage_not_set_case
+	}
+}
+
+type OperationState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name             string
+	InvocationName   *InvocationName
+	ExpectedDuration *durationpb.Duration
+	QueuedTimestamp  *timestamppb.Timestamp
+	Action           *encryptedaction.Action
+	Timeout          *timestamppb.Timestamp
+	// Fields of oneof xxx_hidden_Stage:
+	Queued    *emptypb.Empty
+	Executing *emptypb.Empty
+	Completed *emptypb.Empty
+	// -- end of xxx_hidden_Stage
+	Priority int32
+}
+
+func (b0 OperationState_builder) Build() *OperationState {
+	m0 := &OperationState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_InvocationName = b.InvocationName
+	x.xxx_hidden_ExpectedDuration = b.ExpectedDuration
+	x.xxx_hidden_QueuedTimestamp = b.QueuedTimestamp
+	x.xxx_hidden_Action = b.Action
+	x.xxx_hidden_Timeout = b.Timeout
+	if b.Queued != nil {
+		x.xxx_hidden_Stage = &operationState_Queued{b.Queued}
+	}
+	if b.Executing != nil {
+		x.xxx_hidden_Stage = &operationState_Executing{b.Executing}
+	}
+	if b.Completed != nil {
+		x.xxx_hidden_Stage = &operationState_Completed{b.Completed}
+	}
+	x.xxx_hidden_Priority = b.Priority
+	return m0
+}
+
+type case_OperationState_Stage protoreflect.FieldNumber
+
+func (x case_OperationState_Stage) String() string {
+	md := file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[3].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
 }
 
 type isOperationState_Stage interface {
 	isOperationState_Stage()
 }
 
-type OperationState_Queued struct {
-	Queued *emptypb.Empty `protobuf:"bytes,7,opt,name=queued,proto3,oneof"`
+type operationState_Queued struct {
+	Queued *emptypb.Empty `protobuf:"bytes,7,opt,name=queued,oneof"`
 }
 
-type OperationState_Executing struct {
-	Executing *emptypb.Empty `protobuf:"bytes,8,opt,name=executing,proto3,oneof"`
+type operationState_Executing struct {
+	Executing *emptypb.Empty `protobuf:"bytes,8,opt,name=executing,oneof"`
 }
 
-type OperationState_Completed struct {
-	Completed *emptypb.Empty `protobuf:"bytes,9,opt,name=completed,proto3,oneof"`
+type operationState_Completed struct {
+	Completed *emptypb.Empty `protobuf:"bytes,9,opt,name=completed,oneof"`
 }
 
-func (*OperationState_Queued) isOperationState_Stage() {}
+func (*operationState_Queued) isOperationState_Stage() {}
 
-func (*OperationState_Executing) isOperationState_Stage() {}
+func (*operationState_Executing) isOperationState_Stage() {}
 
-func (*OperationState_Completed) isOperationState_Stage() {}
+func (*operationState_Completed) isOperationState_Stage() {}
 
 type SizeClassQueueState struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	SizeClass      uint32                 `protobuf:"varint,1,opt,name=size_class,json=sizeClass,proto3" json:"size_class,omitempty"`
-	Timeout        *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	WorkersCount   uint32                 `protobuf:"varint,3,opt,name=workers_count,json=workersCount,proto3" json:"workers_count,omitempty"`
-	DrainsCount    uint32                 `protobuf:"varint,4,opt,name=drains_count,json=drainsCount,proto3" json:"drains_count,omitempty"`
-	RootInvocation *InvocationState       `protobuf:"bytes,5,opt,name=root_invocation,json=rootInvocation,proto3" json:"root_invocation,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SizeClass      uint32                 `protobuf:"varint,1,opt,name=size_class,json=sizeClass"`
+	xxx_hidden_Timeout        *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timeout"`
+	xxx_hidden_WorkersCount   uint32                 `protobuf:"varint,3,opt,name=workers_count,json=workersCount"`
+	xxx_hidden_DrainsCount    uint32                 `protobuf:"varint,4,opt,name=drains_count,json=drainsCount"`
+	xxx_hidden_RootInvocation *InvocationState       `protobuf:"bytes,5,opt,name=root_invocation,json=rootInvocation"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *SizeClassQueueState) Reset() {
@@ -474,52 +750,111 @@ func (x *SizeClassQueueState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SizeClassQueueState.ProtoReflect.Descriptor instead.
-func (*SizeClassQueueState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{4}
-}
-
 func (x *SizeClassQueueState) GetSizeClass() uint32 {
 	if x != nil {
-		return x.SizeClass
+		return x.xxx_hidden_SizeClass
 	}
 	return 0
 }
 
 func (x *SizeClassQueueState) GetTimeout() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Timeout
+		return x.xxx_hidden_Timeout
 	}
 	return nil
 }
 
 func (x *SizeClassQueueState) GetWorkersCount() uint32 {
 	if x != nil {
-		return x.WorkersCount
+		return x.xxx_hidden_WorkersCount
 	}
 	return 0
 }
 
 func (x *SizeClassQueueState) GetDrainsCount() uint32 {
 	if x != nil {
-		return x.DrainsCount
+		return x.xxx_hidden_DrainsCount
 	}
 	return 0
 }
 
 func (x *SizeClassQueueState) GetRootInvocation() *InvocationState {
 	if x != nil {
-		return x.RootInvocation
+		return x.xxx_hidden_RootInvocation
 	}
 	return nil
 }
 
+func (x *SizeClassQueueState) SetSizeClass(v uint32) {
+	x.xxx_hidden_SizeClass = v
+}
+
+func (x *SizeClassQueueState) SetTimeout(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Timeout = v
+}
+
+func (x *SizeClassQueueState) SetWorkersCount(v uint32) {
+	x.xxx_hidden_WorkersCount = v
+}
+
+func (x *SizeClassQueueState) SetDrainsCount(v uint32) {
+	x.xxx_hidden_DrainsCount = v
+}
+
+func (x *SizeClassQueueState) SetRootInvocation(v *InvocationState) {
+	x.xxx_hidden_RootInvocation = v
+}
+
+func (x *SizeClassQueueState) HasTimeout() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Timeout != nil
+}
+
+func (x *SizeClassQueueState) HasRootInvocation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RootInvocation != nil
+}
+
+func (x *SizeClassQueueState) ClearTimeout() {
+	x.xxx_hidden_Timeout = nil
+}
+
+func (x *SizeClassQueueState) ClearRootInvocation() {
+	x.xxx_hidden_RootInvocation = nil
+}
+
+type SizeClassQueueState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SizeClass      uint32
+	Timeout        *timestamppb.Timestamp
+	WorkersCount   uint32
+	DrainsCount    uint32
+	RootInvocation *InvocationState
+}
+
+func (b0 SizeClassQueueState_builder) Build() *SizeClassQueueState {
+	m0 := &SizeClassQueueState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_SizeClass = b.SizeClass
+	x.xxx_hidden_Timeout = b.Timeout
+	x.xxx_hidden_WorkersCount = b.WorkersCount
+	x.xxx_hidden_DrainsCount = b.DrainsCount
+	x.xxx_hidden_RootInvocation = b.RootInvocation
+	return m0
+}
+
 type PlatformQueueState struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	PkixPublicKeys  [][]byte               `protobuf:"bytes,1,rep,name=pkix_public_keys,json=pkixPublicKeys,proto3" json:"pkix_public_keys,omitempty"`
-	SizeClassQueues []*SizeClassQueueState `protobuf:"bytes,2,rep,name=size_class_queues,json=sizeClassQueues,proto3" json:"size_class_queues,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_PkixPublicKeys  [][]byte                `protobuf:"bytes,1,rep,name=pkix_public_keys,json=pkixPublicKeys"`
+	xxx_hidden_SizeClassQueues *[]*SizeClassQueueState `protobuf:"bytes,2,rep,name=size_class_queues,json=sizeClassQueues"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *PlatformQueueState) Reset() {
@@ -547,36 +882,57 @@ func (x *PlatformQueueState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PlatformQueueState.ProtoReflect.Descriptor instead.
-func (*PlatformQueueState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{5}
-}
-
 func (x *PlatformQueueState) GetPkixPublicKeys() [][]byte {
 	if x != nil {
-		return x.PkixPublicKeys
+		return x.xxx_hidden_PkixPublicKeys
 	}
 	return nil
 }
 
 func (x *PlatformQueueState) GetSizeClassQueues() []*SizeClassQueueState {
 	if x != nil {
-		return x.SizeClassQueues
+		if x.xxx_hidden_SizeClassQueues != nil {
+			return *x.xxx_hidden_SizeClassQueues
+		}
 	}
 	return nil
 }
 
+func (x *PlatformQueueState) SetPkixPublicKeys(v [][]byte) {
+	x.xxx_hidden_PkixPublicKeys = v
+}
+
+func (x *PlatformQueueState) SetSizeClassQueues(v []*SizeClassQueueState) {
+	x.xxx_hidden_SizeClassQueues = &v
+}
+
+type PlatformQueueState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	PkixPublicKeys  [][]byte
+	SizeClassQueues []*SizeClassQueueState
+}
+
+func (b0 PlatformQueueState_builder) Build() *PlatformQueueState {
+	m0 := &PlatformQueueState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_PkixPublicKeys = b.PkixPublicKeys
+	x.xxx_hidden_SizeClassQueues = &b.SizeClassQueues
+	return m0
+}
+
 type InvocationState struct {
-	state                         protoimpl.MessageState `protogen:"open.v1"`
-	QueuedOperationsCount         uint32                 `protobuf:"varint,1,opt,name=queued_operations_count,json=queuedOperationsCount,proto3" json:"queued_operations_count,omitempty"`
-	ExecutingWorkersCount         uint32                 `protobuf:"varint,2,opt,name=executing_workers_count,json=executingWorkersCount,proto3" json:"executing_workers_count,omitempty"`
-	IdleWorkersCount              uint32                 `protobuf:"varint,3,opt,name=idle_workers_count,json=idleWorkersCount,proto3" json:"idle_workers_count,omitempty"`
-	IdleSynchronizingWorkersCount uint32                 `protobuf:"varint,4,opt,name=idle_synchronizing_workers_count,json=idleSynchronizingWorkersCount,proto3" json:"idle_synchronizing_workers_count,omitempty"`
-	ChildrenCount                 uint32                 `protobuf:"varint,5,opt,name=children_count,json=childrenCount,proto3" json:"children_count,omitempty"`
-	ActiveChildrenCount           uint32                 `protobuf:"varint,6,opt,name=active_children_count,json=activeChildrenCount,proto3" json:"active_children_count,omitempty"`
-	QueuedChildrenCount           uint32                 `protobuf:"varint,7,opt,name=queued_children_count,json=queuedChildrenCount,proto3" json:"queued_children_count,omitempty"`
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	state                                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_QueuedOperationsCount         uint32                 `protobuf:"varint,1,opt,name=queued_operations_count,json=queuedOperationsCount"`
+	xxx_hidden_ExecutingWorkersCount         uint32                 `protobuf:"varint,2,opt,name=executing_workers_count,json=executingWorkersCount"`
+	xxx_hidden_IdleWorkersCount              uint32                 `protobuf:"varint,3,opt,name=idle_workers_count,json=idleWorkersCount"`
+	xxx_hidden_IdleSynchronizingWorkersCount uint32                 `protobuf:"varint,4,opt,name=idle_synchronizing_workers_count,json=idleSynchronizingWorkersCount"`
+	xxx_hidden_ChildrenCount                 uint32                 `protobuf:"varint,5,opt,name=children_count,json=childrenCount"`
+	xxx_hidden_ActiveChildrenCount           uint32                 `protobuf:"varint,6,opt,name=active_children_count,json=activeChildrenCount"`
+	xxx_hidden_QueuedChildrenCount           uint32                 `protobuf:"varint,7,opt,name=queued_children_count,json=queuedChildrenCount"`
+	unknownFields                            protoimpl.UnknownFields
+	sizeCache                                protoimpl.SizeCache
 }
 
 func (x *InvocationState) Reset() {
@@ -604,66 +960,115 @@ func (x *InvocationState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InvocationState.ProtoReflect.Descriptor instead.
-func (*InvocationState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{6}
-}
-
 func (x *InvocationState) GetQueuedOperationsCount() uint32 {
 	if x != nil {
-		return x.QueuedOperationsCount
+		return x.xxx_hidden_QueuedOperationsCount
 	}
 	return 0
 }
 
 func (x *InvocationState) GetExecutingWorkersCount() uint32 {
 	if x != nil {
-		return x.ExecutingWorkersCount
+		return x.xxx_hidden_ExecutingWorkersCount
 	}
 	return 0
 }
 
 func (x *InvocationState) GetIdleWorkersCount() uint32 {
 	if x != nil {
-		return x.IdleWorkersCount
+		return x.xxx_hidden_IdleWorkersCount
 	}
 	return 0
 }
 
 func (x *InvocationState) GetIdleSynchronizingWorkersCount() uint32 {
 	if x != nil {
-		return x.IdleSynchronizingWorkersCount
+		return x.xxx_hidden_IdleSynchronizingWorkersCount
 	}
 	return 0
 }
 
 func (x *InvocationState) GetChildrenCount() uint32 {
 	if x != nil {
-		return x.ChildrenCount
+		return x.xxx_hidden_ChildrenCount
 	}
 	return 0
 }
 
 func (x *InvocationState) GetActiveChildrenCount() uint32 {
 	if x != nil {
-		return x.ActiveChildrenCount
+		return x.xxx_hidden_ActiveChildrenCount
 	}
 	return 0
 }
 
 func (x *InvocationState) GetQueuedChildrenCount() uint32 {
 	if x != nil {
-		return x.QueuedChildrenCount
+		return x.xxx_hidden_QueuedChildrenCount
 	}
 	return 0
 }
 
+func (x *InvocationState) SetQueuedOperationsCount(v uint32) {
+	x.xxx_hidden_QueuedOperationsCount = v
+}
+
+func (x *InvocationState) SetExecutingWorkersCount(v uint32) {
+	x.xxx_hidden_ExecutingWorkersCount = v
+}
+
+func (x *InvocationState) SetIdleWorkersCount(v uint32) {
+	x.xxx_hidden_IdleWorkersCount = v
+}
+
+func (x *InvocationState) SetIdleSynchronizingWorkersCount(v uint32) {
+	x.xxx_hidden_IdleSynchronizingWorkersCount = v
+}
+
+func (x *InvocationState) SetChildrenCount(v uint32) {
+	x.xxx_hidden_ChildrenCount = v
+}
+
+func (x *InvocationState) SetActiveChildrenCount(v uint32) {
+	x.xxx_hidden_ActiveChildrenCount = v
+}
+
+func (x *InvocationState) SetQueuedChildrenCount(v uint32) {
+	x.xxx_hidden_QueuedChildrenCount = v
+}
+
+type InvocationState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	QueuedOperationsCount         uint32
+	ExecutingWorkersCount         uint32
+	IdleWorkersCount              uint32
+	IdleSynchronizingWorkersCount uint32
+	ChildrenCount                 uint32
+	ActiveChildrenCount           uint32
+	QueuedChildrenCount           uint32
+}
+
+func (b0 InvocationState_builder) Build() *InvocationState {
+	m0 := &InvocationState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_QueuedOperationsCount = b.QueuedOperationsCount
+	x.xxx_hidden_ExecutingWorkersCount = b.ExecutingWorkersCount
+	x.xxx_hidden_IdleWorkersCount = b.IdleWorkersCount
+	x.xxx_hidden_IdleSynchronizingWorkersCount = b.IdleSynchronizingWorkersCount
+	x.xxx_hidden_ChildrenCount = b.ChildrenCount
+	x.xxx_hidden_ActiveChildrenCount = b.ActiveChildrenCount
+	x.xxx_hidden_QueuedChildrenCount = b.QueuedChildrenCount
+	return m0
+}
+
 type InvocationChildState struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            *anypb.Any             `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	State         *InvocationState       `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id    *anypb.Any             `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_State *InvocationState       `protobuf:"bytes,2,opt,name=state"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *InvocationChildState) Reset() {
@@ -691,33 +1096,74 @@ func (x *InvocationChildState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InvocationChildState.ProtoReflect.Descriptor instead.
-func (*InvocationChildState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{7}
-}
-
 func (x *InvocationChildState) GetId() *anypb.Any {
 	if x != nil {
-		return x.Id
+		return x.xxx_hidden_Id
 	}
 	return nil
 }
 
 func (x *InvocationChildState) GetState() *InvocationState {
 	if x != nil {
-		return x.State
+		return x.xxx_hidden_State
 	}
 	return nil
 }
 
+func (x *InvocationChildState) SetId(v *anypb.Any) {
+	x.xxx_hidden_Id = v
+}
+
+func (x *InvocationChildState) SetState(v *InvocationState) {
+	x.xxx_hidden_State = v
+}
+
+func (x *InvocationChildState) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Id != nil
+}
+
+func (x *InvocationChildState) HasState() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_State != nil
+}
+
+func (x *InvocationChildState) ClearId() {
+	x.xxx_hidden_Id = nil
+}
+
+func (x *InvocationChildState) ClearState() {
+	x.xxx_hidden_State = nil
+}
+
+type InvocationChildState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id    *anypb.Any
+	State *InvocationState
+}
+
+func (b0 InvocationChildState_builder) Build() *InvocationChildState {
+	m0 := &InvocationChildState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Id = b.Id
+	x.xxx_hidden_State = b.State
+	return m0
+}
+
 type WorkerState struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Id               map[string]string      `protobuf:"bytes,1,rep,name=id,proto3" json:"id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Timeout          *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	CurrentOperation *OperationState        `protobuf:"bytes,3,opt,name=current_operation,json=currentOperation,proto3" json:"current_operation,omitempty"`
-	Drained          bool                   `protobuf:"varint,4,opt,name=drained,proto3" json:"drained,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id               map[string]string      `protobuf:"bytes,1,rep,name=id" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_Timeout          *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timeout"`
+	xxx_hidden_CurrentOperation *OperationState        `protobuf:"bytes,3,opt,name=current_operation,json=currentOperation"`
+	xxx_hidden_Drained          bool                   `protobuf:"varint,4,opt,name=drained"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *WorkerState) Reset() {
@@ -745,45 +1191,98 @@ func (x *WorkerState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WorkerState.ProtoReflect.Descriptor instead.
-func (*WorkerState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{8}
-}
-
 func (x *WorkerState) GetId() map[string]string {
 	if x != nil {
-		return x.Id
+		return x.xxx_hidden_Id
 	}
 	return nil
 }
 
 func (x *WorkerState) GetTimeout() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Timeout
+		return x.xxx_hidden_Timeout
 	}
 	return nil
 }
 
 func (x *WorkerState) GetCurrentOperation() *OperationState {
 	if x != nil {
-		return x.CurrentOperation
+		return x.xxx_hidden_CurrentOperation
 	}
 	return nil
 }
 
 func (x *WorkerState) GetDrained() bool {
 	if x != nil {
-		return x.Drained
+		return x.xxx_hidden_Drained
 	}
 	return false
 }
 
+func (x *WorkerState) SetId(v map[string]string) {
+	x.xxx_hidden_Id = v
+}
+
+func (x *WorkerState) SetTimeout(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Timeout = v
+}
+
+func (x *WorkerState) SetCurrentOperation(v *OperationState) {
+	x.xxx_hidden_CurrentOperation = v
+}
+
+func (x *WorkerState) SetDrained(v bool) {
+	x.xxx_hidden_Drained = v
+}
+
+func (x *WorkerState) HasTimeout() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Timeout != nil
+}
+
+func (x *WorkerState) HasCurrentOperation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CurrentOperation != nil
+}
+
+func (x *WorkerState) ClearTimeout() {
+	x.xxx_hidden_Timeout = nil
+}
+
+func (x *WorkerState) ClearCurrentOperation() {
+	x.xxx_hidden_CurrentOperation = nil
+}
+
+type WorkerState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id               map[string]string
+	Timeout          *timestamppb.Timestamp
+	CurrentOperation *OperationState
+	Drained          bool
+}
+
+func (b0 WorkerState_builder) Build() *WorkerState {
+	m0 := &WorkerState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Id = b.Id
+	x.xxx_hidden_Timeout = b.Timeout
+	x.xxx_hidden_CurrentOperation = b.CurrentOperation
+	x.xxx_hidden_Drained = b.Drained
+	return m0
+}
+
 type DrainState struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	WorkerIdPattern  map[string]string      `protobuf:"bytes,1,rep,name=worker_id_pattern,json=workerIdPattern,proto3" json:"worker_id_pattern,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CreatedTimestamp *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_timestamp,json=createdTimestamp,proto3" json:"created_timestamp,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_WorkerIdPattern  map[string]string      `protobuf:"bytes,1,rep,name=worker_id_pattern,json=workerIdPattern" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_CreatedTimestamp *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_timestamp,json=createdTimestamp"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *DrainState) Reset() {
@@ -811,30 +1310,60 @@ func (x *DrainState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DrainState.ProtoReflect.Descriptor instead.
-func (*DrainState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{9}
-}
-
 func (x *DrainState) GetWorkerIdPattern() map[string]string {
 	if x != nil {
-		return x.WorkerIdPattern
+		return x.xxx_hidden_WorkerIdPattern
 	}
 	return nil
 }
 
 func (x *DrainState) GetCreatedTimestamp() *timestamppb.Timestamp {
 	if x != nil {
-		return x.CreatedTimestamp
+		return x.xxx_hidden_CreatedTimestamp
 	}
 	return nil
 }
 
+func (x *DrainState) SetWorkerIdPattern(v map[string]string) {
+	x.xxx_hidden_WorkerIdPattern = v
+}
+
+func (x *DrainState) SetCreatedTimestamp(v *timestamppb.Timestamp) {
+	x.xxx_hidden_CreatedTimestamp = v
+}
+
+func (x *DrainState) HasCreatedTimestamp() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CreatedTimestamp != nil
+}
+
+func (x *DrainState) ClearCreatedTimestamp() {
+	x.xxx_hidden_CreatedTimestamp = nil
+}
+
+type DrainState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	WorkerIdPattern  map[string]string
+	CreatedTimestamp *timestamppb.Timestamp
+}
+
+func (b0 DrainState_builder) Build() *DrainState {
+	m0 := &DrainState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_WorkerIdPattern = b.WorkerIdPattern
+	x.xxx_hidden_CreatedTimestamp = b.CreatedTimestamp
+	return m0
+}
+
 type GetOperationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OperationName string                 `protobuf:"bytes,1,opt,name=operation_name,json=operationName,proto3" json:"operation_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_OperationName string                 `protobuf:"bytes,1,opt,name=operation_name,json=operationName"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *GetOperationRequest) Reset() {
@@ -862,23 +1391,36 @@ func (x *GetOperationRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetOperationRequest.ProtoReflect.Descriptor instead.
-func (*GetOperationRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{10}
-}
-
 func (x *GetOperationRequest) GetOperationName() string {
 	if x != nil {
-		return x.OperationName
+		return x.xxx_hidden_OperationName
 	}
 	return ""
 }
 
+func (x *GetOperationRequest) SetOperationName(v string) {
+	x.xxx_hidden_OperationName = v
+}
+
+type GetOperationRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	OperationName string
+}
+
+func (b0 GetOperationRequest_builder) Build() *GetOperationRequest {
+	m0 := &GetOperationRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_OperationName = b.OperationName
+	return m0
+}
+
 type GetOperationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Operation     *OperationState        `protobuf:"bytes,1,opt,name=operation,proto3" json:"operation,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Operation *OperationState        `protobuf:"bytes,1,opt,name=operation"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *GetOperationResponse) Reset() {
@@ -906,26 +1448,50 @@ func (x *GetOperationResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetOperationResponse.ProtoReflect.Descriptor instead.
-func (*GetOperationResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{11}
-}
-
 func (x *GetOperationResponse) GetOperation() *OperationState {
 	if x != nil {
-		return x.Operation
+		return x.xxx_hidden_Operation
 	}
 	return nil
 }
 
+func (x *GetOperationResponse) SetOperation(v *OperationState) {
+	x.xxx_hidden_Operation = v
+}
+
+func (x *GetOperationResponse) HasOperation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Operation != nil
+}
+
+func (x *GetOperationResponse) ClearOperation() {
+	x.xxx_hidden_Operation = nil
+}
+
+type GetOperationResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Operation *OperationState
+}
+
+func (b0 GetOperationResponse_builder) Build() *GetOperationResponse {
+	m0 := &GetOperationResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Operation = b.Operation
+	return m0
+}
+
 type ListOperationsRequest struct {
-	state              protoimpl.MessageState               `protogen:"open.v1"`
-	PageSize           uint32                               `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	StartAfter         *ListOperationsRequest_StartAfter    `protobuf:"bytes,2,opt,name=start_after,json=startAfter,proto3" json:"start_after,omitempty"`
-	FilterInvocationId *anypb.Any                           `protobuf:"bytes,3,opt,name=filter_invocation_id,json=filterInvocationId,proto3" json:"filter_invocation_id,omitempty"`
-	FilterStage        ListOperationsRequest_ExecutionStage `protobuf:"varint,4,opt,name=filter_stage,json=filterStage,proto3,enum=bonanza.buildqueuestate.ListOperationsRequest_ExecutionStage" json:"filter_stage,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState               `protogen:"opaque.v1"`
+	xxx_hidden_PageSize           uint32                               `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
+	xxx_hidden_StartAfter         *ListOperationsRequest_StartAfter    `protobuf:"bytes,2,opt,name=start_after,json=startAfter"`
+	xxx_hidden_FilterInvocationId *anypb.Any                           `protobuf:"bytes,3,opt,name=filter_invocation_id,json=filterInvocationId"`
+	xxx_hidden_FilterStage        ListOperationsRequest_ExecutionStage `protobuf:"varint,4,opt,name=filter_stage,json=filterStage,enum=bonanza.buildqueuestate.ListOperationsRequest_ExecutionStage"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *ListOperationsRequest) Reset() {
@@ -953,45 +1519,98 @@ func (x *ListOperationsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListOperationsRequest.ProtoReflect.Descriptor instead.
-func (*ListOperationsRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{12}
-}
-
 func (x *ListOperationsRequest) GetPageSize() uint32 {
 	if x != nil {
-		return x.PageSize
+		return x.xxx_hidden_PageSize
 	}
 	return 0
 }
 
 func (x *ListOperationsRequest) GetStartAfter() *ListOperationsRequest_StartAfter {
 	if x != nil {
-		return x.StartAfter
+		return x.xxx_hidden_StartAfter
 	}
 	return nil
 }
 
 func (x *ListOperationsRequest) GetFilterInvocationId() *anypb.Any {
 	if x != nil {
-		return x.FilterInvocationId
+		return x.xxx_hidden_FilterInvocationId
 	}
 	return nil
 }
 
 func (x *ListOperationsRequest) GetFilterStage() ListOperationsRequest_ExecutionStage {
 	if x != nil {
-		return x.FilterStage
+		return x.xxx_hidden_FilterStage
 	}
 	return ListOperationsRequest_ALL
 }
 
+func (x *ListOperationsRequest) SetPageSize(v uint32) {
+	x.xxx_hidden_PageSize = v
+}
+
+func (x *ListOperationsRequest) SetStartAfter(v *ListOperationsRequest_StartAfter) {
+	x.xxx_hidden_StartAfter = v
+}
+
+func (x *ListOperationsRequest) SetFilterInvocationId(v *anypb.Any) {
+	x.xxx_hidden_FilterInvocationId = v
+}
+
+func (x *ListOperationsRequest) SetFilterStage(v ListOperationsRequest_ExecutionStage) {
+	x.xxx_hidden_FilterStage = v
+}
+
+func (x *ListOperationsRequest) HasStartAfter() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_StartAfter != nil
+}
+
+func (x *ListOperationsRequest) HasFilterInvocationId() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_FilterInvocationId != nil
+}
+
+func (x *ListOperationsRequest) ClearStartAfter() {
+	x.xxx_hidden_StartAfter = nil
+}
+
+func (x *ListOperationsRequest) ClearFilterInvocationId() {
+	x.xxx_hidden_FilterInvocationId = nil
+}
+
+type ListOperationsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	PageSize           uint32
+	StartAfter         *ListOperationsRequest_StartAfter
+	FilterInvocationId *anypb.Any
+	FilterStage        ListOperationsRequest_ExecutionStage
+}
+
+func (b0 ListOperationsRequest_builder) Build() *ListOperationsRequest {
+	m0 := &ListOperationsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_PageSize = b.PageSize
+	x.xxx_hidden_StartAfter = b.StartAfter
+	x.xxx_hidden_FilterInvocationId = b.FilterInvocationId
+	x.xxx_hidden_FilterStage = b.FilterStage
+	return m0
+}
+
 type ListOperationsResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Operations     []*OperationState      `protobuf:"bytes,1,rep,name=operations,proto3" json:"operations,omitempty"`
-	PaginationInfo *PaginationInfo        `protobuf:"bytes,2,opt,name=pagination_info,json=paginationInfo,proto3" json:"pagination_info,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Operations     *[]*OperationState     `protobuf:"bytes,1,rep,name=operations"`
+	xxx_hidden_PaginationInfo *PaginationInfo        `protobuf:"bytes,2,opt,name=pagination_info,json=paginationInfo"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ListOperationsResponse) Reset() {
@@ -1019,31 +1638,63 @@ func (x *ListOperationsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListOperationsResponse.ProtoReflect.Descriptor instead.
-func (*ListOperationsResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{13}
-}
-
 func (x *ListOperationsResponse) GetOperations() []*OperationState {
 	if x != nil {
-		return x.Operations
+		if x.xxx_hidden_Operations != nil {
+			return *x.xxx_hidden_Operations
+		}
 	}
 	return nil
 }
 
 func (x *ListOperationsResponse) GetPaginationInfo() *PaginationInfo {
 	if x != nil {
-		return x.PaginationInfo
+		return x.xxx_hidden_PaginationInfo
 	}
 	return nil
 }
 
+func (x *ListOperationsResponse) SetOperations(v []*OperationState) {
+	x.xxx_hidden_Operations = &v
+}
+
+func (x *ListOperationsResponse) SetPaginationInfo(v *PaginationInfo) {
+	x.xxx_hidden_PaginationInfo = v
+}
+
+func (x *ListOperationsResponse) HasPaginationInfo() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PaginationInfo != nil
+}
+
+func (x *ListOperationsResponse) ClearPaginationInfo() {
+	x.xxx_hidden_PaginationInfo = nil
+}
+
+type ListOperationsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Operations     []*OperationState
+	PaginationInfo *PaginationInfo
+}
+
+func (b0 ListOperationsResponse_builder) Build() *ListOperationsResponse {
+	m0 := &ListOperationsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Operations = &b.Operations
+	x.xxx_hidden_PaginationInfo = b.PaginationInfo
+	return m0
+}
+
 type KillOperationsRequest struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Filter        *KillOperationsRequest_Filter `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
-	Status        *status.Status                `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState        `protogen:"opaque.v1"`
+	xxx_hidden_Filter *KillOperationsRequest_Filter `protobuf:"bytes,1,opt,name=filter"`
+	xxx_hidden_Status *status.Status                `protobuf:"bytes,2,opt,name=status"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *KillOperationsRequest) Reset() {
@@ -1071,30 +1722,71 @@ func (x *KillOperationsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use KillOperationsRequest.ProtoReflect.Descriptor instead.
-func (*KillOperationsRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{14}
-}
-
 func (x *KillOperationsRequest) GetFilter() *KillOperationsRequest_Filter {
 	if x != nil {
-		return x.Filter
+		return x.xxx_hidden_Filter
 	}
 	return nil
 }
 
 func (x *KillOperationsRequest) GetStatus() *status.Status {
 	if x != nil {
-		return x.Status
+		return x.xxx_hidden_Status
 	}
 	return nil
 }
 
+func (x *KillOperationsRequest) SetFilter(v *KillOperationsRequest_Filter) {
+	x.xxx_hidden_Filter = v
+}
+
+func (x *KillOperationsRequest) SetStatus(v *status.Status) {
+	x.xxx_hidden_Status = v
+}
+
+func (x *KillOperationsRequest) HasFilter() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Filter != nil
+}
+
+func (x *KillOperationsRequest) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Status != nil
+}
+
+func (x *KillOperationsRequest) ClearFilter() {
+	x.xxx_hidden_Filter = nil
+}
+
+func (x *KillOperationsRequest) ClearStatus() {
+	x.xxx_hidden_Status = nil
+}
+
+type KillOperationsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Filter *KillOperationsRequest_Filter
+	Status *status.Status
+}
+
+func (b0 KillOperationsRequest_builder) Build() *KillOperationsRequest {
+	m0 := &KillOperationsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Filter = b.Filter
+	x.xxx_hidden_Status = b.Status
+	return m0
+}
+
 type ListPlatformQueuesResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	PlatformQueues []*PlatformQueueState  `protobuf:"bytes,1,rep,name=platform_queues,json=platformQueues,proto3" json:"platform_queues,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlatformQueues *[]*PlatformQueueState `protobuf:"bytes,1,rep,name=platform_queues,json=platformQueues"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ListPlatformQueuesResponse) Reset() {
@@ -1122,24 +1814,39 @@ func (x *ListPlatformQueuesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListPlatformQueuesResponse.ProtoReflect.Descriptor instead.
-func (*ListPlatformQueuesResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{15}
-}
-
 func (x *ListPlatformQueuesResponse) GetPlatformQueues() []*PlatformQueueState {
 	if x != nil {
-		return x.PlatformQueues
+		if x.xxx_hidden_PlatformQueues != nil {
+			return *x.xxx_hidden_PlatformQueues
+		}
 	}
 	return nil
 }
 
+func (x *ListPlatformQueuesResponse) SetPlatformQueues(v []*PlatformQueueState) {
+	x.xxx_hidden_PlatformQueues = &v
+}
+
+type ListPlatformQueuesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	PlatformQueues []*PlatformQueueState
+}
+
+func (b0 ListPlatformQueuesResponse_builder) Build() *ListPlatformQueuesResponse {
+	m0 := &ListPlatformQueuesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_PlatformQueues = &b.PlatformQueues
+	return m0
+}
+
 type ListInvocationChildrenRequest struct {
-	state          protoimpl.MessageState               `protogen:"open.v1"`
-	InvocationName *InvocationName                      `protobuf:"bytes,1,opt,name=invocation_name,json=invocationName,proto3" json:"invocation_name,omitempty"`
-	Filter         ListInvocationChildrenRequest_Filter `protobuf:"varint,2,opt,name=filter,proto3,enum=bonanza.buildqueuestate.ListInvocationChildrenRequest_Filter" json:"filter,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState               `protogen:"opaque.v1"`
+	xxx_hidden_InvocationName *InvocationName                      `protobuf:"bytes,1,opt,name=invocation_name,json=invocationName"`
+	xxx_hidden_Filter         ListInvocationChildrenRequest_Filter `protobuf:"varint,2,opt,name=filter,enum=bonanza.buildqueuestate.ListInvocationChildrenRequest_Filter"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ListInvocationChildrenRequest) Reset() {
@@ -1167,30 +1874,60 @@ func (x *ListInvocationChildrenRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListInvocationChildrenRequest.ProtoReflect.Descriptor instead.
-func (*ListInvocationChildrenRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{16}
-}
-
 func (x *ListInvocationChildrenRequest) GetInvocationName() *InvocationName {
 	if x != nil {
-		return x.InvocationName
+		return x.xxx_hidden_InvocationName
 	}
 	return nil
 }
 
 func (x *ListInvocationChildrenRequest) GetFilter() ListInvocationChildrenRequest_Filter {
 	if x != nil {
-		return x.Filter
+		return x.xxx_hidden_Filter
 	}
 	return ListInvocationChildrenRequest_ALL
 }
 
+func (x *ListInvocationChildrenRequest) SetInvocationName(v *InvocationName) {
+	x.xxx_hidden_InvocationName = v
+}
+
+func (x *ListInvocationChildrenRequest) SetFilter(v ListInvocationChildrenRequest_Filter) {
+	x.xxx_hidden_Filter = v
+}
+
+func (x *ListInvocationChildrenRequest) HasInvocationName() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_InvocationName != nil
+}
+
+func (x *ListInvocationChildrenRequest) ClearInvocationName() {
+	x.xxx_hidden_InvocationName = nil
+}
+
+type ListInvocationChildrenRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	InvocationName *InvocationName
+	Filter         ListInvocationChildrenRequest_Filter
+}
+
+func (b0 ListInvocationChildrenRequest_builder) Build() *ListInvocationChildrenRequest {
+	m0 := &ListInvocationChildrenRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_InvocationName = b.InvocationName
+	x.xxx_hidden_Filter = b.Filter
+	return m0
+}
+
 type ListInvocationChildrenResponse struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Children      []*InvocationChildState `protobuf:"bytes,1,rep,name=children,proto3" json:"children,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Children *[]*InvocationChildState `protobuf:"bytes,1,rep,name=children"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ListInvocationChildrenResponse) Reset() {
@@ -1218,25 +1955,40 @@ func (x *ListInvocationChildrenResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListInvocationChildrenResponse.ProtoReflect.Descriptor instead.
-func (*ListInvocationChildrenResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{17}
-}
-
 func (x *ListInvocationChildrenResponse) GetChildren() []*InvocationChildState {
 	if x != nil {
-		return x.Children
+		if x.xxx_hidden_Children != nil {
+			return *x.xxx_hidden_Children
+		}
 	}
 	return nil
 }
 
+func (x *ListInvocationChildrenResponse) SetChildren(v []*InvocationChildState) {
+	x.xxx_hidden_Children = &v
+}
+
+type ListInvocationChildrenResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Children []*InvocationChildState
+}
+
+func (b0 ListInvocationChildrenResponse_builder) Build() *ListInvocationChildrenResponse {
+	m0 := &ListInvocationChildrenResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Children = &b.Children
+	return m0
+}
+
 type ListQueuedOperationsRequest struct {
-	state          protoimpl.MessageState                  `protogen:"open.v1"`
-	InvocationName *InvocationName                         `protobuf:"bytes,1,opt,name=invocation_name,json=invocationName,proto3" json:"invocation_name,omitempty"`
-	PageSize       uint32                                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	StartAfter     *ListQueuedOperationsRequest_StartAfter `protobuf:"bytes,3,opt,name=start_after,json=startAfter,proto3" json:"start_after,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState                  `protogen:"opaque.v1"`
+	xxx_hidden_InvocationName *InvocationName                         `protobuf:"bytes,1,opt,name=invocation_name,json=invocationName"`
+	xxx_hidden_PageSize       uint32                                  `protobuf:"varint,2,opt,name=page_size,json=pageSize"`
+	xxx_hidden_StartAfter     *ListQueuedOperationsRequest_StartAfter `protobuf:"bytes,3,opt,name=start_after,json=startAfter"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ListQueuedOperationsRequest) Reset() {
@@ -1264,38 +2016,85 @@ func (x *ListQueuedOperationsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListQueuedOperationsRequest.ProtoReflect.Descriptor instead.
-func (*ListQueuedOperationsRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{18}
-}
-
 func (x *ListQueuedOperationsRequest) GetInvocationName() *InvocationName {
 	if x != nil {
-		return x.InvocationName
+		return x.xxx_hidden_InvocationName
 	}
 	return nil
 }
 
 func (x *ListQueuedOperationsRequest) GetPageSize() uint32 {
 	if x != nil {
-		return x.PageSize
+		return x.xxx_hidden_PageSize
 	}
 	return 0
 }
 
 func (x *ListQueuedOperationsRequest) GetStartAfter() *ListQueuedOperationsRequest_StartAfter {
 	if x != nil {
-		return x.StartAfter
+		return x.xxx_hidden_StartAfter
 	}
 	return nil
 }
 
+func (x *ListQueuedOperationsRequest) SetInvocationName(v *InvocationName) {
+	x.xxx_hidden_InvocationName = v
+}
+
+func (x *ListQueuedOperationsRequest) SetPageSize(v uint32) {
+	x.xxx_hidden_PageSize = v
+}
+
+func (x *ListQueuedOperationsRequest) SetStartAfter(v *ListQueuedOperationsRequest_StartAfter) {
+	x.xxx_hidden_StartAfter = v
+}
+
+func (x *ListQueuedOperationsRequest) HasInvocationName() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_InvocationName != nil
+}
+
+func (x *ListQueuedOperationsRequest) HasStartAfter() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_StartAfter != nil
+}
+
+func (x *ListQueuedOperationsRequest) ClearInvocationName() {
+	x.xxx_hidden_InvocationName = nil
+}
+
+func (x *ListQueuedOperationsRequest) ClearStartAfter() {
+	x.xxx_hidden_StartAfter = nil
+}
+
+type ListQueuedOperationsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	InvocationName *InvocationName
+	PageSize       uint32
+	StartAfter     *ListQueuedOperationsRequest_StartAfter
+}
+
+func (b0 ListQueuedOperationsRequest_builder) Build() *ListQueuedOperationsRequest {
+	m0 := &ListQueuedOperationsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_InvocationName = b.InvocationName
+	x.xxx_hidden_PageSize = b.PageSize
+	x.xxx_hidden_StartAfter = b.StartAfter
+	return m0
+}
+
 type ListQueuedOperationsResponse struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	QueuedOperations []*OperationState      `protobuf:"bytes,1,rep,name=queued_operations,json=queuedOperations,proto3" json:"queued_operations,omitempty"`
-	PaginationInfo   *PaginationInfo        `protobuf:"bytes,2,opt,name=pagination_info,json=paginationInfo,proto3" json:"pagination_info,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_QueuedOperations *[]*OperationState     `protobuf:"bytes,1,rep,name=queued_operations,json=queuedOperations"`
+	xxx_hidden_PaginationInfo   *PaginationInfo        `protobuf:"bytes,2,opt,name=pagination_info,json=paginationInfo"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *ListQueuedOperationsResponse) Reset() {
@@ -1323,32 +2122,64 @@ func (x *ListQueuedOperationsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListQueuedOperationsResponse.ProtoReflect.Descriptor instead.
-func (*ListQueuedOperationsResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{19}
-}
-
 func (x *ListQueuedOperationsResponse) GetQueuedOperations() []*OperationState {
 	if x != nil {
-		return x.QueuedOperations
+		if x.xxx_hidden_QueuedOperations != nil {
+			return *x.xxx_hidden_QueuedOperations
+		}
 	}
 	return nil
 }
 
 func (x *ListQueuedOperationsResponse) GetPaginationInfo() *PaginationInfo {
 	if x != nil {
-		return x.PaginationInfo
+		return x.xxx_hidden_PaginationInfo
 	}
 	return nil
 }
 
+func (x *ListQueuedOperationsResponse) SetQueuedOperations(v []*OperationState) {
+	x.xxx_hidden_QueuedOperations = &v
+}
+
+func (x *ListQueuedOperationsResponse) SetPaginationInfo(v *PaginationInfo) {
+	x.xxx_hidden_PaginationInfo = v
+}
+
+func (x *ListQueuedOperationsResponse) HasPaginationInfo() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PaginationInfo != nil
+}
+
+func (x *ListQueuedOperationsResponse) ClearPaginationInfo() {
+	x.xxx_hidden_PaginationInfo = nil
+}
+
+type ListQueuedOperationsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	QueuedOperations []*OperationState
+	PaginationInfo   *PaginationInfo
+}
+
+func (b0 ListQueuedOperationsResponse_builder) Build() *ListQueuedOperationsResponse {
+	m0 := &ListQueuedOperationsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_QueuedOperations = &b.QueuedOperations
+	x.xxx_hidden_PaginationInfo = b.PaginationInfo
+	return m0
+}
+
 type ListWorkersRequest struct {
-	state         protoimpl.MessageState         `protogen:"open.v1"`
-	Filter        *ListWorkersRequest_Filter     `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
-	PageSize      uint32                         `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	StartAfter    *ListWorkersRequest_StartAfter `protobuf:"bytes,4,opt,name=start_after,json=startAfter,proto3" json:"start_after,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState         `protogen:"opaque.v1"`
+	xxx_hidden_Filter     *ListWorkersRequest_Filter     `protobuf:"bytes,1,opt,name=filter"`
+	xxx_hidden_PageSize   uint32                         `protobuf:"varint,3,opt,name=page_size,json=pageSize"`
+	xxx_hidden_StartAfter *ListWorkersRequest_StartAfter `protobuf:"bytes,4,opt,name=start_after,json=startAfter"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ListWorkersRequest) Reset() {
@@ -1376,38 +2207,85 @@ func (x *ListWorkersRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListWorkersRequest.ProtoReflect.Descriptor instead.
-func (*ListWorkersRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{20}
-}
-
 func (x *ListWorkersRequest) GetFilter() *ListWorkersRequest_Filter {
 	if x != nil {
-		return x.Filter
+		return x.xxx_hidden_Filter
 	}
 	return nil
 }
 
 func (x *ListWorkersRequest) GetPageSize() uint32 {
 	if x != nil {
-		return x.PageSize
+		return x.xxx_hidden_PageSize
 	}
 	return 0
 }
 
 func (x *ListWorkersRequest) GetStartAfter() *ListWorkersRequest_StartAfter {
 	if x != nil {
-		return x.StartAfter
+		return x.xxx_hidden_StartAfter
 	}
 	return nil
 }
 
+func (x *ListWorkersRequest) SetFilter(v *ListWorkersRequest_Filter) {
+	x.xxx_hidden_Filter = v
+}
+
+func (x *ListWorkersRequest) SetPageSize(v uint32) {
+	x.xxx_hidden_PageSize = v
+}
+
+func (x *ListWorkersRequest) SetStartAfter(v *ListWorkersRequest_StartAfter) {
+	x.xxx_hidden_StartAfter = v
+}
+
+func (x *ListWorkersRequest) HasFilter() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Filter != nil
+}
+
+func (x *ListWorkersRequest) HasStartAfter() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_StartAfter != nil
+}
+
+func (x *ListWorkersRequest) ClearFilter() {
+	x.xxx_hidden_Filter = nil
+}
+
+func (x *ListWorkersRequest) ClearStartAfter() {
+	x.xxx_hidden_StartAfter = nil
+}
+
+type ListWorkersRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Filter     *ListWorkersRequest_Filter
+	PageSize   uint32
+	StartAfter *ListWorkersRequest_StartAfter
+}
+
+func (b0 ListWorkersRequest_builder) Build() *ListWorkersRequest {
+	m0 := &ListWorkersRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Filter = b.Filter
+	x.xxx_hidden_PageSize = b.PageSize
+	x.xxx_hidden_StartAfter = b.StartAfter
+	return m0
+}
+
 type ListWorkersResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Workers        []*WorkerState         `protobuf:"bytes,1,rep,name=workers,proto3" json:"workers,omitempty"`
-	PaginationInfo *PaginationInfo        `protobuf:"bytes,2,opt,name=pagination_info,json=paginationInfo,proto3" json:"pagination_info,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workers        *[]*WorkerState        `protobuf:"bytes,1,rep,name=workers"`
+	xxx_hidden_PaginationInfo *PaginationInfo        `protobuf:"bytes,2,opt,name=pagination_info,json=paginationInfo"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ListWorkersResponse) Reset() {
@@ -1435,30 +2313,62 @@ func (x *ListWorkersResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListWorkersResponse.ProtoReflect.Descriptor instead.
-func (*ListWorkersResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{21}
-}
-
 func (x *ListWorkersResponse) GetWorkers() []*WorkerState {
 	if x != nil {
-		return x.Workers
+		if x.xxx_hidden_Workers != nil {
+			return *x.xxx_hidden_Workers
+		}
 	}
 	return nil
 }
 
 func (x *ListWorkersResponse) GetPaginationInfo() *PaginationInfo {
 	if x != nil {
-		return x.PaginationInfo
+		return x.xxx_hidden_PaginationInfo
 	}
 	return nil
 }
 
+func (x *ListWorkersResponse) SetWorkers(v []*WorkerState) {
+	x.xxx_hidden_Workers = &v
+}
+
+func (x *ListWorkersResponse) SetPaginationInfo(v *PaginationInfo) {
+	x.xxx_hidden_PaginationInfo = v
+}
+
+func (x *ListWorkersResponse) HasPaginationInfo() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PaginationInfo != nil
+}
+
+func (x *ListWorkersResponse) ClearPaginationInfo() {
+	x.xxx_hidden_PaginationInfo = nil
+}
+
+type ListWorkersResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Workers        []*WorkerState
+	PaginationInfo *PaginationInfo
+}
+
+func (b0 ListWorkersResponse_builder) Build() *ListWorkersResponse {
+	m0 := &ListWorkersResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Workers = &b.Workers
+	x.xxx_hidden_PaginationInfo = b.PaginationInfo
+	return m0
+}
+
 type TerminateWorkersRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	WorkerIdPattern map[string]string      `protobuf:"bytes,1,rep,name=worker_id_pattern,json=workerIdPattern,proto3" json:"worker_id_pattern,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_WorkerIdPattern map[string]string      `protobuf:"bytes,1,rep,name=worker_id_pattern,json=workerIdPattern" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *TerminateWorkersRequest) Reset() {
@@ -1486,23 +2396,36 @@ func (x *TerminateWorkersRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TerminateWorkersRequest.ProtoReflect.Descriptor instead.
-func (*TerminateWorkersRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{22}
-}
-
 func (x *TerminateWorkersRequest) GetWorkerIdPattern() map[string]string {
 	if x != nil {
-		return x.WorkerIdPattern
+		return x.xxx_hidden_WorkerIdPattern
 	}
 	return nil
 }
 
+func (x *TerminateWorkersRequest) SetWorkerIdPattern(v map[string]string) {
+	x.xxx_hidden_WorkerIdPattern = v
+}
+
+type TerminateWorkersRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	WorkerIdPattern map[string]string
+}
+
+func (b0 TerminateWorkersRequest_builder) Build() *TerminateWorkersRequest {
+	m0 := &TerminateWorkersRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_WorkerIdPattern = b.WorkerIdPattern
+	return m0
+}
+
 type ListDrainsRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	SizeClassQueueName *SizeClassQueueName    `protobuf:"bytes,1,opt,name=size_class_queue_name,json=sizeClassQueueName,proto3" json:"size_class_queue_name,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SizeClassQueueName *SizeClassQueueName    `protobuf:"bytes,1,opt,name=size_class_queue_name,json=sizeClassQueueName"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *ListDrainsRequest) Reset() {
@@ -1530,23 +2453,47 @@ func (x *ListDrainsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListDrainsRequest.ProtoReflect.Descriptor instead.
-func (*ListDrainsRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{23}
-}
-
 func (x *ListDrainsRequest) GetSizeClassQueueName() *SizeClassQueueName {
 	if x != nil {
-		return x.SizeClassQueueName
+		return x.xxx_hidden_SizeClassQueueName
 	}
 	return nil
 }
 
+func (x *ListDrainsRequest) SetSizeClassQueueName(v *SizeClassQueueName) {
+	x.xxx_hidden_SizeClassQueueName = v
+}
+
+func (x *ListDrainsRequest) HasSizeClassQueueName() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_SizeClassQueueName != nil
+}
+
+func (x *ListDrainsRequest) ClearSizeClassQueueName() {
+	x.xxx_hidden_SizeClassQueueName = nil
+}
+
+type ListDrainsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SizeClassQueueName *SizeClassQueueName
+}
+
+func (b0 ListDrainsRequest_builder) Build() *ListDrainsRequest {
+	m0 := &ListDrainsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_SizeClassQueueName = b.SizeClassQueueName
+	return m0
+}
+
 type ListDrainsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Drains        []*DrainState          `protobuf:"bytes,1,rep,name=drains,proto3" json:"drains,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Drains *[]*DrainState         `protobuf:"bytes,1,rep,name=drains"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ListDrainsResponse) Reset() {
@@ -1574,24 +2521,39 @@ func (x *ListDrainsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListDrainsResponse.ProtoReflect.Descriptor instead.
-func (*ListDrainsResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{24}
-}
-
 func (x *ListDrainsResponse) GetDrains() []*DrainState {
 	if x != nil {
-		return x.Drains
+		if x.xxx_hidden_Drains != nil {
+			return *x.xxx_hidden_Drains
+		}
 	}
 	return nil
 }
 
+func (x *ListDrainsResponse) SetDrains(v []*DrainState) {
+	x.xxx_hidden_Drains = &v
+}
+
+type ListDrainsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Drains []*DrainState
+}
+
+func (b0 ListDrainsResponse_builder) Build() *ListDrainsResponse {
+	m0 := &ListDrainsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Drains = &b.Drains
+	return m0
+}
+
 type AddOrRemoveDrainRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	SizeClassQueueName *SizeClassQueueName    `protobuf:"bytes,1,opt,name=size_class_queue_name,json=sizeClassQueueName,proto3" json:"size_class_queue_name,omitempty"`
-	WorkerIdPattern    map[string]string      `protobuf:"bytes,2,rep,name=worker_id_pattern,json=workerIdPattern,proto3" json:"worker_id_pattern,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SizeClassQueueName *SizeClassQueueName    `protobuf:"bytes,1,opt,name=size_class_queue_name,json=sizeClassQueueName"`
+	xxx_hidden_WorkerIdPattern    map[string]string      `protobuf:"bytes,2,rep,name=worker_id_pattern,json=workerIdPattern" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *AddOrRemoveDrainRequest) Reset() {
@@ -1619,27 +2581,57 @@ func (x *AddOrRemoveDrainRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddOrRemoveDrainRequest.ProtoReflect.Descriptor instead.
-func (*AddOrRemoveDrainRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{25}
-}
-
 func (x *AddOrRemoveDrainRequest) GetSizeClassQueueName() *SizeClassQueueName {
 	if x != nil {
-		return x.SizeClassQueueName
+		return x.xxx_hidden_SizeClassQueueName
 	}
 	return nil
 }
 
 func (x *AddOrRemoveDrainRequest) GetWorkerIdPattern() map[string]string {
 	if x != nil {
-		return x.WorkerIdPattern
+		return x.xxx_hidden_WorkerIdPattern
 	}
 	return nil
 }
 
+func (x *AddOrRemoveDrainRequest) SetSizeClassQueueName(v *SizeClassQueueName) {
+	x.xxx_hidden_SizeClassQueueName = v
+}
+
+func (x *AddOrRemoveDrainRequest) SetWorkerIdPattern(v map[string]string) {
+	x.xxx_hidden_WorkerIdPattern = v
+}
+
+func (x *AddOrRemoveDrainRequest) HasSizeClassQueueName() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_SizeClassQueueName != nil
+}
+
+func (x *AddOrRemoveDrainRequest) ClearSizeClassQueueName() {
+	x.xxx_hidden_SizeClassQueueName = nil
+}
+
+type AddOrRemoveDrainRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SizeClassQueueName *SizeClassQueueName
+	WorkerIdPattern    map[string]string
+}
+
+func (b0 AddOrRemoveDrainRequest_builder) Build() *AddOrRemoveDrainRequest {
+	m0 := &AddOrRemoveDrainRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_SizeClassQueueName = b.SizeClassQueueName
+	x.xxx_hidden_WorkerIdPattern = b.WorkerIdPattern
+	return m0
+}
+
 type BackgroundLearning struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1669,16 +2661,23 @@ func (x *BackgroundLearning) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BackgroundLearning.ProtoReflect.Descriptor instead.
-func (*BackgroundLearning) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{26}
+type BackgroundLearning_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 BackgroundLearning_builder) Build() *BackgroundLearning {
+	m0 := &BackgroundLearning{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
 }
 
 type ListOperationsRequest_StartAfter struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OperationName string                 `protobuf:"bytes,1,opt,name=operation_name,json=operationName,proto3" json:"operation_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_OperationName string                 `protobuf:"bytes,1,opt,name=operation_name,json=operationName"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ListOperationsRequest_StartAfter) Reset() {
@@ -1706,27 +2705,36 @@ func (x *ListOperationsRequest_StartAfter) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListOperationsRequest_StartAfter.ProtoReflect.Descriptor instead.
-func (*ListOperationsRequest_StartAfter) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{12, 0}
-}
-
 func (x *ListOperationsRequest_StartAfter) GetOperationName() string {
 	if x != nil {
-		return x.OperationName
+		return x.xxx_hidden_OperationName
 	}
 	return ""
 }
 
+func (x *ListOperationsRequest_StartAfter) SetOperationName(v string) {
+	x.xxx_hidden_OperationName = v
+}
+
+type ListOperationsRequest_StartAfter_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	OperationName string
+}
+
+func (b0 ListOperationsRequest_StartAfter_builder) Build() *ListOperationsRequest_StartAfter {
+	m0 := &ListOperationsRequest_StartAfter{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_OperationName = b.OperationName
+	return m0
+}
+
 type KillOperationsRequest_Filter struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Type:
-	//
-	//	*KillOperationsRequest_Filter_OperationName
-	//	*KillOperationsRequest_Filter_SizeClassQueueWithoutWorkers
-	Type          isKillOperationsRequest_Filter_Type `protobuf_oneof:"type"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState              `protogen:"opaque.v1"`
+	xxx_hidden_Type isKillOperationsRequest_Filter_Type `protobuf_oneof:"type"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *KillOperationsRequest_Filter) Reset() {
@@ -1754,21 +2762,9 @@ func (x *KillOperationsRequest_Filter) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use KillOperationsRequest_Filter.ProtoReflect.Descriptor instead.
-func (*KillOperationsRequest_Filter) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{14, 0}
-}
-
-func (x *KillOperationsRequest_Filter) GetType() isKillOperationsRequest_Filter_Type {
-	if x != nil {
-		return x.Type
-	}
-	return nil
-}
-
 func (x *KillOperationsRequest_Filter) GetOperationName() string {
 	if x != nil {
-		if x, ok := x.Type.(*KillOperationsRequest_Filter_OperationName); ok {
+		if x, ok := x.xxx_hidden_Type.(*killOperationsRequest_Filter_OperationName); ok {
 			return x.OperationName
 		}
 	}
@@ -1777,37 +2773,138 @@ func (x *KillOperationsRequest_Filter) GetOperationName() string {
 
 func (x *KillOperationsRequest_Filter) GetSizeClassQueueWithoutWorkers() *SizeClassQueueName {
 	if x != nil {
-		if x, ok := x.Type.(*KillOperationsRequest_Filter_SizeClassQueueWithoutWorkers); ok {
+		if x, ok := x.xxx_hidden_Type.(*killOperationsRequest_Filter_SizeClassQueueWithoutWorkers); ok {
 			return x.SizeClassQueueWithoutWorkers
 		}
 	}
 	return nil
 }
 
+func (x *KillOperationsRequest_Filter) SetOperationName(v string) {
+	x.xxx_hidden_Type = &killOperationsRequest_Filter_OperationName{v}
+}
+
+func (x *KillOperationsRequest_Filter) SetSizeClassQueueWithoutWorkers(v *SizeClassQueueName) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &killOperationsRequest_Filter_SizeClassQueueWithoutWorkers{v}
+}
+
+func (x *KillOperationsRequest_Filter) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Type != nil
+}
+
+func (x *KillOperationsRequest_Filter) HasOperationName() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*killOperationsRequest_Filter_OperationName)
+	return ok
+}
+
+func (x *KillOperationsRequest_Filter) HasSizeClassQueueWithoutWorkers() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*killOperationsRequest_Filter_SizeClassQueueWithoutWorkers)
+	return ok
+}
+
+func (x *KillOperationsRequest_Filter) ClearType() {
+	x.xxx_hidden_Type = nil
+}
+
+func (x *KillOperationsRequest_Filter) ClearOperationName() {
+	if _, ok := x.xxx_hidden_Type.(*killOperationsRequest_Filter_OperationName); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *KillOperationsRequest_Filter) ClearSizeClassQueueWithoutWorkers() {
+	if _, ok := x.xxx_hidden_Type.(*killOperationsRequest_Filter_SizeClassQueueWithoutWorkers); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+const KillOperationsRequest_Filter_Type_not_set_case case_KillOperationsRequest_Filter_Type = 0
+const KillOperationsRequest_Filter_OperationName_case case_KillOperationsRequest_Filter_Type = 1
+const KillOperationsRequest_Filter_SizeClassQueueWithoutWorkers_case case_KillOperationsRequest_Filter_Type = 2
+
+func (x *KillOperationsRequest_Filter) WhichType() case_KillOperationsRequest_Filter_Type {
+	if x == nil {
+		return KillOperationsRequest_Filter_Type_not_set_case
+	}
+	switch x.xxx_hidden_Type.(type) {
+	case *killOperationsRequest_Filter_OperationName:
+		return KillOperationsRequest_Filter_OperationName_case
+	case *killOperationsRequest_Filter_SizeClassQueueWithoutWorkers:
+		return KillOperationsRequest_Filter_SizeClassQueueWithoutWorkers_case
+	default:
+		return KillOperationsRequest_Filter_Type_not_set_case
+	}
+}
+
+type KillOperationsRequest_Filter_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Type:
+	OperationName                *string
+	SizeClassQueueWithoutWorkers *SizeClassQueueName
+	// -- end of xxx_hidden_Type
+}
+
+func (b0 KillOperationsRequest_Filter_builder) Build() *KillOperationsRequest_Filter {
+	m0 := &KillOperationsRequest_Filter{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.OperationName != nil {
+		x.xxx_hidden_Type = &killOperationsRequest_Filter_OperationName{*b.OperationName}
+	}
+	if b.SizeClassQueueWithoutWorkers != nil {
+		x.xxx_hidden_Type = &killOperationsRequest_Filter_SizeClassQueueWithoutWorkers{b.SizeClassQueueWithoutWorkers}
+	}
+	return m0
+}
+
+type case_KillOperationsRequest_Filter_Type protoreflect.FieldNumber
+
+func (x case_KillOperationsRequest_Filter_Type) String() string {
+	md := file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[30].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isKillOperationsRequest_Filter_Type interface {
 	isKillOperationsRequest_Filter_Type()
 }
 
-type KillOperationsRequest_Filter_OperationName struct {
-	OperationName string `protobuf:"bytes,1,opt,name=operation_name,json=operationName,proto3,oneof"`
+type killOperationsRequest_Filter_OperationName struct {
+	OperationName string `protobuf:"bytes,1,opt,name=operation_name,json=operationName,oneof"`
 }
 
-type KillOperationsRequest_Filter_SizeClassQueueWithoutWorkers struct {
-	SizeClassQueueWithoutWorkers *SizeClassQueueName `protobuf:"bytes,2,opt,name=size_class_queue_without_workers,json=sizeClassQueueWithoutWorkers,proto3,oneof"`
+type killOperationsRequest_Filter_SizeClassQueueWithoutWorkers struct {
+	SizeClassQueueWithoutWorkers *SizeClassQueueName `protobuf:"bytes,2,opt,name=size_class_queue_without_workers,json=sizeClassQueueWithoutWorkers,oneof"`
 }
 
-func (*KillOperationsRequest_Filter_OperationName) isKillOperationsRequest_Filter_Type() {}
+func (*killOperationsRequest_Filter_OperationName) isKillOperationsRequest_Filter_Type() {}
 
-func (*KillOperationsRequest_Filter_SizeClassQueueWithoutWorkers) isKillOperationsRequest_Filter_Type() {
+func (*killOperationsRequest_Filter_SizeClassQueueWithoutWorkers) isKillOperationsRequest_Filter_Type() {
 }
 
 type ListQueuedOperationsRequest_StartAfter struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Priority         int32                  `protobuf:"varint,1,opt,name=priority,proto3" json:"priority,omitempty"`
-	ExpectedDuration *durationpb.Duration   `protobuf:"bytes,3,opt,name=expected_duration,json=expectedDuration,proto3" json:"expected_duration,omitempty"`
-	QueuedTimestamp  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=queued_timestamp,json=queuedTimestamp,proto3" json:"queued_timestamp,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Priority         int32                  `protobuf:"varint,1,opt,name=priority"`
+	xxx_hidden_ExpectedDuration *durationpb.Duration   `protobuf:"bytes,3,opt,name=expected_duration,json=expectedDuration"`
+	xxx_hidden_QueuedTimestamp  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=queued_timestamp,json=queuedTimestamp"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *ListQueuedOperationsRequest_StartAfter) Reset() {
@@ -1835,42 +2932,84 @@ func (x *ListQueuedOperationsRequest_StartAfter) ProtoReflect() protoreflect.Mes
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListQueuedOperationsRequest_StartAfter.ProtoReflect.Descriptor instead.
-func (*ListQueuedOperationsRequest_StartAfter) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{18, 0}
-}
-
 func (x *ListQueuedOperationsRequest_StartAfter) GetPriority() int32 {
 	if x != nil {
-		return x.Priority
+		return x.xxx_hidden_Priority
 	}
 	return 0
 }
 
 func (x *ListQueuedOperationsRequest_StartAfter) GetExpectedDuration() *durationpb.Duration {
 	if x != nil {
-		return x.ExpectedDuration
+		return x.xxx_hidden_ExpectedDuration
 	}
 	return nil
 }
 
 func (x *ListQueuedOperationsRequest_StartAfter) GetQueuedTimestamp() *timestamppb.Timestamp {
 	if x != nil {
-		return x.QueuedTimestamp
+		return x.xxx_hidden_QueuedTimestamp
 	}
 	return nil
 }
 
+func (x *ListQueuedOperationsRequest_StartAfter) SetPriority(v int32) {
+	x.xxx_hidden_Priority = v
+}
+
+func (x *ListQueuedOperationsRequest_StartAfter) SetExpectedDuration(v *durationpb.Duration) {
+	x.xxx_hidden_ExpectedDuration = v
+}
+
+func (x *ListQueuedOperationsRequest_StartAfter) SetQueuedTimestamp(v *timestamppb.Timestamp) {
+	x.xxx_hidden_QueuedTimestamp = v
+}
+
+func (x *ListQueuedOperationsRequest_StartAfter) HasExpectedDuration() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ExpectedDuration != nil
+}
+
+func (x *ListQueuedOperationsRequest_StartAfter) HasQueuedTimestamp() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_QueuedTimestamp != nil
+}
+
+func (x *ListQueuedOperationsRequest_StartAfter) ClearExpectedDuration() {
+	x.xxx_hidden_ExpectedDuration = nil
+}
+
+func (x *ListQueuedOperationsRequest_StartAfter) ClearQueuedTimestamp() {
+	x.xxx_hidden_QueuedTimestamp = nil
+}
+
+type ListQueuedOperationsRequest_StartAfter_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Priority         int32
+	ExpectedDuration *durationpb.Duration
+	QueuedTimestamp  *timestamppb.Timestamp
+}
+
+func (b0 ListQueuedOperationsRequest_StartAfter_builder) Build() *ListQueuedOperationsRequest_StartAfter {
+	m0 := &ListQueuedOperationsRequest_StartAfter{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Priority = b.Priority
+	x.xxx_hidden_ExpectedDuration = b.ExpectedDuration
+	x.xxx_hidden_QueuedTimestamp = b.QueuedTimestamp
+	return m0
+}
+
 type ListWorkersRequest_Filter struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Type:
-	//
-	//	*ListWorkersRequest_Filter_All
-	//	*ListWorkersRequest_Filter_Executing
-	//	*ListWorkersRequest_Filter_IdleSynchronizing
-	Type          isListWorkersRequest_Filter_Type `protobuf_oneof:"type"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState           `protogen:"opaque.v1"`
+	xxx_hidden_Type isListWorkersRequest_Filter_Type `protobuf_oneof:"type"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ListWorkersRequest_Filter) Reset() {
@@ -1898,21 +3037,9 @@ func (x *ListWorkersRequest_Filter) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListWorkersRequest_Filter.ProtoReflect.Descriptor instead.
-func (*ListWorkersRequest_Filter) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{20, 0}
-}
-
-func (x *ListWorkersRequest_Filter) GetType() isListWorkersRequest_Filter_Type {
-	if x != nil {
-		return x.Type
-	}
-	return nil
-}
-
 func (x *ListWorkersRequest_Filter) GetAll() *SizeClassQueueName {
 	if x != nil {
-		if x, ok := x.Type.(*ListWorkersRequest_Filter_All); ok {
+		if x, ok := x.xxx_hidden_Type.(*listWorkersRequest_Filter_All); ok {
 			return x.All
 		}
 	}
@@ -1921,7 +3048,7 @@ func (x *ListWorkersRequest_Filter) GetAll() *SizeClassQueueName {
 
 func (x *ListWorkersRequest_Filter) GetExecuting() *InvocationName {
 	if x != nil {
-		if x, ok := x.Type.(*ListWorkersRequest_Filter_Executing); ok {
+		if x, ok := x.xxx_hidden_Type.(*listWorkersRequest_Filter_Executing); ok {
 			return x.Executing
 		}
 	}
@@ -1930,40 +3057,174 @@ func (x *ListWorkersRequest_Filter) GetExecuting() *InvocationName {
 
 func (x *ListWorkersRequest_Filter) GetIdleSynchronizing() *InvocationName {
 	if x != nil {
-		if x, ok := x.Type.(*ListWorkersRequest_Filter_IdleSynchronizing); ok {
+		if x, ok := x.xxx_hidden_Type.(*listWorkersRequest_Filter_IdleSynchronizing); ok {
 			return x.IdleSynchronizing
 		}
 	}
 	return nil
 }
 
+func (x *ListWorkersRequest_Filter) SetAll(v *SizeClassQueueName) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &listWorkersRequest_Filter_All{v}
+}
+
+func (x *ListWorkersRequest_Filter) SetExecuting(v *InvocationName) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &listWorkersRequest_Filter_Executing{v}
+}
+
+func (x *ListWorkersRequest_Filter) SetIdleSynchronizing(v *InvocationName) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &listWorkersRequest_Filter_IdleSynchronizing{v}
+}
+
+func (x *ListWorkersRequest_Filter) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Type != nil
+}
+
+func (x *ListWorkersRequest_Filter) HasAll() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*listWorkersRequest_Filter_All)
+	return ok
+}
+
+func (x *ListWorkersRequest_Filter) HasExecuting() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*listWorkersRequest_Filter_Executing)
+	return ok
+}
+
+func (x *ListWorkersRequest_Filter) HasIdleSynchronizing() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*listWorkersRequest_Filter_IdleSynchronizing)
+	return ok
+}
+
+func (x *ListWorkersRequest_Filter) ClearType() {
+	x.xxx_hidden_Type = nil
+}
+
+func (x *ListWorkersRequest_Filter) ClearAll() {
+	if _, ok := x.xxx_hidden_Type.(*listWorkersRequest_Filter_All); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *ListWorkersRequest_Filter) ClearExecuting() {
+	if _, ok := x.xxx_hidden_Type.(*listWorkersRequest_Filter_Executing); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *ListWorkersRequest_Filter) ClearIdleSynchronizing() {
+	if _, ok := x.xxx_hidden_Type.(*listWorkersRequest_Filter_IdleSynchronizing); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+const ListWorkersRequest_Filter_Type_not_set_case case_ListWorkersRequest_Filter_Type = 0
+const ListWorkersRequest_Filter_All_case case_ListWorkersRequest_Filter_Type = 1
+const ListWorkersRequest_Filter_Executing_case case_ListWorkersRequest_Filter_Type = 2
+const ListWorkersRequest_Filter_IdleSynchronizing_case case_ListWorkersRequest_Filter_Type = 3
+
+func (x *ListWorkersRequest_Filter) WhichType() case_ListWorkersRequest_Filter_Type {
+	if x == nil {
+		return ListWorkersRequest_Filter_Type_not_set_case
+	}
+	switch x.xxx_hidden_Type.(type) {
+	case *listWorkersRequest_Filter_All:
+		return ListWorkersRequest_Filter_All_case
+	case *listWorkersRequest_Filter_Executing:
+		return ListWorkersRequest_Filter_Executing_case
+	case *listWorkersRequest_Filter_IdleSynchronizing:
+		return ListWorkersRequest_Filter_IdleSynchronizing_case
+	default:
+		return ListWorkersRequest_Filter_Type_not_set_case
+	}
+}
+
+type ListWorkersRequest_Filter_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Type:
+	All               *SizeClassQueueName
+	Executing         *InvocationName
+	IdleSynchronizing *InvocationName
+	// -- end of xxx_hidden_Type
+}
+
+func (b0 ListWorkersRequest_Filter_builder) Build() *ListWorkersRequest_Filter {
+	m0 := &ListWorkersRequest_Filter{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.All != nil {
+		x.xxx_hidden_Type = &listWorkersRequest_Filter_All{b.All}
+	}
+	if b.Executing != nil {
+		x.xxx_hidden_Type = &listWorkersRequest_Filter_Executing{b.Executing}
+	}
+	if b.IdleSynchronizing != nil {
+		x.xxx_hidden_Type = &listWorkersRequest_Filter_IdleSynchronizing{b.IdleSynchronizing}
+	}
+	return m0
+}
+
+type case_ListWorkersRequest_Filter_Type protoreflect.FieldNumber
+
+func (x case_ListWorkersRequest_Filter_Type) String() string {
+	md := file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[32].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isListWorkersRequest_Filter_Type interface {
 	isListWorkersRequest_Filter_Type()
 }
 
-type ListWorkersRequest_Filter_All struct {
-	All *SizeClassQueueName `protobuf:"bytes,1,opt,name=all,proto3,oneof"`
+type listWorkersRequest_Filter_All struct {
+	All *SizeClassQueueName `protobuf:"bytes,1,opt,name=all,oneof"`
 }
 
-type ListWorkersRequest_Filter_Executing struct {
-	Executing *InvocationName `protobuf:"bytes,2,opt,name=executing,proto3,oneof"`
+type listWorkersRequest_Filter_Executing struct {
+	Executing *InvocationName `protobuf:"bytes,2,opt,name=executing,oneof"`
 }
 
-type ListWorkersRequest_Filter_IdleSynchronizing struct {
-	IdleSynchronizing *InvocationName `protobuf:"bytes,3,opt,name=idle_synchronizing,json=idleSynchronizing,proto3,oneof"`
+type listWorkersRequest_Filter_IdleSynchronizing struct {
+	IdleSynchronizing *InvocationName `protobuf:"bytes,3,opt,name=idle_synchronizing,json=idleSynchronizing,oneof"`
 }
 
-func (*ListWorkersRequest_Filter_All) isListWorkersRequest_Filter_Type() {}
+func (*listWorkersRequest_Filter_All) isListWorkersRequest_Filter_Type() {}
 
-func (*ListWorkersRequest_Filter_Executing) isListWorkersRequest_Filter_Type() {}
+func (*listWorkersRequest_Filter_Executing) isListWorkersRequest_Filter_Type() {}
 
-func (*ListWorkersRequest_Filter_IdleSynchronizing) isListWorkersRequest_Filter_Type() {}
+func (*listWorkersRequest_Filter_IdleSynchronizing) isListWorkersRequest_Filter_Type() {}
 
 type ListWorkersRequest_StartAfter struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkerId      map[string]string      `protobuf:"bytes,1,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_WorkerId map[string]string      `protobuf:"bytes,1,rep,name=worker_id,json=workerId" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ListWorkersRequest_StartAfter) Reset() {
@@ -1991,16 +3252,29 @@ func (x *ListWorkersRequest_StartAfter) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListWorkersRequest_StartAfter.ProtoReflect.Descriptor instead.
-func (*ListWorkersRequest_StartAfter) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP(), []int{20, 1}
-}
-
 func (x *ListWorkersRequest_StartAfter) GetWorkerId() map[string]string {
 	if x != nil {
-		return x.WorkerId
+		return x.xxx_hidden_WorkerId
 	}
 	return nil
+}
+
+func (x *ListWorkersRequest_StartAfter) SetWorkerId(v map[string]string) {
+	x.xxx_hidden_WorkerId = v
+}
+
+type ListWorkersRequest_StartAfter_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	WorkerId map[string]string
+}
+
+func (b0 ListWorkersRequest_StartAfter_builder) Build() *ListWorkersRequest_StartAfter {
+	m0 := &ListWorkersRequest_StartAfter{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_WorkerId = b.WorkerId
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto protoreflect.FileDescriptor
@@ -2172,19 +3446,7 @@ const file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc
 	"\n" +
 	"ListDrains\x12*.bonanza.buildqueuestate.ListDrainsRequest\x1a+.bonanza.buildqueuestate.ListDrainsResponse\x12T\n" +
 	"\bAddDrain\x120.bonanza.buildqueuestate.AddOrRemoveDrainRequest\x1a\x16.google.protobuf.Empty\x12W\n" +
-	"\vRemoveDrain\x120.bonanza.buildqueuestate.AddOrRemoveDrainRequest\x1a\x16.google.protobuf.EmptyB)Z'bonanza.build/pkg/proto/buildqueuestateb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc), len(file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_rawDescData
-}
+	"\vRemoveDrain\x120.bonanza.buildqueuestate.AddOrRemoveDrainRequest\x1a\x16.google.protobuf.EmptyB.Z'bonanza.build/pkg/proto/buildqueuestate\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
@@ -2323,18 +3585,18 @@ func file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[3].OneofWrappers = []any{
-		(*OperationState_Queued)(nil),
-		(*OperationState_Executing)(nil),
-		(*OperationState_Completed)(nil),
+		(*operationState_Queued)(nil),
+		(*operationState_Executing)(nil),
+		(*operationState_Completed)(nil),
 	}
 	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[30].OneofWrappers = []any{
-		(*KillOperationsRequest_Filter_OperationName)(nil),
-		(*KillOperationsRequest_Filter_SizeClassQueueWithoutWorkers)(nil),
+		(*killOperationsRequest_Filter_OperationName)(nil),
+		(*killOperationsRequest_Filter_SizeClassQueueWithoutWorkers)(nil),
 	}
 	file_bonanza_build_pkg_proto_buildqueuestate_buildqueuestate_proto_msgTypes[32].OneofWrappers = []any{
-		(*ListWorkersRequest_Filter_All)(nil),
-		(*ListWorkersRequest_Filter_Executing)(nil),
-		(*ListWorkersRequest_Filter_IdleSynchronizing)(nil),
+		(*listWorkersRequest_Filter_All)(nil),
+		(*listWorkersRequest_Filter_Executing)(nil),
+		(*listWorkersRequest_Filter_IdleSynchronizing)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

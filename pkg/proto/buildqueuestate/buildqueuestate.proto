@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.buildqueuestate;
 
@@ -9,6 +9,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "google/rpc/status.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/buildqueuestate";
 
 // BuildQueueState can be used to inspect the internal state of
