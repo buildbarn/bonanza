@@ -258,9 +258,9 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	result := model_core.MustBuildPatchedMessage(func(resultPatcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_command_pb.Result {
 		// Fetch the Command message, so that we know the arguments
 		// and environment variables of the process to spawn.
-		result := model_command_pb.Result{
+		result := model_command_pb.Result_builder{
 			WorkerId: e.workerID,
-		}
+		}.Build()
 		actionReader := model_parser.LookupParsedObjectReader[object.LocalReference](
 			parsedObjectPoolIngester,
 			model_parser.NewChainedObjectParser(
@@ -274,8 +274,8 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			var err error
 			actionMessage, err = actionReader.ReadObject(ctx, *action.Reference)
 			if err != nil {
-				result.Status = status.Convert(util.StatusWrap(err, "Failed to read action")).Proto()
-				return &result
+				result.SetStatus(status.Convert(util.StatusWrap(err, "Failed to read action")).Proto())
+				return result
 			}
 		}
 
@@ -286,10 +286,10 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 				model_parser.NewProtoObjectParser[object.LocalReference, model_command_pb.Command](),
 			),
 		)
-		command, err := model_parser.Dereference(ctx, commandReader, model_core.Nested(actionMessage, actionMessage.Message.CommandReference))
+		command, err := model_parser.Dereference(ctx, commandReader, model_core.Nested(actionMessage, actionMessage.Message.GetCommandReference()))
 		if err != nil {
-			result.Status = status.Convert(util.StatusWrap(err, "Failed to read command")).Proto()
-			return &result
+			result.SetStatus(status.Convert(util.StatusWrap(err, "Failed to read command")).Proto())
+			return result
 		}
 
 		// Convert arguments and environment variables stored in B-trees
@@ -306,22 +306,21 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 					model_parser.NewProtoListObjectParser[object.LocalReference, model_command_pb.ArgumentList_Element](),
 				),
 			),
-			model_core.Nested(command, command.Message.Arguments),
+			model_core.Nested(command, command.Message.GetArguments()),
 			func(element model_core.Message[*model_command_pb.ArgumentList_Element, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
 				return element.Message.GetParent(), nil
 			},
 			&errIter,
 		) {
-			level, ok := element.Message.Level.(*model_command_pb.ArgumentList_Element_Leaf)
-			if !ok {
-				result.Status = status.New(codes.InvalidArgument, "Invalid leaf element in arguments").Proto()
-				return &result
+			if !element.Message.HasLeaf() {
+				result.SetStatus(status.New(codes.InvalidArgument, "Invalid leaf element in arguments").Proto())
+				return result
 			}
-			arguments = append(arguments, level.Leaf)
+			arguments = append(arguments, element.Message.GetLeaf())
 		}
 		if errIter != nil {
-			result.Status = status.Convert(util.StatusWrap(err, "Failed to iterate arguments")).Proto()
-			return &result
+			result.SetStatus(status.Convert(util.StatusWrap(err, "Failed to iterate arguments")).Proto())
+			return result
 		}
 
 		environmentVariables := maps.Clone(e.environmentVariables)
@@ -334,25 +333,25 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 					model_parser.NewProtoListObjectParser[object.LocalReference, model_command_pb.EnvironmentVariableList_Element](),
 				),
 			),
-			model_core.Nested(command, command.Message.EnvironmentVariables),
+			model_core.Nested(command, command.Message.GetEnvironmentVariables()),
 			func(entry model_core.Message[*model_command_pb.EnvironmentVariableList_Element, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
 				return entry.Message.GetParent(), nil
 			},
 			&errIter,
 		) {
-			level, ok := entry.Message.Level.(*model_command_pb.EnvironmentVariableList_Element_Leaf_)
-			if !ok {
-				result.Status = status.New(codes.InvalidArgument, "Invalid leaf entry in environment variables").Proto()
-				return &result
+			level := entry.Message.GetLeaf()
+			if level == nil {
+				result.SetStatus(status.New(codes.InvalidArgument, "Invalid leaf entry in environment variables").Proto())
+				return result
 			}
 			if environmentVariables == nil {
 				environmentVariables = map[string]string{}
 			}
-			environmentVariables[level.Leaf.Name] = level.Leaf.Value
+			environmentVariables[level.GetName()] = level.GetValue()
 		}
 		if errIter != nil {
-			result.Status = status.Convert(util.StatusWrap(err, "Failed to iterate environment variables")).Proto()
-			return &result
+			result.SetStatus(status.Convert(util.StatusWrap(err, "Failed to iterate environment variables")).Proto())
+			return result
 		}
 
 		// Error logger to terminate execution and capture I/O error events.
@@ -361,22 +360,22 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		ioErrorCapturer := &capturingErrorLogger{cancel: cancelIOError}
 
 		fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(
-			command.Message.FileCreationParameters,
+			command.Message.GetFileCreationParameters(),
 			referenceFormat,
 			e.binaryEncoderFactory,
 		)
 		if err != nil {
-			result.Status = status.Convert(util.StatusWrap(err, "Invalid file creation parameters")).Proto()
-			return &result
+			result.SetStatus(status.Convert(util.StatusWrap(err, "Invalid file creation parameters")).Proto())
+			return result
 		}
 		directoryCreationParameters, err := model_filesystem.NewDirectoryCreationParametersFromProto(
-			command.Message.DirectoryCreationParameters,
+			command.Message.GetDirectoryCreationParameters(),
 			referenceFormat,
 			e.binaryEncoderFactory,
 		)
 		if err != nil {
-			result.Status = status.Convert(util.StatusWrap(err, "Invalid directory creation parameters")).Proto()
-			return &result
+			result.SetStatus(status.Convert(util.StatusWrap(err, "Invalid directory creation parameters")).Proto())
+			return result
 		}
 		directoryEncoder := directoryCreationParameters.GetEncoder()
 
@@ -438,7 +437,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			e.objectStoreSemaphore,
 		)
 		var inputFileFactory model_filesystem_virtual.FileFactory
-		if command.Message.NeedsWritableInputFiles {
+		if command.Message.GetNeedsWritableInputFiles() {
 			inputFileFactory = model_filesystem_virtual.NewStatefulHandleAllocatingFileFactory(
 				model_filesystem_virtual.NewMutationTrackingFileFactory(
 					model_filesystem_virtual.NewObjectInitializedFileFactory(
@@ -464,11 +463,11 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		// is executed, such as the input root directory.
 		// Empty input roots are not backed by an object.
 		inputRootContentsFetcher := virtual.EmptyInitialContentsFetcher
-		if inputRootReferenceMessage := actionMessage.Message.InputRootReference.GetReference(); inputRootReferenceMessage != nil {
+		if inputRootReferenceMessage := actionMessage.Message.GetInputRootReference().GetReference(); inputRootReferenceMessage != nil {
 			inputRootReference, err := model_core.FlattenDecodableReference(model_core.Nested(actionMessage, inputRootReferenceMessage))
 			if err != nil {
-				result.Status = status.Convert(util.StatusWrap(err, "Invalid input root reference")).Proto()
-				return &result
+				result.SetStatus(status.Convert(util.StatusWrap(err, "Invalid input root reference")).Proto())
+				return result
 			}
 			inputRootContentsFetcher = model_filesystem_virtual.NewObjectBackedInitialContentsFetcher(
 				ctxWithIOError,
@@ -489,8 +488,8 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			serverLogsDirectoryComponent: virtual.InitialChild{}.FromDirectory(virtual.EmptyInitialContentsFetcher),
 			temporaryDirectoryComponent:  virtual.InitialChild{}.FromDirectory(virtual.EmptyInitialContentsFetcher),
 		}, false); err != nil {
-			result.Status = status.Convert(util.StatusWrap(err, "Failed to create initial children of build directory")).Proto()
-			return &result
+			result.SetStatus(status.Convert(util.StatusWrap(err, "Failed to create initial children of build directory")).Proto())
+			return result
 		}
 
 		// If the command requires a stable input root path, we
@@ -498,11 +497,11 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		// name. We ideally don't want to do this, because it
 		// limits prevents any form of parallelism.
 		var buildDirectoryUUID uuid.UUID
-		if u := command.Message.StableInputRootPathUuid; u != "" {
+		if u := command.Message.GetStableInputRootPathUuid(); u != "" {
 			buildDirectoryUUID, err = uuid.Parse(u)
 			if err != nil {
-				result.Status = status.Convert(util.StatusWrap(err, "Invalid stable input root path UUID")).Proto()
-				return &result
+				result.SetStatus(status.Convert(util.StatusWrap(err, "Invalid stable input root path UUID")).Proto())
+				return result
 			}
 		} else {
 			buildDirectoryUUID = util.Must(e.uuidGenerator())
@@ -510,8 +509,8 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 
 		buildDirectoryName := path.MustNewComponent(buildDirectoryUUID.String())
 		if err := e.topLevelDirectory.AddChild(ctx, buildDirectoryName, virtual.DirectoryChild{}.FromDirectory(buildDirectory)); err != nil {
-			result.Status = status.Convert(util.StatusWrap(err, "Failed to attach build directory")).Proto()
-			return &result
+			result.SetStatus(status.Convert(util.StatusWrap(err, "Failed to attach build directory")).Proto())
+			return result
 		}
 		defer e.topLevelDirectory.RemoveChild(buildDirectoryName)
 
@@ -519,7 +518,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		// directory entries even if we fully disable any form of
 		// caching. Figure out what's going on here, so we can get rid
 		// of this unnecessary delay.
-		if command.Message.StableInputRootPathUuid != "" {
+		if command.Message.GetStableInputRootPathUuid() != "" {
 			time.Sleep(1)
 		}
 
@@ -533,7 +532,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		runResponse, runErr := e.runner.Run(ctxWithTimeout, &runner_pb.RunRequest{
 			Arguments:            arguments,
 			EnvironmentVariables: environmentVariables,
-			WorkingDirectory:     command.Message.WorkingDirectory,
+			WorkingDirectory:     command.Message.GetWorkingDirectory(),
 			StdoutPath:           serverLogsDirectoryPath.Append(stdoutComponent).GetUNIXString(),
 			StderrPath:           serverLogsDirectoryPath.Append(stderrComponent).GetUNIXString(),
 			InputRootDirectory:   buildDirectoryPath.Append(inputRootDirectoryComponent).GetUNIXString(),
@@ -550,8 +549,8 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 		}
 
 		setError := func(err error) {
-			if result.Status == nil {
-				result.Status = status.Convert(err).Proto()
+			if result.GetStatus() == nil {
+				result.SetStatus(status.Convert(err).Proto())
 			}
 		}
 
@@ -564,8 +563,8 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 
 		// Attach the exit code or execution error.
 		if runErr == nil {
-			result.ExitCode = runResponse.ExitCode
-			result.AuxiliaryMetadata = append(result.AuxiliaryMetadata, runResponse.ResourceUsage...)
+			result.SetExitCode(runResponse.ExitCode)
+			result.SetAuxiliaryMetadata(append(result.GetAuxiliaryMetadata(), runResponse.ResourceUsage...))
 		} else {
 			setError(util.StatusWrap(runErr, "Failed to run command"))
 		}
@@ -590,6 +589,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			// directory as logs. LookupAllChildren() returns
 			// files in alphabetical order, which is the order
 			// in which logs need to be stored.
+			var logs []*model_command_pb.Log
 			for _, file := range serverLogsFiles {
 				name := file.Name.String()
 				contents, isRegularFile, err := captureLog(ctx, file.Child, writableFileUploadDelayChan, fileCreationParameters)
@@ -601,14 +601,15 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 					continue
 				}
 				logSizesBytes = append(logSizesBytes, contents.Message.GetTotalSizeBytes())
-				outputs.Logs = append(outputs.Logs, &model_command_pb.Log{
+				logs = append(logs, model_command_pb.Log_builder{
 					Name:     name,
 					Contents: contents.Merge(outputsPatcher),
-				})
+				}.Build())
 			}
+			outputs.SetLogs(logs)
 		}
 
-		if pattern := command.Message.OutputPathPattern; pattern != nil {
+		if pattern := command.Message.GetOutputPathPattern(); pattern != nil {
 			if inputRoot, err := buildDirectory.LookupChild(inputRootDirectoryComponent); err != nil {
 				setError(util.StatusWrap(err, "Failed to look up input root directory"))
 			} else if inputRootDirectory, _ := inputRoot.GetPair(); inputRootDirectory == nil {
@@ -644,7 +645,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 					)
 				})
 				if err := group.Wait(); err == nil {
-					outputs.OutputRoot = outputRoot.Message.Message
+					outputs.SetOutputRoot(outputRoot.Message.Message)
 					outputsPatcher.Merge(outputRoot.Message.Patcher)
 				} else {
 					setError(util.StatusWrap(err, "Failed to capture output root"))
@@ -669,7 +670,7 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 			); err != nil {
 				setError(util.StatusWrap(err, "Failed to capture outputs"))
 			} else {
-				result.OutputsReference = createdObjectReference
+				result.SetOutputsReference(createdObjectReference)
 
 				// The runner does not report when data
 				// was written to the logs. Emit a single
@@ -679,14 +680,14 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 				// TODO: Capture timing information if
 				// supported by the runner.
 				if slices.ContainsFunc(logSizesBytes, func(sizeBytes uint64) bool { return sizeBytes > 0 }) {
-					result.LogTimings = []*model_command_pb.LogTiming{{
+					result.SetLogTimings([]*model_command_pb.LogTiming{model_command_pb.LogTiming_builder{
 						TotalDelay:    &durationpb.Duration{},
 						LogSizesBytes: logSizesBytes,
-					}}
+					}.Build()})
 				}
 			}
 		}
-		return &result
+		return result
 	})
 
 	// Store the result in an object. As objects cannot be empty,
@@ -718,13 +719,13 @@ func (e *localExecutor) Execute(ctx context.Context, action *model_executewithst
 	}
 
 	resultCode := remoteworker_pb.CurrentState_Completed_SUCCEEDED
-	if grpcCode := codes.Code(result.Message.Status.GetCode()); grpcCode != codes.OK {
+	if grpcCode := codes.Code(result.Message.GetStatus().GetCode()); grpcCode != codes.OK {
 		if grpcCode == codes.DeadlineExceeded {
 			resultCode = remoteworker_pb.CurrentState_Completed_TIMED_OUT
 		} else {
 			resultCode = remoteworker_pb.CurrentState_Completed_FAILED
 		}
-	} else if result.Message.ExitCode != 0 {
+	} else if result.Message.GetExitCode() != 0 {
 		resultCode = remoteworker_pb.CurrentState_Completed_FAILED
 	}
 	return resultReference, virtualExecutionDuration, resultCode, nil
@@ -780,10 +781,10 @@ func (d *prepopulatedCapturableDirectory) ReadDir() ([]filesystem.FileInfo, erro
 
 	// We should only capture certain children. Filter the results
 	// of ReadDir() by name.
-	permittedEntries := patternChildren.Message.Children
+	permittedEntries := patternChildren.Message.GetChildren()
 	var filteredEntries []filesystem.FileInfo
 	for len(entries) > 0 && len(permittedEntries) > 0 {
-		if cmp := strings.Compare(entries[0].Name().String(), permittedEntries[0].Name); cmp < 0 {
+		if cmp := strings.Compare(entries[0].Name().String(), permittedEntries[0].GetName()); cmp < 0 {
 			entries = entries[1:]
 		} else if cmp > 0 {
 			permittedEntries = permittedEntries[1:]
@@ -827,17 +828,17 @@ func (d *prepopulatedCapturableDirectory) EnterCapturableDirectory(name path.Com
 		// Determine if the requested directory is part of the
 		// path pattern. If not, hide it.
 		nameStr := name.String()
-		children := patternChildren.Message.Children
+		children := patternChildren.Message.GetChildren()
 		index, ok := sort.Find(
 			len(children),
-			func(i int) int { return strings.Compare(nameStr, children[i].Name) },
+			func(i int) int { return strings.Compare(nameStr, children[i].GetName()) },
 		)
 		if !ok {
 			return nil, nil, syscall.ENOENT
 		}
 
 		// Extract the pattern to apply to the child.
-		childPatternMessage := children[index].Pattern
+		childPatternMessage := children[index].GetPattern()
 		if childPatternMessage == nil {
 			return nil, nil, status.Error(codes.InvalidArgument, "Missing path pattern")
 		}

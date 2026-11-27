@@ -15,6 +15,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 // GetPathPatternWithChildren returns a PathPattern message that either
@@ -29,17 +30,13 @@ func GetPathPatternWithChildren[TMetadata model_core.ReferenceMetadata](
 		return &model_command_pb.PathPattern{}
 	}
 	if externalObject == nil {
-		return &model_command_pb.PathPattern{
-			Children: &model_command_pb.PathPattern_ChildrenInline{
-				ChildrenInline: children.Message,
-			},
-		}
+		return model_command_pb.PathPattern_builder{
+			ChildrenInline: proto.ValueOrDefault(children.Message),
+		}.Build()
 	}
-	return &model_command_pb.PathPattern{
-		Children: &model_command_pb.PathPattern_ChildrenExternal{
-			ChildrenExternal: patcher.AddDecodableReference(*externalObject),
-		},
-	}
+	return model_command_pb.PathPattern_builder{
+		ChildrenExternal: proto.ValueOrDefault(patcher.AddDecodableReference(*externalObject)),
+	}.Build()
 }
 
 // GetPathPatternInlineCandidate creates a candidate for either inlining
@@ -60,10 +57,10 @@ func GetPathPatternInlineCandidate[TMetadata model_core.ReferenceMetadata](
 			children model_core.PatchedMessage[*model_command_pb.PathPattern_Children, TMetadata],
 			externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 		) {
-			children.Message.Children = append(children.Message.Children, &model_command_pb.PathPattern_Child{
+			children.Message.SetChildren(append(children.Message.GetChildren(), model_command_pb.PathPattern_Child_builder{
 				Name:    name,
 				Pattern: GetPathPatternWithChildren(grandChildren, externalObject, children.Patcher),
-			})
+			}.Build()))
 		}),
 	}
 }
@@ -151,12 +148,12 @@ func PathPatternGetChildren[TReference any](
 	reader model_parser.MessageObjectReader[TReference, *model_command_pb.PathPattern_Children],
 	pathPattern model_core.Message[*model_command_pb.PathPattern, TReference],
 ) (model_core.Message[*model_command_pb.PathPattern_Children, TReference], error) {
-	switch children := pathPattern.Message.Children.(type) {
-	case *model_command_pb.PathPattern_ChildrenExternal:
-		return model_parser.Dereference(ctx, reader, model_core.Nested(pathPattern, children.ChildrenExternal))
-	case *model_command_pb.PathPattern_ChildrenInline:
-		return model_core.Nested(pathPattern, children.ChildrenInline), nil
-	case nil:
+	switch pathPattern.Message.WhichChildren() {
+	case model_command_pb.PathPattern_ChildrenExternal_case:
+		return model_parser.Dereference(ctx, reader, model_core.Nested(pathPattern, pathPattern.Message.GetChildrenExternal()))
+	case model_command_pb.PathPattern_ChildrenInline_case:
+		return model_core.Nested(pathPattern, pathPattern.Message.GetChildrenInline()), nil
+	case 0:
 		// No children present.
 		return model_core.Message[*model_command_pb.PathPattern_Children, TReference]{}, nil
 	default:

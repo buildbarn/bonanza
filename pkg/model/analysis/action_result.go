@@ -17,7 +17,7 @@ func (baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx context.
 	rawActionResultValue := e.GetRawActionResultValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.RawActionResult_Key {
 			return &model_analysis_pb.RawActionResult_Key{
-				ExecuteRequest: model_core.Patch(e, model_core.Nested(key, key.Message.ExecuteRequest)).Merge(patcher),
+				ExecuteRequest: model_core.Patch(e, model_core.Nested(key, key.Message.GetExecuteRequest())).Merge(patcher),
 			}
 		}),
 	)
@@ -28,18 +28,18 @@ func (baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx context.
 	result, err := model_parser.Dereference(
 		ctx,
 		actionEncoders.Readers.CommandResult,
-		model_core.Nested(rawActionResultValue, rawActionResultValue.Message.ResultReference),
+		model_core.Nested(rawActionResultValue, rawActionResultValue.Message.GetResultReference()),
 	)
 	if err != nil {
 		return PatchedActionResultValue[TMetadata]{}, fmt.Errorf("failed to read completion event: %w", err)
 	}
-	if err := status.ErrorProto(result.Message.Status); err != nil {
+	if err := status.ErrorProto(result.Message.GetStatus()); err != nil {
 		return PatchedActionResultValue[TMetadata]{}, err
 	}
-	outputsReference := model_core.Nested(result, result.Message.OutputsReference)
+	outputsReference := model_core.Nested(result, result.Message.GetOutputsReference())
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Value {
 		return &model_analysis_pb.ActionResult_Value{
-			ExitCode:         result.Message.ExitCode,
+			ExitCode:         result.Message.GetExitCode(),
 			OutputsReference: model_core.Patch(e, outputsReference).Merge(patcher),
 		}
 	}), nil

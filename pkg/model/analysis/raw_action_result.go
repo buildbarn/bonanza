@@ -24,6 +24,8 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
+
+	"google.golang.org/protobuf/proto"
 )
 
 var commandActionObjectFormat = model_format.NewProto[model_command_pb.Action]().ToProto()
@@ -118,9 +120,9 @@ func convertDictToEnvironmentVariableList[TMetadata model_core.ReferenceMetadata
 ) (model_core.PatchedMessage[[]*model_command_pb.EnvironmentVariableList_Element, TMetadata], btree.ParentNodeComputer[*model_command_pb.EnvironmentVariableList_Element, TMetadata], error) {
 	parentNodeComputer := btree.Capturing(ctx, capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_command_pb.EnvironmentVariableList_Element, object.LocalReference]) model_core.PatchedMessage[*model_command_pb.EnvironmentVariableList_Element, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_command_pb.EnvironmentVariableList_Element {
-			return &model_command_pb.EnvironmentVariableList_Element{
-				Level: &model_command_pb.EnvironmentVariableList_Element_Parent{Parent: patcher.AddDecodableReference(createdObject)},
-			}
+			return model_command_pb.EnvironmentVariableList_Element_builder{
+				Parent: proto.ValueOrDefault(patcher.AddDecodableReference(createdObject)),
+			}.Build()
 		})
 	})
 	environmentVariablesBuilder := btree.NewHeightAwareBuilder(
@@ -141,12 +143,12 @@ func convertDictToEnvironmentVariableList[TMetadata model_core.ReferenceMetadata
 	)
 	for _, name := range slices.Sorted(maps.Keys(environment)) {
 		if err := environmentVariablesBuilder.PushChild(
-			model_core.NewSimplePatchedMessage[TMetadata](&model_command_pb.EnvironmentVariableList_Element{
-				Level: &model_command_pb.EnvironmentVariableList_Element_Leaf_{Leaf: &model_command_pb.EnvironmentVariableList_Element_Leaf{
+			model_core.NewSimplePatchedMessage[TMetadata](model_command_pb.EnvironmentVariableList_Element_builder{
+				Leaf: model_command_pb.EnvironmentVariableList_Element_Leaf_builder{
 					Name:  name,
 					Value: environment[name],
-				}},
-			}),
+				}.Build(),
+			}.Build()),
 		); err != nil {
 			return model_core.PatchedMessage[[]*model_command_pb.EnvironmentVariableList_Element, TMetadata]{}, nil, err
 		}

@@ -29,7 +29,7 @@ const (
 func GetLog[TReference any](outputs model_core.Message[*model_command_pb.Outputs, TReference], name string) model_core.Message[*model_command_pb.Log, TReference] {
 	logs := outputs.Message.GetLogs()
 	if i, ok := slices.BinarySearchFunc(logs, name, func(log *model_command_pb.Log, name string) int {
-		return strings.Compare(log.Name, name)
+		return strings.Compare(log.GetName(), name)
 	}); ok {
 		return model_core.Nested(outputs, logs[i])
 	}
@@ -39,7 +39,7 @@ func GetLog[TReference any](outputs model_core.Message[*model_command_pb.Outputs
 // ReadLog reads the full contents of a log. An error is returned if
 // the size of the log exceeds the provided maximum.
 func ReadLog[TReference object.BasicReference](ctx context.Context, fileReader *model_filesystem.FileReader[TReference], log model_core.Message[*model_command_pb.Log, TReference], maximumSizeBytes uint64) ([]byte, error) {
-	entry, err := model_filesystem.NewFileContentsEntryFromProto(model_core.Nested(log, log.Message.Contents))
+	entry, err := model_filesystem.NewFileContentsEntryFromProto(model_core.Nested(log, log.Message.GetContents()))
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid contents")
 	}

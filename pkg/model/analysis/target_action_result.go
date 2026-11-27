@@ -17,7 +17,7 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionResult_Key, TReference], e TargetActionResultEnvironment[TReference, TMetadata]) (PatchedTargetActionResultValue[TMetadata], error) {
-	id := model_core.Nested(key, key.Message.Id)
+	id := model_core.Nested(key, key.Message.GetId())
 	if id.Message == nil {
 		return PatchedTargetActionResultValue[TMetadata]{}, errors.New("no target action identifier specified")
 	}
@@ -54,22 +54,22 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 		return PatchedTargetActionResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	actionDefinition := action.Message.Definition
+	actionDefinition := action.Message.GetDefinition()
 	if actionDefinition == nil {
 		return PatchedTargetActionResultValue[TMetadata]{}, errors.New("action definition missing")
 	}
 
-	commandReference := model_core.Patch(e, model_core.Nested(command, command.Message.CommandReference))
-	inputRootReference := model_core.Patch(e, model_core.Nested(inputRoot, inputRoot.Message.InputRootReference))
+	commandReference := model_core.Patch(e, model_core.Nested(command, command.Message.GetCommandReference()))
+	inputRootReference := model_core.Patch(e, model_core.Nested(inputRoot, inputRoot.Message.GetInputRootReference()))
 	referenceFormat := c.referenceFormat
 	createdAction, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) encoding.BinaryMarshaler {
 			patcher.Merge(commandReference.Patcher)
 			patcher.Merge(inputRootReference.Patcher)
-			return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
+			return model_format.NewProto[model_command_pb.Action]().NewMarshaler(model_command_pb.Action_builder{
 				CommandReference:   commandReference.Message,
 				InputRootReference: inputRootReference.Message,
-			})
+			}.Build())
 		}),
 		referenceFormat,
 		actionEncoders.Encoder,
@@ -92,7 +92,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 				// to pick a default.
 				ExecutionTimeout:      &durationpb.Duration{Seconds: 3600},
 				ActionReference:       actionReference,
-				PlatformPkixPublicKey: actionDefinition.PlatformPkixPublicKey,
+				PlatformPkixPublicKey: actionDefinition.GetPlatformPkixPublicKey(),
 			},
 		}, nil
 	})
@@ -107,7 +107,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 	outputs, err := model_parser.MaybeDereference(
 		ctx,
 		directoryReaders.CommandOutputs,
-		model_core.Nested(actionResult, actionResult.Message.OutputsReference),
+		model_core.Nested(actionResult, actionResult.Message.GetOutputsReference()),
 	)
 	if err != nil {
 		return PatchedTargetActionResultValue[TMetadata]{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)

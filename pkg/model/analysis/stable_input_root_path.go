@@ -18,6 +18,7 @@ import (
 
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -59,16 +60,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
-				Arguments: []*model_command_pb.ArgumentList_Element{{
-					Level: &model_command_pb.ArgumentList_Element_Leaf{Leaf: "pwd"},
-				}},
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(model_command_pb.Command_builder{
+				Arguments: []*model_command_pb.ArgumentList_Element{model_command_pb.ArgumentList_Element_builder{
+					Leaf: proto.String("pwd"),
+				}.Build()},
 				EnvironmentVariables:        environmentVariableList.Message,
 				DirectoryCreationParameters: directoryCreationParametersValue.Message.GetDirectoryCreationParameters(),
 				FileCreationParameters:      fileCreationParametersValue.Message.GetFileCreationParameters(),
 				WorkingDirectory:            path.EmptyBuilder.GetUNIXString(),
 				StableInputRootPathUuid:     repoRuleStableInputRootPathUUID,
-			}),
+			}.Build()),
 			environmentVariableList.Patcher,
 		),
 		referenceFormat,
@@ -83,14 +84,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		if err != nil {
 			return nil, err
 		}
-		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(model_command_pb.Action_builder{
 			CommandReference: commandReference,
 			// The input root is empty, meaning it is not
 			// backed by an object.
 			InputRootReference: model_filesystem_pb.DirectoryReference_builder{
 				MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
 			}.Build(),
-		}), nil
+		}.Build()), nil
 	})
 	if err != nil {
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)

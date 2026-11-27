@@ -21,6 +21,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -41,9 +42,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	}
 
 	environment := map[string]string{}
-	for _, environmentVariable := range repoPlatform.Message.RepositoryOsEnviron {
-		if _, ok := environment[environmentVariable.Name]; !ok {
-			environment[environmentVariable.Name] = environmentVariable.Value
+	for _, environmentVariable := range repoPlatform.Message.GetRepositoryOsEnviron() {
+		if _, ok := environment[environmentVariable.GetName()]; !ok {
+			environment[environmentVariable.GetName()] = environmentVariable.GetValue()
 		}
 	}
 	referenceFormat := c.referenceFormat
@@ -64,44 +65,34 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 	const capturedFilename = "captured"
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(model_command_pb.Command_builder{
 				Arguments: []*model_command_pb.ArgumentList_Element{
-					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{
-							Leaf: "cp",
-						},
-					},
-					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{
-							Leaf: "-RH",
-						},
-					},
-					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{
-							Leaf: key.AbsolutePath,
-						},
-					},
-					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{
-							Leaf: capturedFilename,
-						},
-					},
+					model_command_pb.ArgumentList_Element_builder{
+						Leaf: proto.String("cp"),
+					}.Build(),
+					model_command_pb.ArgumentList_Element_builder{
+						Leaf: proto.String("-RH"),
+					}.Build(),
+					model_command_pb.ArgumentList_Element_builder{
+						Leaf: proto.String(key.GetAbsolutePath()),
+					}.Build(),
+					model_command_pb.ArgumentList_Element_builder{
+						Leaf: proto.String(capturedFilename),
+					}.Build(),
 				},
 				EnvironmentVariables:        environmentVariableList.Message,
-				DirectoryCreationParameters: directoryCreationParametersMessage.Message.DirectoryCreationParameters,
-				FileCreationParameters:      fileCreationParametersMessage.Message.FileCreationParameters,
-				OutputPathPattern: &model_command_pb.PathPattern{
-					Children: &model_command_pb.PathPattern_ChildrenInline{
-						ChildrenInline: &model_command_pb.PathPattern_Children{
-							Children: []*model_command_pb.PathPattern_Child{{
-								Name:    capturedFilename,
-								Pattern: &model_command_pb.PathPattern{},
-							}},
-						},
-					},
-				},
+				DirectoryCreationParameters: directoryCreationParametersMessage.Message.GetDirectoryCreationParameters(),
+				FileCreationParameters:      fileCreationParametersMessage.Message.GetFileCreationParameters(),
+				OutputPathPattern: model_command_pb.PathPattern_builder{
+					ChildrenInline: model_command_pb.PathPattern_Children_builder{
+						Children: []*model_command_pb.PathPattern_Child{model_command_pb.PathPattern_Child_builder{
+							Name:    capturedFilename,
+							Pattern: &model_command_pb.PathPattern{},
+						}.Build()},
+					}.Build(),
+				}.Build(),
 				WorkingDirectory: (*path.Trace)(nil).GetUNIXString(),
-			}),
+			}.Build()),
 			environmentVariableList.Patcher,
 		),
 		referenceFormat,
@@ -134,10 +125,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		if err != nil {
 			return nil, err
 		}
-		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(model_command_pb.Action_builder{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
-		}), nil
+		}.Build()), nil
 	})
 	if err != nil {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
@@ -154,7 +145,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		}
 		return &model_analysis_pb.SuccessfulActionResult_Key{
 			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
-				PlatformPkixPublicKey: repoPlatform.Message.ExecPkixPublicKey,
+				PlatformPkixPublicKey: repoPlatform.Message.GetExecPkixPublicKey(),
 				ActionReference:       actionReference,
 				ExecutionTimeout:      &durationpb.Duration{Seconds: 600},
 			},
@@ -168,7 +159,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	outputs, err := model_parser.MaybeDereference(ctx, directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
+	outputs, err := model_parser.MaybeDereference(ctx, directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.GetOutputsReference()))
 	if err != nil {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
@@ -194,7 +185,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 			unmodifiedDirectory: newUnmodifiedDirectoryFromChild(outputRoot, int(capturedDirectoryIndex)),
 		}
 
-		virtualRootScopeWalkerFactory, err := path.NewVirtualRootScopeWalkerFactory(path.UNIXFormat.NewParser(key.AbsolutePath), nil)
+		virtualRootScopeWalkerFactory, err := path.NewVirtualRootScopeWalkerFactory(path.UNIXFormat.NewParser(key.GetAbsolutePath()), nil)
 		if err != nil {
 			return PatchedRepoPlatformHostPathValue[TMetadata]{}, err
 		}
@@ -241,11 +232,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.RepoPlatformHostPath_Value{
-				CapturedPath: &model_analysis_pb.RepoPlatformHostPath_Value_Directory_{
-					Directory: &model_analysis_pb.RepoPlatformHostPath_Value_Directory{
-						Entries: createdRootDirectory.Message.Message,
-					},
-				},
+				CapturedPath: &model_analysis_pb.RepoPlatformHostPath_Value_Directory_{Directory: &model_analysis_pb.RepoPlatformHostPath_Value_Directory{
+					Entries: createdRootDirectory.Message.Message,
+				}},
 			},
 			createdRootDirectory.Message.Patcher,
 		), nil
@@ -256,9 +245,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		patchedFileProperties := model_core.Patch(e, model_core.Nested(capturedNode, file))
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.RepoPlatformHostPath_Value{
-				CapturedPath: &model_analysis_pb.RepoPlatformHostPath_Value_File{
-					File: patchedFileProperties.Message,
-				},
+				CapturedPath: &model_analysis_pb.RepoPlatformHostPath_Value_File{File: patchedFileProperties.Message},
 			},
 			patchedFileProperties.Patcher,
 		), nil

@@ -53,6 +53,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -1993,9 +1994,9 @@ func bytesToValidString(p []byte) (string, bool) {
 func newArgumentsBuilder[TMetadata model_core.ReferenceMetadata](ctx context.Context, actionEncoder model_encoding.DeterministicBinaryEncoder, referenceFormat object.ReferenceFormat, objectCapturer model_core.CreatedObjectCapturer[TMetadata]) (btree.Builder[*model_command_pb.ArgumentList_Element, TMetadata], btree.ParentNodeComputer[*model_command_pb.ArgumentList_Element, TMetadata]) {
 	parentNodeComputer := btree.Capturing(ctx, objectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_command_pb.ArgumentList_Element, object.LocalReference]) model_core.PatchedMessage[*model_command_pb.ArgumentList_Element, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_command_pb.ArgumentList_Element {
-			return &model_command_pb.ArgumentList_Element{
-				Level: &model_command_pb.ArgumentList_Element_Parent{Parent: patcher.AddDecodableReference(createdObject)},
-			}
+			return model_command_pb.ArgumentList_Element_builder{
+				Parent: proto.ValueOrDefault(patcher.AddDecodableReference(createdObject)),
+			}.Build()
 		})
 	})
 	return btree.NewHeightAwareBuilder(
@@ -2063,9 +2064,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 
 	// Inherit environment variables from
 	// the repo platform.
-	for _, environmentVariable := range mrc.repoPlatform.Message.RepositoryOsEnviron {
-		if _, ok := environment[environmentVariable.Name]; !ok {
-			environment[environmentVariable.Name] = environmentVariable.Value
+	for _, environmentVariable := range mrc.repoPlatform.Message.GetRepositoryOsEnviron() {
+		if _, ok := environment[environmentVariable.GetName()]; !ok {
+			environment[environmentVariable.GetName()] = environmentVariable.GetValue()
 		}
 	}
 
@@ -2085,11 +2086,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 			panic("unexpected argument type")
 		}
 		if err := argumentsBuilder.PushChild(
-			model_core.NewSimplePatchedMessage[TMetadata](&model_command_pb.ArgumentList_Element{
-				Level: &model_command_pb.ArgumentList_Element_Leaf{
-					Leaf: argumentStr,
-				},
-			}),
+			model_core.NewSimplePatchedMessage[TMetadata](model_command_pb.ArgumentList_Element_builder{
+				Leaf: proto.String(argumentStr),
+			}.Build()),
 		); err != nil {
 			return nil, err
 		}
@@ -2157,11 +2156,11 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 			inlinedtree.AlwaysInline(
 				model_core.NewReferenceMessagePatcher[TMetadata](),
 				func(command model_core.PatchedMessage[*model_command_pb.Command, TMetadata]) {
-					command.Message.DirectoryCreationParameters = mrc.directoryCreationParametersMessage
-					command.Message.FileCreationParameters = mrc.fileCreationParametersMessage
-					command.Message.WorkingDirectory = workingDirectory.GetUNIXString()
-					command.Message.StableInputRootPathUuid = repoRuleStableInputRootPathUUID
-					command.Message.NeedsWritableInputFiles = true
+					command.Message.SetDirectoryCreationParameters(mrc.directoryCreationParametersMessage)
+					command.Message.SetFileCreationParameters(mrc.fileCreationParametersMessage)
+					command.Message.SetWorkingDirectory(workingDirectory.GetUNIXString())
+					command.Message.SetStableInputRootPathUuid(repoRuleStableInputRootPathUUID)
+					command.Message.SetNeedsWritableInputFiles(true)
 				},
 			),
 			// Fields that can be stored externally if needed.
@@ -2181,7 +2180,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 					if err != nil {
 						return err
 					}
-					command.Message.Arguments = arguments
+					command.Message.SetArguments(arguments)
 					return nil
 				},
 			},
@@ -2201,7 +2200,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 					if err != nil {
 						return err
 					}
-					command.Message.EnvironmentVariables = environmentVariables
+					command.Message.SetEnvironmentVariables(environmentVariables)
 					return nil
 				},
 			},
@@ -2212,11 +2211,11 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 					command model_core.PatchedMessage[*model_command_pb.Command, TMetadata],
 					externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 				) {
-					command.Message.OutputPathPattern = model_command.GetPathPatternWithChildren(
+					command.Message.SetOutputPathPattern(model_command.GetPathPatternWithChildren(
 						outputPathPatternChildren,
 						externalObject,
 						command.Patcher,
-					)
+					))
 				}),
 			},
 		},
@@ -2245,10 +2244,10 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 		if err != nil {
 			return nil, err
 		}
-		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(model_command_pb.Action_builder{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
-		}), nil
+		}.Build()), nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create action: %w", err)
@@ -2266,7 +2265,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 		}
 		return &model_analysis_pb.ActionResult_Key{
 			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
-				PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
+				PlatformPkixPublicKey: mrc.repoPlatform.Message.GetExecPkixPublicKey(),
 				ActionReference:       actionReference,
 				ExecutionTimeout:      &durationpb.Duration{Seconds: timeout},
 			},
@@ -2278,7 +2277,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 	}
 
 	// Extract standard output and standard error from the results.
-	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
+	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.GetOutputsReference()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
@@ -2326,7 +2325,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 	stderrStr, _ := bytesToValidString(stderr)
 	stdoutStr, _ := bytesToValidString(stdout)
 	return model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
-		"return_code": eval.MakeInt64(int64(actionResult.Message.ExitCode)),
+		"return_code": eval.MakeInt64(int64(actionResult.Message.GetExitCode())),
 		"stderr":      eval.String(stderrStr),
 		"stdout":      eval.String(stdoutStr),
 	}), nil
@@ -2524,9 +2523,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *eval
 	}
 
 	environment := map[string]string{}
-	for _, environmentVariable := range mrc.repoPlatform.Message.RepositoryOsEnviron {
-		if _, ok := environment[environmentVariable.Name]; !ok {
-			environment[environmentVariable.Name] = environmentVariable.Value
+	for _, environmentVariable := range mrc.repoPlatform.Message.GetRepositoryOsEnviron() {
+		if _, ok := environment[environmentVariable.GetName()]; !ok {
+			environment[environmentVariable.GetName()] = environmentVariable.GetValue()
 		}
 	}
 	referenceFormat := mrc.computer.referenceFormat
@@ -2544,25 +2543,21 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *eval
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(model_command_pb.Command_builder{
 				Arguments: []*model_command_pb.ArgumentList_Element{
-					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{
-							Leaf: "cat",
-						},
-					},
-					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{
-							Leaf: filePath.GetUNIXString(),
-						},
-					},
+					model_command_pb.ArgumentList_Element_builder{
+						Leaf: proto.String("cat"),
+					}.Build(),
+					model_command_pb.ArgumentList_Element_builder{
+						Leaf: proto.String(filePath.GetUNIXString()),
+					}.Build(),
 				},
 				EnvironmentVariables:        environmentVariableList.Message,
 				DirectoryCreationParameters: mrc.directoryCreationParametersMessage,
 				FileCreationParameters:      mrc.fileCreationParametersMessage,
 				WorkingDirectory:            "/",
 				StableInputRootPathUuid:     repoRuleStableInputRootPathUUID,
-			}),
+			}.Build()),
 			environmentVariableList.Patcher,
 		),
 		referenceFormat,
@@ -2583,10 +2578,10 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *eval
 		if err != nil {
 			return nil, err
 		}
-		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(model_command_pb.Action_builder{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
-		}), nil
+		}.Build()), nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create action: %w", err)
@@ -2604,7 +2599,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *eval
 		}
 		return &model_analysis_pb.SuccessfulActionResult_Key{
 			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
-				PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
+				PlatformPkixPublicKey: mrc.repoPlatform.Message.GetExecPkixPublicKey(),
 				ActionReference:       actionReference,
 				ExecutionTimeout:      &durationpb.Duration{Seconds: 300},
 			},
@@ -2619,7 +2614,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *eval
 	}
 
 	// Extract standard output.
-	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
+	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.GetOutputsReference()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
@@ -2702,23 +2697,23 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(model_command_pb.Command_builder{
 				Arguments: []*model_command_pb.ArgumentList_Element{
-					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{Leaf: "sh"},
-					},
-					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{Leaf: "-c"},
-					},
-					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{Leaf: shellquote.Join("command", "-v", "--", program)},
-					},
+					model_command_pb.ArgumentList_Element_builder{
+						Leaf: proto.String("sh"),
+					}.Build(),
+					model_command_pb.ArgumentList_Element_builder{
+						Leaf: proto.String("-c"),
+					}.Build(),
+					model_command_pb.ArgumentList_Element_builder{
+						Leaf: proto.String(shellquote.Join("command", "-v", "--", program)),
+					}.Build(),
 				},
 				EnvironmentVariables:        environmentVariableList.Message,
 				DirectoryCreationParameters: mrc.directoryCreationParametersMessage,
 				FileCreationParameters:      mrc.fileCreationParametersMessage,
 				WorkingDirectory:            path.EmptyBuilder.GetUNIXString(),
-			}),
+			}.Build()),
 			environmentVariableList.Patcher,
 		),
 		referenceFormat,
@@ -2733,14 +2728,14 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 		if err != nil {
 			return nil, err
 		}
-		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(model_command_pb.Action_builder{
 			CommandReference: commandReference,
 			// The input root is empty, meaning it is not
 			// backed by an object.
 			InputRootReference: model_filesystem_pb.DirectoryReference_builder{
 				MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
 			}.Build(),
-		}), nil
+		}.Build()), nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create action: %w", err)
@@ -2893,9 +2888,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) newHostCommandExecu
 	}
 
 	environment := map[string]string{}
-	for _, environmentVariable := range mrc.repoPlatform.Message.RepositoryOsEnviron {
-		if _, ok := environment[environmentVariable.Name]; !ok {
-			environment[environmentVariable.Name] = environmentVariable.Value
+	for _, environmentVariable := range mrc.repoPlatform.Message.GetRepositoryOsEnviron() {
+		if _, ok := environment[environmentVariable.GetName()]; !ok {
+			environment[environmentVariable.GetName()] = environmentVariable.GetValue()
 		}
 	}
 	referenceFormat := mrc.computer.referenceFormat
@@ -2912,24 +2907,22 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) newHostCommandExecu
 
 	argumentList := make([]*model_command_pb.ArgumentList_Element, 0, len(arguments))
 	for _, argument := range arguments {
-		argumentList = append(argumentList, &model_command_pb.ArgumentList_Element{
-			Level: &model_command_pb.ArgumentList_Element_Leaf{
-				Leaf: argument,
-			},
-		})
+		argumentList = append(argumentList, model_command_pb.ArgumentList_Element_builder{
+			Leaf: proto.String(argument),
+		}.Build())
 	}
 
 	// TODO: This should use inlinedtree.Build().
 	createdCommand, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewPatchedMessage(
-			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
+			model_format.NewProto[model_command_pb.Command]().NewMarshaler(model_command_pb.Command_builder{
 				Arguments:                   argumentList,
 				EnvironmentVariables:        environmentVariableList.Message,
 				DirectoryCreationParameters: mrc.directoryCreationParametersMessage,
 				FileCreationParameters:      mrc.fileCreationParametersMessage,
 				WorkingDirectory:            workingDirectory,
 				StableInputRootPathUuid:     repoRuleStableInputRootPathUUID,
-			}),
+			}.Build()),
 			environmentVariableList.Patcher,
 		),
 		referenceFormat,
@@ -2950,10 +2943,10 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) newHostCommandExecu
 		if err != nil {
 			return nil, err
 		}
-		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(&model_command_pb.Action{
+		return model_format.NewProto[model_command_pb.Action]().NewMarshaler(model_command_pb.Action_builder{
 			CommandReference:   commandReference,
 			InputRootReference: inputRootReference.Message,
-		}), nil
+		}.Build()), nil
 	})
 	if err != nil {
 		return model_core.PatchedMessage[*model_analysis_pb.ExecuteRequest, TMetadata]{}, fmt.Errorf("failed to create action: %w", err)
@@ -2969,7 +2962,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) newHostCommandExecu
 			return nil, err
 		}
 		return &model_analysis_pb.ExecuteRequest{
-			PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
+			PlatformPkixPublicKey: mrc.repoPlatform.Message.GetExecPkixPublicKey(),
 			ActionReference:       actionReference,
 			ExecutionTimeout:      &durationpb.Duration{Seconds: 300},
 		}, nil
