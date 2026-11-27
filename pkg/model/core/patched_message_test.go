@@ -50,13 +50,11 @@ func TestNewPatchedMessageFromExisting(t *testing.T) {
 					Name: "a",
 					Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: &model_filesystem_pb.FileProperties{
 						Contents: &model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_ChunkReference{
-								ChunkReference: &model_core_pb.DecodableReference{
-									Reference: &model_core_pb.Reference{
-										Index: 2,
-									},
-								},
-							},
+							Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+								Reference: model_core_pb.Reference_builder{
+									Index: 2,
+								}.Build(),
+							}.Build()},
 							TotalSizeBytes: 23,
 						},
 					}},
@@ -80,13 +78,11 @@ func TestNewPatchedMessageFromExisting(t *testing.T) {
 			Name: "a",
 			Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: &model_filesystem_pb.FileProperties{
 				Contents: &model_filesystem_pb.FileContents{
-					Level: &model_filesystem_pb.FileContents_ChunkReference{
-						ChunkReference: &model_core_pb.DecodableReference{
-							Reference: &model_core_pb.Reference{
-								Index: 1,
-							},
-						},
-					},
+					Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+						Reference: model_core_pb.Reference_builder{
+							Index: 1,
+						}.Build(),
+					}.Build()},
 					TotalSizeBytes: 23,
 				},
 			}},
@@ -105,13 +101,11 @@ func TestNewPatchedMessageFromExisting(t *testing.T) {
 					Name: "hello",
 					Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: &model_filesystem_pb.FileProperties{
 						Contents: &model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_ChunkReference{
-								ChunkReference: &model_core_pb.DecodableReference{
-									Reference: &model_core_pb.Reference{
-										Index: 42,
-									},
-								},
-							},
+							Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+								Reference: model_core_pb.Reference_builder{
+									Index: 42,
+								}.Build(),
+							}.Build()},
 							TotalSizeBytes: 583,
 						},
 					}},
@@ -131,13 +125,11 @@ func TestNewPatchedMessageFromExisting(t *testing.T) {
 			Name: "hello",
 			Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: &model_filesystem_pb.FileProperties{
 				Contents: &model_filesystem_pb.FileContents{
-					Level: &model_filesystem_pb.FileContents_ChunkReference{
-						ChunkReference: &model_core_pb.DecodableReference{
-							Reference: &model_core_pb.Reference{
-								Index: math.MaxUint32,
-							},
-						},
-					},
+					Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+						Reference: model_core_pb.Reference_builder{
+							Index: math.MaxUint32,
+						}.Build(),
+					}.Build()},
 					TotalSizeBytes: 583,
 				},
 			}},
@@ -157,13 +149,11 @@ func TestMarshalOpaque(t *testing.T) {
 		m1 := model_core.NewPatchedMessageFromExisting(
 			model_core.NewMessage(
 				&model_filesystem_pb.FileContents{
-					Level: &model_filesystem_pb.FileContents_ChunkReference{
-						ChunkReference: &model_core_pb.DecodableReference{
-							Reference: &model_core_pb.Reference{
-								Index: 3,
-							},
-						},
-					},
+					Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+						Reference: model_core_pb.Reference_builder{
+							Index: 3,
+						}.Build(),
+					}.Build()},
 					TotalSizeBytes: 23,
 				},
 				object.OutgoingReferencesList[object.LocalReference]{
@@ -185,9 +175,9 @@ func TestMarshalOpaque(t *testing.T) {
 			object.MustNewSHA256V1LocalReference("e1d1549332e44eddf28662dda4ca1aae36c3dcd597cd63b3c69737f88afd75d5", 213, 0, 0, 0),
 		}, references)
 		require.Equal(t, []model_core.ReferenceMetadata{metadata1}, metadata)
-		testutil.RequireEqualProto(t, &model_core_pb.ReferenceSet{
+		testutil.RequireEqualProto(t, model_core_pb.ReferenceSet_builder{
 			Indices: []uint32{1},
-		}, m2.Message.References)
+		}.Build(), m2.Message.GetReferences())
 
 		// Unmarshaling it should yield the original message,
 		// with the reference renumbered to be top-level.
@@ -197,13 +187,11 @@ func TestMarshalOpaque(t *testing.T) {
 		)
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_ChunkReference{
-				ChunkReference: &model_core_pb.DecodableReference{
-					Reference: &model_core_pb.Reference{
-						Index: 1,
-					},
-				},
-			},
+			Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				Reference: model_core_pb.Reference_builder{
+					Index: 1,
+				}.Build(),
+			}.Build()},
 			TotalSizeBytes: 23,
 		}, m3.Message)
 		require.Equal(t, 1, m3.OutgoingReferences.GetDegree())

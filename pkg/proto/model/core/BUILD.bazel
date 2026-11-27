@@ -11,6 +11,7 @@ proto_library(
         "//pkg/proto/model/format:format_proto",
         "@protobuf//:any_proto",
         "@protobuf//:descriptor_proto",
+        "@protobuf//:go_features_proto",
     ],
 )
 
@@ -19,7 +20,10 @@ go_proto_library(
     importpath = "bonanza.build/pkg/proto/model/core",
     proto = ":core_proto",
     visibility = ["//visibility:public"],
-    deps = ["//pkg/proto/model/format"],
+    deps = [
+        "//pkg/proto/model/format",
+        "@org_golang_google_protobuf//types/gofeaturespb",
+    ],
 )
 
 go_library(

@@ -407,12 +407,12 @@ func TestRendererOpaque(t *testing.T) {
 	r := render.Renderer{}
 	blocks := render.Layout(
 		r.Message(model_core.NewMessage(
-			(&model_core_pb.Opaque{
+			(model_core_pb.Opaque_builder{
 				Value: []byte("Hello"),
-				References: &model_core_pb.ReferenceSet{
+				References: model_core_pb.ReferenceSet_builder{
 					Indices: []uint32{1, 3},
-				},
-			}).ProtoReflect(),
+				}.Build(),
+			}.Build()).ProtoReflect(),
 			object.OutgoingReferencesList[object.LocalReference]{reference1, reference2, reference3},
 		)),
 		render.LayoutOptions{SingleLine: true},
@@ -447,11 +447,11 @@ func TestRendererOpaque(t *testing.T) {
 			render.PlainText(
 				render.Layout(
 					r.Message(model_core.NewMessage(
-						(&model_core_pb.Opaque{
-							References: &model_core_pb.ReferenceSet{
+						(model_core_pb.Opaque_builder{
+							References: model_core_pb.ReferenceSet_builder{
 								Indices: []uint32{1, 4},
-							},
-						}).ProtoReflect(),
+							}.Build(),
+						}.Build()).ProtoReflect(),
 						object.OutgoingReferencesList[object.LocalReference]{reference1, reference2, reference3},
 					)),
 					render.LayoutOptions{SingleLine: true},
@@ -515,9 +515,9 @@ func directoryContentsEntry(entries ...*model_filesystem_pb.DirectoryEntry) *mod
 // parentEntry creates a DirectoryEntry referring to entries stored in
 // another object.
 func parentEntry(parent *model_filesystem_pb.DirectoryEntry_Parent) *model_filesystem_pb.DirectoryEntry {
-	parent.Reference = &model_core_pb.DecodableReference{
-		Reference: &model_core_pb.Reference{Index: 1},
-	}
+	parent.Reference = model_core_pb.DecodableReference_builder{
+		Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+	}.Build()
 	return &model_filesystem_pb.DirectoryEntry{
 		Level: &model_filesystem_pb.DirectoryEntry_Parent_{Parent: parent},
 	}

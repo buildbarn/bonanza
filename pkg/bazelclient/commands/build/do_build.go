@@ -718,7 +718,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		modules = append(modules, &model_analysis_pb.BuildSpecification_Value_Module{
 			Name: moduleName.String(),
 			RootDirectoryReference: createdRootDirectory.ToDirectoryReference(
-				&model_core_pb.DecodableReference{
+				model_core_pb.DecodableReference_builder{
 					Reference: buildSpecificationPatcher.AddReference(
 						model_core.MetadataEntry[dag.ObjectContentsWalker]{
 							LocalReference: createdObject.Value.GetLocalReference(),
@@ -732,7 +732,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 						},
 					),
 					DecodingParameters: decodingParameters,
-				},
+				}.Build(),
 			),
 		})
 	}
@@ -1295,7 +1295,7 @@ func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Messa
 
 		longestType := 0
 		for _, keyAny := range stackTraceKeys.Message {
-			if l := len(getAbbreviatedTypeURL(keyAny.Value.GetTypeUrl())); longestType < l {
+			if l := len(getAbbreviatedTypeURL(keyAny.GetValue().GetTypeUrl())); longestType < l {
 				longestType = l
 			}
 		}

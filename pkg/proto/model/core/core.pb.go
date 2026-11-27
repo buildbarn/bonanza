@@ -11,9 +11,9 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
+	_ "google.golang.org/protobuf/types/gofeaturespb"
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -25,8 +25,8 @@ const (
 )
 
 type Reference struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         uint32                 `protobuf:"fixed32,1,opt,name=index,proto3" json:"index,omitempty"`
+	state         protoimpl.MessageState `protogen:"hybrid.v1"`
+	Index         uint32                 `protobuf:"fixed32,1,opt,name=index" json:"index,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -56,11 +56,6 @@ func (x *Reference) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Reference.ProtoReflect.Descriptor instead.
-func (*Reference) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *Reference) GetIndex() uint32 {
 	if x != nil {
 		return x.Index
@@ -68,12 +63,30 @@ func (x *Reference) GetIndex() uint32 {
 	return 0
 }
 
+func (x *Reference) SetIndex(v uint32) {
+	x.Index = v
+}
+
+type Reference_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Index uint32
+}
+
+func (b0 Reference_builder) Build() *Reference {
+	m0 := &Reference{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.Index = b.Index
+	return m0
+}
+
 type DecodableReference struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Reference          *Reference             `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	DecodingParameters []byte                 `protobuf:"bytes,2,opt,name=decoding_parameters,json=decodingParameters,proto3" json:"decoding_parameters,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Reference          *Reference             `protobuf:"bytes,1,opt,name=reference"`
+	xxx_hidden_DecodingParameters []byte                 `protobuf:"bytes,2,opt,name=decoding_parameters,json=decodingParameters"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *DecodableReference) Reset() {
@@ -101,31 +114,64 @@ func (x *DecodableReference) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DecodableReference.ProtoReflect.Descriptor instead.
-func (*DecodableReference) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *DecodableReference) GetReference() *Reference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *DecodableReference) GetDecodingParameters() []byte {
 	if x != nil {
-		return x.DecodingParameters
+		return x.xxx_hidden_DecodingParameters
 	}
 	return nil
 }
 
+func (x *DecodableReference) SetReference(v *Reference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *DecodableReference) SetDecodingParameters(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_DecodingParameters = v
+}
+
+func (x *DecodableReference) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *DecodableReference) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+type DecodableReference_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference          *Reference
+	DecodingParameters []byte
+}
+
+func (b0 DecodableReference_builder) Build() *DecodableReference {
+	m0 := &DecodableReference{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_DecodingParameters = b.DecodingParameters
+	return m0
+}
+
 type WeakDecodableReference struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Reference          []byte                 `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	DecodingParameters []byte                 `protobuf:"bytes,2,opt,name=decoding_parameters,json=decodingParameters,proto3" json:"decoding_parameters,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Reference          []byte                 `protobuf:"bytes,1,opt,name=reference"`
+	xxx_hidden_DecodingParameters []byte                 `protobuf:"bytes,2,opt,name=decoding_parameters,json=decodingParameters"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *WeakDecodableReference) Reset() {
@@ -153,28 +199,53 @@ func (x *WeakDecodableReference) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WeakDecodableReference.ProtoReflect.Descriptor instead.
-func (*WeakDecodableReference) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *WeakDecodableReference) GetReference() []byte {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *WeakDecodableReference) GetDecodingParameters() []byte {
 	if x != nil {
-		return x.DecodingParameters
+		return x.xxx_hidden_DecodingParameters
 	}
 	return nil
 }
 
+func (x *WeakDecodableReference) SetReference(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Reference = v
+}
+
+func (x *WeakDecodableReference) SetDecodingParameters(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_DecodingParameters = v
+}
+
+type WeakDecodableReference_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference          []byte
+	DecodingParameters []byte
+}
+
+func (b0 WeakDecodableReference_builder) Build() *WeakDecodableReference {
+	m0 := &WeakDecodableReference{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_DecodingParameters = b.DecodingParameters
+	return m0
+}
+
 type ReferenceSet struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Indices       []uint32               `protobuf:"fixed32,1,rep,packed,name=indices,proto3" json:"indices,omitempty"`
+	state         protoimpl.MessageState `protogen:"hybrid.v1"`
+	Indices       []uint32               `protobuf:"fixed32,1,rep,packed,name=indices" json:"indices,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -204,11 +275,6 @@ func (x *ReferenceSet) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReferenceSet.ProtoReflect.Descriptor instead.
-func (*ReferenceSet) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *ReferenceSet) GetIndices() []uint32 {
 	if x != nil {
 		return x.Indices
@@ -216,12 +282,30 @@ func (x *ReferenceSet) GetIndices() []uint32 {
 	return nil
 }
 
+func (x *ReferenceSet) SetIndices(v []uint32) {
+	x.Indices = v
+}
+
+type ReferenceSet_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Indices []uint32
+}
+
+func (b0 ReferenceSet_builder) Build() *ReferenceSet {
+	m0 := &ReferenceSet{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.Indices = b.Indices
+	return m0
+}
+
 type Any struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         *anypb.Any             `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	References    *ReferenceSet          `protobuf:"bytes,2,opt,name=references,proto3" json:"references,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Value      *anypb.Any             `protobuf:"bytes,1,opt,name=value"`
+	xxx_hidden_References *ReferenceSet          `protobuf:"bytes,2,opt,name=references"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Any) Reset() {
@@ -249,31 +333,72 @@ func (x *Any) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Any.ProtoReflect.Descriptor instead.
-func (*Any) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{4}
-}
-
 func (x *Any) GetValue() *anypb.Any {
 	if x != nil {
-		return x.Value
+		return x.xxx_hidden_Value
 	}
 	return nil
 }
 
 func (x *Any) GetReferences() *ReferenceSet {
 	if x != nil {
-		return x.References
+		return x.xxx_hidden_References
 	}
 	return nil
 }
 
+func (x *Any) SetValue(v *anypb.Any) {
+	x.xxx_hidden_Value = v
+}
+
+func (x *Any) SetReferences(v *ReferenceSet) {
+	x.xxx_hidden_References = v
+}
+
+func (x *Any) HasValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Value != nil
+}
+
+func (x *Any) HasReferences() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_References != nil
+}
+
+func (x *Any) ClearValue() {
+	x.xxx_hidden_Value = nil
+}
+
+func (x *Any) ClearReferences() {
+	x.xxx_hidden_References = nil
+}
+
+type Any_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Value      *anypb.Any
+	References *ReferenceSet
+}
+
+func (b0 Any_builder) Build() *Any {
+	m0 := &Any{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Value = b.Value
+	x.xxx_hidden_References = b.References
+	return m0
+}
+
 type Opaque struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         []byte                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	References    *ReferenceSet          `protobuf:"bytes,2,opt,name=references,proto3" json:"references,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Value      []byte                 `protobuf:"bytes,1,opt,name=value"`
+	xxx_hidden_References *ReferenceSet          `protobuf:"bytes,2,opt,name=references"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Opaque) Reset() {
@@ -301,23 +426,56 @@ func (x *Opaque) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Opaque.ProtoReflect.Descriptor instead.
-func (*Opaque) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP(), []int{5}
-}
-
 func (x *Opaque) GetValue() []byte {
 	if x != nil {
-		return x.Value
+		return x.xxx_hidden_Value
 	}
 	return nil
 }
 
 func (x *Opaque) GetReferences() *ReferenceSet {
 	if x != nil {
-		return x.References
+		return x.xxx_hidden_References
 	}
 	return nil
+}
+
+func (x *Opaque) SetValue(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Value = v
+}
+
+func (x *Opaque) SetReferences(v *ReferenceSet) {
+	x.xxx_hidden_References = v
+}
+
+func (x *Opaque) HasReferences() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_References != nil
+}
+
+func (x *Opaque) ClearReferences() {
+	x.xxx_hidden_References = nil
+}
+
+type Opaque_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Value      []byte
+	References *ReferenceSet
+}
+
+func (b0 Opaque_builder) Build() *Opaque {
+	m0 := &Opaque{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Value = b.Value
+	x.xxx_hidden_References = b.References
+	return m0
 }
 
 var file_bonanza_build_pkg_proto_model_core_core_proto_extTypes = []protoimpl.ExtensionInfo{
@@ -341,17 +499,17 @@ var File_bonanza_build_pkg_proto_model_core_core_proto protoreflect.FileDescript
 
 const file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc = "" +
 	"\n" +
-	"-bonanza.build/pkg/proto/model/core/core.proto\x12\x12bonanza.model.core\x1a1bonanza.build/pkg/proto/model/format/format.proto\x1a\x19google/protobuf/any.proto\x1a google/protobuf/descriptor.proto\"!\n" +
+	"-bonanza.build/pkg/proto/model/core/core.proto\x12\x12bonanza.model.core\x1a1bonanza.build/pkg/proto/model/format/format.proto\x1a\x19google/protobuf/any.proto\x1a google/protobuf/descriptor.proto\x1a!google/protobuf/go_features.proto\"*\n" +
 	"\tReference\x12\x14\n" +
-	"\x05index\x18\x01 \x01(\aR\x05index\"\x82\x01\n" +
+	"\x05index\x18\x01 \x01(\aR\x05index:\ab\x05\xd2>\x02\x10\x02\"\x82\x01\n" +
 	"\x12DecodableReference\x12;\n" +
 	"\treference\x18\x01 \x01(\v2\x1d.bonanza.model.core.ReferenceR\treference\x12/\n" +
 	"\x13decoding_parameters\x18\x02 \x01(\fR\x12decodingParameters\"g\n" +
 	"\x16WeakDecodableReference\x12\x1c\n" +
 	"\treference\x18\x01 \x01(\fR\treference\x12/\n" +
-	"\x13decoding_parameters\x18\x02 \x01(\fR\x12decodingParameters\"(\n" +
+	"\x13decoding_parameters\x18\x02 \x01(\fR\x12decodingParameters\"1\n" +
 	"\fReferenceSet\x12\x18\n" +
-	"\aindices\x18\x01 \x03(\aR\aindices\"s\n" +
+	"\aindices\x18\x01 \x03(\aR\aindices:\ab\x05\xd2>\x02\x10\x02\"s\n" +
 	"\x03Any\x12*\n" +
 	"\x05value\x18\x01 \x01(\v2\x14.google.protobuf.AnyR\x05value\x12@\n" +
 	"\n" +
@@ -362,19 +520,7 @@ const file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc = "" +
 	"\n" +
 	"references\x18\x02 \x01(\v2 .bonanza.model.core.ReferenceSetR\n" +
 	"references:b\n" +
-	"\robject_format\x12\x1d.google.protobuf.FieldOptions\x18\xfd\x8a\x04 \x01(\v2\x1c.bonanza.model.format.FormatR\fobjectFormatB$Z\"bonanza.build/pkg/proto/model/coreb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_core_core_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_core_core_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_core_core_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_core_core_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_core_core_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_core_core_proto_rawDescData
-}
+	"\robject_format\x12\x1d.google.protobuf.FieldOptions\x18\xfd\x8a\x04 \x01(\v2\x1c.bonanza.model.format.FormatR\fobjectFormatB)Z\"bonanza.build/pkg/proto/model/core\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_bonanza_build_pkg_proto_model_core_core_proto_goTypes = []any{

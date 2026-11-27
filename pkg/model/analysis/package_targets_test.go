@@ -68,13 +68,11 @@ func TestPackageTargets(t *testing.T) {
 	}
 	newParent := func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree], createdObject model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]], firstName, lastName string) *model_analysis_pb.Package_Value_Target {
 		return &model_analysis_pb.Package_Value_Target{
-			Level: &model_analysis_pb.Package_Value_Target_Parent_{
-				Parent: &model_analysis_pb.Package_Value_Target_Parent{
-					Reference: attachObject(patcher, createdObject),
-					FirstName: firstName,
-					LastName:  lastName,
-				},
-			},
+			Level: &model_analysis_pb.Package_Value_Target_Parent_{Parent: &model_analysis_pb.Package_Value_Target_Parent{
+				Reference: attachObject(patcher, createdObject),
+				FirstName: firstName,
+				LastName:  lastName,
+			}},
 		}
 	}
 	// getAllLeaves returns the names of all targets contained in a
@@ -85,16 +83,16 @@ func TestPackageTargets(t *testing.T) {
 		var names []string
 		parents := 0
 		for _, entry := range targets.Message {
-			switch level := entry.Level.(type) {
+			switch entry.GetLevel().(type) {
 			case *model_analysis_pb.Package_Value_Target_Leaf:
-				names = append(names, level.Leaf.Name)
+				names = append(names, entry.GetLeaf().GetName())
 			case *model_analysis_pb.Package_Value_Target_Parent_:
-				children, err := model_parser.Dereference(ctx, targetsReader, model_core.Nested(targets, level.Parent.Reference))
+				children, err := model_parser.Dereference(ctx, targetsReader, model_core.Nested(targets, entry.GetParent().GetReference()))
 				require.NoError(t, err)
 				childNames, childParents := getAllLeaves(t, children)
 				require.NotEmpty(t, childNames)
-				require.Equal(t, childNames[0], level.Parent.FirstName)
-				require.Equal(t, childNames[len(childNames)-1], level.Parent.LastName)
+				require.Equal(t, childNames[0], entry.GetParent().GetFirstName())
+				require.Equal(t, childNames[len(childNames)-1], entry.GetParent().GetLastName())
 				names = append(names, childNames...)
 				parents += 1 + childParents
 			default:
@@ -107,7 +105,7 @@ func TestPackageTargets(t *testing.T) {
 	// to a message that can be traversed.
 	toMessage := func(value model_core.PatchedMessage[*model_analysis_pb.PackageTargets_Value, model_core.CreatedObjectTree]) model_core.Message[[]*model_analysis_pb.Package_Value_Target, model_core.CreatedObjectTree] {
 		m, metadata := value.SortAndSetReferences()
-		return model_core.NewMessage(m.Message.Targets, object.OutgoingReferencesList[model_core.CreatedObjectTree](metadata))
+		return model_core.NewMessage(m.Message.GetTargets(), object.OutgoingReferencesList[model_core.CreatedObjectTree](metadata))
 	}
 
 	computePackageTargets := func(e *MockPackageTargetsEnvironmentForTesting, macroInstanceName ...string) ([]*model_analysis_pb.Package_Value_Target, error) {
@@ -115,7 +113,7 @@ func TestPackageTargets(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		return value.Message.Targets, nil
+		return value.Message.GetTargets(), nil
 	}
 
 	t.Run("NoMacroInstances", func(t *testing.T) {
@@ -231,9 +229,9 @@ func TestPackageTargets(t *testing.T) {
 		targets := toMessage(value)
 		require.Len(t, targets.Message, 4)
 		testutil.RequireEqualProto(t, &model_analysis_pb.Package_Value_Target_Parent{
-			Reference: &model_core_pb.DecodableReference{
-				Reference: &model_core_pb.Reference{Index: 1},
-			},
+			Reference: model_core_pb.DecodableReference_builder{
+				Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+			}.Build(),
 			FirstName: "a",
 			LastName:  "b",
 		}, targets.Message[0].GetParent())
@@ -338,7 +336,7 @@ func TestPackageTargets(t *testing.T) {
 		// omitted. This also applies to finalizers declared
 		// within non-finalizer macro instances.
 		finalizer := newMacroExpansionContextDeclaration("f")
-		finalizer.GetLeaf().Definition.RootMacroInstanceDefinition.Finalizer = model_starlark_pb.MacroInstance_FINALIZER
+		finalizer.GetLeaf().GetDefinition().GetRootMacroInstanceDefinition().Finalizer = model_starlark_pb.MacroInstance_FINALIZER
 		d := newDeclarations(
 			newRuleTargetDeclaration("x", "@@rules+//:defs.bzl%top_level"),
 		).withMacroExpansionContexts("a")
@@ -366,7 +364,7 @@ func TestPackageTargets(t *testing.T) {
 			value, err := bct.computer.ComputePackageTargetsValue(ctx, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo", ExcludeFinalizers: excludeFinalizers}, e)
 			require.NoError(t, err)
 			var targetNames []string
-			for _, target := range value.Message.Targets {
+			for _, target := range value.Message.GetTargets() {
 				targetNames = append(targetNames, target.GetLeaf().GetName())
 			}
 			if excludeFinalizers {

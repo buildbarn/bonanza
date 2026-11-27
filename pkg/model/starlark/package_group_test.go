@@ -367,11 +367,9 @@ func TestAddPackageToPackageGroup(t *testing.T) {
 		packageGroup := model_core.NewMessage(
 			&model_starlark_pb.PackageGroup{
 				Tree: &model_starlark_pb.PackageGroup_Subpackages{
-					Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesExternal{
-						OverridesExternal: &model_core_pb.DecodableReference{
-							Reference: &model_core_pb.Reference{Index: 1},
-						},
-					},
+					Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesExternal{OverridesExternal: model_core_pb.DecodableReference_builder{
+						Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+					}.Build()},
 				},
 				IncludePackageGroups: []string{"@@a+//:group"},
 			},
@@ -379,7 +377,7 @@ func TestAddPackageToPackageGroup(t *testing.T) {
 				object.MustNewSHA256V1LocalReference("629db2c2c2a8ae9445ffed22cbf2f3b5a89d7062a7eb4cbdf369217b10e99838", 1337, 0, 0, 0),
 			},
 		)
-		overrides := newPackageGroup("@@a+//x:__pkg__").Tree.GetOverridesInline()
+		overrides := newPackageGroup("@@a+//x:__pkg__").GetTree().GetOverridesInline()
 		require.NotNil(t, overrides)
 
 		t.Run("Success", func(t *testing.T) {

@@ -118,7 +118,7 @@ func NewDecodableLocalReferenceFromWeakProto(referenceFormat object.ReferenceFor
 	if err != nil {
 		return Decodable[object.LocalReference]{}, err
 	}
-	return NewDecodable(localReference, m.DecodingParameters)
+	return NewDecodable(localReference, m.GetDecodingParameters())
 }
 
 // DecodableLocalReferenceToWeakProto converts a reference containing
@@ -126,10 +126,10 @@ func NewDecodableLocalReferenceFromWeakProto(referenceFormat object.ReferenceFor
 // a weak reference as part of RPC request/response bodies or objects in
 // storage.
 func DecodableLocalReferenceToWeakProto[TReference object.BasicReference](reference Decodable[TReference]) *model_core_pb.WeakDecodableReference {
-	return &model_core_pb.WeakDecodableReference{
+	return model_core_pb.WeakDecodableReference_builder{
 		Reference:          reference.Value.GetRawReference(),
 		DecodingParameters: reference.GetDecodingParameters(),
-	}
+	}.Build()
 }
 
 // NewOptionalDecodableLocalReferenceFromWeakProto converts a

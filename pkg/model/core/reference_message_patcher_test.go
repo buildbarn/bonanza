@@ -43,7 +43,7 @@ func TestReferenceMessagePatcher(t *testing.T) {
 			object.MustNewSHA256V1LocalReference("2c74499dc9175f1f5b1024a6752ce3daffd2a48de94a0d2af153fe0734fa8995", 594844, 12, 7, 686866),
 		}, references)
 		require.Equal(t, []model_core.ReferenceMetadata{metadata1}, metadata)
-		testutil.RequireEqualProto(t, &core_pb.Reference{Index: 1}, m)
+		testutil.RequireEqualProto(t, core_pb.Reference_builder{Index: 1}.Build(), m)
 	})
 
 	t.Run("MultipleReferences", func(t *testing.T) {
@@ -76,9 +76,9 @@ func TestReferenceMessagePatcher(t *testing.T) {
 			object.MustNewSHA256V1LocalReference("66d155875c92ef21bf5dbfdd26750ad864cfff703acfcf8fd039e4f2562e55fc", 594844, 5, 7, 686866),
 		}, references)
 		require.Equal(t, []model_core.ReferenceMetadata{metadata2, metadata1}, metadata)
-		testutil.RequireEqualProto(t, &core_pb.Reference{Index: 2}, m1)
-		testutil.RequireEqualProto(t, &core_pb.Reference{Index: 1}, m2)
-		testutil.RequireEqualProto(t, &core_pb.Reference{Index: 2}, m3)
+		testutil.RequireEqualProto(t, core_pb.Reference_builder{Index: 2}.Build(), m1)
+		testutil.RequireEqualProto(t, core_pb.Reference_builder{Index: 1}.Build(), m2)
+		testutil.RequireEqualProto(t, core_pb.Reference_builder{Index: 2}.Build(), m3)
 	})
 
 	t.Run("Merge", func(t *testing.T) {
@@ -107,8 +107,8 @@ func TestReferenceMessagePatcher(t *testing.T) {
 			object.MustNewSHA256V1LocalReference("402646f2e80dfda09cd97bcf53802a012585499afa2c08e33b05c039db1eb0e2", 594844, 13, 7, 686866),
 		}, references)
 		require.Equal(t, []model_core.ReferenceMetadata{metadata1, metadata2}, metadata)
-		testutil.RequireEqualProto(t, &core_pb.Reference{Index: 1}, m1)
-		testutil.RequireEqualProto(t, &core_pb.Reference{Index: 2}, m2)
+		testutil.RequireEqualProto(t, core_pb.Reference_builder{Index: 1}.Build(), m1)
+		testutil.RequireEqualProto(t, core_pb.Reference_builder{Index: 2}.Build(), m2)
 
 		require.Equal(t, 0, patcher2.GetHeight())
 		require.Equal(t, 0, patcher2.GetReferencesSizeBytes())

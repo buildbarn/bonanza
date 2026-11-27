@@ -51,14 +51,12 @@ func TestFileContentsListObjectParser(t *testing.T) {
 		// could have been collapsed.
 		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{{
 			TotalSizeBytes: 42,
-			Level: &model_filesystem_pb.FileContents_ChunkReference{
-				ChunkReference: &model_core_pb.DecodableReference{
-					Reference: &model_core_pb.Reference{
-						Index: 1,
-					},
-					DecodingParameters: []byte{1, 2, 3, 4},
-				},
-			},
+			Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				Reference: model_core_pb.Reference_builder{
+					Index: 1,
+				}.Build(),
+				DecodingParameters: []byte{1, 2, 3, 4},
+			}.Build()},
 		}})
 		_, err := objectParser.ParseObject(
 			model_core.NewMessage(
@@ -79,36 +77,30 @@ func TestFileContentsListObjectParser(t *testing.T) {
 		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{
 			{
 				TotalSizeBytes: 12,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{
-					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: &model_core_pb.Reference{
-							Index: 1,
-						},
-						DecodingParameters: []byte{1, 2, 3, 4},
-					},
-				},
+				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					Reference: model_core_pb.Reference_builder{
+						Index: 1,
+					}.Build(),
+					DecodingParameters: []byte{1, 2, 3, 4},
+				}.Build()},
 			},
 			{
 				TotalSizeBytes: 0,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{
-					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: &model_core_pb.Reference{
-							Index: 2,
-						},
-						DecodingParameters: []byte{1, 2, 3, 4},
-					},
-				},
+				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					Reference: model_core_pb.Reference_builder{
+						Index: 2,
+					}.Build(),
+					DecodingParameters: []byte{1, 2, 3, 4},
+				}.Build()},
 			},
 			{
 				TotalSizeBytes: 70,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{
-					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: &model_core_pb.Reference{
-							Index: 3,
-						},
-						DecodingParameters: []byte{1, 2, 3, 4},
-					},
-				},
+				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					Reference: model_core_pb.Reference_builder{
+						Index: 3,
+					}.Build(),
+					DecodingParameters: []byte{1, 2, 3, 4},
+				}.Build()},
 			},
 		})
 		_, err := objectParser.ParseObject(
@@ -133,29 +125,25 @@ func TestFileContentsListObjectParser(t *testing.T) {
 		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{
 			{
 				TotalSizeBytes: 0x8000000000000000,
-				Level: &model_filesystem_pb.FileContents_List_{
-					List: &model_filesystem_pb.FileContents_List{
-						Reference: &model_core_pb.DecodableReference{
-							Reference: &model_core_pb.Reference{
-								Index: 1,
-							},
-							DecodingParameters: []byte{1, 2, 3, 4},
-						},
-					},
-				},
+				Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+					Reference: model_core_pb.DecodableReference_builder{
+						Reference: model_core_pb.Reference_builder{
+							Index: 1,
+						}.Build(),
+						DecodingParameters: []byte{1, 2, 3, 4},
+					}.Build(),
+				}},
 			},
 			{
 				TotalSizeBytes: 0x8000000000000000,
-				Level: &model_filesystem_pb.FileContents_List_{
-					List: &model_filesystem_pb.FileContents_List{
-						Reference: &model_core_pb.DecodableReference{
-							Reference: &model_core_pb.Reference{
-								Index: 2,
-							},
-							DecodingParameters: []byte{1, 2, 3, 4},
-						},
-					},
-				},
+				Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+					Reference: model_core_pb.DecodableReference_builder{
+						Reference: model_core_pb.Reference_builder{
+							Index: 2,
+						}.Build(),
+						DecodingParameters: []byte{1, 2, 3, 4},
+					}.Build(),
+				}},
 			},
 		})
 		_, err := objectParser.ParseObject(
@@ -175,25 +163,21 @@ func TestFileContentsListObjectParser(t *testing.T) {
 		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{
 			{
 				TotalSizeBytes: 200,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{
-					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: &model_core_pb.Reference{
-							Index: 7,
-						},
-						DecodingParameters: []byte{1, 2, 3, 4},
-					},
-				},
+				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					Reference: model_core_pb.Reference_builder{
+						Index: 7,
+					}.Build(),
+					DecodingParameters: []byte{1, 2, 3, 4},
+				}.Build()},
 			},
 			{
 				TotalSizeBytes: 300,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{
-					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: &model_core_pb.Reference{
-							Index: 2,
-						},
-						DecodingParameters: []byte{1, 2, 3, 4},
-					},
-				},
+				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					Reference: model_core_pb.Reference_builder{
+						Index: 2,
+					}.Build(),
+					DecodingParameters: []byte{1, 2, 3, 4},
+				}.Build()},
 			},
 		})
 		_, err := objectParser.ParseObject(
@@ -213,25 +197,21 @@ func TestFileContentsListObjectParser(t *testing.T) {
 		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{
 			{
 				TotalSizeBytes: 200,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{
-					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: &model_core_pb.Reference{
-							Index: 1,
-						},
-						DecodingParameters: []byte{1, 2, 3, 4},
-					},
-				},
+				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					Reference: model_core_pb.Reference_builder{
+						Index: 1,
+					}.Build(),
+					DecodingParameters: []byte{1, 2, 3, 4},
+				}.Build()},
 			},
 			{
 				TotalSizeBytes: 300,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{
-					ChunkReference: &model_core_pb.DecodableReference{
-						Reference: &model_core_pb.Reference{
-							Index: 2,
-						},
-						DecodingParameters: []byte{1, 2, 3, 4},
-					},
-				},
+				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					Reference: model_core_pb.Reference_builder{
+						Index: 2,
+					}.Build(),
+					DecodingParameters: []byte{1, 2, 3, 4},
+				}.Build()},
 			},
 		})
 		fileContentsList, err := objectParser.ParseObject(

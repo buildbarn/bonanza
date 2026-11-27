@@ -15,7 +15,7 @@ func TestFindWithPredecessors(t *testing.T) {
 	// Leaves containing the values 10, 20, 30, 40 and 50.
 	list := make([]*model_core_pb.DecodableReference, 0, 5)
 	for i := byte(1); i <= 5; i++ {
-		list = append(list, &model_core_pb.DecodableReference{DecodingParameters: []byte{i * 10}})
+		list = append(list, model_core_pb.DecodableReference_builder{DecodingParameters: []byte{i * 10}}.Build())
 	}
 	find := func(value byte) (*model_core_pb.DecodableReference, []int) {
 		var predecessorCounts []int
@@ -24,7 +24,7 @@ func TestFindWithPredecessors(t *testing.T) {
 			nil,
 			model_core.NewSimpleMessage[object.LocalReference](list),
 			func(entry model_core.Message[*model_core_pb.DecodableReference, object.LocalReference]) (int, *model_core_pb.DecodableReference) {
-				return int(value) - int(entry.Message.DecodingParameters[0]), nil
+				return int(value) - int(entry.Message.GetDecodingParameters()[0]), nil
 			},
 			func(predecessors model_core.Message[[]*model_core_pb.DecodableReference, object.LocalReference]) {
 				predecessorCounts = append(predecessorCounts, len(predecessors.Message))
@@ -37,7 +37,7 @@ func TestFindWithPredecessors(t *testing.T) {
 	t.Run("Found", func(t *testing.T) {
 		for i, value := range []byte{10, 20, 30, 40, 50} {
 			entry, predecessorCounts := find(value)
-			require.Equal(t, value, entry.DecodingParameters[0])
+			require.Equal(t, value, entry.GetDecodingParameters()[0])
 			require.Equal(t, []int{i}, predecessorCounts, "%d", value)
 		}
 	})

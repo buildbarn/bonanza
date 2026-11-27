@@ -27,11 +27,9 @@ func TestFileContentsIterator(t *testing.T) {
 				model_filesystem.NewFileContentsEntryFromProto(
 					model_core.NewMessage(
 						&model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_ChunkReference{
-								ChunkReference: &model_core_pb.DecodableReference{
-									Reference: &model_core_pb.Reference{Index: 1},
-								},
-							},
+							Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+								Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+							}.Build()},
 							TotalSizeBytes: 21,
 						},
 						object.OutgoingReferencesList[object.LocalReference]{
@@ -60,13 +58,11 @@ func TestFileContentsIterator(t *testing.T) {
 				model_filesystem.NewFileContentsEntryFromProto(
 					model_core.NewMessage(
 						&model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_List_{
-								List: &model_filesystem_pb.FileContents_List{
-									Reference: &model_core_pb.DecodableReference{
-										Reference: &model_core_pb.Reference{Index: 1},
-									},
-								},
-							},
+							Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+								Reference: model_core_pb.DecodableReference_builder{
+									Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+								}.Build(),
+							}},
 							TotalSizeBytes: 593838,
 						},
 						object.OutgoingReferencesList[object.LocalReference]{
@@ -89,43 +85,35 @@ func TestFileContentsIterator(t *testing.T) {
 					model_core.NewMessage(
 						[]*model_filesystem_pb.FileContents{
 							{
-								Level: &model_filesystem_pb.FileContents_List_{
-									List: &model_filesystem_pb.FileContents_List{
-										Reference: &model_core_pb.DecodableReference{
-											Reference: &model_core_pb.Reference{Index: 1},
-										},
-									},
-								},
+								Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+									Reference: model_core_pb.DecodableReference_builder{
+										Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+									}.Build(),
+								}},
 								TotalSizeBytes: 200322,
 							},
 							{
-								Level: &model_filesystem_pb.FileContents_List_{
-									List: &model_filesystem_pb.FileContents_List{
-										Reference: &model_core_pb.DecodableReference{
-											Reference: &model_core_pb.Reference{Index: 4},
-										},
-									},
-								},
+								Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+									Reference: model_core_pb.DecodableReference_builder{
+										Reference: model_core_pb.Reference_builder{Index: 4}.Build(),
+									}.Build(),
+								}},
 								TotalSizeBytes: 129020,
 							},
 							{
-								Level: &model_filesystem_pb.FileContents_List_{
-									List: &model_filesystem_pb.FileContents_List{
-										Reference: &model_core_pb.DecodableReference{
-											Reference: &model_core_pb.Reference{Index: 3},
-										},
-									},
-								},
+								Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+									Reference: model_core_pb.DecodableReference_builder{
+										Reference: model_core_pb.Reference_builder{Index: 3}.Build(),
+									}.Build(),
+								}},
 								TotalSizeBytes: 128107,
 							},
 							{
-								Level: &model_filesystem_pb.FileContents_List_{
-									List: &model_filesystem_pb.FileContents_List{
-										Reference: &model_core_pb.DecodableReference{
-											Reference: &model_core_pb.Reference{Index: 2},
-										},
-									},
-								},
+								Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+									Reference: model_core_pb.DecodableReference_builder{
+										Reference: model_core_pb.Reference_builder{Index: 2}.Build(),
+									}.Build(),
+								}},
 								TotalSizeBytes: 136389,
 							},
 						},
@@ -151,35 +139,27 @@ func TestFileContentsIterator(t *testing.T) {
 					model_core.NewMessage(
 						[]*model_filesystem_pb.FileContents{
 							{
-								Level: &model_filesystem_pb.FileContents_ChunkReference{
-									ChunkReference: &model_core_pb.DecodableReference{
-										Reference: &model_core_pb.Reference{Index: 2},
-									},
-								},
+								Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+									Reference: model_core_pb.Reference_builder{Index: 2}.Build(),
+								}.Build()},
 								TotalSizeBytes: 31037,
 							},
 							{
-								Level: &model_filesystem_pb.FileContents_ChunkReference{
-									ChunkReference: &model_core_pb.DecodableReference{
-										Reference: &model_core_pb.Reference{Index: 3},
-									},
-								},
+								Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+									Reference: model_core_pb.Reference_builder{Index: 3}.Build(),
+								}.Build()},
 								TotalSizeBytes: 33244,
 							},
 							{
-								Level: &model_filesystem_pb.FileContents_ChunkReference{
-									ChunkReference: &model_core_pb.DecodableReference{
-										Reference: &model_core_pb.Reference{Index: 1},
-									},
-								},
+								Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+									Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+								}.Build()},
 								TotalSizeBytes: 30762,
 							},
 							{
-								Level: &model_filesystem_pb.FileContents_ChunkReference{
-									ChunkReference: &model_core_pb.DecodableReference{
-										Reference: &model_core_pb.Reference{Index: 4},
-									},
-								},
+								Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+									Reference: model_core_pb.Reference_builder{Index: 4}.Build(),
+								}.Build()},
 								TotalSizeBytes: 33977,
 							},
 						},
@@ -220,35 +200,27 @@ func TestFileContentsIterator(t *testing.T) {
 						model_core.NewMessage(
 							[]*model_filesystem_pb.FileContents{
 								{
-									Level: &model_filesystem_pb.FileContents_ChunkReference{
-										ChunkReference: &model_core_pb.DecodableReference{
-											Reference: &model_core_pb.Reference{Index: 4},
-										},
-									},
+									Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+										Reference: model_core_pb.Reference_builder{Index: 4}.Build(),
+									}.Build()},
 									TotalSizeBytes: 31841,
 								},
 								{
-									Level: &model_filesystem_pb.FileContents_ChunkReference{
-										ChunkReference: &model_core_pb.DecodableReference{
-											Reference: &model_core_pb.Reference{Index: 3},
-										},
-									},
+									Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+										Reference: model_core_pb.Reference_builder{Index: 3}.Build(),
+									}.Build()},
 									TotalSizeBytes: 28542,
 								},
 								{
-									Level: &model_filesystem_pb.FileContents_ChunkReference{
-										ChunkReference: &model_core_pb.DecodableReference{
-											Reference: &model_core_pb.Reference{Index: 2},
-										},
-									},
+									Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+										Reference: model_core_pb.Reference_builder{Index: 2}.Build(),
+									}.Build()},
 									TotalSizeBytes: 22708,
 								},
 								{
-									Level: &model_filesystem_pb.FileContents_ChunkReference{
-										ChunkReference: &model_core_pb.DecodableReference{
-											Reference: &model_core_pb.Reference{Index: 1},
-										},
-									},
+									Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+										Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+									}.Build()},
 									TotalSizeBytes: 36492,
 								},
 							},

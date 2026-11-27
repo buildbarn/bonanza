@@ -69,10 +69,10 @@ func (o *capturedDirectoryWalkerOptions) gatherWalkersForFile(object *model_core
 	if properties == nil {
 		return status.Errorf(codes.InvalidArgument, "File %#v does not have any properties", pathTrace.GetUNIXString())
 	}
-	if contents := properties.Contents; contents != nil {
-		switch level := contents.Level.(type) {
+	if contents := properties.GetContents(); contents != nil {
+		switch contents.GetLevel().(type) {
 		case *model_filesystem_pb.FileContents_List_:
-			index, err := model_core.GetIndexFromReferenceMessage(level.List.Reference.GetReference(), len(walkers))
+			index, err := model_core.GetIndexFromReferenceMessage(contents.GetList().GetReference().GetReference(), len(walkers))
 			if err != nil {
 				return util.StatusWrapf(err, "Invalid file contents list reference index for file %#v", pathTrace.GetUNIXString())
 			}
@@ -82,7 +82,7 @@ func (o *capturedDirectoryWalkerOptions) gatherWalkersForFile(object *model_core
 				pathTrace: pathTrace,
 			}
 		case *model_filesystem_pb.FileContents_ChunkReference:
-			index, err := model_core.GetIndexFromReferenceMessage(level.ChunkReference.Reference, len(walkers))
+			index, err := model_core.GetIndexFromReferenceMessage(contents.GetChunkReference().GetReference(), len(walkers))
 			if err != nil {
 				return util.StatusWrapf(err, "Invalid chunk reference index for file %#v", pathTrace.GetUNIXString())
 			}
@@ -90,7 +90,7 @@ func (o *capturedDirectoryWalkerOptions) gatherWalkersForFile(object *model_core
 				options:   o,
 				reference: object.Contents.GetOutgoingReference(index),
 				pathTrace: pathTrace,
-				sizeBytes: uint32(contents.TotalSizeBytes),
+				sizeBytes: uint32(contents.GetTotalSizeBytes()),
 			}
 		case *model_filesystem_pb.FileContents_Hole:
 		default:
@@ -168,17 +168,17 @@ func (capturedDirectoryWalker) Discard() {}
 // be parsed directly.
 func (o *capturedDirectoryWalkerOptions) collectDirectoryNames(object *model_core.CreatedObjectTree, entries []*model_filesystem_pb.DirectoryEntry, pathTrace *path.Trace, names []string) ([]string, error) {
 	for _, entry := range entries {
-		switch level := entry.Level.(type) {
+		switch entry.GetLevel().(type) {
 		case *model_filesystem_pb.DirectoryEntry_Parent_:
 			// Only traverse into parts of the B-tree that
 			// contain subdirectory nodes.
-			if level.Parent.DirectoryNodesCount > 0 {
-				index, err := model_core.GetIndexFromReferenceMessage(level.Parent.Reference.GetReference(), object.GetDegree())
+			if entry.GetParent().GetDirectoryNodesCount() > 0 {
+				index, err := model_core.GetIndexFromReferenceMessage(entry.GetParent().GetReference().GetReference(), object.GetDegree())
 				if err != nil {
 					return nil, util.StatusWrapf(err, "Invalid parent node reference index in directory %#v", pathTrace.GetUNIXString())
 				}
 				childObject := &object.Metadata[index]
-				childEntries, err := o.parseEntries(childObject, level.Parent.Reference.DecodingParameters, pathTrace)
+				childEntries, err := o.parseEntries(childObject, entry.GetParent().GetReference().GetDecodingParameters(), pathTrace)
 				if err != nil {
 					return nil, err
 				}
@@ -188,8 +188,8 @@ func (o *capturedDirectoryWalkerOptions) collectDirectoryNames(object *model_cor
 				}
 			}
 		case *model_filesystem_pb.DirectoryEntry_Node_:
-			if level.Node.GetDirectory() != nil {
-				names = append(names, level.Node.Name)
+			if entry.GetNode().GetDirectory() != nil {
+				names = append(names, entry.GetNode().GetName())
 			}
 		case *model_filesystem_pb.DirectoryEntry_DirectoryContents_:
 		default:
@@ -216,31 +216,31 @@ func (o *capturedDirectoryWalkerOptions) gatherWalkersForDirectory(object *model
 // needed to be able to reopen files.
 func (o *capturedDirectoryWalkerOptions) gatherWalkersForEntries(object *model_core.CreatedObjectTree, entries []*model_filesystem_pb.DirectoryEntry, pathTrace *path.Trace, names []string, walkers []dag.ObjectContentsWalker) error {
 	for _, entry := range entries {
-		switch level := entry.Level.(type) {
+		switch entry.GetLevel().(type) {
 		case *model_filesystem_pb.DirectoryEntry_Parent_:
-			contentsCount := uint64(level.Parent.DirectoryContentsCount)
+			contentsCount := uint64(entry.GetParent().GetDirectoryContentsCount())
 			if uint64(len(names)) < contentsCount {
 				return status.Errorf(codes.InvalidArgument, "Directory %#v contains more subdirectory contents than names", pathTrace.GetUNIXString())
 			}
-			index, err := model_core.GetIndexFromReferenceMessage(level.Parent.Reference.GetReference(), len(walkers))
+			index, err := model_core.GetIndexFromReferenceMessage(entry.GetParent().GetReference().GetReference(), len(walkers))
 			if err != nil {
 				return util.StatusWrapf(err, "Invalid parent node reference index in directory %#v", pathTrace.GetUNIXString())
 			}
 			walkers[index] = &capturedEntriesWalker{
 				options:            o,
 				object:             &object.Metadata[index],
-				decodingParameters: level.Parent.Reference.DecodingParameters,
+				decodingParameters: entry.GetParent().GetReference().GetDecodingParameters(),
 				pathTrace:          pathTrace,
 				names:              names[:contentsCount],
 			}
 			names = names[contentsCount:]
 		case *model_filesystem_pb.DirectoryEntry_Node_:
-			if file, ok := level.Node.Kind.(*model_filesystem_pb.DirectoryEntry_Node_File); ok {
-				name, ok := path.NewComponent(level.Node.Name)
+			if file := entry.GetNode().GetFile(); file != nil {
+				name, ok := path.NewComponent(entry.GetNode().GetName())
 				if !ok {
-					return status.Errorf(codes.InvalidArgument, "Directory %#v contains a file with invalid name %#v", pathTrace.GetUNIXString(), level.Node.Name)
+					return status.Errorf(codes.InvalidArgument, "Directory %#v contains a file with invalid name %#v", pathTrace.GetUNIXString(), entry.GetNode().GetName())
 				}
-				if err := o.gatherWalkersForFile(object, file.File, pathTrace.Append(name), walkers); err != nil {
+				if err := o.gatherWalkersForFile(object, file, pathTrace.Append(name), walkers); err != nil {
 					return err
 				}
 			}
@@ -253,7 +253,7 @@ func (o *capturedDirectoryWalkerOptions) gatherWalkersForEntries(object *model_c
 				return status.Errorf(codes.InvalidArgument, "Directory %#v contains a subdirectory with invalid name %#v", pathTrace.GetUNIXString(), names[0])
 			}
 			names = names[1:]
-			if err := o.gatherWalkersForDirectory(object, level.DirectoryContents.Entries, pathTrace.Append(name), walkers); err != nil {
+			if err := o.gatherWalkersForDirectory(object, entry.GetDirectoryContents().GetEntries(), pathTrace.Append(name), walkers); err != nil {
 				return err
 			}
 		default:
@@ -441,35 +441,35 @@ func (w *computedConcatenatedFileWalker) GetContents(ctx context.Context) (*obje
 	walkers := make([]dag.ObjectContentsWalker, w.object.GetDegree())
 	offsetBytes := w.offsetBytes
 	for _, part := range fileContentsList.Message {
-		switch level := part.Level.(type) {
+		switch part.GetLevel().(type) {
 		case *model_filesystem_pb.FileContents_List_:
-			index, err := model_core.GetIndexFromReferenceMessage(level.List.Reference.GetReference(), len(walkers))
+			index, err := model_core.GetIndexFromReferenceMessage(part.GetList().GetReference().GetReference(), len(walkers))
 			if err != nil {
 				return nil, nil, util.StatusWrapf(err, "Invalid file contents list reference index for part of file %#v at offset %d", w.options.pathTrace.GetUNIXString(), offsetBytes)
 			}
 			walkers[index] = &computedConcatenatedFileWalker{
 				options:            w.options,
 				object:             &w.object.Metadata[index],
-				decodingParameters: level.List.Reference.GetDecodingParameters(),
+				decodingParameters: part.GetList().GetReference().GetDecodingParameters(),
 				offsetBytes:        offsetBytes,
 			}
 		case *model_filesystem_pb.FileContents_ChunkReference:
-			index, err := model_core.GetIndexFromReferenceMessage(level.ChunkReference.Reference, len(walkers))
+			index, err := model_core.GetIndexFromReferenceMessage(part.GetChunkReference().GetReference(), len(walkers))
 			if err != nil {
 				return nil, nil, util.StatusWrapf(err, "Invalid chunk reference index for part of file %#v at offset %d", w.options.pathTrace.GetUNIXString(), offsetBytes)
 			}
 			walkers[index] = &concatenatedFileChunkWalker{
 				options:            w.options,
 				reference:          w.object.GetOutgoingReference(index),
-				decodingParameters: level.ChunkReference.DecodingParameters,
+				decodingParameters: part.GetChunkReference().GetDecodingParameters(),
 				offsetBytes:        offsetBytes,
-				sizeBytes:          uint32(part.TotalSizeBytes),
+				sizeBytes:          uint32(part.GetTotalSizeBytes()),
 			}
 		case *model_filesystem_pb.FileContents_Hole:
 		default:
 			return nil, nil, status.Errorf(codes.InvalidArgument, "Part of %#v at offset %d has an unknown file contents type", w.options.pathTrace.GetUNIXString(), offsetBytes)
 		}
-		offsetBytes += part.TotalSizeBytes
+		offsetBytes += part.GetTotalSizeBytes()
 	}
 	w.options.referenceCount.Add(uint64(len(walkers) - 1))
 	return w.object.Contents, walkers, nil

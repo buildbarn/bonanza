@@ -29,13 +29,13 @@ func newTestChunkReference(patcher *model_core.ReferenceMessagePatcher[model_cor
 			model_encoding.NewChainedDeterministicBinaryEncoder(nil),
 		),
 	)
-	return &model_core_pb.DecodableReference{
+	return model_core_pb.DecodableReference_builder{
 		Reference: patcher.AddReference(model_core.MetadataEntry[model_core.CreatedObjectTree]{
 			LocalReference: createdObject.Value.GetLocalReference(),
 			Metadata:       model_core.CreatedObjectTree(createdObject.Value),
 		}),
 		DecodingParameters: createdObject.GetDecodingParameters(),
-	}
+	}.Build()
 }
 
 // newTestMessage creates a message that may contain references to

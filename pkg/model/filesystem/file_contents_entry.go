@@ -250,9 +250,7 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 	if entry.contiguousCount < 0 {
 		// Hole.
 		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_Hole{
-				Hole: &emptypb.Empty{},
-			},
+			Level:          &model_filesystem_pb.FileContents_Hole{Hole: &emptypb.Empty{}},
 			TotalSizeBytes: entry.endBytes,
 		})
 	}
@@ -261,18 +259,16 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 		// Large file.
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_filesystem_pb.FileContents {
 			return &model_filesystem_pb.FileContents{
-				Level: &model_filesystem_pb.FileContents_List_{
-					List: &model_filesystem_pb.FileContents_List{
-						Reference: &model_core_pb.DecodableReference{
-							Reference: patcher.AddReference(model_core.MetadataEntry[dag.ObjectContentsWalker]{
-								LocalReference: entry.reference.Value.GetLocalReference(),
-								Metadata:       dag.ExistingObjectContentsWalker,
-							}),
-							DecodingParameters: entry.reference.GetDecodingParameters(),
-						},
-						Sparse: entry.contiguousCount == 0,
-					},
-				},
+				Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+					Reference: model_core_pb.DecodableReference_builder{
+						Reference: patcher.AddReference(model_core.MetadataEntry[dag.ObjectContentsWalker]{
+							LocalReference: entry.reference.Value.GetLocalReference(),
+							Metadata:       dag.ExistingObjectContentsWalker,
+						}),
+						DecodingParameters: entry.reference.GetDecodingParameters(),
+					}.Build(),
+					Sparse: entry.contiguousCount == 0,
+				}},
 				TotalSizeBytes: entry.endBytes,
 				Utf8Stat:       uint64(entry.utf8Stat),
 			}
@@ -282,15 +278,13 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 	// Small file.
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_filesystem_pb.FileContents {
 		return &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_ChunkReference{
-				ChunkReference: &model_core_pb.DecodableReference{
-					Reference: patcher.AddReference(model_core.MetadataEntry[dag.ObjectContentsWalker]{
-						LocalReference: entry.reference.Value.GetLocalReference(),
-						Metadata:       dag.ExistingObjectContentsWalker,
-					}),
-					DecodingParameters: entry.reference.GetDecodingParameters(),
-				},
-			},
+			Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				Reference: patcher.AddReference(model_core.MetadataEntry[dag.ObjectContentsWalker]{
+					LocalReference: entry.reference.Value.GetLocalReference(),
+					Metadata:       dag.ExistingObjectContentsWalker,
+				}),
+				DecodingParameters: entry.reference.GetDecodingParameters(),
+			}.Build()},
 			TotalSizeBytes: entry.endBytes,
 			Utf8Stat:       uint64(entry.utf8Stat),
 		}

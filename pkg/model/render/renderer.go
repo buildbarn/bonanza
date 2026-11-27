@@ -186,7 +186,7 @@ func (r *Renderer) Message(m model_core.Message[protoreflect.Message, object.Loc
 		}
 		return r.renderMessageCommon(
 			model_core.Nested(anyValue.Decay(), anyValue.Message.ProtoReflect()),
-			map[string]Doc{"@type": jsonValue(message.Value.GetTypeUrl())},
+			map[string]Doc{"@type": jsonValue(message.GetValue().GetTypeUrl())},
 		)
 	case *model_core_pb.Opaque:
 		return r.renderOpaque(model_core.Nested(m, message))

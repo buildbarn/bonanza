@@ -90,15 +90,15 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 					// in the parent FileContents node.
 					var totalSizeBytes uint64
 					sparse := false
-					utf8Stat := utf8stat.Stat(childNodes.Message[0].Utf8Stat)
+					utf8Stat := utf8stat.Stat(childNodes.Message[0].GetUtf8Stat())
 					for i, childNode := range childNodes.Message {
-						totalSizeBytes += childNode.TotalSizeBytes
+						totalSizeBytes += childNode.GetTotalSizeBytes()
 						if i > 0 {
-							utf8Stat = utf8stat.Combine(utf8Stat, utf8stat.Stat(childNode.Utf8Stat))
+							utf8Stat = utf8stat.Combine(utf8Stat, utf8stat.Stat(childNode.GetUtf8Stat()))
 						}
-						switch childLevel := childNode.Level.(type) {
+						switch childNode.GetLevel().(type) {
 						case *model_filesystem_pb.FileContents_List_:
-							sparse = sparse || childLevel.List.Sparse
+							sparse = sparse || childNode.GetList().GetSparse()
 						case *model_filesystem_pb.FileContents_Hole:
 							sparse = true
 						}
@@ -106,12 +106,10 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 
 					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
 						return &model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_List_{
-								List: &model_filesystem_pb.FileContents_List{
-									Reference: patcher.AddDecodableReference(createdObject),
-									Sparse:    sparse,
-								},
-							},
+							Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+								Reference: patcher.AddDecodableReference(createdObject),
+								Sparse:    sparse,
+							}},
 							TotalSizeBytes: totalSizeBytes,
 							Utf8Stat:       uint64(utf8Stat),
 						}
@@ -165,15 +163,13 @@ func CreateFileMerkleTree[T model_core.ReferenceMetadata](ctx context.Context, p
 			if err := treeBuilder.PushChild(
 				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) *model_filesystem_pb.FileContents {
 					return &model_filesystem_pb.FileContents{
-						Level: &model_filesystem_pb.FileContents_ChunkReference{
-							ChunkReference: &model_core_pb.DecodableReference{
-								Reference: patcher.AddReference(model_core.MetadataEntry[T]{
-									LocalReference: encodedChunk.Value.GetLocalReference(),
-									Metadata:       chunkMetadata,
-								}),
-								DecodingParameters: encodedChunk.GetDecodingParameters(),
-							},
-						},
+						Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+							Reference: patcher.AddReference(model_core.MetadataEntry[T]{
+								LocalReference: encodedChunk.Value.GetLocalReference(),
+								Metadata:       chunkMetadata,
+							}),
+							DecodingParameters: encodedChunk.GetDecodingParameters(),
+						}.Build()},
 						TotalSizeBytes: uint64(len(chunk)),
 						Utf8Stat:       uint64(utf8stat.Compute(chunk)),
 					}
@@ -211,11 +207,11 @@ func CreateChunkDiscardingFileMerkleTree(ctx context.Context, parameters *FileCr
 	}
 
 	var decodingParameters []byte
-	switch level := fileContents.Message.Level.(type) {
+	switch fileContents.Message.GetLevel().(type) {
 	case *model_filesystem_pb.FileContents_List_:
-		decodingParameters = level.List.Reference.DecodingParameters
+		decodingParameters = fileContents.Message.GetList().GetReference().GetDecodingParameters()
 	case *model_filesystem_pb.FileContents_ChunkReference:
-		decodingParameters = level.ChunkReference.DecodingParameters
+		decodingParameters = fileContents.Message.GetChunkReference().GetDecodingParameters()
 	case *model_filesystem_pb.FileContents_Hole:
 		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](fileContents.Message), nil
 	default:
@@ -231,7 +227,7 @@ func CreateChunkDiscardingFileMerkleTree(ctx context.Context, parameters *FileCr
 					parameters,
 					f,
 					capturedObject.LocalReference,
-					fileContents.Message.TotalSizeBytes,
+					fileContents.Message.GetTotalSizeBytes(),
 					&capturedObject.Metadata,
 					decodingParameters,
 				)

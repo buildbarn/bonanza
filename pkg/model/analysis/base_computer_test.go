@@ -255,13 +255,13 @@ func attachObject(
 	parentPatcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree],
 	createdObject model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]],
 ) *model_core_pb.DecodableReference {
-	return &model_core_pb.DecodableReference{
+	return model_core_pb.DecodableReference_builder{
 		Reference: parentPatcher.AddReference(model_core.MetadataEntry[model_core.CreatedObjectTree]{
 			LocalReference: createdObject.Value.GetLocalReference(),
 			Metadata:       model_core.CreatedObjectTree(createdObject.Value),
 		}),
 		DecodingParameters: createdObject.GetDecodingParameters(),
-	}
+	}.Build()
 }
 
 // createdObjectReader is used by baseComputerTester to configure

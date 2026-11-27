@@ -267,11 +267,10 @@ func MarshalAny[TMessage proto.Message, TMetadata ReferenceMetadata](m PatchedMe
 	}
 
 	references, patcher := newReferenceSetPatcher(anyMessage.OutgoingReferences, metadata, m.Patcher.height)
-	return NewPatchedMessage(
-		&model_core_pb.Any{
-			Value:      anyMessage.Message,
-			References: references,
-		},
+	return NewPatchedMessage(model_core_pb.Any_builder{
+		Value:      anyMessage.Message,
+		References: references,
+	}.Build(),
 		patcher,
 	), nil
 }
@@ -293,11 +292,10 @@ func MarshalOpaque[TMessage encoding.BinaryMarshaler, TMetadata ReferenceMetadat
 	}
 
 	references, patcher := newReferenceSetPatcher(topLevelMessage.OutgoingReferences, metadata, m.Patcher.height)
-	return NewPatchedMessage(
-		&model_core_pb.Opaque{
-			Value:      value,
-			References: references,
-		},
+	return NewPatchedMessage(model_core_pb.Opaque_builder{
+		Value:      value,
+		References: references,
+	}.Build(),
 		patcher,
 	), nil
 }
@@ -327,13 +325,14 @@ func newReferenceSetPatcher[TMetadata ReferenceMetadata](
 		messagesByReference: make(map[object.LocalReference]referenceMessages[TMetadata], degree),
 		height:              height,
 	}
+	referenceSet := model_core_pb.ReferenceSet_builder{Indices: indices}.Build()
 	for i := 0; i < degree; i++ {
 		patcher.messagesByReference[outgoingReferences.GetOutgoingReference(i)] = referenceMessages[TMetadata]{
 			metadata: metadata[i],
-			indices:  []*uint32{&indices[i]},
+			indices:  []*uint32{&referenceSet.Indices[i]},
 		}
 	}
-	return &model_core_pb.ReferenceSet{Indices: indices}, patcher
+	return referenceSet, patcher
 }
 
 // ToMarshaler converts a PatchedMessage to one that is marshalable,

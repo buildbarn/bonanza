@@ -16,6 +16,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -54,27 +56,22 @@ func TestBuild(t *testing.T) {
 				Pattern: &model_command_pb.PathPattern{},
 			}},
 		}
-		leavesInline := &model_command_pb.PathPattern_ChildrenInline{
-			ChildrenInline: leaves,
-		}
 		parentAppender := NewMockParentAppenderForTesting(ctrl)
 		metadata1 := NewMockReferenceMetadata(ctrl)
 		parentAppender.EXPECT().Call(gomock.Any(), nil).
 			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Children = leavesInline
+				output.Message.Children = &model_command_pb.PathPattern_ChildrenInline{ChildrenInline: leaves}
 			}).
 			Times(2)
 		parentAppender.EXPECT().Call(gomock.Any(), gomock.Not(nil)).
 			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Children = &model_command_pb.PathPattern_ChildrenExternal{
-					ChildrenExternal: &model_core_pb.DecodableReference{
-						Reference: output.Patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
-							LocalReference: externalObject.Value.GetLocalReference(),
-							Metadata:       metadata1,
-						}),
-						DecodingParameters: externalObject.GetDecodingParameters(),
-					},
-				}
+				output.Message.Children = &model_command_pb.PathPattern_ChildrenExternal{ChildrenExternal: model_core_pb.DecodableReference_builder{
+					Reference: output.Patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
+						LocalReference: externalObject.Value.GetLocalReference(),
+						Metadata:       metadata1,
+					}),
+					DecodingParameters: externalObject.GetDecodingParameters(),
+				}.Build()}
 			}).
 			Times(1)
 		metadata1.EXPECT().Discard()
@@ -94,7 +91,7 @@ func TestBuild(t *testing.T) {
 
 		references, metadata := output.Patcher.SortAndSetReferences()
 		testutil.RequireEqualProto(t, &model_command_pb.PathPattern{
-			Children: leavesInline,
+			Children: &model_command_pb.PathPattern_ChildrenInline{ChildrenInline: leaves},
 		}, output.Message)
 		require.Empty(t, references)
 		require.Empty(t, metadata)
@@ -120,23 +117,19 @@ func TestBuild(t *testing.T) {
 		parentAppender := NewMockParentAppenderForTesting(ctrl)
 		parentAppender.EXPECT().Call(gomock.Any(), nil).
 			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Children = &model_command_pb.PathPattern_ChildrenInline{
-					ChildrenInline: leaves,
-				}
+				output.Message.Children = &model_command_pb.PathPattern_ChildrenInline{ChildrenInline: proto.ValueOrDefault(leaves)}
 			}).
 			Times(1)
 		metadata1 := NewMockReferenceMetadata(ctrl)
 		parentAppender.EXPECT().Call(gomock.Any(), gomock.Not(nil)).
 			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Children = &model_command_pb.PathPattern_ChildrenExternal{
-					ChildrenExternal: &model_core_pb.DecodableReference{
-						Reference: output.Patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
-							LocalReference: externalObject.Value.GetLocalReference(),
-							Metadata:       metadata1,
-						}),
-						DecodingParameters: externalObject.GetDecodingParameters(),
-					},
-				}
+				output.Message.Children = &model_command_pb.PathPattern_ChildrenExternal{ChildrenExternal: model_core_pb.DecodableReference_builder{
+					Reference: output.Patcher.AddReference(model_core.MetadataEntry[model_core.ReferenceMetadata]{
+						LocalReference: externalObject.Value.GetLocalReference(),
+						Metadata:       metadata1,
+					}),
+					DecodingParameters: externalObject.GetDecodingParameters(),
+				}.Build()}
 			}).
 			Times(2)
 		metadata1.EXPECT().Discard().Times(1)
@@ -156,14 +149,12 @@ func TestBuild(t *testing.T) {
 
 		references, metadata := output.Patcher.SortAndSetReferences()
 		testutil.RequireEqualProto(t, &model_command_pb.PathPattern{
-			Children: &model_command_pb.PathPattern_ChildrenExternal{
-				ChildrenExternal: &model_core_pb.DecodableReference{
-					Reference: &model_core_pb.Reference{
-						Index: 1,
-					},
-					DecodingParameters: []byte{1, 2, 3, 4},
-				},
-			},
+			Children: &model_command_pb.PathPattern_ChildrenExternal{ChildrenExternal: model_core_pb.DecodableReference_builder{
+				Reference: model_core_pb.Reference_builder{
+					Index: 1,
+				}.Build(),
+				DecodingParameters: []byte{1, 2, 3, 4},
+			}.Build()},
 		}, output.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
 			object.MustNewSHA256V1LocalReference("a7293026e8db38c82bc46e2a6c033b5bbaafc3c17e9bbc9737bcf313997dfc8a", 99, 0, 0, 0),
@@ -185,13 +176,10 @@ func TestBuild(t *testing.T) {
 				{Name: "This is another long path pattern child name", Pattern: &model_command_pb.PathPattern{}},
 			},
 		}
-		leavesInline := &model_command_pb.PathPattern_ChildrenInline{
-			ChildrenInline: leaves,
-		}
 		parentAppender := NewMockParentAppenderForTesting(ctrl)
 		parentAppender.EXPECT().Call(gomock.Any(), nil).
 			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Children = leavesInline
+				output.Message.Children = &model_command_pb.PathPattern_ChildrenInline{ChildrenInline: leaves}
 			}).
 			Times(2)
 
@@ -210,7 +198,7 @@ func TestBuild(t *testing.T) {
 
 		references, metadata := output.Patcher.SortAndSetReferences()
 		testutil.RequireEqualProto(t, &model_command_pb.PathPattern{
-			Children: leavesInline,
+			Children: &model_command_pb.PathPattern_ChildrenInline{ChildrenInline: leaves},
 		}, output.Message)
 		require.Empty(t, references)
 		require.Empty(t, metadata)
@@ -227,13 +215,10 @@ func TestBuild(t *testing.T) {
 				{Name: "This is another long path pattern child name", Pattern: &model_command_pb.PathPattern{}},
 			},
 		}
-		leavesInline := &model_command_pb.PathPattern_ChildrenInline{
-			ChildrenInline: leaves,
-		}
 		parentAppender := NewMockParentAppenderForTesting(ctrl)
 		parentAppender.EXPECT().Call(gomock.Any(), nil).
 			Do(func(output model_core.PatchedMessage[*model_command_pb.PathPattern, model_core.ReferenceMetadata], externalObject *model_core.Decodable[model_core.CreatedObject[model_core.ReferenceMetadata]]) {
-				output.Message.Children = leavesInline
+				output.Message.Children = &model_command_pb.PathPattern_ChildrenInline{ChildrenInline: leaves}
 			}).
 			Times(2)
 
@@ -251,7 +236,7 @@ func TestBuild(t *testing.T) {
 
 		references, metadata := output.Patcher.SortAndSetReferences()
 		testutil.RequireEqualProto(t, &model_command_pb.PathPattern{
-			Children: leavesInline,
+			Children: &model_command_pb.PathPattern_ChildrenInline{ChildrenInline: leaves},
 		}, output.Message)
 		require.Empty(t, references)
 		require.Empty(t, metadata)

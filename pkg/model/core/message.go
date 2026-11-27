@@ -88,11 +88,11 @@ func FlattenDecodableReference[TReference any](m Message[*model_core_pb.Decodabl
 	if m.Message == nil {
 		return badReference, status.Error(codes.InvalidArgument, "No decodable reference message provided")
 	}
-	reference, err := FlattenReference(Nested(m, m.Message.Reference))
+	reference, err := FlattenReference(Nested(m, m.Message.GetReference()))
 	if err != nil {
 		return badReference, err
 	}
-	return NewDecodable[TReference](reference, m.Message.DecodingParameters)
+	return NewDecodable[TReference](reference, m.Message.GetDecodingParameters())
 }
 
 // FlattenReferenceSet returns the actual references that are contained
@@ -104,7 +104,7 @@ func FlattenReferenceSet[TReference any](m Message[*model_core_pb.ReferenceSet, 
 
 	// Messages without outgoing references can be fully detached
 	// from their parent.
-	indices := m.Message.Indices
+	indices := m.Message.GetIndices()
 	if len(indices) == 0 {
 		return object.OutgoingReferencesList[TReference]{}, nil
 	}
@@ -162,7 +162,7 @@ func FlattenAny[TReference any](m Message[*model_core_pb.Any, TReference]) (TopL
 	if err != nil {
 		return TopLevelMessage[*anypb.Any, TReference]{}, err
 	}
-	return NewTopLevelMessage(m.Message.Value, outgoingReferences), nil
+	return NewTopLevelMessage(m.Message.GetValue(), outgoingReferences), nil
 }
 
 // UnmarshalAnyNew extracts the message contained in a model_core.Any,
@@ -185,7 +185,7 @@ func FlattenOpaque[TReference any](m Message[*model_core_pb.Opaque, TReference])
 	if err != nil {
 		return TopLevelMessage[[]byte, TReference]{}, err
 	}
-	return NewTopLevelMessage(m.Message.Value, outgoingReferences), nil
+	return NewTopLevelMessage(m.Message.GetValue(), outgoingReferences), nil
 }
 
 // UnmarshalOpaque extracts the payload contained in a

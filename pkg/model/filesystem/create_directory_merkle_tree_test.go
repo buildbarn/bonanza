@@ -124,17 +124,15 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 		cd, err := model_filesystem.NewCreatedDirectoryBare(
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
 				[]*model_filesystem_pb.DirectoryEntry{{
-					Level: &model_filesystem_pb.DirectoryEntry_Parent_{
-						Parent: &model_filesystem_pb.DirectoryEntry_Parent{
-							Reference: &model_core_pb.DecodableReference{
-								Reference: &model_core_pb.Reference{Index: 1},
-							},
-							FirstName:                      "hello",
-							DirectoryNodesCount:            1,
-							DirectoryContentsCount:         1,
-							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
-						},
-					},
+					Level: &model_filesystem_pb.DirectoryEntry_Parent_{Parent: &model_filesystem_pb.DirectoryEntry_Parent{
+						Reference: model_core_pb.DecodableReference_builder{
+							Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+						}.Build(),
+						FirstName:                      "hello",
+						DirectoryNodesCount:            1,
+						DirectoryContentsCount:         1,
+						MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
+					}},
 				}},
 			),
 		)
@@ -154,16 +152,14 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
 				[]*model_filesystem_pb.DirectoryEntry{
 					directoryContentsEntry(&model_filesystem_pb.DirectoryEntry{
-						Level: &model_filesystem_pb.DirectoryEntry_Parent_{
-							Parent: &model_filesystem_pb.DirectoryEntry_Parent{
-								Reference: &model_core_pb.DecodableReference{
-									Reference: &model_core_pb.Reference{Index: 1},
-								},
-								FirstName:                      "a",
-								LeafNodesCount:                 100,
-								MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
-							},
-						},
+						Level: &model_filesystem_pb.DirectoryEntry_Parent_{Parent: &model_filesystem_pb.DirectoryEntry_Parent{
+							Reference: model_core_pb.DecodableReference_builder{
+								Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+							}.Build(),
+							FirstName:                      "a",
+							LeafNodesCount:                 100,
+							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
+						}},
 					}),
 					directoryNodeEntry("hello", 0),
 				},

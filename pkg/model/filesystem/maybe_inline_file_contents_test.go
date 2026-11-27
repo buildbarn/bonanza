@@ -72,9 +72,7 @@ func TestMaybeInlineFileContents(t *testing.T) {
 		contents, err := model_filesystem.CreateMaybeInlineFileContents(ctx, fileCreationParameters, []byte("Hello"), 5, capturer)
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_filesystem_pb.MaybeInlineFileContents{
-			Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{
-				ContentsInline: []byte("Hello"),
-			},
+			Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{ContentsInline: []byte("Hello")},
 		}, contents.Message)
 		require.Equal(t, uint64(5), model_filesystem.GetMaybeInlineFileContentsSizeBytes(contents.Message))
 
@@ -113,19 +111,15 @@ func TestMaybeInlineFileContents(t *testing.T) {
 		require.NoError(t, err)
 		references, metadata := contents.Patcher.SortAndSetReferences()
 		testutil.RequireEqualProto(t, &model_filesystem_pb.MaybeInlineFileContents{
-			Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsExternal{
-				ContentsExternal: &model_filesystem_pb.FileContents{
-					Level: &model_filesystem_pb.FileContents_ChunkReference{
-						ChunkReference: &model_core_pb.DecodableReference{
-							Reference: &model_core_pb.Reference{
-								Index: 1,
-							},
-						},
-					},
-					TotalSizeBytes: 5,
-					Utf8Stat:       1,
-				},
-			},
+			Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsExternal{ContentsExternal: &model_filesystem_pb.FileContents{
+				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					Reference: model_core_pb.Reference_builder{
+						Index: 1,
+					}.Build(),
+				}.Build()},
+				TotalSizeBytes: 5,
+				Utf8Stat:       1,
+			}},
 		}, contents.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{chunkReference}, references)
 		require.Equal(t, []model_core.ReferenceMetadata{metadata1}, metadata)

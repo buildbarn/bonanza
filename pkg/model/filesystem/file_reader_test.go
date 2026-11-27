@@ -50,12 +50,10 @@ func TestFileReader(t *testing.T) {
 				model_filesystem.NewFileContentsEntryFromProto(
 					model_core.NewMessage(
 						&model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_ChunkReference{
-								ChunkReference: &model_core_pb.DecodableReference{
-									Reference:          &model_core_pb.Reference{Index: 1},
-									DecodingParameters: []byte{0x15, 0x0d, 0x94, 0xec, 0x02, 0xee, 0x19, 0xbd},
-								},
-							},
+							Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+								Reference:          model_core_pb.Reference_builder{Index: 1}.Build(),
+								DecodingParameters: []byte{0x15, 0x0d, 0x94, 0xec, 0x02, 0xee, 0x19, 0xbd},
+							}.Build()},
 							TotalSizeBytes: 1337,
 						},
 						object.OutgoingReferencesList[object.LocalReference]{
@@ -91,12 +89,10 @@ func TestFileReader(t *testing.T) {
 				model_filesystem.NewFileContentsEntryFromProto(
 					model_core.NewMessage(
 						&model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_ChunkReference{
-								ChunkReference: &model_core_pb.DecodableReference{
-									Reference:          &model_core_pb.Reference{Index: 1},
-									DecodingParameters: []byte{0x8e, 0x4f, 0xe8, 0x3a, 0x40, 0xc3, 0xd6, 0x14},
-								},
-							},
+							Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+								Reference:          model_core_pb.Reference_builder{Index: 1}.Build(),
+								DecodingParameters: []byte{0x8e, 0x4f, 0xe8, 0x3a, 0x40, 0xc3, 0xd6, 0x14},
+							}.Build()},
 							TotalSizeBytes: 100,
 						},
 						object.OutgoingReferencesList[object.LocalReference]{
@@ -127,12 +123,10 @@ func TestFileReader(t *testing.T) {
 				model_filesystem.NewFileContentsEntryFromProto(
 					model_core.NewMessage(
 						&model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_ChunkReference{
-								ChunkReference: &model_core_pb.DecodableReference{
-									Reference:          &model_core_pb.Reference{Index: 1},
-									DecodingParameters: []byte{0xd3, 0x87, 0xbe, 0x10, 0x4d, 0x70, 0x1d, 0x76},
-								},
-							},
+							Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+								Reference:          model_core_pb.Reference_builder{Index: 1}.Build(),
+								DecodingParameters: []byte{0xd3, 0x87, 0xbe, 0x10, 0x4d, 0x70, 0x1d, 0x76},
+							}.Build()},
 							TotalSizeBytes: 11,
 						},
 						object.OutgoingReferencesList[object.LocalReference]{
@@ -164,14 +158,12 @@ func TestFileReader(t *testing.T) {
 				model_filesystem.NewFileContentsEntryFromProto(
 					model_core.NewMessage(
 						&model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_List_{
-								List: &model_filesystem_pb.FileContents_List{
-									Reference: &model_core_pb.DecodableReference{
-										Reference:          &model_core_pb.Reference{Index: 1},
-										DecodingParameters: []byte{0x8c, 0xf5, 0x2b, 0x6e, 0x9b, 0xaf, 0xa7, 0x86},
-									},
-								},
-							},
+							Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+								Reference: model_core_pb.DecodableReference_builder{
+									Reference:          model_core_pb.Reference_builder{Index: 1}.Build(),
+									DecodingParameters: []byte{0x8c, 0xf5, 0x2b, 0x6e, 0x9b, 0xaf, 0xa7, 0x86},
+								}.Build(),
+							}},
 							TotalSizeBytes: 2000,
 						},
 						object.OutgoingReferencesList[object.LocalReference]{
@@ -202,32 +194,26 @@ func TestFileReaderFileSeek(t *testing.T) {
 	// Helpers for constructing FileContents messages.
 	newChunk := func(sizeBytes uint64) *model_filesystem_pb.FileContents {
 		return &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_ChunkReference{
-				ChunkReference: &model_core_pb.DecodableReference{
-					Reference: &model_core_pb.Reference{Index: 1},
-				},
-			},
+			Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+			}.Build()},
 			TotalSizeBytes: sizeBytes,
 		}
 	}
 	newHole := func(sizeBytes uint64) *model_filesystem_pb.FileContents {
 		return &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_Hole{
-				Hole: &emptypb.Empty{},
-			},
+			Level:          &model_filesystem_pb.FileContents_Hole{Hole: &emptypb.Empty{}},
 			TotalSizeBytes: sizeBytes,
 		}
 	}
 	newList := func(sizeBytes uint64, index uint32, sparse bool) *model_filesystem_pb.FileContents {
 		return &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_List_{
-				List: &model_filesystem_pb.FileContents_List{
-					Reference: &model_core_pb.DecodableReference{
-						Reference: &model_core_pb.Reference{Index: index},
-					},
-					Sparse: sparse,
-				},
-			},
+			Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+				Reference: model_core_pb.DecodableReference_builder{
+					Reference: model_core_pb.Reference_builder{Index: index}.Build(),
+				}.Build(),
+				Sparse: sparse,
+			}},
 			TotalSizeBytes: sizeBytes,
 		}
 	}

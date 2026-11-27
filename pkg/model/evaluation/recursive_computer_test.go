@@ -178,30 +178,26 @@ func TestRecursiveComputer(t *testing.T) {
 		evaluations, _ := patchedEvaluations.SortAndSetReferences()
 		require.Len(t, evaluations.Message, 1)
 		testutil.RequireEqualProto(t, &model_evaluation_pb.Evaluations{
-			Level: &model_evaluation_pb.Evaluations_Leaf_{
-				Leaf: &model_evaluation_pb.Evaluations_Leaf{
-					// &wrapperspb.UInt32Value{Value: 93}
-					KeyReference: []byte{
-						0x0c, 0xfe, 0x3c, 0x1c, 0x36, 0x0e, 0x96, 0x44,
-						0x16, 0xc0, 0x88, 0xf3, 0xfb, 0x93, 0xd4, 0x68,
-						0xbe, 0x6a, 0xfd, 0xe0, 0x35, 0xc4, 0x8e, 0xf4,
-						0x41, 0xe7, 0x61, 0x11, 0xa8, 0x1b, 0xe3, 0xdd,
-						0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-					},
-					Graphlet: &model_evaluation_pb.Graphlet{
-						Evaluation: &model_evaluation_pb.Graphlet_EvaluationInline{
-							EvaluationInline: &model_evaluation_pb.Evaluation{
-								Value: &model_core_pb.Opaque{
-									Value: util.Must(proto.Marshal(&wrapperspb.UInt64Value{
-										Value: 12200160415121876738,
-									})),
-									References: &model_core_pb.ReferenceSet{},
-								},
-							},
-						},
-					},
+			Level: &model_evaluation_pb.Evaluations_Leaf_{Leaf: &model_evaluation_pb.Evaluations_Leaf{
+				// &wrapperspb.UInt32Value{Value: 93}
+				KeyReference: []byte{
+					0x0c, 0xfe, 0x3c, 0x1c, 0x36, 0x0e, 0x96, 0x44,
+					0x16, 0xc0, 0x88, 0xf3, 0xfb, 0x93, 0xd4, 0x68,
+					0xbe, 0x6a, 0xfd, 0xe0, 0x35, 0xc4, 0x8e, 0xf4,
+					0x41, 0xe7, 0x61, 0x11, 0xa8, 0x1b, 0xe3, 0xdd,
+					0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				},
-			},
+				Graphlet: &model_evaluation_pb.Graphlet{
+					Evaluation: &model_evaluation_pb.Graphlet_EvaluationInline{EvaluationInline: &model_evaluation_pb.Evaluation{
+						Value: model_core_pb.Opaque_builder{
+							Value: util.Must(proto.Marshal(&wrapperspb.UInt64Value{
+								Value: 12200160415121876738,
+							})),
+							References: &model_core_pb.ReferenceSet{},
+						}.Build(),
+					}},
+				},
+			}},
 		}, evaluations.Message[0])
 	})
 
@@ -272,7 +268,7 @@ func TestRecursiveComputer(t *testing.T) {
 						<-progressReported
 						progress, err := recursiveComputer.GetProgress(ctx)
 						require.NoError(t, err)
-						require.Len(t, progress.Message.OldestEvaluatingKeys, 1)
+						require.Len(t, progress.Message.GetOldestEvaluatingKeys(), 1)
 						// Progress messages that marshal to an
 						// empty byte sequence should still be
 						// sent to the client.
@@ -280,10 +276,10 @@ func TestRecursiveComputer(t *testing.T) {
 						require.NoError(t, err)
 						var receivedProgress model_evaluation_pb.Progress
 						require.NoError(t, proto.Unmarshal(marshaledProgress, &receivedProgress))
-						require.Len(t, receivedProgress.OldestEvaluatingKeys, 1)
-						require.NotNil(t, receivedProgress.OldestEvaluatingKeys[0].Progress)
+						require.Len(t, receivedProgress.GetOldestEvaluatingKeys(), 1)
+						require.NotNil(t, receivedProgress.GetOldestEvaluatingKeys()[0].GetProgress())
 						var gotProgress wrapperspb.StringValue
-						require.NoError(t, proto.Unmarshal(receivedProgress.OldestEvaluatingKeys[0].Progress, &gotProgress))
+						require.NoError(t, proto.Unmarshal(receivedProgress.GetOldestEvaluatingKeys()[0].GetProgress(), &gotProgress))
 						testutil.RequireEqualProto(t, &wrapperspb.StringValue{Value: reportedValue}, &gotProgress)
 						progress.Discard()
 
@@ -294,7 +290,7 @@ func TestRecursiveComputer(t *testing.T) {
 
 						progress, err = recursiveComputer.GetProgress(ctx)
 						require.NoError(t, err)
-						require.Empty(t, progress.Message.OldestEvaluatingKeys)
+						require.Empty(t, progress.Message.GetOldestEvaluatingKeys())
 						progress.Discard()
 						return nil
 					}),
@@ -890,9 +886,7 @@ func TestRecursiveComputer(t *testing.T) {
 			),
 		).Return(model_core.NewSimpleMessage[object.LocalReference](
 			&model_evaluation_cache_pb.LookupResult{
-				Result: &model_evaluation_cache_pb.LookupResult_MissingDependencies_{
-					MissingDependencies: &model_evaluation_cache_pb.LookupResult_MissingDependencies{},
-				},
+				Result: &model_evaluation_cache_pb.LookupResult_MissingDependencies_{MissingDependencies: &model_evaluation_cache_pb.LookupResult_MissingDependencies{}},
 			},
 		), nil)
 		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -986,14 +980,12 @@ func TestRecursiveComputer(t *testing.T) {
 			),
 		).Return(model_core.NewSimpleMessage[object.LocalReference](
 			&model_evaluation_cache_pb.LookupResult{
-				Result: &model_evaluation_cache_pb.LookupResult_HitValue{
-					HitValue: &model_core_pb.Opaque{
-						Value: util.Must(proto.Marshal(&wrapperspb.UInt64Value{
-							Value: 26,
-						})),
-						References: &model_core_pb.ReferenceSet{},
-					},
-				},
+				Result: &model_evaluation_cache_pb.LookupResult_HitValue{HitValue: model_core_pb.Opaque_builder{
+					Value: util.Must(proto.Marshal(&wrapperspb.UInt64Value{
+						Value: 26,
+					})),
+					References: &model_core_pb.ReferenceSet{},
+				}.Build()},
 			},
 		), nil)
 
@@ -1054,12 +1046,10 @@ func TestRecursiveComputer(t *testing.T) {
 		// returning lists of keys in descending order.
 		newKeysLeaf := func(n uint32) *model_evaluation_pb.Keys {
 			return &model_evaluation_pb.Keys{
-				Level: &model_evaluation_pb.Keys_Leaf{
-					Leaf: &model_core_pb.Any{
-						Value:      util.Must(anypb.New(&wrapperspb.UInt32Value{Value: n})),
-						References: &model_core_pb.ReferenceSet{},
-					},
-				},
+				Level: &model_evaluation_pb.Keys_Leaf{Leaf: model_core_pb.Any_builder{
+					Value:      util.Must(anypb.New(&wrapperspb.UInt32Value{Value: n})),
+					References: &model_core_pb.ReferenceSet{},
+				}.Build()},
 			}
 		}
 		low, high := uint32(16), uint32(17)
@@ -1077,12 +1067,10 @@ func TestRecursiveComputer(t *testing.T) {
 		).Return(object.MustNewSHA256V1LocalReference("cd897b5bbc720746ba0740100714e8f98f36e3c3cda42b3d3e8c0c26884c0780", 43984, 0, 0, 0), nil)
 		lookupResultReader.EXPECT().ReadObject(gomock.Any(), gomock.Any()).Return(model_core.NewSimpleMessage[object.LocalReference](
 			&model_evaluation_cache_pb.LookupResult{
-				Result: &model_evaluation_cache_pb.LookupResult_Initial_{
-					Initial: &model_evaluation_cache_pb.LookupResult_Initial{
-						GraphletVariableDependencyKeys: []*model_evaluation_pb.Keys{newKeysLeaf(high), newKeysLeaf(low)},
-						ValueVariableDependencyKeys:    []*model_evaluation_pb.Keys{newKeysLeaf(high), newKeysLeaf(low)},
-					},
-				},
+				Result: &model_evaluation_cache_pb.LookupResult_Initial_{Initial: &model_evaluation_cache_pb.LookupResult_Initial{
+					GraphletVariableDependencyKeys: []*model_evaluation_pb.Keys{newKeysLeaf(high), newKeysLeaf(low)},
+					ValueVariableDependencyKeys:    []*model_evaluation_pb.Keys{newKeysLeaf(high), newKeysLeaf(low)},
+				}},
 			},
 		), nil)
 

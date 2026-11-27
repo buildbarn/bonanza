@@ -84,13 +84,11 @@ func TestCreateFileMerkleTree(t *testing.T) {
 
 		references, metadata := rootFileContents.Patcher.SortAndSetReferences()
 		testutil.RequireEqualProto(t, &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_ChunkReference{
-				ChunkReference: &model_core_pb.DecodableReference{
-					Reference: &model_core_pb.Reference{
-						Index: 1,
-					},
-				},
-			},
+			Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				Reference: model_core_pb.Reference_builder{
+					Index: 1,
+				}.Build(),
+			}.Build()},
 			TotalSizeBytes: 5,
 			Utf8Stat:       1,
 		}, rootFileContents.Message)
@@ -157,16 +155,14 @@ func TestCreateFileMerkleTree(t *testing.T) {
 
 		references, _ := rootFileContents.Patcher.SortAndSetReferences()
 		testutil.RequireEqualProto(t, &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_List_{
-				List: &model_filesystem_pb.FileContents_List{
-					Reference: &model_core_pb.DecodableReference{
-						Reference: &model_core_pb.Reference{
-							Index: 1,
-						},
-					},
-					Sparse: false,
-				},
-			},
+			Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+				Reference: model_core_pb.DecodableReference_builder{
+					Reference: model_core_pb.Reference_builder{
+						Index: 1,
+					}.Build(),
+				}.Build(),
+				Sparse: false,
+			}},
 			TotalSizeBytes: 1 << 30,
 		}, rootFileContents.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
@@ -201,6 +197,6 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		references, _ := rootFileContents.Patcher.SortAndSetReferences()
 		require.Len(t, references, 1)
 		require.Greater(t, references[0].GetHeight(), 1)
-		require.Equal(t, uint64(expectedStat), rootFileContents.Message.Utf8Stat)
+		require.Equal(t, uint64(expectedStat), rootFileContents.Message.GetUtf8Stat())
 	})
 }

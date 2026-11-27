@@ -1,11 +1,13 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.model.core;
 
 import "bonanza.build/pkg/proto/model/format/format.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
+import "google/protobuf/go_features.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/core";
 
 extend google.protobuf.FieldOptions {
@@ -23,6 +25,13 @@ extend google.protobuf.FieldOptions {
 // referenced object can be decoded (which generally is the case),
 // DecodableReference should be used.
 message Reference {
+  // ReferenceMessagePatcher needs to be able to obtain pointers to the
+  // index field, so that it can be updated once all outgoing
+  // references of an object are known and sorted. Use the hybrid API,
+  // so that the field is exported, while getters, setters and builders
+  // remain available.
+  option features.(pb.go).api_level = API_HYBRID;
+
   // One-based index of an outgoing reference of the current object that
   // refers to the child object.
   //
@@ -82,6 +91,10 @@ message WeakDecodableReference {
 // outgoing references. Its use over 'repeated Reference' is preferred,
 // as its representation is far more dense.
 message ReferenceSet {
+  // Like for Reference, ReferenceMessagePatcher needs to be able to
+  // obtain pointers to the indices.
+  option features.(pb.go).api_level = API_HYBRID;
+
   // Set of indices of references contained in the set. Indices need to
   // be listed in strictly increasing order.
   repeated fixed32 indices = 1;

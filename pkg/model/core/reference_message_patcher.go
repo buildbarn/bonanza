@@ -76,9 +76,9 @@ type MetadataEntry[TMetadata any] struct {
 // AddReference allocates a new Reference message that is associated
 // with a given object.LocalReference and caller provided metadata.
 func (p *ReferenceMessagePatcher[TMetadata]) AddReference(capturedObject MetadataEntry[TMetadata]) *core.Reference {
-	message := &core.Reference{
+	message := core.Reference_builder{
 		Index: math.MaxUint32,
-	}
+	}.Build()
 	p.addIndex(&message.Index, capturedObject)
 	return message
 }
@@ -87,10 +87,10 @@ func (p *ReferenceMessagePatcher[TMetadata]) AddReference(capturedObject Metadat
 // be called in the common case where a DecodableReference needs to be
 // emitted.
 func (p *ReferenceMessagePatcher[TMetadata]) AddDecodableReference(capturedObject Decodable[MetadataEntry[TMetadata]]) *core.DecodableReference {
-	return &core.DecodableReference{
+	return core.DecodableReference_builder{
 		Reference:          p.AddReference(capturedObject.Value),
 		DecodingParameters: capturedObject.GetDecodingParameters(),
-	}
+	}.Build()
 }
 
 // CaptureAndAddDecodableReference is a helper function for

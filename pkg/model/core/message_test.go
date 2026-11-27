@@ -26,21 +26,21 @@ func TestFlattenReferenceSet(t *testing.T) {
 
 	t.Run("Unsorted", func(t *testing.T) {
 		_, err := model_core.FlattenReferenceSet(
-			model_core.NewMessage(&model_core_pb.ReferenceSet{Indices: []uint32{3, 1}}, object.OutgoingReferences[object.LocalReference](outer)),
+			model_core.NewMessage(model_core_pb.ReferenceSet_builder{Indices: []uint32{3, 1}}.Build(), object.OutgoingReferences[object.LocalReference](outer)),
 		)
 		require.Error(t, err)
 	})
 
 	t.Run("OutOfBounds", func(t *testing.T) {
 		_, err := model_core.FlattenReferenceSet(
-			model_core.NewMessage(&model_core_pb.ReferenceSet{Indices: []uint32{1, 4}}, object.OutgoingReferences[object.LocalReference](outer)),
+			model_core.NewMessage(model_core_pb.ReferenceSet_builder{Indices: []uint32{1, 4}}.Build(), object.OutgoingReferences[object.LocalReference](outer)),
 		)
 		require.Error(t, err)
 	})
 
 	t.Run("Subset", func(t *testing.T) {
 		outgoingReferences, err := model_core.FlattenReferenceSet(
-			model_core.NewMessage(&model_core_pb.ReferenceSet{Indices: []uint32{1, 3}}, object.OutgoingReferences[object.LocalReference](outer)),
+			model_core.NewMessage(model_core_pb.ReferenceSet_builder{Indices: []uint32{1, 3}}.Build(), object.OutgoingReferences[object.LocalReference](outer)),
 		)
 		require.NoError(t, err)
 		require.Equal(t, 2, outgoingReferences.GetDegree())

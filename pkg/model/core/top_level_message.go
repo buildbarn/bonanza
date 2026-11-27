@@ -211,12 +211,12 @@ func getIdentityReferenceSetIndices(degree int) []uint32 {
 // other data and references.
 func WrapTopLevelAny[TReference any](m TopLevelMessage[*anypb.Any, TReference]) TopLevelMessage[*model_core_pb.Any, TReference] {
 	return NewTopLevelMessage(
-		&model_core_pb.Any{
+		model_core_pb.Any_builder{
 			Value: m.Message,
-			References: &model_core_pb.ReferenceSet{
+			References: model_core_pb.ReferenceSet_builder{
 				Indices: getIdentityReferenceSetIndices(m.OutgoingReferences.GetDegree()),
-			},
-		},
+			}.Build(),
+		}.Build(),
 		m.OutgoingReferences,
 	)
 }
@@ -227,12 +227,12 @@ func WrapTopLevelAny[TReference any](m TopLevelMessage[*anypb.Any, TReference]) 
 // stored in a single object, together with other data and references.
 func WrapTopLevelOpaque[TReference any](m TopLevelMessage[[]byte, TReference]) TopLevelMessage[*model_core_pb.Opaque, TReference] {
 	return NewTopLevelMessage(
-		&model_core_pb.Opaque{
+		model_core_pb.Opaque_builder{
 			Value: m.Message,
-			References: &model_core_pb.ReferenceSet{
+			References: model_core_pb.ReferenceSet_builder{
 				Indices: getIdentityReferenceSetIndices(m.OutgoingReferences.GetDegree()),
-			},
-		},
+			}.Build(),
+		}.Build(),
 		m.OutgoingReferences,
 	)
 }
