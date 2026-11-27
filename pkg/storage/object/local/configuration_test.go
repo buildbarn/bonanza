@@ -23,7 +23,7 @@ func TestNewStoreFromConfigurationPersistentInMemory(t *testing.T) {
 	// gone. Such configurations must therefore be rejected. This
 	// should happen before any goroutines are launched.
 	directory := t.TempDir()
-	onBlockDevice := &configuration_pb.StoreConfiguration{
+	onBlockDevice := configuration_pb.StoreConfiguration_builder{
 		ReferenceLocationMap: &lossymap_pb.HashMapConfiguration{
 			Backend: &lossymap_pb.HashMapConfiguration_OnBlockDevice{
 				OnBlockDevice: &blockdevice_pb.Configuration{
@@ -38,27 +38,25 @@ func TestNewStoreFromConfigurationPersistentInMemory(t *testing.T) {
 			MaximumGetAttempts: 16,
 			MaximumPutAttempts: 64,
 		},
-		LocationBlobMapBackend: &configuration_pb.StoreConfiguration_LocationBlobMapOnBlockDevice{
-			LocationBlobMapOnBlockDevice: &blockdevice_pb.Configuration{
-				Source: &blockdevice_pb.Configuration_File{
-					File: &blockdevice_pb.FileConfiguration{
-						Path:      filepath.Join(directory, "location_blob_map"),
-						SizeBytes: 1 << 20,
-					},
+		LocationBlobMapOnBlockDevice: &blockdevice_pb.Configuration{
+			Source: &blockdevice_pb.Configuration_File{
+				File: &blockdevice_pb.FileConfiguration{
+					Path:      filepath.Join(directory, "location_blob_map"),
+					SizeBytes: 1 << 20,
 				},
 			},
 		},
 		OldRegionSizeRatio:     1,
 		CurrentRegionSizeRatio: 1,
 		NewRegionSizeRatio:     3,
-		Persistent: &configuration_pb.StoreConfiguration_Persistent{
+		Persistent: configuration_pb.StoreConfiguration_Persistent_builder{
 			StateDirectoryPath: directory,
-		},
-	}
+		}.Build(),
+	}.Build()
 
 	t.Run("ReferenceLocationMapInMemory", func(t *testing.T) {
 		configuration := proto.Clone(onBlockDevice).(*configuration_pb.StoreConfiguration)
-		configuration.ReferenceLocationMap.Backend = &lossymap_pb.HashMapConfiguration_InMemory_{
+		configuration.GetReferenceLocationMap().Backend = &lossymap_pb.HashMapConfiguration_InMemory_{
 			InMemory: &lossymap_pb.HashMapConfiguration_InMemory{
 				Entries: 1000,
 			},
@@ -69,11 +67,9 @@ func TestNewStoreFromConfigurationPersistentInMemory(t *testing.T) {
 
 	t.Run("LocationBlobMapInMemory", func(t *testing.T) {
 		configuration := proto.Clone(onBlockDevice).(*configuration_pb.StoreConfiguration)
-		configuration.LocationBlobMapBackend = &configuration_pb.StoreConfiguration_LocationBlobMapInMemory_{
-			LocationBlobMapInMemory: &configuration_pb.StoreConfiguration_LocationBlobMapInMemory{
-				SizeBytes: 1 << 20,
-			},
-		}
+		configuration.SetLocationBlobMapInMemory(configuration_pb.StoreConfiguration_LocationBlobMapInMemory_builder{
+			SizeBytes: 1 << 20,
+		}.Build())
 		_, err := local.NewStoreFromConfiguration( /* terminationGroup = */ nil, configuration, nil)
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Persistency can only be enabled if the location-blob map is stored on a block device"), err)
 	})

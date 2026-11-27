@@ -43,8 +43,9 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 	// disk so that we can resume where the previous run left off.
 	var persistentStateStore PersistentStateStore
 	var initialPersistentState *pb.PersistentState
-	if pcfg := configuration.Persistent; pcfg != nil {
-		stateDirectory, err := filesystem.NewLocalDirectory(path.LocalFormat.NewParser(pcfg.StateDirectoryPath))
+	persistent := configuration.GetPersistent()
+	if persistent != nil {
+		stateDirectory, err := filesystem.NewLocalDirectory(path.LocalFormat.NewParser(persistent.GetStateDirectoryPath()))
 		if err != nil {
 			return nil, util.StatusWrap(err, "Failed to open persistent state directory")
 		}
@@ -59,7 +60,7 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		// data was written after it. Remove it from disk before
 		// handing out any leases, so that it isn't reused if
 		// this process does not shut down cleanly.
-		if initialPersistentState.LeaseTracking != nil {
+		if initialPersistentState.GetLeaseTracking() != nil {
 			clearedPersistentState := proto.Clone(initialPersistentState).(*pb.PersistentState)
 			clearedPersistentState.LeaseTracking = nil
 			if err := persistentStateStore.WritePersistentState(clearedPersistentState); err != nil {
@@ -67,16 +68,15 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 			}
 		}
 	} else {
-		initialPersistentState = &pb.PersistentState{
-			ReferenceLocationMapHashInitialization: rand.Uint64(),
-		}
+		initialPersistentState = &pb.PersistentState{}
+		initialPersistentState.ReferenceLocationMapHashInitialization = rand.Uint64()
 	}
 
 	// Construct the reference-location map that stores the location
 	// at which object contents are stored.
-	referenceLocationMapHashInitialization := initialPersistentState.ReferenceLocationMapHashInitialization
+	referenceLocationMapHashInitialization := initialPersistentState.GetReferenceLocationMapHashInitialization()
 	referenceLocationMap, syncReferenceLocationMap, err := lossymap.NewHashMapFromConfiguration(
-		configuration.ReferenceLocationMap,
+		configuration.GetReferenceLocationMap(),
 		"ReferenceLocationMap",
 		LocationRecordArrayFactory,
 		/* recordKeyHasher = */
@@ -94,7 +94,7 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		/* valueComparator = */ func(a, b *uint64) int {
 			return cmp.Compare(*a, *b)
 		},
-		configuration.Persistent != nil,
+		persistent != nil,
 	)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Failed to create reference-location map")
@@ -103,7 +103,7 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 	// Data stored in memory is lost across restarts. Using the
 	// persistent state would cause the store to report the existing
 	// incarnation and leases as valid, even though the data is gone.
-	if configuration.Persistent != nil && syncReferenceLocationMap == nil {
+	if persistent != nil && syncReferenceLocationMap == nil {
 		return nil, status.Error(codes.InvalidArgument, "Persistency can only be enabled if the reference-location map is stored on a block device")
 	}
 
@@ -112,26 +112,26 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 	var dataSyncer DataSyncer = func(isFinalSync bool) error { return nil }
 	var locationBlobMap LocationBlobMap
 	var maximumLocationSpan uint64
-	switch backendConfiguration := configuration.LocationBlobMapBackend.(type) {
-	case *configuration_pb.StoreConfiguration_LocationBlobMapInMemory_:
-		if configuration.Persistent != nil {
+	switch configuration.WhichLocationBlobMapBackend() {
+	case configuration_pb.StoreConfiguration_LocationBlobMapInMemory_case:
+		if persistent != nil {
 			return nil, status.Error(codes.InvalidArgument, "Persistency can only be enabled if the location-blob map is stored on a block device")
 		}
-		sizeBytes := backendConfiguration.LocationBlobMapInMemory.SizeBytes
+		sizeBytes := configuration.GetLocationBlobMapInMemory().GetSizeBytes()
 		locationBlobMap = NewInMemoryLocationBlobMap(int(sizeBytes))
 		maximumLocationSpan = sizeBytes
-	case *configuration_pb.StoreConfiguration_LocationBlobMapOnBlockDevice:
+	case configuration_pb.StoreConfiguration_LocationBlobMapOnBlockDevice_case:
 		blockDevice, sectorSizeBytes, sectorCount, err := blockdevice.NewBlockDeviceFromConfiguration(
-			backendConfiguration.LocationBlobMapOnBlockDevice,
-			/* mayZeroInitialize = */ configuration.Persistent == nil,
+			configuration.GetLocationBlobMapOnBlockDevice(),
+			/* mayZeroInitialize = */ persistent == nil,
 		)
 		if err != nil {
 			return nil, util.StatusWrap(err, "Failed to create location-blob map block device")
 		}
 
-		initialLocation := initialPersistentState.MinimumLocation
-		for _, epoch := range initialPersistentState.Epochs {
-			initialLocation += epoch.LocationIncrease
+		initialLocation := initialPersistentState.GetMinimumLocation()
+		for _, epoch := range initialPersistentState.GetEpochs() {
+			initialLocation += epoch.GetLocationIncrease()
 		}
 		dataSyncer = func(isFinalSync bool) error {
 			if err := blockDevice.Sync(); err != nil {
@@ -181,7 +181,7 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 	// to reliably continue after restarts.
 	var epochList EpochList
 	var globalLock sync.RWMutex
-	if pcfg := configuration.Persistent; pcfg != nil {
+	if persistent != nil {
 		persistentEpochList := NewPersistentEpochList(
 			maximumLocationSpan,
 			random.NewFastSingleThreadedGenerator(),
@@ -190,7 +190,7 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		)
 		epochList = persistentEpochList
 
-		minimumEpochInterval := pcfg.MinimumEpochInterval
+		minimumEpochInterval := persistent.GetMinimumEpochInterval()
 		if err := minimumEpochInterval.CheckValid(); err != nil {
 			return nil, util.StatusWrap(err, "Invalid minimum epoch interval")
 		}
@@ -224,15 +224,15 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 
 	// Validate and compute the sizes of the "old" and "current"
 	// regions based on the configured ratios.
-	oldRegionSizeRatio := configuration.OldRegionSizeRatio
+	oldRegionSizeRatio := configuration.GetOldRegionSizeRatio()
 	if oldRegionSizeRatio < 1 {
 		return nil, status.Error(codes.InvalidArgument, "Old region size ratio must be positive")
 	}
-	currentRegionSizeRatio := configuration.CurrentRegionSizeRatio
+	currentRegionSizeRatio := configuration.GetCurrentRegionSizeRatio()
 	if currentRegionSizeRatio < 1 {
 		return nil, status.Error(codes.InvalidArgument, "Current region size ratio must be positive")
 	}
-	newRegionSizeRatio := configuration.NewRegionSizeRatio
+	newRegionSizeRatio := configuration.GetNewRegionSizeRatio()
 	if newRegionSizeRatio < 1 {
 		return nil, status.Error(codes.InvalidArgument, "New region size ratio must be positive")
 	}

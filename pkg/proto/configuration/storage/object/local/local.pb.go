@@ -13,7 +13,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -25,19 +24,15 @@ const (
 )
 
 type StoreConfiguration struct {
-	state                protoimpl.MessageState         `protogen:"open.v1"`
-	ReferenceLocationMap *lossymap.HashMapConfiguration `protobuf:"bytes,1,opt,name=reference_location_map,json=referenceLocationMap,proto3" json:"reference_location_map,omitempty"`
-	// Types that are valid to be assigned to LocationBlobMapBackend:
-	//
-	//	*StoreConfiguration_LocationBlobMapInMemory_
-	//	*StoreConfiguration_LocationBlobMapOnBlockDevice
-	LocationBlobMapBackend isStoreConfiguration_LocationBlobMapBackend `protobuf_oneof:"location_blob_map_backend"`
-	OldRegionSizeRatio     uint32                                      `protobuf:"varint,4,opt,name=old_region_size_ratio,json=oldRegionSizeRatio,proto3" json:"old_region_size_ratio,omitempty"`
-	CurrentRegionSizeRatio uint32                                      `protobuf:"varint,5,opt,name=current_region_size_ratio,json=currentRegionSizeRatio,proto3" json:"current_region_size_ratio,omitempty"`
-	NewRegionSizeRatio     uint32                                      `protobuf:"varint,6,opt,name=new_region_size_ratio,json=newRegionSizeRatio,proto3" json:"new_region_size_ratio,omitempty"`
-	Persistent             *StoreConfiguration_Persistent              `protobuf:"bytes,7,opt,name=persistent,proto3" json:"persistent,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState                      `protogen:"opaque.v1"`
+	xxx_hidden_ReferenceLocationMap   *lossymap.HashMapConfiguration              `protobuf:"bytes,1,opt,name=reference_location_map,json=referenceLocationMap"`
+	xxx_hidden_LocationBlobMapBackend isStoreConfiguration_LocationBlobMapBackend `protobuf_oneof:"location_blob_map_backend"`
+	xxx_hidden_OldRegionSizeRatio     uint32                                      `protobuf:"varint,4,opt,name=old_region_size_ratio,json=oldRegionSizeRatio"`
+	xxx_hidden_CurrentRegionSizeRatio uint32                                      `protobuf:"varint,5,opt,name=current_region_size_ratio,json=currentRegionSizeRatio"`
+	xxx_hidden_NewRegionSizeRatio     uint32                                      `protobuf:"varint,6,opt,name=new_region_size_ratio,json=newRegionSizeRatio"`
+	xxx_hidden_Persistent             *StoreConfiguration_Persistent              `protobuf:"bytes,7,opt,name=persistent"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *StoreConfiguration) Reset() {
@@ -65,28 +60,16 @@ func (x *StoreConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StoreConfiguration.ProtoReflect.Descriptor instead.
-func (*StoreConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *StoreConfiguration) GetReferenceLocationMap() *lossymap.HashMapConfiguration {
 	if x != nil {
-		return x.ReferenceLocationMap
-	}
-	return nil
-}
-
-func (x *StoreConfiguration) GetLocationBlobMapBackend() isStoreConfiguration_LocationBlobMapBackend {
-	if x != nil {
-		return x.LocationBlobMapBackend
+		return x.xxx_hidden_ReferenceLocationMap
 	}
 	return nil
 }
 
 func (x *StoreConfiguration) GetLocationBlobMapInMemory() *StoreConfiguration_LocationBlobMapInMemory {
 	if x != nil {
-		if x, ok := x.LocationBlobMapBackend.(*StoreConfiguration_LocationBlobMapInMemory_); ok {
+		if x, ok := x.xxx_hidden_LocationBlobMapBackend.(*storeConfiguration_LocationBlobMapInMemory_); ok {
 			return x.LocationBlobMapInMemory
 		}
 	}
@@ -95,7 +78,7 @@ func (x *StoreConfiguration) GetLocationBlobMapInMemory() *StoreConfiguration_Lo
 
 func (x *StoreConfiguration) GetLocationBlobMapOnBlockDevice() *blockdevice.Configuration {
 	if x != nil {
-		if x, ok := x.LocationBlobMapBackend.(*StoreConfiguration_LocationBlobMapOnBlockDevice); ok {
+		if x, ok := x.xxx_hidden_LocationBlobMapBackend.(*storeConfiguration_LocationBlobMapOnBlockDevice); ok {
 			return x.LocationBlobMapOnBlockDevice
 		}
 	}
@@ -104,54 +87,211 @@ func (x *StoreConfiguration) GetLocationBlobMapOnBlockDevice() *blockdevice.Conf
 
 func (x *StoreConfiguration) GetOldRegionSizeRatio() uint32 {
 	if x != nil {
-		return x.OldRegionSizeRatio
+		return x.xxx_hidden_OldRegionSizeRatio
 	}
 	return 0
 }
 
 func (x *StoreConfiguration) GetCurrentRegionSizeRatio() uint32 {
 	if x != nil {
-		return x.CurrentRegionSizeRatio
+		return x.xxx_hidden_CurrentRegionSizeRatio
 	}
 	return 0
 }
 
 func (x *StoreConfiguration) GetNewRegionSizeRatio() uint32 {
 	if x != nil {
-		return x.NewRegionSizeRatio
+		return x.xxx_hidden_NewRegionSizeRatio
 	}
 	return 0
 }
 
 func (x *StoreConfiguration) GetPersistent() *StoreConfiguration_Persistent {
 	if x != nil {
-		return x.Persistent
+		return x.xxx_hidden_Persistent
 	}
 	return nil
+}
+
+func (x *StoreConfiguration) SetReferenceLocationMap(v *lossymap.HashMapConfiguration) {
+	x.xxx_hidden_ReferenceLocationMap = v
+}
+
+func (x *StoreConfiguration) SetLocationBlobMapInMemory(v *StoreConfiguration_LocationBlobMapInMemory) {
+	if v == nil {
+		x.xxx_hidden_LocationBlobMapBackend = nil
+		return
+	}
+	x.xxx_hidden_LocationBlobMapBackend = &storeConfiguration_LocationBlobMapInMemory_{v}
+}
+
+func (x *StoreConfiguration) SetLocationBlobMapOnBlockDevice(v *blockdevice.Configuration) {
+	if v == nil {
+		x.xxx_hidden_LocationBlobMapBackend = nil
+		return
+	}
+	x.xxx_hidden_LocationBlobMapBackend = &storeConfiguration_LocationBlobMapOnBlockDevice{v}
+}
+
+func (x *StoreConfiguration) SetOldRegionSizeRatio(v uint32) {
+	x.xxx_hidden_OldRegionSizeRatio = v
+}
+
+func (x *StoreConfiguration) SetCurrentRegionSizeRatio(v uint32) {
+	x.xxx_hidden_CurrentRegionSizeRatio = v
+}
+
+func (x *StoreConfiguration) SetNewRegionSizeRatio(v uint32) {
+	x.xxx_hidden_NewRegionSizeRatio = v
+}
+
+func (x *StoreConfiguration) SetPersistent(v *StoreConfiguration_Persistent) {
+	x.xxx_hidden_Persistent = v
+}
+
+func (x *StoreConfiguration) HasReferenceLocationMap() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ReferenceLocationMap != nil
+}
+
+func (x *StoreConfiguration) HasLocationBlobMapBackend() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LocationBlobMapBackend != nil
+}
+
+func (x *StoreConfiguration) HasLocationBlobMapInMemory() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_LocationBlobMapBackend.(*storeConfiguration_LocationBlobMapInMemory_)
+	return ok
+}
+
+func (x *StoreConfiguration) HasLocationBlobMapOnBlockDevice() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_LocationBlobMapBackend.(*storeConfiguration_LocationBlobMapOnBlockDevice)
+	return ok
+}
+
+func (x *StoreConfiguration) HasPersistent() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Persistent != nil
+}
+
+func (x *StoreConfiguration) ClearReferenceLocationMap() {
+	x.xxx_hidden_ReferenceLocationMap = nil
+}
+
+func (x *StoreConfiguration) ClearLocationBlobMapBackend() {
+	x.xxx_hidden_LocationBlobMapBackend = nil
+}
+
+func (x *StoreConfiguration) ClearLocationBlobMapInMemory() {
+	if _, ok := x.xxx_hidden_LocationBlobMapBackend.(*storeConfiguration_LocationBlobMapInMemory_); ok {
+		x.xxx_hidden_LocationBlobMapBackend = nil
+	}
+}
+
+func (x *StoreConfiguration) ClearLocationBlobMapOnBlockDevice() {
+	if _, ok := x.xxx_hidden_LocationBlobMapBackend.(*storeConfiguration_LocationBlobMapOnBlockDevice); ok {
+		x.xxx_hidden_LocationBlobMapBackend = nil
+	}
+}
+
+func (x *StoreConfiguration) ClearPersistent() {
+	x.xxx_hidden_Persistent = nil
+}
+
+const StoreConfiguration_LocationBlobMapBackend_not_set_case case_StoreConfiguration_LocationBlobMapBackend = 0
+const StoreConfiguration_LocationBlobMapInMemory_case case_StoreConfiguration_LocationBlobMapBackend = 2
+const StoreConfiguration_LocationBlobMapOnBlockDevice_case case_StoreConfiguration_LocationBlobMapBackend = 3
+
+func (x *StoreConfiguration) WhichLocationBlobMapBackend() case_StoreConfiguration_LocationBlobMapBackend {
+	if x == nil {
+		return StoreConfiguration_LocationBlobMapBackend_not_set_case
+	}
+	switch x.xxx_hidden_LocationBlobMapBackend.(type) {
+	case *storeConfiguration_LocationBlobMapInMemory_:
+		return StoreConfiguration_LocationBlobMapInMemory_case
+	case *storeConfiguration_LocationBlobMapOnBlockDevice:
+		return StoreConfiguration_LocationBlobMapOnBlockDevice_case
+	default:
+		return StoreConfiguration_LocationBlobMapBackend_not_set_case
+	}
+}
+
+type StoreConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ReferenceLocationMap *lossymap.HashMapConfiguration
+	// Fields of oneof xxx_hidden_LocationBlobMapBackend:
+	LocationBlobMapInMemory      *StoreConfiguration_LocationBlobMapInMemory
+	LocationBlobMapOnBlockDevice *blockdevice.Configuration
+	// -- end of xxx_hidden_LocationBlobMapBackend
+	OldRegionSizeRatio     uint32
+	CurrentRegionSizeRatio uint32
+	NewRegionSizeRatio     uint32
+	Persistent             *StoreConfiguration_Persistent
+}
+
+func (b0 StoreConfiguration_builder) Build() *StoreConfiguration {
+	m0 := &StoreConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ReferenceLocationMap = b.ReferenceLocationMap
+	if b.LocationBlobMapInMemory != nil {
+		x.xxx_hidden_LocationBlobMapBackend = &storeConfiguration_LocationBlobMapInMemory_{b.LocationBlobMapInMemory}
+	}
+	if b.LocationBlobMapOnBlockDevice != nil {
+		x.xxx_hidden_LocationBlobMapBackend = &storeConfiguration_LocationBlobMapOnBlockDevice{b.LocationBlobMapOnBlockDevice}
+	}
+	x.xxx_hidden_OldRegionSizeRatio = b.OldRegionSizeRatio
+	x.xxx_hidden_CurrentRegionSizeRatio = b.CurrentRegionSizeRatio
+	x.xxx_hidden_NewRegionSizeRatio = b.NewRegionSizeRatio
+	x.xxx_hidden_Persistent = b.Persistent
+	return m0
+}
+
+type case_StoreConfiguration_LocationBlobMapBackend protoreflect.FieldNumber
+
+func (x case_StoreConfiguration_LocationBlobMapBackend) String() string {
+	md := file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[0].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
 }
 
 type isStoreConfiguration_LocationBlobMapBackend interface {
 	isStoreConfiguration_LocationBlobMapBackend()
 }
 
-type StoreConfiguration_LocationBlobMapInMemory_ struct {
-	LocationBlobMapInMemory *StoreConfiguration_LocationBlobMapInMemory `protobuf:"bytes,2,opt,name=location_blob_map_in_memory,json=locationBlobMapInMemory,proto3,oneof"`
+type storeConfiguration_LocationBlobMapInMemory_ struct {
+	LocationBlobMapInMemory *StoreConfiguration_LocationBlobMapInMemory `protobuf:"bytes,2,opt,name=location_blob_map_in_memory,json=locationBlobMapInMemory,oneof"`
 }
 
-type StoreConfiguration_LocationBlobMapOnBlockDevice struct {
-	LocationBlobMapOnBlockDevice *blockdevice.Configuration `protobuf:"bytes,3,opt,name=location_blob_map_on_block_device,json=locationBlobMapOnBlockDevice,proto3,oneof"`
+type storeConfiguration_LocationBlobMapOnBlockDevice struct {
+	LocationBlobMapOnBlockDevice *blockdevice.Configuration `protobuf:"bytes,3,opt,name=location_blob_map_on_block_device,json=locationBlobMapOnBlockDevice,oneof"`
 }
 
-func (*StoreConfiguration_LocationBlobMapInMemory_) isStoreConfiguration_LocationBlobMapBackend() {}
+func (*storeConfiguration_LocationBlobMapInMemory_) isStoreConfiguration_LocationBlobMapBackend() {}
 
-func (*StoreConfiguration_LocationBlobMapOnBlockDevice) isStoreConfiguration_LocationBlobMapBackend() {
+func (*storeConfiguration_LocationBlobMapOnBlockDevice) isStoreConfiguration_LocationBlobMapBackend() {
 }
 
 type StoreConfiguration_LocationBlobMapInMemory struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SizeBytes     uint64                 `protobuf:"varint,1,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SizeBytes uint64                 `protobuf:"varint,1,opt,name=size_bytes,json=sizeBytes"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *StoreConfiguration_LocationBlobMapInMemory) Reset() {
@@ -179,24 +319,37 @@ func (x *StoreConfiguration_LocationBlobMapInMemory) ProtoReflect() protoreflect
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StoreConfiguration_LocationBlobMapInMemory.ProtoReflect.Descriptor instead.
-func (*StoreConfiguration_LocationBlobMapInMemory) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0, 0}
-}
-
 func (x *StoreConfiguration_LocationBlobMapInMemory) GetSizeBytes() uint64 {
 	if x != nil {
-		return x.SizeBytes
+		return x.xxx_hidden_SizeBytes
 	}
 	return 0
 }
 
+func (x *StoreConfiguration_LocationBlobMapInMemory) SetSizeBytes(v uint64) {
+	x.xxx_hidden_SizeBytes = v
+}
+
+type StoreConfiguration_LocationBlobMapInMemory_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SizeBytes uint64
+}
+
+func (b0 StoreConfiguration_LocationBlobMapInMemory_builder) Build() *StoreConfiguration_LocationBlobMapInMemory {
+	m0 := &StoreConfiguration_LocationBlobMapInMemory{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_SizeBytes = b.SizeBytes
+	return m0
+}
+
 type StoreConfiguration_Persistent struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	StateDirectoryPath   string                 `protobuf:"bytes,1,opt,name=state_directory_path,json=stateDirectoryPath,proto3" json:"state_directory_path,omitempty"`
-	MinimumEpochInterval *durationpb.Duration   `protobuf:"bytes,2,opt,name=minimum_epoch_interval,json=minimumEpochInterval,proto3" json:"minimum_epoch_interval,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_StateDirectoryPath   string                 `protobuf:"bytes,1,opt,name=state_directory_path,json=stateDirectoryPath"`
+	xxx_hidden_MinimumEpochInterval *durationpb.Duration   `protobuf:"bytes,2,opt,name=minimum_epoch_interval,json=minimumEpochInterval"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *StoreConfiguration_Persistent) Reset() {
@@ -224,23 +377,53 @@ func (x *StoreConfiguration_Persistent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StoreConfiguration_Persistent.ProtoReflect.Descriptor instead.
-func (*StoreConfiguration_Persistent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP(), []int{0, 1}
-}
-
 func (x *StoreConfiguration_Persistent) GetStateDirectoryPath() string {
 	if x != nil {
-		return x.StateDirectoryPath
+		return x.xxx_hidden_StateDirectoryPath
 	}
 	return ""
 }
 
 func (x *StoreConfiguration_Persistent) GetMinimumEpochInterval() *durationpb.Duration {
 	if x != nil {
-		return x.MinimumEpochInterval
+		return x.xxx_hidden_MinimumEpochInterval
 	}
 	return nil
+}
+
+func (x *StoreConfiguration_Persistent) SetStateDirectoryPath(v string) {
+	x.xxx_hidden_StateDirectoryPath = v
+}
+
+func (x *StoreConfiguration_Persistent) SetMinimumEpochInterval(v *durationpb.Duration) {
+	x.xxx_hidden_MinimumEpochInterval = v
+}
+
+func (x *StoreConfiguration_Persistent) HasMinimumEpochInterval() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_MinimumEpochInterval != nil
+}
+
+func (x *StoreConfiguration_Persistent) ClearMinimumEpochInterval() {
+	x.xxx_hidden_MinimumEpochInterval = nil
+}
+
+type StoreConfiguration_Persistent_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	StateDirectoryPath   string
+	MinimumEpochInterval *durationpb.Duration
+}
+
+func (b0 StoreConfiguration_Persistent_builder) Build() *StoreConfiguration_Persistent {
+	m0 := &StoreConfiguration_Persistent{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_StateDirectoryPath = b.StateDirectoryPath
+	x.xxx_hidden_MinimumEpochInterval = b.MinimumEpochInterval
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto protoreflect.FileDescriptor
@@ -265,19 +448,7 @@ const file_bonanza_build_pkg_proto_configuration_storage_object_local_local_prot
 	"Persistent\x120\n" +
 	"\x14state_directory_path\x18\x01 \x01(\tR\x12stateDirectoryPath\x12O\n" +
 	"\x16minimum_epoch_interval\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x14minimumEpochIntervalB\x1b\n" +
-	"\x19location_blob_map_backendB<Z:bonanza.build/pkg/proto/configuration/storage/object/localb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_rawDescData
-}
+	"\x19location_blob_map_backendBAZ:bonanza.build/pkg/proto/configuration/storage/object/local\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_goTypes = []any{
@@ -307,8 +478,8 @@ func file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto
 		return
 	}
 	file_bonanza_build_pkg_proto_configuration_storage_object_local_local_proto_msgTypes[0].OneofWrappers = []any{
-		(*StoreConfiguration_LocationBlobMapInMemory_)(nil),
-		(*StoreConfiguration_LocationBlobMapOnBlockDevice)(nil),
+		(*storeConfiguration_LocationBlobMapInMemory_)(nil),
+		(*storeConfiguration_LocationBlobMapOnBlockDevice)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

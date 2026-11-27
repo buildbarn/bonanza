@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.configuration.storage.object.local;
 
@@ -6,6 +6,7 @@ import "github.com/buildbarn/bb-storage/pkg/proto/configuration/blockdevice/bloc
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/lossymap/lossymap.proto";
 import "google/protobuf/duration.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/configuration/storage/object/local";
 
 // The local object storage backend is responsible for storing objects
