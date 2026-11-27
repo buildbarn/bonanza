@@ -17,7 +17,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -29,19 +28,19 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                    protoimpl.MessageState       `protogen:"open.v1"`
-	Global                   *global.Configuration        `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	Mount                    *virtual.MountConfiguration  `protobuf:"bytes,2,opt,name=mount,proto3" json:"mount,omitempty"`
-	ParsedObjectPool         *parser.ParsedObjectPool     `protobuf:"bytes,3,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
-	GrpcClient               *grpc.ClientConfiguration    `protobuf:"bytes,4,opt,name=grpc_client,json=grpcClient,proto3" json:"grpc_client,omitempty"`
-	Namespace                *object.Namespace            `protobuf:"bytes,5,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	RootDirectoryReference   *core.WeakDecodableReference `protobuf:"bytes,6,opt,name=root_directory_reference,json=rootDirectoryReference,proto3" json:"root_directory_reference,omitempty"`
-	DirectoryEncoders        []*encoding.BinaryEncoder    `protobuf:"bytes,7,rep,name=directory_encoders,json=directoryEncoders,proto3" json:"directory_encoders,omitempty"`
-	SmallFileEncoders        []*encoding.BinaryEncoder    `protobuf:"bytes,8,rep,name=small_file_encoders,json=smallFileEncoders,proto3" json:"small_file_encoders,omitempty"`
-	ConcatenatedFileEncoders []*encoding.BinaryEncoder    `protobuf:"bytes,9,rep,name=concatenated_file_encoders,json=concatenatedFileEncoders,proto3" json:"concatenated_file_encoders,omitempty"`
-	ObjectStoreConcurrency   int64                        `protobuf:"varint,10,opt,name=object_store_concurrency,json=objectStoreConcurrency,proto3" json:"object_store_concurrency,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                               protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_Global                   *global.Configuration        `protobuf:"bytes,1,opt,name=global"`
+	xxx_hidden_Mount                    *virtual.MountConfiguration  `protobuf:"bytes,2,opt,name=mount"`
+	xxx_hidden_ParsedObjectPool         *parser.ParsedObjectPool     `protobuf:"bytes,3,opt,name=parsed_object_pool,json=parsedObjectPool"`
+	xxx_hidden_GrpcClient               *grpc.ClientConfiguration    `protobuf:"bytes,4,opt,name=grpc_client,json=grpcClient"`
+	xxx_hidden_Namespace                *object.Namespace            `protobuf:"bytes,5,opt,name=namespace"`
+	xxx_hidden_RootDirectoryReference   *core.WeakDecodableReference `protobuf:"bytes,6,opt,name=root_directory_reference,json=rootDirectoryReference"`
+	xxx_hidden_DirectoryEncoders        *[]*encoding.BinaryEncoder   `protobuf:"bytes,7,rep,name=directory_encoders,json=directoryEncoders"`
+	xxx_hidden_SmallFileEncoders        *[]*encoding.BinaryEncoder   `protobuf:"bytes,8,rep,name=small_file_encoders,json=smallFileEncoders"`
+	xxx_hidden_ConcatenatedFileEncoders *[]*encoding.BinaryEncoder   `protobuf:"bytes,9,rep,name=concatenated_file_encoders,json=concatenatedFileEncoders"`
+	xxx_hidden_ObjectStoreConcurrency   int64                        `protobuf:"varint,10,opt,name=object_store_concurrency,json=objectStoreConcurrency"`
+	unknownFields                       protoimpl.UnknownFields
+	sizeCache                           protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -69,79 +68,218 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
-func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
 	if x != nil {
-		return x.Global
+		return x.xxx_hidden_Global
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetMount() *virtual.MountConfiguration {
 	if x != nil {
-		return x.Mount
+		return x.xxx_hidden_Mount
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPool {
 	if x != nil {
-		return x.ParsedObjectPool
+		return x.xxx_hidden_ParsedObjectPool
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.GrpcClient
+		return x.xxx_hidden_GrpcClient
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetNamespace() *object.Namespace {
 	if x != nil {
-		return x.Namespace
+		return x.xxx_hidden_Namespace
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetRootDirectoryReference() *core.WeakDecodableReference {
 	if x != nil {
-		return x.RootDirectoryReference
+		return x.xxx_hidden_RootDirectoryReference
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetDirectoryEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
-		return x.DirectoryEncoders
+		if x.xxx_hidden_DirectoryEncoders != nil {
+			return *x.xxx_hidden_DirectoryEncoders
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetSmallFileEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
-		return x.SmallFileEncoders
+		if x.xxx_hidden_SmallFileEncoders != nil {
+			return *x.xxx_hidden_SmallFileEncoders
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetConcatenatedFileEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
-		return x.ConcatenatedFileEncoders
+		if x.xxx_hidden_ConcatenatedFileEncoders != nil {
+			return *x.xxx_hidden_ConcatenatedFileEncoders
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetObjectStoreConcurrency() int64 {
 	if x != nil {
-		return x.ObjectStoreConcurrency
+		return x.xxx_hidden_ObjectStoreConcurrency
 	}
 	return 0
+}
+
+func (x *ApplicationConfiguration) SetGlobal(v *global.Configuration) {
+	x.xxx_hidden_Global = v
+}
+
+func (x *ApplicationConfiguration) SetMount(v *virtual.MountConfiguration) {
+	x.xxx_hidden_Mount = v
+}
+
+func (x *ApplicationConfiguration) SetParsedObjectPool(v *parser.ParsedObjectPool) {
+	x.xxx_hidden_ParsedObjectPool = v
+}
+
+func (x *ApplicationConfiguration) SetGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_GrpcClient = v
+}
+
+func (x *ApplicationConfiguration) SetNamespace(v *object.Namespace) {
+	x.xxx_hidden_Namespace = v
+}
+
+func (x *ApplicationConfiguration) SetRootDirectoryReference(v *core.WeakDecodableReference) {
+	x.xxx_hidden_RootDirectoryReference = v
+}
+
+func (x *ApplicationConfiguration) SetDirectoryEncoders(v []*encoding.BinaryEncoder) {
+	x.xxx_hidden_DirectoryEncoders = &v
+}
+
+func (x *ApplicationConfiguration) SetSmallFileEncoders(v []*encoding.BinaryEncoder) {
+	x.xxx_hidden_SmallFileEncoders = &v
+}
+
+func (x *ApplicationConfiguration) SetConcatenatedFileEncoders(v []*encoding.BinaryEncoder) {
+	x.xxx_hidden_ConcatenatedFileEncoders = &v
+}
+
+func (x *ApplicationConfiguration) SetObjectStoreConcurrency(v int64) {
+	x.xxx_hidden_ObjectStoreConcurrency = v
+}
+
+func (x *ApplicationConfiguration) HasGlobal() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Global != nil
+}
+
+func (x *ApplicationConfiguration) HasMount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Mount != nil
+}
+
+func (x *ApplicationConfiguration) HasParsedObjectPool() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ParsedObjectPool != nil
+}
+
+func (x *ApplicationConfiguration) HasGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_GrpcClient != nil
+}
+
+func (x *ApplicationConfiguration) HasNamespace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Namespace != nil
+}
+
+func (x *ApplicationConfiguration) HasRootDirectoryReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RootDirectoryReference != nil
+}
+
+func (x *ApplicationConfiguration) ClearGlobal() {
+	x.xxx_hidden_Global = nil
+}
+
+func (x *ApplicationConfiguration) ClearMount() {
+	x.xxx_hidden_Mount = nil
+}
+
+func (x *ApplicationConfiguration) ClearParsedObjectPool() {
+	x.xxx_hidden_ParsedObjectPool = nil
+}
+
+func (x *ApplicationConfiguration) ClearGrpcClient() {
+	x.xxx_hidden_GrpcClient = nil
+}
+
+func (x *ApplicationConfiguration) ClearNamespace() {
+	x.xxx_hidden_Namespace = nil
+}
+
+func (x *ApplicationConfiguration) ClearRootDirectoryReference() {
+	x.xxx_hidden_RootDirectoryReference = nil
+}
+
+type ApplicationConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Global                   *global.Configuration
+	Mount                    *virtual.MountConfiguration
+	ParsedObjectPool         *parser.ParsedObjectPool
+	GrpcClient               *grpc.ClientConfiguration
+	Namespace                *object.Namespace
+	RootDirectoryReference   *core.WeakDecodableReference
+	DirectoryEncoders        []*encoding.BinaryEncoder
+	SmallFileEncoders        []*encoding.BinaryEncoder
+	ConcatenatedFileEncoders []*encoding.BinaryEncoder
+	ObjectStoreConcurrency   int64
+}
+
+func (b0 ApplicationConfiguration_builder) Build() *ApplicationConfiguration {
+	m0 := &ApplicationConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Global = b.Global
+	x.xxx_hidden_Mount = b.Mount
+	x.xxx_hidden_ParsedObjectPool = b.ParsedObjectPool
+	x.xxx_hidden_GrpcClient = b.GrpcClient
+	x.xxx_hidden_Namespace = b.Namespace
+	x.xxx_hidden_RootDirectoryReference = b.RootDirectoryReference
+	x.xxx_hidden_DirectoryEncoders = &b.DirectoryEncoders
+	x.xxx_hidden_SmallFileEncoders = &b.SmallFileEncoders
+	x.xxx_hidden_ConcatenatedFileEncoders = &b.ConcatenatedFileEncoders
+	x.xxx_hidden_ObjectStoreConcurrency = b.ObjectStoreConcurrency
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto protoreflect.FileDescriptor
@@ -161,19 +299,7 @@ const file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory
 	"\x13small_file_encoders\x18\b \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x11smallFileEncoders\x12c\n" +
 	"\x1aconcatenated_file_encoders\x18\t \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x18concatenatedFileEncoders\x128\n" +
 	"\x18object_store_concurrency\x18\n" +
-	" \x01(\x03R\x16objectStoreConcurrencyB7Z5bonanza.build/pkg/proto/configuration/mount_directoryb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_rawDescData
-}
+	" \x01(\x03R\x16objectStoreConcurrencyB<Z5bonanza.build/pkg/proto/configuration/mount_directory\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_bonanza_build_pkg_proto_configuration_mount_directory_mount_directory_proto_goTypes = []any{

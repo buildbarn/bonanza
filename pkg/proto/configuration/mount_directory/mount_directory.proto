@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.configuration.mount_directory;
 
@@ -10,6 +10,7 @@ import "github.com/buildbarn/bb-remote-execution/pkg/proto/configuration/filesys
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/configuration/mount_directory";
 
 message ApplicationConfiguration {

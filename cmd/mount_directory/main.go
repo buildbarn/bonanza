@@ -35,13 +35,13 @@ func main() {
 		if err := util.UnmarshalConfigurationFromFile(os.Args[1], &configuration); err != nil {
 			return util.StatusWrapf(err, "Failed to read configuration from %s", os.Args[1])
 		}
-		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.Global, dependenciesGroup)
+		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.GetGlobal(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
 
 		mount, rootHandleAllocator, err := virtual_configuration.NewMountFromConfiguration(
-			configuration.Mount,
+			configuration.GetMount(),
 			"mount_directory",
 			/* rootDirectory = */ virtual_configuration.LongAttributeCaching,
 			/* childDirectories = */ virtual_configuration.LongAttributeCaching,
@@ -52,12 +52,12 @@ func main() {
 			return util.StatusWrap(err, "Failed to create virtual file system mount")
 		}
 
-		namespace, err := object.NewNamespace(configuration.Namespace)
+		namespace, err := object.NewNamespace(configuration.GetNamespace())
 		if err != nil {
 			return util.StatusWrap(err, "Invalid namespace")
 		}
 
-		grpcClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.GrpcClient, dependenciesGroup)
+		grpcClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.GetGrpcClient(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create gRPC client")
 		}
@@ -66,20 +66,20 @@ func main() {
 		// is no need to enforce the use of encryption.
 		binaryEncoderFactory := encoding.NewBinaryEncoderFactory(true)
 		maximumObjectSizeBytes := uint32(namespace.GetMaximumObjectSizeBytes())
-		directoryEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(configuration.DirectoryEncoders, maximumObjectSizeBytes)
+		directoryEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(configuration.GetDirectoryEncoders(), maximumObjectSizeBytes)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create directory encoder")
 		}
-		smallFileEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(configuration.SmallFileEncoders, maximumObjectSizeBytes)
+		smallFileEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(configuration.GetSmallFileEncoders(), maximumObjectSizeBytes)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create small file encoder")
 		}
-		concatenatedFileEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(configuration.ConcatenatedFileEncoders, maximumObjectSizeBytes)
+		concatenatedFileEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(configuration.GetConcatenatedFileEncoders(), maximumObjectSizeBytes)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create concatenated file encoder")
 		}
 
-		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.ParsedObjectPool)
+		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.GetParsedObjectPool())
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create parsed object pool")
 		}
@@ -116,7 +116,7 @@ func main() {
 
 		rootDirectoryReference, err := model_core.NewDecodableLocalReferenceFromWeakProto(
 			namespace.ReferenceFormat,
-			configuration.RootDirectoryReference,
+			configuration.GetRootDirectoryReference(),
 		)
 		if err != nil {
 			return util.StatusWrap(err, "Invalid root directory reference")
@@ -134,7 +134,7 @@ func main() {
 				model_filesystem.NewFileReader(
 					fileContentsListReader,
 					fileChunkReader,
-					semaphore.NewWeighted(configuration.ObjectStoreConcurrency),
+					semaphore.NewWeighted(configuration.GetObjectStoreConcurrency()),
 				),
 				util.DefaultErrorLogger,
 			),
