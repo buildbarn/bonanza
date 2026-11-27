@@ -11,7 +11,6 @@ import "bonanza.build/pkg/proto/model/filesystem/filesystem.proto";
 import "bonanza.build/pkg/proto/model/starlark/starlark.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
-import "google/protobuf/wrappers.proto";
 
 option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/analysis";
@@ -474,7 +473,7 @@ message Args {
 
       message Leaf {
         // If set, emit a string argument before the values.
-        google.protobuf.StringValue start_with = 1;
+        string start_with = 1 [features.field_presence = EXPLICIT];
 
         // Argument values. This field may only be set to a list or a
         // depset.
@@ -519,10 +518,10 @@ message Args {
           // If set, insert a string argument before each existing
           // argument, effectively doubling the number of arguments to
           // be appended at that point.
-          google.protobuf.StringValue before_each = 1;
+          string before_each = 1 [features.field_presence = EXPLICIT];
 
           // If set, emit a string argument after the values.
-          google.protobuf.StringValue terminate_with = 2;
+          string terminate_with = 2 [features.field_presence = EXPLICIT];
         }
 
         message Joined {

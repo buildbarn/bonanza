@@ -474,10 +474,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 			// list is empty and omit_if_empty is true,
 			// start_with is inserted as the first argument,
 			// if it is given.
-			if startWith := addLeaf.GetStartWith(); startWith != nil {
+			if addLeaf.HasStartWith() {
 				if err := argumentsBuilder.PushChild(
 					model_core.NewSimplePatchedMessage[TMetadata](model_command_pb.ArgumentList_Element_builder{
-						Leaf: proto.String(startWith.Value),
+						Leaf: proto.String(addLeaf.GetStartWith()),
 					}.Build()),
 				); err != nil {
 					return PatchedTargetActionCommandValue[TMetadata]{}, err
@@ -511,10 +511,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 					// is given, it is inserted as a new
 					// argument before each existing
 					// argument in the list.
-					if beforeEach := addLeaf.GetSeparate().GetBeforeEach(); beforeEach != nil {
+					if separate := addLeaf.GetSeparate(); separate.HasBeforeEach() {
 						if err := argumentsBuilder.PushChild(
 							model_core.NewSimplePatchedMessage[TMetadata](model_command_pb.ArgumentList_Element_builder{
-								Leaf: proto.String(beforeEach.Value),
+								Leaf: proto.String(separate.GetBeforeEach()),
 							}.Build()),
 						); err != nil {
 							return PatchedTargetActionCommandValue[TMetadata]{}, err
@@ -536,10 +536,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				// list is empty and omit_if_empty is
 				// true, terminate_with is inserted as
 				// the last argument, if it is given.
-				if terminateWith := addLeaf.GetSeparate().GetTerminateWith(); terminateWith != nil {
+				if separate := addLeaf.GetSeparate(); separate.HasTerminateWith() {
 					if err := argumentsBuilder.PushChild(
 						model_core.NewSimplePatchedMessage[TMetadata](model_command_pb.ArgumentList_Element_builder{
-							Leaf: proto.String(terminateWith.Value),
+							Leaf: proto.String(separate.GetTerminateWith()),
 						}.Build()),
 					); err != nil {
 						return PatchedTargetActionCommandValue[TMetadata]{}, err

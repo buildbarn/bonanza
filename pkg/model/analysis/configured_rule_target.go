@@ -40,7 +40,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // ruleTargetAnalysis holds the state that is used while analyzing a
@@ -3137,7 +3136,7 @@ type targetContextExecGroupState struct {
 // argsAdd records all arguments provided to Args.add(), Args.add_all()
 // and Args.add_joined().
 type argsAdd[TReference any, TMetadata model_core.ReferenceMetadata] struct {
-	startWith         *wrapperspb.StringValue
+	startWith         *string
 	values            eval.Value
 	expandDirectories bool
 	mapEach           eval.Function
@@ -3298,7 +3297,7 @@ func (a *args[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Va
 }
 
 func (a *args[TReference, TMetadata]) doAdd(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
-	var startWith *wrapperspb.StringValue
+	var startWith *string
 	var value eval.Value
 	valueUnpackerInto := unpack.Or([]unpack.UnpackerInto[eval.Value]{
 		unpack.Canonicalize(unpack.String),
@@ -3322,9 +3321,7 @@ func (a *args[TReference, TMetadata]) doAdd(thread *eval.Thread, b *eval.Builtin
 		); err != nil {
 			return nil, err
 		}
-		startWith = &wrapperspb.StringValue{
-			Value: argName,
-		}
+		startWith = &argName
 	default:
 		return nil, fmt.Errorf("%s: got %d positional arguments, want 1 or 2", b.Name(), len(args.Positional))
 	}
@@ -3403,19 +3400,8 @@ func (a *args[TReference, TMetadata]) doAddAll(thread *eval.Thread, b *eval.Buil
 		return nil, err
 	}
 
-	var beforeEach *wrapperspb.StringValue
-	if beforeEachStr != nil {
-		beforeEach = &wrapperspb.StringValue{
-			Value: *beforeEachStr,
-		}
-	}
-	var terminateWith *wrapperspb.StringValue
-	if terminateWithStr != nil {
-		terminateWith = &wrapperspb.StringValue{
-			Value: *terminateWithStr,
-		}
-	}
 	add := argsAdd[TReference, TMetadata]{
+		startWith:         startWith,
 		values:            values,
 		expandDirectories: expandDirectories,
 		mapEach:           mapEach,
@@ -3424,15 +3410,10 @@ func (a *args[TReference, TMetadata]) doAddAll(thread *eval.Thread, b *eval.Buil
 		uniquify:          uniquify,
 		setStyle: func(leaf *model_analysis_pb.Args_Leaf_Add_Leaf) {
 			leaf.SetSeparate(model_analysis_pb.Args_Leaf_Add_Leaf_Separate_builder{
-				BeforeEach:    beforeEach,
-				TerminateWith: terminateWith,
+				BeforeEach:    beforeEachStr,
+				TerminateWith: terminateWithStr,
 			}.Build())
 		},
-	}
-	if startWith != nil {
-		add.startWith = &wrapperspb.StringValue{
-			Value: *startWith,
-		}
 	}
 	a.adds = append(a.adds, add)
 	return a, nil
@@ -3467,6 +3448,7 @@ func (a *args[TReference, TMetadata]) doAddJoined(thread *eval.Thread, b *eval.B
 	}
 
 	add := argsAdd[TReference, TMetadata]{
+		startWith:         startWith,
 		values:            values,
 		expandDirectories: expandDirectories,
 		mapEach:           mapEach,
@@ -3479,11 +3461,6 @@ func (a *args[TReference, TMetadata]) doAddJoined(thread *eval.Thread, b *eval.B
 				FormatJoined: formatJoined,
 			}.Build())
 		},
-	}
-	if startWith != nil {
-		add.startWith = &wrapperspb.StringValue{
-			Value: *startWith,
-		}
 	}
 	a.adds = append(a.adds, add)
 	return a, nil

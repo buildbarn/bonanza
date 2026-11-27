@@ -17,7 +17,6 @@ proto_library(
         "//pkg/proto/model/starlark:starlark_proto",
         "@protobuf//:duration_proto",
         "@protobuf//:empty_proto",
-        "@protobuf//:wrappers_proto",
     ],
 )
 
