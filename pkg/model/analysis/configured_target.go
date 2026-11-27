@@ -125,10 +125,10 @@ func constraintValuesToConstraints[TReference object.BasicReference, TMetadata m
 	for _, constraintSetting := range slices.Sorted(maps.Keys(constraints)) {
 		sortedConstraints = append(
 			sortedConstraints,
-			&model_analysis_pb.Constraint{
+			model_analysis_pb.Constraint_builder{
 				Setting: constraintSetting,
 				Value:   constraints[constraintSetting],
-			},
+			}.Build(),
 		)
 	}
 	return sortedConstraints, nil
@@ -268,12 +268,12 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.ConfiguredTarget_Value{
+		model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{
 				newDefaultInfo.Message,
 			},
 			IsFileTarget: true,
-		},
+		}.Build(),
 		newDefaultInfo.Patcher,
 	), nil
 }
@@ -285,9 +285,9 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
-	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+	targetValue := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: targetLabel.String(),
-	})
+	}.Build())
 	if !targetValue.IsSet() {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -336,9 +336,9 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 		for _, aspect := range aspects {
 			aspectIdentifiers = append(aspectIdentifiers, aspect.GetIdentifier())
 		}
-		generatingRuleAspectsValue := e.GetGeneratingRuleAspectsValue(&model_analysis_pb.GeneratingRuleAspects_Key{
+		generatingRuleAspectsValue := e.GetGeneratingRuleAspectsValue(model_analysis_pb.GeneratingRuleAspects_Key_builder{
 			AspectIdentifiers: aspectIdentifiers,
-		})
+		}.Build())
 		if !generatingRuleAspectsValue.IsSet() {
 			return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
@@ -357,22 +357,22 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 		}
 		ownerConfiguredTarget := e.GetConfiguredTargetValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
-				return &model_analysis_pb.ConfiguredTarget_Key{
+				return model_analysis_pb.ConfiguredTarget_Key_builder{
 					Label: targetLabel.GetCanonicalPackage().AppendTargetName(ownerTargetName).String(),
 					Variant: newTargetVariant(
 						model_core.Patch(e, model_core.Nested(key, key.Message.GetVariant().GetConfigurationReference())).Merge(patcher),
 						model_core.PatchList(e, model_core.Nested(key, generatingRuleAspects)).Merge(patcher),
 					),
-				}
+				}.Build()
 			}),
 		)
 		if !ownerConfiguredTarget.IsSet() {
 			return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value {
-			return &model_analysis_pb.ConfiguredTarget_Value{
+			return model_analysis_pb.ConfiguredTarget_Value_builder{
 				ProviderInstances: model_core.PatchList(e, model_core.Nested(ownerConfiguredTarget, ownerConfiguredTarget.Message.GetProviderInstances())).Merge(patcher),
-			}
+			}.Build()
 		}), nil
 	case model_starlark_pb.Target_Definition_RuleTarget_case:
 		return c.computeAspectTargetValue(ctx, key, e, targetLabel, model_core.Nested(targetValue, targetValue.Message.GetDefinition().GetRuleTarget()))
@@ -408,9 +408,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
 	emptyDefaultInfoValue := e.GetEmptyDefaultInfoValue(&model_analysis_pb.EmptyDefaultInfo_Key{})
-	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+	targetValue := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: targetLabel.String(),
-	})
+	}.Build())
 	if !emptyDefaultInfoValue.IsSet() || !targetValue.IsSet() || !gotAnalysisEncoders || !gotStarlarkValueEncoders {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -435,7 +435,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 	case model_starlark_pb.Target_Definition_PackageGroup_case:
 		patchedDefaultInfo := model_core.Patch(e, emptyDefaultInfo)
 		return model_core.NewPatchedMessage(
-			&model_analysis_pb.ConfiguredTarget_Value{
+			model_analysis_pb.ConfiguredTarget_Value_builder{
 				ProviderInstances: []*model_starlark_pb.Struct{
 					patchedDefaultInfo.Message,
 					model_starlark_pb.Struct_builder{
@@ -445,7 +445,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 						Fields: &model_starlark_pb.Struct_Fields{},
 					}.Build(),
 				},
-			},
+			}.Build(),
 			patchedDefaultInfo.Patcher,
 		), nil
 	case model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget_case:
@@ -519,11 +519,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		// built. Add support for this.
 		patchedDefaultInfo := model_core.Patch(e, emptyDefaultInfo)
 		return model_core.NewPatchedMessage(
-			&model_analysis_pb.ConfiguredTarget_Value{
+			model_analysis_pb.ConfiguredTarget_Value_builder{
 				ProviderInstances: []*model_starlark_pb.Struct{
 					patchedDefaultInfo.Message,
 				},
-			},
+			}.Build(),
 			patchedDefaultInfo.Patcher,
 		), nil
 	default:
@@ -537,17 +537,17 @@ func getProviderFromConfiguredTarget[TReference any, TMetadata model_core.Refere
 	providerIdentifierStr := providerIdentifier.String()
 	targetProvider := e.GetTargetProviderValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Key {
-			return &model_analysis_pb.TargetProvider_Key{
+			return model_analysis_pb.TargetProvider_Key_builder{
 				Label:              targetLabel,
 				Variant:            newTargetVariant(configurationReference.Merge(patcher), nil),
 				ProviderIdentifier: providerIdentifierStr,
-			}
+			}.Build()
 		}),
 	)
 	if !targetProvider.IsSet() {
 		return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, evaluation.ErrMissingDependency
 	}
-	fields := targetProvider.Message.Fields
+	fields := targetProvider.Message.GetFields()
 	if fields == nil {
 		return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, fmt.Errorf("target did not yield provider %#v", providerIdentifierStr)
 	}
@@ -573,11 +573,11 @@ func getProviderFromVisibleConfiguredTarget[TReference object.BasicReference, TM
 	)
 	visibleTarget := e.GetVisibleTargetValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.VisibleTarget_Key{
+			model_analysis_pb.VisibleTarget_Key_builder{
 				FromPackage:            fromPackage,
 				ToLabel:                targetLabel,
 				ConfigurationReference: patchedConfigurationReference.Message,
-			},
+			}.Build(),
 			patchedConfigurationReference.Patcher,
 		),
 	)
@@ -586,12 +586,12 @@ func getProviderFromVisibleConfiguredTarget[TReference object.BasicReference, TM
 	}
 	p, err := getProviderFromConfiguredTarget(
 		e,
-		visibleTarget.Message.Label,
+		visibleTarget.Message.GetLabel(),
 		model_core.Patch(
 			e,
 			configurationReference,
 		),
 		providerIdentifier,
 	)
-	return p, visibleTarget.Message.Label, err
+	return p, visibleTarget.Message.GetLabel(), err
 }

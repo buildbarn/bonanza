@@ -21,10 +21,10 @@ func (baseComputer[TReference, TMetadata]) ComputeStarlarkValueEncodersValue(ctx
 	if !buildSpecification.IsSet() {
 		return PatchedStarlarkValueEncodersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.StarlarkValueEncoders_Value{
-		FileAccessParameters:  buildSpecification.Message.FileCreationParameters.GetAccess(),
-		StarlarkValueEncoders: buildSpecification.Message.StarlarkValueEncoders,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.StarlarkValueEncoders_Value_builder{
+		FileAccessParameters:  buildSpecification.Message.GetFileCreationParameters().GetAccess(),
+		StarlarkValueEncoders: buildSpecification.Message.GetStarlarkValueEncoders(),
+	}.Build()), nil
 }
 
 // StarlarkValueEncoders contains the encoder that needs to be used to
@@ -49,7 +49,7 @@ func (sve *StarlarkValueEncoders[TReference]) newValueDecodingOptions(labelCreat
 
 func (c *baseComputer[TReference, TMetadata]) ComputeStarlarkValueEncodersObject(value model_core.Message[*model_analysis_pb.StarlarkValueEncoders_Value, TReference]) (*StarlarkValueEncoders[TReference], error) {
 	fileReader, err := model_filesystem.NewFileReaderFromProto(
-		value.Message.FileAccessParameters,
+		value.Message.GetFileAccessParameters(),
 		c.referenceFormat,
 		c.binaryEncoderFactory,
 		c.parsedObjectPoolIngester,
@@ -60,7 +60,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStarlarkValueEncodersObject
 	}
 
 	encoder, err := c.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
-		value.Message.StarlarkValueEncoders,
+		value.Message.GetStarlarkValueEncoders(),
 		uint32(c.referenceFormat.GetMaximumObjectSizeBytes()),
 	)
 	if err != nil {

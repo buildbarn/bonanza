@@ -24,41 +24,41 @@ func TestQueryResult(t *testing.T) {
 	e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 	e.EXPECT().GetRootModuleValue(
 		testutil.EqProto(t, &model_analysis_pb.RootModule_Key{}),
-	).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.RootModule_Value{
+	).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.RootModule_Value_builder{
 		RootModuleName: "main",
-	})).AnyTimes()
+	}.Build())).AnyTimes()
 	e.EXPECT().GetCanonicalRepoNameValue(
-		testutil.EqProto(t, &model_analysis_pb.CanonicalRepoName_Key{
+		testutil.EqProto(t, model_analysis_pb.CanonicalRepoName_Key_builder{
 			FromCanonicalRepo: "main+",
 			ToApparentRepo:    "foo",
-		}),
-	).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CanonicalRepoName_Value{
+		}.Build()),
+	).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.CanonicalRepoName_Value_builder{
 		ToCanonicalRepo: "foo+",
-	})).AnyTimes()
+	}.Build())).AnyTimes()
 	e.EXPECT().GetQueryExpansionValue(
-		testutil.EqProto(t, &model_analysis_pb.QueryExpansion_Key{
+		testutil.EqProto(t, model_analysis_pb.QueryExpansion_Key_builder{
 			Query:               "let v0 = deps(@@foo+//:x) in $v0 - $v0",
 			IncludeImplicitDeps: true,
-		}),
+		}.Build()),
 	).Return(newQueryExpansionValue("@@foo+//:x"))
 	e.EXPECT().GetTargetValue(
-		testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@foo+//:x"}),
+		testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@foo+//:x"}.Build()),
 	).Return(newSourceFileTargetValue())
 
-	value, err := bct.computer.ComputeQueryResultValue(ctx, &model_analysis_pb.QueryResult_Key{
+	value, err := bct.computer.ComputeQueryResultValue(ctx, model_analysis_pb.QueryResult_Key_builder{
 		Query:               "deps(@foo//:x) - deps(@@foo+//:x)",
 		IncludeImplicitDeps: true,
 		DefinitionDetail:    model_analysis_pb.QueryTarget_FULL,
-	}, e)
+	}.Build(), e)
 	require.NoError(t, err)
-	testutil.RequireEqualProto(t, &model_analysis_pb.QueryResult_Value{
-		Targets: []*model_analysis_pb.QueryTarget{{
-			Level: &model_analysis_pb.QueryTarget_Leaf_{Leaf: &model_analysis_pb.QueryTarget_Leaf{
+	testutil.RequireEqualProto(t, model_analysis_pb.QueryResult_Value_builder{
+		Targets: []*model_analysis_pb.QueryTarget{model_analysis_pb.QueryTarget_builder{
+			Leaf: model_analysis_pb.QueryTarget_Leaf_builder{
 				Label: "@@foo+//:x",
 				Definition: model_starlark_pb.Target_Definition_builder{
 					SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
 				}.Build(),
-			}},
-		}},
-	}, value.Message)
+			}.Build(),
+		}.Build()},
+	}.Build(), value.Message)
 }

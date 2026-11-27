@@ -15,6 +15,8 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // allTestSuiteTests returns the labels of the tests and test suites
@@ -49,11 +51,9 @@ func allTestSuiteTests[TReference object.BasicReference](ctx context.Context, an
 func newTargetLabelLeaves[TReference any](labels labelSet) model_core.Message[[]*model_analysis_pb.TargetLabel, TReference] {
 	leaves := make([]*model_analysis_pb.TargetLabel, 0, len(labels))
 	for _, l := range labels.sorted() {
-		leaves = append(leaves, &model_analysis_pb.TargetLabel{
-			Level: &model_analysis_pb.TargetLabel_Leaf{
-				Leaf: l.String(),
-			},
-		})
+		leaves = append(leaves, model_analysis_pb.TargetLabel_builder{
+			Leaf: proto.String(l.String()),
+		}.Build())
 	}
 	return model_core.NewSimpleMessage[TReference](leaves)
 }
@@ -61,9 +61,9 @@ func newTargetLabelLeaves[TReference any](labels labelSet) model_core.Message[[]
 func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx context.Context, key *model_analysis_pb.TestSuiteTests_Key, e TestSuiteTestsEnvironment[TReference, TMetadata]) (PatchedTestSuiteTestsValue[TMetadata], error) {
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 
-	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+	targetValue := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: key.GetLabel(),
-	})
+	}.Build())
 	if !targetValue.IsSet() || !gotAnalysisEncoders {
 		return PatchedTestSuiteTestsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -94,9 +94,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx con
 	flushBatch := func() error {
 		for _, testLabel := range batch {
 			testLabelStr := testLabel.String()
-			testValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+			testValue := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 				Label: testLabelStr,
-			})
+			}.Build())
 			if !testValue.IsSet() {
 				missingDependencies = true
 				continue
@@ -115,9 +115,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx con
 					continue
 				}
 			case model_starlark_pb.Target_Definition_TestSuite_case:
-				nestedTestSuiteTests := e.GetTestSuiteTestsValue(&model_analysis_pb.TestSuiteTests_Key{
+				nestedTestSuiteTests := e.GetTestSuiteTestsValue(model_analysis_pb.TestSuiteTests_Key_builder{
 					Label: testLabelStr,
-				})
+				}.Build())
 				if !nestedTestSuiteTests.IsSet() {
 					missingDependencies = true
 					continue
@@ -158,9 +158,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx con
 		return PatchedTestSuiteTestsValue[TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.TestSuiteTests_Value{
+		model_analysis_pb.TestSuiteTests_Value_builder{
 			TargetLabels: targetLabels.Message,
-		},
+		}.Build(),
 		targetLabels.Patcher,
 	), nil
 }

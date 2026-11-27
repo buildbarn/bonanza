@@ -82,14 +82,14 @@ func (baseComputer[TReference, TMetadata]) ComputeLabelAttrAspectsValue(ctx cont
 					publicAttrs = append(publicAttrs, model_core.Patch(e, model_core.Nested(aspectDefinition, namedAttr)).Merge(patcher))
 				}
 			}
-			aspects = append(aspects, &model_analysis_pb.LabelAttrAspects_Value_Aspect{
+			aspects = append(aspects, model_analysis_pb.LabelAttrAspects_Value_Aspect_builder{
 				Identifier:  aspectIdentifier,
 				PublicAttrs: publicAttrs,
-			})
+			}.Build())
 		}
-		return &model_analysis_pb.LabelAttrAspects_Value{
+		return model_analysis_pb.LabelAttrAspects_Value_builder{
 			Aspects: aspects,
-		}
+		}.Build()
 	}), nil
 }
 

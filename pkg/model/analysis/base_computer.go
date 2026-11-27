@@ -196,14 +196,14 @@ type loadBzlGlobalsEnvironment[TReference any] interface {
 // in a .bzl file, which is compiled using a given set of builtins
 // modules.
 func getBzlGlobal[TReference object.BasicReference](ctx context.Context, e CompiledBzlFileValueGetter[TReference], valueReaders *model_starlark.ValueReaders[TReference], identifier label.CanonicalStarlarkIdentifier, builtinsModuleNames []string) (model_core.Message[*model_starlark_pb.Value, TReference], error) {
-	compiledBzlFile := e.GetCompiledBzlFileValue(&model_analysis_pb.CompiledBzlFile_Key{
+	compiledBzlFile := e.GetCompiledBzlFileValue(model_analysis_pb.CompiledBzlFile_Key_builder{
 		Label:               identifier.GetCanonicalLabel().String(),
 		BuiltinsModuleNames: builtinsModuleNames,
-	})
+	}.Build())
 	if !compiledBzlFile.IsSet() {
 		return model_core.Message[*model_starlark_pb.Value, TReference]{}, evaluation.ErrMissingDependency
 	}
-	globals := model_core.Nested(compiledBzlFile, compiledBzlFile.Message.CompiledProgram.GetGlobals())
+	globals := model_core.Nested(compiledBzlFile, compiledBzlFile.Message.GetCompiledProgram().GetGlobals())
 	if _, ok := slices.BinarySearch(globals.Message.GetKeys(), identifier.GetStarlarkIdentifier().String()); !ok {
 		return model_core.Message[*model_starlark_pb.Value, TReference]{}, fmt.Errorf("file %#v does not contain global %#v", identifier.GetCanonicalLabel().String(), identifier.GetStarlarkIdentifier().String())
 	}
@@ -271,15 +271,15 @@ func loadProgram[TReference object.BasicReference](e loadBzlGlobalsEnvironment[T
 			}
 			return nil, err
 		}
-		compiledBzlFile := e.GetCompiledBzlFileValue(&model_analysis_pb.CompiledBzlFile_Key{
+		compiledBzlFile := e.GetCompiledBzlFileValue(model_analysis_pb.CompiledBzlFile_Key_builder{
 			Label:               canonicalLoadLabel.String(),
 			BuiltinsModuleNames: builtinsModuleNames,
-		})
+		}.Build())
 		if !compiledBzlFile.IsSet() {
 			missingDependencies = true
 			continue
 		}
-		if _, ok := slices.BinarySearch(compiledBzlFile.Message.CompiledProgram.GetGlobals().GetKeys(), loadedSymbol.Name); !ok {
+		if _, ok := slices.BinarySearch(compiledBzlFile.Message.GetCompiledProgram().GetGlobals().GetKeys(), loadedSymbol.Name); !ok {
 			return nil, fmt.Errorf("%s:%d:%d: file %#v does not contain symbol %#v", filename.String(), loadedSymbol.Binding.First.NamePos.Line, loadedSymbol.Binding.First.NamePos.Column, canonicalLoadLabel.String(), loadedSymbol.Name)
 		}
 	}

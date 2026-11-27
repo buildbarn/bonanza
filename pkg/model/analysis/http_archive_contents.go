@@ -47,13 +47,13 @@ func newArchiveProgressReporter(report func(*model_analysis_pb.HttpArchiveConten
 }
 
 func (pr *archiveProgressReporter) reportCurrent() {
-	pr.report(&model_analysis_pb.HttpArchiveContents_Progress{
+	pr.report(model_analysis_pb.HttpArchiveContents_Progress_builder{
 		Extracted: model_evaluation_pb.ProgressCounter_builder{
 			Current: pr.currentBytes,
 			Total:   pr.totalBytes,
 			Unit:    model_evaluation_pb.ProgressCounter_BYTES,
 		}.Build(),
-	})
+	}.Build())
 }
 
 func (pr *archiveProgressReporter) add(n uint64) {
@@ -288,9 +288,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx 
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
-	httpFileContentsValue := e.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
+	httpFileContentsValue := e.GetHTTPFileContentsValue(model_analysis_pb.HttpFileContents_Key_builder{
 		FetchOptions: key.GetFetchOptions(),
-	})
+	}.Build())
 	if !gotFileReader || !gotDirectoryCreationParameters || !gotFileCreationParameters || !httpFileContentsValue.IsSet() {
 		return PatchedHTTPArchiveContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -468,12 +468,12 @@ func (*baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx 
 	}
 
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.HttpArchiveContents_Value, error) {
-		return &model_analysis_pb.HttpArchiveContents_Value{
-			Exists: &model_analysis_pb.HttpArchiveContents_Value_Exists{
+		return model_analysis_pb.HttpArchiveContents_Value_builder{
+			Exists: model_analysis_pb.HttpArchiveContents_Value_Exists_builder{
 				Contents: contentsReference.Merge(patcher),
 				Sha256:   httpFileContentsValue.Message.GetExists().GetSha256(),
-			},
-		}, nil
+			}.Build(),
+		}.Build(), nil
 	})
 }
 

@@ -87,10 +87,10 @@ func extractFromPlatformInfoConstraints[TReference object.BasicReference](ctx co
 	}
 	sortedConstraints := make([]*model_analysis_pb.Constraint, 0, len(constraints))
 	for _, setting := range slices.Sorted(maps.Keys(constraints)) {
-		sortedConstraints = append(sortedConstraints, &model_analysis_pb.Constraint{
+		sortedConstraints = append(sortedConstraints, model_analysis_pb.Constraint_builder{
 			Setting: setting,
 			Value:   constraints[setting],
-		})
+		}.Build())
 	}
 	return sortedConstraints, nil
 }
@@ -172,11 +172,11 @@ func (h *registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, 
 					return fmt.Errorf("exec_pkix_public_key field of PlatformInfo of execution platform %#v is not set to a non-empty string", canonicalPlatformLabelStr)
 				}
 
-				*h.executionPlatforms = append(*h.executionPlatforms, &model_analysis_pb.ExecutionPlatform{
+				*h.executionPlatforms = append(*h.executionPlatforms, model_analysis_pb.ExecutionPlatform_builder{
 					Label:             canonicalPlatformLabelStr,
 					Constraints:       constraints,
 					ExecPkixPublicKey: execPKIXPublicKey,
-				})
+				}.Build())
 			}
 			if iterErr != nil {
 				return fmt.Errorf("failed to expand target pattern %#v: %w", canonicalPlatformTargetPattern.String(), iterErr)
@@ -228,7 +228,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredExecutionPlatform
 	if len(executionPlatforms) == 0 {
 		return PatchedRegisteredExecutionPlatformsValue[TMetadata]{}, errors.New("failed to find registered execution platforms in any of the MODULE.bazel files")
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RegisteredExecutionPlatforms_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.RegisteredExecutionPlatforms_Value_builder{
 		ExecutionPlatforms: executionPlatforms,
-	}), nil
+	}.Build()), nil
 }

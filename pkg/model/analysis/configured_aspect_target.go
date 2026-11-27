@@ -55,13 +55,13 @@ func getPropagatedAspectsByEdge[TReference any](
 		// Aspects need to be applied in the order in which
 		// they are listed, so merge the indices of aspects that
 		// propagate along all edges and along this specific edge.
-		aspectIndices := append(slices.Clone(allAspectIndices), edge.AspectIndices...)
+		aspectIndices := append(slices.Clone(allAspectIndices), edge.GetAspectIndices()...)
 		slices.Sort(aspectIndices)
 		aspectsForEdge, err := getAspects(slices.Compact(aspectIndices))
 		if err != nil {
 			return nil, err
 		}
-		edgeAspects[edge.Name] = aspectsForEdge
+		edgeAspects[edge.GetName()] = aspectsForEdge
 	}
 	return func(name string) model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference] {
 		if aspectsForEdge, ok := edgeAspects[name]; ok {
@@ -104,17 +104,17 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	for _, aspect := range aspects.Message {
 		aspectIdentifiers = append(aspectIdentifiers, aspect.GetIdentifier())
 	}
-	aspectChain := e.GetAspectChainValue(&model_analysis_pb.AspectChain_Key{
+	aspectChain := e.GetAspectChainValue(model_analysis_pb.AspectChain_Key_builder{
 		AspectIdentifiers: aspectIdentifiers,
-	})
+	}.Build())
 	configurationReference := model_core.Nested(key, key.Message.GetVariant().GetConfigurationReference())
 	patchedConfigurationReference := model_core.Patch(e, configurationReference)
 	configuredAspect := e.GetConfiguredAspectValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.ConfiguredAspect_Key{
+			model_analysis_pb.ConfiguredAspect_Key_builder{
 				Identifier:             aspectIdentifier.String(),
 				ConfigurationReference: patchedConfigurationReference.Message,
-			},
+			}.Build(),
 			patchedConfigurationReference.Patcher,
 		),
 	)
@@ -170,13 +170,13 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		}
 		prefixConfiguredTarget := e.GetConfiguredTargetValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
-				return &model_analysis_pb.ConfiguredTarget_Key{
+				return model_analysis_pb.ConfiguredTarget_Key_builder{
 					Label: targetLabel.String(),
 					Variant: newTargetVariant(
 						model_core.Patch(e, configurationReference).Merge(patcher),
 						model_core.PatchList(e, model_core.Nested(aspects, aspects.Message[:prefixLength])).Merge(patcher),
 					),
-				}
+				}.Build()
 			}),
 		)
 		if !prefixConfiguredTarget.IsSet() {
@@ -458,11 +458,11 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.ConfiguredTarget_Value{
+		return model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: encodedProviderInstances,
 			Outputs:           outputs,
 			Actions:           actions,
-		}, nil
+		}.Build(), nil
 	})
 }
 
@@ -765,13 +765,13 @@ func getRuleToolchainTargets[TReference object.BasicReference, TMetadata model_c
 
 			targetProviders := e.GetTargetProvidersValue(
 				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProviders_Key {
-					return &model_analysis_pb.TargetProviders_Key{
+					return model_analysis_pb.TargetProviders_Key_builder{
 						Label: toolchainIdentifier,
 						Variant: newTargetVariant(
 							model_core.Patch(e, configurationReference).Merge(patcher),
 							model_core.PatchList(e, propagatedAspects(toolchains[toolchainIndex].GetToolchainType())).Merge(patcher),
 						),
-					}
+					}.Build()
 				}),
 			)
 			if !targetProviders.IsSet() {

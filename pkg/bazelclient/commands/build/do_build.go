@@ -275,10 +275,10 @@ func getOutputSelection(outputGroupsArguments, extraDefaultOutputGroupsArguments
 	_, defaultInfoFiles := selected[defaultOutputGroupName]
 	delete(selected, defaultOutputGroupName)
 	delete(explicit, defaultOutputGroupName)
-	return &model_analysis_pb.OutputSelection{
+	return model_analysis_pb.OutputSelection_builder{
 		DefaultInfoFiles: defaultInfoFiles,
 		OutputGroups:     slices.Sorted(maps.Keys(selected)),
-	}, slices.Sorted(maps.Keys(explicit))
+	}.Build(), slices.Sorted(maps.Keys(explicit))
 }
 
 // DoBuild implements the "bazel build" command, which builds a
@@ -309,19 +309,17 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		rootRepo := currentPackage.GetCanonicalRepo()
 		for _, override := range args.BuildSettingOverrides {
 			commonBuildSettingOverrides = append(
-				commonBuildSettingOverrides,
-				&model_analysis_pb.BuildResult_Key_BuildSettingOverride{
+				commonBuildSettingOverrides, model_analysis_pb.BuildResult_Key_BuildSettingOverride_builder{
 					Label: rootRepo.AppendLabel(override.Label).String(),
 					Value: override.Value,
-				},
+				}.Build(),
 			)
 		}
 		commonBuildSettingOverrides = append(
-			commonBuildSettingOverrides,
-			&model_analysis_pb.BuildResult_Key_BuildSettingOverride{
+			commonBuildSettingOverrides, model_analysis_pb.BuildResult_Key_BuildSettingOverride_builder{
 				Label: "@bazel_tools//command_line_option:host_platform",
 				Value: args.BuildFlags.HostPlatform,
-			},
+			}.Build(),
 		)
 
 		// Like Bazel, the target platform defaults to the host
@@ -332,15 +330,15 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 		}
 		configurations := make([]*model_analysis_pb.BuildResult_Key_Configuration, 0, len(targetPlatforms))
 		for _, targetPlatform := range targetPlatforms {
-			configurations = append(configurations, &model_analysis_pb.BuildResult_Key_Configuration{
+			configurations = append(configurations, model_analysis_pb.BuildResult_Key_Configuration_builder{
 				BuildSettingOverrides: append(
-					[]*model_analysis_pb.BuildResult_Key_BuildSettingOverride{{
+					[]*model_analysis_pb.BuildResult_Key_BuildSettingOverride{model_analysis_pb.BuildResult_Key_BuildSettingOverride_builder{
 						Label: "@bazel_tools//command_line_option:platforms",
 						Value: targetPlatform,
-					}},
+					}.Build()},
 					commonBuildSettingOverrides...,
 				),
-			})
+			}.Build())
 		}
 
 		// Aspects to apply to the top-level targets. Like Bazel,
@@ -368,10 +366,10 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			if !ok {
 				logger.Fatal(formatted.Textf("Invalid aspect parameter %#v: expected <param_name>=<param_value>", aspectParameter))
 			}
-			aspectParameters = append(aspectParameters, &model_analysis_pb.BuildResult_Key_AspectParameter{
+			aspectParameters = append(aspectParameters, model_analysis_pb.BuildResult_Key_AspectParameter_builder{
 				Name:  name,
 				Value: value,
-			})
+			}.Build())
 		}
 
 		outputSelection, explicitOutputGroups := getOutputSelection(args.BuildFlags.OutputGroups, args.BuildFlags.ExtraDefaultOutputGroups)
@@ -380,14 +378,14 @@ func DoBuild(args *arguments.BuildCommand, workspacePath path.Parser) {
 			requiredOutputGroups = explicitOutputGroups
 		}
 
-		return &model_analysis_pb.BuildResult_Key{
+		return model_analysis_pb.BuildResult_Key_builder{
 			Query:                label.QueryToString(query),
 			Configurations:       configurations,
 			Aspects:              aspects,
 			AspectParameters:     aspectParameters,
 			Outputs:              outputSelection,
 			RequiredOutputGroups: requiredOutputGroups,
-		}
+		}.Build()
 	})
 	if outcomesLink, ok := evaluation.GetOutcomesLink(); ok {
 		logger.Info(formatted.Join(formatted.Text("Got build results "), outcomesLink))
@@ -654,7 +652,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	// Construct a BuildSpecification message that lists all the
 	// modules and contains all of the flags to instruct what needs
 	// to be built.
-	buildSpecification := &model_analysis_pb.BuildSpecification_Value{
+	buildSpecification := model_analysis_pb.BuildSpecification_Value_builder{
 		RootModuleName:                         rootModuleName.String(),
 		DirectoryCreationParameters:            directoryParametersMessage,
 		FileCreationParameters:                 fileParametersMessage,
@@ -668,26 +666,26 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 		AspectImplementationWrapperIdentifier:  aspectImplementationWrapperIdentifier,
 		RuleImplementationWrapperIdentifier:    ruleImplementationWrapperIdentifier,
 		SubruleImplementationWrapperIdentifier: subruleImplementationWrapperIdentifier,
-	}
+	}.Build()
 	switch commonFlags.LockfileMode {
 	case arguments.LockfileMode_Off:
 	case arguments.LockfileMode_Update:
-		buildSpecification.UseLockfile = &model_analysis_pb.BuildSpecification_Value_UseLockfile{}
+		buildSpecification.SetUseLockfile(&model_analysis_pb.BuildSpecification_Value_UseLockfile{})
 	case arguments.LockfileMode_Refresh:
-		buildSpecification.UseLockfile = &model_analysis_pb.BuildSpecification_Value_UseLockfile{
+		buildSpecification.SetUseLockfile(model_analysis_pb.BuildSpecification_Value_UseLockfile_builder{
 			Error: true,
-		}
+		}.Build())
 	case arguments.LockfileMode_Error:
-		buildSpecification.UseLockfile = &model_analysis_pb.BuildSpecification_Value_UseLockfile{
+		buildSpecification.SetUseLockfile(model_analysis_pb.BuildSpecification_Value_UseLockfile_builder{
 			MaximumCacheDuration: &durationpb.Duration{Seconds: 3600},
-		}
+		}.Build())
 	default:
 		panic("unknown lockfile mode")
 	}
 	if len(commonFlags.Registry) > 0 {
-		buildSpecification.ModuleRegistryUrls = commonFlags.Registry
+		buildSpecification.SetModuleRegistryUrls(commonFlags.Registry)
 	} else {
-		buildSpecification.ModuleRegistryUrls = []string{"https://bcr.bazel.build/"}
+		buildSpecification.SetModuleRegistryUrls([]string{"https://bcr.bazel.build/"})
 	}
 	buildSpecificationPatcher := model_core.NewReferenceMessagePatcher[dag.ObjectContentsWalker]()
 
@@ -698,10 +696,10 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			logger.Fatal(formatted.Textf("Module %#v contains one or more symbolic links that potentially escape the module's root directory", moduleName.String()))
 		}
 		if createdRootDirectory.IsEmpty() {
-			modules = append(modules, &model_analysis_pb.BuildSpecification_Value_Module{
+			modules = append(modules, model_analysis_pb.BuildSpecification_Value_Module_builder{
 				Name:                   moduleName.String(),
 				RootDirectoryReference: createdRootDirectory.ToDirectoryReference(nil),
-			})
+			}.Build())
 			continue
 		}
 		createdObject, err := model_core.MarshalAndEncodeDeterministic(
@@ -715,7 +713,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 
 		createdObjectTree := model_core.CreatedObjectTree(createdObject.Value)
 		decodingParameters := createdObject.GetDecodingParameters()
-		modules = append(modules, &model_analysis_pb.BuildSpecification_Value_Module{
+		modules = append(modules, model_analysis_pb.BuildSpecification_Value_Module_builder{
 			Name: moduleName.String(),
 			RootDirectoryReference: createdRootDirectory.ToDirectoryReference(
 				model_core_pb.DecodableReference_builder{
@@ -734,9 +732,9 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 					DecodingParameters: decodingParameters,
 				}.Build(),
 			),
-		})
+		}.Build())
 	}
-	buildSpecification.Modules = modules
+	buildSpecification.SetModules(modules)
 
 	evaluationEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
 		evaluationEncoders,

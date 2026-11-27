@@ -34,9 +34,9 @@ func (baseComputer[TReference, TMetadata]) ComputeGeneratingRuleAspectsValue(ctx
 	if missingDependencies {
 		return PatchedGeneratingRuleAspectsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.GeneratingRuleAspects_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.GeneratingRuleAspects_Value_builder{
 		AspectIndices: aspectIndices,
-	}), nil
+	}.Build()), nil
 }
 
 // GeneratingRuleAspectsEnvironmentForTesting is used to generate mocks

@@ -17,9 +17,9 @@ func (baseComputer[TReference, TMetadata]) ComputeActionEncodersValue(ctx contex
 	if !buildSpecification.IsSet() {
 		return PatchedActionEncodersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ActionEncoders_Value{
-		ActionEncoders: buildSpecification.Message.ActionEncoders,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.ActionEncoders_Value_builder{
+		ActionEncoders: buildSpecification.Message.GetActionEncoders(),
+	}.Build()), nil
 }
 
 // ActionReaders contains ObjectReaders that can be used to follow
@@ -45,7 +45,7 @@ type ActionEncoders[TReference any] struct {
 
 func (c *baseComputer[TReference, TMetadata]) ComputeActionEncodersObject(value model_core.Message[*model_analysis_pb.ActionEncoders_Value, TReference]) (*ActionEncoders[TReference], error) {
 	actionEncoder, err := c.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
-		value.Message.ActionEncoders,
+		value.Message.GetActionEncoders(),
 		uint32(c.referenceFormat.GetMaximumObjectSizeBytes()),
 	)
 	if err != nil {

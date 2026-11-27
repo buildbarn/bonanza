@@ -143,13 +143,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.SuccessfulActionResult_Key{
-			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
+		return model_analysis_pb.SuccessfulActionResult_Key_builder{
+			ExecuteRequest: model_analysis_pb.ExecuteRequest_builder{
 				PlatformPkixPublicKey: repoPlatform.Message.GetExecPkixPublicKey(),
 				ActionReference:       actionReference,
 				ExecutionTimeout:      &durationpb.Duration{Seconds: 600},
-			},
-		}, nil
+			}.Build(),
+		}.Build(), nil
 	})
 	if err != nil {
 		return PatchedRepoPlatformHostPathValue[TMetadata]{}, fmt.Errorf("failed to create action result key: %w", err)
@@ -231,11 +231,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		}
 
 		return model_core.NewPatchedMessage(
-			&model_analysis_pb.RepoPlatformHostPath_Value{
-				CapturedPath: &model_analysis_pb.RepoPlatformHostPath_Value_Directory_{Directory: &model_analysis_pb.RepoPlatformHostPath_Value_Directory{
+			model_analysis_pb.RepoPlatformHostPath_Value_builder{
+				Directory: model_analysis_pb.RepoPlatformHostPath_Value_Directory_builder{
 					Entries: createdRootDirectory.Message.Message,
-				}},
-			},
+				}.Build(),
+			}.Build(),
 			createdRootDirectory.Message.Patcher,
 		), nil
 	}
@@ -244,9 +244,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoPlatformHostPathValue(c
 		// The captured path is a regular file.
 		patchedFileProperties := model_core.Patch(e, model_core.Nested(capturedNode, file))
 		return model_core.NewPatchedMessage(
-			&model_analysis_pb.RepoPlatformHostPath_Value{
-				CapturedPath: &model_analysis_pb.RepoPlatformHostPath_Value_File{File: patchedFileProperties.Message},
-			},
+			model_analysis_pb.RepoPlatformHostPath_Value_builder{
+				File: proto.ValueOrDefault(patchedFileProperties.Message),
+			}.Build(),
 			patchedFileProperties.Patcher,
 		), nil
 	}
@@ -395,11 +395,9 @@ func (sr *changeTrackingDirectorySymlinksRelativizer[TReference, TMetadata]) rel
 				// upload this file to storage, so that
 				// we can replace the symlink with the
 				// actual contents.
-				replacement := sr.environment.GetRepoPlatformHostPathValue(
-					&model_analysis_pb.RepoPlatformHostPath_Key{
-						AbsolutePath: normalizedPath.GetUNIXString(),
-					},
-				)
+				replacement := sr.environment.GetRepoPlatformHostPathValue(model_analysis_pb.RepoPlatformHostPath_Key_builder{
+					AbsolutePath: normalizedPath.GetUNIXString(),
+				}.Build())
 				if !replacement.IsSet() {
 					// TODO: Only return this error at the
 					// very end, so that capturing can be
@@ -408,18 +406,18 @@ func (sr *changeTrackingDirectorySymlinksRelativizer[TReference, TMetadata]) rel
 				}
 
 				delete(d.symlinks, name)
-				switch capturedPath := replacement.Message.CapturedPath.(type) {
-				case *model_analysis_pb.RepoPlatformHostPath_Value_File:
-					f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(replacement, capturedPath.File))
+				switch replacement.Message.WhichCapturedPath() {
+				case model_analysis_pb.RepoPlatformHostPath_Value_File_case:
+					f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(replacement, replacement.Message.GetFile()))
 					if err != nil {
 						return err
 					}
 					d.setFileSimple(name, f)
-				case *model_analysis_pb.RepoPlatformHostPath_Value_Directory_:
+				case model_analysis_pb.RepoPlatformHostPath_Value_Directory_case:
 					d.setDirectorySimple(
 						name,
 						&changeTrackingDirectory[TReference, TMetadata]{
-							unmodifiedDirectory: newUnmodifiedDirectoryFromContents(model_core.Nested(replacement, capturedPath.Directory.GetEntries())),
+							unmodifiedDirectory: newUnmodifiedDirectoryFromContents(model_core.Nested(replacement, replacement.Message.GetDirectory().GetEntries())),
 						},
 					)
 				default:

@@ -167,8 +167,8 @@ func TestFileRoot(t *testing.T) {
 	bct := newBaseComputerTester(ctrl)
 
 	exampleConfiguration := newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-		return model_format.NewProtoList[model_analysis_pb.BuildSettingOverride]().NewMarshaler([]*model_analysis_pb.BuildSettingOverride{{
-			Level: &model_analysis_pb.BuildSettingOverride_Leaf_{Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
+		return model_format.NewProtoList[model_analysis_pb.BuildSettingOverride]().NewMarshaler([]*model_analysis_pb.BuildSettingOverride{model_analysis_pb.BuildSettingOverride_builder{
+			Leaf: model_analysis_pb.BuildSettingOverride_Leaf_builder{
 				Label: "@@bazel_tools+//command_line_option:platforms",
 				Value: model_starlark_pb.Value_builder{
 					List: model_starlark_pb.List_builder{
@@ -179,8 +179,8 @@ func TestFileRoot(t *testing.T) {
 						}.Build()},
 					}.Build(),
 				}.Build(),
-			}},
-		}})
+			}.Build(),
+		}.Build()})
 	})
 
 	t.Run("MissingFile", func(t *testing.T) {
@@ -190,9 +190,9 @@ func TestFileRoot(t *testing.T) {
 		_, err := bct.computer.ComputeFileRootValue(
 			ctx,
 			model_core.NewSimpleMessage[model_core.CreatedObjectTree](
-				&model_analysis_pb.FileRoot_Key{
+				model_analysis_pb.FileRoot_Key_builder{
 					DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-				},
+				}.Build(),
 			),
 			e,
 		)
@@ -206,12 +206,12 @@ func TestFileRoot(t *testing.T) {
 		_, err := bct.computer.ComputeFileRootValue(
 			ctx,
 			model_core.NewSimpleMessage[model_core.CreatedObjectTree](
-				&model_analysis_pb.FileRoot_Key{
+				model_analysis_pb.FileRoot_Key_builder{
 					DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 					File: model_starlark_pb.File_builder{
 						Label: "this is not a valid label",
 					}.Build(),
-				},
+				}.Build(),
 			),
 			e,
 		)
@@ -227,11 +227,11 @@ func TestFileRoot(t *testing.T) {
 			bct.expectGetDirectoryCreationParametersObject(t, e)
 			bct.expectGetDirectoryAccessParametersObject(t, e)
 			e.EXPECT().GetRepoValue(
-				testutil.EqProto(t, &model_analysis_pb.Repo_Key{
+				testutil.EqProto(t, model_analysis_pb.Repo_Key_builder{
 					CanonicalRepo: "myrepo+",
-				}),
+				}.Build()),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
-				return &model_analysis_pb.Repo_Value{
+				return model_analysis_pb.Repo_Value_builder{
 					RootDirectoryReference: model_filesystem_pb.DirectoryReference_builder{
 						Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 							return testDirectoryMarshaler(newTestDirectory(&testLeaves{
@@ -244,18 +244,18 @@ func TestFileRoot(t *testing.T) {
 						DirectoriesCount:               0,
 						MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
 					}.Build(),
-				}
+				}.Build()
 			}))
 
 			_, err := bct.computer.ComputeFileRootValue(
 				ctx,
 				model_core.NewSimpleMessage[model_core.CreatedObjectTree](
-					&model_analysis_pb.FileRoot_Key{
+					model_analysis_pb.FileRoot_Key_builder{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:foo",
 						}.Build(),
-					},
+					}.Build(),
 				),
 				e,
 			)
@@ -272,11 +272,11 @@ func TestFileRoot(t *testing.T) {
 				bct.expectGetDirectoryCreationParametersObject(t, e)
 				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetRepoValue(
-					testutil.EqProto(t, &model_analysis_pb.Repo_Key{
+					testutil.EqProto(t, model_analysis_pb.Repo_Key_builder{
 						CanonicalRepo: "myrepo+",
-					}),
+					}.Build()),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
-					return &model_analysis_pb.Repo_Value{
+					return model_analysis_pb.Repo_Value_builder{
 						RootDirectoryReference: model_filesystem_pb.DirectoryReference_builder{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 								return testDirectoryMarshaler(newTestDirectory(&testLeaves{
@@ -295,18 +295,18 @@ func TestFileRoot(t *testing.T) {
 							DirectoriesCount:               0,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
 						}.Build(),
-					}
+					}.Build()
 				}))
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
 					model_core.NewSimpleMessage[model_core.CreatedObjectTree](
-						&model_analysis_pb.FileRoot_Key{
+						model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:bar",
 							}.Build(),
-						},
+						}.Build(),
 					),
 					e,
 				)
@@ -320,7 +320,7 @@ func TestFileRoot(t *testing.T) {
 				// "external/${repo}/${file}".
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_INPUT_ROOT)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"external",
 							singleChildDirectoryContents(
@@ -335,7 +335,7 @@ func TestFileRoot(t *testing.T) {
 								}),
 							),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -346,7 +346,7 @@ func TestFileRoot(t *testing.T) {
 				// named "${repo}/${file}".
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_RUNFILES)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
 							newTestDirectory(&testLeaves{
@@ -358,7 +358,7 @@ func TestFileRoot(t *testing.T) {
 								},
 							}),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -380,11 +380,11 @@ func TestFileRoot(t *testing.T) {
 				bct.expectGetDirectoryCreationParametersObject(t, e)
 				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetRepoValue(
-					testutil.EqProto(t, &model_analysis_pb.Repo_Key{
+					testutil.EqProto(t, model_analysis_pb.Repo_Key_builder{
 						CanonicalRepo: "myrepo+",
-					}),
+					}.Build()),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
-					return &model_analysis_pb.Repo_Value{
+					return model_analysis_pb.Repo_Value_builder{
 						RootDirectoryReference: model_filesystem_pb.DirectoryReference_builder{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 								return testDirectoryMarshaler(withDirectories(newTestDirectory(&testLeaves{
@@ -425,14 +425,14 @@ func TestFileRoot(t *testing.T) {
 							DirectoriesCount:               0,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
 						}.Build(),
-					}
+					}.Build()
 				}))
 				e.EXPECT().GetRepoValue(
-					testutil.EqProto(t, &model_analysis_pb.Repo_Key{
+					testutil.EqProto(t, model_analysis_pb.Repo_Key_builder{
 						CanonicalRepo: "otherrepo+",
-					}),
+					}.Build()),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
-					return &model_analysis_pb.Repo_Value{
+					return model_analysis_pb.Repo_Value_builder{
 						RootDirectoryReference: model_filesystem_pb.DirectoryReference_builder{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 								return testDirectoryMarshaler(newTestDirectory(&testLeaves{
@@ -445,18 +445,18 @@ func TestFileRoot(t *testing.T) {
 							DirectoriesCount:               0,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
 						}.Build(),
-					}
+					}.Build()
 				}))
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
 					model_core.NewSimpleMessage[model_core.CreatedObjectTree](
-						&model_analysis_pb.FileRoot_Key{
+						model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:dir1",
 							}.Build(),
-						},
+						}.Build(),
 					),
 					e,
 				)
@@ -467,7 +467,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("InputRoot", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_INPUT_ROOT)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"external",
 							withDirectories(newTestDirectory(emptyLeaves), directoryNode("myrepo+", withDirectories(newTestDirectory(&testLeaves{
@@ -499,7 +499,7 @@ func TestFileRoot(t *testing.T) {
 									},
 								}))),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -507,7 +507,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("Runfiles", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_RUNFILES)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: withDirectories(newTestDirectory(emptyLeaves), directoryNode("myrepo+", withDirectories(newTestDirectory(&testLeaves{
 							Files: []*testFileNode{
 								{Name: "file1", Properties: &model_filesystem_pb.FileProperties{}},
@@ -536,7 +536,7 @@ func TestFileRoot(t *testing.T) {
 									{Name: "file5", Properties: &model_filesystem_pb.FileProperties{}},
 								},
 							}))),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -558,37 +558,37 @@ func TestFileRoot(t *testing.T) {
 				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-						return &model_analysis_pb.TargetOutput_Key{
+						return model_analysis_pb.TargetOutput_Key_builder{
 							Label:               "@@myrepo+//:foo",
 							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "foo.o",
-						}
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-					return &model_analysis_pb.TargetOutput_Value{
-						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: []byte{
+					return model_analysis_pb.TargetOutput_Value_builder{
+						Definition: model_analysis_pb.TargetOutputDefinition_builder{
+							ActionId: []byte{
 								0x7a, 0xb1, 0x08, 0xae, 0x94, 0x2d, 0x7d, 0xab,
 								0x16, 0x25, 0xd8, 0xbd, 0xc6, 0xd8, 0xdf, 0x27,
-							}},
-						},
-					}
+							},
+						}.Build(),
+					}.Build()
 				}))
 				e.EXPECT().GetTargetActionResultValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionResult_Key {
-						return &model_analysis_pb.TargetActionResult_Key{
-							Id: &model_analysis_pb.TargetActionId{
+						return model_analysis_pb.TargetActionResult_Key_builder{
+							Id: model_analysis_pb.TargetActionId_builder{
 								Label:   "@@myrepo+//:foo",
 								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0x7a, 0xb1, 0x08, 0xae, 0x94, 0x2d, 0x7d, 0xab,
 									0x16, 0x25, 0xd8, 0xbd, 0xc6, 0xd8, 0xdf, 0x27,
 								},
-							},
-						}
+							}.Build(),
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionResult_Value {
-					return &model_analysis_pb.TargetActionResult_Value{
+					return model_analysis_pb.TargetActionResult_Value_builder{
 						OutputRoot: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -623,13 +623,13 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}))
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-						return &model_analysis_pb.FileRoot_Key{
+						return model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:foo.o",
@@ -639,7 +639,7 @@ func TestFileRoot(t *testing.T) {
 									Type:       model_starlark_pb.File_Owner_FILE,
 								}.Build(),
 							}.Build(),
-						}
+						}.Build()
 					}),
 					e,
 				)
@@ -650,7 +650,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("InputRoot", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_INPUT_ROOT)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -680,7 +680,7 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -688,7 +688,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("Runfiles", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_RUNFILES)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
 							newTestDirectory(&testLeaves{
@@ -708,7 +708,7 @@ func TestFileRoot(t *testing.T) {
 								},
 							}),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -726,37 +726,37 @@ func TestFileRoot(t *testing.T) {
 				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-						return &model_analysis_pb.TargetOutput_Key{
+						return model_analysis_pb.TargetOutput_Key_builder{
 							Label:               "@@myrepo+//:generate_dir",
 							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "mydir",
-						}
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-					return &model_analysis_pb.TargetOutput_Value{
-						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: []byte{
+					return model_analysis_pb.TargetOutput_Value_builder{
+						Definition: model_analysis_pb.TargetOutputDefinition_builder{
+							ActionId: []byte{
 								0x50, 0x6f, 0x44, 0xb5, 0x80, 0xf9, 0xc0, 0xcc,
 								0x53, 0xd4, 0x08, 0xe0, 0x6a, 0x32, 0xde, 0x87,
-							}},
-						},
-					}
+							},
+						}.Build(),
+					}.Build()
 				}))
 				e.EXPECT().GetTargetActionResultValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionResult_Key {
-						return &model_analysis_pb.TargetActionResult_Key{
-							Id: &model_analysis_pb.TargetActionId{
+						return model_analysis_pb.TargetActionResult_Key_builder{
+							Id: model_analysis_pb.TargetActionId_builder{
 								Label:   "@@myrepo+//:generate_dir",
 								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0x50, 0x6f, 0x44, 0xb5, 0x80, 0xf9, 0xc0, 0xcc,
 									0x53, 0xd4, 0x08, 0xe0, 0x6a, 0x32, 0xde, 0x87,
 								},
-							},
-						}
+							}.Build(),
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionResult_Value {
-					return &model_analysis_pb.TargetActionResult_Value{
+					return model_analysis_pb.TargetActionResult_Value_builder{
 						OutputRoot: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -788,13 +788,13 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}))
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-						return &model_analysis_pb.FileRoot_Key{
+						return model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:mydir",
@@ -804,7 +804,7 @@ func TestFileRoot(t *testing.T) {
 									Type:       model_starlark_pb.File_Owner_DIRECTORY,
 								}.Build(),
 							}.Build(),
-						}
+						}.Build()
 					}),
 					e,
 				)
@@ -815,7 +815,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("InputRoot", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_INPUT_ROOT)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -840,7 +840,7 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -848,7 +848,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("Runfiles", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_RUNFILES)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
 							singleChildDirectoryContents(
@@ -863,7 +863,7 @@ func TestFileRoot(t *testing.T) {
 								}),
 							),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -881,37 +881,37 @@ func TestFileRoot(t *testing.T) {
 				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-						return &model_analysis_pb.TargetOutput_Key{
+						return model_analysis_pb.TargetOutput_Key_builder{
 							Label:               "@@myrepo+//:foo",
 							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "bar",
-						}
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-					return &model_analysis_pb.TargetOutput_Value{
-						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: []byte{
+					return model_analysis_pb.TargetOutput_Value_builder{
+						Definition: model_analysis_pb.TargetOutputDefinition_builder{
+							ActionId: []byte{
 								0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
 								0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
-							}},
-						},
-					}
+							},
+						}.Build(),
+					}.Build()
 				}))
 				e.EXPECT().GetTargetActionResultValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionResult_Key {
-						return &model_analysis_pb.TargetActionResult_Key{
-							Id: &model_analysis_pb.TargetActionId{
+						return model_analysis_pb.TargetActionResult_Key_builder{
+							Id: model_analysis_pb.TargetActionId_builder{
 								Label:   "@@myrepo+//:foo",
 								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
 									0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
 								},
-							},
-						}
+							}.Build(),
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionResult_Value {
-					return &model_analysis_pb.TargetActionResult_Value{
+					return model_analysis_pb.TargetActionResult_Value_builder{
 						OutputRoot: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -937,13 +937,13 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}))
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-						return &model_analysis_pb.FileRoot_Key{
+						return model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:bar",
@@ -953,7 +953,7 @@ func TestFileRoot(t *testing.T) {
 									Type:       model_starlark_pb.File_Owner_FILE,
 								}.Build(),
 							}.Build(),
-						}
+						}.Build()
 					}),
 					e,
 				)
@@ -964,7 +964,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("InputRoot", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_INPUT_ROOT)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -990,7 +990,7 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -998,7 +998,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("Runfiles", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_RUNFILES)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
 							newTestDirectory(&testLeaves{
@@ -1012,7 +1012,7 @@ func TestFileRoot(t *testing.T) {
 								},
 							}),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -1032,37 +1032,37 @@ func TestFileRoot(t *testing.T) {
 				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-						return &model_analysis_pb.TargetOutput_Key{
+						return model_analysis_pb.TargetOutput_Key_builder{
 							Label:               "@@myrepo+//:foo",
 							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "bar",
-						}
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-					return &model_analysis_pb.TargetOutput_Value{
-						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: []byte{
+					return model_analysis_pb.TargetOutput_Value_builder{
+						Definition: model_analysis_pb.TargetOutputDefinition_builder{
+							ActionId: []byte{
 								0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
 								0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
-							}},
-						},
-					}
+							},
+						}.Build(),
+					}.Build()
 				}))
 				e.EXPECT().GetTargetActionResultValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionResult_Key {
-						return &model_analysis_pb.TargetActionResult_Key{
-							Id: &model_analysis_pb.TargetActionId{
+						return model_analysis_pb.TargetActionResult_Key_builder{
+							Id: model_analysis_pb.TargetActionId_builder{
 								Label:   "@@myrepo+//:foo",
 								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
 									0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
 								},
-							},
-						}
+							}.Build(),
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionResult_Value {
-					return &model_analysis_pb.TargetActionResult_Value{
+					return model_analysis_pb.TargetActionResult_Value_builder{
 						OutputRoot: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -1083,23 +1083,23 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}))
 				e.EXPECT().GetTargetActionInputRootValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionInputRoot_Key {
-						return &model_analysis_pb.TargetActionInputRoot_Key{
-							Id: &model_analysis_pb.TargetActionId{
+						return model_analysis_pb.TargetActionInputRoot_Key_builder{
+							Id: model_analysis_pb.TargetActionId_builder{
 								Label:   "@@myrepo+//:foo",
 								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
 									0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
 								},
-							},
-						}
+							}.Build(),
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionInputRoot_Value {
-					return &model_analysis_pb.TargetActionInputRoot_Value{
+					return model_analysis_pb.TargetActionInputRoot_Value_builder{
 						InputRootReference: model_filesystem_pb.DirectoryReference_builder{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 								return testDirectoryMarshaler(singleChildDirectoryContents(
@@ -1129,13 +1129,13 @@ func TestFileRoot(t *testing.T) {
 							DirectoriesCount:               1,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
 						}.Build(),
-					}
+					}.Build()
 				}))
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-						return &model_analysis_pb.FileRoot_Key{
+						return model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:bar",
@@ -1145,7 +1145,7 @@ func TestFileRoot(t *testing.T) {
 									Type:       model_starlark_pb.File_Owner_FILE,
 								}.Build(),
 							}.Build(),
-						}
+						}.Build()
 					}),
 					e,
 				)
@@ -1156,7 +1156,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("InputRoot", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_INPUT_ROOT)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -1183,7 +1183,7 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -1191,7 +1191,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("Runfiles", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_RUNFILES)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
 							newTestDirectory(&testLeaves{
@@ -1206,7 +1206,7 @@ func TestFileRoot(t *testing.T) {
 								},
 							}),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -1225,37 +1225,37 @@ func TestFileRoot(t *testing.T) {
 				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-						return &model_analysis_pb.TargetOutput_Key{
+						return model_analysis_pb.TargetOutput_Key_builder{
 							Label:               "@@myrepo+//:foo",
 							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "dir1",
-						}
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-					return &model_analysis_pb.TargetOutput_Value{
-						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: []byte{
+					return model_analysis_pb.TargetOutput_Value_builder{
+						Definition: model_analysis_pb.TargetOutputDefinition_builder{
+							ActionId: []byte{
 								0xe6, 0x95, 0x9c, 0xa9, 0xe5, 0x33, 0x68, 0xff,
 								0x95, 0xbd, 0x21, 0x56, 0xdb, 0xcc, 0xfd, 0x9a,
-							}},
-						},
-					}
+							},
+						}.Build(),
+					}.Build()
 				}))
 				e.EXPECT().GetTargetActionResultValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionResult_Key {
-						return &model_analysis_pb.TargetActionResult_Key{
-							Id: &model_analysis_pb.TargetActionId{
+						return model_analysis_pb.TargetActionResult_Key_builder{
+							Id: model_analysis_pb.TargetActionId_builder{
 								Label:   "@@myrepo+//:foo",
 								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0xe6, 0x95, 0x9c, 0xa9, 0xe5, 0x33, 0x68, 0xff,
 									0x95, 0xbd, 0x21, 0x56, 0xdb, 0xcc, 0xfd, 0x9a,
 								},
-							},
-						}
+							}.Build(),
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionResult_Value {
-					return &model_analysis_pb.TargetActionResult_Value{
+					return model_analysis_pb.TargetActionResult_Value_builder{
 						OutputRoot: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -1293,13 +1293,13 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}))
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-						return &model_analysis_pb.FileRoot_Key{
+						return model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:dir1",
@@ -1309,7 +1309,7 @@ func TestFileRoot(t *testing.T) {
 									Type:       model_starlark_pb.File_Owner_DIRECTORY,
 								}.Build(),
 							}.Build(),
-						}
+						}.Build()
 					}),
 					e,
 				)
@@ -1320,7 +1320,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("InputRoot", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_INPUT_ROOT)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -1357,7 +1357,7 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -1365,7 +1365,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("Runfiles", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_RUNFILES)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
 							withDirectories(newTestDirectory(&testLeaves{
@@ -1391,7 +1391,7 @@ func TestFileRoot(t *testing.T) {
 									},
 								}))),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -1423,39 +1423,39 @@ func TestFileRoot(t *testing.T) {
 				bct.expectGetFileAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-						return &model_analysis_pb.TargetOutput_Key{
+						return model_analysis_pb.TargetOutput_Key_builder{
 							Label:               "@@myrepo+//:generate",
 							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "output",
-						}
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-					return &model_analysis_pb.TargetOutput_Value{
-						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate_{ExpandTemplate: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate{
+					return model_analysis_pb.TargetOutput_Value_builder{
+						Definition: model_analysis_pb.TargetOutputDefinition_builder{
+							ExpandTemplate: model_analysis_pb.TargetOutputDefinition_ExpandTemplate_builder{
 								Template: model_starlark_pb.File_builder{
 									Label: "@@myrepo+//:template",
 								}.Build(),
 								IsExecutable: true,
 								Substitutions: []*model_analysis_pb.TargetOutputDefinition_ExpandTemplate_Substitution{
-									{Needle: []byte("{{first_name}}"), Replacement: []byte("Albert")},
-									{Needle: []byte("{{last_name}}"), Replacement: []byte("Einstein")},
+									model_analysis_pb.TargetOutputDefinition_ExpandTemplate_Substitution_builder{Needle: []byte("{{first_name}}"), Replacement: []byte("Albert")}.Build(),
+									model_analysis_pb.TargetOutputDefinition_ExpandTemplate_Substitution_builder{Needle: []byte("{{last_name}}"), Replacement: []byte("Einstein")}.Build(),
 								},
-							}},
-						},
-					}
+							}.Build(),
+						}.Build(),
+					}.Build()
 				}))
 				e.EXPECT().GetFileRootValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-						return &model_analysis_pb.FileRoot_Key{
+						return model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:template",
 							}.Build(),
-						}
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"external",
 							singleChildDirectoryContents(
@@ -1478,14 +1478,14 @@ func TestFileRoot(t *testing.T) {
 								}),
 							),
 						),
-					}
+					}.Build()
 				}))
 				bct.expectCaptureCreatedObject(e)
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-						return &model_analysis_pb.FileRoot_Key{
+						return model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:output",
@@ -1495,7 +1495,7 @@ func TestFileRoot(t *testing.T) {
 									Type:       model_starlark_pb.File_Owner_FILE,
 								}.Build(),
 							}.Build(),
-						}
+						}.Build()
 					}),
 					e,
 				)
@@ -1506,7 +1506,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("InputRoot", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_INPUT_ROOT)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -1539,7 +1539,7 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -1547,7 +1547,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("Runfiles", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_RUNFILES)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
 							newTestDirectory(&testLeaves{
@@ -1568,7 +1568,7 @@ func TestFileRoot(t *testing.T) {
 								},
 							}),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -1592,16 +1592,16 @@ func TestFileRoot(t *testing.T) {
 				bct.expectGetDirectoryCreationParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-						return &model_analysis_pb.TargetOutput_Key{
+						return model_analysis_pb.TargetOutput_Key_builder{
 							Label:               "@@myrepo+//:create_symlink",
 							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "passwd",
-						}
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-					return &model_analysis_pb.TargetOutput_Value{
-						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_{StaticPackageDirectory: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory{
+					return model_analysis_pb.TargetOutput_Value_builder{
+						Definition: model_analysis_pb.TargetOutputDefinition_builder{
+							StaticPackageDirectory: model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_builder{
 								Entries: newTestDirectory(&testLeaves{
 									Symlinks: []*testSymlinkNode{
 										{
@@ -1610,15 +1610,15 @@ func TestFileRoot(t *testing.T) {
 										},
 									},
 								}),
-							}},
-						},
-					}
+							}.Build(),
+						}.Build(),
+					}.Build()
 				}))
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-						return &model_analysis_pb.FileRoot_Key{
+						return model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:passwd",
@@ -1628,7 +1628,7 @@ func TestFileRoot(t *testing.T) {
 									Type:       model_starlark_pb.File_Owner_FILE,
 								}.Build(),
 							}.Build(),
-						}
+						}.Build()
 					}),
 					e,
 				)
@@ -1639,7 +1639,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("InputRoot", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_INPUT_ROOT)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"bazel-out",
 							singleChildDirectoryContents(
@@ -1663,7 +1663,7 @@ func TestFileRoot(t *testing.T) {
 								),
 							),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -1671,7 +1671,7 @@ func TestFileRoot(t *testing.T) {
 			t.Run("Runfiles", func(t *testing.T) {
 				fileRoot := run(t, model_analysis_pb.DirectoryLayout_RUNFILES)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
 							newTestDirectory(&testLeaves{
@@ -1683,7 +1683,7 @@ func TestFileRoot(t *testing.T) {
 								},
 							}),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -1703,34 +1703,34 @@ func TestFileRoot(t *testing.T) {
 			bct.expectGetDirectoryAccessParametersObject(t, e)
 			e.EXPECT().GetTargetOutputValue(
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-					return &model_analysis_pb.TargetOutput_Key{
+					return model_analysis_pb.TargetOutput_Key_builder{
 						Label:               "@@myrepo+//:create_symlink",
 						Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 						PackageRelativePath: "b",
-					}
+					}.Build()
 				}),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-				return &model_analysis_pb.TargetOutput_Value{
-					Definition: &model_analysis_pb.TargetOutputDefinition{
-						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
+				return model_analysis_pb.TargetOutput_Value_builder{
+					Definition: model_analysis_pb.TargetOutputDefinition_builder{
+						Symlink: model_analysis_pb.TargetOutputDefinition_Symlink_builder{
 							Target: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:a",
 							}.Build(),
-						}},
-					},
-				}
+						}.Build(),
+					}.Build(),
+				}.Build()
 			}))
 			e.EXPECT().GetFileRootValue(
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-					return &model_analysis_pb.FileRoot_Key{
+					return model_analysis_pb.FileRoot_Key_builder{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:a",
 						}.Build(),
-					}
+					}.Build()
 				}),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-				return &model_analysis_pb.FileRoot_Value{
+				return model_analysis_pb.FileRoot_Value_builder{
 					RootDirectory: singleChildDirectoryContents(
 						"external",
 						singleChildDirectoryContents(
@@ -1745,13 +1745,13 @@ func TestFileRoot(t *testing.T) {
 							}),
 						),
 					),
-				}
+				}.Build()
 			}))
 
 			_, err := bct.computer.ComputeFileRootValue(
 				ctx,
 				newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-					return &model_analysis_pb.FileRoot_Key{
+					return model_analysis_pb.FileRoot_Key_builder{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:b",
@@ -1761,7 +1761,7 @@ func TestFileRoot(t *testing.T) {
 								Type:       model_starlark_pb.File_Owner_DIRECTORY,
 							}.Build(),
 						}.Build(),
-					}
+					}.Build()
 				}),
 				e,
 			)
@@ -1778,34 +1778,34 @@ func TestFileRoot(t *testing.T) {
 			bct.expectGetDirectoryAccessParametersObject(t, e)
 			e.EXPECT().GetTargetOutputValue(
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-					return &model_analysis_pb.TargetOutput_Key{
+					return model_analysis_pb.TargetOutput_Key_builder{
 						Label:               "@@myrepo+//:create_symlink",
 						Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 						PackageRelativePath: "b",
-					}
+					}.Build()
 				}),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-				return &model_analysis_pb.TargetOutput_Value{
-					Definition: &model_analysis_pb.TargetOutputDefinition{
-						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
+				return model_analysis_pb.TargetOutput_Value_builder{
+					Definition: model_analysis_pb.TargetOutputDefinition_builder{
+						Symlink: model_analysis_pb.TargetOutputDefinition_Symlink_builder{
 							Target: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:a",
 							}.Build(),
-						}},
-					},
-				}
+						}.Build(),
+					}.Build(),
+				}.Build()
 			}))
 			e.EXPECT().GetFileRootValue(
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-					return &model_analysis_pb.FileRoot_Key{
+					return model_analysis_pb.FileRoot_Key_builder{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:a",
 						}.Build(),
-					}
+					}.Build()
 				}),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-				return &model_analysis_pb.FileRoot_Value{
+				return model_analysis_pb.FileRoot_Value_builder{
 					RootDirectory: singleChildDirectoryContents(
 						"external",
 						singleChildDirectoryContents(
@@ -1816,13 +1816,13 @@ func TestFileRoot(t *testing.T) {
 							),
 						),
 					),
-				}
+				}.Build()
 			}))
 
 			_, err := bct.computer.ComputeFileRootValue(
 				ctx,
 				newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-					return &model_analysis_pb.FileRoot_Key{
+					return model_analysis_pb.FileRoot_Key_builder{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:b",
@@ -1832,7 +1832,7 @@ func TestFileRoot(t *testing.T) {
 								Type:       model_starlark_pb.File_Owner_FILE,
 							}.Build(),
 						}.Build(),
-					}
+					}.Build()
 				}),
 				e,
 			)
@@ -1849,35 +1849,35 @@ func TestFileRoot(t *testing.T) {
 			bct.expectGetDirectoryAccessParametersObject(t, e)
 			e.EXPECT().GetTargetOutputValue(
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-					return &model_analysis_pb.TargetOutput_Key{
+					return model_analysis_pb.TargetOutput_Key_builder{
 						Label:               "@@myrepo+//:create_symlink",
 						Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 						PackageRelativePath: "b",
-					}
+					}.Build()
 				}),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-				return &model_analysis_pb.TargetOutput_Value{
-					Definition: &model_analysis_pb.TargetOutputDefinition{
-						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
+				return model_analysis_pb.TargetOutput_Value_builder{
+					Definition: model_analysis_pb.TargetOutputDefinition_builder{
+						Symlink: model_analysis_pb.TargetOutputDefinition_Symlink_builder{
 							Target: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:a",
 							}.Build(),
 							IsExecutable: true,
-						}},
-					},
-				}
+						}.Build(),
+					}.Build(),
+				}.Build()
 			}))
 			e.EXPECT().GetFileRootValue(
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-					return &model_analysis_pb.FileRoot_Key{
+					return model_analysis_pb.FileRoot_Key_builder{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:a",
 						}.Build(),
-					}
+					}.Build()
 				}),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-				return &model_analysis_pb.FileRoot_Value{
+				return model_analysis_pb.FileRoot_Value_builder{
 					RootDirectory: singleChildDirectoryContents(
 						"external",
 						singleChildDirectoryContents(
@@ -1892,13 +1892,13 @@ func TestFileRoot(t *testing.T) {
 							}),
 						),
 					),
-				}
+				}.Build()
 			}))
 
 			_, err := bct.computer.ComputeFileRootValue(
 				ctx,
 				newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-					return &model_analysis_pb.FileRoot_Key{
+					return model_analysis_pb.FileRoot_Key_builder{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:b",
@@ -1908,7 +1908,7 @@ func TestFileRoot(t *testing.T) {
 								Type:       model_starlark_pb.File_Owner_FILE,
 							}.Build(),
 						}.Build(),
-					}
+					}.Build()
 				}),
 				e,
 			)
@@ -1930,42 +1930,42 @@ func TestFileRoot(t *testing.T) {
 				bct.expectGetDirectoryAccessParametersObject(t, e)
 				e.EXPECT().GetTargetOutputValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
-						return &model_analysis_pb.TargetOutput_Key{
+						return model_analysis_pb.TargetOutput_Key_builder{
 							Label:               "@@myrepo+//:create_symlink",
 							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "b",
-						}
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
-					return &model_analysis_pb.TargetOutput_Value{
-						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
+					return model_analysis_pb.TargetOutput_Value_builder{
+						Definition: model_analysis_pb.TargetOutputDefinition_builder{
+							Symlink: model_analysis_pb.TargetOutputDefinition_Symlink_builder{
 								Target: model_starlark_pb.File_builder{
 									Label: "@@myrepo+//:a",
 								}.Build(),
-							}},
-						},
-					}
+							}.Build(),
+						}.Build(),
+					}.Build()
 				}))
 				e.EXPECT().GetFileRootValue(
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-						return &model_analysis_pb.FileRoot_Key{
+						return model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:a",
 							}.Build(),
-						}
+						}.Build()
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: target,
-					}
+					}.Build()
 				}))
 
 				fileRoot, err := bct.computer.ComputeFileRootValue(
 					ctx,
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
-						return &model_analysis_pb.FileRoot_Key{
+						return model_analysis_pb.FileRoot_Key_builder{
 							DirectoryLayout: directoryLayout,
 							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:b",
@@ -1975,7 +1975,7 @@ func TestFileRoot(t *testing.T) {
 									Type:       model_starlark_pb.File_Owner_FILE,
 								}.Build(),
 							}.Build(),
-						}
+						}.Build()
 					}),
 					e,
 				)
@@ -2003,7 +2003,7 @@ func TestFileRoot(t *testing.T) {
 					),
 				)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: withDirectories(newTestDirectory(emptyLeaves), directoryNode("bazel-out", singleChildDirectoryContents(
 							"Cg6Kx80o8BPYmGdgWYfRZvbKyWojQ7snQzHOx70XAwRPAAAAAAAAAA.",
 							singleChildDirectoryContents(
@@ -2035,7 +2035,7 @@ func TestFileRoot(t *testing.T) {
 									},
 								}),
 							))),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})
@@ -2057,7 +2057,7 @@ func TestFileRoot(t *testing.T) {
 					),
 				)
 				requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
-					return &model_analysis_pb.FileRoot_Value{
+					return model_analysis_pb.FileRoot_Value_builder{
 						RootDirectory: singleChildDirectoryContents(
 							"myrepo+",
 							newTestDirectory(&testLeaves{
@@ -2075,7 +2075,7 @@ func TestFileRoot(t *testing.T) {
 								},
 							}),
 						),
-					}
+					}.Build()
 				}, fileRoot)
 				fileRoot.Discard()
 			})

@@ -109,9 +109,9 @@ func TestDescribeKey(t *testing.T) {
 	})
 
 	t.Run("ConfiguredTarget", func(t *testing.T) {
-		description, ok, err := model_evaluation.DescribeKey((&model_analysis_pb.ConfiguredTarget_Key{
+		description, ok, err := model_evaluation.DescribeKey((model_analysis_pb.ConfiguredTarget_Key_builder{
 			Label: "@@foo+//bar:baz",
-		}).ProtoReflect())
+		}.Build()).ProtoReflect())
 		require.NoError(t, err)
 		require.True(t, ok)
 		require.Equal(t, model_evaluation.MessageDescription{
@@ -124,13 +124,13 @@ func TestDescribeKey(t *testing.T) {
 	})
 
 	t.Run("NestedRepeatedField", func(t *testing.T) {
-		description, ok, err := model_evaluation.DescribeKey((&model_analysis_pb.HttpFileContents_Key{
-			FetchOptions: &model_analysis_pb.HttpFetchOptions{
+		description, ok, err := model_evaluation.DescribeKey((model_analysis_pb.HttpFileContents_Key_builder{
+			FetchOptions: model_analysis_pb.HttpFetchOptions_builder{
 				Target: model_fetch_pb.Target_builder{
 					Urls: []string{"https://example.com/a", "https://example.org/a"},
 				}.Build(),
-			},
-		}).ProtoReflect())
+			}.Build(),
+		}.Build()).ProtoReflect())
 		require.NoError(t, err)
 		require.True(t, ok)
 		require.Equal(t, "Downloading https://example.com/a, https://example.org/a", description.String())
@@ -146,10 +146,10 @@ func TestDescribeKey(t *testing.T) {
 	})
 
 	t.Run("MultipleFields", func(t *testing.T) {
-		description, ok, err := model_evaluation.DescribeKey((&model_analysis_pb.FileProperties_Key{
+		description, ok, err := model_evaluation.DescribeKey((model_analysis_pb.FileProperties_Key_builder{
 			CanonicalRepo: "foo+",
 			Path:          "bar/BUILD.bazel",
-		}).ProtoReflect())
+		}.Build()).ProtoReflect())
 		require.NoError(t, err)
 		require.True(t, ok)
 		require.Equal(t, "Obtaining properties of bar/BUILD.bazel in @@foo+", description.String())
@@ -266,9 +266,9 @@ func TestDescribeProgress(t *testing.T) {
 	})
 
 	t.Run("Enum", func(t *testing.T) {
-		description, ok, err := model_evaluation.DescribeProgress((&model_analysis_pb.RawActionResult_Progress{
+		description, ok, err := model_evaluation.DescribeProgress((model_analysis_pb.RawActionResult_Progress_builder{
 			Stage: model_analysis_pb.RawActionResult_Progress_EXECUTING,
-		}).ProtoReflect())
+		}.Build()).ProtoReflect())
 		require.NoError(t, err)
 		require.True(t, ok)
 		require.Equal(t, "EXECUTING", description.String())
@@ -291,9 +291,9 @@ func TestDescribeProgress(t *testing.T) {
 				Total:   tc.total,
 				Unit:    model_evaluation_pb.ProgressCounter_BYTES,
 			}.Build()
-			description, ok, err := model_evaluation.DescribeProgress((&model_analysis_pb.HttpFileContents_Progress{
+			description, ok, err := model_evaluation.DescribeProgress((model_analysis_pb.HttpFileContents_Progress_builder{
 				Downloaded: counter,
-			}).ProtoReflect())
+			}.Build()).ProtoReflect())
 			require.NoError(t, err)
 			require.True(t, ok)
 			require.Equal(t, []model_evaluation.MessageDescriptionSegment{

@@ -78,18 +78,19 @@ func transitionMayHaveMultipleConfigurations(cfg *model_starlark_pb.Transition) 
 // labelAttrConfiguration. cfg is the outgoing edge transition of the
 // attr, as provided in the attr's definition.
 func newLabelAttrConfigurationFromProto[TReference any](configured model_core.Message[*model_analysis_pb.ConfiguredLabelAttr, TReference], cfg *model_starlark_pb.Transition) labelAttrConfiguration[TReference] {
-	entries := make([]labelAttrConfigurationEntry[TReference], 0, len(configured.Message.Entries))
-	for _, entry := range configured.Message.Entries {
+	configuredEntries := configured.Message.GetEntries()
+	entries := make([]labelAttrConfigurationEntry[TReference], 0, len(configuredEntries))
+	for _, entry := range configuredEntries {
 		entries = append(entries, labelAttrConfigurationEntry[TReference]{
-			key:                          entry.Key,
-			outputConfigurationReference: model_core.Nested(configured, entry.OutputConfigurationReference),
-			resolvedLabels:               entry.ResolvedLabels,
+			key:                          entry.GetKey(),
+			outputConfigurationReference: model_core.Nested(configured, entry.GetOutputConfigurationReference()),
+			resolvedLabels:               entry.GetResolvedLabels(),
 		})
 	}
 	return labelAttrConfiguration[TReference]{
 		entries:                       entries,
 		mayHaveMultipleConfigurations: transitionMayHaveMultipleConfigurations(cfg),
-		defaultValueLabelsResolved:    configured.Message.DefaultValueLabelsResolved,
+		defaultValueLabelsResolved:    configured.Message.GetDefaultValueLabelsResolved(),
 	}
 }
 
@@ -98,11 +99,12 @@ func newLabelAttrConfigurationFromProto[TReference any](configured model_core.Me
 // edge transition. Labels contained in the attr value still need to be
 // resolved.
 func newLabelAttrConfigurationFromTransition[TReference any](transition model_core.Message[*model_analysis_pb.UserDefinedTransition_Value_Success, TReference], mayHaveMultipleConfigurations bool) labelAttrConfiguration[TReference] {
-	entries := make([]labelAttrConfigurationEntry[TReference], 0, len(transition.Message.Entries))
-	for _, entry := range transition.Message.Entries {
+	transitionEntries := transition.Message.GetEntries()
+	entries := make([]labelAttrConfigurationEntry[TReference], 0, len(transitionEntries))
+	for _, entry := range transitionEntries {
 		entries = append(entries, labelAttrConfigurationEntry[TReference]{
-			key:                          entry.Key,
-			outputConfigurationReference: model_core.Nested(transition, entry.OutputConfigurationReference),
+			key:                          entry.GetKey(),
+			outputConfigurationReference: model_core.Nested(transition, entry.GetOutputConfigurationReference()),
 		})
 	}
 	return labelAttrConfiguration[TReference]{
@@ -130,17 +132,18 @@ func (c *indexedConfiguredLabelAttrCursor[TReference]) get(attrIndex int) (model
 		return model_core.Message[*model_analysis_pb.ConfiguredLabelAttr, TReference]{}, false, nil
 	}
 	first := c.remaining.Message[0]
-	if int64(first.AttrIndex) < int64(attrIndex) {
-		return model_core.Message[*model_analysis_pb.ConfiguredLabelAttr, TReference]{}, false, fmt.Errorf("label attr entry with attr index %d is not sorted, or does not refer to a label attr", first.AttrIndex)
+	if int64(first.GetAttrIndex()) < int64(attrIndex) {
+		return model_core.Message[*model_analysis_pb.ConfiguredLabelAttr, TReference]{}, false, fmt.Errorf("label attr entry with attr index %d is not sorted, or does not refer to a label attr", first.GetAttrIndex())
 	}
-	if int64(first.AttrIndex) > int64(attrIndex) {
+	if int64(first.GetAttrIndex()) > int64(attrIndex) {
 		return model_core.Message[*model_analysis_pb.ConfiguredLabelAttr, TReference]{}, false, nil
 	}
-	if first.Configured == nil {
-		return model_core.Message[*model_analysis_pb.ConfiguredLabelAttr, TReference]{}, false, fmt.Errorf("label attr entry with attr index %d does not have a value", first.AttrIndex)
+	firstConfigured := first.GetConfigured()
+	if firstConfigured == nil {
+		return model_core.Message[*model_analysis_pb.ConfiguredLabelAttr, TReference]{}, false, fmt.Errorf("label attr entry with attr index %d does not have a value", first.GetAttrIndex())
 	}
 	c.remaining.Message = c.remaining.Message[1:]
-	return model_core.Nested(c.remaining, first.Configured), true, nil
+	return model_core.Nested(c.remaining, firstConfigured), true, nil
 }
 
 // finish checks that all entries in the list have been consumed. Any
@@ -148,7 +151,7 @@ func (c *indexedConfiguredLabelAttrCursor[TReference]) get(attrIndex int) (model
 // attrs.
 func (c *indexedConfiguredLabelAttrCursor[TReference]) finish() error {
 	if len(c.remaining.Message) > 0 {
-		return fmt.Errorf("label attr entry with attr index %d does not refer to a label attr", c.remaining.Message[0].AttrIndex)
+		return fmt.Errorf("label attr entry with attr index %d does not refer to a label attr", c.remaining.Message[0].GetAttrIndex())
 	}
 	return nil
 }
@@ -253,11 +256,11 @@ func newConfiguredTargetReferenceCreator[TReference object.BasicReference, TMeta
 			patchedConfigurationReference := model_core.Patch(e, entry.outputConfigurationReference)
 			resolvedLabelValue := e.GetVisibleTargetValue(
 				model_core.NewPatchedMessage(
-					&model_analysis_pb.VisibleTarget_Key{
+					model_analysis_pb.VisibleTarget_Key_builder{
 						FromPackage:            visibilityFromPackage.String(),
 						ToLabel:                canonicalOriginalLabel.String(),
 						ConfigurationReference: patchedConfigurationReference.Message,
-					},
+					}.Build(),
 					patchedConfigurationReference.Patcher,
 				),
 			)
@@ -265,7 +268,7 @@ func newConfiguredTargetReferenceCreator[TReference object.BasicReference, TMeta
 				*missingDependencies = true
 				return eval.None, nil
 			}
-			resolvedLabelStr = resolvedLabelValue.Message.Label
+			resolvedLabelStr = resolvedLabelValue.Message.GetLabel()
 		}
 		if resolvedLabelStr == "" {
 			return eval.None, nil
@@ -279,13 +282,13 @@ func newConfiguredTargetReferenceCreator[TReference object.BasicReference, TMeta
 		patchedConfigurationReference := model_core.Patch(e, entry.outputConfigurationReference)
 		targetProviders := e.GetTargetProvidersValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.TargetProviders_Key{
+				model_analysis_pb.TargetProviders_Key_builder{
 					Label: resolvedLabelStr,
 					Variant: newTargetVariant(
 						patchedConfigurationReference.Message,
 						model_core.PatchList(e, aspects).Merge(patchedConfigurationReference.Patcher),
 					),
-				},
+				}.Build(),
 				patchedConfigurationReference.Patcher,
 			),
 		)
@@ -296,7 +299,7 @@ func newConfiguredTargetReferenceCreator[TReference object.BasicReference, TMeta
 		if err := requirements.check(resolvedLabelStr, targetProviders); err != nil {
 			return nil, err
 		}
-		providerInstances := model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances)
+		providerInstances := model_core.Nested(targetProviders, targetProviders.Message.GetProviderInstances())
 		if onConfiguredTarget != nil {
 			if err := onConfiguredTarget(resolvedLabelStr, providerInstances); err != nil {
 				return nil, err

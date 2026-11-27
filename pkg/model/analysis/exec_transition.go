@@ -56,12 +56,12 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 	originalBuildSettingLabelIndices := map[string]int{}
 	visibleBuildSettingLabelIndices := map[string]int{}
 	missingDependencies := false
-	for _, buildSettingOverride := range configuration.BuildSettingOverrides {
-		index, ok := originalBuildSettingLabelIndices[buildSettingOverride.Label]
+	for _, buildSettingOverride := range configuration.GetBuildSettingOverrides() {
+		index, ok := originalBuildSettingLabelIndices[buildSettingOverride.GetLabel()]
 		if !ok {
-			apparentBuildSettingLabel, err := rootPackage.AppendLabel(buildSettingOverride.Label)
+			apparentBuildSettingLabel, err := rootPackage.AppendLabel(buildSettingOverride.GetLabel())
 			if err != nil {
-				return model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata]{}, fmt.Errorf("invalid build setting label %#v: %w", buildSettingOverride.Label, err)
+				return model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata]{}, fmt.Errorf("invalid build setting label %#v: %w", buildSettingOverride.GetLabel(), err)
 			}
 			expectedOutput, err := getExpectedTransitionOutput[TReference, TMetadata](e, rootPackage, apparentBuildSettingLabel)
 			if err != nil {
@@ -81,9 +81,9 @@ func (c *baseComputer[TReference, TMetadata]) createInitialConfiguration(
 				})
 				visibleBuildSettingLabelIndices[expectedOutput.label] = index
 			}
-			originalBuildSettingLabelIndices[buildSettingOverride.Label] = index
+			originalBuildSettingLabelIndices[buildSettingOverride.GetLabel()] = index
 		}
-		buildSettings[index].values = append(buildSettings[index].values, buildSettingOverride.Value)
+		buildSettings[index].values = append(buildSettings[index].values, buildSettingOverride.GetValue())
 	}
 	if missingDependencies {
 		return model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata]{}, evaluation.ErrMissingDependency
@@ -256,9 +256,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.ExecTransition_Value{
+		model_analysis_pb.ExecTransition_Value_builder{
 			OutputConfigurationReference: outputConfigurationReference.Message,
-		},
+		}.Build(),
 		outputConfigurationReference.Patcher,
 	), nil
 }

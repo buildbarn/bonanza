@@ -24,9 +24,9 @@ func getRepositoryRuleDefinition[TReference any](e CompiledBzlFileGlobalValueGet
 		}
 		seenIdentifiers[identifier] = struct{}{}
 
-		repositoryRuleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+		repositoryRuleValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 			Identifier: identifier,
-		})
+		}.Build())
 		if !repositoryRuleValue.IsSet() {
 			return model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]{}, nil
 		}

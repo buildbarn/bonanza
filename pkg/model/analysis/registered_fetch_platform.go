@@ -13,7 +13,7 @@ func (baseComputer[TReference, TMetadata]) ComputeRegisteredFetchPlatformValue(c
 	if !buildSpecification.IsSet() {
 		return PatchedRegisteredFetchPlatformValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RegisteredFetchPlatform_Value{
-		FetchPlatformPkixPublicKey: buildSpecification.Message.FetchPlatformPkixPublicKey,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.RegisteredFetchPlatform_Value_builder{
+		FetchPlatformPkixPublicKey: buildSpecification.Message.GetFetchPlatformPkixPublicKey(),
+	}.Build()), nil
 }

@@ -36,10 +36,10 @@ func addFilesToMergedDirectory[TReference object.BasicReference, TMetadata model
 			patchedReference := model_core.Patch(e, model_core.Nested(files, element.GetParent().GetReference()))
 			v := e.GetFilesRootValue(
 				model_core.NewPatchedMessage(
-					&model_analysis_pb.FilesRoot_Key{
+					model_analysis_pb.FilesRoot_Key_builder{
 						ListReference:   patchedReference.Message,
 						DirectoryLayout: directoryLayout,
-					},
+					}.Build(),
 					patchedReference.Patcher,
 				),
 			)
@@ -81,17 +81,17 @@ func addFileToMergedDirectory[TReference object.BasicReference, TMetadata model_
 	patchedFile := model_core.Patch(e, file)
 	v := e.GetFileRootValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.FileRoot_Key{
+			model_analysis_pb.FileRoot_Key_builder{
 				File:            patchedFile.Message,
 				DirectoryLayout: directoryLayout,
-			},
+			}.Build(),
 			patchedFile.Patcher,
 		),
 	)
 	if !v.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
-	out.MergeDirectoryContents(model_core.Nested(v, v.Message.RootDirectory))
+	out.MergeDirectoryContents(model_core.Nested(v, v.Message.GetRootDirectory()))
 	return nil
 }
 
@@ -104,13 +104,13 @@ func (*baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.Co
 		return PatchedFilesRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	files, err := model_parser.Dereference(ctx, valueReaders.List, model_core.Nested(key, key.Message.ListReference))
+	files, err := model_parser.Dereference(ctx, valueReaders.List, model_core.Nested(key, key.Message.GetListReference()))
 	if err != nil {
 		return PatchedFilesRootValue[TMetadata]{}, err
 	}
 
 	var rootDirectory model_filesystem.MergedDirectory[TReference]
-	if err := addFilesToMergedDirectory(e, files, &rootDirectory, key.Message.DirectoryLayout); err != nil {
+	if err := addFilesToMergedDirectory(e, files, &rootDirectory, key.Message.GetDirectoryLayout()); err != nil {
 		return PatchedFilesRootValue[TMetadata]{}, err
 	}
 
@@ -127,9 +127,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeFilesRootValue(ctx context.Co
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.FilesRoot_Value{
+		model_analysis_pb.FilesRoot_Value_builder{
 			RootDirectory: createdRootDirectory.Message.Message,
-		},
+		}.Build(),
 		createdRootDirectory.Message.Patcher,
 	), nil
 }

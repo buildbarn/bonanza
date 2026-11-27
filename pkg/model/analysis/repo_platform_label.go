@@ -13,7 +13,7 @@ func (baseComputer[TReference, TMetadata]) ComputeRepoPlatformLabelValue(ctx con
 	if !buildSpecification.IsSet() {
 		return PatchedRepoPlatformLabelValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RepoPlatformLabel_Value{
-		ApparentLabel: buildSpecification.Message.RepoPlatformLabel,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.RepoPlatformLabel_Value_builder{
+		ApparentLabel: buildSpecification.Message.GetRepoPlatformLabel(),
+	}.Build()), nil
 }

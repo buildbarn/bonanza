@@ -198,10 +198,10 @@ func expandFileIfDirectory[TReference object.BasicReference, TMetadata model_cor
 	patchedFile := model_core.Patch(e, fileDefinition)
 	fileRoot := e.GetFileRootValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.FileRoot_Key{
+			model_analysis_pb.FileRoot_Key_builder{
 				File:            patchedFile.Message,
 				DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-			},
+			}.Build(),
 			patchedFile.Patcher,
 		),
 	)
@@ -277,9 +277,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 	patchedID := model_core.Patch(e, id)
 	action := e.GetTargetActionValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.TargetAction_Key{
+			model_analysis_pb.TargetAction_Key_builder{
 				Id: patchedID.Message,
-			},
+			}.Build(),
 			patchedID.Patcher,
 		),
 	)
@@ -493,8 +493,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 				seen = make(map[string]struct{}, len(stringValues))
 			}
 
-			switch addLeaf.GetStyle().(type) {
-			case *model_analysis_pb.Args_Leaf_Add_Leaf_Separate_:
+			switch addLeaf.WhichStyle() {
+			case model_analysis_pb.Args_Leaf_Add_Leaf_Separate_case:
 				for _, v := range stringValues {
 					// Step 4: If uniquify is true,
 					// duplicate arguments are removed.
@@ -545,7 +545,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 						return PatchedTargetActionCommandValue[TMetadata]{}, err
 					}
 				}
-			case *model_analysis_pb.Args_Leaf_Add_Leaf_Joined_:
+			case model_analysis_pb.Args_Leaf_Add_Leaf_Joined_case:
 				formatJoinedPrefix, formatJoinedSuffix, err := splitArgsTemplate(addLeaf.GetJoined().GetFormatJoined())
 				if err != nil {
 					return PatchedTargetActionCommandValue[TMetadata]{}, fmt.Errorf("invalid value for args.add_*(format_joined=%#v): %w", addLeaf.GetJoined().GetFormatJoined(), err)
@@ -737,9 +737,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionCommandValue(ct
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.TargetActionCommand_Value{
+		return model_analysis_pb.TargetActionCommand_Value_builder{
 			CommandReference: commandReference,
-		}, nil
+		}.Build(), nil
 	})
 }
 

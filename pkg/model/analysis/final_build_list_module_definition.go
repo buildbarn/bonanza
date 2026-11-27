@@ -18,10 +18,10 @@ func (baseComputer[TReference, TMetadata]) ComputeFinalBuildListModuleDefinition
 
 	// The final build list is sorted by name, and contains at
 	// most one version of each module.
-	buildList := buildListValue.Message.BuildList
+	buildList := buildListValue.Message.GetBuildList()
 	i, ok := sort.Find(
 		len(buildList),
-		func(i int) int { return strings.Compare(key.ModuleName, buildList[i].Name) },
+		func(i int) int { return strings.Compare(key.GetModuleName(), buildList[i].GetName()) },
 	)
 	if !ok {
 		// The module is not part of the final build list.
@@ -29,7 +29,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFinalBuildListModuleDefinition
 		// of other modules don't cause this value to change.
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.FinalBuildListModuleDefinition_Value{}), nil
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.FinalBuildListModuleDefinition_Value{
-		Definition: buildList[i].Definition,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.FinalBuildListModuleDefinition_Value_builder{
+		Definition: buildList[i].GetDefinition(),
+	}.Build()), nil
 }

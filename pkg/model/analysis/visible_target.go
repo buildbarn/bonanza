@@ -40,11 +40,11 @@ func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_c
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
 		selectValue := e.GetSelectValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.Select_Key{
+				model_analysis_pb.Select_Key_builder{
 					ConditionIdentifiers:   conditionIdentifiers,
 					ConfigurationReference: patchedConfigurationReference.Message,
 					FromPackage:            fromPackage.String(),
-				},
+				}.Build(),
 				patchedConfigurationReference.Patcher,
 			),
 		)
@@ -141,9 +141,9 @@ func getTargetVisibility[TReference any](e TargetValueGetter[TReference], target
 			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, fmt.Errorf("invalid owner target name %#v: %w", ownerTargetNameStr, err)
 		}
 		ownerLabel := targetLabel.GetCanonicalPackage().AppendTargetName(ownerTargetName)
-		ownerTargetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+		ownerTargetValue := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 			Label: ownerLabel.String(),
-		})
+		}.Build())
 		if !ownerTargetValue.IsSet() {
 			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, evaluation.ErrMissingDependency
 		}
@@ -180,9 +180,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid to label: %w", err)
 	}
 
-	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+	targetValue := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: key.Message.GetToLabel(),
-	})
+	}.Build())
 	if !targetValue.IsSet() || !gotAnalysisReaders || !gotValueReaders {
 		return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -241,13 +241,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			patchedConfigurationReference := model_core.Patch(e, configurationReference)
 			actualVisibleTargetValue := e.GetVisibleTargetValue(
 				model_core.NewPatchedMessage(
-					&model_analysis_pb.VisibleTarget_Key{
+					model_analysis_pb.VisibleTarget_Key_builder{
 						FromPackage:            toLabel.GetCanonicalPackage().String(),
 						ToLabel:                actualCanonicalLabel.String(),
 						PermitAliasNoMatch:     key.Message.GetPermitAliasNoMatch(),
 						StopAtLabelSetting:     key.Message.GetStopAtLabelSetting(),
 						ConfigurationReference: patchedConfigurationReference.Message,
-					},
+					}.Build(),
 					patchedConfigurationReference.Patcher,
 				),
 			)
@@ -281,9 +281,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		if key.Message.GetStopAtLabelSetting() {
 			// We are applying a transition and want to
 			// resolve the label of a label_setting().
-			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{
+			return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.VisibleTarget_Value_builder{
 				Label: toLabel.String(),
-			}), nil
+			}.Build()), nil
 		}
 
 		// Determine if there is an override in place for this
@@ -294,10 +294,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			analysisReaders.BuildSettingOverride,
 			getBuildSettingOverridesFromReference(model_core.Nested(key, key.Message.GetConfigurationReference())),
 			func(entry model_core.Message[*model_analysis_pb.BuildSettingOverride, TReference]) (int, *model_core_pb.DecodableReference) {
-				switch entry.Message.GetLevel().(type) {
-				case *model_analysis_pb.BuildSettingOverride_Leaf_:
+				switch entry.Message.WhichLevel() {
+				case model_analysis_pb.BuildSettingOverride_Leaf_case:
 					return strings.Compare(toLabelStr, entry.Message.GetLeaf().GetLabel()), nil
-				case *model_analysis_pb.BuildSettingOverride_Parent_:
+				case model_analysis_pb.BuildSettingOverride_Parent_case:
 					return strings.Compare(toLabelStr, entry.Message.GetParent().GetFirstLabel()), entry.Message.GetParent().GetReference()
 				default:
 					return 0, nil
@@ -364,12 +364,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
 		actualVisibleTargetValue := e.GetVisibleTargetValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.VisibleTarget_Key{
+				model_analysis_pb.VisibleTarget_Key_builder{
 					FromPackage:            nextFromPackage,
 					ToLabel:                nextToLabel,
 					PermitAliasNoMatch:     key.Message.GetPermitAliasNoMatch(),
 					ConfigurationReference: patchedConfigurationReference.Message,
-				},
+				}.Build(),
 				patchedConfigurationReference.Patcher,
 			),
 		)
@@ -388,8 +388,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 				return PatchedVisibleTargetValue[TMetadata]{}, err
 			}
 		}
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{
+		return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.VisibleTarget_Value_builder{
 			Label: toLabel.String(),
-		}), nil
+		}.Build()), nil
 	}
 }

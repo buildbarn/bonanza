@@ -28,9 +28,9 @@ func getImplementationWrapper[TReference object.BasicReference, TMetadata model_
 		return model_core.Message[*model_starlark_pb.Function, TReference]{}, nil
 	}
 
-	wrapperValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+	wrapperValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 		Identifier: identifier,
-	})
+	}.Build())
 	if !wrapperValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Function, TReference]{}, evaluation.ErrMissingDependency
 	}
@@ -51,9 +51,9 @@ func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersValu
 
 	// Look up all wrappers before patching any messages, so that
 	// no metadata is leaked if any of them is unavailable.
-	ruleImplementationWrapper, ruleErr := getImplementationWrapper(e, identifiers.RuleIdentifier)
-	subruleImplementationWrapper, subruleErr := getImplementationWrapper(e, identifiers.SubruleIdentifier)
-	aspectImplementationWrapper, aspectErr := getImplementationWrapper(e, identifiers.AspectIdentifier)
+	ruleImplementationWrapper, ruleErr := getImplementationWrapper(e, identifiers.GetRuleIdentifier())
+	subruleImplementationWrapper, subruleErr := getImplementationWrapper(e, identifiers.GetSubruleIdentifier())
+	aspectImplementationWrapper, aspectErr := getImplementationWrapper(e, identifiers.GetAspectIdentifier())
 	if ruleErr != nil {
 		return PatchedRuleImplementationWrappersValue[TMetadata]{}, fmt.Errorf("failed to get rule implementation wrapper: %w", ruleErr)
 	}
@@ -67,13 +67,13 @@ func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersValu
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.RuleImplementationWrappers_Value {
 		value := &model_analysis_pb.RuleImplementationWrappers_Value{}
 		if ruleImplementationWrapper.IsSet() {
-			value.Rule = model_core.Patch(e, ruleImplementationWrapper).Merge(patcher)
+			value.SetRule(model_core.Patch(e, ruleImplementationWrapper).Merge(patcher))
 		}
 		if subruleImplementationWrapper.IsSet() {
-			value.Subrule = model_core.Patch(e, subruleImplementationWrapper).Merge(patcher)
+			value.SetSubrule(model_core.Patch(e, subruleImplementationWrapper).Merge(patcher))
 		}
 		if aspectImplementationWrapper.IsSet() {
-			value.Aspect = model_core.Patch(e, aspectImplementationWrapper).Merge(patcher)
+			value.SetAspect(model_core.Patch(e, aspectImplementationWrapper).Merge(patcher))
 		}
 		return value
 	}), nil
@@ -84,11 +84,11 @@ func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersIden
 	if !buildSpecification.IsSet() {
 		return PatchedRuleImplementationWrappersIdentifiersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RuleImplementationWrappersIdentifiers_Value{
-		RuleIdentifier:    buildSpecification.Message.RuleImplementationWrapperIdentifier,
-		SubruleIdentifier: buildSpecification.Message.SubruleImplementationWrapperIdentifier,
-		AspectIdentifier:  buildSpecification.Message.AspectImplementationWrapperIdentifier,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.RuleImplementationWrappersIdentifiers_Value_builder{
+		RuleIdentifier:    buildSpecification.Message.GetRuleImplementationWrapperIdentifier(),
+		SubruleIdentifier: buildSpecification.Message.GetSubruleImplementationWrapperIdentifier(),
+		AspectIdentifier:  buildSpecification.Message.GetAspectImplementationWrapperIdentifier(),
+	}.Build()), nil
 }
 
 // defaultImplementationWrapper is used if no implementation wrapper is

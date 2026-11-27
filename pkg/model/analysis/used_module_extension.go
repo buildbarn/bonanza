@@ -17,25 +17,25 @@ func (baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionValue(ctx c
 	if !usedModuleExtensions.IsSet() {
 		return PatchedUsedModuleExtensionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	extensions := usedModuleExtensions.Message.ModuleExtensions
+	extensions := usedModuleExtensions.Message.GetModuleExtensions()
 	if i := sort.Search(
 		len(extensions),
 		func(i int) bool {
-			identifier, err := label.NewCanonicalStarlarkIdentifier(extensions[i].Identifier)
-			return err == nil && identifier.ToModuleExtension().String() >= key.ModuleExtension
+			identifier, err := label.NewCanonicalStarlarkIdentifier(extensions[i].GetIdentifier())
+			return err == nil && identifier.ToModuleExtension().String() >= key.GetModuleExtension()
 		},
 	); i < len(extensions) {
 		extension := extensions[i]
-		identifier, err := label.NewCanonicalStarlarkIdentifier(extension.Identifier)
+		identifier, err := label.NewCanonicalStarlarkIdentifier(extension.GetIdentifier())
 		if err != nil {
-			return PatchedUsedModuleExtensionValue[TMetadata]{}, fmt.Errorf("invalid module extensions Starlark identifier %#v: %w", extension.Identifier, err)
+			return PatchedUsedModuleExtensionValue[TMetadata]{}, fmt.Errorf("invalid module extensions Starlark identifier %#v: %w", extension.GetIdentifier(), err)
 		}
-		if identifier.ToModuleExtension().String() == key.ModuleExtension {
+		if identifier.ToModuleExtension().String() == key.GetModuleExtension() {
 			patchedExtension := model_core.Patch(e, model_core.Nested(usedModuleExtensions, extension))
 			return model_core.NewPatchedMessage(
-				&model_analysis_pb.UsedModuleExtension_Value{
+				model_analysis_pb.UsedModuleExtension_Value_builder{
 					ModuleExtension: patchedExtension.Message,
-				},
+				}.Build(),
 				patchedExtension.Patcher,
 			), nil
 		}

@@ -15,14 +15,14 @@ func (baseComputer[TReference, TMetadata]) ComputeFileAccessParametersValue(ctx 
 	if !fileCreationParameters.IsSet() {
 		return PatchedFileAccessParametersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.FileAccessParameters_Value{
-		FileAccessParameters: fileCreationParameters.Message.FileCreationParameters.GetAccess(),
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.FileAccessParameters_Value_builder{
+		FileAccessParameters: fileCreationParameters.Message.GetFileCreationParameters().GetAccess(),
+	}.Build()), nil
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeFileAccessParametersObject(fileAccessParametersValue model_core.Message[*model_analysis_pb.FileAccessParameters_Value, TReference]) (*model_filesystem.FileReader[TReference], error) {
 	return model_filesystem.NewFileReaderFromProto(
-		fileAccessParametersValue.Message.FileAccessParameters,
+		fileAccessParametersValue.Message.GetFileAccessParameters(),
 		c.referenceFormat,
 		c.binaryEncoderFactory,
 		c.parsedObjectPoolIngester,

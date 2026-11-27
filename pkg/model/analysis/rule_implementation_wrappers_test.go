@@ -22,11 +22,11 @@ func TestRuleImplementationWrappers(t *testing.T) {
 
 	expectIdentifiers := func(e *MockRuleImplementationWrappersEnvironmentForTesting) {
 		e.EXPECT().GetRuleImplementationWrappersIdentifiersValue(gomock.Any()).
-			Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.RuleImplementationWrappersIdentifiers_Value{
+			Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.RuleImplementationWrappersIdentifiers_Value_builder{
 				RuleIdentifier:    "@@rules+//:wrappers.bzl%rule_wrapper",
 				SubruleIdentifier: "@@rules+//:wrappers.bzl%subrule_wrapper",
 				AspectIdentifier:  "@@rules+//:wrappers.bzl%aspect_wrapper",
-			}))
+			}.Build()))
 	}
 
 	newFunction := func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree], name string) *model_starlark_pb.Function {
@@ -39,15 +39,15 @@ func TestRuleImplementationWrappers(t *testing.T) {
 		message := model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, model_core.CreatedObjectTree]{}
 		if name != "" {
 			message = newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.CompiledBzlFileGlobal_Value {
-				return &model_analysis_pb.CompiledBzlFileGlobal_Value{
+				return model_analysis_pb.CompiledBzlFileGlobal_Value_builder{
 					Global: model_starlark_pb.Value_builder{
 						Function: proto.ValueOrDefault(newFunction(patcher, name)),
 					}.Build(),
-				}
+				}.Build()
 			})
 		}
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: identifier}),
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{Identifier: identifier}.Build()),
 		).Return(message)
 	}
 
@@ -75,11 +75,11 @@ func TestRuleImplementationWrappers(t *testing.T) {
 		value, err := bct.computer.ComputeRuleImplementationWrappersValue(ctx, &model_analysis_pb.RuleImplementationWrappers_Key{}, e)
 		require.NoError(t, err)
 		requireEqualPatchedMessage(t, func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.RuleImplementationWrappers_Value {
-			return &model_analysis_pb.RuleImplementationWrappers_Value{
+			return model_analysis_pb.RuleImplementationWrappers_Value_builder{
 				Rule:    newFunction(patcher, "rule_wrapper"),
 				Subrule: newFunction(patcher, "subrule_wrapper"),
 				Aspect:  newFunction(patcher, "aspect_wrapper"),
-			}
+			}.Build()
 		}, value)
 	})
 }

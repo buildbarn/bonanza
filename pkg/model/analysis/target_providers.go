@@ -129,30 +129,30 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetProvidersValue(ctx co
 	// the same configuration are only analyzed once.
 	incomingEdgeTransition := e.GetTargetIncomingEdgeTransitionValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
-			return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
-				Label:                  key.Message.Label,
-				ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.Variant.GetConfigurationReference())).Merge(patcher),
-			}
+			return model_analysis_pb.TargetIncomingEdgeTransition_Key_builder{
+				Label:                  key.Message.GetLabel(),
+				ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.GetVariant().GetConfigurationReference())).Merge(patcher),
+			}.Build()
 		}),
 	)
 	if !incomingEdgeTransition.IsSet() {
 		return PatchedTargetProvidersValue[TMetadata]{}, model_evaluation.ErrMissingDependency
 	}
 
-	configurationReference := model_core.Nested(incomingEdgeTransition, incomingEdgeTransition.Message.OutputConfigurationReference)
+	configurationReference := model_core.Nested(incomingEdgeTransition, incomingEdgeTransition.Message.GetOutputConfigurationReference())
 	configuredTarget := e.GetConfiguredTargetValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
-			return &model_analysis_pb.ConfiguredTarget_Key{
-				Label:   key.Message.Label,
+			return model_analysis_pb.ConfiguredTarget_Key_builder{
+				Label:   key.Message.GetLabel(),
 				Variant: newTargetVariant(model_core.Patch(e, configurationReference).Merge(patcher), nil),
-			}
+			}.Build()
 		}),
 	)
 	if !configuredTarget.IsSet() {
 		return PatchedTargetProvidersValue[TMetadata]{}, model_evaluation.ErrMissingDependency
 	}
 
-	if len(key.Message.Variant.GetAspects()) == 0 {
+	if len(key.Message.GetVariant().GetAspects()) == 0 {
 		return newTargetProvidersValueWithoutAspects(e, configuredTarget), nil
 	}
 	return c.computeTargetProvidersValueWithAspects(ctx, key, e, configurationReference, configuredTarget)
@@ -166,10 +166,10 @@ func newTargetProvidersValueWithoutAspects[TReference object.BasicReference, TMe
 	configuredTarget model_core.Message[*model_analysis_pb.ConfiguredTarget_Value, TReference],
 ) PatchedTargetProvidersValue[TMetadata] {
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProviders_Value {
-		return &model_analysis_pb.TargetProviders_Value{
-			ProviderInstances: model_core.PatchList(e, model_core.Nested(configuredTarget, configuredTarget.Message.ProviderInstances)).Merge(patcher),
-			IsFileTarget:      configuredTarget.Message.IsFileTarget,
-		}
+		return model_analysis_pb.TargetProviders_Value_builder{
+			ProviderInstances: model_core.PatchList(e, model_core.Nested(configuredTarget, configuredTarget.Message.GetProviderInstances())).Merge(patcher),
+			IsFileTarget:      configuredTarget.Message.GetIsFileTarget(),
+		}.Build()
 	})
 }
 
@@ -203,13 +203,13 @@ func (c *baseComputer[TReference, TMetadata]) computeTargetProvidersValueWithAsp
 	for i, aspect := range aspects {
 		aspectConfiguredTarget := e.GetConfiguredTargetValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
-				return &model_analysis_pb.ConfiguredTarget_Key{
+				return model_analysis_pb.ConfiguredTarget_Key_builder{
 					Label: key.Message.GetLabel(),
 					Variant: newTargetVariant(
 						model_core.Patch(e, configurationReference).Merge(patcher),
 						model_core.PatchList(e, model_core.Nested(key, aspects[:i+1])).Merge(patcher),
 					),
-				}
+				}.Build()
 			}),
 		)
 		if !aspectConfiguredTarget.IsSet() {
@@ -243,10 +243,10 @@ func (c *baseComputer[TReference, TMetadata]) computeTargetProvidersValueWithAsp
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.TargetProviders_Value{
+		return model_analysis_pb.TargetProviders_Value_builder{
 			ProviderInstances: providerInstances,
 			IsFileTarget:      configuredTarget.Message.GetIsFileTarget(),
-		}, nil
+		}.Build(), nil
 	})
 }
 

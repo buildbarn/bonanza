@@ -40,9 +40,9 @@ func TestPackageGroupContains(t *testing.T) {
 		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:group"}),
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//:group"}.Build()),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Target_Value {
-			return &model_analysis_pb.Target_Value{
+			return model_analysis_pb.Target_Value_builder{
 				Definition: model_starlark_pb.Target_Definition_builder{
 					PackageGroup: model_starlark_pb.PackageGroup_builder{
 						Tree: model_starlark_pb.PackageGroup_Subpackages_builder{
@@ -65,7 +65,7 @@ func TestPackageGroupContains(t *testing.T) {
 						}.Build(),
 					}.Build(),
 				}.Build(),
-			}
+			}.Build()
 		})).AnyTimes()
 
 		for packageName, expected := range map[string]bool{
@@ -77,10 +77,10 @@ func TestPackageGroupContains(t *testing.T) {
 			"@@other+//foo":      false,
 			"@@other+//foo/test": false,
 		} {
-			value, err := bct.computer.ComputePackageGroupContainsValue(ctx, &model_analysis_pb.PackageGroupContains_Key{
+			value, err := bct.computer.ComputePackageGroupContainsValue(ctx, model_analysis_pb.PackageGroupContains_Key_builder{
 				PackageGroupLabel: "@@main+//:group",
 				Package:           packageName,
-			}, e)
+			}.Build(), e)
 			require.NoError(t, err, packageName)
 			require.Equal(t, expected, value.Message.GetContains(), packageName)
 		}

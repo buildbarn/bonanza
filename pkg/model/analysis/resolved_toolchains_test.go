@@ -21,37 +21,37 @@ func TestResolvedToolchains(t *testing.T) {
 
 	const toolchainType = "@@rules+//toolchains:type"
 	toolchainConstraint := []*model_analysis_pb.Constraint{
-		{Setting: "@@platforms//os:os", Value: "@@platforms//os:linux"},
+		model_analysis_pb.Constraint_builder{Setting: "@@platforms//os:os", Value: "@@platforms//os:linux"}.Build(),
 	}
 
 	newEnvironment := func(compatibleToolchains []*model_analysis_pb.RegisteredToolchain) *MockResolvedToolchainsEnvironmentForTesting {
 		e := NewMockResolvedToolchainsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetCompatibleExecutionPlatformsValue(
 			testutil.EqProto(t, &model_analysis_pb.CompatibleExecutionPlatforms_Key{}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompatibleExecutionPlatforms_Value{
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.CompatibleExecutionPlatforms_Value_builder{
 			ExecutionPlatforms: []*model_analysis_pb.ExecutionPlatform{
-				{Label: "@@platforms//host"},
+				model_analysis_pb.ExecutionPlatform_builder{Label: "@@platforms//host"}.Build(),
 			},
-		}))
+		}.Build()))
 		e.EXPECT().GetVisibleTargetValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.VisibleTarget_Key {
-				return &model_analysis_pb.VisibleTarget_Key{
+				return model_analysis_pb.VisibleTarget_Key_builder{
 					FromPackage: "@@rules+//toolchains",
 					ToLabel:     toolchainType,
-				}
+				}.Build()
 			}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.VisibleTarget_Value{
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.VisibleTarget_Value_builder{
 			Label: toolchainType,
-		}))
+		}.Build()))
 		e.EXPECT().GetCompatibleToolchainsForTypeValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.CompatibleToolchainsForType_Key {
-				return &model_analysis_pb.CompatibleToolchainsForType_Key{
+				return model_analysis_pb.CompatibleToolchainsForType_Key_builder{
 					ToolchainType: toolchainType,
-				}
+				}.Build()
 			}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompatibleToolchainsForType_Value{
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.CompatibleToolchainsForType_Value_builder{
 			Toolchains: compatibleToolchains,
-		}))
+		}.Build()))
 		return e
 	}
 	expectToolchainTypeInfo := func(e *MockResolvedToolchainsEnvironmentForTesting, noMatchError string) {
@@ -59,12 +59,12 @@ func TestResolvedToolchains(t *testing.T) {
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		e.EXPECT().GetTargetProviderValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetProvider_Key {
-				return &model_analysis_pb.TargetProvider_Key{
+				return model_analysis_pb.TargetProvider_Key_builder{
 					Label:              toolchainType,
 					ProviderIdentifier: "@@builtins_core+//:exports.bzl%ToolchainTypeInfo",
-				}
+				}.Build()
 			}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.TargetProvider_Value{
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.TargetProvider_Value_builder{
 			Fields: model_starlark_pb.Struct_Fields_builder{
 				Keys: []string{"no_match_error", "type_label"},
 				Values: []*model_starlark_pb.List_Element{
@@ -74,17 +74,17 @@ func TestResolvedToolchains(t *testing.T) {
 					}.Build()}.Build(),
 				},
 			}.Build(),
-		}))
+		}.Build()))
 	}
 	compute := func(e *MockResolvedToolchainsEnvironmentForTesting, mandatory bool) (*model_analysis_pb.ResolvedToolchains_Value, error) {
 		value, err := bct.computer.ComputeResolvedToolchainsValue(
 			ctx,
-			model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.ResolvedToolchains_Key{
+			model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.ResolvedToolchains_Key_builder{
 				Toolchains: []*model_starlark_pb.ToolchainType{model_starlark_pb.ToolchainType_builder{
 					ToolchainType: toolchainType,
 					Mandatory:     mandatory,
 				}.Build()},
-			}),
+			}.Build()),
 			e,
 		)
 		return value.Message, err
@@ -98,10 +98,10 @@ func TestResolvedToolchains(t *testing.T) {
 
 		value, err := compute(e, false)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.ResolvedToolchains_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.ResolvedToolchains_Value_builder{
 			ToolchainIdentifiers: []string{""},
 			PlatformLabel:        "@@platforms//host",
-		}, value)
+		}.Build(), value)
 	})
 
 	t.Run("MandatoryWithoutToolchains", func(t *testing.T) {
@@ -125,12 +125,12 @@ func TestResolvedToolchains(t *testing.T) {
 	t.Run("MandatoryWithoutCompatibleExecutionPlatformNoMatchError", func(t *testing.T) {
 		// The same holds if toolchains exist, but none of them
 		// are compatible with any of the execution platforms.
-		e := newEnvironment([]*model_analysis_pb.RegisteredToolchain{{
-			CompatibleWith: &model_analysis_pb.RegisteredToolchain_CompatibleWith{
+		e := newEnvironment([]*model_analysis_pb.RegisteredToolchain{model_analysis_pb.RegisteredToolchain_builder{
+			CompatibleWith: model_analysis_pb.RegisteredToolchain_CompatibleWith_builder{
 				Exec: toolchainConstraint,
-			},
+			}.Build(),
 			Toolchain: "@@rules+//toolchains:linux",
-		}})
+		}.Build()})
 		expectToolchainTypeInfo(e, "Please install the frobnicator")
 
 		_, err := compute(e, true)

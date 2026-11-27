@@ -61,10 +61,10 @@ func TestRuleTargetAnalysisGetAspectParameters(t *testing.T) {
 	}
 	getAspectParameters := func(publicAttrs ...*model_starlark_pb.NamedAttr) (*model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]], error) {
 		return a.getAspectParameters(
-			model_core.NewSimpleMessage[object.LocalReference](&model_analysis_pb.LabelAttrAspects_Value_Aspect{
+			model_core.NewSimpleMessage[object.LocalReference](model_analysis_pb.LabelAttrAspects_Value_Aspect_builder{
 				Identifier:  "@@rules+//:defs.bzl%my_aspect",
 				PublicAttrs: publicAttrs,
-			}),
+			}.Build()),
 			valueEncodingOptions,
 		)
 	}

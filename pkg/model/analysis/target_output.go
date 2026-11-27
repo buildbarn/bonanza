@@ -15,13 +15,13 @@ import (
 func (*baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetOutput_Key, TReference], e TargetOutputEnvironment[TReference, TMetadata]) (PatchedTargetOutputValue[TMetadata], error) {
 	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 
-	patchedVariant := model_core.Patch(e, model_core.Nested(key, key.Message.Variant))
+	patchedVariant := model_core.Patch(e, model_core.Nested(key, key.Message.GetVariant()))
 	configuredTarget := e.GetConfiguredTargetValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.ConfiguredTarget_Key{
-				Label:   key.Message.Label,
+			model_analysis_pb.ConfiguredTarget_Key_builder{
+				Label:   key.Message.GetLabel(),
 				Variant: patchedVariant.Message,
-			},
+			}.Build(),
 			patchedVariant.Patcher,
 		),
 	)
@@ -29,17 +29,17 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx context
 		return PatchedTargetOutputValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	packageRelativePath := key.Message.PackageRelativePath
+	packageRelativePath := key.Message.GetPackageRelativePath()
 	output, err := btree.Find(
 		ctx,
 		analysisReaders.ConfiguredTargetOutput,
-		model_core.Nested(configuredTarget, configuredTarget.Message.Outputs),
+		model_core.Nested(configuredTarget, configuredTarget.Message.GetOutputs()),
 		func(entry model_core.Message[*model_analysis_pb.ConfiguredTarget_Value_Output, TReference]) (int, *model_core_pb.DecodableReference) {
-			switch level := entry.Message.Level.(type) {
-			case *model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_:
-				return strings.Compare(packageRelativePath, level.Leaf.PackageRelativePath), nil
-			case *model_analysis_pb.ConfiguredTarget_Value_Output_Parent_:
-				return strings.Compare(packageRelativePath, level.Parent.FirstPackageRelativePath), level.Parent.Reference
+			switch entry.Message.WhichLevel() {
+			case model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_case:
+				return strings.Compare(packageRelativePath, entry.Message.GetLeaf().GetPackageRelativePath()), nil
+			case model_analysis_pb.ConfiguredTarget_Value_Output_Parent_case:
+				return strings.Compare(packageRelativePath, entry.Message.GetParent().GetFirstPackageRelativePath()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
 			}
@@ -51,16 +51,16 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetOutputValue(ctx context
 	if !output.IsSet() {
 		return PatchedTargetOutputValue[TMetadata]{}, errors.New("target does not yield an output with the provided package relative path")
 	}
-	outputLevel, ok := output.Message.Level.(*model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_)
-	if !ok {
+	outputLevel := output.Message.GetLeaf()
+	if outputLevel == nil {
 		return PatchedTargetOutputValue[TMetadata]{}, errors.New("output is not a leaf")
 	}
 
-	patchedDefinition := model_core.Patch(e, model_core.Nested(output, outputLevel.Leaf.Definition))
+	patchedDefinition := model_core.Patch(e, model_core.Nested(output, outputLevel.GetDefinition()))
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.TargetOutput_Value{
+		model_analysis_pb.TargetOutput_Value_builder{
 			Definition: patchedDefinition.Message,
-		},
+		}.Build(),
 		patchedDefinition.Patcher,
 	), nil
 }

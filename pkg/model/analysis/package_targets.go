@@ -42,10 +42,10 @@ func newPackageTargetsCursor[TReference any](targets model_core.Message[[]*model
 // updateFirstName updates the cached name of the first target in the
 // entry that is to be processed next.
 func (pc *packageTargetsCursor[TReference]) updateFirstName() error {
-	switch xmsg := pc.head().Message; xmsg.GetLevel().(type) {
-	case *model_analysis_pb.Package_Value_Target_Leaf:
+	switch xmsg := pc.head().Message; xmsg.WhichLevel() {
+	case model_analysis_pb.Package_Value_Target_Leaf_case:
 		pc.firstName = xmsg.GetLeaf().GetName()
-	case *model_analysis_pb.Package_Value_Target_Parent_:
+	case model_analysis_pb.Package_Value_Target_Parent_case:
 		pc.firstName = xmsg.GetParent().GetFirstName()
 	default:
 		return errors.New("invalid target level type")
@@ -91,10 +91,10 @@ func (h packageTargetsCursorHeap[TReference]) Less(i, j int) bool {
 func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx context.Context, key *model_analysis_pb.PackageTargets_Key, e PackageTargetsEnvironment[TReference, TMetadata]) (PatchedPackageTargetsValue[TMetadata], error) {
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 
-	packageValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
+	packageValue := e.GetPackageValue(model_analysis_pb.Package_Key_builder{
 		Label:             key.GetPackage(),
 		MacroInstanceName: key.GetMacroInstanceName(),
-	})
+	}.Build())
 	if !packageValue.IsSet() || !gotAnalysisEncoders {
 		return PatchedPackageTargetsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -141,11 +141,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx con
 		if key.GetExcludeFinalizers() && level.GetDefinition().GetRootMacroInstanceDefinition().GetFinalizer() == model_starlark_pb.MacroInstance_FINALIZER {
 			continue
 		}
-		macroInstanceTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+		macroInstanceTargets := e.GetPackageTargetsValue(model_analysis_pb.PackageTargets_Key_builder{
 			Package:           key.GetPackage(),
 			MacroInstanceName: append(slices.Clip(key.GetMacroInstanceName()), level.GetNameSuffix()),
 			ExcludeFinalizers: key.GetExcludeFinalizers(),
-		})
+		}.Build())
 		if !macroInstanceTargets.IsSet() {
 			missingDependencies = true
 			continue
@@ -166,9 +166,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx con
 		targets := cursors.Slice[0].lists[0]
 		return model_core.Patch(
 			e,
-			model_core.Nested(targets, &model_analysis_pb.PackageTargets_Value{
+			model_core.Nested(targets, model_analysis_pb.PackageTargets_Value_builder{
 				Targets: targets.Message,
-			}),
+			}.Build()),
 		), nil
 	}
 
@@ -182,12 +182,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx con
 		cursor := heap.Pop(&cursors).(*packageTargetsCursor[TReference])
 		entry := cursor.head()
 		var children model_core.Message[[]*model_analysis_pb.Package_Value_Target, TReference]
-		switch entry.Message.GetLevel().(type) {
-		case *model_analysis_pb.Package_Value_Target_Leaf:
+		switch entry.Message.WhichLevel() {
+		case model_analysis_pb.Package_Value_Target_Leaf_case:
 			if err := treeBuilder.PushChild(model_core.Patch(e, entry)); err != nil {
 				return PatchedPackageTargetsValue[TMetadata]{}, err
 			}
-		case *model_analysis_pb.Package_Value_Target_Parent_:
+		case model_analysis_pb.Package_Value_Target_Parent_case:
 			parent := entry.Message.GetParent()
 			if cursors.Len() == 0 || parent.GetLastName() < cursors.Slice[0].firstName {
 				// None of the other lists contain any
@@ -221,9 +221,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageTargetsValue(ctx con
 		return PatchedPackageTargetsValue[TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.PackageTargets_Value{
+		model_analysis_pb.PackageTargets_Value_builder{
 			Targets: targetsList.Message,
-		},
+		}.Build(),
 		targetsList.Patcher,
 	), nil
 }

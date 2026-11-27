@@ -17,9 +17,9 @@ import (
 // Starlark identifier.
 func getAspectDefinition[TReference any](e CompiledBzlFileGlobalValueGetter[TReference], aspectIdentifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Aspect_Definition, TReference], error) {
 	aspectIdentifierStr := aspectIdentifier.String()
-	aspectValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+	aspectValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 		Identifier: aspectIdentifierStr,
-	})
+	}.Build())
 	if !aspectValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Aspect_Definition, TReference]{}, evaluation.ErrMissingDependency
 	}
@@ -129,20 +129,20 @@ func (*baseComputer[TReference, TMetadata]) ComputeConfiguredAspectValue(ctx con
 				}
 				return nil, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 			}
-			labelAttrs = append(labelAttrs, &model_analysis_pb.IndexedConfiguredLabelAttr{
+			labelAttrs = append(labelAttrs, model_analysis_pb.IndexedConfiguredLabelAttr_builder{
 				AttrIndex:  uint32(attrIndex),
 				Configured: configuredAttr,
-			})
+			}.Build())
 		}
 
 		if missingDependencies {
 			return nil, evaluation.ErrMissingDependency
 		}
 
-		return &model_analysis_pb.ConfiguredAspect_Value{
+		return model_analysis_pb.ConfiguredAspect_Value_builder{
 			ExecGroups: execGroups,
 			Subrules:   subrules,
 			LabelAttrs: labelAttrs,
-		}, nil
+		}.Build(), nil
 	})
 }

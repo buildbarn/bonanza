@@ -12,6 +12,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -25,17 +27,17 @@ func TestQueryTargets(t *testing.T) {
 		})
 	}
 	leafTargetLabel := func(l string) *model_analysis_pb.TargetLabel {
-		return &model_analysis_pb.TargetLabel{
-			Level: &model_analysis_pb.TargetLabel_Leaf{Leaf: l},
-		}
+		return model_analysis_pb.TargetLabel_builder{
+			Leaf: proto.String(l),
+		}.Build()
 	}
 	leafQueryTarget := func(l string, definition *model_starlark_pb.Target_Definition) *model_analysis_pb.QueryTarget {
-		return &model_analysis_pb.QueryTarget{
-			Level: &model_analysis_pb.QueryTarget_Leaf_{Leaf: &model_analysis_pb.QueryTarget_Leaf{
+		return model_analysis_pb.QueryTarget_builder{
+			Leaf: model_analysis_pb.QueryTarget_Leaf_builder{
 				Label:      l,
 				Definition: definition,
-			}},
-		}
+			}.Build(),
+		}.Build()
 	}
 	ruleTargetDefinition := model_starlark_pb.Target_Definition_builder{
 		RuleTarget: model_starlark_pb.RuleTarget_builder{
@@ -50,10 +52,10 @@ func TestQueryTargets(t *testing.T) {
 	}.Build()
 	expectTarget := func(e *MockQueryTargetsEnvironmentForTesting, l string, definition *model_starlark_pb.Target_Definition) {
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: l}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: l}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Target_Value_builder{
 			Definition: definition,
-		}))
+		}.Build()))
 	}
 
 	t.Run("NoDefinitions", func(t *testing.T) {
@@ -65,7 +67,7 @@ func TestQueryTargets(t *testing.T) {
 		value, err := bct.computer.ComputeQueryTargetsValue(
 			ctx,
 			newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.QueryTargets_Key {
-				return &model_analysis_pb.QueryTargets_Key{
+				return model_analysis_pb.QueryTargets_Key_builder{
 					TargetLabelsReference: attachObject(patcher, newTargetLabelsObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
 						return []*model_analysis_pb.TargetLabel{
 							leafTargetLabel("@@main+//:a"),
@@ -73,17 +75,17 @@ func TestQueryTargets(t *testing.T) {
 						}
 					})),
 					DefinitionDetail: model_analysis_pb.QueryTarget_NONE,
-				}
+				}.Build()
 			}),
 			e,
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.QueryTargets_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.QueryTargets_Value_builder{
 			Targets: []*model_analysis_pb.QueryTarget{
 				leafQueryTarget("@@main+//:a", nil),
 				leafQueryTarget("@@main+//:b", nil),
 			},
-		}, value.Message)
+		}.Build(), value.Message)
 	})
 
 	t.Run("FullDefinitions", func(t *testing.T) {
@@ -96,9 +98,9 @@ func TestQueryTargets(t *testing.T) {
 		expectTarget(e, "@@main+//:a", ruleTargetDefinition)
 		expectTarget(e, "@@main+//:b", newSourceFileTargetValue().Message.GetDefinition())
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 				Identifier: "@@rules_cc+//cc:defs.bzl%cc_library",
-			}),
+			}.Build()),
 		).Return(newRuleDefinitionValue(
 			model_starlark_pb.Rule_Definition_NON_EXECUTABLE,
 			model_starlark_pb.NamedAttr_builder{Name: "_compiler", Attr: &model_starlark_pb.Attr{}}.Build(),
@@ -109,7 +111,7 @@ func TestQueryTargets(t *testing.T) {
 		value, err := bct.computer.ComputeQueryTargetsValue(
 			ctx,
 			newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.QueryTargets_Key {
-				return &model_analysis_pb.QueryTargets_Key{
+				return model_analysis_pb.QueryTargets_Key_builder{
 					TargetLabelsReference: attachObject(patcher, newTargetLabelsObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
 						return []*model_analysis_pb.TargetLabel{
 							leafTargetLabel("@@main+//:a"),
@@ -117,23 +119,23 @@ func TestQueryTargets(t *testing.T) {
 						}
 					})),
 					DefinitionDetail: model_analysis_pb.QueryTarget_FULL,
-				}
+				}.Build()
 			}),
 			e,
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.QueryTargets_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.QueryTargets_Value_builder{
 			Targets: []*model_analysis_pb.QueryTarget{
-				{
-					Level: &model_analysis_pb.QueryTarget_Leaf_{Leaf: &model_analysis_pb.QueryTarget_Leaf{
+				model_analysis_pb.QueryTarget_builder{
+					Leaf: model_analysis_pb.QueryTarget_Leaf_builder{
 						Label:           "@@main+//:a",
 						Definition:      ruleTargetDefinition,
 						PublicAttrNames: []string{"deps", "srcs"},
-					}},
-				},
+					}.Build(),
+				}.Build(),
 				leafQueryTarget("@@main+//:b", newSourceFileTargetValue().Message.GetDefinition()),
 			},
-		}, value.Message)
+		}.Build(), value.Message)
 	})
 
 	t.Run("DoesNotExist", func(t *testing.T) {
@@ -144,14 +146,14 @@ func TestQueryTargets(t *testing.T) {
 		_, err := bct.computer.ComputeQueryTargetsValue(
 			ctx,
 			newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.QueryTargets_Key {
-				return &model_analysis_pb.QueryTargets_Key{
+				return model_analysis_pb.QueryTargets_Key_builder{
 					TargetLabelsReference: attachObject(patcher, newTargetLabelsObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
 						return []*model_analysis_pb.TargetLabel{
 							leafTargetLabel("@@main+//:missing"),
 						}
 					})),
 					DefinitionDetail: model_analysis_pb.QueryTarget_FULL,
-				}
+				}.Build()
 			}),
 			e,
 		)
@@ -180,47 +182,47 @@ func TestQueryTargets(t *testing.T) {
 		expectTarget(e, "@@main+//:a", ruleTargetDefinition)
 		e.EXPECT().GetQueryTargetsValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.QueryTargets_Key {
-				return &model_analysis_pb.QueryTargets_Key{
+				return model_analysis_pb.QueryTargets_Key_builder{
 					TargetLabelsReference: attachObject(patcher, childObject),
 					DefinitionDetail:      model_analysis_pb.QueryTarget_KIND,
-				}
+				}.Build()
 			}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.QueryTargets_Value{
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.QueryTargets_Value_builder{
 			Targets: []*model_analysis_pb.QueryTarget{
 				leafQueryTarget("@@main+//:b", ruleTargetKindDefinition),
 				leafQueryTarget("@@main+//:c", ruleTargetKindDefinition),
 			},
-		}))
+		}.Build()))
 		expectTarget(e, "@@main+//:d", newSourceFileTargetValue().Message.GetDefinition())
 
 		value, err := bct.computer.ComputeQueryTargetsValue(
 			ctx,
 			newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.QueryTargets_Key {
-				return &model_analysis_pb.QueryTargets_Key{
+				return model_analysis_pb.QueryTargets_Key_builder{
 					TargetLabelsReference: attachObject(patcher, newTargetLabelsObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_analysis_pb.TargetLabel {
 						return []*model_analysis_pb.TargetLabel{
 							leafTargetLabel("@@main+//:a"),
-							{
-								Level: &model_analysis_pb.TargetLabel_Parent_{Parent: &model_analysis_pb.TargetLabel_Parent{
+							model_analysis_pb.TargetLabel_builder{
+								Parent: model_analysis_pb.TargetLabel_Parent_builder{
 									Reference: attachObject(patcher, childObject),
-								}},
-							},
+								}.Build(),
+							}.Build(),
 							leafTargetLabel("@@main+//:d"),
 						}
 					})),
 					DefinitionDetail: model_analysis_pb.QueryTarget_KIND,
-				}
+				}.Build()
 			}),
 			e,
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.QueryTargets_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.QueryTargets_Value_builder{
 			Targets: []*model_analysis_pb.QueryTarget{
 				leafQueryTarget("@@main+//:a", ruleTargetKindDefinition),
 				leafQueryTarget("@@main+//:b", ruleTargetKindDefinition),
 				leafQueryTarget("@@main+//:c", ruleTargetKindDefinition),
 				leafQueryTarget("@@main+//:d", newSourceFileTargetValue().Message.GetDefinition()),
 			},
-		}, value.Message)
+		}.Build(), value.Message)
 	})
 }

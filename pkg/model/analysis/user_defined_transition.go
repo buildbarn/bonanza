@@ -75,11 +75,11 @@ func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata mod
 		return expectedTransitionOutput[TReference]{}, err
 	}
 	visibleTargetValue := e.GetVisibleTargetValue(
-		model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Key{
+		model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.VisibleTarget_Key_builder{
 			FromPackage:        canonicalBuildSettingLabel.GetCanonicalPackage().String(),
 			ToLabel:            canonicalBuildSettingLabel.String(),
 			StopAtLabelSetting: true,
-		}),
+		}.Build()),
 	)
 	if !visibleTargetValue.IsSet() {
 		return expectedTransitionOutput[TReference]{}, evaluation.ErrMissingDependency
@@ -88,9 +88,9 @@ func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata mod
 
 	// Determine how values associated with this build
 	// setting need to be canonicalized.
-	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+	targetValue := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: visibleBuildSettingLabel,
-	})
+	}.Build())
 	if !targetValue.IsSet() {
 		return expectedTransitionOutput[TReference]{}, evaluation.ErrMissingDependency
 	}
@@ -117,9 +117,9 @@ func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata mod
 		if definition.GetRuleTarget().GetBuildSetting() == nil {
 			return expectedTransitionOutput[TReference]{}, fmt.Errorf("rule %#v used by label setting %#v does not have \"build_setting\" set", definition.GetRuleTarget().GetRuleIdentifier(), visibleBuildSettingLabel)
 		}
-		ruleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+		ruleValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 			Identifier: definition.GetRuleTarget().GetRuleIdentifier(),
-		})
+		}.Build())
 		if !ruleValue.IsSet() {
 			return expectedTransitionOutput[TReference]{}, evaluation.ErrMissingDependency
 		}
@@ -167,13 +167,11 @@ func getBuildSettingOverridesFromReference[TReference any](configurationReferenc
 	if configurationReference.Message == nil {
 		return model_core.Nested(configurationReference, ([]*model_analysis_pb.BuildSettingOverride)(nil))
 	}
-	return model_core.Nested(configurationReference, []*model_analysis_pb.BuildSettingOverride{{
-		Level: &model_analysis_pb.BuildSettingOverride_Parent_{
-			Parent: &model_analysis_pb.BuildSettingOverride_Parent{
-				Reference: configurationReference.Message,
-			},
-		},
-	}})
+	return model_core.Nested(configurationReference, []*model_analysis_pb.BuildSettingOverride{model_analysis_pb.BuildSettingOverride_builder{
+		Parent: model_analysis_pb.BuildSettingOverride_Parent_builder{
+			Reference: configurationReference.Message,
+		}.Build(),
+	}.Build()})
 }
 
 // namedExpectedTransitionOutput contains information about a declared
@@ -256,21 +254,19 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.BuildSettingOverride, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.BuildSettingOverride, TMetadata] {
 				var firstLabel string
-				switch firstEntry := childNodes.Message[0].Level.(type) {
-				case *model_analysis_pb.BuildSettingOverride_Leaf_:
-					firstLabel = firstEntry.Leaf.Label
-				case *model_analysis_pb.BuildSettingOverride_Parent_:
-					firstLabel = firstEntry.Parent.FirstLabel
+				switch childNodes.Message[0].WhichLevel() {
+				case model_analysis_pb.BuildSettingOverride_Leaf_case:
+					firstLabel = childNodes.Message[0].GetLeaf().GetLabel()
+				case model_analysis_pb.BuildSettingOverride_Parent_case:
+					firstLabel = childNodes.Message[0].GetParent().GetFirstLabel()
 				}
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.BuildSettingOverride {
-					return &model_analysis_pb.BuildSettingOverride{
-						Level: &model_analysis_pb.BuildSettingOverride_Parent_{
-							Parent: &model_analysis_pb.BuildSettingOverride_Parent{
-								Reference:  patcher.AddDecodableReference(createdObject),
-								FirstLabel: firstLabel,
-							},
-						},
-					}
+					return model_analysis_pb.BuildSettingOverride_builder{
+						Parent: model_analysis_pb.BuildSettingOverride_Parent_builder{
+							Reference:  patcher.AddDecodableReference(createdObject),
+							FirstLabel: firstLabel,
+						}.Build(),
+					}.Build()
 				})
 			}),
 		),
@@ -284,11 +280,11 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 		} else if len(buildSettingValuesToApply) == 0 {
 			cmp = -1
 		} else {
-			level, ok := existingOverride.Message.Level.(*model_analysis_pb.BuildSettingOverride_Leaf_)
-			if !ok {
+			level := existingOverride.Message.GetLeaf()
+			if level == nil {
 				return model_core.PatchedMessage[*model_core_pb.DecodableReference, TMetadata]{}, errors.New("build setting override is not a valid leaf")
 			}
-			cmp = strings.Compare(level.Leaf.Label, buildSettingValuesToApply[0].label)
+			cmp = strings.Compare(level.GetLabel(), buildSettingValuesToApply[0].label)
 		}
 		if cmp < 0 {
 			// Preserve existing build setting.
@@ -321,14 +317,12 @@ func (c *baseComputer[TReference, TMetadata]) applyTransition(
 			if !model_core.TopLevelMessagesEqual(sortedEncodedValue, sortedDefaultValue) {
 				treeBuilder.PushChild(
 					model_core.NewPatchedMessage(
-						&model_analysis_pb.BuildSettingOverride{
-							Level: &model_analysis_pb.BuildSettingOverride_Leaf_{
-								Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
-									Label: buildSettingValueToApply.label,
-									Value: encodedValue.Message,
-								},
-							},
-						},
+						model_analysis_pb.BuildSettingOverride_builder{
+							Leaf: model_analysis_pb.BuildSettingOverride_Leaf_builder{
+								Label: buildSettingValueToApply.label,
+								Value: encodedValue.Message,
+							}.Build(),
+						}.Build(),
 						encodedValue.Patcher,
 					),
 				)
@@ -375,12 +369,12 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 	patchedConfigurationReference := model_core.Patch(e, configurationReference)
 	visibleTargetValue := e.GetVisibleTargetValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.VisibleTarget_Key{
+			model_analysis_pb.VisibleTarget_Key_builder{
 				ConfigurationReference: patchedConfigurationReference.Message,
 				FromPackage:            fromPackage.String(),
 				ToLabel:                buildSettingLabel,
 				StopAtLabelSetting:     true,
-			},
+			}.Build(),
 			patchedConfigurationReference.Patcher,
 		),
 	)
@@ -395,10 +389,10 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 		analysisReaders.BuildSettingOverride,
 		getBuildSettingOverridesFromReference(configurationReference),
 		func(entry model_core.Message[*model_analysis_pb.BuildSettingOverride, TReference]) (int, *model_core_pb.DecodableReference) {
-			switch entry.Message.GetLevel().(type) {
-			case *model_analysis_pb.BuildSettingOverride_Leaf_:
+			switch entry.Message.WhichLevel() {
+			case model_analysis_pb.BuildSettingOverride_Leaf_case:
 				return strings.Compare(visibleBuildSettingLabel, entry.Message.GetLeaf().GetLabel()), nil
-			case *model_analysis_pb.BuildSettingOverride_Parent_:
+			case model_analysis_pb.BuildSettingOverride_Parent_case:
 				return strings.Compare(visibleBuildSettingLabel, entry.Message.GetParent().GetFirstLabel()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
@@ -419,9 +413,9 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 
 	// No override present. Obtain the default value
 	// of the build setting.
-	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+	targetValue := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: visibleBuildSettingLabel,
-	})
+	}.Build())
 	if !targetValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Value, TReference]{}, evaluation.ErrMissingDependency
 	}
@@ -455,11 +449,11 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 		featureFlagInfoProviderIdentifierStr := featureFlagInfoProviderIdentifier.String()
 		featureFlagProvider := e.GetTargetProviderValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Key {
-				return &model_analysis_pb.TargetProvider_Key{
+				return model_analysis_pb.TargetProvider_Key_builder{
 					Label:              visibleBuildSettingLabel,
 					Variant:            newTargetVariant(model_core.Patch(e, configurationReference).Merge(patcher), nil),
 					ProviderIdentifier: featureFlagInfoProviderIdentifierStr,
-				}
+				}.Build()
 			}),
 		)
 		if !featureFlagProvider.IsSet() {
@@ -515,9 +509,9 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 			return nil, nil, fmt.Errorf("invalid transition identifier: %w", err)
 		}
 
-		transitionValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+		transitionValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 			Identifier: transitionIdentifier.String(),
-		})
+		}.Build())
 		if !transitionValue.IsSet() {
 			return nil, nil, evaluation.ErrMissingDependency
 		}
@@ -714,7 +708,7 @@ func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransiti
 	if !allBuiltinsModulesNames.IsSet() {
 		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.GetBuiltinsModuleNames())
 	if err != nil {
 		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, err
 	}
@@ -743,16 +737,16 @@ func (c *baseComputer[TReference, TMetadata]) performAndApplyUserDefinedTransiti
 		if err != nil {
 			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, fmt.Errorf("key %#v: %w", i, err)
 		}
-		entries = append(entries, &model_analysis_pb.UserDefinedTransition_Value_Success_Entry{
+		entries = append(entries, model_analysis_pb.UserDefinedTransition_Value_Success_Entry_builder{
 			Key:                          key,
 			OutputConfigurationReference: outputConfigurationReference.Message,
-		})
+		}.Build())
 		patcher.Merge(outputConfigurationReference.Patcher)
 	}
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.UserDefinedTransition_Value_Success{
+		model_analysis_pb.UserDefinedTransition_Value_Success_builder{
 			Entries: entries,
-		},
+		}.Build(),
 		patcher,
 	), nil
 }
@@ -780,10 +774,10 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
 		transitionValue := e.GetUserDefinedTransitionValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.UserDefinedTransition_Key{
+				model_analysis_pb.UserDefinedTransition_Key_builder{
 					TransitionIdentifier:        transition.Message.GetIdentifier(),
 					InputConfigurationReference: patchedConfigurationReference.Message,
-				},
+				}.Build(),
 				patchedConfigurationReference.Patcher,
 			),
 		)
@@ -791,12 +785,12 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached
 			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
-		switch transitionValue.Message.GetResult().(type) {
-		case *model_analysis_pb.UserDefinedTransition_Value_TransitionDependsOnAttrs:
+		switch transitionValue.Message.WhichResult() {
+		case model_analysis_pb.UserDefinedTransition_Value_TransitionDependsOnAttrs_case:
 			// It turns out this user defined transition
 			// accesses the "attr" parameter. This prevents
 			// it from getting cached.
-		case *model_analysis_pb.UserDefinedTransition_Value_Success_:
+		case model_analysis_pb.UserDefinedTransition_Value_Success_case:
 			return model_core.Patch(e, model_core.Nested(transitionValue, transitionValue.Message.GetSuccess())), nil
 		default:
 			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, errors.New("unexpected user defined transition result type")
@@ -878,10 +872,10 @@ func performBuiltinTransition[TReference object.BasicReference, TMetadata model_
 		inputConfigurationReference := model_core.Patch(e, configurationReference)
 		execTransition := e.GetExecTransitionValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.ExecTransition_Key{
+				model_analysis_pb.ExecTransition_Key_builder{
 					PlatformLabel:               platformLabel,
 					InputConfigurationReference: inputConfigurationReference.Message,
-				},
+				}.Build(),
 				inputConfigurationReference.Patcher,
 			),
 		)
@@ -891,27 +885,27 @@ func performBuiltinTransition[TReference object.BasicReference, TMetadata model_
 
 		outputConfigurationReference := model_core.Patch(e, model_core.Nested(execTransition, execTransition.Message.GetOutputConfigurationReference()))
 		return model_core.NewPatchedMessage(
-			&model_analysis_pb.UserDefinedTransition_Value_Success{
-				Entries: []*model_analysis_pb.UserDefinedTransition_Value_Success_Entry{{
+			model_analysis_pb.UserDefinedTransition_Value_Success_builder{
+				Entries: []*model_analysis_pb.UserDefinedTransition_Value_Success_Entry{model_analysis_pb.UserDefinedTransition_Value_Success_Entry_builder{
 					OutputConfigurationReference: outputConfigurationReference.Message,
-				}},
-			},
+				}.Build()},
+			}.Build(),
 			outputConfigurationReference.Patcher,
 		), nil
 	case model_starlark_pb.Transition_None_case:
 		// Use the empty configuration.
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.UserDefinedTransition_Value_Success{
+		return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.UserDefinedTransition_Value_Success_builder{
 			Entries: []*model_analysis_pb.UserDefinedTransition_Value_Success_Entry{{}},
-		}), nil
+		}.Build()), nil
 	case model_starlark_pb.Transition_Target_case:
 		// Don't transition. Use the current target.
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
 		return model_core.NewPatchedMessage(
-			&model_analysis_pb.UserDefinedTransition_Value_Success{
-				Entries: []*model_analysis_pb.UserDefinedTransition_Value_Success_Entry{{
+			model_analysis_pb.UserDefinedTransition_Value_Success_builder{
+				Entries: []*model_analysis_pb.UserDefinedTransition_Value_Success_Entry{model_analysis_pb.UserDefinedTransition_Value_Success_Entry_builder{
 					OutputConfigurationReference: patchedConfigurationReference.Message,
-				}},
-			},
+				}.Build()},
+			}.Build(),
 			patchedConfigurationReference.Patcher,
 		), nil
 	case model_starlark_pb.Transition_Unconfigured_case:
@@ -950,17 +944,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUserDefinedTransitionValue(
 			// the rule in which it is referenced. Return
 			// this to the caller, so that it can apply the
 			// transition directly.
-			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.UserDefinedTransition_Value{
-				Result: &model_analysis_pb.UserDefinedTransition_Value_TransitionDependsOnAttrs{TransitionDependsOnAttrs: &emptypb.Empty{}},
-			}), nil
+			return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.UserDefinedTransition_Value_builder{
+				TransitionDependsOnAttrs: &emptypb.Empty{},
+			}.Build()), nil
 		}
 		return PatchedUserDefinedTransitionValue[TMetadata]{}, err
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.UserDefinedTransition_Value{
-			Result: &model_analysis_pb.UserDefinedTransition_Value_Success_{Success: entries.Message},
-		},
+		model_analysis_pb.UserDefinedTransition_Value_builder{
+			Success: proto.ValueOrDefault(entries.Message),
+		}.Build(),
 		entries.Patcher,
 	), nil
 }

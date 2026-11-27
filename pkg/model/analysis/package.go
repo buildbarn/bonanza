@@ -32,7 +32,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
-	canonicalPackage, err := label.NewCanonicalPackage(key.Label)
+	canonicalPackage, err := label.NewCanonicalPackage(key.GetLabel())
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid package label: %w", err)
 	}
@@ -40,10 +40,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Co
 	if !gotAnalysisEncoders || !gotStarlarkValueEncoders {
 		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	if len(key.MacroInstanceName) > 0 {
-		value, err := c.computeMacroInstancePackageValue(ctx, canonicalPackage, key.MacroInstanceName, e, analysisEncoders, starlarkValueEncoders)
+	if macroInstanceName := key.GetMacroInstanceName(); len(macroInstanceName) > 0 {
+		value, err := c.computeMacroInstancePackageValue(ctx, canonicalPackage, macroInstanceName, e, analysisEncoders, starlarkValueEncoders)
 		if err != nil && !errors.Is(err, evaluation.ErrMissingDependency) {
-			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("macro instance %#v: %w", strings.Join(key.MacroInstanceName, ""), err)
+			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("macro instance %#v: %w", strings.Join(macroInstanceName, ""), err)
 		}
 		return value, err
 	}
@@ -63,9 +63,9 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 	canonicalRepo := canonicalPackage.GetCanonicalRepo()
 
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
-	repoDefaultAttrsValue := e.GetRepoDefaultAttrsValue(&model_analysis_pb.RepoDefaultAttrs_Key{
+	repoDefaultAttrsValue := e.GetRepoDefaultAttrsValue(model_analysis_pb.RepoDefaultAttrs_Key_builder{
 		CanonicalRepo: canonicalRepo.String(),
-	})
+	}.Build())
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	if !allBuiltinsModulesNames.IsSet() || !repoDefaultAttrsValue.IsSet() || !gotFileReader {
 		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -83,10 +83,10 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 	}
 
 	for _, buildFileName := range dotbazel.BuildTargetNames {
-		buildFileProperties := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
+		buildFileProperties := e.GetFilePropertiesValue(model_analysis_pb.FileProperties_Key_builder{
 			CanonicalRepo: canonicalRepo.String(),
 			Path:          canonicalPackage.AppendTargetName(buildFileName).GetRepoRelativePath(),
-		})
+		}.Build())
 		if !buildFileProperties.IsSet() {
 			return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
@@ -123,11 +123,11 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 			if err != nil {
 				return nil, err
 			}
-			globValue := e.GetGlobValue(&model_analysis_pb.Glob_Key{
+			globValue := e.GetGlobValue(model_analysis_pb.Glob_Key_builder{
 				Package:            canonicalPackage.String(),
 				Pattern:            nfa.Bytes(),
 				IncludeDirectories: includeDirectories,
-			})
+			}.Build())
 			if !globValue.IsSet() {
 				return nil, evaluation.ErrMissingDependency
 			}
@@ -138,10 +138,10 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 			if err != nil {
 				return nil, err
 			}
-			packagesAtAndBelowValue := e.GetPackagesAtAndBelowValue(&model_analysis_pb.PackagesAtAndBelow_Key{
+			packagesAtAndBelowValue := e.GetPackagesAtAndBelowValue(model_analysis_pb.PackagesAtAndBelow_Key_builder{
 				BasePackage: canonicalPackage.String(),
 				Pattern:     nfa.Bytes(),
-			})
+			}.Build())
 			if !packagesAtAndBelowValue.IsSet() {
 				return nil, evaluation.ErrMissingDependency
 			}
@@ -197,26 +197,26 @@ func (c *baseComputer[TReference, TMetadata]) newPackageTargetsTreeBuilder(ctx c
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Package_Value_Target, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Package_Value_Target, TMetadata] {
 				var firstName, lastName string
-				switch childNodes.Message[0].GetLevel().(type) {
-				case *model_analysis_pb.Package_Value_Target_Leaf:
+				switch childNodes.Message[0].WhichLevel() {
+				case model_analysis_pb.Package_Value_Target_Leaf_case:
 					firstName = childNodes.Message[0].GetLeaf().GetName()
-				case *model_analysis_pb.Package_Value_Target_Parent_:
+				case model_analysis_pb.Package_Value_Target_Parent_case:
 					firstName = childNodes.Message[0].GetParent().GetFirstName()
 				}
-				switch xmsg := childNodes.Message[len(childNodes.Message)-1]; xmsg.GetLevel().(type) {
-				case *model_analysis_pb.Package_Value_Target_Leaf:
+				switch xmsg := childNodes.Message[len(childNodes.Message)-1]; xmsg.WhichLevel() {
+				case model_analysis_pb.Package_Value_Target_Leaf_case:
 					lastName = xmsg.GetLeaf().GetName()
-				case *model_analysis_pb.Package_Value_Target_Parent_:
+				case model_analysis_pb.Package_Value_Target_Parent_case:
 					lastName = xmsg.GetParent().GetLastName()
 				}
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Package_Value_Target {
-					return &model_analysis_pb.Package_Value_Target{
-						Level: &model_analysis_pb.Package_Value_Target_Parent_{Parent: &model_analysis_pb.Package_Value_Target_Parent{
+					return model_analysis_pb.Package_Value_Target_builder{
+						Parent: model_analysis_pb.Package_Value_Target_Parent_builder{
 							Reference: patcher.AddDecodableReference(createdObject),
 							FirstName: firstName,
 							LastName:  lastName,
-						}},
-					}
+						}.Build(),
+					}.Build()
 				})
 			}),
 		),
@@ -232,12 +232,12 @@ func (c *baseComputer[TReference, TMetadata]) buildPackageDeclarations(ctx conte
 	for _, name := range targetRegistrar.GetTargetNames() {
 		target := targetRegistrar.GetAndRemoveTarget(name)
 		if err := targetsBuilder.PushChild(model_core.NewPatchedMessage(
-			&model_analysis_pb.Package_Value_Target{
-				Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: model_starlark_pb.Target_builder{
+			model_analysis_pb.Package_Value_Target_builder{
+				Leaf: model_starlark_pb.Target_builder{
 					Name:       name,
 					Definition: target.Message,
-				}.Build()},
-			},
+				}.Build(),
+			}.Build(),
 			target.Patcher,
 		)); err != nil {
 			return model_core.PatchedMessage[*model_analysis_pb.Package_Value, TMetadata]{}, err
@@ -270,10 +270,10 @@ func (c *baseComputer[TReference, TMetadata]) buildPackageDeclarations(ctx conte
 
 	targets.Patcher.Merge(macroExpansionContexts.Patcher)
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.Package_Value{
+		model_analysis_pb.Package_Value_builder{
 			Targets:                targets.Message,
 			MacroExpansionContexts: macroExpansionContexts.Message,
-		},
+		}.Build(),
 		targets.Patcher,
 	), nil
 }
@@ -284,17 +284,17 @@ func (c *baseComputer[TReference, TMetadata]) buildPackageDeclarations(ctx conte
 func newGlobalResolver[TReference object.BasicReference](ctx context.Context, e CompiledBzlFileValueGetter[TReference], valueReaders *model_starlark.ValueReaders[TReference], builtinsModuleNames []string) model_starlark.GlobalResolver[TReference] {
 	return func(identifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, TReference], error) {
 		canonicalLabel := identifier.GetCanonicalLabel()
-		compiledBzlFile := e.GetCompiledBzlFileValue(&model_analysis_pb.CompiledBzlFile_Key{
+		compiledBzlFile := e.GetCompiledBzlFileValue(model_analysis_pb.CompiledBzlFile_Key_builder{
 			Label:               canonicalLabel.String(),
 			BuiltinsModuleNames: trimBuiltinModuleNames(builtinsModuleNames, canonicalLabel.GetCanonicalRepo().GetModuleInstance().GetModule()),
-		})
+		}.Build())
 		if !compiledBzlFile.IsSet() {
 			return model_core.Message[*model_starlark_pb.Value, TReference]{}, evaluation.ErrMissingDependency
 		}
 		return model_starlark.GetStructFieldValue(
 			ctx,
 			valueReaders.List,
-			model_core.Nested(compiledBzlFile, compiledBzlFile.Message.CompiledProgram.GetGlobals()),
+			model_core.Nested(compiledBzlFile, compiledBzlFile.Message.GetCompiledProgram().GetGlobals()),
 			identifier.GetStarlarkIdentifier().String(),
 		)
 	}
@@ -305,14 +305,14 @@ func newGlobalResolver[TReference object.BasicReference](ctx context.Context, e 
 // the functions declared in them.
 func newCompiledProgramResolver[TReference object.BasicReference](e CompiledBzlFileValueGetter[TReference], builtinsModuleNames []string) model_starlark.CompiledProgramResolver[TReference] {
 	return func(filename label.CanonicalLabel) (model_core.Message[*model_starlark_pb.CompiledProgram, TReference], error) {
-		compiledBzlFile := e.GetCompiledBzlFileValue(&model_analysis_pb.CompiledBzlFile_Key{
+		compiledBzlFile := e.GetCompiledBzlFileValue(model_analysis_pb.CompiledBzlFile_Key_builder{
 			Label:               filename.String(),
 			BuiltinsModuleNames: trimBuiltinModuleNames(builtinsModuleNames, filename.GetCanonicalPackage().GetCanonicalRepo().GetModuleInstance().GetModule()),
-		})
+		}.Build())
 		if !compiledBzlFile.IsSet() {
 			return model_core.Message[*model_starlark_pb.CompiledProgram, TReference]{}, evaluation.ErrMissingDependency
 		}
-		return model_core.Nested(compiledBzlFile, compiledBzlFile.Message.CompiledProgram), nil
+		return model_core.Nested(compiledBzlFile, compiledBzlFile.Message.GetCompiledProgram()), nil
 	}
 }
 
@@ -372,23 +372,24 @@ func (r *existingRulesResolver[TReference, TMetadata]) GetTestSuiteTestReader() 
 }
 
 func (r *existingRulesResolver[TReference, TMetadata]) LookupExistingRule(targetName label.TargetName) (model_core.Message[*model_starlark_pb.Target_Definition, TReference], error) {
-	targetValue := r.environment.GetTargetValue(&model_analysis_pb.Target_Key{
+	targetValue := r.environment.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: r.canonicalPackage.AppendTargetName(targetName).String(),
-	})
+	}.Build())
 	if !targetValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Target_Definition, TReference]{}, evaluation.ErrMissingDependency
 	}
-	if targetValue.Message.Definition == nil {
+	targetValueDefinition := targetValue.Message.GetDefinition()
+	if targetValueDefinition == nil {
 		return model_core.Message[*model_starlark_pb.Target_Definition, TReference]{}, nil
 	}
-	return model_core.Nested(targetValue, targetValue.Message.Definition), nil
+	return model_core.Nested(targetValue, targetValueDefinition), nil
 }
 
 func (r *existingRulesResolver[TReference, TMetadata]) ForEachExistingRule(yield func(targetName label.TargetName, definition model_core.Message[*model_starlark_pb.Target_Definition, TReference]) error) error {
-	packageTargets := r.environment.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+	packageTargets := r.environment.GetPackageTargetsValue(model_analysis_pb.PackageTargets_Key_builder{
 		Package:           r.canonicalPackage.String(),
 		ExcludeFinalizers: true,
-	})
+	}.Build())
 	if !packageTargets.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
@@ -437,10 +438,10 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	// depending on this, as opposed to the declarations of the
 	// macro instance's parent, ensures that changes to the parent
 	// don't cause the macro instance to be expanded again.
-	macroExpansionContextValue := e.GetMacroExpansionContextValue(&model_analysis_pb.MacroExpansionContext_Key{
+	macroExpansionContextValue := e.GetMacroExpansionContextValue(model_analysis_pb.MacroExpansionContext_Key_builder{
 		Package:           canonicalPackage.String(),
 		MacroInstanceName: macroInstanceNameSuffixes,
-	})
+	}.Build())
 	if !macroExpansionContextValue.IsSet() {
 		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -460,9 +461,9 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid macro identifier %#v: %w", rootMacroInstanceDefinition.Message.GetMacroIdentifier(), err)
 	}
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
-	macroValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+	macroValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 		Identifier: macroIdentifier.String(),
-	})
+	}.Build())
 	if !allBuiltinsModulesNames.IsSet() || !macroValue.IsSet() {
 		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}

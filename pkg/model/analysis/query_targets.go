@@ -74,13 +74,11 @@ func (c *baseComputer[TReference, TMetadata]) newQueryTargetTreeBuilder(ctx cont
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.QueryTarget, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata] {
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.QueryTarget {
-					return &model_analysis_pb.QueryTarget{
-						Level: &model_analysis_pb.QueryTarget_Parent_{
-							Parent: &model_analysis_pb.QueryTarget_Parent{
-								Reference: patcher.AddDecodableReference(createdObject),
-							},
-						},
-					}
+					return model_analysis_pb.QueryTarget_builder{
+						Parent: model_analysis_pb.QueryTarget_Parent_builder{
+							Reference: patcher.AddDecodableReference(createdObject),
+						}.Build(),
+					}.Build()
 				})
 			}),
 		),
@@ -104,16 +102,16 @@ func newQueryTargetLeaf[TReference object.BasicReference, TMetadata model_core.R
 	if definitionDetail == model_analysis_pb.QueryTarget_NONE {
 		// Only the label is needed, meaning there is no need to
 		// load the target.
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.QueryTarget{
-			Level: &model_analysis_pb.QueryTarget_Leaf_{Leaf: &model_analysis_pb.QueryTarget_Leaf{
+		return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.QueryTarget_builder{
+			Leaf: model_analysis_pb.QueryTarget_Leaf_builder{
 				Label: targetLabel,
-			}},
-		}), nil
+			}.Build(),
+		}.Build()), nil
 	}
 
-	target := e.GetTargetValue(&model_analysis_pb.Target_Key{
+	target := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: targetLabel,
-	})
+	}.Build())
 	if !target.IsSet() {
 		return model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -126,12 +124,12 @@ func newQueryTargetLeaf[TReference object.BasicReference, TMetadata model_core.R
 		if err != nil {
 			return model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata]{}, err
 		}
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.QueryTarget{
-			Level: &model_analysis_pb.QueryTarget_Leaf_{Leaf: &model_analysis_pb.QueryTarget_Leaf{
+		return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.QueryTarget_builder{
+			Leaf: model_analysis_pb.QueryTarget_Leaf_builder{
 				Label:      targetLabel,
 				Definition: definition,
-			}},
-		}), nil
+			}.Build(),
+		}.Build()), nil
 	}
 
 	// For rule targets, also provide the names of the public
@@ -154,13 +152,13 @@ func newQueryTargetLeaf[TReference object.BasicReference, TMetadata model_core.R
 		}
 	}
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.QueryTarget {
-		return &model_analysis_pb.QueryTarget{
-			Level: &model_analysis_pb.QueryTarget_Leaf_{Leaf: &model_analysis_pb.QueryTarget_Leaf{
+		return model_analysis_pb.QueryTarget_builder{
+			Leaf: model_analysis_pb.QueryTarget_Leaf_builder{
 				Label:           targetLabel,
 				Definition:      model_core.Patch(e, model_core.Nested(target, target.Message.GetDefinition())).Merge(patcher),
 				PublicAttrNames: publicAttrNames,
-			}},
-		}
+			}.Build(),
+		}.Build()
 	}), nil
 }
 
@@ -198,15 +196,15 @@ func (c *baseComputer[TReference, TMetadata]) buildQueryTargets(
 	defer treeBuilder.Discard()
 	missingDependencies := false
 	for i, targetLabel := range targetLabels.Message {
-		switch level := targetLabel.Level.(type) {
-		case *model_analysis_pb.TargetLabel_Leaf:
-			queryTarget, err := newQueryTargetLeaf(e, level.Leaf, definitionDetail)
+		switch targetLabel.WhichLevel() {
+		case model_analysis_pb.TargetLabel_Leaf_case:
+			queryTarget, err := newQueryTargetLeaf(e, targetLabel.GetLeaf(), definitionDetail)
 			if err != nil {
 				if errors.Is(err, evaluation.ErrMissingDependency) {
 					missingDependencies = true
 					continue
 				}
-				return model_core.PatchedMessage[[]*model_analysis_pb.QueryTarget, TMetadata]{}, fmt.Errorf("target %#v: %w", level.Leaf, err)
+				return model_core.PatchedMessage[[]*model_analysis_pb.QueryTarget, TMetadata]{}, fmt.Errorf("target %#v: %w", targetLabel.GetLeaf(), err)
 			}
 			if missingDependencies {
 				// No need to construct a B-tree.
@@ -216,14 +214,14 @@ func (c *baseComputer[TReference, TMetadata]) buildQueryTargets(
 			if err := treeBuilder.PushChild(queryTarget); err != nil {
 				return model_core.PatchedMessage[[]*model_analysis_pb.QueryTarget, TMetadata]{}, err
 			}
-		case *model_analysis_pb.TargetLabel_Parent_:
-			patchedReference := model_core.Patch(e, model_core.Nested(targetLabels, level.Parent.Reference))
+		case model_analysis_pb.TargetLabel_Parent_case:
+			patchedReference := model_core.Patch(e, model_core.Nested(targetLabels, targetLabel.GetParent().GetReference()))
 			queryTargets := e.GetQueryTargetsValue(
 				model_core.NewPatchedMessage(
-					&model_analysis_pb.QueryTargets_Key{
+					model_analysis_pb.QueryTargets_Key_builder{
 						TargetLabelsReference: patchedReference.Message,
 						DefinitionDetail:      definitionDetail,
-					},
+					}.Build(),
 					patchedReference.Patcher,
 				),
 			)
@@ -231,7 +229,7 @@ func (c *baseComputer[TReference, TMetadata]) buildQueryTargets(
 				missingDependencies = true
 				continue
 			}
-			for _, queryTarget := range queryTargets.Message.Targets {
+			for _, queryTarget := range queryTargets.Message.GetTargets() {
 				if err := treeBuilder.PushChild(
 					model_core.Patch(e, model_core.Nested(queryTargets, queryTarget)),
 				); err != nil {
@@ -255,18 +253,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeQueryTargetsValue(ctx conte
 		return PatchedQueryTargetsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	analysisReaders := &analysisEncoders.Readers
-	targetLabels, err := model_parser.Dereference(ctx, analysisReaders.TargetLabel, model_core.Nested(key, key.Message.TargetLabelsReference))
+	targetLabels, err := model_parser.Dereference(ctx, analysisReaders.TargetLabel, model_core.Nested(key, key.Message.GetTargetLabelsReference()))
 	if err != nil {
 		return PatchedQueryTargetsValue[TMetadata]{}, err
 	}
-	targets, err := c.buildQueryTargets(ctx, e, analysisEncoders, targetLabels, key.Message.DefinitionDetail)
+	targets, err := c.buildQueryTargets(ctx, e, analysisEncoders, targetLabels, key.Message.GetDefinitionDetail())
 	if err != nil {
 		return PatchedQueryTargetsValue[TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.QueryTargets_Value{
+		model_analysis_pb.QueryTargets_Value_builder{
 			Targets: targets.Message,
-		},
+		}.Build(),
 		targets.Patcher,
 	), nil
 }

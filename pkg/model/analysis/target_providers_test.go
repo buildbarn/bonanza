@@ -77,27 +77,27 @@ func TestTargetProviders(t *testing.T) {
 	expectIncomingEdgeTransition := func(e *MockTargetProvidersEnvironmentForTesting, label string) {
 		e.EXPECT().GetTargetIncomingEdgeTransitionValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
-				return &model_analysis_pb.TargetIncomingEdgeTransition_Key{Label: label}
+				return model_analysis_pb.TargetIncomingEdgeTransition_Key_builder{Label: label}.Build()
 			}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.TargetIncomingEdgeTransition_Value{}))
 	}
 	expectConfiguredTarget := func(e *MockTargetProvidersEnvironmentForTesting, label string, aspects []*model_starlark_pb.AppliedAspect, value *model_analysis_pb.ConfiguredTarget_Value) {
 		e.EXPECT().GetConfiguredTargetValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.ConfiguredTarget_Key {
-				return &model_analysis_pb.ConfiguredTarget_Key{
+				return model_analysis_pb.ConfiguredTarget_Key_builder{
 					Label:   label,
 					Variant: newTestTargetVariant(aspects),
-				}
+				}.Build()
 			}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](value))
 	}
 	compute := func(e *MockTargetProvidersEnvironmentForTesting, label string, aspects ...*model_starlark_pb.AppliedAspect) (model_core.PatchedMessage[*model_analysis_pb.TargetProviders_Value, model_core.CreatedObjectTree], error) {
 		return bct.computer.ComputeTargetProvidersValue(
 			ctx,
-			model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.TargetProviders_Key{
+			model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.TargetProviders_Key_builder{
 				Label:   label,
 				Variant: newTestTargetVariant(aspects),
-			}),
+			}.Build()),
 			e,
 		)
 	}
@@ -113,21 +113,21 @@ func TestTargetProviders(t *testing.T) {
 	t.Run("NoAspects", func(t *testing.T) {
 		e := newEnvironment()
 		expectIncomingEdgeTransition(e, "@@main+//:foo")
-		expectConfiguredTarget(e, "@@main+//:foo", nil, &model_analysis_pb.ConfiguredTarget_Value{
+		expectConfiguredTarget(e, "@@main+//:foo", nil, model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{
 				newStruct(defaultInfo, nil),
 				newStruct(aInfo, nil),
 			},
-		})
+		}.Build())
 
 		value, err := compute(e, "@@main+//:foo")
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.TargetProviders_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.TargetProviders_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{
 				newStruct(defaultInfo, nil),
 				newStruct(aInfo, nil),
 			},
-		}, value.Message)
+		}.Build(), value.Message)
 	})
 
 	t.Run("MergeAspects", func(t *testing.T) {
@@ -137,28 +137,28 @@ func TestTargetProviders(t *testing.T) {
 		// are combined.
 		e := newEnvironmentWithEncoders()
 		expectIncomingEdgeTransition(e, "@@main+//:foo")
-		expectConfiguredTarget(e, "@@main+//:foo", nil, &model_analysis_pb.ConfiguredTarget_Value{
+		expectConfiguredTarget(e, "@@main+//:foo", nil, model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{
 				newStruct(defaultInfo, nil),
 				newStruct(outputGroupInfo, map[string]*model_starlark_pb.Value{"y": boolValue(true)}),
 				newStruct(aInfo, nil),
 			},
-		})
-		expectConfiguredTarget(e, "@@main+//:foo", []*model_starlark_pb.AppliedAspect{aspect1}, &model_analysis_pb.ConfiguredTarget_Value{
+		}.Build())
+		expectConfiguredTarget(e, "@@main+//:foo", []*model_starlark_pb.AppliedAspect{aspect1}, model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{
 				newStruct(cInfo, nil),
 				newStruct(outputGroupInfo, map[string]*model_starlark_pb.Value{"x": boolValue(false), "z": boolValue(true)}),
 			},
-		})
-		expectConfiguredTarget(e, "@@main+//:foo", []*model_starlark_pb.AppliedAspect{aspect1, aspect2}, &model_analysis_pb.ConfiguredTarget_Value{
+		}.Build())
+		expectConfiguredTarget(e, "@@main+//:foo", []*model_starlark_pb.AppliedAspect{aspect1, aspect2}, model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{
 				newStruct(bInfo, nil),
 			},
-		})
+		}.Build())
 
 		value, err := compute(e, "@@main+//:foo", aspect1, aspect2)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.TargetProviders_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.TargetProviders_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{
 				newStruct(defaultInfo, nil),
 				newStruct(outputGroupInfo, map[string]*model_starlark_pb.Value{"x": boolValue(false), "y": boolValue(true), "z": boolValue(true)}),
@@ -166,7 +166,7 @@ func TestTargetProviders(t *testing.T) {
 				newStruct(bInfo, nil),
 				newStruct(cInfo, nil),
 			},
-		}, value.Message)
+		}.Build(), value.Message)
 	})
 
 	t.Run("MergeOutputGroupsInParentNodes", func(t *testing.T) {
@@ -181,20 +181,20 @@ func TestTargetProviders(t *testing.T) {
 		})
 		e := newEnvironmentWithEncoders()
 		expectIncomingEdgeTransition(e, "@@main+//:foo")
-		expectConfiguredTarget(e, "@@main+//:foo", nil, &model_analysis_pb.ConfiguredTarget_Value{
+		expectConfiguredTarget(e, "@@main+//:foo", nil, model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{
 				newStruct(outputGroupInfo, map[string]*model_starlark_pb.Value{"y": boolValue(true)}),
 			},
-		})
+		}.Build())
 		e.EXPECT().GetConfiguredTargetValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.ConfiguredTarget_Key {
-				return &model_analysis_pb.ConfiguredTarget_Key{
+				return model_analysis_pb.ConfiguredTarget_Key_builder{
 					Label:   "@@main+//:foo",
 					Variant: newTestTargetVariant([]*model_starlark_pb.AppliedAspect{aspect1}),
-				}
+				}.Build()
 			}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.ConfiguredTarget_Value {
-			return &model_analysis_pb.ConfiguredTarget_Value{
+			return model_analysis_pb.ConfiguredTarget_Value_builder{
 				ProviderInstances: []*model_starlark_pb.Struct{model_starlark_pb.Struct_builder{
 					Fields: model_starlark_pb.Struct_Fields_builder{
 						Keys: []string{"x", "z"},
@@ -209,27 +209,27 @@ func TestTargetProviders(t *testing.T) {
 						ProviderIdentifier: outputGroupInfo,
 					}.Build(),
 				}.Build()},
-			}
+			}.Build()
 		}))
 
 		value, err := compute(e, "@@main+//:foo", aspect1)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.TargetProviders_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.TargetProviders_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{
 				newStruct(outputGroupInfo, map[string]*model_starlark_pb.Value{"x": boolValue(false), "y": boolValue(true), "z": boolValue(true)}),
 			},
-		}, value.Message)
+		}.Build(), value.Message)
 	})
 
 	t.Run("DuplicateProvider", func(t *testing.T) {
 		e := newEnvironmentWithEncoders()
 		expectIncomingEdgeTransition(e, "@@main+//:foo")
-		expectConfiguredTarget(e, "@@main+//:foo", nil, &model_analysis_pb.ConfiguredTarget_Value{
+		expectConfiguredTarget(e, "@@main+//:foo", nil, model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{newStruct(aInfo, nil)},
-		})
-		expectConfiguredTarget(e, "@@main+//:foo", []*model_starlark_pb.AppliedAspect{aspect1}, &model_analysis_pb.ConfiguredTarget_Value{
+		}.Build())
+		expectConfiguredTarget(e, "@@main+//:foo", []*model_starlark_pb.AppliedAspect{aspect1}, model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{newStruct(aInfo, nil)},
-		})
+		}.Build())
 
 		_, err := compute(e, "@@main+//:foo", aspect1)
 		require.EqualError(t, err, "both target \"@@main+//:foo\" and aspect \"@@rules+//:defs.bzl%aspect1\" provide an instance of provider \"@@rules+//:defs.bzl%AInfo\"")
@@ -238,12 +238,12 @@ func TestTargetProviders(t *testing.T) {
 	t.Run("DuplicateOutputGroup", func(t *testing.T) {
 		e := newEnvironmentWithEncoders()
 		expectIncomingEdgeTransition(e, "@@main+//:foo")
-		expectConfiguredTarget(e, "@@main+//:foo", nil, &model_analysis_pb.ConfiguredTarget_Value{
+		expectConfiguredTarget(e, "@@main+//:foo", nil, model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{newStruct(outputGroupInfo, map[string]*model_starlark_pb.Value{"x": boolValue(true)})},
-		})
-		expectConfiguredTarget(e, "@@main+//:foo", []*model_starlark_pb.AppliedAspect{aspect1}, &model_analysis_pb.ConfiguredTarget_Value{
+		}.Build())
+		expectConfiguredTarget(e, "@@main+//:foo", []*model_starlark_pb.AppliedAspect{aspect1}, model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: []*model_starlark_pb.Struct{newStruct(outputGroupInfo, map[string]*model_starlark_pb.Value{"x": boolValue(false)})},
-		})
+		}.Build())
 
 		_, err := compute(e, "@@main+//:foo", aspect1)
 		require.EqualError(t, err, "both target \"@@main+//:foo\" and aspect \"@@rules+//:defs.bzl%aspect1\" provide output group \"x\"")

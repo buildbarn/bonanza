@@ -17,7 +17,7 @@ func (baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(ctx 
 	}
 
 	moduleOverrides := remoteOverrides.Message.GetModuleOverrides()
-	clientOverrides := localOverrides.Message.ModuleNames
+	clientOverrides := localOverrides.Message.GetModuleNames()
 	overrideList := make([]*model_analysis_pb.OverridesListModule, 0, len(moduleOverrides)+len(clientOverrides))
 
 	// Merge sort - both lists are already sorted for caching.
@@ -28,10 +28,14 @@ func (baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(ctx 
 			overrideList = append(overrideList, moduleOverrideToOverrideModule(moduleOverrides[0])...)
 			moduleOverrides = moduleOverrides[1:]
 		case cmp > 0:
-			overrideList = append(overrideList, &model_analysis_pb.OverridesListModule{Name: clientOverrides[0]})
+			overrideList = append(overrideList, model_analysis_pb.OverridesListModule_builder{
+				Name: clientOverrides[0],
+			}.Build())
 			clientOverrides = clientOverrides[1:]
 		default: // Same values - use client override instead of module as its explicate to this run.
-			overrideList = append(overrideList, &model_analysis_pb.OverridesListModule{Name: clientOverrides[0]})
+			overrideList = append(overrideList, model_analysis_pb.OverridesListModule_builder{
+				Name: clientOverrides[0],
+			}.Build())
 			clientOverrides = clientOverrides[1:]
 			moduleOverrides = moduleOverrides[1:]
 		}
@@ -42,23 +46,25 @@ func (baseComputer[TReference, TMetadata]) ComputeModulesWithOverridesValue(ctx 
 		overrideList = append(overrideList, moduleOverrideToOverrideModule(o)...)
 	}
 	for _, o := range clientOverrides {
-		overrideList = append(overrideList, &model_analysis_pb.OverridesListModule{Name: o})
+		overrideList = append(overrideList, model_analysis_pb.OverridesListModule_builder{
+			Name: o,
+		}.Build())
 	}
 
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModulesWithOverrides_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.ModulesWithOverrides_Value_builder{
 		OverridesList: overrideList,
-	}), nil
+	}.Build()), nil
 }
 
 func moduleOverrideToOverrideModule(mo *model_analysis_pb.ModuleOverride) []*model_analysis_pb.OverridesListModule {
-	olm := &model_analysis_pb.OverridesListModule{
+	olm := model_analysis_pb.OverridesListModule_builder{
 		Name: mo.GetName(),
-	}
-	switch override := mo.Definition.GetKind().(type) {
-	case *model_analysis_pb.ModuleOverride_Definition_MultipleVersions:
-		olm.Versions = override.MultipleVersions.Versions
-	case *model_analysis_pb.ModuleOverride_Definition_SingleVersion:
-		if override.SingleVersion.Version == "" {
+	}.Build()
+	switch mo.GetDefinition().WhichKind() {
+	case model_analysis_pb.ModuleOverride_Definition_MultipleVersions_case:
+		olm.SetVersions(mo.GetDefinition().GetMultipleVersions().GetVersions())
+	case model_analysis_pb.ModuleOverride_Definition_SingleVersion_case:
+		if mo.GetDefinition().GetSingleVersion().GetVersion() == "" {
 			// If no version number is specified, we must
 			// still go through minimal version selection to
 			// determine the version to use. We should

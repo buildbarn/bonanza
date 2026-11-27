@@ -50,9 +50,9 @@ func TestPackagesAtAndBelow(t *testing.T) {
 			),
 		}, true)
 		e.EXPECT().GetRepoValue(
-			testutil.EqProto(t, &model_analysis_pb.Repo_Key{CanonicalRepo: "main+"}),
+			testutil.EqProto(t, model_analysis_pb.Repo_Key_builder{CanonicalRepo: "main+"}.Build()),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
-			return &model_analysis_pb.Repo_Value{
+			return model_analysis_pb.Repo_Value_builder{
 				RootDirectoryReference: model_filesystem_pb.DirectoryReference_builder{
 					Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 						return testDirectoryMarshaler(plainDirectory(
@@ -60,17 +60,17 @@ func TestPackagesAtAndBelow(t *testing.T) {
 						))
 					})),
 				}.Build(),
-			}
+			}.Build()
 		}))
 
 		var pattern []byte
 		if includes != nil {
 			pattern = util.Must(glob.NewNFAFromPatterns(includes, excludes)).Bytes()
 		}
-		value, err := bct.computer.ComputePackagesAtAndBelowValue(ctx, &model_analysis_pb.PackagesAtAndBelow_Key{
+		value, err := bct.computer.ComputePackagesAtAndBelowValue(ctx, model_analysis_pb.PackagesAtAndBelow_Key_builder{
 			BasePackage: "@@main+//foo",
 			Pattern:     pattern,
-		}, e)
+		}.Build(), e)
 		if err != nil {
 			return nil, err
 		}
@@ -115,10 +115,10 @@ func TestPackagesAtAndBelow(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			value, err := compute(t, fooChildren, testCase.includes, testCase.excludes)
 			require.NoError(t, err)
-			testutil.RequireEqualProto(t, &model_analysis_pb.PackagesAtAndBelow_Value{
+			testutil.RequireEqualProto(t, model_analysis_pb.PackagesAtAndBelow_Value_builder{
 				PackageAtBasePackage:     true,
 				PackagesBelowBasePackage: testCase.expected,
-			}, value)
+			}.Build(), value)
 		})
 	}
 
@@ -135,9 +135,9 @@ func TestPackagesAtAndBelow(t *testing.T) {
 
 		value, err := compute(t, children, []string{"a", "b/**"}, nil)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.PackagesAtAndBelow_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.PackagesAtAndBelow_Value_builder{
 			PackageAtBasePackage:     true,
 			PackagesBelowBasePackage: []string{"a", "b/c", "b/d/e"},
-		}, value)
+		}.Build(), value)
 	})
 }

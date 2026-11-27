@@ -192,9 +192,9 @@ func (bct *baseComputerTester) newAnalysisEncoders() *model_analysis.Encoders[mo
 // analysis function requests it.
 func (bct *baseComputerTester) newStarlarkValueEncoders() *model_analysis.StarlarkValueEncoders[model_core.CreatedObjectTree] {
 	return util.Must(bct.computer.ComputeStarlarkValueEncodersObject(
-		model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.StarlarkValueEncoders_Value{
+		model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.StarlarkValueEncoders_Value_builder{
 			FileAccessParameters: &model_filesystem_pb.FileAccessParameters{},
-		}),
+		}.Build()),
 	))
 }
 

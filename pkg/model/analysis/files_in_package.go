@@ -134,7 +134,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeFilesInPackageValue(ctx conte
 		return PatchedFilesInPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	packageDirectory, err := getPackageDirectory(ctx, e, directoryReaders.DirectoryEntries, key.Package)
+	packageDirectory, err := getPackageDirectory(ctx, e, directoryReaders.DirectoryEntries, key.GetPackage())
 	if err != nil {
 		return PatchedFilesInPackageValue[TMetadata]{}, err
 	}
@@ -166,9 +166,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeFilesInPackageValue(ctx conte
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.FilesInPackage_Value{
+		model_analysis_pb.FilesInPackage_Value_builder{
 			Directory: trimmedPackageDirectory.Message.Message,
-		},
+		}.Build(),
 		trimmedPackageDirectory.Message.Patcher,
 	), nil
 }

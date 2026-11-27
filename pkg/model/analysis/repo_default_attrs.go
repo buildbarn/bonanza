@@ -23,10 +23,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 		return PatchedRepoDefaultAttrsValue[TMetadata]{}, fmt.Errorf("invalid canonical repo: %w", err)
 	}
 
-	repoFileProperties := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
+	repoFileProperties := e.GetFilePropertiesValue(model_analysis_pb.FileProperties_Key_builder{
 		CanonicalRepo: canonicalRepo.String(),
 		Path:          dotbazel.RepoFilename,
-	})
+	}.Build())
 
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
 	if !repoFileProperties.IsSet() || !gotFileReader || !gotStarlarkValueEncoders {
@@ -37,9 +37,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 	repoFileLabel := canonicalRepo.GetRootPackage().AppendTargetName(dotbazel.RepoTargetName)
 	exists := repoFileProperties.Message.GetExists()
 	if exists == nil {
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RepoDefaultAttrs_Value{
+		return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.RepoDefaultAttrs_Value_builder{
 			InheritableAttrs: model_starlark.DefaultInheritableAttrs,
-		}), nil
+		}.Build()), nil
 	}
 	repoFileContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
 		model_core.Nested(repoFileProperties, exists.GetContents()),
@@ -82,8 +82,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 		if !defaultAttrs.IsSet() {
 			defaultAttrs = model_core.NewSimplePatchedMessage[TMetadata](model_starlark.DefaultInheritableAttrs)
 		}
-		return &model_analysis_pb.RepoDefaultAttrs_Value{
+		return model_analysis_pb.RepoDefaultAttrs_Value_builder{
 			InheritableAttrs: defaultAttrs.Merge(patcher),
-		}, nil
+		}.Build(), nil
 	})
 }

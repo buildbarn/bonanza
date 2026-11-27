@@ -390,10 +390,10 @@ func TestIndexedConfiguredLabelAttrCursor(t *testing.T) {
 	newCursor := func(attrIndices ...uint32) indexedConfiguredLabelAttrCursor[model_core.CreatedObjectTree] {
 		labelAttrs := make([]*model_analysis_pb.IndexedConfiguredLabelAttr, 0, len(attrIndices))
 		for _, attrIndex := range attrIndices {
-			labelAttrs = append(labelAttrs, &model_analysis_pb.IndexedConfiguredLabelAttr{
+			labelAttrs = append(labelAttrs, model_analysis_pb.IndexedConfiguredLabelAttr_builder{
 				AttrIndex:  attrIndex,
 				Configured: &model_analysis_pb.ConfiguredLabelAttr{},
-			})
+			}.Build())
 		}
 		return newIndexedConfiguredLabelAttrCursor(model_core.NewSimpleMessage[model_core.CreatedObjectTree](labelAttrs))
 	}

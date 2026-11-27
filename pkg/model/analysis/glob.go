@@ -224,14 +224,14 @@ MatchNodes:
 
 func (c *baseComputer[TReference, TMetadata]) ComputeGlobValue(ctx context.Context, key *model_analysis_pb.Glob_Key, e GlobEnvironment[TReference, TMetadata]) (PatchedGlobValue[TMetadata], error) {
 	directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
-	filesInPackageValue := e.GetFilesInPackageValue(&model_analysis_pb.FilesInPackage_Key{
-		Package: key.Package,
-	})
+	filesInPackageValue := e.GetFilesInPackageValue(model_analysis_pb.FilesInPackage_Key_builder{
+		Package: key.GetPackage(),
+	}.Build())
 	if !gotDirectoryReaders || !filesInPackageValue.IsSet() {
 		return PatchedGlobValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	nfa, err := glob.NewNFAFromBytes(key.Pattern)
+	nfa, err := glob.NewNFAFromBytes(key.GetPattern())
 	if err != nil {
 		return PatchedGlobValue[TMetadata]{}, fmt.Errorf("invalid pattern: %w", err)
 	}
@@ -242,11 +242,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeGlobValue(ctx context.Conte
 		context:            ctx,
 		computer:           c,
 		directoryReaders:   directoryReaders,
-		includeDirectories: key.IncludeDirectories,
+		includeDirectories: key.GetIncludeDirectories(),
 	}
 	if err := w.walkDirectory(
 		util.NewNonEmptyStack(
-			model_core.Nested(filesInPackageValue, filesInPackageValue.Message.Directory),
+			model_core.Nested(filesInPackageValue, filesInPackageValue.Message.GetDirectory()),
 		),
 		nil,
 		&matcher,
@@ -259,9 +259,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeGlobValue(ctx context.Conte
 	// character.
 	sort.Strings(w.matchedPaths)
 
-	return model_core.NewSimplePatchedMessage[TMetadata](
-		&model_analysis_pb.Glob_Value{
-			MatchedPaths: w.matchedPaths,
-		},
-	), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.Glob_Value_builder{
+		MatchedPaths: w.matchedPaths,
+	}.Build()), nil
 }

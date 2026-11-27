@@ -13,7 +13,7 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleRegistryUrlsValue(ctx co
 	if !buildSpecification.IsSet() {
 		return PatchedModuleRegistryUrlsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleRegistryUrls_Value{
-		RegistryUrls: buildSpecification.Message.ModuleRegistryUrls,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.ModuleRegistryUrls_Value_builder{
+		RegistryUrls: buildSpecification.Message.GetModuleRegistryUrls(),
+	}.Build()), nil
 }

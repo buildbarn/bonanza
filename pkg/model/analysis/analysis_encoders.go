@@ -16,9 +16,9 @@ func (baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersValue(ctx cont
 	if !buildSpecification.IsSet() {
 		return PatchedAnalysisEncodersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.AnalysisEncoders_Value{
-		AnalysisEncoders: buildSpecification.Message.AnalysisEncoders,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.AnalysisEncoders_Value_builder{
+		AnalysisEncoders: buildSpecification.Message.GetAnalysisEncoders(),
+	}.Build()), nil
 }
 
 // Readers contains ObjectReaders that can be used to follow
@@ -50,7 +50,7 @@ type Encoders[TReference any] struct {
 
 func (c *baseComputer[TReference, TMetadata]) ComputeAnalysisEncodersObject(value model_core.Message[*model_analysis_pb.AnalysisEncoders_Value, TReference]) (*Encoders[TReference], error) {
 	encoder, err := c.binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
-		value.Message.AnalysisEncoders,
+		value.Message.GetAnalysisEncoders(),
 		uint32(c.referenceFormat.GetMaximumObjectSizeBytes()),
 	)
 	if err != nil {

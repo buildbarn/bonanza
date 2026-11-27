@@ -107,13 +107,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.SuccessfulActionResult_Key{
-			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
+		return model_analysis_pb.SuccessfulActionResult_Key_builder{
+			ExecuteRequest: model_analysis_pb.ExecuteRequest_builder{
 				PlatformPkixPublicKey: repoPlatform.Message.GetExecPkixPublicKey(),
 				ActionReference:       actionReference,
 				ExecutionTimeout:      &durationpb.Duration{Seconds: 60},
-			},
-		}, nil
+			}.Build(),
+		}.Build(), nil
 	})
 	if err != nil {
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to create action result key: %w", err)
@@ -135,9 +135,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to read standard output: %w", err)
 	}
 
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.StableInputRootPath_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.StableInputRootPath_Value_builder{
 		InputRootPath: strings.TrimSuffix(string(stdout), "\n"),
-	}), nil
+	}.Build()), nil
 }
 
 func (baseComputer[TReference, TMetadata]) ComputeStableInputRootPathObject(stableInputRootPath model_core.Message[*model_analysis_pb.StableInputRootPath_Value, TReference]) (*model_starlark.BarePath, error) {
@@ -145,7 +145,7 @@ func (baseComputer[TReference, TMetadata]) ComputeStableInputRootPathObject(stab
 	// likely add an option on the platform that controls the
 	// pathname format.
 	var resolver model_starlark.PathResolver
-	if err := path.Resolve(path.UNIXFormat.NewParser(stableInputRootPath.Message.InputRootPath), &resolver); err != nil {
+	if err := path.Resolve(path.UNIXFormat.NewParser(stableInputRootPath.Message.GetInputRootPath()), &resolver); err != nil {
 		return nil, fmt.Errorf("failed to resolve stable input root path: %w", err)
 	}
 	return resolver.CurrentPath, nil

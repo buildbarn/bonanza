@@ -44,14 +44,14 @@ func getTargetPlatformInfoProvider[TReference object.BasicReference, TMetadata m
 func (*baseComputer[TReference, TMetadata]) ComputeCompatibleToolchainsForTypeValue(ctx context.Context, key model_core.Message[*model_analysis_pb.CompatibleToolchainsForType_Key, TReference], e CompatibleToolchainsForTypeEnvironment[TReference, TMetadata]) (PatchedCompatibleToolchainsForTypeValue[TMetadata], error) {
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
-	registeredToolchains := e.GetRegisteredToolchainsForTypeValue(&model_analysis_pb.RegisteredToolchainsForType_Key{
-		ToolchainType: key.Message.ToolchainType,
-	})
+	registeredToolchains := e.GetRegisteredToolchainsForTypeValue(model_analysis_pb.RegisteredToolchainsForType_Key_builder{
+		ToolchainType: key.Message.GetToolchainType(),
+	}.Build())
 	if !registeredToolchains.IsSet() || !gotValueReaders {
 		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
+	configurationReference := model_core.Nested(key, key.Message.GetConfigurationReference())
 	platformInfoProvider, err := getTargetPlatformInfoProvider(e, configurationReference)
 	if err != nil {
 		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, err
@@ -67,36 +67,36 @@ func (*baseComputer[TReference, TMetadata]) ComputeCompatibleToolchainsForTypeVa
 	}
 
 	missingDependencies := false
-	allToolchains := registeredToolchains.Message.Toolchains
+	allToolchains := registeredToolchains.Message.GetToolchains()
 	var compatibleToolchains []*model_analysis_pb.RegisteredToolchain
 FindCompatibleToolchains:
 	for _, toolchain := range allToolchains {
-		if compatibleWith := toolchain.CompatibleWith; compatibleWith != nil && !constraintsAreCompatible(constraints, compatibleWith.Target) {
+		if compatibleWith := toolchain.GetCompatibleWith(); compatibleWith != nil && !constraintsAreCompatible(constraints, compatibleWith.GetTarget()) {
 			// Missing incompatible constraint value.
 			continue FindCompatibleToolchains
 		}
 
-		for _, targetSetting := range toolchain.TargetSettings {
+		for _, targetSetting := range toolchain.GetTargetSettings() {
 			targetSettingLabel, err := label.NewCanonicalLabel(targetSetting)
 			if err != nil {
 				return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, fmt.Errorf("invalid target setting label %#v: %w", targetSettingLabel, err)
 			}
 			selectValue := e.GetSelectValue(
 				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Select_Key {
-					return &model_analysis_pb.Select_Key{
+					return model_analysis_pb.Select_Key_builder{
 						ConditionIdentifiers:   []string{targetSetting},
 						ConfigurationReference: model_core.Patch(e, configurationReference).Merge(patcher),
 						// Visibility for target settings is already
 						// validated when configuring the toolchain target.
 						FromPackage: targetSettingLabel.GetCanonicalPackage().String(),
-					}
+					}.Build()
 				}),
 			)
 			if !selectValue.IsSet() {
 				missingDependencies = true
 				continue
 			}
-			if len(selectValue.Message.ConditionIndices) == 0 {
+			if len(selectValue.Message.GetConditionIndices()) == 0 {
 				// Incompatible target setting.
 				continue FindCompatibleToolchains
 			}
@@ -107,7 +107,7 @@ FindCompatibleToolchains:
 		return PatchedCompatibleToolchainsForTypeValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.CompatibleToolchainsForType_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.CompatibleToolchainsForType_Value_builder{
 		Toolchains: compatibleToolchains,
-	}), nil
+	}.Build()), nil
 }

@@ -27,21 +27,21 @@ func TestPackageTargets(t *testing.T) {
 
 	expectPackage := func(e *MockPackageTargetsEnvironmentForTesting, d declarations, macroInstanceName ...string) {
 		e.EXPECT().GetPackageValue(
-			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo", MacroInstanceName: macroInstanceName}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Package_Value{
+			testutil.EqProto(t, model_analysis_pb.Package_Key_builder{Label: "@@main+//foo", MacroInstanceName: macroInstanceName}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Package_Value_builder{
 			Targets:                d.targets,
 			MacroExpansionContexts: d.macroExpansionContexts,
-		}))
+		}.Build()))
 	}
 	// expectMacroInstanceTargets sets up the expectation for
 	// obtaining all targets declared by a macro instance, which
 	// PackageTargets computes recursively.
 	expectMacroInstanceTargets := func(e *MockPackageTargetsEnvironmentForTesting, macroInstanceName []string, targets ...*model_analysis_pb.Package_Value_Target) {
 		e.EXPECT().GetPackageTargetsValue(
-			testutil.EqProto(t, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo", MacroInstanceName: macroInstanceName}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.PackageTargets_Value{
+			testutil.EqProto(t, model_analysis_pb.PackageTargets_Key_builder{Package: "@@main+//foo", MacroInstanceName: macroInstanceName}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.PackageTargets_Value_builder{
 			Targets: targets,
-		}))
+		}.Build()))
 	}
 	expectCaptureObjects := func(e *MockPackageTargetsEnvironmentForTesting) {
 		e.EXPECT().CaptureCreatedObject(gomock.Any(), gomock.Any()).
@@ -67,13 +67,13 @@ func TestPackageTargets(t *testing.T) {
 		})
 	}
 	newParent := func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree], createdObject model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]], firstName, lastName string) *model_analysis_pb.Package_Value_Target {
-		return &model_analysis_pb.Package_Value_Target{
-			Level: &model_analysis_pb.Package_Value_Target_Parent_{Parent: &model_analysis_pb.Package_Value_Target_Parent{
+		return model_analysis_pb.Package_Value_Target_builder{
+			Parent: model_analysis_pb.Package_Value_Target_Parent_builder{
 				Reference: attachObject(patcher, createdObject),
 				FirstName: firstName,
 				LastName:  lastName,
-			}},
-		}
+			}.Build(),
+		}.Build()
 	}
 	// getAllLeaves returns the names of all targets contained in a
 	// B-tree of targets. It also validates that the first and last
@@ -83,10 +83,10 @@ func TestPackageTargets(t *testing.T) {
 		var names []string
 		parents := 0
 		for _, entry := range targets.Message {
-			switch entry.GetLevel().(type) {
-			case *model_analysis_pb.Package_Value_Target_Leaf:
+			switch entry.WhichLevel() {
+			case model_analysis_pb.Package_Value_Target_Leaf_case:
 				names = append(names, entry.GetLeaf().GetName())
-			case *model_analysis_pb.Package_Value_Target_Parent_:
+			case model_analysis_pb.Package_Value_Target_Parent_case:
 				children, err := model_parser.Dereference(ctx, targetsReader, model_core.Nested(targets, entry.GetParent().GetReference()))
 				require.NoError(t, err)
 				childNames, childParents := getAllLeaves(t, children)
@@ -109,7 +109,7 @@ func TestPackageTargets(t *testing.T) {
 	}
 
 	computePackageTargets := func(e *MockPackageTargetsEnvironmentForTesting, macroInstanceName ...string) ([]*model_analysis_pb.Package_Value_Target, error) {
-		value, err := bct.computer.ComputePackageTargetsValue(ctx, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo", MacroInstanceName: macroInstanceName}, e)
+		value, err := bct.computer.ComputePackageTargetsValue(ctx, model_analysis_pb.PackageTargets_Key_builder{Package: "@@main+//foo", MacroInstanceName: macroInstanceName}.Build(), e)
 		if err != nil {
 			return nil, err
 		}
@@ -128,12 +128,12 @@ func TestPackageTargets(t *testing.T) {
 
 		targets, err := computePackageTargets(e)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.PackageTargets_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.PackageTargets_Value_builder{
 			Targets: []*model_analysis_pb.Package_Value_Target{
 				newRuleTargetDeclaration("a", "@@rules+//:defs.bzl%my_rule"),
 				newSourceFileTargetDeclaration("b.txt"),
 			},
-		}, &model_analysis_pb.PackageTargets_Value{Targets: targets})
+		}.Build(), model_analysis_pb.PackageTargets_Value_builder{Targets: targets}.Build())
 	})
 
 	t.Run("MacroInstances", func(t *testing.T) {
@@ -157,7 +157,7 @@ func TestPackageTargets(t *testing.T) {
 
 		targets, err := computePackageTargets(e)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.PackageTargets_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.PackageTargets_Value_builder{
 			Targets: []*model_analysis_pb.Package_Value_Target{
 				newRuleTargetDeclaration("a", "@@rules+//:defs.bzl%in_a"),
 				newRuleTargetDeclaration("a_main", "@@rules+//:defs.bzl%top_level"),
@@ -165,7 +165,7 @@ func TestPackageTargets(t *testing.T) {
 				newRuleTargetDeclaration("a_out", "@@rules+//:defs.bzl%in_a"),
 				newRuleTargetDeclaration("b", "@@rules+//:defs.bzl%top_level"),
 			},
-		}, &model_analysis_pb.PackageTargets_Value{Targets: targets})
+		}.Build(), model_analysis_pb.PackageTargets_Value_builder{Targets: targets}.Build())
 	})
 
 	t.Run("WithinMacroInstance", func(t *testing.T) {
@@ -184,13 +184,13 @@ func TestPackageTargets(t *testing.T) {
 
 		targets, err := computePackageTargets(e, "a")
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.PackageTargets_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.PackageTargets_Value_builder{
 			Targets: []*model_analysis_pb.Package_Value_Target{
 				newRuleTargetDeclaration("a", "@@rules+//:defs.bzl%in_a"),
 				newRuleTargetDeclaration("a_nested_x", "@@rules+//:defs.bzl%in_a_nested"),
 				newRuleTargetDeclaration("a_out", "@@rules+//:defs.bzl%in_a"),
 			},
-		}, &model_analysis_pb.PackageTargets_Value{Targets: targets})
+		}.Build(), model_analysis_pb.PackageTargets_Value_builder{Targets: targets}.Build())
 	})
 
 	t.Run("ParentNodes", func(t *testing.T) {
@@ -205,9 +205,9 @@ func TestPackageTargets(t *testing.T) {
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		expectCaptureObjects(e)
 		e.EXPECT().GetPackageValue(
-			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo"}),
+			testutil.EqProto(t, model_analysis_pb.Package_Key_builder{Label: "@@main+//foo"}.Build()),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Package_Value {
-			return &model_analysis_pb.Package_Value{
+			return model_analysis_pb.Package_Value_builder{
 				Targets: []*model_analysis_pb.Package_Value_Target{
 					newParent(patcher, copiedObject, "a", "b"),
 					newParent(patcher, newTargetsObject(
@@ -218,23 +218,23 @@ func TestPackageTargets(t *testing.T) {
 				MacroExpansionContexts: []*model_starlark_pb.MacroExpansionContext_Entry{
 					newMacroExpansionContextDeclaration("m"),
 				},
-			}
+			}.Build()
 		}))
 		expectMacroInstanceTargets(e, []string{"m"},
 			newRuleTargetDeclaration("m", "@@rules+//:defs.bzl%in_m"),
 		)
 
-		value, err := bct.computer.ComputePackageTargetsValue(ctx, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo"}, e)
+		value, err := bct.computer.ComputePackageTargetsValue(ctx, model_analysis_pb.PackageTargets_Key_builder{Package: "@@main+//foo"}.Build(), e)
 		require.NoError(t, err)
 		targets := toMessage(value)
 		require.Len(t, targets.Message, 4)
-		testutil.RequireEqualProto(t, &model_analysis_pb.Package_Value_Target_Parent{
+		testutil.RequireEqualProto(t, model_analysis_pb.Package_Value_Target_Parent_builder{
 			Reference: model_core_pb.DecodableReference_builder{
 				Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
 			}.Build(),
 			FirstName: "a",
 			LastName:  "b",
-		}, targets.Message[0].GetParent())
+		}.Build(), targets.Message[0].GetParent())
 		require.Equal(t, copiedObject.Value.GetLocalReference(), targets.OutgoingReferences.GetOutgoingReference(0).GetLocalReference())
 		names, _ := getAllLeaves(t, targets)
 		require.Equal(t, []string{"a", "b", "e", "m", "x"}, names)
@@ -248,9 +248,9 @@ func TestPackageTargets(t *testing.T) {
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		expectCaptureObjects(e)
 		e.EXPECT().GetPackageValue(
-			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo"}),
+			testutil.EqProto(t, model_analysis_pb.Package_Key_builder{Label: "@@main+//foo"}.Build()),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Package_Value {
-			return &model_analysis_pb.Package_Value{
+			return model_analysis_pb.Package_Value_builder{
 				Targets: []*model_analysis_pb.Package_Value_Target{
 					newRuleTargetDeclaration("a", "@@rules+//:defs.bzl%top_level"),
 					newParent(patcher, newTargetsObject(
@@ -262,7 +262,7 @@ func TestPackageTargets(t *testing.T) {
 					newMacroExpansionContextDeclaration("b"),
 					newMacroExpansionContextDeclaration("b_q"),
 				},
-			}
+			}.Build()
 		}))
 		expectMacroInstanceTargets(e, []string{"b"},
 			newRuleTargetDeclaration("b", "@@rules+//:defs.bzl%in_b"),
@@ -272,7 +272,7 @@ func TestPackageTargets(t *testing.T) {
 			newRuleTargetDeclaration("b_q", "@@rules+//:defs.bzl%in_b_q"),
 		)
 
-		value, err := bct.computer.ComputePackageTargetsValue(ctx, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo"}, e)
+		value, err := bct.computer.ComputePackageTargetsValue(ctx, model_analysis_pb.PackageTargets_Key_builder{Package: "@@main+//foo"}.Build(), e)
 		require.NoError(t, err)
 		names, _ := getAllLeaves(t, toMessage(value))
 		require.Equal(t, []string{"a", "b", "b_a", "b_q", "b_y", "b_z"}, names)
@@ -297,7 +297,7 @@ func TestPackageTargets(t *testing.T) {
 		expectCaptureObjects(e)
 		expectPackage(e, newDeclarations(topLevelTargets...).withMacroExpansionContexts("m"))
 		expectMacroInstanceTargets(e, []string{"m"}, newTargets("m_%05d", 2000)...)
-		value, err := bct.computer.ComputePackageTargetsValue(ctx, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo"}, e)
+		value, err := bct.computer.ComputePackageTargetsValue(ctx, model_analysis_pb.PackageTargets_Key_builder{Package: "@@main+//foo"}.Build(), e)
 		require.NoError(t, err)
 		merged := toMessage(value)
 		names, parents := getAllLeaves(t, merged)
@@ -309,20 +309,20 @@ func TestPackageTargets(t *testing.T) {
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		expectCaptureObjects(e)
 		e.EXPECT().GetPackageValue(
-			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo"}),
+			testutil.EqProto(t, model_analysis_pb.Package_Key_builder{Label: "@@main+//foo"}.Build()),
 		).Return(model_core.NewMessage(
-			&model_analysis_pb.Package_Value{
+			model_analysis_pb.Package_Value_builder{
 				Targets: merged.Message,
 				MacroExpansionContexts: []*model_starlark_pb.MacroExpansionContext_Entry{
 					newMacroExpansionContextDeclaration("m"),
 				},
-			},
+			}.Build(),
 			merged.OutgoingReferences,
 		))
 		expectMacroInstanceTargets(e, []string{"m"},
 			newRuleTargetDeclaration("m_01000x", "@@rules+//:defs.bzl%in_m"),
 		)
-		value, err = bct.computer.ComputePackageTargetsValue(ctx, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo"}, e)
+		value, err = bct.computer.ComputePackageTargetsValue(ctx, model_analysis_pb.PackageTargets_Key_builder{Package: "@@main+//foo"}.Build(), e)
 		require.NoError(t, err)
 		names, _ = getAllLeaves(t, toMessage(value))
 		require.Len(t, names, 6001)
@@ -353,15 +353,15 @@ func TestPackageTargets(t *testing.T) {
 			}
 			for _, name := range expectedMacroInstanceNames {
 				e.EXPECT().GetPackageTargetsValue(
-					testutil.EqProto(t, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo", MacroInstanceName: []string{name}, ExcludeFinalizers: excludeFinalizers}),
-				).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.PackageTargets_Value{
+					testutil.EqProto(t, model_analysis_pb.PackageTargets_Key_builder{Package: "@@main+//foo", MacroInstanceName: []string{name}, ExcludeFinalizers: excludeFinalizers}.Build()),
+				).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.PackageTargets_Value_builder{
 					Targets: []*model_analysis_pb.Package_Value_Target{
 						newRuleTargetDeclaration(name+"_1", "@@rules+//:defs.bzl%in_"+name),
 					},
-				}))
+				}.Build()))
 			}
 
-			value, err := bct.computer.ComputePackageTargetsValue(ctx, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo", ExcludeFinalizers: excludeFinalizers}, e)
+			value, err := bct.computer.ComputePackageTargetsValue(ctx, model_analysis_pb.PackageTargets_Key_builder{Package: "@@main+//foo", ExcludeFinalizers: excludeFinalizers}.Build(), e)
 			require.NoError(t, err)
 			var targetNames []string
 			for _, target := range value.Message.GetTargets() {
@@ -383,7 +383,7 @@ func TestPackageTargets(t *testing.T) {
 		expectPackage(e, newDeclarations().withMacroExpansionContexts("a", "b"))
 		for _, name := range []string{"a", "b"} {
 			e.EXPECT().GetPackageTargetsValue(
-				testutil.EqProto(t, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo", MacroInstanceName: []string{name}}),
+				testutil.EqProto(t, model_analysis_pb.PackageTargets_Key_builder{Package: "@@main+//foo", MacroInstanceName: []string{name}}.Build()),
 			).Return(model_core.Message[*model_analysis_pb.PackageTargets_Value, model_core.CreatedObjectTree]{})
 		}
 

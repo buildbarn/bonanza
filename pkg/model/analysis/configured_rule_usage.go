@@ -281,10 +281,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleUsageValue(ct
 	patchedConfigurationReference := model_core.Patch(e, configurationReference)
 	configuredRule := e.GetConfiguredRuleValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.ConfiguredRule_Key{
+			model_analysis_pb.ConfiguredRule_Key_builder{
 				Identifier:             ruleIdentifier.String(),
 				ConfigurationReference: patchedConfigurationReference.Message,
-			},
+			}.Build(),
 			patchedConfigurationReference.Patcher,
 		),
 	)
@@ -317,10 +317,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleUsageValue(ct
 			}
 			appendLabelAttr := func(configuredAttr *model_analysis_pb.ConfiguredLabelAttr) {
 				if configuredAttr != nil {
-					labelAttrs = append(labelAttrs, &model_analysis_pb.IndexedConfiguredLabelAttr{
+					labelAttrs = append(labelAttrs, model_analysis_pb.IndexedConfiguredLabelAttr_builder{
 						AttrIndex:  uint32(attrIndex),
 						Configured: configuredAttr,
-					})
+					}.Build())
 				}
 			}
 
@@ -389,8 +389,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleUsageValue(ct
 			return nil, err
 		}
 
-		return &model_analysis_pb.ConfiguredRuleUsage_Value{
+		return model_analysis_pb.ConfiguredRuleUsage_Value_builder{
 			LabelAttrs: labelAttrs,
-		}, nil
+		}.Build(), nil
 	})
 }

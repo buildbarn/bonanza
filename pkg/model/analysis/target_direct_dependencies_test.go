@@ -32,8 +32,8 @@ func TestTargetDirectDependencies(t *testing.T) {
 		// to its default value, and a private attribute.
 		expectRule := func(e *MockTargetDirectDependenciesEnvironmentForTesting) {
 			e.EXPECT().GetTargetValue(
-				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:t"}),
-			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+				testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//:t"}.Build()),
+			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Target_Value_builder{
 				Definition: model_starlark_pb.Target_Definition_builder{
 					RuleTarget: model_starlark_pb.RuleTarget_builder{
 						RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
@@ -69,10 +69,10 @@ func TestTargetDirectDependencies(t *testing.T) {
 						}.Build(),
 					}.Build(),
 				}.Build(),
-			}))
+			}.Build()))
 			e.EXPECT().GetCompiledBzlFileGlobalValue(
-				testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
-			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
+				testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{Identifier: "@@rules+//:defs.bzl%my_rule"}.Build()),
+			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.CompiledBzlFileGlobal_Value_builder{
 				Global: model_starlark_pb.Value_builder{
 					Rule: model_starlark_pb.Rule_builder{
 						Definition: model_starlark_pb.Rule_Definition_builder{
@@ -108,7 +108,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 						}.Build(),
 					}.Build(),
 				}.Build(),
-			}))
+			}.Build()))
 		}
 
 		t.Run("ExplicitDepsOnly", func(t *testing.T) {
@@ -118,9 +118,9 @@ func TestTargetDirectDependencies(t *testing.T) {
 			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			expectRule(e)
-			value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
+			value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, model_analysis_pb.TargetDirectDependencies_Key_builder{
 				Label: "@@main+//:t",
-			}, e)
+			}.Build(), e)
 			require.NoError(t, err)
 			require.Equal(t, []string{
 				"@@main+//:a",
@@ -137,10 +137,10 @@ func TestTargetDirectDependencies(t *testing.T) {
 			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			expectRule(e)
-			value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
+			value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, model_analysis_pb.TargetDirectDependencies_Key_builder{
 				Label:               "@@main+//:t",
 				IncludeImplicitDeps: true,
-			}, e)
+			}.Build(), e)
 			require.NoError(t, err)
 			require.Equal(t, []string{
 				"@@main+//:a",
@@ -161,8 +161,8 @@ func TestTargetDirectDependencies(t *testing.T) {
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:t"}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//:t"}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Target_Value_builder{
 			Definition: model_starlark_pb.Target_Definition_builder{
 				RuleTarget: model_starlark_pb.RuleTarget_builder{
 					RuleIdentifier: "@@rules+//:defs.bzl%my_test",
@@ -184,14 +184,14 @@ func TestTargetDirectDependencies(t *testing.T) {
 					}.Build(),
 				}.Build(),
 			}.Build(),
-		}))
+		}.Build()))
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_test"}),
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{Identifier: "@@rules+//:defs.bzl%my_test"}.Build()),
 		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_TEST))
 
-		value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
+		value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, model_analysis_pb.TargetDirectDependencies_Key_builder{
 			Label: "@@main+//:t",
-		}, e)
+		}.Build(), e)
 		require.NoError(t, err)
 		require.Equal(t, []string{
 			"@@main+//:many_shards",
@@ -205,17 +205,17 @@ func TestTargetDirectDependencies(t *testing.T) {
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:out.txt"}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//foo:out.txt"}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Target_Value_builder{
 			Definition: model_starlark_pb.Target_Definition_builder{
 				PredeclaredOutputFileTarget: model_starlark_pb.PredeclaredOutputFileTarget_builder{
 					OwnerTargetName: "gen",
 				}.Build(),
 			}.Build(),
-		}))
-		value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
+		}.Build()))
+		value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, model_analysis_pb.TargetDirectDependencies_Key_builder{
 			Label: "@@main+//foo:out.txt",
-		}, e)
+		}.Build(), e)
 		require.NoError(t, err)
 		require.Equal(t, []string{"@@main+//foo:gen"}, getTargetLabels(t, value.Message.GetTargetLabels()))
 	})
@@ -225,17 +225,17 @@ func TestTargetDirectDependencies(t *testing.T) {
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:alias"}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//:alias"}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Target_Value_builder{
 			Definition: model_starlark_pb.Target_Definition_builder{
 				Alias: model_starlark_pb.Alias_builder{
 					Actual: valueSelectGroup(labelValue("@@main+//:actual")),
 				}.Build(),
 			}.Build(),
-		}))
-		value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
+		}.Build()))
+		value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, model_analysis_pb.TargetDirectDependencies_Key_builder{
 			Label: "@@main+//:alias",
-		}, e)
+		}.Build(), e)
 		require.NoError(t, err)
 		require.Equal(t, []string{"@@main+//:actual"}, getTargetLabels(t, value.Message.GetTargetLabels()))
 	})
@@ -245,11 +245,11 @@ func TestTargetDirectDependencies(t *testing.T) {
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:missing"}),
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//:missing"}.Build()),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{}))
-		_, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
+		_, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, model_analysis_pb.TargetDirectDependencies_Key_builder{
 			Label: "@@main+//:missing",
-		}, e)
+		}.Build(), e)
 		require.EqualError(t, err, "target does not exist")
 	})
 
@@ -261,8 +261,8 @@ func TestTargetDirectDependencies(t *testing.T) {
 			e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetTargetValue(
-				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:suite"}),
-			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+				testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//foo:suite"}.Build()),
+			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Target_Value_builder{
 				Definition: model_starlark_pb.Target_Definition_builder{
 					TestSuite: model_starlark_pb.TestSuite_builder{
 						Tests:        newTestSuiteTests("@@main+//bar:nested_suite", "@@main+//foo:test"),
@@ -270,11 +270,11 @@ func TestTargetDirectDependencies(t *testing.T) {
 						Sizes:        []model_starlark_pb.TestSize{model_starlark_pb.TestSize_SMALL},
 					}.Build(),
 				}.Build(),
-			}))
-			value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
+			}.Build()))
+			value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, model_analysis_pb.TargetDirectDependencies_Key_builder{
 				Label:               "@@main+//foo:suite",
 				IncludeImplicitDeps: includeImplicitDeps,
-			}, e)
+			}.Build(), e)
 			require.NoError(t, err)
 			require.Equal(t, []string{"@@main+//bar:nested_suite", "@@main+//foo:test"}, getTargetLabels(t, value.Message.GetTargetLabels()))
 		}

@@ -12,20 +12,20 @@ func newRepoMapping(fromApparentRepo, toCanonicalRepo, defaultCanonicalRepo stri
 	if toCanonicalRepo == defaultCanonicalRepo {
 		toCanonicalRepo = ""
 	}
-	return &model_analysis_pb.RepoMapping{
+	return model_analysis_pb.RepoMapping_builder{
 		FromApparentRepo: fromApparentRepo,
 		ToCanonicalRepo:  toCanonicalRepo,
-	}
+	}.Build()
 }
 
 // getRepoMappingCanonicalRepo returns the canonical repo to which a
 // RepoMapping message maps, taking into account that the canonical repo
 // is omitted if it's equal to the default value.
 func getRepoMappingCanonicalRepo(mapping *model_analysis_pb.RepoMapping, defaultCanonicalRepo string) string {
-	if mapping.ToCanonicalRepo == "" {
+	if mapping.GetToCanonicalRepo() == "" {
 		return defaultCanonicalRepo
 	}
-	return mapping.ToCanonicalRepo
+	return mapping.GetToCanonicalRepo()
 }
 
 // getModuleRepoMappingDefault returns the canonical repo to which an

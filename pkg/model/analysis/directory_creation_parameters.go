@@ -14,14 +14,14 @@ func (baseComputer[TReference, TMetadata]) ComputeDirectoryCreationParametersVal
 	if !buildSpecification.IsSet() {
 		return PatchedDirectoryCreationParametersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.DirectoryCreationParameters_Value{
-		DirectoryCreationParameters: buildSpecification.Message.DirectoryCreationParameters,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.DirectoryCreationParameters_Value_builder{
+		DirectoryCreationParameters: buildSpecification.Message.GetDirectoryCreationParameters(),
+	}.Build()), nil
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryCreationParametersObject(directoryCreationParameters model_core.Message[*model_analysis_pb.DirectoryCreationParameters_Value, TReference]) (*model_filesystem.DirectoryCreationParameters, error) {
 	return model_filesystem.NewDirectoryCreationParametersFromProto(
-		directoryCreationParameters.Message.DirectoryCreationParameters,
+		directoryCreationParameters.Message.GetDirectoryCreationParameters(),
 		c.referenceFormat,
 		c.binaryEncoderFactory,
 	)

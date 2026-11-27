@@ -15,16 +15,16 @@ func (baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsVal
 		return PatchedModulesWithMultipleVersionsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	var modulesWithMultipleVersions []*model_analysis_pb.OverridesListModule
-	for _, module := range modulesWithOverridesValue.Message.OverridesList {
-		if len(module.Versions) > 0 {
+	for _, module := range modulesWithOverridesValue.Message.GetOverridesList() {
+		if len(module.GetVersions()) > 0 {
 			modulesWithMultipleVersions = append(modulesWithMultipleVersions, module)
 		}
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModulesWithMultipleVersions_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.ModulesWithMultipleVersions_Value_builder{
 		OverridesList: modulesWithMultipleVersions,
-	}), nil
+	}.Build()), nil
 }
 
 func (baseComputer[TReference, TMetadata]) ComputeModulesWithMultipleVersionsObject(modulesWithMultipleVersionsValue model_core.Message[*model_analysis_pb.ModulesWithMultipleVersions_Value, TReference]) (map[label.Module]OverrideVersions, error) {
-	return parseOverridesList(modulesWithMultipleVersionsValue.Message.OverridesList)
+	return parseOverridesList(modulesWithMultipleVersionsValue.Message.GetOverridesList())
 }

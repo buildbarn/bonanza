@@ -31,19 +31,19 @@ func TestAspectChain(t *testing.T) {
 	)
 	expectAspect := func(e *MockAspectChainEnvironmentForTesting, identifier string, definition *model_starlark_pb.Aspect_Definition) {
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: identifier}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{Identifier: identifier}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.CompiledBzlFileGlobal_Value_builder{
 			Global: model_starlark_pb.Value_builder{
 				Aspect: model_starlark_pb.Aspect_builder{
 					Definition: proto.ValueOrDefault(definition),
 				}.Build(),
 			}.Build(),
-		}))
+		}.Build()))
 	}
 	compute := func(e *MockAspectChainEnvironmentForTesting, aspectIdentifiers ...string) (model_core.PatchedMessage[*model_analysis_pb.AspectChain_Value, model_core.CreatedObjectTree], error) {
-		return bct.computer.ComputeAspectChainValue(ctx, &model_analysis_pb.AspectChain_Key{
+		return bct.computer.ComputeAspectChainValue(ctx, model_analysis_pb.AspectChain_Key_builder{
 			AspectIdentifiers: aspectIdentifiers,
-		}, e)
+		}.Build(), e)
 	}
 
 	t.Run("Success", func(t *testing.T) {
@@ -76,22 +76,22 @@ func TestAspectChain(t *testing.T) {
 
 		value, err := compute(e, aspect1, aspect2, aspect3, aspect4)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.AspectChain_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.AspectChain_Value_builder{
 			VisibleAspectIndices: []uint32{1},
-			AttrPropagatingAspects: &model_analysis_pb.AspectChain_Value_PropagatingAspects{
+			AttrPropagatingAspects: model_analysis_pb.AspectChain_Value_PropagatingAspects_builder{
 				AllAspectIndices: []uint32{1, 2},
 				Edges: []*model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge{
-					{Name: "deps", AspectIndices: []uint32{0, 3}},
-					{Name: "srcs", AspectIndices: []uint32{3}},
+					model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge_builder{Name: "deps", AspectIndices: []uint32{0, 3}}.Build(),
+					model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge_builder{Name: "srcs", AspectIndices: []uint32{3}}.Build(),
 				},
-			},
-			ToolchainPropagatingAspects: &model_analysis_pb.AspectChain_Value_PropagatingAspects{
+			}.Build(),
+			ToolchainPropagatingAspects: model_analysis_pb.AspectChain_Value_PropagatingAspects_builder{
 				AllAspectIndices: []uint32{3},
 				Edges: []*model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge{
-					{Name: "@@rules+//:toolchain_type", AspectIndices: []uint32{1, 2}},
+					model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge_builder{Name: "@@rules+//:toolchain_type", AspectIndices: []uint32{1, 2}}.Build(),
 				},
-			},
-		}, value.Message)
+			}.Build(),
+		}.Build(), value.Message)
 	})
 
 	t.Run("PropagationFunction", func(t *testing.T) {
@@ -109,7 +109,7 @@ func TestAspectChain(t *testing.T) {
 		// them are missing.
 		e := NewMockAspectChainEnvironmentForTesting(ctrl)
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: aspect1}),
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{Identifier: aspect1}.Build()),
 		).Return(model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, model_core.CreatedObjectTree]{})
 		expectAspect(e, aspect2, &model_starlark_pb.Aspect_Definition{})
 

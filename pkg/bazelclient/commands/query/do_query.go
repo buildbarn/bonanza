@@ -76,11 +76,11 @@ func DoQuery(args *arguments.QueryCommand, workspacePath path.Parser) {
 				logger.Fatal(formatted.Textf("Failed to construct query expression for printing packages: %s", err))
 			}
 		}
-		return &model_analysis_pb.QueryResult_Key{
+		return model_analysis_pb.QueryResult_Key_builder{
 			Query:               label.QueryToString(query),
 			IncludeImplicitDeps: args.QueryFlags.ImplicitDeps,
 			DefinitionDetail:    definitionDetail,
-		}
+		}.Build()
 	})
 
 	// Apply syntax highlighting to targets printed using
@@ -181,27 +181,27 @@ func printQueryResult(ctx context.Context, evaluation *build.Evaluation, output 
 	for entry := range btree.AllLeaves(
 		ctx,
 		targetReader,
-		model_core.Nested(queryResult.Decay(), queryResult.Message.Targets),
+		model_core.Nested(queryResult.Decay(), queryResult.Message.GetTargets()),
 		func(entry model_core.Message[*model_analysis_pb.QueryTarget, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
 			return entry.Message.GetParent().GetReference(), nil
 		},
 		&errIter,
 	) {
-		leaf, ok := entry.Message.Level.(*model_analysis_pb.QueryTarget_Leaf_)
-		if !ok {
+		leaf := entry.Message.GetLeaf()
+		if leaf == nil {
 			return count, errors.New("not a valid leaf entry")
 		}
-		targetLabel, err := label.NewCanonicalLabel(leaf.Leaf.Label)
+		targetLabel, err := label.NewCanonicalLabel(leaf.GetLabel())
 		if err != nil {
-			return count, fmt.Errorf("invalid label %#v: %w", leaf.Leaf.Label, err)
+			return count, fmt.Errorf("invalid label %#v: %w", leaf.GetLabel(), err)
 		}
 		switch output {
 		case arguments.QueryOutput_Label:
 			_, err = fmt.Fprintln(w, targetLabel.String())
 		case arguments.QueryOutput_LabelKind:
-			kind, errKind := model_starlark.GetTargetKind(leaf.Leaf.Definition)
+			kind, errKind := model_starlark.GetTargetKind(leaf.GetDefinition())
 			if errKind != nil {
-				return count, fmt.Errorf("failed to obtain kind of target %#v: %w", leaf.Leaf.Label, errKind)
+				return count, fmt.Errorf("failed to obtain kind of target %#v: %w", leaf.GetLabel(), errKind)
 			}
 			_, err = fmt.Fprintln(w, kind, targetLabel.String())
 		case arguments.QueryOutput_Build:
@@ -209,8 +209,8 @@ func printQueryResult(ctx context.Context, evaluation *build.Evaluation, output 
 			// done in BUILD files.
 			doc := starlarkRenderer.Target(
 				targetLabel,
-				model_core.Nested(entry, leaf.Leaf.Definition),
-				leaf.Leaf.PublicAttrNames,
+				model_core.Nested(entry, leaf.GetDefinition()),
+				leaf.GetPublicAttrNames(),
 			)
 			if _, err = writeFormatted(build.FormatDoc(doc, width, "    "), w); err == nil {
 				_, err = w.WriteString("\n")

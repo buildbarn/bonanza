@@ -124,13 +124,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 			}
 			event = m.Message
 		}
-		e.ReportHTTPFileContentsProgress(&model_analysis_pb.HttpFileContents_Progress{
+		e.ReportHTTPFileContentsProgress(model_analysis_pb.HttpFileContents_Progress_builder{
 			Downloaded: model_evaluation_pb.ProgressCounter_builder{
 				Current: event.GetDownloadedSizeBytes(),
 				Total:   event.GetTotalSizeBytes(),
 				Unit:    model_evaluation_pb.ProgressCounter_BYTES,
 			}.Build(),
-		})
+		}.Build())
 	}
 	if errExecution != nil {
 		return PatchedHTTPFileContentsValue[TMetadata]{}, errExecution
@@ -148,9 +148,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 	case model_fetch_pb.Result_Success_case:
 		success := model_core.Patch(e, model_core.Nested(result, result.Message.GetSuccess()))
 		return model_core.NewPatchedMessage(
-			&model_analysis_pb.HttpFileContents_Value{
+			model_analysis_pb.HttpFileContents_Value_builder{
 				Exists: success.Message,
-			},
+			}.Build(),
 			success.Patcher,
 		), nil
 	case model_fetch_pb.Result_Failure_case:

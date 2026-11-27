@@ -16,9 +16,9 @@ func (baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx context.
 	actionEncoders, gotActionEncoders := e.GetActionEncodersObject(&model_analysis_pb.ActionEncoders_Key{})
 	rawActionResultValue := e.GetRawActionResultValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.RawActionResult_Key {
-			return &model_analysis_pb.RawActionResult_Key{
+			return model_analysis_pb.RawActionResult_Key_builder{
 				ExecuteRequest: model_core.Patch(e, model_core.Nested(key, key.Message.GetExecuteRequest())).Merge(patcher),
-			}
+			}.Build()
 		}),
 	)
 	if !gotActionEncoders || !rawActionResultValue.IsSet() {
@@ -38,9 +38,9 @@ func (baseComputer[TReference, TMetadata]) ComputeActionResultValue(ctx context.
 	}
 	outputsReference := model_core.Nested(result, result.Message.GetOutputsReference())
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ActionResult_Value {
-		return &model_analysis_pb.ActionResult_Value{
+		return model_analysis_pb.ActionResult_Value_builder{
 			ExitCode:         result.Message.GetExitCode(),
 			OutputsReference: model_core.Patch(e, outputsReference).Merge(patcher),
-		}
+		}.Build()
 	}), nil
 }

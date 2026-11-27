@@ -22,9 +22,9 @@ import (
 // Starlark identifier.
 func getRuleDefinition[TReference any](e CompiledBzlFileGlobalValueGetter[TReference], ruleIdentifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Rule_Definition, TReference], error) {
 	ruleIdentifierStr := ruleIdentifier.String()
-	ruleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+	ruleValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 		Identifier: ruleIdentifierStr,
-	})
+	}.Build())
 	if !ruleValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Rule_Definition, TReference]{}, evaluation.ErrMissingDependency
 	}
@@ -42,9 +42,9 @@ func getRuleDefinition[TReference any](e CompiledBzlFileGlobalValueGetter[TRefer
 // getSubruleDefinition looks up the definition of a subrule, given its
 // Starlark identifier.
 func getSubruleDefinition[TReference any](e CompiledBzlFileGlobalValueGetter[TReference], subruleIdentifier string) (model_core.Message[*model_starlark_pb.Subrule_Definition, TReference], error) {
-	subruleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+	subruleValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 		Identifier: subruleIdentifier,
-	})
+	}.Build())
 	if !subruleValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Subrule_Definition, TReference]{}, evaluation.ErrMissingDependency
 	}
@@ -113,11 +113,11 @@ func configureDefaultLabelAttr[TReference object.BasicReference, TMetadata model
 			patchedConfigurationReference := model_core.Patch(e, entry.outputConfigurationReference)
 			resolvedLabelValue := e.GetVisibleTargetValue(
 				model_core.NewPatchedMessage(
-					&model_analysis_pb.VisibleTarget_Key{
+					model_analysis_pb.VisibleTarget_Key_builder{
 						FromPackage:            visibilityFromPackage.String(),
 						ToLabel:                originalLabel,
 						ConfigurationReference: patchedConfigurationReference.Message,
-					},
+					}.Build(),
 					patchedConfigurationReference.Patcher,
 				),
 			)
@@ -125,22 +125,22 @@ func configureDefaultLabelAttr[TReference object.BasicReference, TMetadata model
 				missingDependencies = true
 				continue
 			}
-			resolvedLabels = append(resolvedLabels, resolvedLabelValue.Message.Label)
+			resolvedLabels = append(resolvedLabels, resolvedLabelValue.Message.GetLabel())
 		}
-		entries = append(entries, &model_analysis_pb.ConfiguredLabelAttr_Entry{
+		entries = append(entries, model_analysis_pb.ConfiguredLabelAttr_Entry_builder{
 			Key:                          entry.key,
 			OutputConfigurationReference: model_core.Patch(e, entry.outputConfigurationReference).Merge(patcher),
 			ResolvedLabels:               resolvedLabels,
-		})
+		}.Build())
 	}
 	if missingDependencies {
 		return nil, evaluation.ErrMissingDependency
 	}
 
-	return &model_analysis_pb.ConfiguredLabelAttr{
+	return model_analysis_pb.ConfiguredLabelAttr_builder{
 		Entries:                    entries,
 		DefaultValueLabelsResolved: true,
-	}, nil
+	}.Build(), nil
 }
 
 // newConfiguredLabelAttrWithoutLabels creates a ConfiguredLabelAttr
@@ -153,14 +153,14 @@ func newConfiguredLabelAttrWithoutLabels[TReference object.BasicReference, TMeta
 ) *model_analysis_pb.ConfiguredLabelAttr {
 	entries := make([]*model_analysis_pb.ConfiguredLabelAttr_Entry, 0, len(configuration.entries))
 	for _, entry := range configuration.entries {
-		entries = append(entries, &model_analysis_pb.ConfiguredLabelAttr_Entry{
+		entries = append(entries, model_analysis_pb.ConfiguredLabelAttr_Entry_builder{
 			Key:                          entry.key,
 			OutputConfigurationReference: model_core.Patch(e, entry.outputConfigurationReference).Merge(patcher),
-		})
+		}.Build())
 	}
-	return &model_analysis_pb.ConfiguredLabelAttr{
+	return model_analysis_pb.ConfiguredLabelAttr_builder{
 		Entries: entries,
-	}
+	}.Build()
 }
 
 type configureRuleLabelAttrEnvironment[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
@@ -302,11 +302,11 @@ func configureExecGroups[TReference object.BasicReference, TMetadata model_core.
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
 		resolvedToolchains := e.GetResolvedToolchainsValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.ResolvedToolchains_Key{
+				model_analysis_pb.ResolvedToolchains_Key_builder{
 					ExecCompatibleWith:     execCompatibleWith,
 					ConfigurationReference: patchedConfigurationReference.Message,
 					Toolchains:             execGroupDefinition.GetToolchains(),
-				},
+				}.Build(),
 				patchedConfigurationReference.Patcher,
 			),
 		)
@@ -318,11 +318,11 @@ func configureExecGroups[TReference object.BasicReference, TMetadata model_core.
 		if actual, expected := len(toolchainIdentifiers), len(execGroupDefinition.GetToolchains()); actual != expected {
 			return nil, nil, fmt.Errorf("obtained %d resolved toolchains, while exec group %#v depends on %d toolchains", actual, namedExecGroup.GetName(), expected)
 		}
-		execGroups = append(execGroups, &model_analysis_pb.ConfiguredExecGroup{
+		execGroups = append(execGroups, model_analysis_pb.ConfiguredExecGroup_builder{
 			ToolchainIdentifiers:  toolchainIdentifiers,
 			PlatformLabel:         resolvedToolchains.Message.GetPlatformLabel(),
 			PlatformPkixPublicKey: resolvedToolchains.Message.GetPlatformPkixPublicKey(),
-		})
+		}.Build())
 		execGroupPlatformLabels[namedExecGroup.GetName()] = resolvedToolchains.Message.GetPlatformLabel()
 	}
 	if missingDependencies {
@@ -459,10 +459,10 @@ func configureSubrules[TReference object.BasicReference, TMetadata model_core.Re
 			}
 			attrs = append(attrs, configuredAttr)
 		}
-		subrules = append(subrules, &model_analysis_pb.ConfiguredSubrule{
+		subrules = append(subrules, model_analysis_pb.ConfiguredSubrule_builder{
 			Identifier: subruleIdentifierStr,
 			Attrs:      attrs,
-		})
+		}.Build())
 	}
 	if missingDependencies {
 		return nil, evaluation.ErrMissingDependency
@@ -572,10 +572,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 				return nil, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 			}
 			if configuredAttr != nil {
-				labelAttrs = append(labelAttrs, &model_analysis_pb.IndexedConfiguredLabelAttr{
+				labelAttrs = append(labelAttrs, model_analysis_pb.IndexedConfiguredLabelAttr_builder{
 					AttrIndex:  uint32(attrIndex),
 					Configured: configuredAttr,
-				})
+				}.Build())
 			}
 		}
 
@@ -583,11 +583,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 			return nil, evaluation.ErrMissingDependency
 		}
 
-		return &model_analysis_pb.ConfiguredRule_Value{
+		return model_analysis_pb.ConfiguredRule_Value_builder{
 			ExecGroups: execGroups,
 			Subrules:   subrules,
 			LabelAttrs: labelAttrs,
-		}, nil
+		}.Build(), nil
 	})
 }
 

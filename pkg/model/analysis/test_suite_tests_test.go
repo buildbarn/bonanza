@@ -59,13 +59,13 @@ func TestTestSuiteTests(t *testing.T) {
 	}
 	expectTarget := func(e *MockTestSuiteTestsEnvironmentForTesting, l string, definition *model_starlark_pb.Target_Definition) {
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: l}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: l}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Target_Value_builder{
 			Definition: definition,
-		}))
+		}.Build()))
 	}
 	computeTestSuiteTests := func(e *MockTestSuiteTestsEnvironmentForTesting, l string) ([]string, error) {
-		value, err := bct.computer.ComputeTestSuiteTestsValue(ctx, &model_analysis_pb.TestSuiteTests_Key{Label: l}, e)
+		value, err := bct.computer.ComputeTestSuiteTestsValue(ctx, model_analysis_pb.TestSuiteTests_Key_builder{Label: l}.Build(), e)
 		if err != nil {
 			return nil, err
 		}
@@ -138,10 +138,10 @@ func TestTestSuiteTests(t *testing.T) {
 			Sizes: allSizes,
 		}.Build()))
 		e.EXPECT().GetTestSuiteTestsValue(
-			testutil.EqProto(t, &model_analysis_pb.TestSuiteTests_Key{Label: "@@main+//bar:nested"}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.TestSuiteTests_Value{
+			testutil.EqProto(t, model_analysis_pb.TestSuiteTests_Key_builder{Label: "@@main+//bar:nested"}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.TestSuiteTests_Value_builder{
 			TargetLabels: newTargetLabels("@@main+//bar:a", "@@main+//qux:z"),
-		}))
+		}.Build()))
 		expectTarget(e, "@@main+//foo:manual", ruleTargetDefinition(testOfSize(model_starlark_pb.TestSize_SMALL), "integration", "manual"))
 		expectTarget(e, "@@main+//foo:unrelated", ruleTargetDefinition(testOfSize(model_starlark_pb.TestSize_SMALL)))
 
@@ -160,9 +160,9 @@ func TestTestSuiteTests(t *testing.T) {
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:suite"}),
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//foo:suite"}.Build()),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Target_Value {
-			return &model_analysis_pb.Target_Value{
+			return model_analysis_pb.Target_Value_builder{
 				Definition: testSuiteDefinition(model_starlark_pb.TestSuite_builder{
 					Tests: []*model_starlark_pb.TestSuite_Test{
 						model_starlark_pb.TestSuite_Test_builder{
@@ -178,7 +178,7 @@ func TestTestSuiteTests(t *testing.T) {
 					},
 					Sizes: allSizes,
 				}.Build()),
-			}
+			}.Build()
 		}))
 		expectTarget(e, "@@main+//foo:a", ruleTargetDefinition(testOfSize(model_starlark_pb.TestSize_SMALL)))
 		expectTarget(e, "@@main+//foo:b", ruleTargetDefinition(testOfSize(model_starlark_pb.TestSize_SMALL)))
@@ -216,12 +216,12 @@ func TestTestSuiteTests(t *testing.T) {
 			Sizes: allSizes,
 		}.Build()))
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:a"}),
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//foo:a"}.Build()),
 		).Return(model_core.Message[*model_analysis_pb.Target_Value, model_core.CreatedObjectTree]{})
 		expectTarget(e, "@@main+//foo:b", ruleTargetDefinition(testOfSize(model_starlark_pb.TestSize_SMALL)))
 		expectTarget(e, "@@main+//foo:nested", testSuiteDefinition(model_starlark_pb.TestSuite_builder{Sizes: allSizes}.Build()))
 		e.EXPECT().GetTestSuiteTestsValue(
-			testutil.EqProto(t, &model_analysis_pb.TestSuiteTests_Key{Label: "@@main+//foo:nested"}),
+			testutil.EqProto(t, model_analysis_pb.TestSuiteTests_Key_builder{Label: "@@main+//foo:nested"}.Build()),
 		).Return(model_core.Message[*model_analysis_pb.TestSuiteTests_Value, model_core.CreatedObjectTree]{})
 
 		_, err := computeTestSuiteTests(e, "@@main+//foo:suite")

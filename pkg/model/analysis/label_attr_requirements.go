@@ -84,8 +84,8 @@ func (r *labelAttrRequirements[TReference, TMetadata]) check(
 	resolvedLabel string,
 	targetProviders model_core.Message[*model_analysis_pb.TargetProviders_Value, TReference],
 ) error {
-	providerInstances := model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances)
-	if targetProviders.Message.IsFileTarget {
+	providerInstances := model_core.Nested(targetProviders, targetProviders.Message.GetProviderInstances())
+	if targetProviders.Message.GetIsFileTarget() {
 		// Like Bazel, file targets are only permitted if
 		// allow_files is set. They are not checked against
 		// the required providers.

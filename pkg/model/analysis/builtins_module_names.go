@@ -13,7 +13,7 @@ func (baseComputer[TReference, TMetadata]) ComputeBuiltinsModuleNamesValue(ctx c
 	if !buildSpecification.IsSet() {
 		return PatchedBuiltinsModuleNamesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.BuiltinsModuleNames_Value{
-		BuiltinsModuleNames: buildSpecification.Message.BuiltinsModuleNames,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.BuiltinsModuleNames_Value_builder{
+		BuiltinsModuleNames: buildSpecification.Message.GetBuiltinsModuleNames(),
+	}.Build()), nil
 }

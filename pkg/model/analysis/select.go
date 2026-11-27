@@ -167,9 +167,9 @@ CheckConditions:
 		return PatchedSelectValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.Select_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.Select_Value_builder{
 		ConditionIndices: matchingIndices,
-	}), nil
+	}.Build()), nil
 }
 
 type buildSettingValueComparer[TReference object.BasicReference] struct {

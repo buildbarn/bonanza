@@ -10,6 +10,7 @@ import (
 	"bonanza.build/pkg/model/evaluation"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -33,9 +34,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRuleUsageIncomingEdgeTransi
 	if cfgTransition == nil {
 		// Rule does not have an incoming edge transition, so
 		// the configuration remains unchanged.
-		return model_core.Patch(e, model_core.Nested(key, &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value{
-			Result: &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_OutputConfigurationReference{OutputConfigurationReference: key.Message.GetConfigurationReference()},
-		})), nil
+		return model_core.Patch(e, model_core.Nested(key, model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_builder{
+			OutputConfigurationReference: proto.ValueOrDefault(key.Message.GetConfigurationReference()),
+		}.Build())), nil
 	}
 
 	transitionAttr, err := newRuleUsageTransitionAttr[TReference, TMetadata](ruleDefinition, key.Message.GetExplicitPublicAttrIndices(), starlarkValueEncoders)
@@ -53,9 +54,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRuleUsageIncomingEdgeTransi
 	)
 	if err != nil {
 		if errors.Is(err, errTransitionDependsOnAttrs) {
-			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RuleUsageIncomingEdgeTransition_Value{
-				Result: &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_DependsOnExplicitAttrs{DependsOnExplicitAttrs: &emptypb.Empty{}},
-			}), nil
+			return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_builder{
+				DependsOnExplicitAttrs: &emptypb.Empty{},
+			}.Build()), nil
 		}
 		return PatchedRuleUsageIncomingEdgeTransitionValue[TMetadata]{}, err
 	}
@@ -65,9 +66,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRuleUsageIncomingEdgeTransi
 		return PatchedRuleUsageIncomingEdgeTransitionValue[TMetadata]{}, fmt.Errorf("incoming edge transition used by rule %#v is a 1:%d transition, while a 1:1 transition was expected", ruleIdentifier.String(), l)
 	}
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.RuleUsageIncomingEdgeTransition_Value{
-			Result: &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_OutputConfigurationReference{OutputConfigurationReference: entries[0].GetOutputConfigurationReference()},
-		},
+		model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_builder{
+			OutputConfigurationReference: proto.ValueOrDefault(entries[0].GetOutputConfigurationReference()),
+		}.Build(),
 		patchedConfigurationReferences.Patcher,
 	), nil
 }

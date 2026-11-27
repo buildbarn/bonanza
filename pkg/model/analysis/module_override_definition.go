@@ -16,10 +16,10 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleOverrideDefinitionValue(
 		return PatchedModuleOverrideDefinitionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	remoteOverrides := remoteOverridesValue.Message.ModuleOverrides
+	remoteOverrides := remoteOverridesValue.Message.GetModuleOverrides()
 	i, ok := sort.Find(
 		len(remoteOverrides),
-		func(i int) int { return strings.Compare(key.ModuleName, remoteOverrides[i].Name) },
+		func(i int) int { return strings.Compare(key.GetModuleName(), remoteOverrides[i].GetName()) },
 	)
 	if !ok {
 		// No override for this module. Return an empty value,
@@ -28,11 +28,11 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleOverrideDefinitionValue(
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleOverrideDefinition_Value{}), nil
 	}
 
-	definition := model_core.Patch(e, model_core.Nested(remoteOverridesValue, remoteOverrides[i].Definition))
+	definition := model_core.Patch(e, model_core.Nested(remoteOverridesValue, remoteOverrides[i].GetDefinition()))
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.ModuleOverrideDefinition_Value{
+		model_analysis_pb.ModuleOverrideDefinition_Value_builder{
 			Definition: definition.Message,
-		},
+		}.Build(),
 		definition.Patcher,
 	), nil
 }

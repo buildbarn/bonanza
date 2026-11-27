@@ -129,9 +129,9 @@ func (a *ruleTargetAnalysis[TReference, TMetadata]) getLabelAttrAspects(namedAtt
 	}
 
 	e := a.environment
-	labelAttrAspects := e.GetLabelAttrAspectsValue(&model_analysis_pb.LabelAttrAspects_Key{
+	labelAttrAspects := e.GetLabelAttrAspectsValue(model_analysis_pb.LabelAttrAspects_Key_builder{
 		AspectIdentifiers: attrAspectIdentifiers,
-	})
+	}.Build())
 	valueEncodingOptionsFactory, err := a.computer.newValueEncodingOptionsFactory(e, a.starlarkValueEncoders)
 	if err != nil {
 		return model_core.Message[[]*model_starlark_pb.AppliedAspect, TReference]{}, err
@@ -895,11 +895,11 @@ func (c *baseComputer[TReference, TMetadata]) configureRuleTargetAttrs(
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
 		configuredRuleUsage := e.GetConfiguredRuleUsageValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.ConfiguredRuleUsage_Key{
+				model_analysis_pb.ConfiguredRuleUsage_Key_builder{
 					Identifier:                ruleIdentifier.String(),
 					ConfigurationReference:    patchedConfigurationReference.Message,
 					ExplicitPublicAttrIndices: explicitPublicAttrIndices,
-				},
+				}.Build(),
 				patchedConfigurationReference.Patcher,
 			),
 		)
@@ -912,10 +912,10 @@ func (c *baseComputer[TReference, TMetadata]) configureRuleTargetAttrs(
 	patchedConfigurationReference := model_core.Patch(e, configurationReference)
 	configuredRule := e.GetConfiguredRuleValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.ConfiguredRule_Key{
+			model_analysis_pb.ConfiguredRule_Key_builder{
 				Identifier:             ruleIdentifier.String(),
 				ConfigurationReference: patchedConfigurationReference.Message,
-			},
+			}.Build(),
 			patchedConfigurationReference.Patcher,
 		),
 	)
@@ -1155,21 +1155,19 @@ func (c *baseComputer[TReference, TMetadata]) encodeTargetOutputsAndActions(
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Output, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Output, TMetadata] {
 				var firstPackageRelativePath string
-				switch firstElement := childNodes.Message[0].Level.(type) {
-				case *model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_:
-					firstPackageRelativePath = firstElement.Leaf.PackageRelativePath
-				case *model_analysis_pb.ConfiguredTarget_Value_Output_Parent_:
-					firstPackageRelativePath = firstElement.Parent.FirstPackageRelativePath
+				switch childNodes.Message[0].WhichLevel() {
+				case model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_case:
+					firstPackageRelativePath = childNodes.Message[0].GetLeaf().GetPackageRelativePath()
+				case model_analysis_pb.ConfiguredTarget_Value_Output_Parent_case:
+					firstPackageRelativePath = childNodes.Message[0].GetParent().GetFirstPackageRelativePath()
 				}
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
-					return &model_analysis_pb.ConfiguredTarget_Value_Output{
-						Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent_{
-							Parent: &model_analysis_pb.ConfiguredTarget_Value_Output_Parent{
-								Reference:                patcher.AddDecodableReference(createdObject),
-								FirstPackageRelativePath: firstPackageRelativePath,
-							},
-						},
-					}
+					return model_analysis_pb.ConfiguredTarget_Value_Output_builder{
+						Parent: model_analysis_pb.ConfiguredTarget_Value_Output_Parent_builder{
+							Reference:                patcher.AddDecodableReference(createdObject),
+							FirstPackageRelativePath: firstPackageRelativePath,
+						}.Build(),
+					}.Build()
 				})
 			}),
 		),
@@ -1184,14 +1182,12 @@ func (c *baseComputer[TReference, TMetadata]) encodeTargetOutputsAndActions(
 		}
 		if err := outputsTreeBuilder.PushChild(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Output {
-				return &model_analysis_pb.ConfiguredTarget_Value_Output{
-					Level: &model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_{
-						Leaf: &model_analysis_pb.ConfiguredTarget_Value_Output_Leaf{
-							PackageRelativePath: packageRelativePath,
-							Definition:          output.definition.Merge(patcher),
-						},
-					},
-				}
+				return model_analysis_pb.ConfiguredTarget_Value_Output_builder{
+					Leaf: model_analysis_pb.ConfiguredTarget_Value_Output_Leaf_builder{
+						PackageRelativePath: packageRelativePath,
+						Definition:          output.definition.Merge(patcher),
+					}.Build(),
+				}.Build()
 			}),
 		); err != nil {
 			return nil, nil, err
@@ -1216,21 +1212,19 @@ func (c *baseComputer[TReference, TMetadata]) encodeTargetOutputsAndActions(
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ConfiguredTarget_Value_Action, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action, TMetadata] {
 				var firstID []byte
-				switch firstElement := childNodes.Message[0].Level.(type) {
-				case *model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_:
-					firstID = firstElement.Leaf.Id
-				case *model_analysis_pb.ConfiguredTarget_Value_Action_Parent_:
-					firstID = firstElement.Parent.FirstId
+				switch childNodes.Message[0].WhichLevel() {
+				case model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_case:
+					firstID = childNodes.Message[0].GetLeaf().GetId()
+				case model_analysis_pb.ConfiguredTarget_Value_Action_Parent_case:
+					firstID = childNodes.Message[0].GetParent().GetFirstId()
 				}
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
-					return &model_analysis_pb.ConfiguredTarget_Value_Action{
-						Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent_{
-							Parent: &model_analysis_pb.ConfiguredTarget_Value_Action_Parent{
-								Reference: patcher.AddDecodableReference(createdObject),
-								FirstId:   firstID,
-							},
-						},
-					}
+					return model_analysis_pb.ConfiguredTarget_Value_Action_builder{
+						Parent: model_analysis_pb.ConfiguredTarget_Value_Action_Parent_builder{
+							Reference: patcher.AddDecodableReference(createdObject),
+							FirstId:   firstID,
+						}.Build(),
+					}.Build()
 				})
 			}),
 		),
@@ -1238,17 +1232,15 @@ func (c *baseComputer[TReference, TMetadata]) encodeTargetOutputsAndActions(
 	defer actionsTreeBuilder.Discard()
 
 	slices.SortFunc(tc.actions, func(a, b model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value_Action_Leaf, TMetadata]) int {
-		return bytes.Compare(a.Message.Id, b.Message.Id)
+		return bytes.Compare(a.Message.GetId(), b.Message.GetId())
 	})
 	for _, action := range tc.actions {
 		if err := actionsTreeBuilder.PushChild(
 			model_core.MustBuildPatchedMessage(
 				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value_Action {
-					return &model_analysis_pb.ConfiguredTarget_Value_Action{
-						Level: &model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_{
-							Leaf: action.Merge(patcher),
-						},
-					}
+					return model_analysis_pb.ConfiguredTarget_Value_Action_builder{
+						Leaf: action.Merge(patcher),
+					}.Build()
 				},
 			),
 		); err != nil {
@@ -1333,11 +1325,11 @@ func (c *baseComputer[TReference, TMetadata]) encodeRuleTargetValue(
 		}
 
 		// TODO: We should use inlinedtree.Build() here.
-		return &model_analysis_pb.ConfiguredTarget_Value{
+		return model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: encodedProviderInstances,
 			Outputs:           outputs,
 			Actions:           actions,
-		}, nil
+		}.Build(), nil
 	})
 }
 
@@ -1743,10 +1735,10 @@ func (rc *ruleContext[TReference, TMetadata]) Attr(thread *eval.Thread, name str
 				rc.analysisEncoders.Readers.BuildSettingOverride,
 				getBuildSettingOverridesFromReference(rc.configurationReference),
 				func(entry model_core.Message[*model_analysis_pb.BuildSettingOverride, TReference]) (int, *model_core_pb.DecodableReference) {
-					switch entry.Message.GetLevel().(type) {
-					case *model_analysis_pb.BuildSettingOverride_Leaf_:
+					switch entry.Message.WhichLevel() {
+					case model_analysis_pb.BuildSettingOverride_Leaf_case:
 						return strings.Compare(targetLabelStr, entry.Message.GetLeaf().GetLabel()), nil
-					case *model_analysis_pb.BuildSettingOverride_Parent_:
+					case model_analysis_pb.BuildSettingOverride_Parent_case:
 						return strings.Compare(targetLabelStr, entry.Message.GetParent().GetFirstLabel()), entry.Message.GetParent().GetReference()
 					default:
 						return 0, nil
@@ -1871,13 +1863,11 @@ func (rc *targetContext[TReference, TMetadata]) setOutputToStaticDirectory(outpu
 
 	return output.setDefinition(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.TargetOutputDefinition{
-				Source: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_{
-					StaticPackageDirectory: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory{
-						Entries: createdDirectory.Message.Message,
-					},
-				},
-			},
+			model_analysis_pb.TargetOutputDefinition_builder{
+				StaticPackageDirectory: model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_builder{
+					Entries: createdDirectory.Message.Message,
+				}.Build(),
+			}.Build(),
 			createdDirectory.Message.Patcher,
 		),
 	)
@@ -2060,10 +2050,10 @@ func (rca *targetContextActions[TReference, TMetadata]) doExpandTemplate(thread 
 
 	substitutionsList := make([]*model_analysis_pb.TargetOutputDefinition_ExpandTemplate_Substitution, 0, len(substitutions))
 	for _, needle := range slices.Sorted(maps.Keys(substitutions)) {
-		substitutionsList = append(substitutionsList, &model_analysis_pb.TargetOutputDefinition_ExpandTemplate_Substitution{
+		substitutionsList = append(substitutionsList, model_analysis_pb.TargetOutputDefinition_ExpandTemplate_Substitution_builder{
 			Needle:      []byte(needle),
 			Replacement: substitutions[needle],
-		})
+		}.Build())
 	}
 
 	if output.fileType != model_starlark_pb.File_Owner_FILE {
@@ -2072,15 +2062,13 @@ func (rca *targetContextActions[TReference, TMetadata]) doExpandTemplate(thread 
 	patchedTemplate := model_core.Patch(rc.environment, template.GetDefinition())
 	return eval.None, output.setDefinition(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.TargetOutputDefinition{
-				Source: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate_{
-					ExpandTemplate: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate{
-						Template:      patchedTemplate.Message,
-						IsExecutable:  isExecutable,
-						Substitutions: substitutionsList,
-					},
-				},
-			},
+			model_analysis_pb.TargetOutputDefinition_builder{
+				ExpandTemplate: model_analysis_pb.TargetOutputDefinition_ExpandTemplate_builder{
+					Template:      patchedTemplate.Message,
+					IsExecutable:  isExecutable,
+					Substitutions: substitutionsList,
+				}.Build(),
+			}.Build(),
 			patchedTemplate.Patcher,
 		),
 	)
@@ -2098,21 +2086,21 @@ func promoteStringArgumentsToArgs[TMetadata model_core.ReferenceMetadata](
 	}
 	return argsList.PushChild(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.Args{
-				Level: &model_analysis_pb.Args_Leaf_{Leaf: &model_analysis_pb.Args_Leaf{
-					Adds: []*model_analysis_pb.Args_Leaf_Add{{
-						Level: &model_analysis_pb.Args_Leaf_Add_Leaf_{Leaf: &model_analysis_pb.Args_Leaf_Add_Leaf{
+			model_analysis_pb.Args_builder{
+				Leaf: model_analysis_pb.Args_Leaf_builder{
+					Adds: []*model_analysis_pb.Args_Leaf_Add{model_analysis_pb.Args_Leaf_Add_builder{
+						Leaf: model_analysis_pb.Args_Leaf_Add_Leaf_builder{
 							Values: model_starlark_pb.Value_builder{
 								List: model_starlark_pb.List_builder{
 									Elements: stringArgumentsList.Message,
 								}.Build(),
 							}.Build(),
 							FormatEach: "%s",
-							Style:      &model_analysis_pb.Args_Leaf_Add_Leaf_Separate_{Separate: &model_analysis_pb.Args_Leaf_Add_Leaf_Separate{}},
-						}},
-					}},
-				}},
-			},
+							Separate:   &model_analysis_pb.Args_Leaf_Add_Leaf_Separate{},
+						}.Build(),
+					}.Build()},
+				}.Build(),
+			}.Build(),
 			stringArgumentsList.Patcher,
 		),
 	)
@@ -2166,7 +2154,7 @@ func (rc *targetContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(
 			inlinedtree.AlwaysInline(
 				executable.Patcher,
 				func(filesToRunProvider model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider_Leaf, TMetadata]) {
-					filesToRunProvider.Message.Executable = executable.Message
+					filesToRunProvider.Message.SetExecutable(executable.Message)
 				},
 			),
 			// Fields that can be stored externally if needed.
@@ -2190,7 +2178,7 @@ func (rc *targetContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(
 					if err != nil {
 						return err
 					}
-					filesToRunProvider.Message.RunfilesFiles = runfilesFiles
+					filesToRunProvider.Message.SetRunfilesFiles(runfilesFiles)
 					return nil
 				},
 			},
@@ -2214,7 +2202,7 @@ func (rc *targetContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(
 					if err != nil {
 						return err
 					}
-					filesToRunProvider.Message.RunfilesSymlinks = runfilesSymlinks
+					filesToRunProvider.Message.SetRunfilesSymlinks(runfilesSymlinks)
 					return nil
 				},
 			},
@@ -2238,7 +2226,7 @@ func (rc *targetContext[TReference, TMetadata]) newFilesToRunProviderFromStruct(
 					if err != nil {
 						return err
 					}
-					filesToRunProvider.Message.RunfilesRootSymlinks = runfilesRootSymlinks
+					filesToRunProvider.Message.SetRunfilesRootSymlinks(runfilesRootSymlinks)
 					return nil
 				},
 			},
@@ -2314,11 +2302,11 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 	var inputsDirect []eval.Value
 	toolsParentNodeComputer := btree.Capturing(rc.context, valueEncodingOptions.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.FilesToRunProvider, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.FilesToRunProvider, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.FilesToRunProvider {
-			return &model_analysis_pb.FilesToRunProvider{
-				Level: &model_analysis_pb.FilesToRunProvider_Parent_{Parent: &model_analysis_pb.FilesToRunProvider_Parent{
+			return model_analysis_pb.FilesToRunProvider_builder{
+				Parent: model_analysis_pb.FilesToRunProvider_Parent_builder{
 					Reference: patcher.AddDecodableReference(createdObject),
-				}},
-			}
+				}.Build(),
+			}.Build()
 		})
 	})
 	toolsBuilder := btree.NewHeightAwareBuilder(
@@ -2356,9 +2344,9 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 			}
 			if err := toolsBuilder.PushChild(
 				model_core.NewPatchedMessage(
-					&model_analysis_pb.FilesToRunProvider{
-						Level: &model_analysis_pb.FilesToRunProvider_Leaf_{Leaf: patchedFilesToRun.Message},
-					},
+					model_analysis_pb.FilesToRunProvider_builder{
+						Leaf: patchedFilesToRun.Message,
+					}.Build(),
 					patchedFilesToRun.Patcher,
 				),
 			); err != nil {
@@ -2409,11 +2397,11 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 
 	argsParentNodeComputer := btree.Capturing(rc.context, valueEncodingOptions.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Args, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Args, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args {
-			return &model_analysis_pb.Args{
-				Level: &model_analysis_pb.Args_Parent_{Parent: &model_analysis_pb.Args_Parent{
+			return model_analysis_pb.Args_builder{
+				Parent: model_analysis_pb.Args_Parent_builder{
 					Reference: patcher.AddDecodableReference(createdObject),
-				}},
-			}
+				}.Build(),
+			}.Build()
 		})
 	})
 	argsListBuilder := btree.NewHeightAwareBuilder(
@@ -2447,9 +2435,9 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 			}
 			if err := argsListBuilder.PushChild(
 				model_core.NewPatchedMessage(
-					&model_analysis_pb.Args{
-						Level: &model_analysis_pb.Args_Leaf_{Leaf: encodedArgs.Message},
-					},
+					model_analysis_pb.Args_builder{
+						Leaf: encodedArgs.Message,
+					}.Build(),
 					encodedArgs.Patcher,
 				),
 			); err != nil {
@@ -2518,9 +2506,9 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 	for _, output := range outputs {
 		if err := output.setDefinition(
 			model_core.NewSimplePatchedMessage[TMetadata](
-				&model_analysis_pb.TargetOutputDefinition{
-					Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: actionID},
-				},
+				model_analysis_pb.TargetOutputDefinition_builder{
+					ActionId: actionID,
+				}.Build(),
 			),
 		); err != nil {
 			return nil, err
@@ -2603,9 +2591,9 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 				}
 				if err := toolsBuilder.PushChild(
 					model_core.NewPatchedMessage(
-						&model_analysis_pb.FilesToRunProvider{
-							Level: &model_analysis_pb.FilesToRunProvider_Leaf_{Leaf: patchedFilesToRun.Message},
-						},
+						model_analysis_pb.FilesToRunProvider_builder{
+							Leaf: patchedFilesToRun.Message,
+						}.Build(),
 						patchedFilesToRun.Patcher,
 					),
 				); err != nil {
@@ -2638,8 +2626,8 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 			inlinedtree.AlwaysInline(
 				model_core.NewReferenceMessagePatcher[TMetadata](),
 				func(actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata]) {
-					actionDefinition.Message.PlatformPkixPublicKey = rc.execGroups[execGroupIndex].platformPkixPublicKey
-					actionDefinition.Message.UseDefaultShellEnv = useDefaultShellEnv
+					actionDefinition.Message.SetPlatformPkixPublicKey(rc.execGroups[execGroupIndex].platformPkixPublicKey)
+					actionDefinition.Message.SetUseDefaultShellEnv(useDefaultShellEnv)
 				},
 			),
 			// Fields that can be stored externally if needed.
@@ -2659,7 +2647,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 					if err != nil {
 						return err
 					}
-					actionDefinition.Message.Arguments = arguments
+					actionDefinition.Message.SetArguments(arguments)
 					return nil
 				},
 			},
@@ -2679,7 +2667,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 					if err != nil {
 						return err
 					}
-					actionDefinition.Message.Env = env
+					actionDefinition.Message.SetEnv(env)
 					return nil
 				},
 			},
@@ -2703,7 +2691,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 					if err != nil {
 						return err
 					}
-					actionDefinition.Message.Inputs = inputs
+					actionDefinition.Message.SetInputs(inputs)
 					return nil
 				},
 			},
@@ -2723,7 +2711,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 					if err != nil {
 						return err
 					}
-					actionDefinition.Message.Tools = tools
+					actionDefinition.Message.SetTools(tools)
 					return nil
 				},
 			},
@@ -2734,11 +2722,11 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 					actionDefinition model_core.PatchedMessage[*model_analysis_pb.TargetActionDefinition, TMetadata],
 					externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 				) {
-					actionDefinition.Message.OutputPathPattern = model_command.GetPathPatternWithChildren(
+					actionDefinition.Message.SetOutputPathPattern(model_command.GetPathPatternWithChildren(
 						outputPathPatternChildren,
 						externalObject,
 						actionDefinition.Patcher,
-					)
+					))
 				}),
 			},
 			{
@@ -2757,7 +2745,7 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 					if err != nil {
 						return err
 					}
-					actionDefinition.Message.InitialOutputDirectory = initialOutputDirectory
+					actionDefinition.Message.SetInitialOutputDirectory(initialOutputDirectory)
 					return nil
 				},
 			},
@@ -2768,10 +2756,10 @@ func (rca *targetContextActions[TReference, TMetadata]) doRun(thread *eval.Threa
 		return nil, err
 	}
 	rc.actions = append(rc.actions, model_core.NewPatchedMessage(
-		&model_analysis_pb.ConfiguredTarget_Value_Action_Leaf{
+		model_analysis_pb.ConfiguredTarget_Value_Action_Leaf_builder{
 			Id:         actionID,
 			Definition: actionDefinition.Message,
-		},
+		}.Build(),
 		actionDefinition.Patcher,
 	))
 	return eval.None, nil
@@ -2855,12 +2843,12 @@ func (rca *targetContextActions[TReference, TMetadata]) doSymlink(thread *eval.T
 		patchedTargetFileDefinition := model_core.Patch(rc.environment, targetFileDefinition)
 		return eval.None, output.setDefinition(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.TargetOutputDefinition{
-					Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
+				model_analysis_pb.TargetOutputDefinition_builder{
+					Symlink: model_analysis_pb.TargetOutputDefinition_Symlink_builder{
 						Target:       patchedTargetFileDefinition.Message,
 						IsExecutable: isExecutable,
-					}},
-				},
+					}.Build(),
+				}.Build(),
 				patchedTargetFileDefinition.Patcher,
 			),
 		)
@@ -2964,14 +2952,12 @@ func (rca *targetContextActions[TReference, TMetadata]) doWrite(thread *eval.Thr
 		}
 		return eval.None, output.setDefinition(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetOutputDefinition {
-				return &model_analysis_pb.TargetOutputDefinition{
-					Source: &model_analysis_pb.TargetOutputDefinition_Write_{
-						Write: &model_analysis_pb.TargetOutputDefinition_Write{
-							Content:      encodedContent.Merge(patcher),
-							IsExecutable: isExecutable,
-						},
-					},
-				}
+				return model_analysis_pb.TargetOutputDefinition_builder{
+					Write: model_analysis_pb.TargetOutputDefinition_Write_builder{
+						Content:      encodedContent.Merge(patcher),
+						IsExecutable: isExecutable,
+					}.Build(),
+				}.Build()
 			}),
 		)
 	case model_core.Message[*model_filesystem_pb.FileContents, TReference]:
@@ -3225,11 +3211,11 @@ func (args[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, error) {
 func (a *args[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *model_starlark.ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_analysis_pb.Args_Leaf, TMetadata], error) {
 	var useParamFile *model_analysis_pb.Args_Leaf_UseParamFile
 	if u := a.useParamFile; u != nil {
-		useParamFile = &model_analysis_pb.Args_Leaf_UseParamFile{
+		useParamFile = model_analysis_pb.Args_Leaf_UseParamFile_builder{
 			Format:       a.paramFileFormat,
 			ParamFileArg: u.paramFileArg,
 			UseAlways:    u.useAlways,
-		}
+		}.Build()
 	}
 
 	addsListBuilder := btree.NewHeightAwareBuilder(
@@ -3244,13 +3230,11 @@ func (a *args[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Va
 			options.ObjectReferenceFormat,
 			btree.Capturing(options.Context, options.ObjectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Args_Leaf_Add, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Args_Leaf_Add, TMetadata] {
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Args_Leaf_Add {
-					return &model_analysis_pb.Args_Leaf_Add{
-						Level: &model_analysis_pb.Args_Leaf_Add_Parent_{
-							Parent: &model_analysis_pb.Args_Leaf_Add_Parent{
-								Reference: patcher.AddDecodableReference(createdObject),
-							},
-						},
-					}
+					return model_analysis_pb.Args_Leaf_Add_builder{
+						Parent: model_analysis_pb.Args_Leaf_Add_Parent_builder{
+							Reference: patcher.AddDecodableReference(createdObject),
+						}.Build(),
+					}.Build()
 				})
 			}),
 		),
@@ -3259,26 +3243,26 @@ func (a *args[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Va
 
 	for _, add := range a.adds {
 		leaf, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.Args_Leaf_Add_Leaf, error) {
-			leaf := &model_analysis_pb.Args_Leaf_Add_Leaf{
+			leaf := model_analysis_pb.Args_Leaf_Add_Leaf_builder{
 				StartWith:         add.startWith,
 				ExpandDirectories: add.expandDirectories,
 				FormatEach:        add.formatEach,
 				OmitIfEmpty:       add.omitIfEmpty,
 				Uniquify:          add.uniquify,
-			}
+			}.Build()
 
 			values, err := model_starlark.EncodeValue(thread, add.values, nil, nil, options)
 			if err != nil {
 				return nil, err
 			}
-			leaf.Values = values.Merge(patcher)
+			leaf.SetValues(values.Merge(patcher))
 
 			if add.mapEach != nil {
 				mapEach, err := model_starlark.EncodeFunction(thread, add.mapEach, path, options)
 				if err != nil {
 					return nil, err
 				}
-				leaf.MapEach = mapEach.Merge(patcher)
+				leaf.SetMapEach(mapEach.Merge(patcher))
 			}
 
 			add.setStyle(leaf)
@@ -3290,11 +3274,9 @@ func (a *args[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Va
 
 		if err := addsListBuilder.PushChild(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.Args_Leaf_Add{
-					Level: &model_analysis_pb.Args_Leaf_Add_Leaf_{
-						Leaf: leaf.Message,
-					},
-				},
+				model_analysis_pb.Args_Leaf_Add_builder{
+					Leaf: leaf.Message,
+				}.Build(),
 				leaf.Patcher,
 			),
 		); err != nil {
@@ -3307,10 +3289,10 @@ func (a *args[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Va
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.Args_Leaf{
+		model_analysis_pb.Args_Leaf_builder{
 			Adds:         addsList.Message,
 			UseParamFile: useParamFile,
-		},
+		}.Build(),
 		addsList.Patcher,
 	), nil
 }
@@ -3360,9 +3342,7 @@ func (a *args[TReference, TMetadata]) doAdd(thread *eval.Thread, b *eval.Builtin
 		values:     eval.NewList([]eval.Value{value}),
 		formatEach: format,
 		setStyle: func(leaf *model_analysis_pb.Args_Leaf_Add_Leaf) {
-			leaf.Style = &model_analysis_pb.Args_Leaf_Add_Leaf_Separate_{
-				Separate: &model_analysis_pb.Args_Leaf_Add_Leaf_Separate{},
-			}
+			leaf.SetSeparate(&model_analysis_pb.Args_Leaf_Add_Leaf_Separate{})
 		},
 	})
 	return a, nil
@@ -3443,12 +3423,10 @@ func (a *args[TReference, TMetadata]) doAddAll(thread *eval.Thread, b *eval.Buil
 		omitIfEmpty:       omitIfEmpty,
 		uniquify:          uniquify,
 		setStyle: func(leaf *model_analysis_pb.Args_Leaf_Add_Leaf) {
-			leaf.Style = &model_analysis_pb.Args_Leaf_Add_Leaf_Separate_{
-				Separate: &model_analysis_pb.Args_Leaf_Add_Leaf_Separate{
-					BeforeEach:    beforeEach,
-					TerminateWith: terminateWith,
-				},
-			}
+			leaf.SetSeparate(model_analysis_pb.Args_Leaf_Add_Leaf_Separate_builder{
+				BeforeEach:    beforeEach,
+				TerminateWith: terminateWith,
+			}.Build())
 		},
 	}
 	if startWith != nil {
@@ -3496,12 +3474,10 @@ func (a *args[TReference, TMetadata]) doAddJoined(thread *eval.Thread, b *eval.B
 		omitIfEmpty:       omitIfEmpty,
 		uniquify:          uniquify,
 		setStyle: func(leaf *model_analysis_pb.Args_Leaf_Add_Leaf) {
-			leaf.Style = &model_analysis_pb.Args_Leaf_Add_Leaf_Joined_{
-				Joined: &model_analysis_pb.Args_Leaf_Add_Leaf_Joined{
-					JoinWith:     joinWith,
-					FormatJoined: formatJoined,
-				},
-			}
+			leaf.SetJoined(model_analysis_pb.Args_Leaf_Add_Leaf_Joined_builder{
+				JoinWith:     joinWith,
+				FormatJoined: formatJoined,
+			}.Build())
 		},
 	}
 	if startWith != nil {

@@ -22,11 +22,11 @@ var componentMainWorkspaceName = path.MustNewComponent("_main")
 func (*baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetActionInputRoot_Key, TReference], e TargetActionInputRootEnvironment[TReference, TMetadata]) (PatchedTargetActionInputRootValue[TMetadata], error) {
 	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 
-	id := model_core.Nested(key, key.Message.Id)
+	id := model_core.Nested(key, key.Message.GetId())
 	if id.Message == nil {
 		return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("no target action identifier specified")
 	}
-	targetLabel, err := label.NewCanonicalLabel(id.Message.Label)
+	targetLabel, err := label.NewCanonicalLabel(id.Message.GetLabel())
 	if err != nil {
 		return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("invalid target label")
 	}
@@ -34,9 +34,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ct
 	patchedID := model_core.Patch(e, id)
 	action := e.GetTargetActionValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.TargetAction_Key{
+			model_analysis_pb.TargetAction_Key_builder{
 				Id: patchedID.Message,
-			},
+			}.Build(),
 			patchedID.Patcher,
 		),
 	)
@@ -50,7 +50,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ct
 		return PatchedTargetActionInputRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	actionDefinition := action.Message.Definition
+	actionDefinition := action.Message.GetDefinition()
 	if actionDefinition == nil {
 		return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("action definition missing")
 	}
@@ -60,7 +60,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ct
 	// Add empty directories for the output directory of the current
 	// package and configuration.
 	components, err := getPackageOutputDirectoryComponents(
-		model_core.Nested(id, id.Message.Variant.GetConfigurationReference()),
+		model_core.Nested(id, id.Message.GetVariant().GetConfigurationReference()),
 		targetLabel.GetCanonicalPackage(),
 		model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 	)
@@ -71,12 +71,12 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ct
 	for _, component := range components {
 		outputDirectory = outputDirectory.GetOrCreateDirectory(component)
 	}
-	outputDirectory.MergeDirectoryContents(model_core.Nested(action, actionDefinition.InitialOutputDirectory))
+	outputDirectory.MergeDirectoryContents(model_core.Nested(action, actionDefinition.GetInitialOutputDirectory()))
 
 	// Add input files.
 	if err := addFilesToMergedDirectory(
 		e,
-		model_core.Nested(action, actionDefinition.Inputs),
+		model_core.Nested(action, actionDefinition.GetInputs()),
 		&rootDirectory,
 		model_analysis_pb.DirectoryLayout_INPUT_ROOT,
 	); err != nil {
@@ -92,20 +92,20 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ct
 	for tool := range btree.AllLeaves(
 		ctx,
 		analysisReaders.FilesToRunProvider,
-		model_core.Nested(action, actionDefinition.Tools),
+		model_core.Nested(action, actionDefinition.GetTools()),
 		func(element model_core.Message[*model_analysis_pb.FilesToRunProvider, TReference]) (*model_core_pb.DecodableReference, error) {
 			return element.Message.GetParent().GetReference(), nil
 		},
 		&errIter,
 	) {
-		toolLevel, ok := tool.Message.Level.(*model_analysis_pb.FilesToRunProvider_Leaf_)
-		if !ok {
+		toolLevel := tool.Message.GetLeaf()
+		if toolLevel == nil {
 			return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("not a valid leaf entry for tool")
 		}
-		toolLeaf := toolLevel.Leaf
+		toolLeaf := toolLevel
 
 		// Add the tool's executable to the input root.
-		executable := model_core.Nested(tool, toolLeaf.Executable)
+		executable := model_core.Nested(tool, toolLeaf.GetExecutable())
 		if err := addFileToMergedDirectory(
 			e,
 			executable,
@@ -135,7 +135,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ct
 		}
 		if err := addFilesToMergedDirectory(
 			e,
-			model_core.Nested(tool, toolLeaf.RunfilesFiles),
+			model_core.Nested(tool, toolLeaf.GetRunfilesFiles()),
 			runfilesDirectory,
 			model_analysis_pb.DirectoryLayout_RUNFILES,
 		); err != nil {
@@ -147,10 +147,10 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ct
 		// "${RUNFILES_DIR}/_main/../${path}" work.
 		runfilesDirectory.GetOrCreateDirectory(componentMainWorkspaceName)
 
-		if len(toolLeaf.RunfilesSymlinks) > 0 {
+		if len(toolLeaf.GetRunfilesSymlinks()) > 0 {
 			return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("TODO: add runfiles symlinks to the input root")
 		}
-		if len(toolLeaf.RunfilesRootSymlinks) > 0 {
+		if len(toolLeaf.GetRunfilesRootSymlinks()) > 0 {
 			return PatchedTargetActionInputRootValue[TMetadata]{}, errors.New("TODO: add runfiles root symlinks to the input root")
 		}
 	}
@@ -175,8 +175,8 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetActionInputRootValue(ct
 		return PatchedTargetActionInputRootValue[TMetadata]{}, err
 	}
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.TargetActionInputRoot_Value, error) {
-		return &model_analysis_pb.TargetActionInputRoot_Value{
+		return model_analysis_pb.TargetActionInputRoot_Value_builder{
 			InputRootReference: inputRootReference.Merge(patcher),
-		}, nil
+		}.Build(), nil
 	})
 }

@@ -86,10 +86,10 @@ func (*baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Con
 	// Package is not directly contained in this package group.
 	// Check package groups that are being included.
 	for _, includePackageGroup := range packageGroup.Message.GetIncludePackageGroups() {
-		containsValue := e.GetPackageGroupContainsValue(&model_analysis_pb.PackageGroupContains_Key{
+		containsValue := e.GetPackageGroupContainsValue(model_analysis_pb.PackageGroupContains_Key_builder{
 			PackageGroupLabel: includePackageGroup,
 			Package:           fromPackage.String(),
-		})
+		}.Build())
 		if !containsValue.IsSet() {
 			return false, evaluation.ErrMissingDependency
 		}
@@ -108,9 +108,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(c
 		return PatchedPackageGroupContainsValue[TMetadata]{}, fmt.Errorf("invalid from package: %w", err)
 	}
 
-	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+	targetValue := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: key.GetPackageGroupLabel(),
-	})
+	}.Build())
 	if !targetValue.IsSet() || !gotValueReaders {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -127,7 +127,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(c
 	if err != nil {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, err
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.PackageGroupContains_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.PackageGroupContains_Value_builder{
 		Contains: contains,
-	}), nil
+	}.Build()), nil
 }

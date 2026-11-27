@@ -17,12 +17,12 @@ func (baseComputer[TReference, TMetadata]) ComputeModulesWithLocalOverridesValue
 	// Only extract the names of the modules, so that this value
 	// remains stable if the contents of these modules change. The
 	// build specification already lists the modules in sorted order.
-	modules := buildSpecification.Message.Modules
+	modules := buildSpecification.Message.GetModules()
 	moduleNames := make([]string, 0, len(modules))
 	for _, module := range modules {
-		moduleNames = append(moduleNames, module.Name)
+		moduleNames = append(moduleNames, module.GetName())
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModulesWithLocalOverrides_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.ModulesWithLocalOverrides_Value_builder{
 		ModuleNames: moduleNames,
-	}), nil
+	}.Build()), nil
 }

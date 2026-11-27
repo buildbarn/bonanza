@@ -17,10 +17,10 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleWithLocalOverrideRootDir
 	}
 
 	// The build specification lists modules in sorted order.
-	modules := buildSpecification.Message.Modules
+	modules := buildSpecification.Message.GetModules()
 	i, ok := sort.Find(
 		len(modules),
-		func(i int) int { return strings.Compare(key.ModuleName, modules[i].Name) },
+		func(i int) int { return strings.Compare(key.GetModuleName(), modules[i].GetName()) },
 	)
 	if !ok {
 		// No local override for this module. Return an empty
@@ -29,11 +29,11 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleWithLocalOverrideRootDir
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleWithLocalOverrideRootDirectory_Value{}), nil
 	}
 
-	rootDirectoryReference := model_core.Patch(e, model_core.Nested(buildSpecification, modules[i].RootDirectoryReference))
+	rootDirectoryReference := model_core.Patch(e, model_core.Nested(buildSpecification, modules[i].GetRootDirectoryReference()))
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.ModuleWithLocalOverrideRootDirectory_Value{
+		model_analysis_pb.ModuleWithLocalOverrideRootDirectory_Value_builder{
 			RootDirectoryReference: rootDirectoryReference.Message,
-		},
+		}.Build(),
 		rootDirectoryReference.Patcher,
 	), nil
 }

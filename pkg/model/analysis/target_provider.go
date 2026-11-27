@@ -13,10 +13,10 @@ import (
 func (baseComputer[TReference, TMetadata]) ComputeTargetProviderValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetProvider_Key, TReference], e TargetProviderEnvironment[TReference, TMetadata]) (PatchedTargetProviderValue[TMetadata], error) {
 	targetProviders := e.GetTargetProvidersValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProviders_Key {
-			return &model_analysis_pb.TargetProviders_Key{
+			return model_analysis_pb.TargetProviders_Key_builder{
 				Label:   key.Message.GetLabel(),
 				Variant: model_core.Patch(e, model_core.Nested(key, key.Message.GetVariant())).Merge(patcher),
-			}
+			}.Build()
 		}),
 	)
 	if !targetProviders.IsSet() {
@@ -32,12 +32,12 @@ func (baseComputer[TReference, TMetadata]) ComputeTargetProviderValue(ctx contex
 		},
 	); ok {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Value {
-			return &model_analysis_pb.TargetProvider_Value{
+			return model_analysis_pb.TargetProvider_Value_builder{
 				Fields: model_core.Patch(
 					e,
 					model_core.Nested(targetProviders, providerInstances[providerIndex].GetFields()),
 				).Merge(patcher),
-			}
+			}.Build()
 		}), nil
 	}
 	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.TargetProvider_Value{}), nil

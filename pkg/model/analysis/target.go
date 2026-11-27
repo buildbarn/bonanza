@@ -25,10 +25,10 @@ func (*baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList(c
 		analysisReaders.PackageValueTarget,
 		targetList,
 		func(entry model_core.Message[*model_analysis_pb.Package_Value_Target, TReference]) (int, *model_core_pb.DecodableReference) {
-			switch entry.Message.GetLevel().(type) {
-			case *model_analysis_pb.Package_Value_Target_Leaf:
+			switch entry.Message.WhichLevel() {
+			case model_analysis_pb.Package_Value_Target_Leaf_case:
 				return strings.Compare(targetNameStr, entry.Message.GetLeaf().GetName()), nil
-			case *model_analysis_pb.Package_Value_Target_Parent_:
+			case model_analysis_pb.Package_Value_Target_Parent_case:
 				return strings.Compare(targetNameStr, entry.Message.GetParent().GetFirstName()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
@@ -88,10 +88,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Con
 		return PatchedTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	for {
-		packageValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
+		packageValue := e.GetPackageValue(model_analysis_pb.Package_Key_builder{
 			Label:             canonicalPackage,
 			MacroInstanceName: macroInstanceName,
-		})
+		}.Build())
 		if !packageValue.IsSet() {
 			return PatchedTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
@@ -102,9 +102,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Con
 		if definition.IsSet() {
 			patchedDefinition := model_core.Patch(e, definition)
 			return model_core.NewPatchedMessage(
-				&model_analysis_pb.Target_Value{
+				model_analysis_pb.Target_Value_builder{
 					Definition: patchedDefinition.Message,
-				},
+				}.Build(),
 				patchedDefinition.Patcher,
 			), nil
 		}

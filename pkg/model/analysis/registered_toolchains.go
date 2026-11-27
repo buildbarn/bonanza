@@ -80,11 +80,11 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				&iterErr,
 			) {
 				visibleTargetValue := h.environment.GetVisibleTargetValue(
-					model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Key{
+					model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.VisibleTarget_Key_builder{
 						FromPackage:        canonicalToolchainLabel.GetCanonicalPackage().String(),
 						ToLabel:            canonicalToolchainLabel.String(),
 						PermitAliasNoMatch: true,
-					}),
+					}.Build()),
 				)
 				if !visibleTargetValue.IsSet() {
 					*h.missingDependencies = true
@@ -102,9 +102,9 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					return fmt.Errorf("invalid toolchain label %#v: %w", toolchainLabelStr, err)
 				}
 
-				targetValue := h.environment.GetTargetValue(&model_analysis_pb.Target_Key{
+				targetValue := h.environment.GetTargetValue(model_analysis_pb.Target_Key_builder{
 					Label: toolchainLabelStr,
-				})
+				}.Build())
 				if !targetValue.IsSet() {
 					*h.missingDependencies = true
 					continue
@@ -281,18 +281,18 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					}
 				} else {
 					compatibleWith = &model_analysis_pb.RegisteredToolchain_CompatibleWith{}
-					compatibleWith.Exec = execCompatibleWith
-					compatibleWith.Target = targetCompatibleWith
+					compatibleWith.SetExec(execCompatibleWith)
+					compatibleWith.SetTarget(targetCompatibleWith)
 				}
 
 				if !*h.missingDependencies {
 					slices.Sort(targetSettings)
 					h.registeredToolchainsByType[*toolchainType] = append(
-						h.registeredToolchainsByType[*toolchainType], &model_analysis_pb.RegisteredToolchain{
+						h.registeredToolchainsByType[*toolchainType], model_analysis_pb.RegisteredToolchain_builder{
 							CompatibleWith: compatibleWith,
 							TargetSettings: slices.Compact(targetSettings),
 							Toolchain:      *toolchain,
-						},
+						}.Build(),
 					)
 				}
 			}
@@ -349,12 +349,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsValue(c
 
 	toolchainTypes := make([]*model_analysis_pb.RegisteredToolchains_Value_RegisteredToolchainType, 0, len(registeredToolchainsByType))
 	for _, toolchainType := range slices.Sorted(maps.Keys(registeredToolchainsByType)) {
-		toolchainTypes = append(toolchainTypes, &model_analysis_pb.RegisteredToolchains_Value_RegisteredToolchainType{
+		toolchainTypes = append(toolchainTypes, model_analysis_pb.RegisteredToolchains_Value_RegisteredToolchainType_builder{
 			ToolchainType: toolchainType,
 			Toolchains:    registeredToolchainsByType[toolchainType],
-		})
+		}.Build())
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RegisteredToolchains_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.RegisteredToolchains_Value_builder{
 		ToolchainTypes: toolchainTypes,
-	}), nil
+	}.Build()), nil
 }

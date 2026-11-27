@@ -20,9 +20,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 	if err != nil {
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
-	target := e.GetTargetValue(&model_analysis_pb.Target_Key{
+	target := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: key.GetLabel(),
-	})
+	}.Build())
 	if !target.IsSet() || !gotValueReaders || !gotAnalysisEncoders {
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -112,9 +112,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetDirectDependenciesVal
 		return PatchedTargetDirectDependenciesValue[TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.TargetDirectDependencies_Value{
+		model_analysis_pb.TargetDirectDependencies_Value_builder{
 			TargetLabels: targetLabels.Message,
-		},
+		}.Build(),
 		targetLabels.Patcher,
 	), nil
 }

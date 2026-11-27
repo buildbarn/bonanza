@@ -25,9 +25,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ctx 
 	if !ok {
 		return PatchedModuleExtensionRepoValue[TMetadata]{}, errors.New("repo does not include a module extension")
 	}
-	moduleExtensionReposValue := e.GetModuleExtensionReposValue(&model_analysis_pb.ModuleExtensionRepos_Key{
+	moduleExtensionReposValue := e.GetModuleExtensionReposValue(model_analysis_pb.ModuleExtensionRepos_Key_builder{
 		ModuleExtension: moduleExtension.String(),
-	})
+	}.Build())
 	if !moduleExtensionReposValue.IsSet() || !gotAnalysisReaders {
 		return PatchedModuleExtensionRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -38,10 +38,10 @@ func (*baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ctx 
 		analysisReaders.ModuleExtensionReposValueRepo,
 		model_core.Nested(moduleExtensionReposValue, moduleExtensionReposValue.Message.GetRepos()),
 		func(entry model_core.Message[*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TReference]) (int, *model_core_pb.DecodableReference) {
-			switch entry.Message.GetLevel().(type) {
-			case *model_analysis_pb.ModuleExtensionRepos_Value_Repo_Leaf:
+			switch entry.Message.WhichLevel() {
+			case model_analysis_pb.ModuleExtensionRepos_Value_Repo_Leaf_case:
 				return strings.Compare(repoName, entry.Message.GetLeaf().GetName()), nil
-			case *model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent_:
+			case model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent_case:
 				return strings.Compare(repoName, entry.Message.GetParent().GetFirstName()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
@@ -65,9 +65,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ctx 
 	}
 	patchedDefinition := model_core.Patch(e, model_core.Nested(repo, definition))
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.ModuleExtensionRepo_Value{
+		model_analysis_pb.ModuleExtensionRepo_Value_builder{
 			Definition: patchedDefinition.Message,
-		},
+		}.Build(),
 		patchedDefinition.Patcher,
 	), nil
 }

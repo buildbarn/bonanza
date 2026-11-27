@@ -25,12 +25,12 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 
 	newConfiguration := func(platform string) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
 		return newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-			return model_format.NewProtoList[model_analysis_pb.BuildSettingOverride]().NewMarshaler([]*model_analysis_pb.BuildSettingOverride{{
-				Level: &model_analysis_pb.BuildSettingOverride_Leaf_{Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
+			return model_format.NewProtoList[model_analysis_pb.BuildSettingOverride]().NewMarshaler([]*model_analysis_pb.BuildSettingOverride{model_analysis_pb.BuildSettingOverride_builder{
+				Leaf: model_analysis_pb.BuildSettingOverride_Leaf_builder{
 					Label: "@@bazel_tools+//command_line_option:platforms",
 					Value: labelValue(platform),
-				}},
-			}})
+				}.Build(),
+			}.Build()})
 		})
 	}
 	requestedConfiguration := newConfiguration("@@platforms+//requested")
@@ -47,21 +47,21 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 	}
 	expectTarget := func(e *MockTargetIncomingEdgeTransitionEnvironmentForTesting, label string, definition *model_starlark_pb.Target_Definition) {
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: label}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: label}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Target_Value_builder{
 			Definition: definition,
-		}))
+		}.Build()))
 	}
 	expectRule := func(e *MockTargetIncomingEdgeTransitionEnvironmentForTesting, definition *model_starlark_pb.Rule_Definition) {
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{Identifier: "@@rules+//:defs.bzl%my_rule"}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.CompiledBzlFileGlobal_Value_builder{
 			Global: model_starlark_pb.Value_builder{
 				Rule: model_starlark_pb.Rule_builder{
 					Definition: proto.ValueOrDefault(definition),
 				}.Build(),
 			}.Build(),
-		}))
+		}.Build()))
 	}
 	ruleTargetDefinition := model_starlark_pb.Target_Definition_builder{
 		RuleTarget: model_starlark_pb.RuleTarget_builder{
@@ -88,10 +88,10 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 		return bct.computer.ComputeTargetIncomingEdgeTransitionValue(
 			ctx,
 			newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
-				return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
+				return model_analysis_pb.TargetIncomingEdgeTransition_Key_builder{
 					Label:                  label,
 					ConfigurationReference: attachObject(patcher, requestedConfiguration),
-				}
+				}.Build()
 			}),
 			e,
 		)
@@ -99,9 +99,9 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 	requireOutputConfiguration := func(t *testing.T, want model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]], got model_core.PatchedMessage[*model_analysis_pb.TargetIncomingEdgeTransition_Value, model_core.CreatedObjectTree]) {
 		require.True(t, model_core.PatchedMessagesEqual(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetIncomingEdgeTransition_Value {
-				return &model_analysis_pb.TargetIncomingEdgeTransition_Value{
+				return model_analysis_pb.TargetIncomingEdgeTransition_Value_builder{
 					OutputConfigurationReference: attachObject(patcher, want),
-				}
+				}.Build()
 			}),
 			got,
 		))
@@ -164,15 +164,15 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 		}.Build())
 		e.EXPECT().GetTargetIncomingEdgeTransitionValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
-				return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
+				return model_analysis_pb.TargetIncomingEdgeTransition_Key_builder{
 					Label:                  "@@main+//:foo",
 					ConfigurationReference: attachObject(patcher, requestedConfiguration),
-				}
+				}.Build()
 			}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetIncomingEdgeTransition_Value {
-			return &model_analysis_pb.TargetIncomingEdgeTransition_Value{
+			return model_analysis_pb.TargetIncomingEdgeTransition_Value_builder{
 				OutputConfigurationReference: attachObject(patcher, transitionedConfiguration),
-			}
+			}.Build()
 		}))
 
 		value, err := compute(e, "@@main+//:foo.out")
@@ -205,16 +205,16 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 		}.Build())
 		e.EXPECT().GetRuleUsageIncomingEdgeTransitionValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.RuleUsageIncomingEdgeTransition_Key {
-				return &model_analysis_pb.RuleUsageIncomingEdgeTransition_Key{
+				return model_analysis_pb.RuleUsageIncomingEdgeTransition_Key_builder{
 					Identifier:                "@@rules+//:defs.bzl%my_rule",
 					ConfigurationReference:    attachObject(patcher, requestedConfiguration),
 					ExplicitPublicAttrIndices: []uint32{1},
-				}
+				}.Build()
 			}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.RuleUsageIncomingEdgeTransition_Value {
-			return &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value{
-				Result: &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_OutputConfigurationReference{OutputConfigurationReference: attachObject(patcher, transitionedConfiguration)},
-			}
+			return model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_builder{
+				OutputConfigurationReference: proto.ValueOrDefault(attachObject(patcher, transitionedConfiguration)),
+			}.Build()
 		}))
 
 		value, err := compute(e, "@@main+//:foo")

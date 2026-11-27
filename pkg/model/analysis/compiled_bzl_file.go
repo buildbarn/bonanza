@@ -63,7 +63,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
 
-	canonicalLabel, err := label.NewCanonicalLabel(key.Label)
+	canonicalLabel, err := label.NewCanonicalLabel(key.GetLabel())
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, fmt.Errorf("invalid label: %w", err)
 	}
@@ -74,17 +74,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 		return PatchedCompiledBzlFileValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	valueReaders := &starlarkValueEncoders.Readers
-	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, key.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, key.GetBuiltinsModuleNames())
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
 
-	bzlFileProperties := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
+	bzlFileProperties := e.GetFilePropertiesValue(model_analysis_pb.FileProperties_Key_builder{
 		CanonicalRepo: canonicalRepo.String(),
 		Path:          canonicalLabel.GetRepoRelativePath(),
-	})
+	}.Build())
 	fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
-	bzlFileBuiltins, bzlFileBuiltinsErr := c.getBzlFileBuiltins(thread, e, valueReaders, key.BuiltinsModuleNames)
+	bzlFileBuiltins, bzlFileBuiltinsErr := c.getBzlFileBuiltins(thread, e, valueReaders, key.GetBuiltinsModuleNames())
 	if !bzlFileProperties.IsSet() || !gotFileReader {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -92,11 +92,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 		return PatchedCompiledBzlFileValue[TMetadata]{}, bzlFileBuiltinsErr
 	}
 
-	if bzlFileProperties.Message.Exists == nil {
+	exists := bzlFileProperties.Message.GetExists()
+	if exists == nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, fmt.Errorf("file %#v does not exist", canonicalLabel.String())
 	}
 	buildFileContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-		model_core.Nested(bzlFileProperties, bzlFileProperties.Message.Exists.GetContents()),
+		model_core.Nested(bzlFileProperties, exists.GetContents()),
 	)
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, fmt.Errorf("invalid file contents: %w", err)
@@ -106,7 +107,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
 
-	program, err := loadProgram(e, canonicalLabel, bzlFileData, &resolve.BzlDialect, bzlFileBuiltins, key.BuiltinsModuleNames)
+	program, err := loadProgram(e, canonicalLabel, bzlFileData, &resolve.BzlDialect, bzlFileBuiltins, key.GetBuiltinsModuleNames())
 	if err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, err
 	}
@@ -117,7 +118,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 	}
 	thread.SetLocal(model_starlark.ReferenceEqualIdentifierGeneratorKey, identifierGenerator)
 
-	module := model_starlark.NewBzlModule(canonicalLabel, bzlFileBuiltins, newBzlImporter[TReference, TMetadata](ctx, e, valueReaders, key.BuiltinsModuleNames))
+	module := model_starlark.NewBzlModule(canonicalLabel, bzlFileBuiltins, newBzlImporter[TReference, TMetadata](ctx, e, valueReaders, key.GetBuiltinsModuleNames()))
 	if err := eval.ExecFile(thread, program, module); err != nil {
 		return PatchedCompiledBzlFileValue[TMetadata]{}, formatStarlarkError(err)
 	}
@@ -128,16 +129,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileValue(ctx co
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.CompiledBzlFile_Value{
+		return model_analysis_pb.CompiledBzlFile_Value_builder{
 			CompiledProgram: compiledProgram.Merge(patcher),
-		}, nil
+		}.Build(), nil
 	})
 }
 
 func (*baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(ctx context.Context, key *model_analysis_pb.CompiledBzlFileGlobal_Key, e CompiledBzlFileGlobalEnvironment[TReference, TMetadata]) (PatchedCompiledBzlFileGlobalValue[TMetadata], error) {
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
-	identifier, err := label.NewCanonicalStarlarkIdentifier(key.Identifier)
+	identifier, err := label.NewCanonicalStarlarkIdentifier(key.GetIdentifier())
 	if err != nil {
 		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, fmt.Errorf("invalid identifier: %w", err)
 	}
@@ -147,10 +148,10 @@ func (*baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(ct
 		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	compiledBzlFile := e.GetCompiledBzlFileValue(&model_analysis_pb.CompiledBzlFile_Key{
+	compiledBzlFile := e.GetCompiledBzlFileValue(model_analysis_pb.CompiledBzlFile_Key_builder{
 		Label:               identifier.GetCanonicalLabel().String(),
-		BuiltinsModuleNames: allBuiltinsModulesNames.Message.BuiltinsModuleNames,
-	})
+		BuiltinsModuleNames: allBuiltinsModulesNames.Message.GetBuiltinsModuleNames(),
+	}.Build())
 	if !compiledBzlFile.IsSet() {
 		return PatchedCompiledBzlFileGlobalValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -158,7 +159,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(ct
 	global, err := model_starlark.GetStructFieldValue(
 		ctx,
 		valueReaders.List,
-		model_core.Nested(compiledBzlFile, compiledBzlFile.Message.CompiledProgram.GetGlobals()),
+		model_core.Nested(compiledBzlFile, compiledBzlFile.Message.GetCompiledProgram().GetGlobals()),
 		identifier.GetStarlarkIdentifier().String(),
 	)
 	if err != nil {
@@ -167,9 +168,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeCompiledBzlFileGlobalValue(ct
 
 	patchedGlobal := model_core.Patch(e, global)
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.CompiledBzlFileGlobal_Value{
+		model_analysis_pb.CompiledBzlFileGlobal_Value_builder{
 			Global: patchedGlobal.Message,
-		},
+		}.Build(),
 		patchedGlobal.Patcher,
 	), nil
 }

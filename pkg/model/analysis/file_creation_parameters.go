@@ -14,14 +14,14 @@ func (baseComputer[TReference, TMetadata]) ComputeFileCreationParametersValue(ct
 	if !buildSpecification.IsSet() {
 		return PatchedFileCreationParametersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.FileCreationParameters_Value{
-		FileCreationParameters: buildSpecification.Message.FileCreationParameters,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.FileCreationParameters_Value_builder{
+		FileCreationParameters: buildSpecification.Message.GetFileCreationParameters(),
+	}.Build()), nil
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeFileCreationParametersObject(fileCreationParameters model_core.Message[*model_analysis_pb.FileCreationParameters_Value, TReference]) (*model_filesystem.FileCreationParameters, error) {
 	return model_filesystem.NewFileCreationParametersFromProto(
-		fileCreationParameters.Message.FileCreationParameters,
+		fileCreationParameters.Message.GetFileCreationParameters(),
 		c.referenceFormat,
 		c.binaryEncoderFactory,
 	)

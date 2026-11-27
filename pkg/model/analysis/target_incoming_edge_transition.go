@@ -18,16 +18,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 	if err != nil {
 		return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
-	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+	targetValue := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
 		Label: targetLabel.String(),
-	})
+	}.Build())
 	if !targetValue.IsSet() {
 		return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	identityTransition := func() (PatchedTargetIncomingEdgeTransitionValue[TMetadata], error) {
-		return model_core.Patch(e, model_core.Nested(key, &model_analysis_pb.TargetIncomingEdgeTransition_Value{
+		return model_core.Patch(e, model_core.Nested(key, model_analysis_pb.TargetIncomingEdgeTransition_Value_builder{
 			OutputConfigurationReference: key.Message.GetConfigurationReference(),
-		})), nil
+		}.Build())), nil
 	}
 	switch targetValue.Message.GetDefinition().WhichKind() {
 	case model_starlark_pb.Target_Definition_PackageGroup_case, model_starlark_pb.Target_Definition_SourceFileTarget_case:
@@ -47,10 +47,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 		patchedConfigurationReference := model_core.Patch(e, model_core.Nested(key, key.Message.GetConfigurationReference()))
 		ownerIncomingEdgeTransition := e.GetTargetIncomingEdgeTransitionValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.TargetIncomingEdgeTransition_Key{
+				model_analysis_pb.TargetIncomingEdgeTransition_Key_builder{
 					Label:                  targetLabel.GetCanonicalPackage().AppendTargetName(ownerTargetName).String(),
 					ConfigurationReference: patchedConfigurationReference.Message,
-				},
+				}.Build(),
 				patchedConfigurationReference.Patcher,
 			),
 		)
@@ -83,23 +83,23 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
 		incomingEdgeTransition := e.GetRuleUsageIncomingEdgeTransitionValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.RuleUsageIncomingEdgeTransition_Key{
+				model_analysis_pb.RuleUsageIncomingEdgeTransition_Key_builder{
 					Identifier:                ruleIdentifier.String(),
 					ConfigurationReference:    patchedConfigurationReference.Message,
 					ExplicitPublicAttrIndices: getExplicitPublicAttrIndices(ruleTarget.Message.GetPublicAttrValues()),
-				},
+				}.Build(),
 				patchedConfigurationReference.Patcher,
 			),
 		)
 		if !incomingEdgeTransition.IsSet() {
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		switch incomingEdgeTransition.Message.GetResult().(type) {
-		case *model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_OutputConfigurationReference:
-			return model_core.Patch(e, model_core.Nested(incomingEdgeTransition, &model_analysis_pb.TargetIncomingEdgeTransition_Value{
+		switch incomingEdgeTransition.Message.WhichResult() {
+		case model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_OutputConfigurationReference_case:
+			return model_core.Patch(e, model_core.Nested(incomingEdgeTransition, model_analysis_pb.TargetIncomingEdgeTransition_Value_builder{
 				OutputConfigurationReference: incomingEdgeTransition.Message.GetOutputConfigurationReference(),
-			})), nil
-		case *model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_DependsOnExplicitAttrs:
+			}.Build())), nil
+		case model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_DependsOnExplicitAttrs_case:
 		default:
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, errors.New("unknown incoming edge transition result type")
 		}
@@ -148,9 +148,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, fmt.Errorf("incoming edge transition used by rule %#v is a 1:%d transition, while a 1:1 transition was expected", ruleIdentifier.String(), l)
 		}
 		return model_core.NewPatchedMessage(
-			&model_analysis_pb.TargetIncomingEdgeTransition_Value{
+			model_analysis_pb.TargetIncomingEdgeTransition_Value_builder{
 				OutputConfigurationReference: entries[0].GetOutputConfigurationReference(),
-			},
+			}.Build(),
 			patchedConfigurationReferences.Patcher,
 		), nil
 	default:

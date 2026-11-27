@@ -24,7 +24,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	}
 	analysisReaders := &analysisEncoders.Readers
 
-	rootModuleName := rootModuleValue.Message.RootModuleName
+	rootModuleName := rootModuleValue.Message.GetRootModuleName()
 	rootModule, err := label.NewModule(rootModuleName)
 	if err != nil {
 		return PatchedBuildResultValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleName, err)
@@ -32,7 +32,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	rootRepo := rootModule.ToModuleInstance(nil).GetBareCanonicalRepo()
 	rootPackage := rootRepo.GetRootPackage()
 
-	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.GetBuiltinsModuleNames())
 	if err != nil {
 		return PatchedBuildResultValue[TMetadata]{}, err
 	}
@@ -54,7 +54,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	// Determine which targets to build. The query is only expanded
 	// after creating the configurations, so that the dependencies
 	// of both are requested together.
-	canonicalQuery, err := parseRootModuleQuery(e, key.Query)
+	canonicalQuery, err := parseRootModuleQuery(e, key.GetQuery())
 	gotCanonicalQuery := err == nil
 	if !gotCanonicalQuery {
 		if !errors.Is(err, evaluation.ErrMissingDependency) {
@@ -63,7 +63,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 		missingDependencies = true
 	}
 
-	for i, configuration := range key.Configurations {
+	for i, configuration := range key.GetConfigurations() {
 		targetPlatformConfigurationReference, err := c.createInitialConfiguration(ctx, e, analysisEncoders, starlarkValueEncoders, thread, rootPackage, configuration)
 		if err != nil {
 			if !errors.Is(err, evaluation.ErrMissingDependency) {
@@ -90,11 +90,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 		) {
 			visibleTargetValue := e.GetVisibleTargetValue(
 				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.VisibleTarget_Key {
-					return &model_analysis_pb.VisibleTarget_Key{
+					return model_analysis_pb.VisibleTarget_Key_builder{
 						FromPackage:            canonicalTargetLabel.GetCanonicalPackage().String(),
 						ToLabel:                canonicalTargetLabel.String(),
 						ConfigurationReference: model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
-					}
+					}.Build()
 				}),
 			)
 			if !visibleTargetValue.IsSet() {
@@ -104,18 +104,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 
 			targetCompletionValue := e.GetTargetCompletionValue(
 				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetCompletion_Key {
-					return &model_analysis_pb.TargetCompletion_Key{
-						Label: visibleTargetValue.Message.Label,
+					return model_analysis_pb.TargetCompletion_Key_builder{
+						Label: visibleTargetValue.Message.GetLabel(),
 						Variant: newTargetVariant(
 							model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
 							/* aspects = */ nil,
 						),
-						Outputs: key.Outputs,
-					}
+						Outputs: key.GetOutputs(),
+					}.Build()
 				}),
 			)
 			if targetCompletionValue.IsSet() {
-				for _, outputGroup := range targetCompletionValue.Message.ProvidedOutputGroups {
+				for _, outputGroup := range targetCompletionValue.Message.GetProvidedOutputGroups() {
 					providedOutputGroups[outputGroup] = struct{}{}
 				}
 			} else {
@@ -128,18 +128,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 			for i := range topLevelAspects.Message {
 				aspectCompletionValue := e.GetTargetCompletionValue(
 					model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetCompletion_Key {
-						return &model_analysis_pb.TargetCompletion_Key{
-							Label: visibleTargetValue.Message.Label,
+						return model_analysis_pb.TargetCompletion_Key_builder{
+							Label: visibleTargetValue.Message.GetLabel(),
 							Variant: newTargetVariant(
 								model_core.Patch(e, clonedConfigurationReference).Merge(patcher),
 								model_core.PatchList(e, model_core.Nested(topLevelAspects, topLevelAspects.Message[:i+1])).Merge(patcher),
 							),
-							Outputs: key.Outputs,
-						}
+							Outputs: key.GetOutputs(),
+						}.Build()
 					}),
 				)
 				if aspectCompletionValue.IsSet() {
-					for _, outputGroup := range aspectCompletionValue.Message.ProvidedOutputGroups {
+					for _, outputGroup := range aspectCompletionValue.Message.GetProvidedOutputGroups() {
 						providedOutputGroups[outputGroup] = struct{}{}
 					}
 				} else {
@@ -162,7 +162,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeBuildResultValue(ctx contex
 	// explicitly that are not provided by any of the targets or
 	// aspects.
 	var unknownOutputGroups []string
-	for _, outputGroup := range key.RequiredOutputGroups {
+	for _, outputGroup := range key.GetRequiredOutputGroups() {
 		if _, ok := providedOutputGroups[outputGroup]; !ok {
 			unknownOutputGroups = append(unknownOutputGroups, fmt.Sprintf("%#v", outputGroup))
 		}

@@ -17,9 +17,9 @@ func (baseComputer[TReference, TMetadata]) ComputeDirectoryAccessParametersValue
 	if !buildSpecification.IsSet() {
 		return PatchedDirectoryAccessParametersValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.DirectoryAccessParameters_Value{
-		DirectoryAccessParameters: buildSpecification.Message.DirectoryCreationParameters.GetAccess(),
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.DirectoryAccessParameters_Value_builder{
+		DirectoryAccessParameters: buildSpecification.Message.GetDirectoryCreationParameters().GetAccess(),
+	}.Build()), nil
 }
 
 // DirectoryReaders contains ObjectReaders that can be used to follow
@@ -32,7 +32,7 @@ type DirectoryReaders[TReference any] struct {
 
 func (c *baseComputer[TReference, TMetadata]) ComputeDirectoryAccessParametersObject(directoryAccessParametersValue model_core.Message[*model_analysis_pb.DirectoryAccessParameters_Value, TReference]) (*DirectoryReaders[TReference], error) {
 	directoryAccessParameters, err := model_filesystem.NewDirectoryAccessParametersFromProto(
-		directoryAccessParametersValue.Message.DirectoryAccessParameters,
+		directoryAccessParametersValue.Message.GetDirectoryAccessParameters(),
 		c.referenceFormat,
 		c.binaryEncoderFactory,
 	)

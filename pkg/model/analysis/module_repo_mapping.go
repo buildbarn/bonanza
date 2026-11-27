@@ -38,21 +38,22 @@ func newRepoOverridesGetter[TReference any](e ModuleExtensionRepoOverridesValueG
 		if overrides, ok := cache[moduleExtension]; ok {
 			return overrides, nil
 		}
-		overridesValue := e.GetModuleExtensionRepoOverridesValue(&model_analysis_pb.ModuleExtensionRepoOverrides_Key{
+		overridesValue := e.GetModuleExtensionRepoOverridesValue(model_analysis_pb.ModuleExtensionRepoOverrides_Key_builder{
 			ModuleExtension: moduleExtension.String(),
-		})
+		}.Build())
 		if !overridesValue.IsSet() {
 			return nil, evaluation.ErrMissingDependency
 		}
-		overrides := make(map[label.ApparentRepo]label.CanonicalRepo, len(overridesValue.Message.Overrides))
-		for _, override := range overridesValue.Message.Overrides {
-			fromApparentRepo, err := label.NewApparentRepo(override.FromApparentRepo)
+		overridesList := overridesValue.Message.GetOverrides()
+		overrides := make(map[label.ApparentRepo]label.CanonicalRepo, len(overridesList))
+		for _, override := range overridesList {
+			fromApparentRepo, err := label.NewApparentRepo(override.GetFromApparentRepo())
 			if err != nil {
-				return nil, fmt.Errorf("invalid apparent repo %#v: %w", override.FromApparentRepo, err)
+				return nil, fmt.Errorf("invalid apparent repo %#v: %w", override.GetFromApparentRepo(), err)
 			}
-			toCanonicalRepo, err := label.NewCanonicalRepo(override.ToCanonicalRepo)
+			toCanonicalRepo, err := label.NewCanonicalRepo(override.GetToCanonicalRepo())
 			if err != nil {
-				return nil, fmt.Errorf("invalid canonical repo %#v: %w", override.ToCanonicalRepo, err)
+				return nil, fmt.Errorf("invalid canonical repo %#v: %w", override.GetToCanonicalRepo(), err)
 			}
 			overrides[fromApparentRepo] = toCanonicalRepo
 		}
@@ -383,22 +384,22 @@ func (h *repoMappingCapturingModuleDotBazelHandler) getRepoOverrides(moduleExten
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve repo %#v: %w", override.toApparentRepo.String(), err)
 		}
-		overrides = append(overrides, &model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override{
+		overrides = append(overrides, model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{
 			FromApparentRepo: override.fromApparentRepo.String(),
 			ToCanonicalRepo:  canonicalRepo.String(),
 			MustExist:        override.mustExist,
-		})
+		}.Build())
 	}
 	slices.SortFunc(overrides, func(a, b *model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override) int {
-		return strings.Compare(a.FromApparentRepo, b.FromApparentRepo)
+		return strings.Compare(a.GetFromApparentRepo(), b.GetFromApparentRepo())
 	})
 	return overrides, nil
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModuleRepoMappingValue(ctx context.Context, key *model_analysis_pb.ModuleRepoMapping_Key, e ModuleRepoMappingEnvironment[TReference, TMetadata]) (PatchedModuleRepoMappingValue[TMetadata], error) {
-	moduleInstance, err := label.NewModuleInstance(key.ModuleInstance)
+	moduleInstance, err := label.NewModuleInstance(key.GetModuleInstance())
 	if err != nil {
-		return PatchedModuleRepoMappingValue[TMetadata]{}, fmt.Errorf("invalid module instance %#v: %w", key.ModuleInstance, err)
+		return PatchedModuleRepoMappingValue[TMetadata]{}, fmt.Errorf("invalid module instance %#v: %w", key.GetModuleInstance(), err)
 	}
 
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
@@ -410,8 +411,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleRepoMappingValue(ctx 
 	handler := newRepoMappingCapturingModuleDotBazelHandler(
 		moduleInstance,
 		modulesWithMultipleVersions,
-		rootModuleValue.Message.IgnoreRootModuleDevDependencies ||
-			moduleInstance.GetModule().String() != rootModuleValue.Message.RootModuleName,
+		rootModuleValue.Message.GetIgnoreRootModuleDevDependencies() ||
+			moduleInstance.GetModule().String() != rootModuleValue.Message.GetRootModuleName(),
 	)
 	if err := c.parseActiveModuleInstanceModuleDotBazel(ctx, moduleInstance, e, dotbazel.NewOverrideIgnoringRootHandler(handler)); err != nil {
 		return PatchedModuleRepoMappingValue[TMetadata]{}, err
@@ -443,15 +444,15 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleRepoMappingValue(ctx 
 	if missingDependencies {
 		return PatchedModuleRepoMappingValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleRepoMapping_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.ModuleRepoMapping_Value_builder{
 		Mappings: mappings,
-	}), nil
+	}.Build()), nil
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoOverridesValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepoOverrides_Key, e ModuleExtensionRepoOverridesEnvironment[TReference, TMetadata]) (PatchedModuleExtensionRepoOverridesValue[TMetadata], error) {
-	moduleExtension, err := label.NewModuleExtension(key.ModuleExtension)
+	moduleExtension, err := label.NewModuleExtension(key.GetModuleExtension())
 	if err != nil {
-		return PatchedModuleExtensionRepoOverridesValue[TMetadata]{}, fmt.Errorf("invalid module extension %#v: %w", key.ModuleExtension, err)
+		return PatchedModuleExtensionRepoOverridesValue[TMetadata]{}, fmt.Errorf("invalid module extension %#v: %w", key.GetModuleExtension(), err)
 	}
 
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
@@ -459,9 +460,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoOverride
 	if !rootModuleValue.IsSet() || !gotModulesWithMultipleVersions {
 		return PatchedModuleExtensionRepoOverridesValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	rootModuleName, err := label.NewModule(rootModuleValue.Message.RootModuleName)
+	rootModuleName, err := label.NewModule(rootModuleValue.Message.GetRootModuleName())
 	if err != nil {
-		return PatchedModuleExtensionRepoOverridesValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleValue.Message.RootModuleName, err)
+		return PatchedModuleExtensionRepoOverridesValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleValue.Message.GetRootModuleName(), err)
 	}
 
 	// Overrides are only respected if declared by the root
@@ -473,7 +474,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoOverride
 	handler := newRepoMappingCapturingModuleDotBazelHandler(
 		rootModuleInstance,
 		modulesWithMultipleVersions,
-		rootModuleValue.Message.IgnoreRootModuleDevDependencies,
+		rootModuleValue.Message.GetIgnoreRootModuleDevDependencies(),
 	)
 	if err := c.parseActiveModuleInstanceModuleDotBazel(ctx, rootModuleInstance, e, dotbazel.NewOverrideIgnoringRootHandler(handler)); err != nil {
 		return PatchedModuleExtensionRepoOverridesValue[TMetadata]{}, err
@@ -483,7 +484,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoOverride
 	if err != nil {
 		return PatchedModuleExtensionRepoOverridesValue[TMetadata]{}, err
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleExtensionRepoOverrides_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.ModuleExtensionRepoOverrides_Value_builder{
 		Overrides: overrides,
-	}), nil
+	}.Build()), nil
 }

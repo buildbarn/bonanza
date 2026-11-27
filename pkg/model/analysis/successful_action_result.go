@@ -10,12 +10,12 @@ import (
 )
 
 func (baseComputer[TReference, TMetadata]) ComputeSuccessfulActionResultValue(ctx context.Context, key model_core.Message[*model_analysis_pb.SuccessfulActionResult_Key, TReference], e SuccessfulActionResultEnvironment[TReference, TMetadata]) (PatchedSuccessfulActionResultValue[TMetadata], error) {
-	patchedExecuteRequest := model_core.Patch(e, model_core.Nested(key, key.Message.ExecuteRequest))
+	patchedExecuteRequest := model_core.Patch(e, model_core.Nested(key, key.Message.GetExecuteRequest()))
 	actionResult := e.GetActionResultValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.ActionResult_Key{
+			model_analysis_pb.ActionResult_Key_builder{
 				ExecuteRequest: patchedExecuteRequest.Message,
-			},
+			}.Build(),
 			patchedExecuteRequest.Patcher,
 		),
 	)
@@ -23,15 +23,15 @@ func (baseComputer[TReference, TMetadata]) ComputeSuccessfulActionResultValue(ct
 		return PatchedSuccessfulActionResultValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	if exitCode := actionResult.Message.ExitCode; exitCode != 0 {
+	if exitCode := actionResult.Message.GetExitCode(); exitCode != 0 {
 		return PatchedSuccessfulActionResultValue[TMetadata]{}, fmt.Errorf("action completed with non-zero exit code %d", exitCode)
 	}
 
-	patchedOutputsReference := model_core.Patch(e, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
+	patchedOutputsReference := model_core.Patch(e, model_core.Nested(actionResult, actionResult.Message.GetOutputsReference()))
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.SuccessfulActionResult_Value{
+		model_analysis_pb.SuccessfulActionResult_Value_builder{
 			OutputsReference: patchedOutputsReference.Message,
-		},
+		}.Build(),
 		patchedOutputsReference.Patcher,
 	), nil
 }

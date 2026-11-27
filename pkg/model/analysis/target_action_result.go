@@ -24,18 +24,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 	patchedID1 := model_core.Patch(e, id)
 	action := e.GetTargetActionValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.TargetAction_Key{
+			model_analysis_pb.TargetAction_Key_builder{
 				Id: patchedID1.Message,
-			},
+			}.Build(),
 			patchedID1.Patcher,
 		),
 	)
 	patchedID2 := model_core.Patch(e, id)
 	command := e.GetTargetActionCommandValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.TargetActionCommand_Key{
+			model_analysis_pb.TargetActionCommand_Key_builder{
 				Id: patchedID2.Message,
-			},
+			}.Build(),
 			patchedID2.Patcher,
 		),
 	)
@@ -44,9 +44,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 	patchedID3 := model_core.Patch(e, id)
 	inputRoot := e.GetTargetActionInputRootValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.TargetActionInputRoot_Key{
+			model_analysis_pb.TargetActionInputRoot_Key_builder{
 				Id: patchedID3.Message,
-			},
+			}.Build(),
 			patchedID3.Patcher,
 		),
 	)
@@ -83,8 +83,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.SuccessfulActionResult_Key{
-			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
+		return model_analysis_pb.SuccessfulActionResult_Key_builder{
+			ExecuteRequest: model_analysis_pb.ExecuteRequest_builder{
 				// TODO: Should we make the execution
 				// timeout on build actions configurable?
 				// Bazel with REv2 does not set this field
@@ -93,8 +93,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 				ExecutionTimeout:      &durationpb.Duration{Seconds: 3600},
 				ActionReference:       actionReference,
 				PlatformPkixPublicKey: actionDefinition.GetPlatformPkixPublicKey(),
-			},
-		}, nil
+			}.Build(),
+		}.Build(), nil
 	})
 	if err != nil {
 		return PatchedTargetActionResultValue[TMetadata]{}, fmt.Errorf("failed to create action result key: %w", err)
@@ -114,9 +114,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetActionResultValue(ctx
 	}
 	outputRoot := model_core.PatchList(e, model_core.Nested(outputs, outputs.Message.GetOutputRoot()))
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.TargetActionResult_Value{
+		model_analysis_pb.TargetActionResult_Value_builder{
 			OutputRoot: outputRoot.Message,
-		},
+		}.Build(),
 		outputRoot.Patcher,
 	), nil
 }

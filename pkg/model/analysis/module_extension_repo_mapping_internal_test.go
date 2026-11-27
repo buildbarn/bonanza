@@ -16,8 +16,8 @@ func TestGetModuleExtensionRepoMappings(t *testing.T) {
 	requireMappings := func(t *testing.T, expected, actual []*model_analysis_pb.RepoMapping) {
 		testutil.RequireEqualProto(
 			t,
-			&model_analysis_pb.ModuleRepoMapping_Value{Mappings: expected},
-			&model_analysis_pb.ModuleRepoMapping_Value{Mappings: actual},
+			model_analysis_pb.ModuleRepoMapping_Value_builder{Mappings: expected}.Build(),
+			model_analysis_pb.ModuleRepoMapping_Value_builder{Mappings: actual}.Build(),
 		)
 	}
 
@@ -27,8 +27,8 @@ func TestGetModuleExtensionRepoMappings(t *testing.T) {
 		mappings, err := getModuleExtensionRepoMappings(moduleExtension, []string{"a", "b"}, nil)
 		require.NoError(t, err)
 		requireMappings(t, []*model_analysis_pb.RepoMapping{
-			{FromApparentRepo: "a"},
-			{FromApparentRepo: "b"},
+			model_analysis_pb.RepoMapping_builder{FromApparentRepo: "a"}.Build(),
+			model_analysis_pb.RepoMapping_builder{FromApparentRepo: "b"}.Build(),
 		}, mappings)
 	})
 
@@ -41,21 +41,21 @@ func TestGetModuleExtensionRepoMappings(t *testing.T) {
 			moduleExtension,
 			[]string{"b", "d", "f"},
 			[]*model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override{
-				{FromApparentRepo: "a", ToCanonicalRepo: "inject_a+"},
-				{FromApparentRepo: "c", ToCanonicalRepo: "inject_c+"},
-				{FromApparentRepo: "d", ToCanonicalRepo: "override_d+", MustExist: true},
-				{FromApparentRepo: "f", ToCanonicalRepo: moduleExtension.String() + "+f", MustExist: true},
-				{FromApparentRepo: "g", ToCanonicalRepo: "inject_g+"},
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "a", ToCanonicalRepo: "inject_a+"}.Build(),
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "c", ToCanonicalRepo: "inject_c+"}.Build(),
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "d", ToCanonicalRepo: "override_d+", MustExist: true}.Build(),
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "f", ToCanonicalRepo: moduleExtension.String() + "+f", MustExist: true}.Build(),
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "g", ToCanonicalRepo: "inject_g+"}.Build(),
 			},
 		)
 		require.NoError(t, err)
 		requireMappings(t, []*model_analysis_pb.RepoMapping{
-			{FromApparentRepo: "a", ToCanonicalRepo: "inject_a+"},
-			{FromApparentRepo: "b"},
-			{FromApparentRepo: "c", ToCanonicalRepo: "inject_c+"},
-			{FromApparentRepo: "d", ToCanonicalRepo: "override_d+"},
-			{FromApparentRepo: "f"},
-			{FromApparentRepo: "g", ToCanonicalRepo: "inject_g+"},
+			model_analysis_pb.RepoMapping_builder{FromApparentRepo: "a", ToCanonicalRepo: "inject_a+"}.Build(),
+			model_analysis_pb.RepoMapping_builder{FromApparentRepo: "b"}.Build(),
+			model_analysis_pb.RepoMapping_builder{FromApparentRepo: "c", ToCanonicalRepo: "inject_c+"}.Build(),
+			model_analysis_pb.RepoMapping_builder{FromApparentRepo: "d", ToCanonicalRepo: "override_d+"}.Build(),
+			model_analysis_pb.RepoMapping_builder{FromApparentRepo: "f"}.Build(),
+			model_analysis_pb.RepoMapping_builder{FromApparentRepo: "g", ToCanonicalRepo: "inject_g+"}.Build(),
 		}, mappings)
 	})
 
@@ -64,7 +64,7 @@ func TestGetModuleExtensionRepoMappings(t *testing.T) {
 			moduleExtension,
 			[]string{"a"},
 			[]*model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override{
-				{FromApparentRepo: "b", ToCanonicalRepo: "override_b+", MustExist: true},
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "b", ToCanonicalRepo: "override_b+", MustExist: true}.Build(),
 			},
 		)
 		require.EqualError(t, err, "module extension \""+moduleExtension.String()+"\" does not declare repo \"b\", yet it is overridden using override_repo(); use inject_repo() to inject a new repo")
@@ -75,7 +75,7 @@ func TestGetModuleExtensionRepoMappings(t *testing.T) {
 			moduleExtension,
 			[]string{"a"},
 			[]*model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override{
-				{FromApparentRepo: "a", ToCanonicalRepo: "inject_a+"},
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "a", ToCanonicalRepo: "inject_a+"}.Build(),
 			},
 		)
 		require.EqualError(t, err, "module extension \""+moduleExtension.String()+"\" declares repo \"a\", yet it is injected using inject_repo(); use override_repo() to override an existing repo")

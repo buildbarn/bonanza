@@ -29,25 +29,25 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 	}
 	expectTarget := func(e *MockConfiguredTargetEnvironmentForTesting, label string, definition *model_starlark_pb.Target_Definition) {
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: label}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: label}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Target_Value_builder{
 			Definition: definition,
-		}))
+		}.Build()))
 	}
 	expectGeneratingRuleAspects := func(e *MockConfiguredTargetEnvironmentForTesting, aspectIdentifiers []string, aspectIndices []uint32) {
 		e.EXPECT().GetGeneratingRuleAspectsValue(
-			testutil.EqProto(t, &model_analysis_pb.GeneratingRuleAspects_Key{AspectIdentifiers: aspectIdentifiers}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.GeneratingRuleAspects_Value{
+			testutil.EqProto(t, model_analysis_pb.GeneratingRuleAspects_Key_builder{AspectIdentifiers: aspectIdentifiers}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.GeneratingRuleAspects_Value_builder{
 			AspectIndices: aspectIndices,
-		}))
+		}.Build()))
 	}
 	compute := func(e *MockConfiguredTargetEnvironmentForTesting, label string, aspects ...*model_starlark_pb.AppliedAspect) (model_core.PatchedMessage[*model_analysis_pb.ConfiguredTarget_Value, model_core.CreatedObjectTree], error) {
 		return bct.computer.ComputeConfiguredTargetValue(
 			ctx,
-			model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.ConfiguredTarget_Key{
+			model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.ConfiguredTarget_Key_builder{
 				Label:   label,
 				Variant: newTestTargetVariant(aspects),
-			}),
+			}.Build()),
 			e,
 		)
 	}
@@ -120,19 +120,19 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 		}.Build()}
 		e.EXPECT().GetConfiguredTargetValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.ConfiguredTarget_Key {
-				return &model_analysis_pb.ConfiguredTarget_Key{
+				return model_analysis_pb.ConfiguredTarget_Key_builder{
 					Label:   "@@main+//:foo",
 					Variant: newTestTargetVariant([]*model_starlark_pb.AppliedAspect{aspect2, aspect3}),
-				}
+				}.Build()
 			}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.ConfiguredTarget_Value{
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: ownerProviderInstances,
-		}))
+		}.Build()))
 
 		value, err := compute(e, "@@main+//:foo.out", aspect1, aspect2, aspect3)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.ConfiguredTarget_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.ConfiguredTarget_Value_builder{
 			ProviderInstances: ownerProviderInstances,
-		}, value.Message)
+		}.Build(), value.Message)
 	})
 }

@@ -88,9 +88,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 		if update.Stage == remoteexecution.ExecutionStageExecuting {
 			stage = model_analysis_pb.RawActionResult_Progress_EXECUTING
 		}
-		e.ReportRawActionResultProgress(&model_analysis_pb.RawActionResult_Progress{
+		e.ReportRawActionResultProgress(model_analysis_pb.RawActionResult_Progress_builder{
 			Stage: stage,
-		})
+		}.Build())
 	}
 	if errExecution != nil {
 		return PatchedRawActionResultValue[TMetadata]{}, errExecution
@@ -100,14 +100,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRawActionResultValue(ctx co
 	}
 
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.RawActionResult_Value {
-		return &model_analysis_pb.RawActionResult_Value{
+		return model_analysis_pb.RawActionResult_Value_builder{
 			ResultReference: patcher.AddDecodableReference(
 				model_core.CopyDecodable(
 					*resultReference,
 					model_core.CaptureExistingObject(e, resultReference.Value),
 				),
 			),
-		}
+		}.Build()
 	}), nil
 }
 

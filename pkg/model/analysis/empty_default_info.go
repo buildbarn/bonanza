@@ -23,9 +23,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx c
 
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	defaultInfoProviderIdentifierStr := defaultInfoProviderIdentifier.String()
-	defaultInfoProviderValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+	defaultInfoProviderValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 		Identifier: defaultInfoProviderIdentifierStr,
-	})
+	}.Build())
 	if !allBuiltinsModulesNames.IsSet() || !defaultInfoProviderValue.IsSet() || !gotStarlarkValueEncoders {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -62,9 +62,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx c
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, fmt.Errorf("failed to encode DefaultInfo provider instance: %w", err)
 	}
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.EmptyDefaultInfo_Value{
+		model_analysis_pb.EmptyDefaultInfo_Value_builder{
 			DefaultInfo: encodedDefaultInfo.Message,
-		},
+		}.Build(),
 		encodedDefaultInfo.Patcher,
 	), nil
 }

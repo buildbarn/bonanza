@@ -66,14 +66,14 @@ func (*baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue(c
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	rootModuleName := rootModuleValue.Message.RootModuleName
+	rootModuleName := rootModuleValue.Message.GetRootModuleName()
 	rootModule, err := label.NewModule(rootModuleName)
 	if err != nil {
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleName, err)
 	}
 	rootRepo := rootModule.ToModuleInstance(nil).GetBareCanonicalRepo()
 
-	repoPlatformStr := repoPlatformLabelValue.Message.ApparentLabel
+	repoPlatformStr := repoPlatformLabelValue.Message.GetApparentLabel()
 	if repoPlatformStr == "" {
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, errors.New("no repo platform specified, meaning module extensions and repository rules cannot be evaluated")
 	}
@@ -141,10 +141,10 @@ func (*baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue(c
 			}
 			repositoryOSEnviron = make([]*model_analysis_pb.RegisteredRepoPlatform_Value_EnvironmentVariable, 0, len(p))
 			for _, name := range slices.Sorted(maps.Keys(p)) {
-				repositoryOSEnviron = append(repositoryOSEnviron, &model_analysis_pb.RegisteredRepoPlatform_Value_EnvironmentVariable{
+				repositoryOSEnviron = append(repositoryOSEnviron, model_analysis_pb.RegisteredRepoPlatform_Value_EnvironmentVariable_builder{
 					Name:  name,
 					Value: p[name],
-				})
+				}.Build())
 			}
 		case "repository_os_name":
 			str, ok, err := getStringValue(ctx, fileReader, value)
@@ -174,12 +174,10 @@ func (*baseComputer[TReference, TMetadata]) ComputeRegisteredRepoPlatformValue(c
 		return PatchedRegisteredRepoPlatformValue[TMetadata]{}, fmt.Errorf("repository_os_name field of PlatformInfo of repo platform %#v is not set to a non-empty string", repoPlatformLabelStr)
 	}
 
-	return model_core.NewSimplePatchedMessage[TMetadata](
-		&model_analysis_pb.RegisteredRepoPlatform_Value{
-			ExecPkixPublicKey:   execPKIXPublicKey,
-			RepositoryOsArch:    repositoryOSArch,
-			RepositoryOsEnviron: repositoryOSEnviron,
-			RepositoryOsName:    repositoryOSName,
-		},
-	), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.RegisteredRepoPlatform_Value_builder{
+		ExecPkixPublicKey:   execPKIXPublicKey,
+		RepositoryOsArch:    repositoryOSArch,
+		RepositoryOsEnviron: repositoryOSEnviron,
+		RepositoryOsName:    repositoryOSName,
+	}.Build()), nil
 }

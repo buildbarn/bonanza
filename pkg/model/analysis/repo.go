@@ -991,13 +991,13 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	}
 
 	sourceJSONContentsValue := e.GetHTTPFileContentsValue(
-		&model_analysis_pb.HttpFileContents_Key{
-			FetchOptions: &model_analysis_pb.HttpFetchOptions{
+		model_analysis_pb.HttpFileContents_Key_builder{
+			FetchOptions: model_analysis_pb.HttpFetchOptions_builder{
 				Target: model_fetch_pb.Target_builder{
 					Urls: []string{sourceJSONURL},
 				}.Build(),
-			},
-		},
+			}.Build(),
+		}.Build(),
 	)
 	if !sourceJSONContentsValue.IsSet() {
 		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -1036,15 +1036,15 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	// applied. Return all the errors at once - this way, anything
 	// that needs downloading is done.
 	missingDependencies := false
-	archiveContentsValue := e.GetHTTPArchiveContentsValue(&model_analysis_pb.HttpArchiveContents_Key{
-		FetchOptions: &model_analysis_pb.HttpFetchOptions{
+	archiveContentsValue := e.GetHTTPArchiveContentsValue(model_analysis_pb.HttpArchiveContents_Key_builder{
+		FetchOptions: model_analysis_pb.HttpFetchOptions_builder{
 			Target: model_fetch_pb.Target_builder{
 				Urls:      []string{sourceJSON.URL},
 				Integrity: integrity,
 			}.Build(),
-		},
+		}.Build(),
 		Format: archiveFormat,
-	})
+	}.Build())
 	if !archiveContentsValue.IsSet() {
 		missingDependencies = true
 	}
@@ -1071,14 +1071,14 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid subresource integrity %#v for overlay file %#v: %w", overlayEntry.value, overlayURL, err)
 		}
 
-		overlayContentsValue := e.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
-			FetchOptions: &model_analysis_pb.HttpFetchOptions{
+		overlayContentsValue := e.GetHTTPFileContentsValue(model_analysis_pb.HttpFileContents_Key_builder{
+			FetchOptions: model_analysis_pb.HttpFetchOptions_builder{
 				Target: model_fetch_pb.Target_builder{
 					Urls:      []string{overlayURL},
 					Integrity: integrity,
 				}.Build(),
-			},
-		})
+			}.Build(),
+		}.Build())
 		if !overlayContentsValue.IsSet() {
 			missingDependencies = true
 			continue
@@ -1097,9 +1097,9 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	// Obtain the MODULE.bazel file that was used to perform module
 	// resolution, which is the one stored in the registry. It may
 	// differ from the one contained in the source archive.
-	moduleFileContentsValue := e.GetModuleDotBazelContentsValue(&model_analysis_pb.ModuleDotBazelContents_Key{
+	moduleFileContentsValue := e.GetModuleDotBazelContentsValue(model_analysis_pb.ModuleDotBazelContents_Key_builder{
 		ModuleInstance: module.ToModuleInstance(nil).String(),
-	})
+	}.Build())
 	if !moduleFileContentsValue.IsSet() {
 		missingDependencies = true
 	}
@@ -1124,14 +1124,14 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid subresource integrity %#v for patch %#v: %w", patchEntry.value, patchURL, err)
 		}
 
-		patchContentsValue := e.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
-			FetchOptions: &model_analysis_pb.HttpFetchOptions{
+		patchContentsValue := e.GetHTTPFileContentsValue(model_analysis_pb.HttpFileContents_Key_builder{
+			FetchOptions: model_analysis_pb.HttpFetchOptions_builder{
 				Target: model_fetch_pb.Target_builder{
 					Urls:      []string{patchURL},
 					Integrity: integrity,
 				}.Build(),
-			},
-		})
+			}.Build(),
+		}.Build())
 		if !patchContentsValue.IsSet() {
 			missingDependencies = true
 			continue
@@ -1162,10 +1162,10 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 		if err != nil {
 			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid single version override patch label %#v: %w", patchLabelStr, err)
 		}
-		patchPropertiesValue := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
+		patchPropertiesValue := e.GetFilePropertiesValue(model_analysis_pb.FileProperties_Key_builder{
 			CanonicalRepo: patchLabel.GetCanonicalPackage().GetCanonicalRepo().String(),
 			Path:          patchLabel.GetRepoRelativePath(),
-		})
+		}.Build())
 		if !patchPropertiesValue.IsSet() {
 			missingDependencies = true
 			continue
@@ -1480,18 +1480,19 @@ func applyPatch[TReference object.BasicReference, TMetadata model_core.Reference
 // newRepositoryOS creates a repository_os object that can be embedded
 // into module_ctx and repository_ctx objects.
 func newRepositoryOS[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, repoPlatform *model_analysis_pb.RegisteredRepoPlatform_Value) (eval.Value, error) {
-	environEntries := make([][2]eval.Value, 0, len(repoPlatform.RepositoryOsEnviron))
-	for _, entry := range repoPlatform.RepositoryOsEnviron {
-		environEntries = append(environEntries, [2]eval.Value{eval.String(entry.Name), eval.String(entry.Value)})
+	repositoryOsEnviron := repoPlatform.GetRepositoryOsEnviron()
+	environEntries := make([][2]eval.Value, 0, len(repositoryOsEnviron))
+	for _, entry := range repositoryOsEnviron {
+		environEntries = append(environEntries, [2]eval.Value{eval.String(entry.GetName()), eval.String(entry.GetValue())})
 	}
 	environ, err := eval.NewImmutableDict(thread, environEntries)
 	if err != nil {
 		return nil, err
 	}
 	return model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
-		"arch":    eval.String(repoPlatform.RepositoryOsArch),
+		"arch":    eval.String(repoPlatform.GetRepositoryOsArch()),
 		"environ": environ,
-		"name":    eval.String(repoPlatform.RepositoryOsName),
+		"name":    eval.String(repoPlatform.GetRepositoryOsName()),
 	}), nil
 }
 
@@ -1590,7 +1591,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetDirectoryCr
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetDirectoryCreationParametersMessage() {
 	if mrc.directoryCreationParametersMessage == nil {
 		if v := mrc.environment.GetDirectoryCreationParametersValue(&model_analysis_pb.DirectoryCreationParameters_Key{}); v.IsSet() {
-			mrc.directoryCreationParametersMessage = v.Message.DirectoryCreationParameters
+			mrc.directoryCreationParametersMessage = v.Message.GetDirectoryCreationParameters()
 		}
 	}
 }
@@ -1618,7 +1619,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetFileCreatio
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeGetFileCreationParametersMessage() {
 	if mrc.fileCreationParametersMessage == nil {
 		if v := mrc.environment.GetFileCreationParametersValue(&model_analysis_pb.FileCreationParameters_Key{}); v.IsSet() {
-			mrc.fileCreationParametersMessage = v.Message.FileCreationParameters
+			mrc.fileCreationParametersMessage = v.Message.GetFileCreationParameters()
 		}
 	}
 }
@@ -1701,9 +1702,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeAddExternalRep
 		if _, ok := externalDirectory.directories[repoName]; !ok {
 			// External repo does not exist within
 			// the input root. Fetch it.
-			repo := mrc.environment.GetRepoValue(&model_analysis_pb.Repo_Key{
+			repo := mrc.environment.GetRepoValue(model_analysis_pb.Repo_Key_builder{
 				CanonicalRepo: repoName.String(),
-			})
+			}.Build())
 			if !repo.IsSet() {
 				return evaluation.ErrMissingDependency
 			}
@@ -1711,7 +1712,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) maybeAddExternalRep
 			if err != nil {
 				return fmt.Errorf("failed to create directory for repo: %w", err)
 			}
-			rootDirectoryReference := repo.Message.RootDirectoryReference
+			rootDirectoryReference := repo.Message.GetRootDirectoryReference()
 			if rootDirectoryReference == nil {
 				return errors.New("root directory reference is not set")
 			}
@@ -1801,12 +1802,12 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownload(thread *
 		Headers:   headersEntries,
 	}.Build()
 	// TODO: Set auth!
-	fileContentsValue := mrc.environment.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
-		FetchOptions: &model_analysis_pb.HttpFetchOptions{
+	fileContentsValue := mrc.environment.GetHTTPFileContentsValue(model_analysis_pb.HttpFileContents_Key_builder{
+		FetchOptions: model_analysis_pb.HttpFetchOptions_builder{
 			Target:    target,
 			AllowFail: allowFail,
-		},
-	})
+		}.Build(),
+	}.Build())
 
 	// Depending on whether "block" is set to true or not,
 	// immediately attempt to insert the downloaded file into the
@@ -1925,16 +1926,16 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtrac
 		return nil, fmt.Errorf("cannot derive archive format from file extension of %#v", typeToMatch)
 	}
 
-	archiveContentsValue := mrc.environment.GetHTTPArchiveContentsValue(&model_analysis_pb.HttpArchiveContents_Key{
-		FetchOptions: &model_analysis_pb.HttpFetchOptions{
+	archiveContentsValue := mrc.environment.GetHTTPArchiveContentsValue(model_analysis_pb.HttpArchiveContents_Key_builder{
+		FetchOptions: model_analysis_pb.HttpFetchOptions_builder{
 			Target: model_fetch_pb.Target_builder{
 				Integrity: integrityMessage,
 				Urls:      urls,
 			}.Build(),
 			AllowFail: allowFail,
-		},
+		}.Build(),
 		Format: archiveFormat,
-	})
+	}.Build())
 	if !archiveContentsValue.IsSet() {
 		return nil, evaluation.ErrMissingDependency
 	}
@@ -2266,13 +2267,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doExecute(thread *e
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.ActionResult_Key{
-			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
+		return model_analysis_pb.ActionResult_Key_builder{
+			ExecuteRequest: model_analysis_pb.ExecuteRequest_builder{
 				PlatformPkixPublicKey: mrc.repoPlatform.Message.GetExecPkixPublicKey(),
 				ActionReference:       actionReference,
 				ExecutionTimeout:      &durationpb.Duration{Seconds: timeout},
-			},
-		}, nil
+			}.Build(),
+		}.Build(), nil
 	})
 	actionResult := mrc.environment.GetActionResultValue(actionResultKey)
 	if !actionResult.IsSet() {
@@ -2600,13 +2601,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doRead(thread *eval
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.SuccessfulActionResult_Key{
-			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
+		return model_analysis_pb.SuccessfulActionResult_Key_builder{
+			ExecuteRequest: model_analysis_pb.ExecuteRequest_builder{
 				PlatformPkixPublicKey: mrc.repoPlatform.Message.GetExecPkixPublicKey(),
 				ActionReference:       actionReference,
 				ExecutionTimeout:      &durationpb.Duration{Seconds: 300},
-			},
-		}, nil
+			}.Build(),
+		}.Build(), nil
 	})
 	if err != nil {
 		return nil, err
@@ -2754,13 +2755,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.ActionResult_Key{
-			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
+		return model_analysis_pb.ActionResult_Key_builder{
+			ExecuteRequest: model_analysis_pb.ExecuteRequest_builder{
 				PlatformPkixPublicKey: mrc.repoPlatform.Message.GetExecPkixPublicKey(),
 				ActionReference:       actionReference,
 				ExecutionTimeout:      &durationpb.Duration{Seconds: 60},
-			},
-		}, nil
+			}.Build(),
+		}.Build(), nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create action key: %w", err)
@@ -2855,16 +2856,16 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Exists(p *model_sta
 	}
 	actionResult := mrc.environment.GetActionResultValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.ActionResult_Key{
+			model_analysis_pb.ActionResult_Key_builder{
 				ExecuteRequest: executeRequest.Message,
-			},
+			}.Build(),
 			executeRequest.Patcher,
 		),
 	)
 	if !actionResult.IsSet() {
 		return false, evaluation.ErrMissingDependency
 	}
-	return actionResult.Message.ExitCode == 0, nil
+	return actionResult.Message.GetExitCode() == 0, nil
 }
 
 // newHostCommandExecuteRequest creates an execution request for
@@ -2964,11 +2965,11 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) newHostCommandExecu
 		if err != nil {
 			return nil, err
 		}
-		return &model_analysis_pb.ExecuteRequest{
+		return model_analysis_pb.ExecuteRequest_builder{
 			PlatformPkixPublicKey: mrc.repoPlatform.Message.GetExecPkixPublicKey(),
 			ActionReference:       actionReference,
 			ExecutionTimeout:      &durationpb.Duration{Seconds: 300},
-		}, nil
+		}.Build(), nil
 	})
 }
 
@@ -3026,16 +3027,16 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) IsDir(p *model_star
 	}
 	actionResult := mrc.environment.GetActionResultValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.ActionResult_Key{
+			model_analysis_pb.ActionResult_Key_builder{
 				ExecuteRequest: executeRequest.Message,
-			},
+			}.Build(),
 			executeRequest.Patcher,
 		),
 	)
 	if !actionResult.IsSet() {
 		return false, evaluation.ErrMissingDependency
 	}
-	return actionResult.Message.ExitCode == 0, nil
+	return actionResult.Message.GetExitCode() == 0, nil
 }
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_starlark.BarePath) ([]path.Component, error) {
@@ -3083,9 +3084,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	}
 	actionResult := mrc.environment.GetSuccessfulActionResultValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.SuccessfulActionResult_Key{
+			model_analysis_pb.SuccessfulActionResult_Key_builder{
 				ExecuteRequest: executeRequest.Message,
-			},
+			}.Build(),
 			executeRequest.Patcher,
 		),
 	)
@@ -3094,7 +3095,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Readdir(p *model_st
 	}
 
 	// Extract filenames from the output of "ls".
-	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
+	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.GetOutputsReference()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
@@ -3165,9 +3166,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Realpath(p *model_s
 	}
 	actionResult := mrc.environment.GetSuccessfulActionResultValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.SuccessfulActionResult_Key{
+			model_analysis_pb.SuccessfulActionResult_Key_builder{
 				ExecuteRequest: executeRequest.Message,
-			},
+			}.Build(),
 			executeRequest.Patcher,
 		),
 	)
@@ -3177,7 +3178,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) Realpath(p *model_s
 
 	// Capture the standard output of "realpath" and trim the
 	// trailing newline character that it adds.
-	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
+	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.GetOutputsReference()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
@@ -3277,13 +3278,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) relativizeSymlinks(
 
 func (c *baseComputer[TReference, TMetadata]) fetchModuleExtensionRepo(ctx context.Context, canonicalRepo label.CanonicalRepo, apparentRepo label.ApparentRepo, e RepoEnvironment[TReference, TMetadata], starlarkValueEncoders *StarlarkValueEncoders[TReference]) (PatchedRepoValue[TMetadata], error) {
 	// Obtain the definition of the declared repo.
-	repoValue := e.GetModuleExtensionRepoValue(&model_analysis_pb.ModuleExtensionRepo_Key{
+	repoValue := e.GetModuleExtensionRepoValue(model_analysis_pb.ModuleExtensionRepo_Key_builder{
 		CanonicalRepo: canonicalRepo.String(),
-	})
+	}.Build())
 	if !repoValue.IsSet() {
 		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	repo := repoValue.Message.Definition
+	repo := repoValue.Message.GetDefinition()
 	if repo == nil {
 		return PatchedRepoValue[TMetadata]{}, errors.New("no repo definition present")
 	}
@@ -3864,9 +3865,9 @@ func (c *baseComputer[TReference, TMetadata]) returnRepoMerkleTree(
 		return PatchedRepoValue[TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.Repo_Value{
+		model_analysis_pb.Repo_Value_builder{
 			RootDirectoryReference: rootDirectoryReference.Message,
-		},
+		}.Build(),
 		rootDirectoryReference.Patcher,
 	), nil
 }
@@ -3874,7 +3875,7 @@ func (c *baseComputer[TReference, TMetadata]) returnRepoMerkleTree(
 func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Context, key *model_analysis_pb.Repo_Key, e RepoEnvironment[TReference, TMetadata]) (PatchedRepoValue[TMetadata], error) {
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
-	canonicalRepo, err := label.NewCanonicalRepo(key.CanonicalRepo)
+	canonicalRepo, err := label.NewCanonicalRepo(key.GetCanonicalRepo())
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid canonical repo: %w", err)
 	}
@@ -3898,19 +3899,19 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 		//
 		// Check to see if the client overrode this module manually.
 		moduleName := moduleInstance.GetModule().String()
-		localOverride := e.GetModuleWithLocalOverrideRootDirectoryValue(&model_analysis_pb.ModuleWithLocalOverrideRootDirectory_Key{
+		localOverride := e.GetModuleWithLocalOverrideRootDirectoryValue(model_analysis_pb.ModuleWithLocalOverrideRootDirectory_Key_builder{
 			ModuleName: moduleName,
-		})
+		}.Build())
 		if !localOverride.IsSet() {
 			return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		if localOverride.Message.RootDirectoryReference != nil {
+		if localOverrideRootDirectoryReference := localOverride.Message.GetRootDirectoryReference(); localOverrideRootDirectoryReference != nil {
 			// Found matching module.
-			rootDirectoryReference := model_core.Patch(e, model_core.Nested(localOverride, localOverride.Message.RootDirectoryReference))
+			rootDirectoryReference := model_core.Patch(e, model_core.Nested(localOverride, localOverrideRootDirectoryReference))
 			return model_core.NewPatchedMessage(
-				&model_analysis_pb.Repo_Value{
+				model_analysis_pb.Repo_Value_builder{
 					RootDirectoryReference: rootDirectoryReference.Message,
-				},
+				}.Build(),
 				rootDirectoryReference.Patcher,
 			), nil
 		}
@@ -3918,33 +3919,33 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 		// Check to see if there is a MODULE.bazel override for this module.
 		var singleVersionOverridePatchLabels, singleVersionOverridePatchCommands []string
 		var singleVersionOverridePatchStrip int
-		overrideDefinitionValue := e.GetModuleOverrideDefinitionValue(&model_analysis_pb.ModuleOverrideDefinition_Key{
+		overrideDefinitionValue := e.GetModuleOverrideDefinitionValue(model_analysis_pb.ModuleOverrideDefinition_Key_builder{
 			ModuleName: moduleName,
-		})
+		}.Build())
 		if !overrideDefinitionValue.IsSet() {
 			return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		if overrideDefinition := overrideDefinitionValue.Message.Definition; overrideDefinition != nil {
+		if overrideDefinition := overrideDefinitionValue.Message.GetDefinition(); overrideDefinition != nil {
 			// Found the remote override
-			switch override := overrideDefinition.Kind.(type) {
-			case *model_analysis_pb.ModuleOverride_Definition_RepositoryRule:
+			switch overrideDefinition.WhichKind() {
+			case model_analysis_pb.ModuleOverride_Definition_RepositoryRule_case:
 				return c.fetchRepo(
 					ctx,
 					canonicalRepo,
 					canonicalRepo.GetModuleInstance().GetModule().ToApparentRepo(),
-					model_core.Nested(overrideDefinitionValue, override.RepositoryRule),
+					model_core.Nested(overrideDefinitionValue, overrideDefinition.GetRepositoryRule()),
 					e,
 					starlarkValueEncoders,
 				)
-			case *model_analysis_pb.ModuleOverride_Definition_SingleVersion:
-				if override.SingleVersion.Version != "" {
+			case model_analysis_pb.ModuleOverride_Definition_SingleVersion_case:
+				if overrideDefinition.GetSingleVersion().GetVersion() != "" {
 					// TODO: Implement!
 					return PatchedRepoValue[TMetadata]{}, errors.New("single version override with exact version should skip Minimal Version Selection")
 				}
-				singleVersionOverridePatchLabels = override.SingleVersion.PatchLabels
-				singleVersionOverridePatchCommands = override.SingleVersion.PatchCommands
-				singleVersionOverridePatchStrip = int(override.SingleVersion.PatchStrip)
-			case *model_analysis_pb.ModuleOverride_Definition_MultipleVersions:
+				singleVersionOverridePatchLabels = overrideDefinition.GetSingleVersion().GetPatchLabels()
+				singleVersionOverridePatchCommands = overrideDefinition.GetSingleVersion().GetPatchCommands()
+				singleVersionOverridePatchStrip = int(overrideDefinition.GetSingleVersion().GetPatchStrip())
+			case model_analysis_pb.ModuleOverride_Definition_MultipleVersions_case:
 				return PatchedRepoValue[TMetadata]{}, errors.New("module has a multiple version override, meaning that the module instance must contain a version number")
 			default:
 				return PatchedRepoValue[TMetadata]{}, errors.New("unknown module override type")
@@ -3954,13 +3955,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoValue(ctx context.Conte
 		// If a version of the module is selected as
 		// part of the final build list, we can download
 		// that exact version.
-		moduleDefinitionValue := e.GetFinalBuildListModuleDefinitionValue(&model_analysis_pb.FinalBuildListModuleDefinition_Key{
+		moduleDefinitionValue := e.GetFinalBuildListModuleDefinitionValue(model_analysis_pb.FinalBuildListModuleDefinition_Key_builder{
 			ModuleName: moduleName,
-		})
+		}.Build())
 		if !moduleDefinitionValue.IsSet() {
 			return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		if moduleDefinition := moduleDefinitionValue.Message.Definition; moduleDefinition != nil {
+		if moduleDefinition := moduleDefinitionValue.Message.GetDefinition(); moduleDefinition != nil {
 			return c.fetchModuleFromRegistry(
 				ctx,
 				moduleInstance.GetModule(),

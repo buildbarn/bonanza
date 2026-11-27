@@ -27,10 +27,10 @@ type parseLocalModuleDotBazelEnvironment[TReference object.BasicReference] inter
 
 func (*baseComputer[TReference, TMetadata]) parseLocalModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseLocalModuleDotBazelEnvironment[TReference], handler dotbazel.RootHandler) error {
 	// Load a file that we know exists in storage already.
-	moduleFileProperties := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
+	moduleFileProperties := e.GetFilePropertiesValue(model_analysis_pb.FileProperties_Key_builder{
 		CanonicalRepo: moduleInstance.String(),
 		Path:          dotbazel.ModuleFilename,
-	})
+	}.Build())
 	if !moduleFileProperties.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
@@ -55,15 +55,15 @@ type parseActiveModuleDotBazelEnvironment[TReference object.BasicReference] inte
 
 func (*baseComputer[TReference, TMetadata]) parseActiveModuleInstanceModuleDotBazel(ctx context.Context, moduleInstance label.ModuleInstance, e parseActiveModuleDotBazelEnvironment[TReference], handler dotbazel.RootHandler) error {
 	// This module file might have to be loaded.
-	moduleFileContentsValue := e.GetModuleDotBazelContentsValue(&model_analysis_pb.ModuleDotBazelContents_Key{
+	moduleFileContentsValue := e.GetModuleDotBazelContentsValue(model_analysis_pb.ModuleDotBazelContents_Key_builder{
 		ModuleInstance: moduleInstance.String(),
-	})
+	}.Build())
 	if !moduleFileContentsValue.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
 	return parseModuleDotBazel(
 		ctx,
-		model_core.Nested(moduleFileContentsValue, moduleFileContentsValue.Message.Contents),
+		model_core.Nested(moduleFileContentsValue, moduleFileContentsValue.Message.GetContents()),
 		moduleInstance,
 		e,
 		handler,
@@ -178,7 +178,7 @@ func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFir
 	}
 
 	// The root module is the starting point of our traversal.
-	rootModuleName, err := label.NewModule(rootModuleValue.Message.RootModuleName)
+	rootModuleName, err := label.NewModule(rootModuleValue.Message.GetRootModuleName())
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFir
 	moduleInstancesSeen := map[label.ModuleInstance]struct{}{
 		rootModuleInstance: {},
 	}
-	ignoreDevDependencies := rootModuleValue.Message.IgnoreRootModuleDevDependencies
+	ignoreDevDependencies := rootModuleValue.Message.GetIgnoreRootModuleDevDependencies()
 
 	var finalErr error
 	for len(moduleInstancesToCheck) > 0 {
@@ -245,18 +245,18 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 		},
 	); found { // Override found.
 		// Access the MODULE.bazel file that is part of the module's sources.
-		filePropertiesValue := e.GetFilePropertiesValue(&model_analysis_pb.FileProperties_Key{
+		filePropertiesValue := e.GetFilePropertiesValue(model_analysis_pb.FileProperties_Key_builder{
 			CanonicalRepo: canonicalRepo.String(),
 			Path:          dotbazel.ModuleFilename,
-		})
+		}.Build())
 		if !filePropertiesValue.IsSet() {
 			return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		fileContents := model_core.Patch(e, model_core.Nested(filePropertiesValue, filePropertiesValue.Message.GetExists().GetContents()))
 		return model_core.NewPatchedMessage(
-			&model_analysis_pb.ModuleDotBazelContents_Value{
+			model_analysis_pb.ModuleDotBazelContents_Value_builder{
 				Contents: fileContents.Message,
-			},
+			}.Build(),
 			fileContents.Patcher,
 		), nil
 	}
@@ -302,13 +302,13 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 			}
 
 			fileContentsValue := e.GetHTTPFileContentsValue(
-				&model_analysis_pb.HttpFileContents_Key{
-					FetchOptions: &model_analysis_pb.HttpFetchOptions{
+				model_analysis_pb.HttpFileContents_Key_builder{
+					FetchOptions: model_analysis_pb.HttpFetchOptions_builder{
 						Target: model_fetch_pb.Target_builder{
 							Urls: []string{moduleFileURL},
 						}.Build(),
-					},
-				},
+					}.Build(),
+				}.Build(),
 			)
 			if !fileContentsValue.IsSet() {
 				return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -319,9 +319,9 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 			}
 			fileContents := model_core.Patch(e, model_core.Nested(fileContentsValue, fileContentsValueExists.GetContents()))
 			return model_core.NewPatchedMessage(
-				&model_analysis_pb.ModuleDotBazelContents_Value{
+				model_analysis_pb.ModuleDotBazelContents_Value_builder{
 					Contents: fileContents.Message,
-				},
+				}.Build(),
 				fileContents.Patcher,
 			), nil
 		}

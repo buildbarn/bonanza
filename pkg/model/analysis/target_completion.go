@@ -42,10 +42,10 @@ func buildFilesInDepset[TReference object.BasicReference, TMetadata model_core.R
 		patchedFile := model_core.Patch(e, model_core.Nested(element, elementFile))
 		fileRoot := e.GetFileRootValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.FileRoot_Key{
+				model_analysis_pb.FileRoot_Key_builder{
 					File:            patchedFile.Message,
 					DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-				},
+				}.Build(),
 				patchedFile.Patcher,
 			),
 		)
@@ -148,11 +148,11 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 		getProviderFields := func(providerIdentifier string) model_core.Message[*model_starlark_pb.Struct_Fields, TReference] {
 			targetProvider := e.GetTargetProviderValue(
 				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Key {
-					return &model_analysis_pb.TargetProvider_Key{
+					return model_analysis_pb.TargetProvider_Key_builder{
 						Label:              key.Message.GetLabel(),
 						Variant:            model_core.Patch(e, model_core.Nested(key, key.Message.GetVariant())).Merge(patcher),
 						ProviderIdentifier: providerIdentifier,
-					}
+					}.Build()
 				}),
 			)
 			if !targetProvider.IsSet() {
@@ -177,10 +177,10 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 		// merged providers of the target and all aspects.
 		incomingEdgeTransition := e.GetTargetIncomingEdgeTransitionValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
-				return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
+				return model_analysis_pb.TargetIncomingEdgeTransition_Key_builder{
 					Label:                  key.Message.GetLabel(),
 					ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.GetVariant().GetConfigurationReference())).Merge(patcher),
-				}
+				}.Build()
 			}),
 		)
 		if !incomingEdgeTransition.IsSet() || !gotValueReaders {
@@ -188,13 +188,13 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 		}
 		configuredTarget := e.GetConfiguredTargetValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
-				return &model_analysis_pb.ConfiguredTarget_Key{
+				return model_analysis_pb.ConfiguredTarget_Key_builder{
 					Label: key.Message.GetLabel(),
 					Variant: newTargetVariant(
 						model_core.Patch(e, model_core.Nested(incomingEdgeTransition, incomingEdgeTransition.Message.GetOutputConfigurationReference())).Merge(patcher),
 						model_core.PatchList(e, model_core.Nested(key, aspects)).Merge(patcher),
 					),
-				}
+				}.Build()
 			}),
 		)
 		if !configuredTarget.IsSet() {
@@ -213,7 +213,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 	if err != nil {
 		return PatchedTargetCompletionValue[TMetadata]{}, err
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.TargetCompletion_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.TargetCompletion_Value_builder{
 		ProvidedOutputGroups: providedOutputGroups,
-	}), nil
+	}.Build()), nil
 }

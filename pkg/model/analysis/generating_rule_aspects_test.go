@@ -22,8 +22,8 @@ func TestGeneratingRuleAspects(t *testing.T) {
 
 	expectAspect := func(e *MockGeneratingRuleAspectsEnvironmentForTesting, identifier string, applyToGeneratingRules bool) {
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: identifier}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{Identifier: identifier}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.CompiledBzlFileGlobal_Value_builder{
 			Global: model_starlark_pb.Value_builder{
 				Aspect: model_starlark_pb.Aspect_builder{
 					Definition: model_starlark_pb.Aspect_Definition_builder{
@@ -31,7 +31,7 @@ func TestGeneratingRuleAspects(t *testing.T) {
 					}.Build(),
 				}.Build(),
 			}.Build(),
-		}))
+		}.Build()))
 	}
 	const (
 		aspect1 = "@@rules+//:defs.bzl%aspect1"
@@ -45,13 +45,13 @@ func TestGeneratingRuleAspects(t *testing.T) {
 		expectAspect(e, aspect2, false)
 		expectAspect(e, aspect3, true)
 
-		value, err := bct.computer.ComputeGeneratingRuleAspectsValue(ctx, &model_analysis_pb.GeneratingRuleAspects_Key{
+		value, err := bct.computer.ComputeGeneratingRuleAspectsValue(ctx, model_analysis_pb.GeneratingRuleAspects_Key_builder{
 			AspectIdentifiers: []string{aspect1, aspect2, aspect3},
-		}, e)
+		}.Build(), e)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.GeneratingRuleAspects_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.GeneratingRuleAspects_Value_builder{
 			AspectIndices: []uint32{0, 2},
-		}, value.Message)
+		}.Build(), value.Message)
 	})
 
 	t.Run("MissingDefinition", func(t *testing.T) {
@@ -59,29 +59,29 @@ func TestGeneratingRuleAspects(t *testing.T) {
 		// them are missing.
 		e := NewMockGeneratingRuleAspectsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: aspect1}),
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{Identifier: aspect1}.Build()),
 		).Return(model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, model_core.CreatedObjectTree]{})
 		expectAspect(e, aspect2, false)
 
-		_, err := bct.computer.ComputeGeneratingRuleAspectsValue(ctx, &model_analysis_pb.GeneratingRuleAspects_Key{
+		_, err := bct.computer.ComputeGeneratingRuleAspectsValue(ctx, model_analysis_pb.GeneratingRuleAspects_Key_builder{
 			AspectIdentifiers: []string{aspect1, aspect2},
-		}, e)
+		}.Build(), e)
 		require.Equal(t, evaluation.ErrMissingDependency, err)
 	})
 
 	t.Run("NotAnAspect", func(t *testing.T) {
 		e := NewMockGeneratingRuleAspectsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: aspect1}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{Identifier: aspect1}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.CompiledBzlFileGlobal_Value_builder{
 			Global: model_starlark_pb.Value_builder{
 				Bool: proto.Bool(true),
 			}.Build(),
-		}))
+		}.Build()))
 
-		_, err := bct.computer.ComputeGeneratingRuleAspectsValue(ctx, &model_analysis_pb.GeneratingRuleAspects_Key{
+		_, err := bct.computer.ComputeGeneratingRuleAspectsValue(ctx, model_analysis_pb.GeneratingRuleAspects_Key_builder{
 			AspectIdentifiers: []string{aspect1},
-		}, e)
+		}.Build(), e)
 		require.EqualError(t, err, "\"@@rules+//:defs.bzl%aspect1\" is not an aspect")
 	})
 }

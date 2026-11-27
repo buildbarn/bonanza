@@ -92,11 +92,11 @@ func testRandomData(sizeBytes int) string {
 	return string(data)
 }
 
-var testFetchOptions = &model_analysis_pb.HttpFetchOptions{
+var testFetchOptions = model_analysis_pb.HttpFetchOptions_builder{
 	Target: model_fetch_pb.Target_builder{
 		Urls: []string{"https://example.com/archive"},
 	}.Build(),
-}
+}.Build()
 
 // httpArchiveContentsResult contains the outcome of calling
 // ComputeHTTPArchiveContentsValue().
@@ -131,14 +131,14 @@ func (bct *baseComputerTester) computeHTTPArchiveContents(ctx context.Context, t
 		testutil.EqProto(t, &model_analysis_pb.FileCreationParameters_Key{}),
 	).Return(bct.newFileCreationParameters(), true)
 	e.EXPECT().GetHTTPFileContentsValue(
-		testutil.EqProto(t, &model_analysis_pb.HttpFileContents_Key{
+		testutil.EqProto(t, model_analysis_pb.HttpFileContents_Key_builder{
 			FetchOptions: testFetchOptions,
-		}),
-	).Return(model_core.Nested(archiveContentsMessage, &model_analysis_pb.HttpFileContents_Value{
+		}.Build()),
+	).Return(model_core.Nested(archiveContentsMessage, model_analysis_pb.HttpFileContents_Value_builder{
 		Exists: model_fetch_pb.Result_Success_builder{
 			Contents: archiveContentsMessage.Message,
 		}.Build(),
-	}))
+	}.Build()))
 	e.EXPECT().CaptureCreatedObject(gomock.Any(), gomock.Any()).
 		DoAndReturn(capturer.CaptureCreatedObject).AnyTimes()
 	e.EXPECT().CaptureExistingObject(gomock.Any()).
@@ -154,10 +154,10 @@ func (bct *baseComputerTester) computeHTTPArchiveContents(ctx context.Context, t
 
 	result.value, result.err = bct.computer.ComputeHTTPArchiveContentsValue(
 		ctx,
-		&model_analysis_pb.HttpArchiveContents_Key{
+		model_analysis_pb.HttpArchiveContents_Key_builder{
 			FetchOptions: testFetchOptions,
 			Format:       format,
-		},
+		}.Build(),
 		e,
 	)
 	return result
@@ -229,17 +229,17 @@ func TestHTTPArchiveContents(t *testing.T) {
 		e.EXPECT().GetDirectoryCreationParametersObject(gomock.Any()).Return(bct.newDirectoryCreationParameters(), true)
 		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(bct.newFileCreationParameters(), true)
 		e.EXPECT().GetHTTPFileContentsValue(
-			testutil.EqProto(t, &model_analysis_pb.HttpFileContents_Key{
+			testutil.EqProto(t, model_analysis_pb.HttpFileContents_Key_builder{
 				FetchOptions: testFetchOptions,
-			}),
+			}.Build()),
 		).Return(model_core.Message[*model_analysis_pb.HttpFileContents_Value, model_core.CreatedObjectTree]{})
 
 		_, err := bct.computer.ComputeHTTPArchiveContentsValue(
 			ctx,
-			&model_analysis_pb.HttpArchiveContents_Key{
+			model_analysis_pb.HttpArchiveContents_Key_builder{
 				FetchOptions: testFetchOptions,
 				Format:       model_analysis_pb.HttpArchiveContents_Key_TAR_GZ,
-			},
+			}.Build(),
 			e,
 		)
 		require.Equal(t, evaluation.ErrMissingDependency, err)
@@ -257,10 +257,10 @@ func TestHTTPArchiveContents(t *testing.T) {
 
 		_, err := bct.computer.ComputeHTTPArchiveContentsValue(
 			ctx,
-			&model_analysis_pb.HttpArchiveContents_Key{
+			model_analysis_pb.HttpArchiveContents_Key_builder{
 				FetchOptions: testFetchOptions,
 				Format:       model_analysis_pb.HttpArchiveContents_Key_TAR_GZ,
-			},
+			}.Build(),
 			e,
 		)
 		require.EqualError(t, err, "file does not exist")
@@ -390,13 +390,13 @@ func TestHTTPArchiveContents(t *testing.T) {
 		requireProgress := func(t *testing.T, progress []*model_analysis_pb.HttpArchiveContents_Progress, totalBytes uint64) []uint64 {
 			var current []uint64
 			for i, p := range progress {
-				require.Equal(t, totalBytes, p.Extracted.GetTotal())
-				require.Equal(t, model_evaluation_pb.ProgressCounter_BYTES, p.Extracted.GetUnit())
-				require.LessOrEqual(t, p.Extracted.GetCurrent(), totalBytes)
+				require.Equal(t, totalBytes, p.GetExtracted().GetTotal())
+				require.Equal(t, model_evaluation_pb.ProgressCounter_BYTES, p.GetExtracted().GetUnit())
+				require.LessOrEqual(t, p.GetExtracted().GetCurrent(), totalBytes)
 				if i > 0 {
-					require.Greater(t, p.Extracted.GetCurrent(), current[i-1])
+					require.Greater(t, p.GetExtracted().GetCurrent(), current[i-1])
 				}
-				current = append(current, p.Extracted.GetCurrent())
+				current = append(current, p.GetExtracted().GetCurrent())
 			}
 			return current
 		}

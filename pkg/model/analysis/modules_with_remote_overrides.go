@@ -39,9 +39,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesV
 	}
 
 	// Obtain the root module name to find the file.
-	rootModuleName, err := label.NewModule(rootModuleValue.Message.RootModuleName)
+	rootModuleName, err := label.NewModule(rootModuleValue.Message.GetRootModuleName())
 	if err != nil {
-		return PatchedModulesWithRemoteOverridesValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleValue.Message.RootModuleName, err)
+		return PatchedModulesWithRemoteOverridesValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleValue.Message.GetRootModuleName(), err)
 	}
 
 	// Parse out the root module to find the overrides.
@@ -58,9 +58,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModulesWithRemoteOverridesV
 
 	// Set any overrides coming from a remote location.
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.ModulesWithRemoteOverrides_Value{
+		model_analysis_pb.ModulesWithRemoteOverrides_Value_builder{
 			ModuleOverrides: overrideModules,
-		},
+		}.Build(),
 		handler.patcher,
 	), nil
 }
@@ -132,17 +132,15 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Multipl
 		registry = registryURL.String()
 	}
 
-	return h.addOverrideModule(&model_analysis_pb.ModuleOverride{
+	return h.addOverrideModule(model_analysis_pb.ModuleOverride_builder{
 		Name: moduleName.String(),
-		Definition: &model_analysis_pb.ModuleOverride_Definition{
-			Kind: &model_analysis_pb.ModuleOverride_Definition_MultipleVersions{
-				MultipleVersions: &model_analysis_pb.ModuleOverride_MultipleVersions{
-					Versions: vers,
-					Registry: registry,
-				},
-			},
-		},
-	})
+		Definition: model_analysis_pb.ModuleOverride_Definition_builder{
+			MultipleVersions: model_analysis_pb.ModuleOverride_MultipleVersions_builder{
+				Versions: vers,
+				Registry: registry,
+			}.Build(),
+		}.Build(),
+	}.Build())
 }
 
 func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) RegisterExecutionPlatforms(platformLabels []label.ApparentTargetPattern, devDependency bool) error {
@@ -163,15 +161,15 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Reposit
 	}
 	h.patcher.Merge(fields.Patcher)
 
-	return h.addOverrideModule(&model_analysis_pb.ModuleOverride{
+	return h.addOverrideModule(model_analysis_pb.ModuleOverride_builder{
 		Name: moduleName.String(),
-		Definition: &model_analysis_pb.ModuleOverride_Definition{
-			Kind: &model_analysis_pb.ModuleOverride_Definition_RepositoryRule{RepositoryRule: model_starlark_pb.Repo_Definition_builder{
+		Definition: model_analysis_pb.ModuleOverride_Definition_builder{
+			RepositoryRule: model_starlark_pb.Repo_Definition_builder{
 				RepositoryRuleIdentifier: repositoryRuleIdentifier.String(),
 				AttrValues:               fields.Message,
-			}.Build()},
-		},
-	})
+			}.Build(),
+		}.Build(),
+	}.Build())
 }
 
 func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) SingleVersionOverride(moduleName label.Module, version *label.ModuleVersion, registryURL *url.URL, patchOptions *dotbazel.PatchOptions) error {
@@ -182,20 +180,18 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) SingleV
 	if registryURL != nil {
 		registry = registryURL.String()
 	}
-	return h.addOverrideModule(&model_analysis_pb.ModuleOverride{
+	return h.addOverrideModule(model_analysis_pb.ModuleOverride_builder{
 		Name: moduleName.String(),
-		Definition: &model_analysis_pb.ModuleOverride_Definition{
-			Kind: &model_analysis_pb.ModuleOverride_Definition_SingleVersion{
-				SingleVersion: &model_analysis_pb.ModuleOverride_SingleVersion{
-					Version:       vers,
-					Registry:      registry,
-					PatchLabels:   stringersToStrings(patchOptions.Patches),
-					PatchCommands: patchOptions.PatchCmds,
-					PatchStrip:    int64(patchOptions.PatchStrip),
-				},
-			},
-		},
-	})
+		Definition: model_analysis_pb.ModuleOverride_Definition_builder{
+			SingleVersion: model_analysis_pb.ModuleOverride_SingleVersion_builder{
+				Version:       vers,
+				Registry:      registry,
+				PatchLabels:   stringersToStrings(patchOptions.Patches),
+				PatchCommands: patchOptions.PatchCmds,
+				PatchStrip:    int64(patchOptions.PatchStrip),
+			}.Build(),
+		}.Build(),
+	}.Build())
 }
 
 func (overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) UseExtension(extensionBzlFile label.ApparentLabel, extensionName label.StarlarkIdentifier, devDependency, isolate bool) (dotbazel.ModuleExtensionProxy, error) {

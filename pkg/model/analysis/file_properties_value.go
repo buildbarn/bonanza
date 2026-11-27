@@ -38,9 +38,9 @@ func (r *reposFilePropertiesResolver[TReference, TMetadata]) handleRepoOnUp() (p
 }
 
 func (r *reposFilePropertiesResolver[TReference, TMetadata]) setCurrentRepo(name string) error {
-	repoValue := r.environment.GetRepoValue(&model_analysis_pb.Repo_Key{
+	repoValue := r.environment.GetRepoValue(model_analysis_pb.Repo_Key_builder{
 		CanonicalRepo: name,
-	})
+	}.Build())
 	if !repoValue.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
@@ -49,7 +49,7 @@ func (r *reposFilePropertiesResolver[TReference, TMetadata]) setCurrentRepo(name
 		r.context,
 		r.directoryReaders.DirectoryEntries,
 		r.handleRepoOnUp,
-		model_core.Nested(repoValue, repoValue.Message.RootDirectoryReference),
+		model_core.Nested(repoValue, repoValue.Message.GetRootDirectoryReference()),
 		nil,
 	)
 	return nil
@@ -101,12 +101,12 @@ func (baseComputer[TReference, TMetadata]) ComputeFilePropertiesValue(ctx contex
 		directoryReaders: directoryReaders,
 		environment:      e,
 	}
-	if err := resolver.setCurrentRepo(key.CanonicalRepo); err != nil {
+	if err := resolver.setCurrentRepo(key.GetCanonicalRepo()); err != nil {
 		return PatchedFilePropertiesValue[TMetadata]{}, fmt.Errorf("failed to resolve canonical repo directory: %w", err)
 	}
 
 	if err := path.Resolve(
-		path.UNIXFormat.NewParser(key.Path),
+		path.UNIXFormat.NewParser(key.GetPath()),
 		path.NewLoopDetectingScopeWalker(path.NewRelativeScopeWalker(resolver.currentRepo)),
 	); err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -123,9 +123,9 @@ func (baseComputer[TReference, TMetadata]) ComputeFilePropertiesValue(ctx contex
 	}
 	patchedFileProperties := model_core.Patch(e, fileProperties)
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.FileProperties_Value{
+		model_analysis_pb.FileProperties_Value_builder{
 			Exists: patchedFileProperties.Message,
-		},
+		}.Build(),
 		patchedFileProperties.Patcher,
 	), nil
 }

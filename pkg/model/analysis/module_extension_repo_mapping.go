@@ -12,6 +12,8 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepoMapping_Key, e ModuleExtensionRepoMappingEnvironment[TReference, TMetadata]) (PatchedModuleExtensionRepoMappingValue[TMetadata], error) {
@@ -21,9 +23,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingV
 	}
 
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
-	moduleExtensionReposValue := e.GetModuleExtensionReposValue(&model_analysis_pb.ModuleExtensionRepos_Key{
+	moduleExtensionReposValue := e.GetModuleExtensionReposValue(model_analysis_pb.ModuleExtensionRepos_Key_builder{
 		ModuleExtension: key.GetModuleExtension(),
-	})
+	}.Build())
 
 	// The root module may override repos declared by the module
 	// extension, or inject additional ones, using override_repo()
@@ -32,9 +34,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingV
 	var overrides []*model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override
 	gotOverrides := true
 	if !moduleExtension.IsRepoRules() {
-		moduleExtensionRepoOverridesValue := e.GetModuleExtensionRepoOverridesValue(&model_analysis_pb.ModuleExtensionRepoOverrides_Key{
+		moduleExtensionRepoOverridesValue := e.GetModuleExtensionRepoOverridesValue(model_analysis_pb.ModuleExtensionRepoOverrides_Key_builder{
 			ModuleExtension: key.GetModuleExtension(),
-		})
+		}.Build())
 		gotOverrides = moduleExtensionRepoOverridesValue.IsSet()
 		if gotOverrides {
 			overrides = moduleExtensionRepoOverridesValue.Message.GetOverrides()
@@ -85,27 +87,27 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingV
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping, TMetadata] {
 				var firstFromApparentRepo string
-				switch childNodes.Message[0].GetLevel().(type) {
-				case *model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Leaf:
+				switch childNodes.Message[0].WhichLevel() {
+				case model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Leaf_case:
 					firstFromApparentRepo = childNodes.Message[0].GetLeaf().GetFromApparentRepo()
-				case *model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Parent_:
+				case model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Parent_case:
 					firstFromApparentRepo = childNodes.Message[0].GetParent().GetFirstFromApparentRepo()
 				}
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping {
-					return &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping{
-						Level: &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Parent_{Parent: &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Parent{
+					return model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_builder{
+						Parent: model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Parent_builder{
 							Reference:             patcher.AddDecodableReference(createdObject),
 							FirstFromApparentRepo: firstFromApparentRepo,
-						}},
-					}
+						}.Build(),
+					}.Build()
 				})
 			}),
 		),
 	)
 	for _, mapping := range mappings {
-		if err := treeBuilder.PushChild(model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping{
-			Level: &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Leaf{Leaf: mapping},
-		})); err != nil {
+		if err := treeBuilder.PushChild(model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_builder{
+			Leaf: proto.ValueOrDefault(mapping),
+		}.Build())); err != nil {
 			return PatchedModuleExtensionRepoMappingValue[TMetadata]{}, err
 		}
 	}
@@ -115,9 +117,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingV
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.ModuleExtensionRepoMapping_Value{
+		model_analysis_pb.ModuleExtensionRepoMapping_Value_builder{
 			Mappings: mappingsList.Message,
-		},
+		}.Build(),
 		mappingsList.Patcher,
 	), nil
 }
@@ -128,19 +130,19 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingV
 func getModuleExtensionRepoMappings(moduleExtension label.ModuleExtension, repoNames []string, overrides []*model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override) ([]*model_analysis_pb.RepoMapping, error) {
 	mappings := make([]*model_analysis_pb.RepoMapping, 0, len(repoNames)+len(overrides))
 	for len(repoNames) > 0 || len(overrides) > 0 {
-		if len(overrides) > 0 && (len(repoNames) == 0 || overrides[0].FromApparentRepo <= repoNames[0]) {
+		if len(overrides) > 0 && (len(repoNames) == 0 || overrides[0].GetFromApparentRepo() <= repoNames[0]) {
 			override := overrides[0]
-			exists := len(repoNames) > 0 && override.FromApparentRepo == repoNames[0]
-			if override.MustExist && !exists {
-				return nil, fmt.Errorf("module extension %#v does not declare repo %#v, yet it is overridden using override_repo(); use inject_repo() to inject a new repo", moduleExtension.String(), override.FromApparentRepo)
+			exists := len(repoNames) > 0 && override.GetFromApparentRepo() == repoNames[0]
+			if override.GetMustExist() && !exists {
+				return nil, fmt.Errorf("module extension %#v does not declare repo %#v, yet it is overridden using override_repo(); use inject_repo() to inject a new repo", moduleExtension.String(), override.GetFromApparentRepo())
 			}
-			if !override.MustExist && exists {
-				return nil, fmt.Errorf("module extension %#v declares repo %#v, yet it is injected using inject_repo(); use override_repo() to override an existing repo", moduleExtension.String(), override.FromApparentRepo)
+			if !override.GetMustExist() && exists {
+				return nil, fmt.Errorf("module extension %#v declares repo %#v, yet it is injected using inject_repo(); use override_repo() to override an existing repo", moduleExtension.String(), override.GetFromApparentRepo())
 			}
 			mappings = append(mappings, newRepoMapping(
-				override.FromApparentRepo,
-				override.ToCanonicalRepo,
-				getModuleExtensionRepoMappingDefault(moduleExtension, override.FromApparentRepo),
+				override.GetFromApparentRepo(),
+				override.GetToCanonicalRepo(),
+				getModuleExtensionRepoMappingDefault(moduleExtension, override.GetFromApparentRepo()),
 			))
 			overrides = overrides[1:]
 			if exists {
@@ -149,9 +151,9 @@ func getModuleExtensionRepoMappings(moduleExtension label.ModuleExtension, repoN
 		} else {
 			// Repo declared by the module extension, which
 			// maps to the default canonical repo.
-			mappings = append(mappings, &model_analysis_pb.RepoMapping{
+			mappings = append(mappings, model_analysis_pb.RepoMapping_builder{
 				FromApparentRepo: repoNames[0],
-			})
+			}.Build())
 			repoNames = repoNames[1:]
 		}
 	}

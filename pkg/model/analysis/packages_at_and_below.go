@@ -37,15 +37,15 @@ func getPackageDirectory[TReference object.BasicReference](
 		return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, errors.New("invalid base package")
 	}
 
-	repoValue := e.GetRepoValue(&model_analysis_pb.Repo_Key{
+	repoValue := e.GetRepoValue(model_analysis_pb.Repo_Key_builder{
 		CanonicalRepo: canonicalPackage.GetCanonicalRepo().String(),
-	})
+	}.Build())
 	if !repoValue.IsSet() {
 		return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, evaluation.ErrMissingDependency
 	}
 
 	// Obtain the root directory of the repo.
-	baseDirectory, err := model_filesystem.DirectoryDereference(ctx, directoryEntriesReader, model_core.Nested(repoValue, repoValue.Message.RootDirectoryReference))
+	baseDirectory, err := model_filesystem.DirectoryDereference(ctx, directoryEntriesReader, model_core.Nested(repoValue, repoValue.Message.GetRootDirectoryReference()))
 	if err != nil {
 		return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, err
 	}
@@ -77,7 +77,7 @@ func (*baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx c
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	packageDirectory, err := getPackageDirectory(ctx, e, directoryReaders.DirectoryEntries, key.BasePackage)
+	packageDirectory, err := getPackageDirectory(ctx, e, directoryReaders.DirectoryEntries, key.GetBasePackage())
 	if err != nil {
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, err
 	}
@@ -86,7 +86,7 @@ func (*baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx c
 	}
 
 	// Only return packages whose relative paths match the pattern.
-	nfa, err := glob.NewNFAFromBytes(key.Pattern)
+	nfa, err := glob.NewNFAFromBytes(key.GetPattern())
 	if err != nil {
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, fmt.Errorf("invalid pattern: %w", err)
 	}
@@ -106,10 +106,10 @@ func (*baseComputer[TReference, TMetadata]) ComputePackagesAtAndBelowValue(ctx c
 		return PatchedPackagesAtAndBelowValue[TMetadata]{}, err
 	}
 
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.PackagesAtAndBelow_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.PackagesAtAndBelow_Value_builder{
 		PackageAtBasePackage:     packageAtBasePackage,
 		PackagesBelowBasePackage: checker.packagesBelowBasePackage,
-	}), nil
+	}.Build()), nil
 }
 
 // PackagesAtAndBelowEnvironmentForTesting is used to generate mocks

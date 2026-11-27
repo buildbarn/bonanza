@@ -15,10 +15,10 @@ func (baseComputer[TReference, TMetadata]) ComputeCompatibleExecutionPlatformsVa
 		return PatchedCompatibleExecutionPlatformsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	allExecutionPlatforms := registeredExecutionPlatforms.Message.ExecutionPlatforms
+	allExecutionPlatforms := registeredExecutionPlatforms.Message.GetExecutionPlatforms()
 	var compatibleExecutionPlatforms []*model_analysis_pb.ExecutionPlatform
 	for _, executionPlatform := range allExecutionPlatforms {
-		if constraintsAreCompatible(executionPlatform.Constraints, key.Constraints) {
+		if constraintsAreCompatible(executionPlatform.GetConstraints(), key.GetConstraints()) {
 			compatibleExecutionPlatforms = append(compatibleExecutionPlatforms, executionPlatform)
 		}
 	}
@@ -26,7 +26,7 @@ func (baseComputer[TReference, TMetadata]) ComputeCompatibleExecutionPlatformsVa
 		return PatchedCompatibleExecutionPlatformsValue[TMetadata]{}, fmt.Errorf("none of the %d registered execution platforms are compatible with the provided constraints", len(allExecutionPlatforms))
 	}
 
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.CompatibleExecutionPlatforms_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.CompatibleExecutionPlatforms_Value_builder{
 		ExecutionPlatforms: compatibleExecutionPlatforms,
-	}), nil
+	}.Build()), nil
 }

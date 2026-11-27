@@ -13,8 +13,8 @@ func (baseComputer[TReference, TMetadata]) ComputeRootModuleValue(ctx context.Co
 	if !buildSpecification.IsSet() {
 		return PatchedRootModuleValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RootModule_Value{
-		RootModuleName:                  buildSpecification.Message.RootModuleName,
-		IgnoreRootModuleDevDependencies: buildSpecification.Message.IgnoreRootModuleDevDependencies,
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.RootModule_Value_builder{
+		RootModuleName:                  buildSpecification.Message.GetRootModuleName(),
+		IgnoreRootModuleDevDependencies: buildSpecification.Message.GetIgnoreRootModuleDevDependencies(),
+	}.Build()), nil
 }

@@ -141,9 +141,9 @@ func getQueryRuleDefinition[TReference any](
 	e CompiledBzlFileGlobalValueGetter[TReference],
 	ruleIdentifier label.CanonicalStarlarkIdentifier,
 ) (model_core.Message[*model_starlark_pb.Rule_Definition, TReference], error) {
-	ruleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+	ruleValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 		Identifier: ruleIdentifier.String(),
-	})
+	}.Build())
 	if !ruleValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Rule_Definition, TReference]{}, evaluation.ErrMissingDependency
 	}
@@ -580,10 +580,10 @@ func newQueryExpansionKey(query label.Query[label.CanonicalTargetPattern], inclu
 	// Implicit dependencies don't affect the results of queries
 	// that don't follow any dependencies (e.g., target patterns).
 	// Don't request separate keys for them.
-	return &model_analysis_pb.QueryExpansion_Key{
+	return model_analysis_pb.QueryExpansion_Key_builder{
 		Query:               label.QueryToString(query),
 		IncludeImplicitDeps: includeImplicitDeps && queryUsesDependencies(query),
-	}
+	}.Build()
 }
 
 // getQueryLabels returns the labels of the targets yielded by a query
@@ -594,7 +594,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryLabels(ctx context.Context
 		return nil, evaluation.ErrMissingDependency
 	}
 	var errIter error
-	labels := slices.Collect(c.allTargetLabels(ctx, analysisReaders, model_core.Nested(value, value.Message.TargetLabels), &errIter))
+	labels := slices.Collect(c.allTargetLabels(ctx, analysisReaders, model_core.Nested(value, value.Message.GetTargetLabels()), &errIter))
 	if errIter != nil {
 		return nil, errIter
 	}
@@ -631,15 +631,18 @@ func getQueryTargetDefinitions[TReference any](e TargetValueGetter[TReference], 
 	definitions := make([]model_core.Message[*model_starlark_pb.Target_Definition, TReference], 0, len(labels))
 	missingDependencies := false
 	for _, l := range labels {
-		target := e.GetTargetValue(&model_analysis_pb.Target_Key{Label: l.String()})
+		target := e.GetTargetValue(model_analysis_pb.Target_Key_builder{
+			Label: l.String(),
+		}.Build())
 		if !target.IsSet() {
 			missingDependencies = true
 			continue
 		}
-		if target.Message.Definition == nil {
+		targetDefinition := target.Message.GetDefinition()
+		if targetDefinition == nil {
 			return nil, fmt.Errorf("target %#v does not exist", l.String())
 		}
-		definitions = append(definitions, model_core.Nested(target, target.Message.Definition))
+		definitions = append(definitions, model_core.Nested(target, targetDefinition))
 	}
 	if missingDependencies {
 		return nil, evaluation.ErrMissingDependency
@@ -654,16 +657,16 @@ func (c *baseComputer[TReference, TMetadata]) getQueryDirectDependencies(ctx con
 	dependencies := make(map[label.CanonicalLabel][]label.CanonicalLabel, len(labels))
 	missingDependencies := false
 	for _, l := range labels {
-		value := e.GetTargetDirectDependenciesValue(&model_analysis_pb.TargetDirectDependencies_Key{
+		value := e.GetTargetDirectDependenciesValue(model_analysis_pb.TargetDirectDependencies_Key_builder{
 			Label:               l.String(),
 			IncludeImplicitDeps: includeImplicitDeps,
-		})
+		}.Build())
 		if !value.IsSet() {
 			missingDependencies = true
 			continue
 		}
 		var errIter error
-		dependencies[l] = slices.Collect(c.allTargetLabels(ctx, analysisReaders, model_core.Nested(value, value.Message.TargetLabels), &errIter))
+		dependencies[l] = slices.Collect(c.allTargetLabels(ctx, analysisReaders, model_core.Nested(value, value.Message.GetTargetLabels()), &errIter))
 		if errIter != nil {
 			return nil, fmt.Errorf("failed to obtain direct dependencies of target %#v: %w", l.String(), errIter)
 		}
@@ -974,9 +977,9 @@ func getQuerySiblingsPackages(query label.Query[label.CanonicalTargetPattern], s
 // matched by rules(). These can be computed without loading the targets
 // individually, as their definitions are contained in the package.
 func (c *baseComputer[TReference, TMetadata]) getQueryPackageTargets(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *Readers[TReference], canonicalPackage label.CanonicalPackage) (labelSet, labelSet, error) {
-	packageTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+	packageTargets := e.GetPackageTargetsValue(model_analysis_pb.PackageTargets_Key_builder{
 		Package: canonicalPackage.String(),
-	})
+	}.Build())
 	if !packageTargets.IsSet() {
 		return nil, nil, evaluation.ErrMissingDependency
 	}
@@ -988,7 +991,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryPackageTargets(ctx context
 		{true, allTargets},
 		{false, ruleTargets},
 	} {
-		if err := c.forEachPackageTargetLabel(ctx, analysisReaders, canonicalPackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), entry.includeFileTargets, func(l label.CanonicalLabel) error {
+		if err := c.forEachPackageTargetLabel(ctx, analysisReaders, canonicalPackage, model_core.Nested(packageTargets, packageTargets.Message.GetTargets()), entry.includeFileTargets, func(l label.CanonicalLabel) error {
 			entry.results[l] = struct{}{}
 			return nil
 		}); err != nil {
@@ -1008,7 +1011,7 @@ func (c *baseComputer[TReference, TMetadata]) getQueryPredicatePackages(ctx cont
 	}
 	var packages []label.CanonicalPackage
 	var errIter error
-	for l := range c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter) {
+	for l := range c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.GetTargetLabels()), &errIter) {
 		packages = append(packages, l.GetCanonicalPackage())
 	}
 	if errIter != nil {
@@ -1168,7 +1171,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	var errIter error
-	labels := c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter)
+	labels := c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.GetTargetLabels()), &errIter)
 
 	switch expr := expression.(type) {
 	case *label.QuerySome[label.CanonicalTargetPattern]:
@@ -1270,13 +1273,13 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryStreaming(ctx context.C
 // pushQueryPackageTargets calls a function for the labels of all
 // targets in a package, including file targets, in sorted order.
 func (c *baseComputer[TReference, TMetadata]) pushQueryPackageTargets(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisReaders *Readers[TReference], canonicalPackage label.CanonicalPackage, yield func(label.CanonicalLabel) error) error {
-	packageTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+	packageTargets := e.GetPackageTargetsValue(model_analysis_pb.PackageTargets_Key_builder{
 		Package: canonicalPackage.String(),
-	})
+	}.Build())
 	if !packageTargets.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
-	return c.forEachPackageTargetLabel(ctx, analysisReaders, canonicalPackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), true, yield)
+	return c.forEachPackageTargetLabel(ctx, analysisReaders, canonicalPackage, model_core.Nested(packageTargets, packageTargets.Message.GetTargets()), true, yield)
 }
 
 // evaluateQuery evaluates the top-level expression of a query. Its
@@ -1438,28 +1441,26 @@ func (c *baseComputer[TReference, TMetadata]) newTargetLabelTreeBuilder(ctx cont
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.TargetLabel, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.TargetLabel, TMetadata] {
 				var firstLabel, lastLabel string
-				switch firstElement := childNodes.Message[0].Level.(type) {
-				case *model_analysis_pb.TargetLabel_Leaf:
-					firstLabel = firstElement.Leaf
-				case *model_analysis_pb.TargetLabel_Parent_:
-					firstLabel = firstElement.Parent.FirstLabel
+				switch childNodes.Message[0].WhichLevel() {
+				case model_analysis_pb.TargetLabel_Leaf_case:
+					firstLabel = childNodes.Message[0].GetLeaf()
+				case model_analysis_pb.TargetLabel_Parent_case:
+					firstLabel = childNodes.Message[0].GetParent().GetFirstLabel()
 				}
-				switch lastElement := childNodes.Message[len(childNodes.Message)-1].Level.(type) {
-				case *model_analysis_pb.TargetLabel_Leaf:
-					lastLabel = lastElement.Leaf
-				case *model_analysis_pb.TargetLabel_Parent_:
-					lastLabel = lastElement.Parent.LastLabel
+				switch xmsg := childNodes.Message[len(childNodes.Message)-1]; xmsg.WhichLevel() {
+				case model_analysis_pb.TargetLabel_Leaf_case:
+					lastLabel = xmsg.GetLeaf()
+				case model_analysis_pb.TargetLabel_Parent_case:
+					lastLabel = xmsg.GetParent().GetLastLabel()
 				}
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetLabel {
-					return &model_analysis_pb.TargetLabel{
-						Level: &model_analysis_pb.TargetLabel_Parent_{
-							Parent: &model_analysis_pb.TargetLabel_Parent{
-								Reference:  patcher.AddDecodableReference(createdObject),
-								FirstLabel: firstLabel,
-								LastLabel:  lastLabel,
-							},
-						},
-					}
+					return model_analysis_pb.TargetLabel_builder{
+						Parent: model_analysis_pb.TargetLabel_Parent_builder{
+							Reference:  patcher.AddDecodableReference(createdObject),
+							FirstLabel: firstLabel,
+							LastLabel:  lastLabel,
+						}.Build(),
+					}.Build()
 				})
 			}),
 		),
@@ -1469,13 +1470,9 @@ func (c *baseComputer[TReference, TMetadata]) newTargetLabelTreeBuilder(ctx cont
 // pushTargetLabel adds a single label to a B-tree of TargetLabel
 // messages.
 func pushTargetLabel[TMetadata model_core.ReferenceMetadata](treeBuilder btree.Builder[*model_analysis_pb.TargetLabel, TMetadata], l label.CanonicalLabel) error {
-	return treeBuilder.PushChild(model_core.NewSimplePatchedMessage[TMetadata](
-		&model_analysis_pb.TargetLabel{
-			Level: &model_analysis_pb.TargetLabel_Leaf{
-				Leaf: l.String(),
-			},
-		},
-	))
+	return treeBuilder.PushChild(model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.TargetLabel_builder{
+		Leaf: proto.String(l.String()),
+	}.Build()))
 }
 
 // buildTargetLabels creates a B-tree of TargetLabel messages containing
@@ -1504,14 +1501,14 @@ func (*baseComputer[TReference, TMetadata]) allTargetLabels(ctx context.Context,
 			},
 			errOut,
 		) {
-			level, ok := entry.Message.Level.(*model_analysis_pb.TargetLabel_Leaf)
-			if !ok {
+			level := entry.Message.GetLeaf()
+			if level == "" {
 				*errOut = errors.New("not a valid leaf entry")
 				return
 			}
-			targetLabel, err := label.NewCanonicalLabel(level.Leaf)
+			targetLabel, err := label.NewCanonicalLabel(level)
 			if err != nil {
-				*errOut = fmt.Errorf("invalid target label %#v: %w", level.Leaf, err)
+				*errOut = fmt.Errorf("invalid target label %#v: %w", level, err)
 				return
 			}
 			if !yield(targetLabel) {
@@ -1565,11 +1562,11 @@ func (mc *targetLabelsMergeCursor[TReference]) advance() {
 // its first child becomes the current node.
 func (mc *targetLabelsMergeCursor[TReference]) descend(ctx context.Context, reader model_parser.MessageObjectReader[TReference, []*model_analysis_pb.TargetLabel]) error {
 	head := mc.getHead()
-	parent, ok := head.Message.Level.(*model_analysis_pb.TargetLabel_Parent_)
-	if !ok {
+	parent := head.Message.GetParent()
+	if parent == nil {
 		return errors.New("cannot descend into a leaf")
 	}
-	children, err := model_parser.Dereference(ctx, reader, model_core.Nested(head, parent.Parent.Reference))
+	children, err := model_parser.Dereference(ctx, reader, model_core.Nested(head, parent.GetReference()))
 	if err != nil {
 		return err
 	}
@@ -1587,13 +1584,13 @@ func (mc *targetLabelsMergeCursor[TReference]) load() (bool, error) {
 		return false, nil
 	}
 	var first, last string
-	switch level := mc.getHead().Message.Level.(type) {
-	case *model_analysis_pb.TargetLabel_Leaf:
-		first, last = level.Leaf, level.Leaf
+	switch xmsg := mc.getHead().Message; xmsg.WhichLevel() {
+	case model_analysis_pb.TargetLabel_Leaf_case:
+		first, last = xmsg.GetLeaf(), xmsg.GetLeaf()
 		mc.isParent = false
-	case *model_analysis_pb.TargetLabel_Parent_:
-		first, last = level.Parent.FirstLabel, level.Parent.LastLabel
-		reference, err := model_core.FlattenDecodableReference(model_core.Nested(mc.getHead(), level.Parent.Reference))
+	case model_analysis_pb.TargetLabel_Parent_case:
+		first, last = xmsg.GetParent().GetFirstLabel(), xmsg.GetParent().GetLastLabel()
+		reference, err := model_core.FlattenDecodableReference(model_core.Nested(mc.getHead(), xmsg.GetParent().GetReference()))
 		if err != nil {
 			return false, fmt.Errorf("invalid reference: %w", err)
 		}
@@ -1871,7 +1868,7 @@ func (c *baseComputer[TReference, TMetadata]) allQueryLabels(
 			*errOut = evaluation.ErrMissingDependency
 			return
 		}
-		for l := range c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), errOut) {
+		for l := range c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.GetTargetLabels()), errOut) {
 			if !yield(l) {
 				return
 			}
@@ -1915,9 +1912,9 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryTests(ctx context.Conte
 					tests[batch[i]] = struct{}{}
 				}
 			case model_starlark_pb.Target_Definition_TestSuite_case:
-				testSuiteTests := e.GetTestSuiteTestsValue(&model_analysis_pb.TestSuiteTests_Key{
+				testSuiteTests := e.GetTestSuiteTestsValue(model_analysis_pb.TestSuiteTests_Key_builder{
 					Label: batch[i].String(),
-				})
+				}.Build())
 				if !testSuiteTests.IsSet() {
 					missingDependencies = true
 					continue
@@ -1955,18 +1952,18 @@ func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx con
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
-	query, err := label.NewQuery(key.Query, label.NewCanonicalTargetPattern)
+	query, err := label.NewQuery(key.GetQuery(), label.NewCanonicalTargetPattern)
 	if err != nil {
 		return PatchedQueryExpansionValue[TMetadata]{}, fmt.Errorf("invalid query: %w", err)
 	}
 	// Keys of this type are only constructed by this package, and
 	// should always be in normal form. Reject other keys, as their
 	// results would not be shared with equivalent keys.
-	if normalized := label.QueryToString(query); normalized != key.Query {
+	if normalized := label.QueryToString(query); normalized != key.GetQuery() {
 		return PatchedQueryExpansionValue[TMetadata]{}, fmt.Errorf("query is not in normal form, which is %#v", normalized)
 	}
 
-	if key.IncludeImplicitDeps && !queryUsesDependencies(query) {
+	if key.GetIncludeImplicitDeps() && !queryUsesDependencies(query) {
 		return PatchedQueryExpansionValue[TMetadata]{}, errors.New("implicit dependencies cannot be included, as they do not affect the results of the query")
 	}
 
@@ -1994,14 +1991,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx con
 			}
 		}
 	} else if setOperation, ok := expressions[len(expressions)-1].(*label.QuerySetOperation[label.CanonicalTargetPattern]); ok {
-		targetLabels, err = c.expandQuerySetOperation(ctx, e, analysisEncoders, query, setOperation, key.IncludeImplicitDeps)
+		targetLabels, err = c.expandQuerySetOperation(ctx, e, analysisEncoders, query, setOperation, key.GetIncludeImplicitDeps())
 	} else if tests, ok := expressions[len(expressions)-1].(*label.QueryTests[label.CanonicalTargetPattern]); ok {
-		targetLabels, err = c.expandQueryTests(ctx, e, analysisEncoders, query.GetSubquery(tests.Expression), key.IncludeImplicitDeps)
+		targetLabels, err = c.expandQueryTests(ctx, e, analysisEncoders, query.GetSubquery(tests.Expression), key.GetIncludeImplicitDeps())
 	} else if isStreamingQueryExpression(expressions[len(expressions)-1]) {
-		targetLabels, err = c.expandQueryStreaming(ctx, e, analysisEncoders, valueReaders, query, key.IncludeImplicitDeps)
+		targetLabels, err = c.expandQueryStreaming(ctx, e, analysisEncoders, valueReaders, query, key.GetIncludeImplicitDeps())
 	} else {
 		var labels labelSet
-		labels, err = c.evaluateQuery(ctx, e, analysisReaders, valueReaders, query, key.IncludeImplicitDeps)
+		labels, err = c.evaluateQuery(ctx, e, analysisReaders, valueReaders, query, key.GetIncludeImplicitDeps())
 		if err == nil {
 			targetLabels, err = c.buildTargetLabels(ctx, analysisEncoders, e, labels)
 		}
@@ -2010,9 +2007,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeQueryExpansionValue(ctx con
 		return PatchedQueryExpansionValue[TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.QueryExpansion_Value{
+		model_analysis_pb.QueryExpansion_Value_builder{
 			TargetLabels: targetLabels.Message,
-		},
+		}.Build(),
 		targetLabels.Patcher,
 	), nil
 }
@@ -2054,7 +2051,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQuerySetOperation(ctx contex
 			missingDependencies = true
 			continue
 		}
-		lists = append(lists, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels))
+		lists = append(lists, model_core.Nested(queryExpansion, queryExpansion.Message.GetTargetLabels()))
 	}
 	if missingDependencies {
 		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, evaluation.ErrMissingDependency
@@ -2269,7 +2266,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackageWithExclusion
 		}
 		treeBuilder := c.newTargetLabelTreeBuilder(ctx, analysisEncoders, e)
 		defer treeBuilder.Discard()
-		for _, targetLabel := range queryExpansion.Message.TargetLabels {
+		for _, targetLabel := range queryExpansion.Message.GetTargetLabels() {
 			if err := treeBuilder.PushChild(
 				model_core.Patch(e, model_core.Nested(queryExpansion, targetLabel)),
 			); err != nil {
@@ -2309,10 +2306,10 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackageWithExclusion
 // to the ones used if no exclusions are provided, so that their results
 // can be reused.
 func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackage(ctx context.Context, e QueryExpansionEnvironment[TReference, TMetadata], analysisEncoders *Encoders[TReference], query label.Query[label.CanonicalTargetPattern], basePackage label.CanonicalPackage, includeFileTargets bool, excludedPackages []label.CanonicalPackage) (model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata], error) {
-	packagesAtAndBelow := e.GetPackagesAtAndBelowValue(&model_analysis_pb.PackagesAtAndBelow_Key{
+	packagesAtAndBelow := e.GetPackagesAtAndBelowValue(model_analysis_pb.PackagesAtAndBelow_Key_builder{
 		BasePackage: basePackage.String(),
 		Pattern:     allPackagesPattern,
-	})
+	}.Build())
 	if !packagesAtAndBelow.IsSet() {
 		return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -2321,8 +2318,9 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackage(ctx context.
 	// base package precede the ones of subpackages, which are
 	// sorted by their components. This means that the resulting
 	// labels remain sorted.
-	packageQueries := make([]label.Query[label.CanonicalTargetPattern], 0, 1+len(packagesAtAndBelow.Message.PackagesBelowBasePackage))
-	if packagesAtAndBelow.Message.PackageAtBasePackage {
+	packagesBelowBasePackage := packagesAtAndBelow.Message.GetPackagesBelowBasePackage()
+	packageQueries := make([]label.Query[label.CanonicalTargetPattern], 0, 1+len(packagesBelowBasePackage))
+	if packagesAtAndBelow.Message.GetPackageAtBasePackage() {
 		packageQuery, err := label.ReplaceQuerySets(query, func([]label.CanonicalTargetPattern) (label.Query[label.CanonicalTargetPattern], bool) {
 			return basePackage.ToTargetsQuery(includeFileTargets), true
 		})
@@ -2331,7 +2329,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackage(ctx context.
 		}
 		packageQueries = append(packageQueries, packageQuery)
 	}
-	for _, packagePath := range packagesAtAndBelow.Message.PackagesBelowBasePackage {
+	for _, packagePath := range packagesBelowBasePackage {
 		childPackage, err := basePackage.AppendPackagePath(packagePath)
 		if err != nil {
 			return model_core.PatchedMessage[[]*model_analysis_pb.TargetLabel, TMetadata]{}, fmt.Errorf("invalid package path %#v: %w", packagePath, err)
@@ -2369,7 +2367,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryPerPackage(ctx context.
 			missingDependencies = true
 			continue
 		}
-		for _, targetLabel := range queryExpansion.Message.TargetLabels {
+		for _, targetLabel := range queryExpansion.Message.GetTargetLabels() {
 			if err := treeBuilder.PushChild(
 				model_core.Patch(e, model_core.Nested(queryExpansion, targetLabel)),
 			); err != nil {
@@ -2489,7 +2487,7 @@ func (c *baseComputer[TReference, TMetadata]) expandQuerySet(ctx context.Context
 			missingDependencies = true
 			continue
 		}
-		lists = append(lists, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels))
+		lists = append(lists, model_core.Nested(queryExpansion, queryExpansion.Message.GetTargetLabels()))
 	}
 
 	// Ensure that targets that are referenced explicitly exist.
@@ -2503,9 +2501,9 @@ func (c *baseComputer[TReference, TMetadata]) expandQuerySet(ctx context.Context
 	slices.SortFunc(singleLabels, label.CanonicalLabel.Compare)
 	singleTargetLabels := make([]*model_analysis_pb.TargetLabel, 0, len(singleLabels))
 	for _, l := range slices.CompactFunc(singleLabels, func(a, b label.CanonicalLabel) bool { return a == b }) {
-		singleTargetLabels = append(singleTargetLabels, &model_analysis_pb.TargetLabel{
-			Level: &model_analysis_pb.TargetLabel_Leaf{Leaf: l.String()},
-		})
+		singleTargetLabels = append(singleTargetLabels, model_analysis_pb.TargetLabel_builder{
+			Leaf: proto.String(l.String()),
+		}.Build())
 	}
 	lists = append(lists, model_core.NewSimpleMessage[TReference](singleTargetLabels))
 	return c.mergeTargetLabels(ctx, e, analysisEncoders, lists)
@@ -2527,13 +2525,13 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 		// Target pattern of shape "@@a+//b:all",
 		// "@@a+//b:all-targets" or "@@a+//b:*".
 		canonicalPackage := initialTarget.GetCanonicalPackage()
-		packageTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+		packageTargets := e.GetPackageTargetsValue(model_analysis_pb.PackageTargets_Key_builder{
 			Package: canonicalPackage.String(),
-		})
+		}.Build())
 		if !packageTargets.IsSet() {
 			return evaluation.ErrMissingDependency
 		}
-		targets := model_core.Nested(packageTargets, packageTargets.Message.Targets)
+		targets := model_core.Nested(packageTargets, packageTargets.Message.GetTargets())
 
 		definition, err := c.lookupTargetDefinitionInTargetList(
 			ctx,
@@ -2562,10 +2560,10 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 	}
 
 	// Target pattern of shape "@@a+//b/..." or "@@a+//b/...:*".
-	packagesAtAndBelow := e.GetPackagesAtAndBelowValue(&model_analysis_pb.PackagesAtAndBelow_Key{
+	packagesAtAndBelow := e.GetPackagesAtAndBelowValue(model_analysis_pb.PackagesAtAndBelow_Key_builder{
 		BasePackage: basePackage.String(),
 		Pattern:     allPackagesPattern,
-	})
+	}.Build())
 	if !packagesAtAndBelow.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
@@ -2574,12 +2572,12 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 	// the targets in subpackages, meaning that the resulting labels
 	// remain sorted.
 	missingDependencies := false
-	if packagesAtAndBelow.Message.PackageAtBasePackage {
-		packageTargets := e.GetPackageTargetsValue(&model_analysis_pb.PackageTargets_Key{
+	if packagesAtAndBelow.Message.GetPackageAtBasePackage() {
+		packageTargets := e.GetPackageTargetsValue(model_analysis_pb.PackageTargets_Key_builder{
 			Package: basePackage.String(),
-		})
+		}.Build())
 		if packageTargets.IsSet() {
-			if err := c.forEachPackageTargetLabel(ctx, analysisReaders, basePackage, model_core.Nested(packageTargets, packageTargets.Message.Targets), includeFileTargets, func(l label.CanonicalLabel) error {
+			if err := c.forEachPackageTargetLabel(ctx, analysisReaders, basePackage, model_core.Nested(packageTargets, packageTargets.Message.GetTargets()), includeFileTargets, func(l label.CanonicalLabel) error {
 				return pushTargetLabel(treeBuilder, l)
 			}); err != nil {
 				return err
@@ -2593,7 +2591,7 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 	// components. We don't recurse into the results, meaning that
 	// the resulting B-tree doesn't have a uniform height. This is
 	// likely acceptable, as it prevents duplication of data.
-	for _, packagePath := range packagesAtAndBelow.Message.PackagesBelowBasePackage {
+	for _, packagePath := range packagesAtAndBelow.Message.GetPackagesBelowBasePackage() {
 		childPackage, err := basePackage.AppendPackagePath(packagePath)
 		if err != nil {
 			return fmt.Errorf("invalid package path %#v: %w", packagePath, err)
@@ -2605,7 +2603,7 @@ func (c *baseComputer[TReference, TMetadata]) expandTargetPattern(ctx context.Co
 			continue
 		}
 
-		for _, targetLabel := range childQueryExpansion.Message.TargetLabels {
+		for _, targetLabel := range childQueryExpansion.Message.GetTargetLabels() {
 			if err := treeBuilder.PushChild(
 				model_core.Patch(e, model_core.Nested(childQueryExpansion, targetLabel)),
 			); err != nil {

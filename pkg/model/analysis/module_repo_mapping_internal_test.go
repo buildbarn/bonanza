@@ -52,24 +52,24 @@ inject_repo(ext2, "repo1", injected = "local_repo2")
 		// the root module.
 		overrides, err := handler.getRepoOverrides(ext1)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.ModuleExtensionRepoOverrides_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.ModuleExtensionRepoOverrides_Value_builder{
 			Overrides: []*model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override{
-				{FromApparentRepo: "bar", ToCanonicalRepo: "rules_bar+", MustExist: true},
-				{FromApparentRepo: "baz", ToCanonicalRepo: "rules_foo+", MustExist: true},
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "bar", ToCanonicalRepo: "rules_bar+", MustExist: true}.Build(),
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "baz", ToCanonicalRepo: "rules_foo+", MustExist: true}.Build(),
 			},
-		}, &model_analysis_pb.ModuleExtensionRepoOverrides_Value{Overrides: overrides})
+		}.Build(), model_analysis_pb.ModuleExtensionRepoOverrides_Value_builder{Overrides: overrides}.Build())
 
 		// Targets that are repos of another module extension
 		// should resolve to the repo declared by that module
 		// extension.
 		overrides, err = handler.getRepoOverrides(ext2)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.ModuleExtensionRepoOverrides_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.ModuleExtensionRepoOverrides_Value_builder{
 			Overrides: []*model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override{
-				{FromApparentRepo: "injected", ToCanonicalRepo: ext1.GetCanonicalRepoWithModuleExtension(util.Must(label.NewApparentRepo("repo2"))).String()},
-				{FromApparentRepo: "repo1", ToCanonicalRepo: ext1.GetCanonicalRepoWithModuleExtension(util.Must(label.NewApparentRepo("repo1"))).String()},
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "injected", ToCanonicalRepo: ext1.GetCanonicalRepoWithModuleExtension(util.Must(label.NewApparentRepo("repo2"))).String()}.Build(),
+				model_analysis_pb.ModuleExtensionRepoOverrides_Value_Override_builder{FromApparentRepo: "repo1", ToCanonicalRepo: ext1.GetCanonicalRepoWithModuleExtension(util.Must(label.NewApparentRepo("repo1"))).String()}.Build(),
 			},
-		}, &model_analysis_pb.ModuleExtensionRepoOverrides_Value{Overrides: overrides})
+		}.Build(), model_analysis_pb.ModuleExtensionRepoOverrides_Value_builder{Overrides: overrides}.Build())
 
 		overrides, err = handler.getRepoOverrides(ext3)
 		require.NoError(t, err)

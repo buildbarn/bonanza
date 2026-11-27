@@ -16,15 +16,17 @@ func (baseComputer[TReference, TMetadata]) ComputeRegisteredToolchainsForTypeVal
 		return PatchedRegisteredToolchainsForTypeValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	registeredToolchains := registeredToolchainsValue.Message.ToolchainTypes
+	registeredToolchains := registeredToolchainsValue.Message.GetToolchainTypes()
 	if index, ok := sort.Find(
 		len(registeredToolchains),
-		func(i int) int { return strings.Compare(key.ToolchainType, registeredToolchains[i].ToolchainType) },
+		func(i int) int {
+			return strings.Compare(key.GetToolchainType(), registeredToolchains[i].GetToolchainType())
+		},
 	); ok {
 		// Found one or more toolchains for this type.
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RegisteredToolchainsForType_Value{
-			Toolchains: registeredToolchains[index].Toolchains,
-		}), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.RegisteredToolchainsForType_Value_builder{
+			Toolchains: registeredToolchains[index].GetToolchains(),
+		}.Build()), nil
 	}
 
 	// No toolchains registered for this type.

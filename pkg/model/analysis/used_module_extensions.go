@@ -18,12 +18,12 @@ import (
 )
 
 type usedModuleExtension struct {
-	message model_analysis_pb.ModuleExtension
+	message *model_analysis_pb.ModuleExtension
 	users   map[label.ModuleInstance]*moduleExtensionUser
 }
 
 type moduleExtensionUser struct {
-	message    model_analysis_pb.ModuleExtension_User
+	message    *model_analysis_pb.ModuleExtension_User
 	tagClasses map[string]*model_analysis_pb.ModuleExtension_TagClass
 }
 
@@ -42,9 +42,8 @@ func (p *usedModuleExtensionProxy[TReference, TMetadata]) Tag(thread *eval.Threa
 	meu := p.user
 	tagClass, ok := meu.tagClasses[className]
 	if !ok {
-		tagClass = &model_analysis_pb.ModuleExtension_TagClass{
-			Name: className,
-		}
+		tagClass = &model_analysis_pb.ModuleExtension_TagClass{}
+		tagClass.SetName(className)
 		meu.tagClasses[className] = tagClass
 	}
 
@@ -54,10 +53,10 @@ func (p *usedModuleExtensionProxy[TReference, TMetadata]) Tag(thread *eval.Threa
 	}
 	p.handler.options.patcher.Merge(fields.Patcher)
 
-	tagClass.Tags = append(tagClass.Tags, &model_analysis_pb.ModuleExtension_Tag{
+	tagClass.SetTags(append(tagClass.GetTags(), model_analysis_pb.ModuleExtension_Tag_builder{
 		IsDevDependency: p.devDependency,
 		Attrs:           fields.Message,
-	})
+	}.Build()))
 	return nil
 }
 
@@ -130,38 +129,38 @@ func (h *usedModuleExtensionExtractingModuleDotBazelHandler[TReference, TMetadat
 		// of the .bzl file in which they are declared. Prevent
 		// collisions of this hash from causing multiple module
 		// extensions to declare repos with the same name.
-		if moduleExtensionIdentifierStr != ume.message.Identifier {
+		if moduleExtensionIdentifierStr != ume.message.GetIdentifier() {
 			return nil, fmt.Errorf(
 				"module extension declarations %#v and %#v have colliding names, meaning they would both declare repos with prefix %#v",
 				moduleExtensionIdentifierStr,
-				ume.message.Identifier,
+				ume.message.GetIdentifier(),
 				moduleExtensionName.String(),
 			)
 		}
 	} else {
 		ume = &usedModuleExtension{
-			message: model_analysis_pb.ModuleExtension{
+			message: model_analysis_pb.ModuleExtension_builder{
 				Identifier: moduleExtensionIdentifierStr,
-			},
+			}.Build(),
 			users: map[label.ModuleInstance]*moduleExtensionUser{},
 		}
 		h.usedModuleExtensions[moduleExtensionName] = ume
 	}
 	if h.isRoot && !devDependency {
-		ume.message.RootModuleHasNonDevDependency = true
+		ume.message.SetRootModuleHasNonDevDependency(true)
 	}
 
 	meu, ok := ume.users[h.moduleInstance]
 	if !ok {
 		meu = &moduleExtensionUser{
-			message: model_analysis_pb.ModuleExtension_User{
+			message: model_analysis_pb.ModuleExtension_User_builder{
 				ModuleInstance: h.moduleInstance.String(),
 				IsRoot:         h.isRoot,
-			},
+			}.Build(),
 			tagClasses: map[string]*model_analysis_pb.ModuleExtension_TagClass{},
 		}
 		ume.users[h.moduleInstance] = meu
-		ume.message.Users = append(ume.message.Users, &meu.message)
+		ume.message.SetUsers(append(ume.message.GetUsers(), meu.message))
 	}
 
 	return &usedModuleExtensionProxy[TReference, TMetadata]{
@@ -212,10 +211,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(c
 	// Sort and populate tag classes of each module extension user.
 	for _, ume := range usedModuleExtensions {
 		for _, meu := range ume.users {
-			meu.message.TagClasses = make([]*model_analysis_pb.ModuleExtension_TagClass, 0, len(meu.tagClasses))
+			tagClasses := make([]*model_analysis_pb.ModuleExtension_TagClass, 0, len(meu.tagClasses))
 			for _, name := range slices.Sorted(maps.Keys(meu.tagClasses)) {
-				meu.message.TagClasses = append(meu.message.TagClasses, meu.tagClasses[name])
+				tagClasses = append(tagClasses, meu.tagClasses[name])
 			}
+			meu.message.SetTagClasses(tagClasses)
 		}
 	}
 
@@ -224,12 +224,12 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUsedModuleExtensionsValue(c
 		maps.Keys(usedModuleExtensions),
 		func(a, b label.ModuleExtension) int { return strings.Compare(a.String(), b.String()) },
 	) {
-		sortedModuleExtensions = append(sortedModuleExtensions, &usedModuleExtensions[name].message)
+		sortedModuleExtensions = append(sortedModuleExtensions, usedModuleExtensions[name].message)
 	}
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.UsedModuleExtensions_Value{
+		model_analysis_pb.UsedModuleExtensions_Value_builder{
 			ModuleExtensions: sortedModuleExtensions,
-		},
+		}.Build(),
 		options.patcher,
 	), nil
 }

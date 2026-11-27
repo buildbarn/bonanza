@@ -49,10 +49,10 @@ func TestLabelAttrRequirementsAllowFiles(t *testing.T) {
 		return requirements
 	}
 	check := func(r *labelAttrRequirements[object.LocalReference, model_core.CreatedObjectTree], targetLabel string, isFileTarget bool, providerInstances []*model_starlark_pb.Struct) error {
-		return r.check(targetLabel, model_core.NewSimpleMessage[object.LocalReference](&model_analysis_pb.TargetProviders_Value{
+		return r.check(targetLabel, model_core.NewSimpleMessage[object.LocalReference](model_analysis_pb.TargetProviders_Value_builder{
 			ProviderInstances: providerInstances,
 			IsFileTarget:      isFileTarget,
-		}))
+		}.Build()))
 	}
 
 	// Provider instances of a target whose DefaultInfo.files

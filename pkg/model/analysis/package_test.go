@@ -134,10 +134,10 @@ func TestPackage(t *testing.T) {
 	// declared at the top level of package "@@main+//foo".
 	expectMacroExpansionContext := func(e *MockPackageEnvironmentForTesting, definition *model_starlark_pb.MacroExpansionContext_Definition) {
 		e.EXPECT().GetMacroExpansionContextValue(
-			testutil.EqProto(t, &model_analysis_pb.MacroExpansionContext_Key{Package: "@@main+//foo", MacroInstanceName: []string{"m"}}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.MacroExpansionContext_Value{
+			testutil.EqProto(t, model_analysis_pb.MacroExpansionContext_Key_builder{Package: "@@main+//foo", MacroInstanceName: []string{"m"}}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.MacroExpansionContext_Value_builder{
 			Definition: definition,
-		}))
+		}.Build()))
 	}
 	// expectMacroGlobal sets up the expectations for loading the
 	// definition of macro "@@rules+//:defs.bzl%my_macro", without
@@ -153,8 +153,8 @@ func TestPackage(t *testing.T) {
 			Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.BuiltinsModuleNames_Value{})).
 			AnyTimes()
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_macro"}),
-		).Return(model_core.Nested(implementation, &model_analysis_pb.CompiledBzlFileGlobal_Value{
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFileGlobal_Key_builder{Identifier: "@@rules+//:defs.bzl%my_macro"}.Build()),
+		).Return(model_core.Nested(implementation, model_analysis_pb.CompiledBzlFileGlobal_Value_builder{
 			Global: model_starlark_pb.Value_builder{
 				Macro: model_starlark_pb.Macro_builder{
 					Definition: model_starlark_pb.Macro_Definition_builder{
@@ -163,7 +163,7 @@ func TestPackage(t *testing.T) {
 					}.Build(),
 				}.Build(),
 			}.Build(),
-		}))
+		}.Build()))
 	}
 	// expectMacroDefinition sets up the expectations for loading
 	// macro "@@rules+//:defs.bzl%my_macro" with a given
@@ -171,10 +171,10 @@ func TestPackage(t *testing.T) {
 	expectMacroDefinition := func(e *MockPackageEnvironmentForTesting, source string, attrs []*model_starlark_pb.NamedAttr) {
 		implementation, program := newImplementation(t, source)
 		e.EXPECT().GetCompiledBzlFileValue(
-			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFile_Key{Label: "@@rules+//:defs.bzl"}),
-		).Return(model_core.Nested(program, &model_analysis_pb.CompiledBzlFile_Value{
+			testutil.EqProto(t, model_analysis_pb.CompiledBzlFile_Key_builder{Label: "@@rules+//:defs.bzl"}.Build()),
+		).Return(model_core.Nested(program, model_analysis_pb.CompiledBzlFile_Value_builder{
 			CompiledProgram: program.Message,
-		})).AnyTimes()
+		}.Build())).AnyTimes()
 		expectMacroGlobal(e, attrs, implementation)
 	}
 	// expectMacro sets up the expectations for expanding macro
@@ -186,7 +186,7 @@ func TestPackage(t *testing.T) {
 		expectMacroDefinition(e, source, attrs)
 	}
 	computeMacroInstance := func(e *MockPackageEnvironmentForTesting, macroInstanceNameSuffixes ...string) (*model_analysis_pb.Package_Value, error) {
-		value, err := bct.computer.ComputePackageValue(ctx, &model_analysis_pb.Package_Key{Label: "@@main+//foo", MacroInstanceName: macroInstanceNameSuffixes}, e)
+		value, err := bct.computer.ComputePackageValue(ctx, model_analysis_pb.Package_Key_builder{Label: "@@main+//foo", MacroInstanceName: macroInstanceNameSuffixes}.Build(), e)
 		if err != nil {
 			return nil, err
 		}
@@ -225,10 +225,10 @@ def _impl(name, visibility, actual, _private):
 
 		value, err := computeMacroInstance(e, "m")
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.Package_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.Package_Value_builder{
 			Targets: []*model_analysis_pb.Package_Value_Target{
-				{
-					Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: model_starlark_pb.Target_builder{
+				model_analysis_pb.Package_Value_Target_builder{
+					Leaf: model_starlark_pb.Target_builder{
 						Name: "m",
 						Definition: model_starlark_pb.Target_Definition_builder{
 							Alias: model_starlark_pb.Alias_builder{
@@ -236,10 +236,10 @@ def _impl(name, visibility, actual, _private):
 								Visibility: newVisibility("@@main+//bar:__pkg__", "@@main+//foo:__pkg__", "@@rules+//:__pkg__"),
 							}.Build(),
 						}.Build(),
-					}.Build()},
-				},
-				{
-					Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: model_starlark_pb.Target_builder{
+					}.Build(),
+				}.Build(),
+				model_analysis_pb.Package_Value_Target_builder{
+					Leaf: model_starlark_pb.Target_builder{
 						Name: "m_private",
 						Definition: model_starlark_pb.Target_Definition_builder{
 							Alias: model_starlark_pb.Alias_builder{
@@ -247,10 +247,10 @@ def _impl(name, visibility, actual, _private):
 								Visibility: newVisibility("@@rules+//:__pkg__"),
 							}.Build(),
 						}.Build(),
-					}.Build()},
-				},
-				{
-					Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: model_starlark_pb.Target_builder{
+					}.Build(),
+				}.Build(),
+				model_analysis_pb.Package_Value_Target_builder{
+					Leaf: model_starlark_pb.Target_builder{
 						Name: "m_tests",
 						Definition: model_starlark_pb.Target_Definition_builder{
 							TestSuite: model_starlark_pb.TestSuite_builder{
@@ -263,10 +263,10 @@ def _impl(name, visibility, actual, _private):
 								Visibility: newVisibility("@@rules+//:__pkg__"),
 							}.Build(),
 						}.Build(),
-					}.Build()},
-				},
+					}.Build(),
+				}.Build(),
 			},
-		}, value)
+		}.Build(), value)
 	})
 
 	t.Run("NoneUsesDefault", func(t *testing.T) {
@@ -518,8 +518,8 @@ def _impl(name, visibility):
 		// except for the ones declared by finalizers. Targets
 		// that don't exist should yield None.
 		newAlias := func(name string) *model_analysis_pb.Package_Value_Target {
-			return &model_analysis_pb.Package_Value_Target{
-				Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: model_starlark_pb.Target_builder{
+			return model_analysis_pb.Package_Value_Target_builder{
+				Leaf: model_starlark_pb.Target_builder{
 					Name: name,
 					Definition: model_starlark_pb.Target_Definition_builder{
 						Alias: model_starlark_pb.Alias_builder{
@@ -530,8 +530,8 @@ def _impl(name, visibility):
 							}.Build(),
 						}.Build(),
 					}.Build(),
-				}.Build()},
-			}
+				}.Build(),
+			}.Build()
 		}
 
 		e := NewMockPackageEnvironmentForTesting(ctrl)
@@ -550,18 +550,18 @@ def _impl(name, visibility):
         native.alias(name = name + "_checked", actual = "//baz:actual")
 `, nil)
 		e.EXPECT().GetPackageTargetsValue(
-			testutil.EqProto(t, &model_analysis_pb.PackageTargets_Key{Package: "@@main+//foo", ExcludeFinalizers: true}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.PackageTargets_Value{
+			testutil.EqProto(t, model_analysis_pb.PackageTargets_Key_builder{Package: "@@main+//foo", ExcludeFinalizers: true}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.PackageTargets_Value_builder{
 			Targets: []*model_analysis_pb.Package_Value_Target{newAlias("top")},
-		}))
+		}.Build()))
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:m_x"}),
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//foo:m_x"}.Build()),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{}))
 		e.EXPECT().GetTargetValue(
-			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:other_y"}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
+			testutil.EqProto(t, model_analysis_pb.Target_Key_builder{Label: "@@main+//foo:other_y"}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Target_Value_builder{
 			Definition: newAlias("other_y").GetLeaf().GetDefinition(),
-		}))
+		}.Build()))
 
 		value, err := computeMacroInstance(e, "m")
 		require.NoError(t, err)
@@ -631,11 +631,11 @@ def _impl(name, visibility):
 					}).
 					AnyTimes()
 				e.EXPECT().GetMacroExpansionContextValue(
-					testutil.EqProto(t, &model_analysis_pb.MacroExpansionContext_Key{Package: "@@main+//foo", MacroInstanceName: []string{"m"}}),
+					testutil.EqProto(t, model_analysis_pb.MacroExpansionContext_Key_builder{Package: "@@main+//foo", MacroInstanceName: []string{"m"}}.Build()),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.MacroExpansionContext_Value {
 					definition := newMacroExpansionContextDefinition()
 					definition.SetNestedMacroInstances(nestedMacroInstances(patcher))
-					return &model_analysis_pb.MacroExpansionContext_Value{Definition: definition}
+					return model_analysis_pb.MacroExpansionContext_Value_builder{Definition: definition}.Build()
 				}))
 				expectMacroDefinition(e, `
 def _impl(name, visibility):
@@ -703,7 +703,7 @@ def _impl(name, visibility):
 		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		e.EXPECT().GetMacroExpansionContextValue(
-			testutil.EqProto(t, &model_analysis_pb.MacroExpansionContext_Key{Package: "@@main+//foo", MacroInstanceName: []string{"m"}}),
+			testutil.EqProto(t, model_analysis_pb.MacroExpansionContext_Key_builder{Package: "@@main+//foo", MacroInstanceName: []string{"m"}}.Build()),
 		).Return(model_core.Message[*model_analysis_pb.MacroExpansionContext_Value, model_core.CreatedObjectTree]{})
 
 		_, err := computeMacroInstance(e, "m")

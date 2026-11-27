@@ -20,17 +20,17 @@ func TestMacroExpansionContext(t *testing.T) {
 
 	expectPackage := func(e *MockMacroExpansionContextEnvironmentForTesting, packageValue model_core.Message[*model_analysis_pb.Package_Value, model_core.CreatedObjectTree], macroInstanceNameSuffixes ...string) {
 		e.EXPECT().GetPackageValue(
-			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo", MacroInstanceName: macroInstanceNameSuffixes}),
+			testutil.EqProto(t, model_analysis_pb.Package_Key_builder{Label: "@@main+//foo", MacroInstanceName: macroInstanceNameSuffixes}.Build()),
 		).Return(packageValue)
 	}
 	newPackageValue := func(d declarations) model_core.Message[*model_analysis_pb.Package_Value, model_core.CreatedObjectTree] {
-		return model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Package_Value{
+		return model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Package_Value_builder{
 			Targets:                d.targets,
 			MacroExpansionContexts: d.macroExpansionContexts,
-		})
+		}.Build())
 	}
 	computeMacroExpansionContext := func(e *MockMacroExpansionContextEnvironmentForTesting, nameSuffixes ...string) (*model_analysis_pb.MacroExpansionContext_Value, error) {
-		value, err := bct.computer.ComputeMacroExpansionContextValue(ctx, &model_analysis_pb.MacroExpansionContext_Key{Package: "@@main+//foo", MacroInstanceName: nameSuffixes}, e)
+		value, err := bct.computer.ComputeMacroExpansionContextValue(ctx, model_analysis_pb.MacroExpansionContext_Key_builder{Package: "@@main+//foo", MacroInstanceName: nameSuffixes}.Build(), e)
 		if err != nil {
 			return nil, err
 		}
@@ -50,9 +50,9 @@ func TestMacroExpansionContext(t *testing.T) {
 
 		value, err := computeMacroExpansionContext(e, "m")
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.MacroExpansionContext_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.MacroExpansionContext_Value_builder{
 			Definition: newMacroExpansionContextDefinition("m"),
-		}, value)
+		}.Build(), value)
 	})
 
 	t.Run("MacroInstancesInOtherObjects", func(t *testing.T) {
@@ -68,19 +68,19 @@ func TestMacroExpansionContext(t *testing.T) {
 			}).
 			AnyTimes()
 		expectPackage(e, newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Package_Value {
-			return &model_analysis_pb.Package_Value{
+			return model_analysis_pb.Package_Value_builder{
 				MacroExpansionContexts: []*model_starlark_pb.MacroExpansionContext_Entry{
 					newMacroExpansionContextsParent(patcher, "a_b", "a_c"),
 					newMacroExpansionContextsParent(patcher, "a0", "b"),
 				},
-			}
+			}.Build()
 		}))
 
 		value, err := computeMacroExpansionContext(e, "a_c")
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.MacroExpansionContext_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.MacroExpansionContext_Value_builder{
 			Definition: newMacroExpansionContextDefinition("a_c"),
-		}, value)
+		}.Build(), value)
 	})
 
 	t.Run("Nested", func(t *testing.T) {
@@ -93,9 +93,9 @@ func TestMacroExpansionContext(t *testing.T) {
 
 		value, err := computeMacroExpansionContext(e, "m", "_n")
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_analysis_pb.MacroExpansionContext_Value{
+		testutil.RequireEqualProto(t, model_analysis_pb.MacroExpansionContext_Value_builder{
 			Definition: newMacroExpansionContextDefinition("_n"),
-		}, value)
+		}.Build(), value)
 	})
 
 	t.Run("DoesNotExist", func(t *testing.T) {

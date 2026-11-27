@@ -104,11 +104,11 @@ func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.C
 		}
 	}
 
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.AspectChain_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.AspectChain_Value_builder{
 		VisibleAspectIndices:        visibleAspectIndices,
 		AttrPropagatingAspects:      attrPropagatingAspects,
 		ToolchainPropagatingAspects: toolchainPropagatingAspects,
-	}), nil
+	}.Build()), nil
 }
 
 // computePropagatingAspects determines along which edges of a given
@@ -171,16 +171,16 @@ func computePropagatingAspects(
 			}
 		}
 		if len(aspectIndices) > 0 {
-			edges = append(edges, &model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge{
+			edges = append(edges, model_analysis_pb.AspectChain_Value_PropagatingAspects_Edge_builder{
 				Name:          name,
 				AspectIndices: aspectIndices,
-			})
+			}.Build())
 		}
 	}
-	return &model_analysis_pb.AspectChain_Value_PropagatingAspects{
+	return model_analysis_pb.AspectChain_Value_PropagatingAspects_builder{
 		AllAspectIndices: slices.Sorted(maps.Keys(allAspects)),
 		Edges:            edges,
-	}, nil
+	}.Build(), nil
 }
 
 // AspectChainEnvironmentForTesting is used to generate mocks for

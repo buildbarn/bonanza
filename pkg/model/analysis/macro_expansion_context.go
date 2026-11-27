@@ -28,10 +28,10 @@ func (*baseComputer[TReference, TMetadata]) ComputeMacroExpansionContextValue(ct
 	// Macro expansion contexts are stored by name suffix, meaning
 	// only the last element of the macro instance name needs to be
 	// compared.
-	parentValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
+	parentValue := e.GetPackageValue(model_analysis_pb.Package_Key_builder{
 		Label:             key.GetPackage(),
 		MacroInstanceName: macroInstanceName[:len(macroInstanceName)-1],
-	})
+	}.Build())
 	if !parentValue.IsSet() || !gotAnalysisReaders {
 		return PatchedMacroExpansionContextValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
@@ -60,9 +60,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeMacroExpansionContextValue(ct
 	}
 	return model_core.Patch(
 		e,
-		model_core.Nested(macroExpansionContext, &model_analysis_pb.MacroExpansionContext_Value{
+		model_core.Nested(macroExpansionContext, model_analysis_pb.MacroExpansionContext_Value_builder{
 			Definition: level.GetDefinition(),
-		}),
+		}.Build()),
 	), nil
 }
 

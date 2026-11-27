@@ -168,7 +168,7 @@ type roughBuildList struct {
 
 func (l roughBuildList) Less(i, j int) bool {
 	ei, ej := l.Slice[i], l.Slice[j]
-	if ni, nj := ei.Name, ej.Name; ni < nj {
+	if ni, nj := ei.GetName(), ej.GetName(); ni < nj {
 		return true
 	} else if ni > nj {
 		return false
@@ -176,12 +176,12 @@ func (l roughBuildList) Less(i, j int) bool {
 
 	// Compare by version, falling back to string comparison if
 	// their canonical values are the same.
-	if cmp := util.Must(label.NewModuleVersion(ei.Definition.GetVersion())).Compare(util.Must(label.NewModuleVersion(ej.Definition.GetVersion()))); cmp < 0 {
+	if cmp := util.Must(label.NewModuleVersion(ei.GetDefinition().GetVersion())).Compare(util.Must(label.NewModuleVersion(ej.GetDefinition().GetVersion()))); cmp < 0 {
 		return true
 	} else if cmp > 0 {
 		return false
 	}
-	return ei.Definition.GetVersion() < ej.Definition.GetVersion()
+	return ei.GetDefinition().GetVersion() < ej.GetDefinition().GetVersion()
 }
 
 // OverrideVersions is a list of module versions that was provided to
@@ -208,14 +208,15 @@ func (ov OverrideVersions) LookupNearestVersion(version *label.ModuleVersion) (l
 func parseOverridesList(overridesList []*model_analysis_pb.OverridesListModule) (map[label.Module]OverrideVersions, error) {
 	modules := make(map[label.Module]OverrideVersions, len(overridesList))
 	for _, module := range overridesList {
-		moduleNameStr := module.Name
+		moduleNameStr := module.GetName()
 		moduleName, err := label.NewModule(moduleNameStr)
 		if err != nil {
 			return nil, fmt.Errorf("invalid module name %#v: %w", moduleNameStr, err)
 		}
 
-		versions := make([]label.ModuleVersion, 0, len(module.Versions))
-		for _, versionStr := range module.Versions {
+		versionStrs := module.GetVersions()
+		versions := make([]label.ModuleVersion, 0, len(versionStrs))
+		for _, versionStr := range versionStrs {
 			version, err := label.NewModuleVersion(versionStr)
 			if err != nil {
 				return nil, fmt.Errorf("invalid version %#v for module %#v: %w", versionStr, moduleNameStr, err)
@@ -308,9 +309,9 @@ ProcessModule:
 			} else {
 				moduleInstance = module.name.ToModuleInstance(nil)
 			}
-			moduleFileContentsValue := e.GetModuleDotBazelContentsValue(&model_analysis_pb.ModuleDotBazelContents_Key{
+			moduleFileContentsValue := e.GetModuleDotBazelContentsValue(model_analysis_pb.ModuleDotBazelContents_Key_builder{
 				ModuleInstance: moduleInstance.String(),
-			})
+			}.Build())
 			if !moduleFileContentsValue.IsSet() {
 				missingDependencies = true
 				continue ProcessModule
@@ -328,13 +329,13 @@ ProcessModule:
 					return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", module.name, module.version, registryURL, err)
 				}
 				httpFileContents := e.GetHTTPFileContentsValue(
-					&model_analysis_pb.HttpFileContents_Key{
-						FetchOptions: &model_analysis_pb.HttpFetchOptions{
+					model_analysis_pb.HttpFileContents_Key_builder{
+						FetchOptions: model_analysis_pb.HttpFetchOptions_builder{
 							Target: model_fetch_pb.Target_builder{
 								Urls: []string{moduleFileURL},
 							}.Build(),
-						},
-					},
+						}.Build(),
+					}.Build(),
 				)
 				if !httpFileContents.IsSet() {
 					missingDependencies = true
@@ -342,13 +343,13 @@ ProcessModule:
 				}
 				if exists := httpFileContents.Message.GetExists(); exists != nil {
 					moduleFileContents = model_core.Nested(httpFileContents, exists.GetContents())
-					bd := &model_analysis_pb.BuildListModule_Definition{
+					bd := model_analysis_pb.BuildListModule_Definition_builder{
 						Version:     module.version.String(),
 						RegistryUrl: registryURL,
-					}
+					}.Build()
 					buildListEntry = &model_analysis_pb.BuildListModule{}
-					buildListEntry.Name = module.name.String()
-					buildListEntry.Definition = bd
+					buildListEntry.SetName(module.name.String())
+					buildListEntry.SetDefinition(bd)
 					goto GotModuleFileContents
 				}
 			}
@@ -409,7 +410,7 @@ ProcessModule:
 	}
 
 	sort.Sort(buildList)
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleRoughBuildList_Value{
+	return model_core.NewSimplePatchedMessage[TMetadata](model_analysis_pb.ModuleRoughBuildList_Value_builder{
 		BuildList: buildList.Slice,
-	}), nil
+	}.Build()), nil
 }

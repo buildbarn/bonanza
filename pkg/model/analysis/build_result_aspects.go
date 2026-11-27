@@ -69,9 +69,9 @@ func (c *baseComputer[TReference, TMetadata]) getTopLevelAspects(
 
 	// Expand the list of aspects, so that each aspect is preceded
 	// by the aspects that it requires.
-	labelAttrAspects := e.GetLabelAttrAspectsValue(&model_analysis_pb.LabelAttrAspects_Key{
+	labelAttrAspects := e.GetLabelAttrAspectsValue(model_analysis_pb.LabelAttrAspects_Key_builder{
 		AspectIdentifiers: aspectIdentifiers,
-	})
+	}.Build())
 	valueEncodingOptionsFactory, err := c.newValueEncodingOptionsFactory(e, starlarkValueEncoders)
 	if err != nil {
 		return model_core.PatchedMessage[[]*model_starlark_pb.AppliedAspect, TMetadata]{}, err

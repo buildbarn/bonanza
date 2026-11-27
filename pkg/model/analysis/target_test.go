@@ -20,30 +20,30 @@ import (
 // newRuleTargetDeclaration creates an entry in the list of targets
 // and macro instances of a package that corresponds to a rule target.
 func newRuleTargetDeclaration(name, ruleIdentifier string) *model_analysis_pb.Package_Value_Target {
-	return &model_analysis_pb.Package_Value_Target{
-		Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: model_starlark_pb.Target_builder{
+	return model_analysis_pb.Package_Value_Target_builder{
+		Leaf: model_starlark_pb.Target_builder{
 			Name: name,
 			Definition: model_starlark_pb.Target_Definition_builder{
 				RuleTarget: model_starlark_pb.RuleTarget_builder{
 					RuleIdentifier: ruleIdentifier,
 				}.Build(),
 			}.Build(),
-		}.Build()},
-	}
+		}.Build(),
+	}.Build()
 }
 
 // newSourceFileTargetDeclaration creates an entry in the list of
 // targets and macro instances of a package that corresponds to a
 // source file target.
 func newSourceFileTargetDeclaration(name string) *model_analysis_pb.Package_Value_Target {
-	return &model_analysis_pb.Package_Value_Target{
-		Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: model_starlark_pb.Target_builder{
+	return model_analysis_pb.Package_Value_Target_builder{
+		Leaf: model_starlark_pb.Target_builder{
 			Name: name,
 			Definition: model_starlark_pb.Target_Definition_builder{
 				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
 			}.Build(),
-		}.Build()},
-	}
+		}.Build(),
+	}.Build()
 }
 
 // newMacroExpansionContextDeclaration creates an entry in the list of
@@ -87,24 +87,24 @@ func TestTarget(t *testing.T) {
 
 	expectPackage := func(e *MockTargetEnvironmentForTesting, d declarations) {
 		e.EXPECT().GetPackageValue(
-			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo"}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Package_Value{
+			testutil.EqProto(t, model_analysis_pb.Package_Key_builder{Label: "@@main+//foo"}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Package_Value_builder{
 			Targets:                d.targets,
 			MacroExpansionContexts: d.macroExpansionContexts,
-		}))
+		}.Build()))
 	}
 	expectMacroInstance := func(e *MockTargetEnvironmentForTesting, macroInstanceNameSuffixes []string, d declarations) {
 		e.EXPECT().GetPackageValue(
-			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo", MacroInstanceName: macroInstanceNameSuffixes}),
-		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Package_Value{
+			testutil.EqProto(t, model_analysis_pb.Package_Key_builder{Label: "@@main+//foo", MacroInstanceName: macroInstanceNameSuffixes}.Build()),
+		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_analysis_pb.Package_Value_builder{
 			Targets:                d.targets,
 			MacroExpansionContexts: d.macroExpansionContexts,
-		}))
+		}.Build()))
 	}
 	// getRuleIdentifier returns the identifier of the rule of a
 	// target. Targets that don't exist are reported as an error.
 	getRuleIdentifier := func(t *testing.T, label string, e *MockTargetEnvironmentForTesting) (string, error) {
-		value, err := bct.computer.ComputeTargetValue(ctx, &model_analysis_pb.Target_Key{Label: label}, e)
+		value, err := bct.computer.ComputeTargetValue(ctx, model_analysis_pb.Target_Key_builder{Label: label}.Build(), e)
 		if err != nil {
 			return "", err
 		}
@@ -177,14 +177,14 @@ func TestTarget(t *testing.T) {
 		e := NewMockTargetEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		e.EXPECT().GetPackageValue(
-			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo"}),
+			testutil.EqProto(t, model_analysis_pb.Package_Key_builder{Label: "@@main+//foo"}.Build()),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Package_Value {
-			return &model_analysis_pb.Package_Value{
+			return model_analysis_pb.Package_Value_builder{
 				MacroExpansionContexts: []*model_starlark_pb.MacroExpansionContext_Entry{
 					newMacroExpansionContextsParent(patcher, "a", "bar"),
 					newMacroExpansionContextsParent(patcher, "bar0", "qux"),
 				},
-			}
+			}.Build()
 		}))
 		expectMacroInstance(e, []string{"bar"}, newDeclarations(
 			newRuleTargetDeclaration("bar_x", "@@rules+//:defs.bzl%in_macro"),
@@ -271,7 +271,7 @@ func TestTarget(t *testing.T) {
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
 		expectPackage(e, newDeclarations().withMacroExpansionContexts("a"))
 		e.EXPECT().GetPackageValue(
-			testutil.EqProto(t, &model_analysis_pb.Package_Key{Label: "@@main+//foo", MacroInstanceName: []string{"a"}}),
+			testutil.EqProto(t, model_analysis_pb.Package_Key_builder{Label: "@@main+//foo", MacroInstanceName: []string{"a"}}.Build()),
 		).Return(model_core.Message[*model_analysis_pb.Package_Value, model_core.CreatedObjectTree]{})
 
 		_, err := getRuleIdentifier(t, "@@main+//foo:a_b_c", e)
@@ -288,7 +288,7 @@ func TestTarget(t *testing.T) {
 
 		// Targets that don't exist should yield a value
 		// without a definition, as opposed to an error.
-		value, err := bct.computer.ComputeTargetValue(ctx, &model_analysis_pb.Target_Key{Label: "@@main+//foo:bar_out"}, e)
+		value, err := bct.computer.ComputeTargetValue(ctx, model_analysis_pb.Target_Key_builder{Label: "@@main+//foo:bar_out"}.Build(), e)
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_analysis_pb.Target_Value{}, value.Message)
 

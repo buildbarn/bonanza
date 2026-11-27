@@ -46,10 +46,10 @@ func getStarlarkFileProperties[TReference object.BasicReference, TMetadata model
 	patchedFile := model_core.Patch(e, f)
 	targetOutput := e.GetFileRootValue(
 		model_core.NewPatchedMessage(
-			&model_analysis_pb.FileRoot_Key{
+			model_analysis_pb.FileRoot_Key_builder{
 				File:            patchedFile.Message,
 				DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-			},
+			}.Build(),
 			patchedFile.Patcher,
 		),
 	)
@@ -69,7 +69,7 @@ func getStarlarkFileProperties[TReference object.BasicReference, TMetadata model
 		},
 		model_core.Message[*model_filesystem_pb.DirectoryReference, TReference]{},
 		[]model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{
-			model_core.Nested(targetOutput, targetOutput.Message.RootDirectory),
+			model_core.Nested(targetOutput, targetOutput.Message.GetRootDirectory()),
 		},
 	)
 	if err := path.Resolve(
@@ -507,11 +507,11 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 		patchedVariant := model_core.Patch(e, variant)
 		output := e.GetTargetOutputValue(
 			model_core.NewPatchedMessage(
-				&model_analysis_pb.TargetOutput_Key{
+				model_analysis_pb.TargetOutput_Key_builder{
 					Label:               targetLabel.String(),
 					Variant:             patchedVariant.Message,
 					PackageRelativePath: fileLabel.GetTargetName().String(),
-				},
+				}.Build(),
 				patchedVariant.Patcher,
 			),
 		)
@@ -519,19 +519,19 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			return PatchedFileRootValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
-		switch output.Message.GetDefinition().GetSource().(type) {
-		case *model_analysis_pb.TargetOutputDefinition_ActionId:
+		switch output.Message.GetDefinition().WhichSource() {
+		case model_analysis_pb.TargetOutputDefinition_ActionId_case:
 			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 			directoryReaders, gotDirectoryReaders := e.GetDirectoryAccessParametersObject(&model_analysis_pb.DirectoryAccessParameters_Key{})
 			patchedVariant := model_core.Patch(e, variant)
 			targetActionResult := e.GetTargetActionResultValue(
-				model_core.NewPatchedMessage(&model_analysis_pb.TargetActionResult_Key{
-					Id: &model_analysis_pb.TargetActionId{
+				model_core.NewPatchedMessage(model_analysis_pb.TargetActionResult_Key_builder{
+					Id: model_analysis_pb.TargetActionId_builder{
 						Label:    targetLabel.String(),
 						Variant:  patchedVariant.Message,
 						ActionId: output.Message.GetDefinition().GetActionId(),
-					},
-				},
+					}.Build(),
+				}.Build(),
 					patchedVariant.Patcher,
 				),
 			)
@@ -585,13 +585,13 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				// such dependencies exist.
 				patchedVariant := model_core.Patch(e, variant)
 				targetActionInputRoot := e.GetTargetActionInputRootValue(
-					model_core.NewPatchedMessage(&model_analysis_pb.TargetActionInputRoot_Key{
-						Id: &model_analysis_pb.TargetActionId{
+					model_core.NewPatchedMessage(model_analysis_pb.TargetActionInputRoot_Key_builder{
+						Id: model_analysis_pb.TargetActionId_builder{
 							Label:    targetLabel.String(),
 							Variant:  patchedVariant.Message,
 							ActionId: output.Message.GetDefinition().GetActionId(),
-						},
-					},
+						}.Build(),
+					}.Build(),
 						patchedVariant.Patcher,
 					),
 				)
@@ -666,7 +666,7 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				return PatchedFileRootValue[TMetadata]{}, errors.New("unknown directory layout")
 			}
 
-		case *model_analysis_pb.TargetOutputDefinition_ExpandTemplate_:
+		case model_analysis_pb.TargetOutputDefinition_ExpandTemplate_case:
 			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 			fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
 			fileReader, gotFileReader := e.GetFileAccessParametersObject(&model_analysis_pb.FileAccessParameters_Key{})
@@ -754,12 +754,12 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			}
 
 			return model_core.NewPatchedMessage(
-				&model_analysis_pb.FileRoot_Value{
+				model_analysis_pb.FileRoot_Value_builder{
 					RootDirectory: createdDirectory.Message.Message,
-				},
+				}.Build(),
 				createdDirectory.Message.Patcher,
 			), nil
-		case *model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_:
+		case model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_case:
 			// Output file was already computed during configuration.
 			// For example by calling ctx.actions.write() or
 			// ctx.actions.symlink(target_path=...).
@@ -796,12 +796,12 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			}
 
 			return model_core.NewPatchedMessage(
-				&model_analysis_pb.FileRoot_Value{
+				model_analysis_pb.FileRoot_Value_builder{
 					RootDirectory: createdDirectory.Message.Message,
-				},
+				}.Build(),
 				createdDirectory.Message.Patcher,
 			), nil
-		case *model_analysis_pb.TargetOutputDefinition_Symlink_:
+		case model_analysis_pb.TargetOutputDefinition_Symlink_case:
 			// Symlink to another file. Obtain the root of
 			// the target and add a symlink to it.
 			directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
@@ -810,10 +810,10 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 			patchedSymlinkTargetFile := model_core.Patch(e, symlinkTargetFile)
 			symlinkTarget := e.GetFileRootValue(
 				model_core.NewPatchedMessage(
-					&model_analysis_pb.FileRoot_Key{
+					model_analysis_pb.FileRoot_Key_builder{
 						File:            patchedSymlinkTargetFile.Message,
 						DirectoryLayout: key.Message.GetDirectoryLayout(),
-					},
+					}.Build(),
 					patchedSymlinkTargetFile.Patcher,
 				),
 			)
@@ -910,9 +910,9 @@ func (baseComputer[TReference, TMetadata]) ComputeFileRootValue(ctx context.Cont
 				return PatchedFileRootValue[TMetadata]{}, err
 			}
 			return model_core.NewPatchedMessage(
-				&model_analysis_pb.FileRoot_Value{
+				model_analysis_pb.FileRoot_Value_builder{
 					RootDirectory: createdRootDirectory.Message.Message,
-				},
+				}.Build(),
 				createdRootDirectory.Message.Patcher,
 			), nil
 		default:
@@ -1008,9 +1008,9 @@ func createFileRootFromChangeTrackingDirectory[TReference object.BasicReference,
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.FileRoot_Value{
+		model_analysis_pb.FileRoot_Value_builder{
 			RootDirectory: createdRootDirectory.Message.Message,
-		},
+		}.Build(),
 		createdRootDirectory.Message.Patcher,
 	), nil
 }

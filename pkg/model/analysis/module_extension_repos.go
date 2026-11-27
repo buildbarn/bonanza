@@ -162,19 +162,19 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ModuleExtensionRepos_Value_Repo, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TMetadata] {
 				var firstName string
-				switch childNodes.Message[0].GetLevel().(type) {
-				case *model_analysis_pb.ModuleExtensionRepos_Value_Repo_Leaf:
+				switch childNodes.Message[0].WhichLevel() {
+				case model_analysis_pb.ModuleExtensionRepos_Value_Repo_Leaf_case:
 					firstName = childNodes.Message[0].GetLeaf().GetName()
-				case *model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent_:
+				case model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent_case:
 					firstName = childNodes.Message[0].GetParent().GetFirstName()
 				}
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ModuleExtensionRepos_Value_Repo {
-					return &model_analysis_pb.ModuleExtensionRepos_Value_Repo{
-						Level: &model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent_{Parent: &model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent{
+					return model_analysis_pb.ModuleExtensionRepos_Value_Repo_builder{
+						Parent: model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent_builder{
 							Reference: patcher.AddDecodableReference(createdObject),
 							FirstName: firstName,
-						}},
-					}
+						}.Build(),
+					}.Build()
 				})
 			}),
 		),
@@ -229,9 +229,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 
 		// Resolve the module extension object that was declared within
 		// Starlark code.
-		usedModuleExtensionValue := e.GetUsedModuleExtensionValue(&model_analysis_pb.UsedModuleExtension_Key{
+		usedModuleExtensionValue := e.GetUsedModuleExtensionValue(model_analysis_pb.UsedModuleExtension_Key_builder{
 			ModuleExtension: moduleExtension.String(),
-		})
+		}.Build())
 		if !usedModuleExtensionValue.IsSet() {
 			return PatchedModuleExtensionReposValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
@@ -242,9 +242,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 		if err != nil {
 			return PatchedModuleExtensionReposValue[TMetadata]{}, fmt.Errorf("invalid module extension identifier %#v: %w", moduleExtensionIdentifierStr, err)
 		}
-		moduleExtensionDefinitionValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
+		moduleExtensionDefinitionValue := e.GetCompiledBzlFileGlobalValue(model_analysis_pb.CompiledBzlFileGlobal_Key_builder{
 			Identifier: moduleExtensionIdentifier.String(),
-		})
+		}.Build())
 		if !moduleExtensionDefinitionValue.IsSet() {
 			return PatchedModuleExtensionReposValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
@@ -472,9 +472,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 	for _, name := range slices.Sorted(maps.Keys(repos)) {
 		repo := repos[name]
 		if err := treeBuilder.PushChild(model_core.NewPatchedMessage(
-			&model_analysis_pb.ModuleExtensionRepos_Value_Repo{
-				Level: &model_analysis_pb.ModuleExtensionRepos_Value_Repo_Leaf{Leaf: repo.Message},
-			},
+			model_analysis_pb.ModuleExtensionRepos_Value_Repo_builder{
+				Leaf: proto.ValueOrDefault(repo.Message),
+			}.Build(),
 			repo.Patcher,
 		)); err != nil {
 			return PatchedModuleExtensionReposValue[TMetadata]{}, err
@@ -487,9 +487,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionReposValue(c
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_analysis_pb.ModuleExtensionRepos_Value{
+		model_analysis_pb.ModuleExtensionRepos_Value_builder{
 			Repos: reposList.Message,
-		},
+		}.Build(),
 		reposList.Patcher,
 	), nil
 }
